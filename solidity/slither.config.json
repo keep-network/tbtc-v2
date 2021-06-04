@@ -1,0 +1,5 @@
+{
+    "detectors_to_exclude": "assembly,naming-convention,solc-version,timestamp,too-many-digits",
+    "filter_paths": "contracts/test|node_modules"
+  }
+  
