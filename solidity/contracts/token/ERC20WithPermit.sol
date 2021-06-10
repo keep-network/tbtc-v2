@@ -21,22 +21,24 @@ import "./IERC20WithPermit.sol";
 contract ERC20WithPermit is IERC20WithPermit, Ownable {
     using SafeMath for uint256;
 
-    uint8 public constant decimals = 18;
-
-    string public name;
-    string public symbol;
-
-    uint256 public override totalSupply;
     mapping(address => uint256) public override balanceOf;
     mapping(address => mapping(address => uint256)) public override allowance;
 
-    uint256 public cachedChainId;
-    bytes32 public cachedDomainSeparator;
+    mapping(address => uint256) public override nonces;
+
+    uint256 public immutable cachedChainId;
+    bytes32 public immutable cachedDomainSeparator;
 
     // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     bytes32 public constant override PERMIT_TYPEHASH =
         0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
-    mapping(address => uint256) public override nonces;
+
+    uint256 public override totalSupply;
+
+    string public name;
+    string public symbol;
+
+    uint8 public constant decimals = 18;
 
     constructor(string memory _name, string memory _symbol) {
         name = _name;
