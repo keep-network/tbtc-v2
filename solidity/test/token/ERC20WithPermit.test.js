@@ -1,8 +1,8 @@
 const { expect } = require("chai")
-const { 
+const {
   lastBlockTime,
   to1e18,
-  ZERO_ADDRESS
+  ZERO_ADDRESS,
 } = require("../helpers/contract-test-helpers")
 
 describe("ERC20WithPermit", () => {
