@@ -1,5 +1,9 @@
 const { expect } = require("chai")
-const { to1e18, ZERO_ADDRESS } = require("../helpers/contract-test-helpers")
+const { 
+  lastBlockTime,
+  to1e18,
+  ZERO_ADDRESS
+} = require("../helpers/contract-test-helpers")
 
 describe("ERC20WithPermit", () => {
   // default Hardhat's networks blockchain, see https://hardhat.org/config/
@@ -592,15 +596,19 @@ describe("ERC20WithPermit", () => {
   })
 
   describe("permit", () => {
-    const timestamp2020 = 1577836633 // Jan 1, 2020
-    const timestamp2030 = 1893452400 // Jan 1, 2030
-
     const permittingHolderBalance = to1e18(650000)
     let permittingHolder
+
+    let yesterday
+    let tomorrow
 
     beforeEach(async () => {
       permittingHolder = await ethers.Wallet.createRandom()
       await token.mint(permittingHolder.address, permittingHolderBalance)
+
+      const lastBlockTimestamp = await lastBlockTime()
+      yesterday = lastBlockTimestamp - 86400 // -1 day
+      tomorrow = lastBlockTimestamp + 86400 // +1 day
     })
 
     const getApproval = async (amount, spender, deadline) => {
@@ -656,7 +664,7 @@ describe("ERC20WithPermit", () => {
 
     context("when permission expired", () => {
       it("should revert", async () => {
-        const deadline = timestamp2020
+        const deadline = yesterday
         const signature = await getApproval(
           permittingHolderBalance,
           anotherAccount.address,
@@ -681,7 +689,7 @@ describe("ERC20WithPermit", () => {
 
     context("when permission has an invalid signature", () => {
       it("should revert", async () => {
-        const deadline = timestamp2030
+        const deadline = tomorrow
         const signature = await getApproval(
           permittingHolderBalance,
           anotherAccount.address,
@@ -706,7 +714,7 @@ describe("ERC20WithPermit", () => {
       context("when the sender has enough balance", () => {
         const allowance = permittingHolderBalance
         it("should emit an approval event", async () => {
-          const deadline = timestamp2030
+          const deadline = tomorrow
           const signature = await getApproval(
             allowance,
             anotherAccount.address,
@@ -736,7 +744,7 @@ describe("ERC20WithPermit", () => {
 
         context("when there was no approved amount before", () => {
           it("should approve the requested amount", async () => {
-            const deadline = timestamp2030
+            const deadline = tomorrow
             const signature = await getApproval(
               allowance,
               anotherAccount.address,
@@ -766,7 +774,7 @@ describe("ERC20WithPermit", () => {
 
         context("when the spender had an approved amount", () => {
           beforeEach(async () => {
-            const deadline = timestamp2030
+            const deadline = tomorrow
             const initialAllowance = allowance.sub(10)
             const signature = await getApproval(
               initialAllowance,
@@ -788,7 +796,7 @@ describe("ERC20WithPermit", () => {
           })
 
           it("should approve the requested amount and replaces the previous one", async () => {
-            const deadline = timestamp2030
+            const deadline = tomorrow
             const signature = await getApproval(
               allowance,
               anotherAccount.address,
@@ -820,7 +828,7 @@ describe("ERC20WithPermit", () => {
       context("when the sender does not have enough balance", () => {
         const allowance = permittingHolderBalance.add(1)
         it("should emit an approval event", async () => {
-          const deadline = timestamp2030
+          const deadline = tomorrow
           const signature = await getApproval(
             allowance,
             anotherAccount.address,
@@ -850,7 +858,7 @@ describe("ERC20WithPermit", () => {
 
         context("when there was no approved amount before", () => {
           it("should approve the requested amount", async () => {
-            const deadline = timestamp2030
+            const deadline = tomorrow
             const signature = await getApproval(
               allowance,
               anotherAccount.address,
@@ -880,7 +888,7 @@ describe("ERC20WithPermit", () => {
 
         context("when the spender had an approved amount", () => {
           beforeEach(async () => {
-            const deadline = timestamp2030
+            const deadline = tomorrow
             const initialAllowance = allowance.sub(10)
             const signature = await getApproval(
               initialAllowance,
@@ -902,7 +910,7 @@ describe("ERC20WithPermit", () => {
           })
 
           it("should approve the requested amount and replaces the previous one", async () => {
-            const deadline = timestamp2030
+            const deadline = tomorrow
             const signature = await getApproval(
               allowance,
               anotherAccount.address,
@@ -935,7 +943,7 @@ describe("ERC20WithPermit", () => {
     context("when the spender is the zero address", () => {
       const allowance = permittingHolderBalance
       it("should revert", async () => {
-        const deadline = timestamp2030
+        const deadline = tomorrow
         const signature = await getApproval(allowance, ZERO_ADDRESS, deadline)
 
         await expect(
@@ -961,7 +969,7 @@ describe("ERC20WithPermit", () => {
       )
 
       beforeEach(async () => {
-        const deadline = timestamp2030
+        const deadline = tomorrow
         const signature = await getApproval(
           allowance,
           anotherAccount.address,
