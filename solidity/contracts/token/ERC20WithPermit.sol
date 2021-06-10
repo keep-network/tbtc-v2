@@ -76,15 +76,6 @@ contract ERC20WithPermit is IERC20WithPermit, Ownable {
         return true;
     }
 
-    function approve(address spender, uint256 amount)
-        external
-        override
-        returns (bool)
-    {
-        _approve(msg.sender, spender, amount);
-        return true;
-    }
-
     function permit(
         address owner,
         address spender,
@@ -153,6 +144,15 @@ contract ERC20WithPermit is IERC20WithPermit, Ownable {
             )
         );
         _burn(account, amount);
+    }
+
+    function approve(address spender, uint256 amount)
+        public
+        override
+        returns (bool)
+    {
+        _approve(msg.sender, spender, amount);
+        return true;
     }
 
     /* solhint-disable-next-line func-name-mixedcase */
