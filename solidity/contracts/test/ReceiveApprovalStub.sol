@@ -2,8 +2,6 @@
 
 pragma solidity <0.9.0;
 
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-
 import "../token/TBTCToken.sol";
 
 contract ReceiveApprovalStub is IReceiveApproval {
