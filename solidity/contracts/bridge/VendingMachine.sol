@@ -11,13 +11,17 @@ import "../GovernanceUtils.sol";
 
 contract VendingMachine is Ownable {
     using SafeERC20 for IERC20;
+    using SafeERC20 for TBTCToken;
 
     uint256 public constant GOVERNANCE_DELAY = 12 hours;
+    uint256 public constant FLOATING_POINT_DIVISOR = 1e18;
 
     IERC20 public immutable tbtcV1;
     TBTCToken public immutable tbtcV2;
 
-    uint256 public unmintFee;
+    // portion of the amount being unminted in 1e18 precision,
+    // e.g. 0.001 = 1000000000000000
+    uint256 public unmintFee; 
     uint256 public newUnmintFee;
     uint256 public unmintFeeChangeInitiated;
 
@@ -25,6 +29,7 @@ contract VendingMachine is Ownable {
     event UnmintFeeUpdated(uint256 newUnmintFee);
 
     event Minted(address recipient, uint256 amount);
+    event Unminted(address recipient, uint256 amount, uint256 fee);
 
     modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
         GovernanceUtils.onlyAfterGovernanceDelay(
@@ -59,6 +64,20 @@ contract VendingMachine is Ownable {
         _mint(from, amount);
     }
 
+    function unmint(uint256 amount) external {
+        uint256 fee = unmintFeeFor(amount);
+
+        require(
+            tbtcV2.balanceOf(msg.sender) >= amount + fee,
+            "Amount + fee exceeds TBTC v2 balance"
+        );
+
+        tbtcV2.safeTransferFrom(msg.sender, address(this), fee);
+        tbtcV2.burnFrom(msg.sender, amount);
+        tbtcV1.safeTransfer(msg.sender, amount);
+        emit Unminted(msg.sender, amount, fee);
+    }
+
     function beginUnmintFeeUpdate(uint256 _newUnmintFee) external onlyOwner {
         newUnmintFee = _newUnmintFee;
         /* solhint-disable-next-line not-rely-on-time */
@@ -84,6 +103,10 @@ contract VendingMachine is Ownable {
                 unmintFeeChangeInitiated,
                 GOVERNANCE_DELAY
             );
+    }
+
+    function unmintFeeFor(uint256 amount) public view returns (uint256) {
+        return (amount * unmintFee) / FLOATING_POINT_DIVISOR;
     }
 
     function _mint(address tokenOwner, uint256 amount) internal {
