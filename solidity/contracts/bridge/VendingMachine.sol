@@ -21,7 +21,7 @@ contract VendingMachine is Ownable {
 
     // portion of the amount being unminted in 1e18 precision,
     // e.g. 0.001 = 1000000000000000
-    uint256 public unmintFee; 
+    uint256 public unmintFee;
     uint256 public newUnmintFee;
     uint256 public unmintFeeChangeInitiated;
 
@@ -76,6 +76,13 @@ contract VendingMachine is Ownable {
         tbtcV2.burnFrom(msg.sender, amount);
         tbtcV1.safeTransfer(msg.sender, amount);
         emit Unminted(msg.sender, amount, fee);
+    }
+
+    function withdrawFees(address recipient, uint256 amount)
+        external
+        onlyOwner
+    {
+        tbtcV2.safeTransfer(recipient, amount);
     }
 
     function beginUnmintFeeUpdate(uint256 _newUnmintFee) external onlyOwner {

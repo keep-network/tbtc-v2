@@ -279,7 +279,7 @@ describe("VendingMachine", () => {
 
   describe("unmint", () => {
     beforeEach(async () => {
-      vendingMachine.connect(tokenHolder).mint(initialBalance)
+      await vendingMachine.connect(tokenHolder).mint(initialBalance)
       await tbtcV2
         .connect(tokenHolder)
         .approve(vendingMachine.address, initialBalance)
@@ -332,6 +332,54 @@ describe("VendingMachine", () => {
         await expect(tx)
           .to.emit(vendingMachine, "Unminted")
           .withArgs(tokenHolder.address, unmintAmount, unmintFee)
+      })
+    })
+  })
+
+  describe("withdrawFees", () => {
+    const unmintAmount = to1e18(4)
+    let unmintFee
+
+    beforeEach(async () => {
+      await vendingMachine.connect(tokenHolder).mint(initialBalance)
+      await tbtcV2
+        .connect(tokenHolder)
+        .approve(vendingMachine.address, initialBalance)
+      unmintFee = await vendingMachine.unmintFeeFor(unmintAmount)
+      await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(thirdParty)
+            .withdrawFees(thirdParty.address, unmintFee)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when caller is the owner", () => {
+      let withdrawnFee
+
+      beforeEach(async () => {
+        withdrawnFee = unmintFee.sub(1)
+
+        await vendingMachine
+          .connect(governance)
+          .withdrawFees(thirdParty.address, withdrawnFee)
+      })
+
+      it("should withdraw the provided amount of fees", async () => {
+        expect(await tbtcV2.balanceOf(thirdParty.address)).is.equal(
+          withdrawnFee
+        )
+      })
+
+      it("should leave the rest of fees in VendingMachine", async () => {
+        expect(await tbtcV2.balanceOf(vendingMachine.address)).is.equal(
+          unmintFee.sub(withdrawnFee)
+        )
       })
     })
   })
