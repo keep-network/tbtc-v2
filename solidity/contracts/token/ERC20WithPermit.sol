@@ -136,6 +136,23 @@ contract ERC20WithPermit is IERC20WithPermit, Ownable {
         _burn(account, amount);
     }
 
+    function approveAndCall(
+        address spender,
+        uint256 value,
+        bytes memory extraData
+    ) external override returns (bool) {
+        if (approve(spender, value)) {
+            IReceiveApproval(spender).receiveApproval(
+                msg.sender,
+                value,
+                address(this),
+                extraData
+            );
+            return true;
+        }
+        return false;
+    }
+
     function approve(address spender, uint256 amount)
         public
         override

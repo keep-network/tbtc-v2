@@ -1013,4 +1013,57 @@ describe("ERC20WithPermit", () => {
       })
     })
   })
+
+  describe("approveAndCall", () => {
+    const amount = initialSupply
+    let approvalReceiver
+
+    beforeEach(async () => {
+      const ReceiveApprovalStub = await ethers.getContractFactory(
+        "ReceiveApprovalStub"
+      )
+      approvalReceiver = await ReceiveApprovalStub.deploy()
+      await approvalReceiver.deployed()
+    })
+
+    context("when approval fails", () => {
+      it("should revert", async () => {
+        await expect(
+          token.connect(initialHolder).approveAndCall(ZERO_ADDRESS, amount, [])
+        ).to.be.reverted
+      })
+    })
+
+    context("when receiveApproval fails", () => {
+      beforeEach(async () => {
+        await approvalReceiver.setShouldRevert(true)
+      })
+
+      it("should revert", async () => {
+        await expect(
+          token
+            .connect(initialHolder)
+            .approveAndCall(approvalReceiver.address, amount, [])
+        ).to.be.revertedWith("i am your father luke")
+      })
+    })
+
+    it("approves the provided amount for transfer", async () => {
+      await token
+        .connect(initialHolder)
+        .approveAndCall(approvalReceiver.address, amount, [])
+      expect(
+        await token.allowance(initialHolder.address, approvalReceiver.address)
+      ).to.equal(amount)
+    })
+
+    it("calls approveAndCall with the provided parameters", async () => {
+      const tx = await token
+        .connect(initialHolder)
+        .approveAndCall(approvalReceiver.address, amount, "0xbeef")
+      await expect(tx)
+        .to.emit(approvalReceiver, "ApprovalReceived")
+        .withArgs(initialHolder.address, amount, token.address, "0xbeef")
+    })
+  })
 })
