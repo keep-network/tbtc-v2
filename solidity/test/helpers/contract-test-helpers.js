@@ -7,7 +7,14 @@ async function lastBlockTime() {
   return (await ethers.provider.getBlock("latest")).timestamp
 }
 
+async function increaseTime(time) {
+  const now = await lastBlockTime()
+  await ethers.provider.send("evm_setNextBlockTimestamp", [now + time])
+  await ethers.provider.send("evm_mine")
+}
+
 module.exports.to1e18 = to1e18
 module.exports.lastBlockTime = lastBlockTime
+module.exports.increaseTime = increaseTime
 
 module.exports.ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"

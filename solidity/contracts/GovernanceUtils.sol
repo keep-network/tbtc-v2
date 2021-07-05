@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity 0.8.4;
+
+library GovernanceUtils {
+    /// @notice Reverts if the governance delay has not passed since
+    ///         the change initiated time or if the change has not been
+    ///         initiated.
+    /// @param changeTimestamp The timestamp at which the change has been
+    ///        initiated.
+    /// @param delay Governance delay.
+    function onlyAfterGovernanceDelay(uint256 changeTimestamp, uint256 delay)
+        internal
+        view
+    {
+        require(changeTimestamp > 0, "Change not initiated");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp - changeTimestamp >= delay,
+            "Governance delay has not elapsed"
+        );
+    }
+
+    /// @notice Gets the time remaining until the governable parameter update
+    ///         can be committed.
+    /// @param changeTimestamp Timestamp indicating the beginning of the change
+    /// @param delay Governance delay
+    /// @return Remaining time in seconds
+    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
+        internal
+        view
+        returns (uint256)
+    {
+        require(changeTimestamp > 0, "Change not initiated");
+        /* solhint-disable-next-line not-rely-on-time */
+        uint256 elapsed = block.timestamp - changeTimestamp;
+        if (elapsed >= delay) {
+            return 0;
+        } else {
+            return delay - elapsed;
+        }
+    }
+}
