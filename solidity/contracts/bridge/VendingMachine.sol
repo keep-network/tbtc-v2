@@ -13,7 +13,7 @@ contract VendingMachine is Ownable {
     using SafeERC20 for IERC20;
     using SafeERC20 for TBTCToken;
 
-    uint256 public constant GOVERNANCE_DELAY = 12 hours;
+    uint256 public constant GOVERNANCE_DELAY = 12 hours; // TODO: is it enough? maybe 48h?
     uint256 public constant FLOATING_POINT_DIVISOR = 1e18;
 
     IERC20 public immutable tbtcV1;
@@ -25,8 +25,17 @@ contract VendingMachine is Ownable {
     uint256 public newUnmintFee;
     uint256 public unmintFeeChangeInitiated;
 
+    address public newVendingMachine;
+    uint256 public vendingMachineUpdateInitiated;
+
     event UnmintFeeUpdateStarted(uint256 newUnmintFee, uint256 timestamp);
     event UnmintFeeUpdated(uint256 newUnmintFee);
+
+    event VendingMachineUpdateStarted(
+        address newVendingMachine,
+        uint256 timestamp
+    );
+    event VendingMachineUpdated(address newVendingMachine);
 
     event Minted(address recipient, uint256 amount);
     event Unminted(address recipient, uint256 amount, uint256 fee);
@@ -98,16 +107,50 @@ contract VendingMachine is Ownable {
         onlyOwner
         onlyAfterGovernanceDelay(unmintFeeChangeInitiated)
     {
+        emit UnmintFeeUpdated(newUnmintFee);
         unmintFee = newUnmintFee;
         newUnmintFee = 0;
         unmintFeeChangeInitiated = 0;
-        emit UnmintFeeUpdated(unmintFee);
+    }
+
+    function beginVendingMachineUpdate(address _newVendingMachine)
+        external
+        onlyOwner
+    {
+        newVendingMachine = _newVendingMachine;
+        /* solhint-disable-next-line not-rely-on-time */
+        vendingMachineUpdateInitiated = block.timestamp;
+        /* solhint-disable-next-line not-rely-on-time */
+        emit VendingMachineUpdateStarted(_newVendingMachine, block.timestamp);
+    }
+
+    function finalizeVendingMachineUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(vendingMachineUpdateInitiated)
+    {
+        emit VendingMachineUpdated(newVendingMachine);
+        tbtcV2.transferOwnership(newVendingMachine);
+        newVendingMachine = address(0);
+        vendingMachineUpdateInitiated = 0;
     }
 
     function getRemainingUnmintFeeUpdateTime() external view returns (uint256) {
         return
             GovernanceUtils.getRemainingChangeTime(
                 unmintFeeChangeInitiated,
+                GOVERNANCE_DELAY
+            );
+    }
+
+    function getRemainingVendingMachineUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            GovernanceUtils.getRemainingChangeTime(
+                vendingMachineUpdateInitiated,
                 GOVERNANCE_DELAY
             );
     }

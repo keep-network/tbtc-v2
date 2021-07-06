@@ -175,7 +175,7 @@ describe("VendingMachine", () => {
         )
       })
 
-      it("should emit the UnmintFeeUpdateStarted event", async () => {
+      it("should emit UnmintFeeUpdateStarted event", async () => {
         await expect(tx)
           .to.emit(vendingMachine, "UnmintFeeUpdateStarted")
           .withArgs(newUnmintFee, await lastBlockTime())
@@ -193,7 +193,7 @@ describe("VendingMachine", () => {
     })
 
     context("when caller is the owner", () => {
-      context("when update process it not initialized", () => {
+      context("when update process is not initialized", () => {
         it("should revert", async () => {
           await expect(
             vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
@@ -380,6 +380,134 @@ describe("VendingMachine", () => {
         expect(await tbtcV2.balanceOf(vendingMachine.address)).is.equal(
           unmintFee.sub(withdrawnFee)
         )
+      })
+    })
+  })
+
+  describe("beginVendingMachineUpdate", () => {
+    let newVendingMachine
+
+    beforeEach(async () => {
+      const VendingMachine = await ethers.getContractFactory("VendingMachine")
+      newVendingMachine = await VendingMachine.deploy(
+        tbtcV1.address,
+        tbtcV2.address,
+        unmintFee
+      )
+      await newVendingMachine.deployed()
+    })
+
+    describe("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(thirdParty)
+            .beginVendingMachineUpdate(newVendingMachine.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    describe("when caller is the owner", () => {
+      let tx
+
+      beforeEach(async () => {
+        tx = await vendingMachine
+          .connect(governance)
+          .beginVendingMachineUpdate(newVendingMachine.address)
+      })
+
+      it("should not transfer token ownership", async () => {
+        expect(await tbtcV2.owner()).is.equal(vendingMachine.address)
+      })
+
+      it("should start the governance delay timer", async () => {
+        expect(
+          await vendingMachine.getRemainingVendingMachineUpdateTime()
+        ).to.equal(
+          43200 // 12h contract governance delay
+        )
+      })
+
+      it("should emit VendingMachineUpdateStarted event", async () => {
+        await expect(tx)
+          .to.emit(vendingMachine, "VendingMachineUpdateStarted")
+          .withArgs(newVendingMachine.address, await lastBlockTime())
+      })
+    })
+  })
+
+  describe("finalizeVendingMachineUpdate", () => {
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine.connect(thirdParty).finalizeVendingMachineUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when caller is the owner", () => {
+      context("when update process is not initialized", () => {
+        it("should revert", async () => {
+          await expect(
+            vendingMachine.connect(governance).finalizeVendingMachineUpdate()
+          ).to.be.revertedWith("Change not initiated")
+        })
+      })
+
+      context("when update process is initialized", () => {
+        let newVendingMachine
+
+        beforeEach(async () => {
+          const VendingMachine = await ethers.getContractFactory(
+            "VendingMachine"
+          )
+          newVendingMachine = await VendingMachine.deploy(
+            tbtcV1.address,
+            tbtcV2.address,
+            unmintFee
+          )
+          await newVendingMachine.deployed()
+
+          await vendingMachine
+            .connect(governance)
+            .beginVendingMachineUpdate(newVendingMachine.address)
+        })
+
+        context("when governance delay has not passed", () => {
+          it("should revert", async () => {
+            await increaseTime(39600) // +11h
+            await expect(
+              vendingMachine.connect(governance).finalizeVendingMachineUpdate()
+            ).to.be.revertedWith("Governance delay has not elapsed")
+          })
+        })
+
+        context("when governance delay passed", () => {
+          let tx
+
+          beforeEach(async () => {
+            await increaseTime(43200) // +12h contract governance delay
+            tx = await vendingMachine
+              .connect(governance)
+              .finalizeVendingMachineUpdate()
+          })
+
+          it("should transfer token ownership to the new VendingMachine", async () => {
+            expect(await tbtcV2.owner()).to.equal(newVendingMachine.address)
+          })
+
+          it("should emit VendingMachineUpdated event", async () => {
+            await expect(tx)
+              .to.emit(vendingMachine, "VendingMachineUpdated")
+              .withArgs(newVendingMachine.address)
+          })
+
+          it("should reset the governance delay timer", async () => {
+            await expect(
+              vendingMachine.getRemainingVendingMachineUpdateTime()
+            ).to.be.revertedWith("Change not initiated")
+          })
+        })
       })
     })
   })
