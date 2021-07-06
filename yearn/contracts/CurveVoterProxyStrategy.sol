@@ -3,11 +3,10 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@yearnvaults/contracts/contracts/BaseStrategy.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@keep-network/yearn-vaults/contracts/BaseStrategy.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/Math.sol";
 
 /// @notice Interface for the CurveFi pool.
 /// @dev This is an interface with just a few function signatures of the pool.
@@ -60,9 +59,21 @@ interface IUniswapV2Router {
     ) external;
 }
 
+/// @notice Interface for the optional metadata functions from the ERC20 standard.
+interface IERC20Metadata {
+    function symbol() external view returns (string memory);
+}
+
 /// @title CurveVoterProxyStrategy
 /// @notice This strategy is meant to be used with the Curve tBTC v2 pool vault.
 ///         TODO: Describe how this strategy works in details.
+/// @dev Implementation is based on:
+///      - General Yearn strategy template
+///        https://github.com/yearn/brownie-strategy-mix
+///      - Curve voter proxy strategy template
+///        https://github.com/orbxball/curve-voter-proxy
+///      - Curve voter proxy implementation for tBTC v1 vault
+///        https://github.com/orbxball/btc-curve-voter-proxy
 contract CurveVoterProxyStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -132,7 +143,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     /// @notice Sets the strategy proxy contract address.
     /// @dev Can be called only by the governance.
     /// @param _strategyProxy Address of the new proxy.
-    function setStrategyProxy(address _strategyProxy) external onlyGovernance {
+    function setStrategyProxy(address _strategyProxy) external {
+        _onlyGovernance();
         strategyProxy = _strategyProxy;
     }
 
@@ -141,7 +153,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     /// @dev Can be called only by the strategist and governance.
     /// @param _keepCRV Portion as counter of a fraction denominated by the
     ///        DENOMINATOR constant.
-    function setKeepCRV(uint256 _keepCRV) external onlyAuthorized {
+    function setKeepCRV(uint256 _keepCRV) external {
+        _onlyAuthorized();
         keepCRV = _keepCRV;
     }
 
@@ -150,7 +163,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     /// @dev Can be called only by the strategist and governance.
     /// @param isUniswap If true, set Uniswap as current DEX.
     ///        Otherwise, set Sushiswap.
-    function switchDex(bool isUniswap) external onlyAuthorized {
+    function switchDex(bool isUniswap) external {
+        _onlyAuthorized();
         if (isUniswap) dex = uniswap;
         else dex = sushiswap;
     }
@@ -191,7 +205,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///         This strategy implements the aforementioned behavior by taking
     ///         its balance of the vault's underlying token and depositing it to
     ///         the Curve pool's gauge via the strategy proxy contract.
-    /// @param debtOutstanding will be 0 if the strategy is not past the
+    /// @param debtOutstanding Will be 0 if the strategy is not past the
     ///        configured debt limit, otherwise its value will be how far past
     ///        the debt limit the strategy is. The strategy's debt limit is
     ///        configured in the vault.
@@ -237,8 +251,9 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///      always be maintained.
     /// @param amountNeeded Amount of the vault's underlying tokens needed by
     ///        the liquidation process.
-    /// @return Amount of vault's underlying tokens made available by the
-    ///         liquidation and the loss amount.
+    /// @return liquidatedAmount Amount of vault's underlying tokens made
+    ///         available by the liquidation.
+    /// @return loss Amount of the loss.
     function liquidatePosition(uint256 amountNeeded)
         internal
         override
@@ -255,6 +270,32 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         } else {
             liquidatedAmount = amountNeeded;
         }
+    }
+
+    /// @notice This method is defined in the BaseStrategy contract and is meant
+    ///         to liquidate everything and return the amount that got freed.
+    ///         This strategy implements the aforementioned behavior by withdrawing
+    ///         all vault's underlying tokens from the Curve pool's gauge.
+    /// @dev This function is used during emergency exit instead of prepareReturn
+    ///      to liquidate all of the strategy's positions back to the vault.
+    /// @return amountFreed Amount that got freed.
+    function liquidateAllPositions()
+        internal
+        override
+        returns (uint256 amountFreed)
+    {
+        IStrategyProxy(strategyProxy).withdrawAll(
+            tbtcCurvePoolGauge,
+            address(want)
+        );
+
+        // Yearn docs doesn't specify clear enough what exactly should be
+        // returned here. It may be either the total balance after withdrawAll
+        // or just the amount withdrawn. Currently opting for the former
+        // because of https://github.com/yearn/yearn-vaults/pull/311#discussion_r625588313.
+        // Also, usage of this result in the harvest method in the BaseStrategy
+        // seems to confirm that.
+        return want.balanceOf(address(this));
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant
@@ -300,18 +341,17 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///         in the future. Apart from that, this strategy also sells
     ///         the Curve pool's gauge additional rewards, generated using the
     ///         Synthetix staking rewards contract.
-    /// @param debtOutstanding will be 0 if the strategy is not past the
+    /// @param debtOutstanding Will be 0 if the strategy is not past the
     ///        configured debt limit, otherwise its value will be how far past
     ///        the debt limit the strategy is. The strategy's debt limit is
     ///        configured in the vault.
-    /// @return Realized profits and/or realized losses incurred. Specifically,
-    ///         the total amounts of profits/losses/debt payments (in want tokens)
-    ///         for the vault's accounting (e.g. want.balanceOf(this) >=
-    ///         debtPayment + profit - loss). The value of debtPayment should
-    ///         be less than or equal to debtOutstanding. It is okay for it to
-    ///         be less than debtOutstanding, as that should only used as a
-    ///         guide for how much is left to pay back. Payments should be made
-    ///         to minimize loss from slippage, debt, withdrawal fees, etc.
+    /// @return profit Amount of realized profit.
+    /// @return loss Amount of realized loss.
+    /// @return debtPayment Amount of repaid debt. The value of debtPayment
+    ///         should be less than or equal to debtOutstanding. It is okay for
+    ///         it to be less than debtOutstanding, as that should only used as
+    ///         a guide for how much is left to pay back. Payments should be
+    ///         made to minimize loss from slippage, debt, withdrawal fees, etc.
     function prepareReturn(uint256 debtOutstanding)
         internal
         override
@@ -353,7 +393,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
         // Claim additional reward tokens from the gauge if applicable.
         if (tbtcCurvePoolGaugeReward != address(0)) {
-            IStrategyProxy(proxy).claimRewards(
+            IStrategyProxy(strategyProxy).claimRewards(
                 tbtcCurvePoolGauge,
                 tbtcCurvePoolGaugeReward
             );
@@ -438,5 +478,21 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         address[] memory protected = new address[](1);
         protected[0] = crv;
         return protected;
+    }
+
+    /// @notice This method is defined in the BaseStrategy contract and is meant
+    ///         to provide an accurate conversion from amtInWei (denominated in wei)
+    ///         to want token (using the native decimal characteristics of want token).
+    /// @param amtInWei The amount (in wei/1e-18 ETH) to convert to want tokens.
+    /// @return The amount in want tokens.
+    function ethToWant(uint256 amtInWei)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        // TODO create an accurate price oracle
+        return amtInWei;
     }
 }
