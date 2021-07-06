@@ -67,12 +67,3 @@ interface IERC20WithPermit is IERC20 {
     /* solhint-disable-next-line func-name-mixedcase */
     function PERMIT_TYPEHASH() external pure returns (bytes32);
 }
-
-interface IReceiveApproval {
-    function receiveApproval(
-        address _from,
-        uint256 _value,
-        address _token,
-        bytes calldata _extraData
-    ) external;
-}

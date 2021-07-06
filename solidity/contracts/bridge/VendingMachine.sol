@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../token/TBTCToken.sol";
+import "../token/IReceiveApproval.sol";
 import "../GovernanceUtils.sol";
 
 /// @title TBTC v2 Vending Machine
@@ -21,7 +22,7 @@ import "../GovernanceUtils.sol";
 ///         TBTC v2 token ownership can be updated in a two-step,
 ///         governance-controlled process. It is expected that this process
 ///         will be executed before the v2 system launch.
-contract VendingMachine is Ownable {
+contract VendingMachine is Ownable, IReceiveApproval {
     using SafeERC20 for IERC20;
     using SafeERC20 for TBTCToken;
 
@@ -105,7 +106,7 @@ contract VendingMachine is Ownable {
         uint256 amount,
         address token,
         bytes calldata
-    ) external {
+    ) external override {
         require(token == address(tbtcV1), "Token is not TBTC v1");
         require(msg.sender == address(tbtcV1), "Only TBTC v1 caller allowed");
         _mint(from, amount);
