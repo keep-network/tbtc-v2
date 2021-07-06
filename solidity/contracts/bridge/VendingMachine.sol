@@ -13,7 +13,7 @@ contract VendingMachine is Ownable {
     using SafeERC20 for IERC20;
     using SafeERC20 for TBTCToken;
 
-    uint256 public constant GOVERNANCE_DELAY = 12 hours; // TODO: is it enough? maybe 48h?
+    uint256 public constant GOVERNANCE_DELAY = 48 hours;
     uint256 public constant FLOATING_POINT_DIVISOR = 1e18;
 
     IERC20 public immutable tbtcV1;
