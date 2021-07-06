@@ -4,6 +4,7 @@ const {
   lastBlockTime,
   to1e18,
   to1ePrecision,
+  ZERO_ADDRESS,
 } = require("../helpers/contract-test-helpers")
 
 describe("VendingMachine", () => {
@@ -408,30 +409,42 @@ describe("VendingMachine", () => {
     })
 
     describe("when caller is the owner", () => {
-      let tx
-
-      beforeEach(async () => {
-        tx = await vendingMachine
-          .connect(governance)
-          .beginVendingMachineUpdate(newVendingMachine.address)
+      describe("when new vending machine address is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            vendingMachine
+              .connect(governance)
+              .beginVendingMachineUpdate(ZERO_ADDRESS)
+          ).to.be.revertedWith("New VendingMachine can not be zero address")
+        })
       })
 
-      it("should not transfer token ownership", async () => {
-        expect(await tbtcV2.owner()).is.equal(vendingMachine.address)
-      })
+      describe("when new vending machine address is non-zero", () => {
+        let tx
 
-      it("should start the governance delay timer", async () => {
-        expect(
-          await vendingMachine.getRemainingVendingMachineUpdateTime()
-        ).to.equal(
-          172800 // 48h contract governance delay
-        )
-      })
+        beforeEach(async () => {
+          tx = await vendingMachine
+            .connect(governance)
+            .beginVendingMachineUpdate(newVendingMachine.address)
+        })
 
-      it("should emit VendingMachineUpdateStarted event", async () => {
-        await expect(tx)
-          .to.emit(vendingMachine, "VendingMachineUpdateStarted")
-          .withArgs(newVendingMachine.address, await lastBlockTime())
+        it("should not transfer token ownership", async () => {
+          expect(await tbtcV2.owner()).is.equal(vendingMachine.address)
+        })
+
+        it("should start the governance delay timer", async () => {
+          expect(
+            await vendingMachine.getRemainingVendingMachineUpdateTime()
+          ).to.equal(
+            172800 // 48h contract governance delay
+          )
+        })
+
+        it("should emit VendingMachineUpdateStarted event", async () => {
+          await expect(tx)
+            .to.emit(vendingMachine, "VendingMachineUpdateStarted")
+            .withArgs(newVendingMachine.address, await lastBlockTime())
+        })
       })
     })
   })

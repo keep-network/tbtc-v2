@@ -117,6 +117,11 @@ contract VendingMachine is Ownable {
         external
         onlyOwner
     {
+        require(
+            _newVendingMachine != address(0),
+            "New VendingMachine can not be zero address"
+        );
+
         /* solhint-disable-next-line not-rely-on-time */
         emit VendingMachineUpdateStarted(_newVendingMachine, block.timestamp);
         newVendingMachine = _newVendingMachine;
@@ -129,8 +134,8 @@ contract VendingMachine is Ownable {
         onlyOwner
         onlyAfterGovernanceDelay(vendingMachineUpdateInitiated)
     {
-        emit VendingMachineUpdated(newVendingMachine);  
-        //slither-disable-next-line reentrancy-no-eth      
+        emit VendingMachineUpdated(newVendingMachine);
+        //slither-disable-next-line reentrancy-no-eth
         tbtcV2.transferOwnership(newVendingMachine);
         newVendingMachine = address(0);
         vendingMachineUpdateInitiated = 0;
