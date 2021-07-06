@@ -75,6 +75,7 @@ contract VendingMachine is Ownable {
 
     function unmint(uint256 amount) external {
         uint256 fee = unmintFeeFor(amount);
+        emit Unminted(msg.sender, amount, fee);
 
         require(
             tbtcV2.balanceOf(msg.sender) >= amount + fee,
@@ -84,7 +85,6 @@ contract VendingMachine is Ownable {
         tbtcV2.safeTransferFrom(msg.sender, address(this), fee);
         tbtcV2.burnFrom(msg.sender, amount);
         tbtcV1.safeTransfer(msg.sender, amount);
-        emit Unminted(msg.sender, amount, fee);
     }
 
     function withdrawFees(address recipient, uint256 amount)
@@ -95,11 +95,11 @@ contract VendingMachine is Ownable {
     }
 
     function beginUnmintFeeUpdate(uint256 _newUnmintFee) external onlyOwner {
+        /* solhint-disable-next-line not-rely-on-time */
+        emit UnmintFeeUpdateStarted(_newUnmintFee, block.timestamp);
         newUnmintFee = _newUnmintFee;
         /* solhint-disable-next-line not-rely-on-time */
         unmintFeeChangeInitiated = block.timestamp;
-        /* solhint-disable-next-line not-rely-on-time */
-        emit UnmintFeeUpdateStarted(_newUnmintFee, block.timestamp);
     }
 
     function finalizeUnmintFeeUpdate()
@@ -117,11 +117,11 @@ contract VendingMachine is Ownable {
         external
         onlyOwner
     {
+        /* solhint-disable-next-line not-rely-on-time */
+        emit VendingMachineUpdateStarted(_newVendingMachine, block.timestamp);
         newVendingMachine = _newVendingMachine;
         /* solhint-disable-next-line not-rely-on-time */
         vendingMachineUpdateInitiated = block.timestamp;
-        /* solhint-disable-next-line not-rely-on-time */
-        emit VendingMachineUpdateStarted(_newVendingMachine, block.timestamp);
     }
 
     function finalizeVendingMachineUpdate()
@@ -129,7 +129,8 @@ contract VendingMachine is Ownable {
         onlyOwner
         onlyAfterGovernanceDelay(vendingMachineUpdateInitiated)
     {
-        emit VendingMachineUpdated(newVendingMachine);
+        emit VendingMachineUpdated(newVendingMachine);  
+        //slither-disable-next-line reentrancy-no-eth      
         tbtcV2.transferOwnership(newVendingMachine);
         newVendingMachine = address(0);
         vendingMachineUpdateInitiated = 0;
@@ -160,8 +161,8 @@ contract VendingMachine is Ownable {
     }
 
     function _mint(address tokenOwner, uint256 amount) internal {
+        emit Minted(tokenOwner, amount);
         tbtcV1.safeTransferFrom(tokenOwner, address(this), amount);
         tbtcV2.mint(tokenOwner, amount);
-        emit Minted(tokenOwner, amount);
     }
 }
