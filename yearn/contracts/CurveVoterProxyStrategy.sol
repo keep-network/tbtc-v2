@@ -66,7 +66,31 @@ interface IERC20Metadata {
 
 /// @title CurveVoterProxyStrategy
 /// @notice This strategy is meant to be used with the Curve tBTC v2 pool vault.
-///         TODO: Describe how this strategy works in details.
+///         The vault's underlying token (a.k.a. want token) should be the LP
+///         token of the Curve tBTC v2 pool. This strategy borrows the vault's
+///         underlying token up to the debt limit configured for this strategy
+///         in the vault. In order to make the profit, the strategy deposits
+///         the borrowed tokens into the gauge contract of the Curve tBTC v2 pool.
+///         Depositing tokens in the gauge generates regular CRV rewards and
+///         can provide additional rewards (denominated in another token)
+///         if the gauge stakes its deposits into the Synthetix staking
+///         rewards contract. The financial outcome is settled upon a call
+///         of the `harvest` method (BaseStrategy.sol). Once that call is made,
+///         the strategy harvests the CRV rewards from the pool's gauge. Then,
+///         it takes a small portion (defined by keepCRV param) and locks it
+///         into the Curve vote escrow (via CurveYCRVVoter contract) to gain CRV
+///         boost and increase future gains. The rest of CRV tokens is used to
+///         buy wBTC via a decentralized exchange. If the pool's gauge supports
+///         additional rewards from Synthetix staking, the strategy claims
+///         that reward too and uses obtained reward tokens to buy more wBTC.
+///         At the end, the strategy takes acquired wBTC and deposits them
+///         to the Curve tBTC v2 pool. This way it obtains new LP tokens
+///         the vault is interested for, and makes the profit in result.
+///         At this stage, the strategy may repay some debt back to the vault,
+///         if needed. The entire cycle repeats for the strategy lifetime so
+///         all gains are constantly reinvested. Worth to flag that current
+///         implementation uses wBTC as the intermediary token because
+///         of its liquidity and ubiquity in BTC-based Curve pools.
 /// @dev Implementation is based on:
 ///      - General Yearn strategy template
 ///        https://github.com/yearn/brownie-strategy-mix
@@ -263,9 +287,6 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         if (wantBalance < amountNeeded) {
             liquidatedAmount = withdrawSome(amountNeeded.sub(wantBalance));
             liquidatedAmount = liquidatedAmount.add(wantBalance);
-            // This should be 0. Otherwise, there must be an error as
-            // depositing vault's underlying tokens into the Curve pool's
-            // gauge cannot incur loss.
             loss = amountNeeded.sub(liquidatedAmount);
         } else {
             liquidatedAmount = amountNeeded;
