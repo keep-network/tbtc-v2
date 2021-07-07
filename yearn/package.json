@@ -28,6 +28,7 @@
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
     "lint:js": "eslint . ",
     "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js"
   }
 }
