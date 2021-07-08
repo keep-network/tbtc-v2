@@ -42,6 +42,8 @@ interface IStrategyProxy {
     function harvest(address gauge) external;
 
     function claimRewards(address gauge, address token) external;
+
+    function approveStrategy(address gauge, address strategy) external;
 }
 
 /// @notice Interface for the Uniswap v2 router.
