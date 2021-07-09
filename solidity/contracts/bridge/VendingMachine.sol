@@ -64,8 +64,8 @@ contract VendingMachine is Ownable, IReceiveApproval {
     );
     event VendingMachineUpdated(address newVendingMachine);
 
-    event Minted(address recipient, uint256 amount);
-    event Unminted(address recipient, uint256 amount, uint256 fee);
+    event Minted(address indexed recipient, uint256 amount);
+    event Unminted(address indexed recipient, uint256 amount, uint256 fee);
 
     modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
         GovernanceUtils.onlyAfterGovernanceDelay(
