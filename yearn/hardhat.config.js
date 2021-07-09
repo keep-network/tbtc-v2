@@ -1,11 +1,18 @@
 require("@nomiclabs/hardhat-waffle")
 require("hardhat-gas-reporter")
+require("hardhat-contract-sizer")
 
 module.exports = {
   solidity: {
     compilers: [
       {
         version: "0.6.12",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
       },
     ],
   },

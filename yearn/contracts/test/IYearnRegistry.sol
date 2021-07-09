@@ -9,6 +9,9 @@ interface IYearnRegistry {
         address guardian,
         address rewards,
         string calldata name,
-        string calldata symbol
+        string calldata symbol,
+        uint256 releaseDelta
     ) external returns (address);
+
+    function numReleases() external view returns (uint256);
 }

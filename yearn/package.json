@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@keep-network/yearn-vaults": "git://github.com/keep-network/yearn-vaults.git#d6b2fbe",
+    "@keep-network/yearn-vaults": "git://github.com/keep-network/yearn-vaults.git#5f1e829",
     "@openzeppelin/contracts": "3.4.0"
   },
   "devDependencies": {
@@ -12,6 +12,7 @@
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.3.0",
     "hardhat": "^2.3.0",
+    "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.3.0",
     "prettier-plugin-solidity": "^1.0.0-beta.11 ",
@@ -28,6 +29,7 @@
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
     "lint:js": "eslint . ",
     "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
+    "size-contracts": "hardhat compile && hardhat size-contracts",
     "test": "hardhat test",
     "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js"
   }

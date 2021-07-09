@@ -74,6 +74,12 @@ describeFn("System -- curve voter proxy strategy", () => {
       registryAddress
     )
 
+    // Always use the same vault release to avoid test failures in the future.
+    // Target release index is taken from the deployed Yearn registry contract.
+    // We aim for version 0.4.2 (see BaseStrategy.apiVersion()) whose index is 9.
+    const targetReleaseIndex = 9
+    const releaseDelta = (await registry.numReleases()) - 1 - targetReleaseIndex
+
     // Deploy a new experimental vault accepting tBTC v2 Curve pool LP tokens.
     const tx = await registry.newExperimentalVault(
       tbtcCurvePoolLPToken.address,
@@ -81,7 +87,8 @@ describeFn("System -- curve voter proxy strategy", () => {
       vaultGovernance.address, // set governance to be the guardian as well
       vaultGovernance.address, // set governance to be the rewards target as well
       vaultName,
-      vaultSymbol
+      vaultSymbol,
+      releaseDelta
     )
 
     // Get a handle to the experimental Yearn vault.
@@ -135,7 +142,7 @@ describeFn("System -- curve voter proxy strategy", () => {
 
     // TODO: Just a temporary check whether the strategy performs well.
     //       Move this to separate `it` sections.
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 2; i++) {
       await strategy.harvest()
       await increaseTime(604800) // ~1 week
       console.log(`result ${await vault.strategies(strategy.address)}`)

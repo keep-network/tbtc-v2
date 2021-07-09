@@ -169,8 +169,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     /// @notice Sets the strategy proxy contract address.
     /// @dev Can be called only by the governance.
     /// @param _strategyProxy Address of the new proxy.
-    function setStrategyProxy(address _strategyProxy) external {
-        _onlyGovernance();
+    function setStrategyProxy(address _strategyProxy) external onlyGovernance {
         strategyProxy = _strategyProxy;
     }
 
@@ -179,8 +178,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     /// @dev Can be called only by the strategist and governance.
     /// @param _keepCRV Portion as counter of a fraction denominated by the
     ///        DENOMINATOR constant.
-    function setKeepCRV(uint256 _keepCRV) external {
-        _onlyAuthorized();
+    function setKeepCRV(uint256 _keepCRV) external onlyAuthorized {
         keepCRV = _keepCRV;
     }
 
@@ -189,8 +187,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     /// @dev Can be called only by the strategist and governance.
     /// @param isUniswap If true, set Uniswap as current DEX.
     ///        Otherwise, set Sushiswap.
-    function switchDex(bool isUniswap) external {
-        _onlyAuthorized();
+    function switchDex(bool isUniswap) external onlyAuthorized {
         if (isUniswap) dex = uniswap;
         else dex = sushiswap;
     }
