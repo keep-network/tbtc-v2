@@ -146,11 +146,11 @@ describe("VendingMachine", () => {
     })
   })
 
-  describe("beginUnmintFeeUpdate", () => {
+  describe("initiateUnmintFeeUpdate", () => {
     context("when caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          vendingMachine.connect(thirdParty).beginUnmintFeeUpdate(1)
+          vendingMachine.connect(thirdParty).initiateUnmintFeeUpdate(1)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -163,7 +163,7 @@ describe("VendingMachine", () => {
       beforeEach(async () => {
         tx = await vendingMachine
           .connect(governance)
-          .beginUnmintFeeUpdate(newUnmintFee)
+          .initiateUnmintFeeUpdate(newUnmintFee)
       })
 
       it("should not update the unmint fee", async () => {
@@ -176,9 +176,9 @@ describe("VendingMachine", () => {
         )
       })
 
-      it("should emit UnmintFeeUpdateStarted event", async () => {
+      it("should emit UnmintFeeUpdateInitiated event", async () => {
         await expect(tx)
-          .to.emit(vendingMachine, "UnmintFeeUpdateStarted")
+          .to.emit(vendingMachine, "UnmintFeeUpdateInitiated")
           .withArgs(newUnmintFee, await lastBlockTime())
       })
     })
@@ -208,7 +208,7 @@ describe("VendingMachine", () => {
         beforeEach(async () => {
           await vendingMachine
             .connect(governance)
-            .beginUnmintFeeUpdate(newUnmintFee)
+            .initiateUnmintFeeUpdate(newUnmintFee)
         })
 
         context("when governance delay has not passed", () => {
@@ -264,7 +264,7 @@ describe("VendingMachine", () => {
 
     context("when unmint fee is zero", async () => {
       beforeEach(async () => {
-        await vendingMachine.connect(governance).beginUnmintFeeUpdate(0)
+        await vendingMachine.connect(governance).initiateUnmintFeeUpdate(0)
         await increaseTime(172800) // +48h contract governance delay
         await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
       })
@@ -385,7 +385,7 @@ describe("VendingMachine", () => {
     })
   })
 
-  describe("beginVendingMachineUpdate", () => {
+  describe("initiateVendingMachineUpdate", () => {
     let newVendingMachine
 
     beforeEach(async () => {
@@ -403,7 +403,7 @@ describe("VendingMachine", () => {
         await expect(
           vendingMachine
             .connect(thirdParty)
-            .beginVendingMachineUpdate(newVendingMachine.address)
+            .initiateVendingMachineUpdate(newVendingMachine.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -414,7 +414,7 @@ describe("VendingMachine", () => {
           await expect(
             vendingMachine
               .connect(governance)
-              .beginVendingMachineUpdate(ZERO_ADDRESS)
+              .initiateVendingMachineUpdate(ZERO_ADDRESS)
           ).to.be.revertedWith("New VendingMachine can not be zero address")
         })
       })
@@ -425,7 +425,7 @@ describe("VendingMachine", () => {
         beforeEach(async () => {
           tx = await vendingMachine
             .connect(governance)
-            .beginVendingMachineUpdate(newVendingMachine.address)
+            .initiateVendingMachineUpdate(newVendingMachine.address)
         })
 
         it("should not transfer token ownership", async () => {
@@ -440,9 +440,9 @@ describe("VendingMachine", () => {
           )
         })
 
-        it("should emit VendingMachineUpdateStarted event", async () => {
+        it("should emit VendingMachineUpdateInitiated event", async () => {
           await expect(tx)
-            .to.emit(vendingMachine, "VendingMachineUpdateStarted")
+            .to.emit(vendingMachine, "VendingMachineUpdateInitiated")
             .withArgs(newVendingMachine.address, await lastBlockTime())
         })
       })
@@ -483,7 +483,7 @@ describe("VendingMachine", () => {
 
           await vendingMachine
             .connect(governance)
-            .beginVendingMachineUpdate(newVendingMachine.address)
+            .initiateVendingMachineUpdate(newVendingMachine.address)
         })
 
         context("when governance delay has not passed", () => {
