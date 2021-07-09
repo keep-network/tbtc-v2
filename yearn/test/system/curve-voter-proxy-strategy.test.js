@@ -43,11 +43,17 @@ describeFn("System -- curve voter proxy strategy", () => {
   const vaultName = "Curve tBTCv2 Pool yVault"
   // Symbol of the vault for tBTCv2 Curve pool.
   const vaultSymbol = "yvCurve-tBTCv2"
+  // Total deposit limit of the vault for tBTCv2 Curve pool.
+  const vaultDepositLimit = to1ePrecision(300, 15)
+  // Amount of the deposit made by the depositor.
+  const vaultDepositAmount = to1ePrecision(300, 15)
 
   let vaultGovernance
   let tbtcCurvePoolLPToken
   let vaultDepositor
   let strategyProxyGovernance
+  let vault
+  let strategy
 
   before(async () => {
     await resetFork(12786839)
@@ -92,19 +98,19 @@ describeFn("System -- curve voter proxy strategy", () => {
     )
 
     // Get a handle to the experimental Yearn vault.
-    const vault = await ethers.getContractAt(
+    vault = await ethers.getContractAt(
       "IYearnVault",
       extractVaultAddress(await tx.wait())
     )
 
-    // Just check the vault has been created properly.
+    // Just make sure the vault has been created properly.
     expect(await vault.name()).to.be.equal(vaultName)
 
     // Deploy the CurveVoterProxyStrategy contract.
     const CurveVoterProxyStrategy = await ethers.getContractFactory(
       "CurveVoterProxyStrategy"
     )
-    const strategy = await CurveVoterProxyStrategy.deploy(
+    strategy = await CurveVoterProxyStrategy.deploy(
       vault.address,
       tbtcCurvePoolDepositorAddress,
       tbtcCurvePoolGaugeAddress,
@@ -131,22 +137,63 @@ describeFn("System -- curve voter proxy strategy", () => {
     )
 
     // Set a deposit limit.
-    await vault.setDepositLimit(to1ePrecision(300, 15))
+    await vault.setDepositLimit(vaultDepositLimit)
+  })
 
-    // Deposit some tokens into the vault.
-    const depositAmount = to1ePrecision(300, 15)
-    await tbtcCurvePoolLPToken
-      .connect(vaultDepositor)
-      .approve(vault.address, depositAmount)
-    await vault.connect(vaultDepositor).deposit(depositAmount)
+  describe("when depositor deposits to the vault", () => {
+    before(async () => {
+      await tbtcCurvePoolLPToken
+        .connect(vaultDepositor)
+        .approve(vault.address, vaultDepositAmount)
+      await vault.connect(vaultDepositor).deposit(vaultDepositAmount)
+    })
 
-    // TODO: Just a temporary check whether the strategy performs well.
-    //       Move this to separate `it` sections.
-    for (let i = 0; i < 2; i++) {
-      await strategy.harvest()
-      await increaseTime(604800) // ~1 week
-      console.log(`result ${await vault.strategies(strategy.address)}`)
-    }
+    it("should correctly handle the deposit", async () => {
+      expect(await vault.totalAssets()).to.be.equal(vaultDepositAmount)
+    })
+  })
+
+  describe("when harvesting occurs", () => {
+    before(async () => {
+      // Simulate 8 harvests, one every week. Note that the DEX pool used to
+      // swap CRV and rewards for wBTC is not balanced by opposite swaps. Hence,
+      // the price of wBTC increases during the test and the acquired wBTC
+      // amount drops on each iteration causing a drop of the iteration
+      // profit too. In real world, such a situation is very unlikely.
+      for (let i = 0; i < 8; i++) {
+        await strategy.harvest()
+        await increaseTime(604800) // ~1 week
+      }
+    })
+
+    it("should make a profit", async () => {
+      // Currently, make just a simple check.
+      // TODO: Check the numbers (additional Synthethix rewards too).
+      expect((await vault.strategies(strategy.address)).totalGain.gt(0)).to.be
+        .true
+    })
+  })
+
+  describe("when depositor withdraws from the vault", () => {
+    let amountWithdrawn
+
+    before(async () => {
+      const initialBalance = await tbtcCurvePoolLPToken.balanceOf(
+        vaultDepositor.address
+      )
+      await vault.connect(vaultDepositor).withdraw() // withdraw all shares
+      const currentBalance = await tbtcCurvePoolLPToken.balanceOf(
+        vaultDepositor.address
+      )
+      amountWithdrawn = currentBalance.sub(initialBalance)
+    })
+
+    it("should correctly handle the withdrawal", async () => {
+      // Currently, make just a simple check and assert the depositor received
+      // its deposited amount with a portion of the profit earned by the vault.
+      // TODO: Check the numbers
+      expect(amountWithdrawn.gt(vaultDepositAmount)).to.be.true
+    })
   })
 })
 
