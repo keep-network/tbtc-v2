@@ -27,7 +27,7 @@ library GovernanceUtils {
     ///        the change
     /// @param delay Governance delay
     /// @return Remaining time in seconds
-    function getRemainingChangeTime(
+    function getRemainingGovernanceDelay(
         uint256 changeInitiatedTimestamp,
         uint256 delay
     ) internal view returns (uint256) {

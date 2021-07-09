@@ -37,7 +37,6 @@ contract VendingMachine is Ownable, IReceiveApproval {
     IERC20 public immutable tbtcV1;
     TBTCToken public immutable tbtcV2;
 
-
     /// @notice The fee for unminting TBTC v2 back into TBTC v1 represented as
     ///         1e18 precision fraction. The fee is proportional to the amount
     ///         being unminted and added at the top of the amount being unminted.
@@ -219,7 +218,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
     ///         not been initiated, the function reverts.
     function getRemainingUnmintFeeUpdateTime() external view returns (uint256) {
         return
-            GovernanceUtils.getRemainingChangeTime(
+            GovernanceUtils.getRemainingGovernanceDelay(
                 unmintFeeChangeInitiated,
                 GOVERNANCE_DELAY
             );
@@ -234,7 +233,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
         returns (uint256)
     {
         return
-            GovernanceUtils.getRemainingChangeTime(
+            GovernanceUtils.getRemainingGovernanceDelay(
                 vendingMachineUpdateInitiated,
                 GOVERNANCE_DELAY
             );
