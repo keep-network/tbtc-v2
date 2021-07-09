@@ -415,7 +415,7 @@ describe("VendingMachine", () => {
             vendingMachine
               .connect(governance)
               .initiateVendingMachineUpdate(ZERO_ADDRESS)
-          ).to.be.revertedWith("New VendingMachine can not be zero address")
+          ).to.be.revertedWith("New VendingMachine cannot be zero address")
         })
       })
 

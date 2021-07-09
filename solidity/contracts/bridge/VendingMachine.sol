@@ -187,7 +187,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
     {
         require(
             _newVendingMachine != address(0),
-            "New VendingMachine can not be zero address"
+            "New VendingMachine cannot be zero address"
         );
 
         /* solhint-disable-next-line not-rely-on-time */
