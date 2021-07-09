@@ -37,9 +37,13 @@ contract VendingMachine is Ownable, IReceiveApproval {
     IERC20 public immutable tbtcV1;
     TBTCToken public immutable tbtcV2;
 
-    /// @notice The fee for unminting TBTC v2 back into TBTC v1. The fee is
-    ///         a portion of the amount being unminted multiplied by
-    ///         `FLOATING_POINT_DIVISOR`. For example, a fee of 1000000000000000
+
+    /// @notice The fee for unminting TBTC v2 back into TBTC v1 represented as
+    ///         1e18 precision fraction. The fee is proportional to the amount
+    ///         being unminted and added at the top of the amount being unminted.
+    ///         To calculate the fee value, the amount being unminted needs
+    ///         to be multiplied by `unmintFee` and divided by 1e18.
+    ///         For example, `unmintFee` set to 1000000000000000
     ///         means that 0.001 of the value being unminted needs to be paid to
     ///         the `VendingMachine` as an unminting fee.
     uint256 public unmintFee;
@@ -114,11 +118,11 @@ contract VendingMachine is Ownable, IReceiveApproval {
 
     /// @notice Unmints TBTC v2 from the caller into TBTC v1. Depending on
     ///         `unmintFee` value, may require paying an additional unmint fee
-    ///          in TBTC v2 in addition to the amount being unminted. To see
-    ///          what is the value of the fee, please call `unmintFeeFor(amount)`
-    ///          function. The caller needs to have at least
-    ///          `amount + unmintFeeFor(amount)` of TBTC v2 balance approved for
-    ///          transfer to the `VendingMachine` before calling this function.
+    ///         in TBTC v2 in addition to the amount being unminted. To see
+    ///         what is the value of the fee, please call `unmintFeeFor(amount)`
+    ///         function. The caller needs to have at least
+    ///         `amount + unmintFeeFor(amount)` of TBTC v2 balance approved for
+    ///         transfer to the `VendingMachine` before calling this function.
     /// @param amount The amount of TBTC v2 to unmint to TBTC v1
     function unmint(uint256 amount) external {
         uint256 fee = unmintFeeFor(amount);
