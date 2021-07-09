@@ -155,12 +155,12 @@ describeFn("System -- curve voter proxy strategy", () => {
 
   describe("when harvesting occurs", () => {
     before(async () => {
-      // Simulate 8 harvests, one every week. Note that the DEX pool used to
+      // Simulate 4 harvests, one every week. Note that the DEX pool used to
       // swap CRV and rewards for wBTC is not balanced by opposite swaps. Hence,
       // the price of wBTC increases during the test and the acquired wBTC
       // amount drops on each iteration causing a drop of the iteration
       // profit too. In real world, such a situation is very unlikely.
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 4; i++) {
         await strategy.harvest()
         await increaseTime(604800) // ~1 week
       }
