@@ -14,7 +14,7 @@ import "../GovernanceUtils.sol";
 /// @notice The Vending Machine is the owner of TBTC v2 token and can mint
 ///         TBTC v2 tokens in 1:1 ratio from TBTC v1 tokens. TBTC v2 can be
 ///         unminted back to TBTC v1 with or without a fee - fee parameter is
-///         controlled by the governance. This implementation acts as a bridge
+///         controlled by the Governance. This implementation acts as a bridge
 ///         between TBTC v1 and TBTC v2 token, allowing to mint TBTC v2 before
 ///         the system is ready and fully operational without sacrificing any
 ///         security guarantees and decentralization of the project.
@@ -30,7 +30,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
     ///         finalizing update of any governable parameter in this contract.
     uint256 public constant GOVERNANCE_DELAY = 48 hours;
 
-    /// @notice This divisor for precision purposes. Used to represent fractions
+    /// @notice Divisor for precision purposes. Used to represent fractions
     ///         in parameter values.
     uint256 public constant FLOATING_POINT_DIVISOR = 1e18;
 
@@ -39,12 +39,13 @@ contract VendingMachine is Ownable, IReceiveApproval {
 
     /// @notice The fee for unminting TBTC v2 back into TBTC v1 represented as
     ///         1e18 precision fraction. The fee is proportional to the amount
-    ///         being unminted and added at the top of the amount being unminted.
+    ///         being unminted and added on the top of the amount being unminted.
     ///         To calculate the fee value, the amount being unminted needs
     ///         to be multiplied by `unmintFee` and divided by 1e18.
     ///         For example, `unmintFee` set to 1000000000000000
-    ///         means that 0.001 of the value being unminted needs to be paid to
-    ///         the `VendingMachine` as an unminting fee.
+    ///         means that 0.001 of the amount being unminted needs to be paid
+    ///         to the `VendingMachine` as an unminting fee on the top of the
+    ///         amount being unminted.
     uint256 public unmintFee;
     uint256 public newUnmintFee;
     uint256 public unmintFeeChangeInitiatedTimestamp;
