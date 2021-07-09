@@ -28,7 +28,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
 
     /// @notice The time delay that needs to pass between initializing and
     ///         finalizing update of any governable parameter in this contract.
-    uint256 public constant GOVERNANCE_DELAY = 48 hours;
+    uint256 public constant GOVERNANCE_DELAY = 7 days;
 
     /// @notice Divisor for precision purposes. Used to represent fractions
     ///         in parameter values.

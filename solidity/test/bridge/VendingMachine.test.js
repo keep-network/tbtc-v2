@@ -172,7 +172,7 @@ describe("VendingMachine", () => {
 
       it("should start the governance delay timer", async () => {
         expect(await vendingMachine.getRemainingUnmintFeeUpdateTime()).to.equal(
-          172800 // 48h contract governance delay
+          604800 // 7 days contract governance delay
         )
       })
 
@@ -213,7 +213,7 @@ describe("VendingMachine", () => {
 
         context("when governance delay has not passed", () => {
           it("should revert", async () => {
-            await increaseTime(169200) // +47h
+            await increaseTime(601200) // +7 days 23 hours
             await expect(
               vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
             ).to.be.revertedWith("Governance delay has not elapsed")
@@ -224,7 +224,7 @@ describe("VendingMachine", () => {
           let tx
 
           beforeEach(async () => {
-            await increaseTime(172800) // +48h contract governance delay
+            await increaseTime(604800) // +7 days contract governance delay
             tx = await vendingMachine
               .connect(governance)
               .finalizeUnmintFeeUpdate()
@@ -265,7 +265,7 @@ describe("VendingMachine", () => {
     context("when unmint fee is zero", async () => {
       beforeEach(async () => {
         await vendingMachine.connect(governance).initiateUnmintFeeUpdate(0)
-        await increaseTime(172800) // +48h contract governance delay
+        await increaseTime(604800) // +7 days contract governance delay
         await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
       })
 
@@ -436,7 +436,7 @@ describe("VendingMachine", () => {
           expect(
             await vendingMachine.getRemainingVendingMachineUpdateTime()
           ).to.equal(
-            172800 // 48h contract governance delay
+            604800 // 7 days contract governance delay
           )
         })
 
@@ -488,7 +488,7 @@ describe("VendingMachine", () => {
 
         context("when governance delay has not passed", () => {
           it("should revert", async () => {
-            await increaseTime(169200) // +47h
+            await increaseTime(601200) // +7days 23 hours
             await expect(
               vendingMachine.connect(governance).finalizeVendingMachineUpdate()
             ).to.be.revertedWith("Governance delay has not elapsed")
@@ -499,7 +499,7 @@ describe("VendingMachine", () => {
           let tx
 
           beforeEach(async () => {
-            await increaseTime(172800) // +48h contract governance delay
+            await increaseTime(604800) // +7 days contract governance delay
             tx = await vendingMachine
               .connect(governance)
               .finalizeVendingMachineUpdate()
