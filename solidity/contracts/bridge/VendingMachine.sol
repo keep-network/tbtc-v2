@@ -202,7 +202,8 @@ contract VendingMachine is Ownable, IReceiveApproval {
     ///         The update process needs to be first initiated with a call to
     ///         `initiateVendingMachineUpdate` and the `GOVERNANCE_DELAY` needs
     ///         to pass. Once the update is finalized, the new vending machine
-    ///         will become an owner of TBTC v2 token.
+    ///         will become an owner of TBTC v2 token and all TBTC v1 held by
+    ///         this contract will be transferred to the new vending machine.
     function finalizeVendingMachineUpdate()
         external
         onlyOwner
@@ -211,6 +212,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
         emit VendingMachineUpdated(newVendingMachine);
         //slither-disable-next-line reentrancy-no-eth
         tbtcV2.transferOwnership(newVendingMachine);
+        tbtcV1.safeTransfer(newVendingMachine, tbtcV1.balanceOf(address(this)));
         newVendingMachine = address(0);
         vendingMachineUpdateInitiatedTimestamp = 0;
     }

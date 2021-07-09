@@ -468,6 +468,7 @@ describe("VendingMachine", () => {
       })
 
       context("when update process is initialized", () => {
+        const tbtcV1Amount = to1e18(3)
         let newVendingMachine
 
         beforeEach(async () => {
@@ -480,6 +481,11 @@ describe("VendingMachine", () => {
             unmintFee
           )
           await newVendingMachine.deployed()
+
+          await tbtcV1
+            .connect(tokenHolder)
+            .approve(vendingMachine.address, tbtcV1Amount)
+          await vendingMachine.connect(tokenHolder).mint(tbtcV1Amount)
 
           await vendingMachine
             .connect(governance)
@@ -507,6 +513,12 @@ describe("VendingMachine", () => {
 
           it("should transfer token ownership to the new VendingMachine", async () => {
             expect(await tbtcV2.owner()).to.equal(newVendingMachine.address)
+          })
+
+          it("should transfer all TBTC v1 to the new VendingMachine", async () => {
+            expect(await tbtcV1.balanceOf(newVendingMachine.address)).to.equal(
+              tbtcV1Amount
+            )
           })
 
           it("should emit VendingMachineUpdated event", async () => {
