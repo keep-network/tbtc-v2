@@ -125,9 +125,6 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     // Address of the Uniswap V2 router contract.
     address public constant uniswap =
         address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-    // Address of the Sushiswap router contract.
-    address public constant sushiswap =
-        address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
 
     // Address of the depositor contract for the tBTC v2 Curve pool.
     address public tbtcCurvePoolDepositor;
@@ -140,7 +137,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     // Can be unset if additional rewards are not supported by the gauge.
     address public tbtcCurvePoolGaugeReward;
     // Address of the DEX used to swap reward tokens back to the vault's
-    // underlying token. This can be Uniswap or Sushiswap.
+    // underlying token. This can be Uniswap or other Uni-like DEX.
     address public dex;
     // Determines the portion of CRV tokens which should be locked in the
     // Curve vote escrow to gain a CRV boost. This is the counter of a fraction
@@ -162,7 +159,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         tbtcCurvePoolDepositor = _tbtcCurvePoolDepositor;
         tbtcCurvePoolGauge = _tbtcCurvePoolGauge;
         tbtcCurvePoolGaugeReward = _tbtcCurvePoolGaugeReward;
-        dex = sushiswap;
+        dex = uniswap;
         keepCRV = 1000;
     }
 
@@ -180,16 +177,6 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///        DENOMINATOR constant.
     function setKeepCRV(uint256 _keepCRV) external onlyAuthorized {
         keepCRV = _keepCRV;
-    }
-
-    /// @notice Switches the DEX used to swap reward tokens back to the vault's
-    ///         underlying token.
-    /// @dev Can be called only by the strategist and governance.
-    /// @param isUniswap If true, set Uniswap as current DEX.
-    ///        Otherwise, set Sushiswap.
-    function switchDex(bool isUniswap) external onlyAuthorized {
-        if (isUniswap) dex = uniswap;
-        else dex = sushiswap;
     }
 
     /// @return Name of the Yearn vault strategy.
