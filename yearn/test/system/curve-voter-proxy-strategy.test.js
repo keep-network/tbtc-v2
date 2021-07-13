@@ -287,8 +287,8 @@ describeFn("System -- curve voter proxy strategy", () => {
       // ~300184470000000000 of LP tokens.
 
       expect(amountWithdrawn).to.be.closeTo(
-        to1ePrecision(30018447, 10),
-        to1ePrecision(1, 10) // 0.00000001 precision
+        to1ePrecision(3001844, 11),
+        to1ePrecision(1, 11) // 0.0000001 precision
       )
       expect(amountWithdrawn.gt(vaultDepositAmount)).to.be.true
     })
