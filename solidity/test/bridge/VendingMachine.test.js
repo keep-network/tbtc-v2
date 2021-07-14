@@ -164,10 +164,18 @@ describe("VendingMachine", () => {
   })
 
   describe("initiateUnmintFeeUpdate", () => {
-    context("when caller is not the update initiator", () => {
+    context("when caller is a third party", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine.connect(thirdParty).initiateUnmintFeeUpdate(1)
+        ).to.be.revertedWith("Caller is not authorized")
+      })
+    })
+
+    context("when caller is the contract owner", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine.connect(governance).initiateUnmintFeeUpdate(1)
         ).to.be.revertedWith("Caller is not authorized")
       })
     })
@@ -187,6 +195,16 @@ describe("VendingMachine", () => {
         expect(await vendingMachine.unmintFee()).to.equal(unmintFee)
       })
 
+      it("should start the update initiation time", async () => {
+        expect(
+          await vendingMachine.unmintFeeUpdateInitiatedTimestamp()
+        ).to.equal(await getBlockTime(tx.blockNumber))
+      })
+
+      it("should set the pending new unmint fee", async () => {
+        expect(await vendingMachine.newUnmintFee()).to.equal(newUnmintFee)
+      })
+
       it("should start the governance delay timer", async () => {
         expect(await vendingMachine.getRemainingUnmintFeeUpdateTime()).to.equal(
           604800 // 7 days contract governance delay
@@ -202,10 +220,20 @@ describe("VendingMachine", () => {
   })
 
   describe("finalizeUnmintFeeUpdate", () => {
-    context("when caller is not the owner", () => {
+    context("when caller is a third party", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine.connect(thirdParty).finalizeUnmintFeeUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when caller is the update initiator", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(unmintFeeUpdateInitiator)
+            .finalizeUnmintFeeUpdate()
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -261,6 +289,16 @@ describe("VendingMachine", () => {
             await expect(
               vendingMachine.getRemainingUnmintFeeUpdateTime()
             ).to.be.revertedWith("Change not initiated")
+          })
+
+          it("should reset the pending new unmint fee", async () => {
+            expect(await vendingMachine.newUnmintFee()).to.equal(0)
+          })
+
+          it("should reset the unmint fee update initiated timestamp", async () => {
+            expect(
+              await vendingMachine.unmintFeeUpdateInitiatedTimestamp()
+            ).to.equal(0)
           })
         })
       })
@@ -417,11 +455,21 @@ describe("VendingMachine", () => {
       await newVendingMachine.deployed()
     })
 
-    describe("when caller is not the update initiator", () => {
+    describe("when caller is a third party", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine
             .connect(thirdParty)
+            .initiateVendingMachineUpdate(newVendingMachine.address)
+        ).to.be.revertedWith("Caller is not authorized")
+      })
+    })
+
+    describe("when caller is the contract owner", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(governance)
             .initiateVendingMachineUpdate(newVendingMachine.address)
         ).to.be.revertedWith("Caller is not authorized")
       })
@@ -451,6 +499,18 @@ describe("VendingMachine", () => {
           expect(await tbtcV2.owner()).is.equal(vendingMachine.address)
         })
 
+        it("should start the update initiation time", async () => {
+          expect(
+            await vendingMachine.vendingMachineUpdateInitiatedTimestamp()
+          ).to.equal(await getBlockTime(tx.blockNumber))
+        })
+
+        it("should set the pending new vending machine address", async () => {
+          expect(await vendingMachine.newVendingMachine()).to.equal(
+            newVendingMachine.address
+          )
+        })
+
         it("should start the governance delay timer", async () => {
           expect(
             await vendingMachine.getRemainingVendingMachineUpdateTime()
@@ -472,10 +532,20 @@ describe("VendingMachine", () => {
   })
 
   describe("finalizeVendingMachineUpdate", () => {
-    context("when caller is not the owner", () => {
+    context("when caller is a third party", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine.connect(thirdParty).finalizeVendingMachineUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when caller is the update initiator", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(vendingMachineUpdateInitiator)
+            .finalizeVendingMachineUpdate()
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -553,6 +623,18 @@ describe("VendingMachine", () => {
             await expect(
               vendingMachine.getRemainingVendingMachineUpdateTime()
             ).to.be.revertedWith("Change not initiated")
+          })
+
+          it("should reset the pending new vending machine address", async () => {
+            expect(await vendingMachine.newVendingMachine()).to.equal(
+              ZERO_ADDRESS
+            )
+          })
+
+          it("should reset the vending machine update initiated timestamp", async () => {
+            expect(
+              await vendingMachine.vendingMachineUpdateInitiatedTimestamp()
+            ).to.equal(0)
           })
         })
       })
