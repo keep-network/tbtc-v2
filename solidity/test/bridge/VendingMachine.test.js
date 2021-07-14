@@ -85,19 +85,17 @@ describe("VendingMachine", () => {
         beforeEach(async () => {
           tx = await vendingMachine.connect(tokenHolder).mint(amount)
         })
-  
+
         it("should mint the same amount of TBTC v2", async () => {
-          expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(
-            amount
-          )
+          expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(amount)
         })
-  
+
         it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
           expect(await tbtcV1.balanceOf(vendingMachine.address)).is.equal(
             amount
           )
         })
-  
+
         it("should emit Minted event", async () => {
           await expect(tx)
             .to.emit(vendingMachine, "Minted")
@@ -111,25 +109,23 @@ describe("VendingMachine", () => {
         beforeEach(async () => {
           tx = await vendingMachine.connect(tokenHolder).mint(amount)
         })
-  
+
         it("should mint the same amount of TBTC v2", async () => {
-          expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(
-            amount
-          )
+          expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(amount)
         })
-  
+
         it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
           expect(await tbtcV1.balanceOf(vendingMachine.address)).is.equal(
             amount
           )
         })
-  
+
         it("should emit Minted event", async () => {
           await expect(tx)
             .to.emit(vendingMachine, "Minted")
             .withArgs(tokenHolder.address, amount)
         })
-      })      
+      })
     })
   })
 
