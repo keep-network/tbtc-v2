@@ -239,6 +239,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
     /// @notice Transfers unmint fee update initiator role to another address.
     ///         Can be called only by the current unmint fee update initiator.
     /// @param newInitiator The new unmint fee update initiator
+    // slither-disable-next-line missing-zero-check
     function transferUnmintFeeUpdateInitiatorRole(address newInitiator)
         external
     {
@@ -253,6 +254,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
     ///         address. Can be called only by the current vending machine
     ///         update initiator.
     /// @param newInitiator The new vending machine update initator
+    // slither-disable-next-line missing-zero-check
     function transferVendingMachineUpdateInitiatorRole(address newInitiator)
         external
     {
