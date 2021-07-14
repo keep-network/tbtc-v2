@@ -76,6 +76,11 @@ contract VendingMachine is Ownable, IReceiveApproval {
     event Minted(address indexed recipient, uint256 amount);
     event Unminted(address indexed recipient, uint256 amount, uint256 fee);
 
+    modifier only(address authorizedCaller) {
+        require(msg.sender == authorizedCaller, "Caller is not authorized");
+        _;
+    }
+
     modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
         GovernanceUtils.onlyAfterGovernanceDelay(
             changeInitiatedTimestamp,
@@ -165,12 +170,10 @@ contract VendingMachine is Ownable, IReceiveApproval {
     ///         after the `GOVERNANCE_DELAY` passes. Only unmint fee update
     ///         initiator role can initiate the update.
     /// @param _newUnmintFee The new unmint fee
-    function initiateUnmintFeeUpdate(uint256 _newUnmintFee) external {
-        require(
-            msg.sender == unmintFeeUpdateInitiator,
-            "Not authorized to initiate the update"
-        );
-
+    function initiateUnmintFeeUpdate(uint256 _newUnmintFee)
+        external
+        only(unmintFeeUpdateInitiator)
+    {
         /* solhint-disable-next-line not-rely-on-time */
         emit UnmintFeeUpdateInitiated(_newUnmintFee, block.timestamp);
         newUnmintFee = _newUnmintFee;
@@ -199,11 +202,10 @@ contract VendingMachine is Ownable, IReceiveApproval {
     ///         `GOVERNANCE_DELAY` passes. Only vending machine update initiator
     ///         role can initiate the update.
     /// @param _newVendingMachine The new vending machine address
-    function initiateVendingMachineUpdate(address _newVendingMachine) external {
-        require(
-            msg.sender == vendingMachineUpdateInitiator,
-            "Not authorized to initiate the update"
-        );
+    function initiateVendingMachineUpdate(address _newVendingMachine)
+        external
+        only(vendingMachineUpdateInitiator)
+    {
         require(
             _newVendingMachine != address(0),
             "New VendingMachine cannot be zero address"
@@ -242,11 +244,8 @@ contract VendingMachine is Ownable, IReceiveApproval {
     // slither-disable-next-line missing-zero-check
     function transferUnmintFeeUpdateInitiatorRole(address newInitiator)
         external
+        only(unmintFeeUpdateInitiator)
     {
-        require(
-            msg.sender == unmintFeeUpdateInitiator,
-            "Not authorized to transfer the role"
-        );
         unmintFeeUpdateInitiator = newInitiator;
     }
 
@@ -257,11 +256,8 @@ contract VendingMachine is Ownable, IReceiveApproval {
     // slither-disable-next-line missing-zero-check
     function transferVendingMachineUpdateInitiatorRole(address newInitiator)
         external
+        only(vendingMachineUpdateInitiator)
     {
-        require(
-            msg.sender == vendingMachineUpdateInitiator,
-            "Not authorized to transfer the role"
-        );
         vendingMachineUpdateInitiator = newInitiator;
     }
 

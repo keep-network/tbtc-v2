@@ -168,7 +168,7 @@ describe("VendingMachine", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine.connect(thirdParty).initiateUnmintFeeUpdate(1)
-        ).to.be.revertedWith("Not authorized to initiate the update")
+        ).to.be.revertedWith("Caller is not authorized")
       })
     })
 
@@ -423,7 +423,7 @@ describe("VendingMachine", () => {
           vendingMachine
             .connect(thirdParty)
             .initiateVendingMachineUpdate(newVendingMachine.address)
-        ).to.be.revertedWith("Not authorized to initiate the update")
+        ).to.be.revertedWith("Caller is not authorized")
       })
     })
 
@@ -563,7 +563,7 @@ describe("VendingMachine", () => {
           vendingMachine
             .connect(governance)
             .transferUnmintFeeUpdateInitiatorRole(thirdParty.address)
-        ).to.be.revertedWith("Not authorized to transfer the role")
+        ).to.be.revertedWith("Caller is not authorized")
       })
     })
 
@@ -586,7 +586,7 @@ describe("VendingMachine", () => {
           vendingMachine
             .connect(governance)
             .transferVendingMachineUpdateInitiatorRole(thirdParty.address)
-        ).to.be.revertedWith("Not authorized to transfer the role")
+        ).to.be.revertedWith("Caller is not authorized")
       })
     })
 
