@@ -64,7 +64,7 @@ describe("VendingMachine", () => {
   })
 
   describe("mint", () => {
-    describe("when TBTC v1 owner has not enough tokens", () => {
+    context("when TBTC v1 owner has not enough tokens", () => {
       it("should revert", async () => {
         const amount = initialBalance.add(1)
         await tbtcV1
@@ -76,7 +76,7 @@ describe("VendingMachine", () => {
       })
     })
 
-    describe("when TBTC v1 owner has enough tokens", () => {
+    context("when TBTC v1 owner has enough tokens", () => {
       let tx
 
       beforeEach(async () => {
@@ -171,7 +171,7 @@ describe("VendingMachine", () => {
         .approve(vendingMachine.address, initialBalance)
     })
 
-    describe("when TBTC v2 owner has not enough tokens", () => {
+    context("when TBTC v2 owner has not enough tokens", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine.connect(tokenHolder).unmint(initialBalance)
@@ -179,7 +179,7 @@ describe("VendingMachine", () => {
       })
     })
 
-    describe("when TBTC v2 owner has enough tokens", () => {
+    context("when TBTC v2 owner has enough tokens", () => {
       const unmintAmount = to1e18(1)
       let unmintFee
 
@@ -425,7 +425,7 @@ describe("VendingMachine", () => {
       await newVendingMachine.deployed()
     })
 
-    describe("when caller is a third party", () => {
+    context("when caller is a third party", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine
@@ -435,7 +435,7 @@ describe("VendingMachine", () => {
       })
     })
 
-    describe("when caller is the contract owner", () => {
+    context("when caller is the contract owner", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine
@@ -445,8 +445,8 @@ describe("VendingMachine", () => {
       })
     })
 
-    describe("when caller is the update initiator", () => {
-      describe("when new vending machine address is zero", () => {
+    context("when caller is the update initiator", () => {
+      context("when new vending machine address is zero", () => {
         it("should revert", async () => {
           await expect(
             vendingMachine
@@ -456,7 +456,7 @@ describe("VendingMachine", () => {
         })
       })
 
-      describe("when new vending machine address is non-zero", () => {
+      context("when new vending machine address is non-zero", () => {
         let tx
 
         beforeEach(async () => {
