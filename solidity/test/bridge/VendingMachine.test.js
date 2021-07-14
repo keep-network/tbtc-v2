@@ -20,7 +20,14 @@ describe("VendingMachine", () => {
   const initialBalance = to1e18(5) // 5 TBTC v1
 
   beforeEach(async () => {
-    ;[governance, tokenHolder, thirdParty] = await ethers.getSigners()
+    ;[
+      deployer,
+      unmintFeeUpdateInitiator,
+      vendingMachineUpdateInitiator,
+      governance,
+      tokenHolder,
+      thirdParty,
+    ] = await ethers.getSigners()
 
     const TestERC20 = await ethers.getContractFactory("TestERC20")
     tbtcV1 = await TestERC20.deploy()
@@ -40,7 +47,17 @@ describe("VendingMachine", () => {
     )
     await vendingMachine.deployed()
 
-    await tbtcV2.connect(governance).transferOwnership(vendingMachine.address)
+    await vendingMachine.connect(deployer).transferOwnership(governance.address)
+    await vendingMachine
+      .connect(deployer)
+      .transferUnmintFeeUpdateInitiatorRole(unmintFeeUpdateInitiator.address)
+    await vendingMachine
+      .connect(deployer)
+      .transferVendingMachineUpdateInitiatorRole(
+        vendingMachineUpdateInitiator.address
+      )
+    await tbtcV2.connect(deployer).transferOwnership(vendingMachine.address)
+
     await tbtcV1
       .connect(tokenHolder)
       .approve(vendingMachine.address, initialBalance)
@@ -147,22 +164,22 @@ describe("VendingMachine", () => {
   })
 
   describe("initiateUnmintFeeUpdate", () => {
-    context("when caller is not the owner", () => {
+    context("when caller is not the update initiator", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine.connect(thirdParty).initiateUnmintFeeUpdate(1)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Not authorized to initiate the update")
       })
     })
 
-    context("when caller is the owner", () => {
+    context("when caller is the update initiator", () => {
       const newUnmintFee = 191111
 
       let tx
 
       beforeEach(async () => {
         tx = await vendingMachine
-          .connect(governance)
+          .connect(unmintFeeUpdateInitiator)
           .initiateUnmintFeeUpdate(newUnmintFee)
       })
 
@@ -207,7 +224,7 @@ describe("VendingMachine", () => {
 
         beforeEach(async () => {
           await vendingMachine
-            .connect(governance)
+            .connect(unmintFeeUpdateInitiator)
             .initiateUnmintFeeUpdate(newUnmintFee)
         })
 
@@ -264,7 +281,9 @@ describe("VendingMachine", () => {
 
     context("when unmint fee is zero", async () => {
       beforeEach(async () => {
-        await vendingMachine.connect(governance).initiateUnmintFeeUpdate(0)
+        await vendingMachine
+          .connect(unmintFeeUpdateInitiator)
+          .initiateUnmintFeeUpdate(0)
         await increaseTime(604800) // +7 days contract governance delay
         await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
       })
@@ -398,22 +417,22 @@ describe("VendingMachine", () => {
       await newVendingMachine.deployed()
     })
 
-    describe("when caller is not the owner", () => {
+    describe("when caller is not the update initiator", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine
             .connect(thirdParty)
             .initiateVendingMachineUpdate(newVendingMachine.address)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Not authorized to initiate the update")
       })
     })
 
-    describe("when caller is the owner", () => {
+    describe("when caller is the update initiator", () => {
       describe("when new vending machine address is zero", () => {
         it("should revert", async () => {
           await expect(
             vendingMachine
-              .connect(governance)
+              .connect(vendingMachineUpdateInitiator)
               .initiateVendingMachineUpdate(ZERO_ADDRESS)
           ).to.be.revertedWith("New VendingMachine cannot be zero address")
         })
@@ -424,7 +443,7 @@ describe("VendingMachine", () => {
 
         beforeEach(async () => {
           tx = await vendingMachine
-            .connect(governance)
+            .connect(vendingMachineUpdateInitiator)
             .initiateVendingMachineUpdate(newVendingMachine.address)
         })
 
@@ -488,7 +507,7 @@ describe("VendingMachine", () => {
           await vendingMachine.connect(tokenHolder).mint(tbtcV1Amount)
 
           await vendingMachine
-            .connect(governance)
+            .connect(vendingMachineUpdateInitiator)
             .initiateVendingMachineUpdate(newVendingMachine.address)
         })
 
@@ -533,6 +552,52 @@ describe("VendingMachine", () => {
             ).to.be.revertedWith("Change not initiated")
           })
         })
+      })
+    })
+  })
+
+  describe("transferUnmintFeeUpdateInitiatorRole", () => {
+    context("when caller is no the update initiator", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(governance)
+            .transferUnmintFeeUpdateInitiatorRole(thirdParty.address)
+        ).to.be.revertedWith("Not authorized to transfer the role")
+      })
+    })
+
+    context("when caller is the update initiator", () => {
+      it("should transfer the role", async () => {
+        await vendingMachine
+          .connect(unmintFeeUpdateInitiator)
+          .transferUnmintFeeUpdateInitiatorRole(thirdParty.address)
+        expect(await vendingMachine.unmintFeeUpdateInitiator()).to.equal(
+          thirdParty.address
+        )
+      })
+    })
+  })
+
+  describe("transferVendingMachineUpdateInitiatorRole", () => {
+    context("when caller is no the update initiator", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(governance)
+            .transferVendingMachineUpdateInitiatorRole(thirdParty.address)
+        ).to.be.revertedWith("Not authorized to transfer the role")
+      })
+    })
+
+    context("when caller is the update initiator", () => {
+      it("should transfer the role", async () => {
+        await vendingMachine
+          .connect(vendingMachineUpdateInitiator)
+          .transferVendingMachineUpdateInitiatorRole(thirdParty.address)
+        expect(await vendingMachine.vendingMachineUpdateInitiator()).to.equal(
+          thirdParty.address
+        )
       })
     })
   })

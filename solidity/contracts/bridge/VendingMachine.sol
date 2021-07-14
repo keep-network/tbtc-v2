@@ -22,6 +22,12 @@ import "../GovernanceUtils.sol";
 ///         TBTC v2 token ownership can be updated in a two-step,
 ///         governance-controlled process. It is expected that this process
 ///         will be executed before the v2 system launch.
+///         All governable parameters are controlled by two roles: update
+///         initiator and finalizer. There is a separate initiator role for
+///         unmint fee update and vending machine update. The initiator
+///         proposes the change by initiating the update and the finalizer
+///         (contract owner) may approve it by finalizing the change after the
+///         governance delay passes.
 contract VendingMachine is Ownable, IReceiveApproval {
     using SafeERC20 for IERC20;
     using SafeERC20 for TBTCToken;
@@ -48,13 +54,15 @@ contract VendingMachine is Ownable, IReceiveApproval {
     ///         amount being unminted.
     uint256 public unmintFee;
     uint256 public newUnmintFee;
-    uint256 public unmintFeeChangeInitiatedTimestamp;
+    uint256 public unmintFeeUpdateInitiatedTimestamp;
+    address public unmintFeeUpdateInitiator;
 
     /// @notice The address of a new vending machine. Set only when the update
     ///         process is pending. Once the update gets finalized, the new
     ///         vending machine will become an owner of TBTC v2 token.
     address public newVendingMachine;
     uint256 public vendingMachineUpdateInitiatedTimestamp;
+    address public vendingMachineUpdateInitiator;
 
     event UnmintFeeUpdateInitiated(uint256 newUnmintFee, uint256 timestamp);
     event UnmintFeeUpdated(uint256 newUnmintFee);
@@ -84,6 +92,9 @@ contract VendingMachine is Ownable, IReceiveApproval {
         tbtcV1 = _tbtcV1;
         tbtcV2 = _tbtcV2;
         unmintFee = _unmintFee;
+
+        unmintFeeUpdateInitiator = msg.sender;
+        vendingMachineUpdateInitiator = msg.sender;
     }
 
     /// @notice Mints TBTC v2 to the caller from TBTC v1 with 1:1 ratio.
@@ -149,43 +160,50 @@ contract VendingMachine is Ownable, IReceiveApproval {
         tbtcV2.safeTransfer(recipient, amount);
     }
 
-    /// @notice Allows the Governance to initiate unmint fee update process.
-    ///         The update process needs to be finalized with a call to
-    ///         `finalizeUnmintFeeUpdate` function after the `GOVERNANCE_DELAY`
-    ///         passes.
+    /// @notice Initiates unmint fee update process. The update process needs to
+    ///         be finalized with a call to `finalizeUnmintFeeUpdate` function
+    ///         after the `GOVERNANCE_DELAY` passes. Only unmint fee update
+    ///         initiator role can initiate the update.
     /// @param _newUnmintFee The new unmint fee
-    function initiateUnmintFeeUpdate(uint256 _newUnmintFee) external onlyOwner {
+    function initiateUnmintFeeUpdate(uint256 _newUnmintFee) external {
+        require(
+            msg.sender == unmintFeeUpdateInitiator,
+            "Not authorized to initiate the update"
+        );
+
         /* solhint-disable-next-line not-rely-on-time */
         emit UnmintFeeUpdateInitiated(_newUnmintFee, block.timestamp);
         newUnmintFee = _newUnmintFee;
         /* solhint-disable-next-line not-rely-on-time */
-        unmintFeeChangeInitiatedTimestamp = block.timestamp;
+        unmintFeeUpdateInitiatedTimestamp = block.timestamp;
     }
 
-    /// @notice Allows the Governance to finalize unmint fee update process.
+    /// @notice Allows the contract owner to finalize unmint fee update process.
     ///         The update process needs to be first initiated with a call to
     ///         `initiateUnmintFeeUpdate` and the `GOVERNANCE_DELAY` needs to
     ///         pass.
     function finalizeUnmintFeeUpdate()
         external
         onlyOwner
-        onlyAfterGovernanceDelay(unmintFeeChangeInitiatedTimestamp)
+        onlyAfterGovernanceDelay(unmintFeeUpdateInitiatedTimestamp)
     {
         emit UnmintFeeUpdated(newUnmintFee);
         unmintFee = newUnmintFee;
         newUnmintFee = 0;
-        unmintFeeChangeInitiatedTimestamp = 0;
+        unmintFeeUpdateInitiatedTimestamp = 0;
     }
 
-    /// @notice Allows the Governance to initiate vending machine update process.
-    ///         The update process needs to be finalized with a call to
+    /// @notice Initiates vending machine update process. The update process
+    ///          needs to be finalized with a call to
     ///         `finalizeVendingMachineUpdate` function after the
-    ///         `GOVERNANCE_DELAY` passes.
+    ///         `GOVERNANCE_DELAY` passes. Only vending machine update initiator
+    ///         role can initiate the update.
     /// @param _newVendingMachine The new vending machine address
-    function initiateVendingMachineUpdate(address _newVendingMachine)
-        external
-        onlyOwner
-    {
+    function initiateVendingMachineUpdate(address _newVendingMachine) external {
+        require(
+            msg.sender == vendingMachineUpdateInitiator,
+            "Not authorized to initiate the update"
+        );
         require(
             _newVendingMachine != address(0),
             "New VendingMachine cannot be zero address"
@@ -198,12 +216,13 @@ contract VendingMachine is Ownable, IReceiveApproval {
         vendingMachineUpdateInitiatedTimestamp = block.timestamp;
     }
 
-    /// @notice Allows the Governance to finalize vending machine update process.
-    ///         The update process needs to be first initiated with a call to
-    ///         `initiateVendingMachineUpdate` and the `GOVERNANCE_DELAY` needs
-    ///         to pass. Once the update is finalized, the new vending machine
-    ///         will become an owner of TBTC v2 token and all TBTC v1 held by
-    ///         this contract will be transferred to the new vending machine.
+    /// @notice Allows the contract owner to finalize vending machine update
+    ///         process. The update process needs to be first initiated with a
+    ///         call to `initiateVendingMachineUpdate` and the `GOVERNANCE_DELAY`
+    ///         needs to pass. Once the update is finalized, the new vending
+    ///         machine will become an owner of TBTC v2 token and all TBTC v1
+    ///         held by this contract will be transferred to the new vending
+    ///         machine.
     function finalizeVendingMachineUpdate()
         external
         onlyOwner
@@ -217,13 +236,40 @@ contract VendingMachine is Ownable, IReceiveApproval {
         vendingMachineUpdateInitiatedTimestamp = 0;
     }
 
+    /// @notice Transfers unmint fee update initiator role to another address.
+    ///         Can be called only by the current unmint fee update initiator.
+    /// @param newInitiator The new unmint fee update initiator
+    function transferUnmintFeeUpdateInitiatorRole(address newInitiator)
+        external
+    {
+        require(
+            msg.sender == unmintFeeUpdateInitiator,
+            "Not authorized to transfer the role"
+        );
+        unmintFeeUpdateInitiator = newInitiator;
+    }
+
+    /// @notice Transfers vending machine update initiator role to another
+    ///         address. Can be called only by the current vending machine
+    ///         update initiator.
+    /// @param newInitiator The new vending machine update initator
+    function transferVendingMachineUpdateInitiatorRole(address newInitiator)
+        external
+    {
+        require(
+            msg.sender == vendingMachineUpdateInitiator,
+            "Not authorized to transfer the role"
+        );
+        vendingMachineUpdateInitiator = newInitiator;
+    }
+
     /// @notice Get the remaining time that needs to pass until unmint fee
     ///         update can be finalized by the Governance. If the update has
     ///         not been initiated, the function reverts.
     function getRemainingUnmintFeeUpdateTime() external view returns (uint256) {
         return
             GovernanceUtils.getRemainingGovernanceDelay(
-                unmintFeeChangeInitiatedTimestamp,
+                unmintFeeUpdateInitiatedTimestamp,
                 GOVERNANCE_DELAY
             );
     }
