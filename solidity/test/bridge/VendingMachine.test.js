@@ -1,10 +1,10 @@
 const { expect } = require("chai")
 const {
   increaseTime,
-  lastBlockTime,
   to1e18,
   to1ePrecision,
   ZERO_ADDRESS,
+  getBlockTime,
 } = require("../helpers/contract-test-helpers")
 
 describe("VendingMachine", () => {
@@ -196,7 +196,7 @@ describe("VendingMachine", () => {
       it("should emit UnmintFeeUpdateInitiated event", async () => {
         await expect(tx)
           .to.emit(vendingMachine, "UnmintFeeUpdateInitiated")
-          .withArgs(newUnmintFee, await lastBlockTime())
+          .withArgs(newUnmintFee, await getBlockTime(tx.blockNumber))
       })
     })
   })
@@ -462,7 +462,10 @@ describe("VendingMachine", () => {
         it("should emit VendingMachineUpdateInitiated event", async () => {
           await expect(tx)
             .to.emit(vendingMachine, "VendingMachineUpdateInitiated")
-            .withArgs(newVendingMachine.address, await lastBlockTime())
+            .withArgs(
+              newVendingMachine.address,
+              await getBlockTime(tx.blockNumber)
+            )
         })
       })
     })

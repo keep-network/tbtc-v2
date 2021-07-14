@@ -8,6 +8,10 @@ function to1e18(n) {
   return ethers.BigNumber.from(n).mul(decimalMultiplier)
 }
 
+async function getBlockTime(blockNumber) {
+  return (await ethers.provider.getBlock(blockNumber)).timestamp
+}
+
 async function lastBlockTime() {
   return (await ethers.provider.getBlock("latest")).timestamp
 }
@@ -21,6 +25,7 @@ async function increaseTime(time) {
 module.exports.to1ePrecision = to1ePrecision
 module.exports.to1e18 = to1e18
 module.exports.lastBlockTime = lastBlockTime
+module.exports.getBlockTime = getBlockTime
 module.exports.increaseTime = increaseTime
 
 module.exports.ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
