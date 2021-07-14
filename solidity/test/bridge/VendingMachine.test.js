@@ -163,6 +163,113 @@ describe("VendingMachine", () => {
     })
   })
 
+  describe("unmint", () => {
+    beforeEach(async () => {
+      await vendingMachine.connect(tokenHolder).mint(initialBalance)
+      await tbtcV2
+        .connect(tokenHolder)
+        .approve(vendingMachine.address, initialBalance)
+    })
+
+    describe("when TBTC v2 owner has not enough tokens", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine.connect(tokenHolder).unmint(initialBalance)
+        ).to.be.revertedWith("Amount + fee exceeds TBTC v2 balance")
+      })
+    })
+
+    describe("when TBTC v2 owner has enough tokens", () => {
+      const unmintAmount = to1e18(1)
+      let unmintFee
+
+      let v1StartBalance
+      let v2StartBalance
+
+      let tx
+
+      beforeEach(async () => {
+        v1StartBalance = await tbtcV1.balanceOf(tokenHolder.address)
+        v2StartBalance = await tbtcV2.balanceOf(tokenHolder.address)
+
+        unmintFee = await vendingMachine.unmintFeeFor(unmintAmount)
+        tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
+      })
+
+      it("should transfer TBTC v2 fee to the VendingMachine", async () => {
+        expect(await tbtcV2.balanceOf(vendingMachine.address)).to.equal(
+          unmintFee
+        )
+      })
+
+      it("should burn unminted TBTC v2 tokens", async () => {
+        expect(await tbtcV2.balanceOf(tokenHolder.address)).to.equal(
+          v2StartBalance.sub(unmintAmount).sub(unmintFee)
+        )
+      })
+
+      it("should transfer unminted TBTC v1 tokens back to the owner", async () => {
+        expect(await tbtcV1.balanceOf(tokenHolder.address)).to.equal(
+          v1StartBalance.add(unmintAmount)
+        )
+      })
+
+      it("should emit the Unminted event", async () => {
+        await expect(tx)
+          .to.emit(vendingMachine, "Unminted")
+          .withArgs(tokenHolder.address, unmintAmount, unmintFee)
+      })
+    })
+  })
+
+  describe("withdrawFees", () => {
+    const unmintAmount = to1e18(4)
+    let unmintFee
+
+    beforeEach(async () => {
+      await vendingMachine.connect(tokenHolder).mint(initialBalance)
+      await tbtcV2
+        .connect(tokenHolder)
+        .approve(vendingMachine.address, initialBalance)
+      unmintFee = await vendingMachine.unmintFeeFor(unmintAmount)
+      await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(thirdParty)
+            .withdrawFees(thirdParty.address, unmintFee)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when caller is the owner", () => {
+      let withdrawnFee
+
+      beforeEach(async () => {
+        withdrawnFee = unmintFee.sub(1)
+
+        await vendingMachine
+          .connect(governance)
+          .withdrawFees(thirdParty.address, withdrawnFee)
+      })
+
+      it("should withdraw the provided amount of fees", async () => {
+        expect(await tbtcV2.balanceOf(thirdParty.address)).is.equal(
+          withdrawnFee
+        )
+      })
+
+      it("should leave the rest of fees in VendingMachine", async () => {
+        expect(await tbtcV2.balanceOf(vendingMachine.address)).is.equal(
+          unmintFee.sub(withdrawnFee)
+        )
+      })
+    })
+  })
+
   describe("initiateUnmintFeeUpdate", () => {
     context("when caller is a third party", () => {
       it("should revert", async () => {
@@ -301,143 +408,6 @@ describe("VendingMachine", () => {
             ).to.equal(0)
           })
         })
-      })
-    })
-  })
-
-  describe("unmintFeeFor", () => {
-    const unmintAmount = to1e18(2)
-
-    context("when unmint fee is non-zero", async () => {
-      it("should return a correct portion of the amount to unmint", async () => {
-        // 0.001 * 2 = 0.002
-        await expect(await vendingMachine.unmintFeeFor(unmintAmount)).to.equal(
-          to1ePrecision(2, 15)
-        )
-      })
-    })
-
-    context("when unmint fee is zero", async () => {
-      beforeEach(async () => {
-        await vendingMachine
-          .connect(unmintFeeUpdateInitiator)
-          .initiateUnmintFeeUpdate(0)
-        await increaseTime(604800) // +7 days contract governance delay
-        await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
-      })
-
-      it("should return zero", async () => {
-        // 0.001 * 0 = 0
-        await expect(await vendingMachine.unmintFeeFor(unmintAmount)).to.equal(
-          0
-        )
-      })
-    })
-  })
-
-  describe("unmint", () => {
-    beforeEach(async () => {
-      await vendingMachine.connect(tokenHolder).mint(initialBalance)
-      await tbtcV2
-        .connect(tokenHolder)
-        .approve(vendingMachine.address, initialBalance)
-    })
-
-    describe("when TBTC v2 owner has not enough tokens", () => {
-      it("should revert", async () => {
-        await expect(
-          vendingMachine.connect(tokenHolder).unmint(initialBalance)
-        ).to.be.revertedWith("Amount + fee exceeds TBTC v2 balance")
-      })
-    })
-
-    describe("when TBTC v2 owner has enough tokens", () => {
-      const unmintAmount = to1e18(1)
-      let unmintFee
-
-      let v1StartBalance
-      let v2StartBalance
-
-      let tx
-
-      beforeEach(async () => {
-        v1StartBalance = await tbtcV1.balanceOf(tokenHolder.address)
-        v2StartBalance = await tbtcV2.balanceOf(tokenHolder.address)
-
-        unmintFee = await vendingMachine.unmintFeeFor(unmintAmount)
-        tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
-      })
-
-      it("should transfer TBTC v2 fee to the VendingMachine", async () => {
-        expect(await tbtcV2.balanceOf(vendingMachine.address)).to.equal(
-          unmintFee
-        )
-      })
-
-      it("should burn unminted TBTC v2 tokens", async () => {
-        expect(await tbtcV2.balanceOf(tokenHolder.address)).to.equal(
-          v2StartBalance.sub(unmintAmount).sub(unmintFee)
-        )
-      })
-
-      it("should transfer unminted TBTC v1 tokens back to the owner", async () => {
-        expect(await tbtcV1.balanceOf(tokenHolder.address)).to.equal(
-          v1StartBalance.add(unmintAmount)
-        )
-      })
-
-      it("should emit the Unminted event", async () => {
-        await expect(tx)
-          .to.emit(vendingMachine, "Unminted")
-          .withArgs(tokenHolder.address, unmintAmount, unmintFee)
-      })
-    })
-  })
-
-  describe("withdrawFees", () => {
-    const unmintAmount = to1e18(4)
-    let unmintFee
-
-    beforeEach(async () => {
-      await vendingMachine.connect(tokenHolder).mint(initialBalance)
-      await tbtcV2
-        .connect(tokenHolder)
-        .approve(vendingMachine.address, initialBalance)
-      unmintFee = await vendingMachine.unmintFeeFor(unmintAmount)
-      await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
-    })
-
-    context("when caller is not the owner", () => {
-      it("should revert", async () => {
-        await expect(
-          vendingMachine
-            .connect(thirdParty)
-            .withdrawFees(thirdParty.address, unmintFee)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when caller is the owner", () => {
-      let withdrawnFee
-
-      beforeEach(async () => {
-        withdrawnFee = unmintFee.sub(1)
-
-        await vendingMachine
-          .connect(governance)
-          .withdrawFees(thirdParty.address, withdrawnFee)
-      })
-
-      it("should withdraw the provided amount of fees", async () => {
-        expect(await tbtcV2.balanceOf(thirdParty.address)).is.equal(
-          withdrawnFee
-        )
-      })
-
-      it("should leave the rest of fees in VendingMachine", async () => {
-        expect(await tbtcV2.balanceOf(vendingMachine.address)).is.equal(
-          unmintFee.sub(withdrawnFee)
-        )
       })
     })
   })
@@ -703,6 +673,36 @@ describe("VendingMachine", () => {
             .connect(vendingMachineUpdateInitiator)
             .transferVendingMachineUpdateInitiatorRole(ZERO_ADDRESS)
         ).to.be.revertedWith("New initiator must not be zero address")
+      })
+    })
+  })
+
+  describe("unmintFeeFor", () => {
+    const unmintAmount = to1e18(2)
+
+    context("when unmint fee is non-zero", async () => {
+      it("should return a correct portion of the amount to unmint", async () => {
+        // 0.001 * 2 = 0.002
+        await expect(await vendingMachine.unmintFeeFor(unmintAmount)).to.equal(
+          to1ePrecision(2, 15)
+        )
+      })
+    })
+
+    context("when unmint fee is zero", async () => {
+      beforeEach(async () => {
+        await vendingMachine
+          .connect(unmintFeeUpdateInitiator)
+          .initiateUnmintFeeUpdate(0)
+        await increaseTime(604800) // +7 days contract governance delay
+        await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
+      })
+
+      it("should return zero", async () => {
+        // 0.001 * 0 = 0
+        await expect(await vendingMachine.unmintFeeFor(unmintAmount)).to.equal(
+          0
+        )
       })
     })
   })
