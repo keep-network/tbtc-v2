@@ -79,27 +79,57 @@ describe("VendingMachine", () => {
     context("when TBTC v1 owner has enough tokens", () => {
       let tx
 
-      beforeEach(async () => {
-        tx = await vendingMachine.connect(tokenHolder).mint(initialBalance)
+      context("when minting entire allowance", () => {
+        const amount = initialBalance
+
+        beforeEach(async () => {
+          tx = await vendingMachine.connect(tokenHolder).mint(amount)
+        })
+  
+        it("should mint the same amount of TBTC v2", async () => {
+          expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(
+            amount
+          )
+        })
+  
+        it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
+          expect(await tbtcV1.balanceOf(vendingMachine.address)).is.equal(
+            amount
+          )
+        })
+  
+        it("should emit Minted event", async () => {
+          await expect(tx)
+            .to.emit(vendingMachine, "Minted")
+            .withArgs(tokenHolder.address, amount)
+        })
       })
 
-      it("should mint the same amount of TBTC v2", async () => {
-        expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(
-          initialBalance
-        )
-      })
+      context("when minting part of the allowance", () => {
+        const amount = initialBalance.sub(to1e18(1))
 
-      it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
-        expect(await tbtcV1.balanceOf(vendingMachine.address)).is.equal(
-          initialBalance
-        )
-      })
-
-      it("should emit Minted event", async () => {
-        await expect(tx)
-          .to.emit(vendingMachine, "Minted")
-          .withArgs(tokenHolder.address, initialBalance)
-      })
+        beforeEach(async () => {
+          tx = await vendingMachine.connect(tokenHolder).mint(amount)
+        })
+  
+        it("should mint the same amount of TBTC v2", async () => {
+          expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(
+            amount
+          )
+        })
+  
+        it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
+          expect(await tbtcV1.balanceOf(vendingMachine.address)).is.equal(
+            amount
+          )
+        })
+  
+        it("should emit Minted event", async () => {
+          await expect(tx)
+            .to.emit(vendingMachine, "Minted")
+            .withArgs(tokenHolder.address, amount)
+        })
+      })      
     })
   })
 
