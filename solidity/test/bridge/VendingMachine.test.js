@@ -63,7 +63,7 @@ describe("VendingMachine", () => {
       .approve(vendingMachine.address, initialBalance)
   })
 
-  describe("deposit", () => {
+  describe("mint", () => {
     describe("when TBTC v1 owner has not enough tokens", () => {
       it("should revert", async () => {
         const amount = initialBalance.add(1)
@@ -89,7 +89,7 @@ describe("VendingMachine", () => {
         )
       })
 
-      it("should transfer TBTC v1 tokens the VendingMachine", async () => {
+      it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
         expect(await tbtcV1.balanceOf(vendingMachine.address)).is.equal(
           initialBalance
         )
@@ -149,7 +149,7 @@ describe("VendingMachine", () => {
         )
       })
 
-      it("should transfer TBTC v1 tokens the VendingMachine", async () => {
+      it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
         expect(await tbtcV1.balanceOf(vendingMachine.address)).is.equal(
           initialBalance
         )
