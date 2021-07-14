@@ -576,6 +576,16 @@ describe("VendingMachine", () => {
           thirdParty.address
         )
       })
+
+      context("when new initiator is zero address", () => {
+        it("should revert", async () => {
+          await expect(
+            vendingMachine
+              .connect(unmintFeeUpdateInitiator)
+              .transferUnmintFeeUpdateInitiatorRole(ZERO_ADDRESS)
+          ).to.be.revertedWith("New initiator must not be zero address")
+        })
+      })
     })
   })
 
@@ -598,6 +608,16 @@ describe("VendingMachine", () => {
         expect(await vendingMachine.vendingMachineUpdateInitiator()).to.equal(
           thirdParty.address
         )
+      })
+    })
+
+    context("when new initiator is zero address", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(vendingMachineUpdateInitiator)
+            .transferVendingMachineUpdateInitiatorRole(ZERO_ADDRESS)
+        ).to.be.revertedWith("New initiator must not be zero address")
       })
     })
   })
