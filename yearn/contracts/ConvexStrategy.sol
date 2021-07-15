@@ -17,12 +17,12 @@ interface IConvexBooster {
         external
         view
         returns (
-            address,
-            address,
-            address,
-            address,
-            address,
-            bool
+            address lpToken,
+            address convexDepositToken,
+            address curvePoolGauge,
+            address convexRewardPool,
+            address convexExtraRewardStash,
+            bool shutdown
         );
 
     function deposit(
@@ -33,8 +33,8 @@ interface IConvexBooster {
 }
 
 /// @notice Interface for the Convex reward pool.
-/// @dev This is an interface with just a few function signatures of the reward pool.
-///      For more info and function description please see:
+/// @dev This is an interface with just a few function signatures of the
+///      reward pool. For more info and function description please see:
 ///      https://github.com/convex-eth/platform/blob/main/contracts/contracts/BaseRewardPool.sol
 interface IConvexRewardPool {
     function balanceOf(address account) external view returns (uint256);
@@ -44,6 +44,21 @@ interface IConvexRewardPool {
         returns (bool);
 
     function withdrawAllAndUnwrap(bool claim) external;
+}
+
+/// @notice Interface for the Convex extra reward stash.
+/// @dev This is an interface with just a few function signatures of the extra
+///      reward stash. For more info and function description please see:
+///      https://github.com/convex-eth/platform/blob/main/contracts/contracts/ExtraRewardStashV1.sol
+interface IConvexExtraRewardStash {
+    function tokenInfo()
+        external
+        view
+        returns (
+            address extraRewardToken,
+            address extraRewardPool,
+            uint256 lastActiveTime
+        );
 }
 
 /// @notice Interface for the optional metadata functions from the ERC20 standard.
@@ -94,6 +109,14 @@ contract ConvexStrategy is BaseStrategy {
     // Address of the Convex reward pool contract paired with the
     // tBTC v2 Curve pool.
     address public tbtcConvexRewardPool;
+    // Address of the extra reward token distributed by the Convex reward pool
+    // paired with the tBTC v2 Curve pool. This is applicable only in case when
+    // the Curve pool's gauge stakes LP tokens into the Synthetix staking
+    // rewards contract (i.e. the gauge is an instance of LiquidityGaugeReward
+    // contract). In such a case, the Convex reward pool wraps the gauge's
+    // additional rewards as Convex extra rewards. This address can be unset if
+    // extra rewards are not distributed by the Convex reward pool.
+    address public tbtcConvexExtraReward;
     // Address of the DEX used to swap reward tokens back to the vault's
     // underlying token. This can be Uniswap or other Uni-like DEX.
     address public dex;
@@ -107,7 +130,7 @@ contract ConvexStrategy is BaseStrategy {
     constructor(
         address _vault,
         address _tbtcCurvePoolDepositor,
-        address _tbtcConvexRewardPoolId
+        uint256 _tbtcConvexRewardPoolId
     ) public BaseStrategy(_vault) {
         // Strategy settings.
         minReportDelay = 12 hours;
@@ -120,10 +143,26 @@ contract ConvexStrategy is BaseStrategy {
         // tBTC-related settings.
         tbtcCurvePoolDepositor = _tbtcCurvePoolDepositor;
         tbtcConvexRewardPoolId = _tbtcConvexRewardPoolId;
-        (address lpToken, , , address rewardPool, , ) = IConvexBooster(booster)
-        .poolInfo(_tbtcConvexRewardPoolId);
+        (
+            address lpToken,
+            ,
+            ,
+            address rewardPool,
+            address extraRewardStash,
+
+        ) = IConvexBooster(booster).poolInfo(_tbtcConvexRewardPoolId);
         require(lpToken == address(want), "Incorrect reward pool LP token");
         tbtcConvexRewardPool = rewardPool;
+
+        if (extraRewardStash != address(0)) {
+            (address extraRewardToken, , ) = IConvexExtraRewardStash(
+                extraRewardStash
+            ).tokenInfo();
+
+            if (extraRewardToken != address(0)) {
+                tbtcConvexExtraReward = extraRewardToken;
+            }
+        }
     }
 
     /// @notice Sets the portion of CRV tokens which should be locked in
@@ -174,13 +213,17 @@ contract ConvexStrategy is BaseStrategy {
     ///        configured debt limit, otherwise its value will be how far past
     ///        the debt limit the strategy is. The strategy's debt limit is
     ///        configured in the vault.
-    function adjustPosition(uint256 _debtOutstanding) internal override {
+    function adjustPosition(uint256 debtOutstanding) internal override {
         uint256 wantBalance = want.balanceOf(address(this));
         if (wantBalance > 0) {
             want.safeApprove(booster, 0);
             want.safeApprove(booster, wantBalance);
 
-            IConvexBooster(booster).deposit(id, wantBalance, true);
+            IConvexBooster(booster).deposit(
+                tbtcConvexRewardPoolId,
+                wantBalance,
+                true
+            );
         }
     }
 
@@ -290,7 +333,12 @@ contract ConvexStrategy is BaseStrategy {
             newStrategy,
             IERC20(cvx).balanceOf(address(this))
         );
-        // TODO: Transfer gauge additional rewards too (KEEP token).
+        if (tbtcConvexExtraReward != address(0)) {
+            IERC20(tbtcConvexExtraReward).safeTransfer(
+                newStrategy,
+                IERC20(tbtcConvexExtraReward).balanceOf(address(this))
+            );
+        }
     }
 
     /// @notice Takes the keepCRV portion of the CRV balance and transfers
@@ -329,10 +377,17 @@ contract ConvexStrategy is BaseStrategy {
         override
         returns (address[] memory)
     {
+        if (tbtcConvexExtraReward != address(0)) {
+            address[] memory protected = new address[](3);
+            protected[0] = crv;
+            protected[1] = cvx;
+            protected[2] = tbtcConvexExtraReward;
+            return protected;
+        }
+
         address[] memory protected = new address[](2);
         protected[0] = crv;
         protected[1] = cvx;
-        // TODO: Gauge additional rewards token (KEEP token).
         return protected;
     }
 
