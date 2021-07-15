@@ -8,6 +8,16 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
+/// @notice Interface for the CurveFi pool.
+/// @dev This is an interface with just a few function signatures of the pool.
+///      For more info and function description please see:
+///      https://github.com/curvefi/curve-contract/tree/master/contracts/pool-templates
+interface ICurvePool {
+    function add_liquidity(uint256[4] calldata amounts, uint256 min_mint_amount)
+        external
+        payable;
+}
+
 /// @notice Interface for the Convex booster.
 /// @dev This is an interface with just a few function signatures of the booster.
 ///      For more info and function description please see:
@@ -32,6 +42,21 @@ interface IConvexBooster {
     ) external returns (bool);
 }
 
+/// @notice Interface for the Uniswap v2 router.
+/// @dev This is an interface with just a few function signatures of the
+///      router contract. For more info and function description please see:
+///      https://uniswap.org/docs/v2/smart-contracts/router02
+///      This interface allows to interact with Sushiswap as well.
+interface IUniswapV2Router {
+    function swapExactTokensForTokens(
+        uint256,
+        uint256,
+        address[] calldata,
+        address,
+        uint256
+    ) external;
+}
+
 /// @notice Interface for the Convex reward pool.
 /// @dev This is an interface with just a few function signatures of the
 ///      reward pool. For more info and function description please see:
@@ -44,6 +69,10 @@ interface IConvexRewardPool {
         returns (bool);
 
     function withdrawAllAndUnwrap(bool claim) external;
+
+    function getReward(address account, bool claimExtras)
+        external
+        returns (bool);
 }
 
 /// @notice Interface for the Convex extra reward stash.
@@ -214,7 +243,7 @@ contract ConvexStrategy is BaseStrategy {
     ///        the debt limit the strategy is. The strategy's debt limit is
     ///        configured in the vault.
     function adjustPosition(uint256 debtOutstanding) internal override {
-        uint256 wantBalance = want.balanceOf(address(this));
+        uint256 wantBalance = balanceOfWant();
         if (wantBalance > 0) {
             want.safeApprove(booster, 0);
             want.safeApprove(booster, wantBalance);
@@ -268,7 +297,7 @@ contract ConvexStrategy is BaseStrategy {
         override
         returns (uint256 liquidatedAmount, uint256 loss)
     {
-        uint256 wantBalance = want.balanceOf(address(this));
+        uint256 wantBalance = balanceOfWant();
         if (wantBalance < amountNeeded) {
             liquidatedAmount = withdrawSome(amountNeeded.sub(wantBalance));
             liquidatedAmount = liquidatedAmount.add(wantBalance);
@@ -303,7 +332,7 @@ contract ConvexStrategy is BaseStrategy {
         // https://github.com/yearn/yearn-vaults/pull/311#discussion_r625588313.
         // Also, usage of this result in the harvest method in the BaseStrategy
         // seems to confirm that.
-        return want.balanceOf(address(this));
+        return balanceOfWant();
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant
@@ -352,7 +381,32 @@ contract ConvexStrategy is BaseStrategy {
         return crvBalance.sub(crvTransfer);
     }
 
-    // TODO: Documentation.
+    /// @notice This method is defined in the BaseStrategy contract and is meant
+    ///         to perform any strategy unwinding or other calls necessary to
+    ///         capture the free return this strategy has generated since the
+    ///         last time its core position(s) were adjusted. Examples include
+    ///         unwrapping extra rewards. This call is only used during normal
+    ///         operation of a strategy, and should be optimized to minimize
+    ///         losses as much as possible. This strategy implements the
+    ///         aforementioned behavior by getting CRV, CVX, and optional extra
+    ///         rewards from the Convex reward pool, using obtained tokens to
+    ///         buy one of the Curve pool's accepted token, and depositing that
+    ///         token back to the Curve pool. This way the strategy is gaining
+    ///         new vault's underlying tokens thus making the profit. A small
+    ///         portion of CRV rewards (defined by keepCRV param) is transferred
+    ///         to the voter contract to increase CRV boost and get more CRV
+    ///         rewards in the future.
+    /// @param debtOutstanding Will be 0 if the strategy is not past the
+    ///        configured debt limit, otherwise its value will be how far past
+    ///        the debt limit the strategy is. The strategy's debt limit is
+    ///        configured in the vault.
+    /// @return profit Amount of realized profit.
+    /// @return loss Amount of realized loss.
+    /// @return debtPayment Amount of repaid debt. The value of debtPayment
+    ///         should be less than or equal to debtOutstanding. It is okay for
+    ///         it to be less than debtOutstanding, as that should only used as
+    ///         a guide for how much is left to pay back. Payments should be
+    ///         made to minimize loss from slippage, debt, withdrawal fees, etc.
     function prepareReturn(uint256 debtOutstanding)
         internal
         override
@@ -362,7 +416,114 @@ contract ConvexStrategy is BaseStrategy {
             uint256 debtPayment
         )
     {
-        // TODO: Implementation.
+        // Get the initial balance of the vault's underlying token under
+        // strategy management.
+        uint256 initialWantBalance = balanceOfWant();
+
+        // Get CRV and CVX rewards from the Convex reward pool. Also, claim
+        // extra rewards if such rewards are distributed by the pool.
+        IConvexRewardPool(tbtcConvexRewardPool).getReward(address(this), true);
+
+        // Buy WBTC using obtained CRV tokens.
+        uint256 crvBalance = IERC20(crv).balanceOf(address(this));
+        if (crvBalance > 0) {
+            // Deposit a portion of CRV to the voter to gain CRV boost.
+            crvBalance = adjustCRV(crvBalance);
+
+            IERC20(crv).safeApprove(dex, 0);
+            IERC20(crv).safeApprove(dex, crvBalance);
+
+            address[] memory path = new address[](3);
+            path[0] = crv;
+            path[1] = weth;
+            path[2] = wbtc;
+
+            IUniswapV2Router(dex).swapExactTokensForTokens(
+                crvBalance,
+                uint256(0),
+                path,
+                address(this),
+                now
+            );
+        }
+
+        // Buy WBTC using obtained CVX tokens.
+        uint256 cvxBalance = IERC20(cvx).balanceOf(address(this));
+        if (cvxBalance > 0) {
+            IERC20(cvx).safeApprove(dex, 0);
+            IERC20(cvx).safeApprove(dex, cvxBalance);
+
+            address[] memory path = new address[](3);
+            path[0] = cvx;
+            path[1] = weth;
+            path[2] = wbtc;
+
+            IUniswapV2Router(dex).swapExactTokensForTokens(
+                cvxBalance,
+                uint256(0),
+                path,
+                address(this),
+                now
+            );
+        }
+
+        // Buy WBTC using obtained extra reward tokens, if applicable.
+        if (tbtcConvexExtraReward != address(0)) {
+            uint256 extraRewardBalance = IERC20(tbtcConvexExtraReward)
+            .balanceOf(address(this));
+            if (extraRewardBalance > 0) {
+                IERC20(tbtcConvexExtraReward).safeApprove(dex, 0);
+                IERC20(tbtcConvexExtraReward).safeApprove(
+                    dex,
+                    extraRewardBalance
+                );
+
+                address[] memory path = new address[](3);
+                path[0] = tbtcConvexExtraReward;
+                path[1] = weth;
+                path[2] = wbtc;
+
+                IUniswapV2Router(dex).swapExactTokensForTokens(
+                    extraRewardBalance,
+                    uint256(0),
+                    path,
+                    address(this),
+                    now
+                );
+            }
+        }
+
+        // Deposit acquired WBTC to the Curve pool to gain additional
+        // vault's underlying tokens.
+        uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
+        if (wbtcBalance > 0) {
+            IERC20(wbtc).safeApprove(tbtcCurvePoolDepositor, 0);
+            IERC20(wbtc).safeApprove(tbtcCurvePoolDepositor, wbtcBalance);
+            ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
+                [0, 0, wbtcBalance, 0],
+                0
+            );
+        }
+
+        // Calculate the profit after obtaining new vault's underlying tokens.
+        profit = want.balanceOf(address(this)).sub(initialWantBalance);
+
+        // Check the profit and loss in the context of strategy debt.
+        uint256 totalAssets = estimatedTotalAssets();
+        uint256 totalDebt = vault.strategies(address(this)).totalDebt;
+        if (totalAssets < totalDebt) {
+            loss = totalDebt - totalAssets;
+            profit = 0;
+        }
+
+        // Repay some vault debt if needed.
+        if (debtOutstanding > 0) {
+            withdrawSome(debtOutstanding);
+            debtPayment = Math.min(
+                debtOutstanding,
+                balanceOfWant().sub(profit)
+            );
+        }
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant
