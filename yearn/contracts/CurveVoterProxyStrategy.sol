@@ -152,15 +152,18 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         address _tbtcCurvePoolGauge,
         address _tbtcCurvePoolGaugeReward // optional, zero is valid value
     ) public BaseStrategy(_vault) {
+        // Strategy settings.
         minReportDelay = 6 hours;
         maxReportDelay = 2 days;
         profitFactor = 1;
         debtThreshold = 1e24;
+        dex = uniswap;
+        keepCRV = 1000;
+
+        // tBTC-related settings.
         tbtcCurvePoolDepositor = _tbtcCurvePoolDepositor;
         tbtcCurvePoolGauge = _tbtcCurvePoolGauge;
         tbtcCurvePoolGaugeReward = _tbtcCurvePoolGaugeReward;
-        dex = uniswap;
-        keepCRV = 1000;
     }
 
     /// @notice Sets the strategy proxy contract address.
@@ -314,6 +317,9 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     /// @param newStrategy Address of the new strategy meant to replace the
     ///        current one.
     function prepareMigration(address newStrategy) internal override {
+        // Just withdraw the vault's underlying token from the Curve pool's gauge.
+        // There is no need to transfer those tokens to the new strategy
+        // right here as this is done in the BaseStrategy's migrate() method.
         IStrategyProxy(strategyProxy).withdrawAll(
             tbtcCurvePoolGauge,
             address(want)
@@ -499,7 +505,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         override
         returns (uint256)
     {
-        // TODO create an accurate price oracle
+        // TODO: Create an accurate price oracle.
         return amtInWei;
     }
 }
