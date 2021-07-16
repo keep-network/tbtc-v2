@@ -96,7 +96,32 @@ interface IERC20Metadata {
 }
 
 /// @title ConvexStrategy
-/// @notice TODO: Detailed strategy description.
+/// @notice This strategy is meant to be used with the Curve tBTC v2 pool vault.
+///         The vault's underlying token (a.k.a. want token) should be the LP
+///         token of the Curve tBTC v2 pool. This strategy borrows the vault's
+///         underlying token up to the debt limit configured for this strategy
+///         in the vault. In order to make the profit, the strategy deposits
+///         the borrowed tokens into the Convex reward pool via the Convex
+///         booster contract. Depositing tokens in the reward pool generates
+///         regular CRV and CVX rewards. It can also provide extra rewards
+///         (denominated in another token) if the Convex reward pool works on
+///         top of a Curve pool gauge which stakes its deposits into the
+///         Synthetix staking rewards contract. The financial outcome is settled
+///         upon a call of the `harvest` method (BaseStrategy.sol). Once that
+///         call is made, the strategy gets the CRV and CVX rewards from Convex
+///         reward pool, and claims extra rewards if applicable. Then, it takes
+///         a small portion of CRV (defined by keepCRV param) and locks it
+///         into the Curve vote escrow (via CurveYCRVVoter contract) to gain
+///         CRV boost and increase future gains. Remaining CRV, CVX, and
+///         optional extra reward tokens are used to buy wBTC via a
+///         decentralized exchange. At the end, the strategy takes acquired wBTC
+///         and deposits them to the Curve tBTC v2 pool. This way it obtains new
+///         LP tokens the vault is interested for, and makes the profit in
+///         result. At this stage, the strategy may repay some debt back to the
+///         vault, if needed. The entire cycle repeats for the strategy lifetime
+///         so all gains are constantly reinvested. Worth to flag that current
+///         implementation uses wBTC as the intermediary token because
+///         of its liquidity and ubiquity in BTC-based Curve pools.
 /// @dev Implementation is based on:
 ///      - General Yearn strategy template
 ///        https://github.com/yearn/brownie-strategy-mix
