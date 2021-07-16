@@ -40,6 +40,8 @@ interface IConvexBooster {
         uint256 amount,
         bool stake
     ) external returns (bool);
+
+    function earmarkRewards(uint256 poolId) external returns (bool);
 }
 
 /// @notice Interface for the Uniswap v2 router.
@@ -180,6 +182,13 @@ contract ConvexStrategy is BaseStrategy {
     // is `1000`, that means 10% of tokens will be locked because
     // 1000/10000 = 0.1
     uint256 public keepCRV;
+    // If extra reward balance is below this threshold, those rewards won't
+    // be sold during prepareReturn method execution. This parameter is here
+    // because extra reward amounts can be to small to exchange them on DEX
+    // immediately and  that situation will cause reverts of the prepareReturn
+    // method. Setting that threshold to a non-zero value allows to accumulate
+    // extra rewards to a specific amount which can be sold without troubles.
+    uint256 public extraRewardSwapThreshold;
 
     constructor(
         address _vault,
@@ -225,6 +234,16 @@ contract ConvexStrategy is BaseStrategy {
     ///        DENOMINATOR constant.
     function setKeepCRV(uint256 _keepCRV) external onlyAuthorized {
         keepCRV = _keepCRV;
+    }
+
+    /// @notice Sets the extra reward swap threshold.
+    /// @dev Can be called only by the strategist and governance.
+    /// @param _extraRewardSwapThreshold New swap threshold.
+    function setExtraRewardSwapThreshold(uint256 _extraRewardSwapThreshold)
+        external
+        onlyAuthorized
+    {
+        extraRewardSwapThreshold = _extraRewardSwapThreshold;
     }
 
     /// @return Name of the Yearn vault strategy.
@@ -496,7 +515,7 @@ contract ConvexStrategy is BaseStrategy {
         if (tbtcConvexExtraReward != address(0)) {
             uint256 extraRewardBalance = IERC20(tbtcConvexExtraReward)
             .balanceOf(address(this));
-            if (extraRewardBalance > 0) {
+            if (extraRewardBalance > extraRewardSwapThreshold) {
                 IERC20(tbtcConvexExtraReward).safeApprove(uniswap, 0);
                 IERC20(tbtcConvexExtraReward).safeApprove(
                     uniswap,
