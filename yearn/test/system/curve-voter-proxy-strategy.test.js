@@ -5,6 +5,7 @@ const {
   to1ePrecision,
   impersonateAccount,
   increaseTime,
+  to1e18,
 } = require("../helpers/contract-test-helpers.js")
 
 const describeFn =
@@ -308,7 +309,7 @@ describeFn("System -- curve voter proxy strategy", () => {
     )
 
     // Allocate 100k.
-    const rewardsAllocation = to1ePrecision(100000, 18)
+    const rewardsAllocation = to1e18(100000)
 
     // Set a new reward distributor. It's just a holder of the reward tokens.
     await synthetixCurveRewards
