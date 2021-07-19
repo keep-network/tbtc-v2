@@ -214,9 +214,9 @@ contract VendingMachine is Ownable, IReceiveApproval {
             "New VendingMachine cannot be zero address"
         );
 
-        /* solhint-disable-next-line not-rely-on-time */
         emit VendingMachineUpgradeInitiated(
             _newVendingMachine,
+            /* solhint-disable-next-line not-rely-on-time */
             block.timestamp
         );
         newVendingMachine = _newVendingMachine;
