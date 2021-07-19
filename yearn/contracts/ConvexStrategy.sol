@@ -549,15 +549,14 @@ contract ConvexStrategy is BaseStrategy {
             );
         }
 
-        // Calculate the profit after obtaining new vault's underlying tokens.
-        profit = want.balanceOf(address(this)).sub(initialWantBalance);
-
         // Check the profit and loss in the context of strategy debt.
         uint256 totalAssets = estimatedTotalAssets();
         uint256 totalDebt = vault.strategies(address(this)).totalDebt;
         if (totalAssets < totalDebt) {
             loss = totalDebt - totalAssets;
             profit = 0;
+        } else {
+            profit = want.balanceOf(address(this)).sub(initialWantBalance);
         }
 
         // Repay some vault debt if needed.
