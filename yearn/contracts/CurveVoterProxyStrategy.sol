@@ -387,8 +387,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
             // Deposit a portion of CRV to the voter to gain CRV boost.
             crvBalance = adjustCRV(crvBalance);
 
-            IERC20(crv).safeApprove(dex, 0);
-            IERC20(crv).safeApprove(dex, crvBalance);
+            IERC20(crv).safeIncreaseAllowance(dex, crvBalance);
 
             address[] memory path = new address[](3);
             path[0] = crv;
@@ -397,7 +396,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
             IUniswapV2Router(dex).swapExactTokensForTokens(
                 crvBalance,
-                uint256(0),
+                0,
                 path,
                 address(this),
                 now
@@ -415,8 +414,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
                 address(this)
             );
             if (rewardBalance > 0) {
-                IERC20(tbtcCurvePoolGaugeReward).safeApprove(dex, 0);
-                IERC20(tbtcCurvePoolGaugeReward).safeApprove(
+                IERC20(tbtcCurvePoolGaugeReward).safeIncreaseAllowance(
                     dex,
                     rewardBalance
                 );
@@ -428,7 +426,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
                 IUniswapV2Router(dex).swapExactTokensForTokens(
                     rewardBalance,
-                    uint256(0),
+                    0,
                     path,
                     address(this),
                     now
@@ -440,16 +438,15 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         // vault's underlying tokens.
         uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
         if (wbtcBalance > 0) {
-            IERC20(wbtc).safeApprove(tbtcCurvePoolDepositor, 0);
-            IERC20(wbtc).safeApprove(tbtcCurvePoolDepositor, wbtcBalance);
+            IERC20(wbtc).safeIncreaseAllowance(
+                tbtcCurvePoolDepositor,
+                wbtcBalance
+            );
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
                 [0, 0, wbtcBalance, 0],
                 0
             );
         }
-
-        // Calculate the profit after obtaining new vault's underlying tokens.
-        profit = want.balanceOf(address(this)).sub(initialWantBalance);
 
         // Check the profit and loss in the context of strategy debt.
         uint256 totalAssets = estimatedTotalAssets();
@@ -457,6 +454,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         if (totalAssets < totalDebt) {
             loss = totalDebt - totalAssets;
             profit = 0;
+        } else {
+            profit = want.balanceOf(address(this)).sub(initialWantBalance);
         }
 
         // Repay some vault debt if needed.
