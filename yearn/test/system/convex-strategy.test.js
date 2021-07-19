@@ -8,7 +8,7 @@ const {
   to1e18,
 } = require("../helpers/contract-test-helpers.js")
 const { yearn, convex, tbtc, forkBlockNumber } = require("./constants.js")
-const { allocateSynthetixRewards } = require("./functions.js")
+const { allocateSynthetixRewards, deployYearnVault } = require("./functions.js")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
@@ -26,8 +26,8 @@ describeFn("System -- convex strategy", () => {
   const synthetixRewardsAllocation = to1e18(100000)
 
   let vaultGovernance
-  let tbtcCurvePoolLPToken
   let vaultDepositor
+  let tbtcCurvePoolLPToken
   let booster
   let vault
   let strategy
@@ -42,11 +42,9 @@ describeFn("System -- convex strategy", () => {
       vaultGovernance
     )
 
-    await allocateSynthetixRewards(
-      tbtc,
-      synthetixRewardsAllocation,
-      vaultGovernance
-    )
+    // Allocate Synthetix rewards to obtain extra rewards (KEEP tokens)
+    // from the Convex reward pool.
+    await allocateSynthetixRewards(tbtc, synthetixRewardsAllocation)
 
     // Get tBTC v2 Curve pool LP token handle.
     tbtcCurvePoolLPToken = await ethers.getContractAt(
@@ -60,37 +58,15 @@ describeFn("System -- convex strategy", () => {
       convex.boosterAddress
     )
 
-    // Get a handle to the Yearn registry.
-    const registry = await ethers.getContractAt(
-      "IYearnRegistry",
-      yearn.registryAddress
-    )
-
-    // Always use the same vault release to avoid test failures in the future.
-    // Target release index is taken from the deployed Yearn registry contract.
-    // We aim for version 0.4.2 (see BaseStrategy.apiVersion()) whose index is 9.
-    const targetReleaseIndex = 9
-    const releaseDelta = (await registry.numReleases()) - 1 - targetReleaseIndex
-
     // Deploy a new experimental vault accepting tBTC v2 Curve pool LP tokens.
-    const tx = await registry.newExperimentalVault(
-      tbtcCurvePoolLPToken.address,
-      vaultGovernance.address,
-      vaultGovernance.address, // set governance to be the guardian as well
-      vaultGovernance.address, // set governance to be the rewards target as well
+    vault = await deployYearnVault(
+      yearn,
       vaultName,
       vaultSymbol,
-      releaseDelta
+      tbtcCurvePoolLPToken,
+      vaultGovernance,
+      vaultDepositLimit
     )
-
-    // Get a handle to the experimental Yearn vault.
-    vault = await ethers.getContractAt(
-      "IYearnVault",
-      extractVaultAddress(await tx.wait())
-    )
-
-    // Just make sure the vault has been created properly.
-    expect(await vault.name()).to.be.equal(vaultName)
 
     // Deploy the ConvexStrategy contract.
     const ConvexStrategy = await ethers.getContractFactory("ConvexStrategy")
@@ -109,9 +85,6 @@ describeFn("System -- convex strategy", () => {
       BigNumber.from(2).pow(256).sub(1), // infinite max debt per harvest
       1000 // 10% performance fee
     )
-
-    // Set a deposit limit.
-    await vault.setDepositLimit(vaultDepositLimit)
   })
 
   describe("when depositor deposits to the vault", () => {
@@ -249,19 +222,4 @@ describeFn("System -- convex strategy", () => {
       expect(amountWithdrawn.gt(vaultDepositAmount)).to.be.true
     })
   })
-
-  function extractVaultAddress(receipt) {
-    // Find the NewExperimentalVaultEvent using their hex.
-    // See: https://etherscan.io/address/0x50c1a2eA0a861A967D9d0FFE2AE4012c2E053804#events
-    const newExperimentalVaultEvent = receipt.events.find(
-      (e) =>
-        e.topics[0] ===
-        "0x57a9cdc2a05e05f66e76769bdbe88e21ec45d9ee0f97d4cb60395d4c75dcbcda"
-    )
-    // Event data consist of vault address and API version string.
-    return ethers.utils.defaultAbiCoder.decode(
-      ["address", "string"],
-      newExperimentalVaultEvent.data
-    )[0]
-  }
 })
