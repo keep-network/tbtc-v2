@@ -397,7 +397,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
             IUniswapV2Router(dex).swapExactTokensForTokens(
                 crvBalance,
-                uint256(0),
+                0,
                 path,
                 address(this),
                 now
@@ -428,7 +428,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
                 IUniswapV2Router(dex).swapExactTokensForTokens(
                     rewardBalance,
-                    uint256(0),
+                    0,
                     path,
                     address(this),
                     now
