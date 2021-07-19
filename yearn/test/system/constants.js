@@ -40,3 +40,5 @@ module.exports.tbtc = {
   synthetixCurveRewardsOwnerAddress:
     "0xb3726e69da808a689f2607939a2d9e958724fc2a",
 }
+
+module.exports.forkBlockNumber = 12786839

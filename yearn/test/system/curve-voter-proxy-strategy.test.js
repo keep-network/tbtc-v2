@@ -7,7 +7,8 @@ const {
   increaseTime,
   to1e18,
 } = require("../helpers/contract-test-helpers.js")
-const { yearn, tbtc } = require("./constants.js")
+const { yearn, tbtc, forkBlockNumber } = require("./constants.js")
+const { allocateSynthetixRewards } = require("./functions.js")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
@@ -21,20 +22,18 @@ describeFn("System -- curve voter proxy strategy", () => {
   const vaultDepositLimit = to1ePrecision(300, 15)
   // Amount of the deposit made by the depositor.
   const vaultDepositAmount = to1ePrecision(300, 15)
+  // Amount of Synthetix staking rewards which should be allocated.
+  const synthetixRewardsAllocation = to1e18(100000)
 
   let vaultGovernance
   let tbtcCurvePoolLPToken
   let vaultDepositor
-  let tbtcCurvePoolGaugeReward
-  let tbtcCurvePoolGaugeRewardDistributor
-  let synthetixCurveRewards
-  let synthetixCurveRewardsOwner
   let strategyProxyGovernance
   let vault
   let strategy
 
   before(async () => {
-    await resetFork(12786839)
+    await resetFork(forkBlockNumber)
 
     // Setup roles.
     vaultGovernance = await ethers.getSigner(0)
@@ -45,12 +44,10 @@ describeFn("System -- curve voter proxy strategy", () => {
     strategyProxyGovernance = await impersonateAccount(
       yearn.strategyProxyGovernanceAddress
     )
-    tbtcCurvePoolGaugeRewardDistributor = await impersonateAccount(
-      tbtc.curvePoolGaugeRewardDistributorAddress,
-      vaultGovernance
-    )
-    synthetixCurveRewardsOwner = await impersonateAccount(
-      tbtc.synthetixCurveRewardsOwnerAddress,
+
+    await allocateSynthetixRewards(
+      tbtc,
+      synthetixRewardsAllocation,
       vaultGovernance
     )
 
@@ -59,10 +56,6 @@ describeFn("System -- curve voter proxy strategy", () => {
       "IERC20",
       tbtc.curvePoolLPTokenAddress
     )
-
-    // Setup Synthetix staking rewards to provide Curve pool's gauge additional
-    // rewards.
-    await setupSynthetixRewards()
 
     // Get a handle to the Yearn registry.
     const registry = await ethers.getContractAt(
@@ -253,38 +246,6 @@ describeFn("System -- curve voter proxy strategy", () => {
       expect(amountWithdrawn.gt(vaultDepositAmount)).to.be.true
     })
   })
-  async function setupSynthetixRewards() {
-    // Get a handle to the tBTC v2 Curve pool gauge additional reward token.
-    tbtcCurvePoolGaugeReward = await ethers.getContractAt(
-      "IERC20",
-      tbtc.curvePoolGaugeRewardAddress
-    )
-
-    // Get a handle to the Synthetix Curve rewards contract used by the
-    // tBTC v2 Curve pool gauge.
-    synthetixCurveRewards = await ethers.getContractAt(
-      "ICurveRewards",
-      tbtc.synthetixCurveRewardsAddress
-    )
-
-    // Allocate 100k.
-    const rewardsAllocation = to1e18(100000)
-
-    // Set a new reward distributor. It's just a holder of the reward tokens.
-    await synthetixCurveRewards
-      .connect(synthetixCurveRewardsOwner)
-      .setRewardDistribution(tbtcCurvePoolGaugeRewardDistributor.address)
-
-    // Allow distributor's tokens to be taken by the Curve rewards contract.
-    await tbtcCurvePoolGaugeReward
-      .connect(tbtcCurvePoolGaugeRewardDistributor)
-      .approve(synthetixCurveRewards.address, rewardsAllocation)
-
-    // Deposit reward tokens.
-    await synthetixCurveRewards
-      .connect(tbtcCurvePoolGaugeRewardDistributor)
-      .notifyRewardAmount(rewardsAllocation)
-  }
 
   function extractVaultAddress(receipt) {
     // Find the NewExperimentalVaultEvent using their hex.
