@@ -556,7 +556,7 @@ contract ConvexStrategy is BaseStrategy {
             loss = totalDebt - totalAssets;
             profit = 0;
         } else {
-            profit = want.balanceOf(address(this)).sub(initialWantBalance);
+            profit = balanceOfWant().sub(initialWantBalance);
         }
 
         // Repay some vault debt if needed.
