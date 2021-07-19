@@ -12,19 +12,22 @@ import "../GovernanceUtils.sol";
 
 /// @title TBTC v2 Vending Machine
 /// @notice The Vending Machine is the owner of TBTC v2 token and can mint
-///         TBTC v2 tokens in 1:1 ratio from TBTC v1 tokens. TBTC v2 can be
+///         TBTC v2 tokens in 1:1 ratio from TBTC v1 tokens with TBTC v1
+///         deposited in the contract as collateral. TBTC v2 can be
 ///         unminted back to TBTC v1 with or without a fee - fee parameter is
 ///         controlled by the Governance. This implementation acts as a bridge
 ///         between TBTC v1 and TBTC v2 token, allowing to mint TBTC v2 before
 ///         the system is ready and fully operational without sacrificing any
 ///         security guarantees and decentralization of the project.
-///         Vending Machine as a contract itself is not upgradeable, though
-///         TBTC v2 token ownership can be updated in a two-step,
-///         governance-controlled process. It is expected that this process
-///         will be executed before the v2 system launch.
+///         Vending Machine can be upgraded in a two-step, governance-controlled
+///         process. The new version of the Vending Machine will receive the
+///         ownership of TBTC v2 token and entire TBTC v1 balance stored as
+///         collateral. It is expected that this process will be executed before
+///         the v2 system launch. There is an optional unmint fee with a value
+///         that can be updated in a two-step, governance-controlled process.
 ///         All governable parameters are controlled by two roles: update
 ///         initiator and finalizer. There is a separate initiator role for
-///         unmint fee update and vending machine update. The initiator
+///         unmint fee update and vending machine upgrade. The initiator
 ///         proposes the change by initiating the update and the finalizer
 ///         (contract owner) may approve it by finalizing the change after the
 ///         governance delay passes.
@@ -57,21 +60,21 @@ contract VendingMachine is Ownable, IReceiveApproval {
     uint256 public unmintFeeUpdateInitiatedTimestamp;
     address public unmintFeeUpdateInitiator;
 
-    /// @notice The address of a new vending machine. Set only when the update
-    ///         process is pending. Once the update gets finalized, the new
+    /// @notice The address of a new vending machine. Set only when the upgrade
+    ///         process is pending. Once the upgrade gets finalized, the new
     ///         vending machine will become an owner of TBTC v2 token.
     address public newVendingMachine;
-    uint256 public vendingMachineUpdateInitiatedTimestamp;
-    address public vendingMachineUpdateInitiator;
+    uint256 public vendingMachineUpgradeInitiatedTimestamp;
+    address public vendingMachineUpgradeInitiator;
 
     event UnmintFeeUpdateInitiated(uint256 newUnmintFee, uint256 timestamp);
     event UnmintFeeUpdated(uint256 newUnmintFee);
 
-    event VendingMachineUpdateInitiated(
+    event VendingMachineUpgradeInitiated(
         address newVendingMachine,
         uint256 timestamp
     );
-    event VendingMachineUpdated(address newVendingMachine);
+    event VendingMachineUpgraded(address newVendingMachine);
 
     event Minted(address indexed recipient, uint256 amount);
     event Unminted(address indexed recipient, uint256 amount, uint256 fee);
@@ -99,7 +102,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
         unmintFee = _unmintFee;
 
         unmintFeeUpdateInitiator = msg.sender;
-        vendingMachineUpdateInitiator = msg.sender;
+        vendingMachineUpgradeInitiator = msg.sender;
     }
 
     /// @notice Mints TBTC v2 to the caller from TBTC v1 with 1:1 ratio.
@@ -196,15 +199,15 @@ contract VendingMachine is Ownable, IReceiveApproval {
         unmintFeeUpdateInitiatedTimestamp = 0;
     }
 
-    /// @notice Initiates vending machine update process. The update process
+    /// @notice Initiates vending machine upgrade process. The upgrade process
     ///          needs to be finalized with a call to
-    ///         `finalizeVendingMachineUpdate` function after the
-    ///         `GOVERNANCE_DELAY` passes. Only vending machine update initiator
-    ///         role can initiate the update.
+    ///         `finalizeVendingMachineUpgrade` function after the
+    ///         `GOVERNANCE_DELAY` passes. Only vending machine upgrade
+    ///         initiator role can initiate the upgrade.
     /// @param _newVendingMachine The new vending machine address
-    function initiateVendingMachineUpdate(address _newVendingMachine)
+    function initiateVendingMachineUpgrade(address _newVendingMachine)
         external
-        only(vendingMachineUpdateInitiator)
+        only(vendingMachineUpgradeInitiator)
     {
         require(
             _newVendingMachine != address(0),
@@ -212,30 +215,33 @@ contract VendingMachine is Ownable, IReceiveApproval {
         );
 
         /* solhint-disable-next-line not-rely-on-time */
-        emit VendingMachineUpdateInitiated(_newVendingMachine, block.timestamp);
+        emit VendingMachineUpgradeInitiated(
+            _newVendingMachine,
+            block.timestamp
+        );
         newVendingMachine = _newVendingMachine;
         /* solhint-disable-next-line not-rely-on-time */
-        vendingMachineUpdateInitiatedTimestamp = block.timestamp;
+        vendingMachineUpgradeInitiatedTimestamp = block.timestamp;
     }
 
-    /// @notice Allows the contract owner to finalize vending machine update
-    ///         process. The update process needs to be first initiated with a
-    ///         call to `initiateVendingMachineUpdate` and the `GOVERNANCE_DELAY`
-    ///         needs to pass. Once the update is finalized, the new vending
+    /// @notice Allows the contract owner to finalize vending machine upgrade
+    ///         process. The upgrade process needs to be first initiated with a
+    ///         call to `initiateVendingMachineUpgrade` and the `GOVERNANCE_DELAY`
+    ///         needs to pass. Once the upgrade is finalized, the new vending
     ///         machine will become an owner of TBTC v2 token and all TBTC v1
     ///         held by this contract will be transferred to the new vending
     ///         machine.
-    function finalizeVendingMachineUpdate()
+    function finalizeVendingMachineUpgrade()
         external
         onlyOwner
-        onlyAfterGovernanceDelay(vendingMachineUpdateInitiatedTimestamp)
+        onlyAfterGovernanceDelay(vendingMachineUpgradeInitiatedTimestamp)
     {
-        emit VendingMachineUpdated(newVendingMachine);
+        emit VendingMachineUpgraded(newVendingMachine);
         //slither-disable-next-line reentrancy-no-eth
         tbtcV2.transferOwnership(newVendingMachine);
         tbtcV1.safeTransfer(newVendingMachine, tbtcV1.balanceOf(address(this)));
         newVendingMachine = address(0);
-        vendingMachineUpdateInitiatedTimestamp = 0;
+        vendingMachineUpgradeInitiatedTimestamp = 0;
     }
 
     /// @notice Transfers unmint fee update initiator role to another address.
@@ -252,19 +258,19 @@ contract VendingMachine is Ownable, IReceiveApproval {
         unmintFeeUpdateInitiator = newInitiator;
     }
 
-    /// @notice Transfers vending machine update initiator role to another
+    /// @notice Transfers vending machine upgrade initiator role to another
     ///         address. Can be called only by the current vending machine
-    ///         update initiator.
-    /// @param newInitiator The new vending machine update initator
-    function transferVendingMachineUpdateInitiatorRole(address newInitiator)
+    ///         upgrade initiator.
+    /// @param newInitiator The new vending machine upgrade initator
+    function transferVendingMachineUpgradeInitiatorRole(address newInitiator)
         external
-        only(vendingMachineUpdateInitiator)
+        only(vendingMachineUpgradeInitiator)
     {
         require(
             newInitiator != address(0),
             "New initiator must not be zero address"
         );
-        vendingMachineUpdateInitiator = newInitiator;
+        vendingMachineUpgradeInitiator = newInitiator;
     }
 
     /// @notice Get the remaining time that needs to pass until unmint fee
@@ -279,16 +285,16 @@ contract VendingMachine is Ownable, IReceiveApproval {
     }
 
     /// @notice Get the remaining time that needs to pass until vending machine
-    ///         update can be finalized by the Governance. If the update has not
-    ///         been initiated, the function reverts.
-    function getRemainingVendingMachineUpdateTime()
+    ///         upgrade can be finalized by the Governance. If the upgrade has
+    ///         not been initiated, the function reverts.
+    function getRemainingVendingMachineUpgradeTime()
         external
         view
         returns (uint256)
     {
         return
             GovernanceUtils.getRemainingGovernanceDelay(
-                vendingMachineUpdateInitiatedTimestamp,
+                vendingMachineUpgradeInitiatedTimestamp,
                 GOVERNANCE_DELAY
             );
     }
