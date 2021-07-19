@@ -171,9 +171,12 @@ describeFn("System -- convex strategy", () => {
       // wBTC bought: 4501
       // LP tokens profit: 44591140717357
       //
-      // Sum of LP tokens profits: 413743570737460
-      expect((await vault.strategies(strategy.address)).totalGain).to.be.equal(
-        413743570737460
+      // Sum of LP tokens profits: 413743570737460 (15 digits)
+      expect(
+        (await vault.strategies(strategy.address)).totalGain
+      ).to.be.closeTo(
+        to1ePrecision(4137, 11),
+        to1ePrecision(1, 11) // 0.0001 precision because there are 15 digits.
       )
     })
   })
