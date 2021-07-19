@@ -174,15 +174,76 @@ describeFn("System -- convex strategy", () => {
         await increaseTime(86400) // ~1 day
         await strategy.harvest()
         // Move accumulated rewards from Curve gauge to Convex reward pool.
+        // This is done after harvest in order to avoid very small extra
+        // reward amounts in the first day.
         await booster.earmarkRewards(tbtcConvexRewardPoolId)
       }
     })
 
     it("should make a profit", async () => {
-      // TODO: Implementation.
-      expect(
-        (await vault.strategies(strategy.address)).totalGain
-      ).to.be.greaterThan(0)
+      // Vault has 0.3 * 1e18 = 300000000000000000 of LP tokens under its
+      // management. The strategy borrows all the vault assets because it has
+      // 100% of debt ratio and deposits them to the Convex reward pool.
+      // All LP tokens deposited in the Convex reward pool generate extra
+      // KEEP rewards because the underlying Curve gauge stakes its deposits
+      // into the Synthetix Curve rewards contract. 90% of CRV, 100% of CVX,
+      // and 100% of KEEP tokens are used to buy wBTC. Acquired wBTC
+      // are deposited back to the Curve pool in order to earn new LP tokens.
+      // All numbers are presented in the 18 digits format.
+      //
+      // Day 1:
+      // CRV earned: 573813072734246542
+      // CVX earned: 257068256584942450
+      // KEEP earned: 0
+      // wBTC bought: 5367
+      // LP tokens profit: 53170551603260
+      //
+      // Day 2:
+      // CRV earned: 573819714012388395
+      // CVX earned: 257071231877550000
+      // KEEP earned: 445015623167430843
+      // wBTC bought: 5773
+      // LP tokens profit: 57192769573609
+      //
+      // Day 3:
+      // CRV earned: 573921256349125686
+      // CVX earned: 257116722844408307
+      // KEEP earned: 826571505558228821
+      // wBTC bought: 6121
+      // LP tokens profit: 60640384970271
+      //
+      // Day 4:
+      // CRV earned: 574030480044548280
+      // CVX earned: 257165655059957629
+      // KEEP earned: 1153770282997704636
+      // wBTC bought: 6422
+      // LP tokens profit: 63622374143187
+      //
+      // Day 5:
+      // CRV earned: 574146287740676497
+      // CVX earned: 257217536907823070
+      // KEEP earned: 1434379897134231536
+      // wBTC bought: 6679
+      // LP tokens profit: 66168457915443
+      //
+      // Day 6:
+      // CRV earned: 574267790198385184
+      // CVX earned: 257271970008876562
+      // KEEP earned: 1675056507580662807
+      // wBTC bought: 6900
+      // LP tokens profit: 68357891814333
+      //
+      // Day 7:
+      // CRV earned: 297521307494722242
+      // CVX earned: 133289545757635564
+      // KEEP earned: 1881503817764847901
+      // wBTC bought: 4501
+      // LP tokens profit: 44591140717357
+      //
+      // Sum of LP tokens profits: 413743570737460
+      expect((await vault.strategies(strategy.address)).totalGain).to.be.equal(
+        413743570737460
+      )
     })
   })
 
@@ -201,7 +262,27 @@ describeFn("System -- convex strategy", () => {
     })
 
     it("should correctly handle the withdrawal", async () => {
-      // TODO: Implementation.
+      // Initially, the depositor deposited 300000000000000000 of LP tokens
+      // into the vault and received the same amount of vault shares because
+      // it was the first depositor. The strategy just yielded another
+      // 413743570737460 LP tokens. It also created 197730151096097 of
+      // additional shares (see IYearnVault's totalSupply() method) which
+      // represent the management and performance fees taken by the protocol.
+      // In result, the vault has 300413743570737460 of LP tokens (totalAssets)
+      // and 300197730151096097 (totalSupply) of shares. The price per share is
+      // calculated as (totalAssets - lockedProfit) / totalSupply. In this case,
+      // the price is 1.000655520230357642 (see IYearnVault's pricePerShare()).
+      // During the withdrawal, the withdrawing depositor passes an amount
+      // of vault shares it wants to withdraw. For each share, it receives
+      // an amount of LP tokens, according to the current price per share.
+      // In this case, the depositor withdraws all of its 300000000000000000
+      // shares so in return it should receive 300000000000000000 * 1.000655520230357642 =
+      // ~300196600000000000 of LP tokens.
+
+      expect(amountWithdrawn).to.be.closeTo(
+        to1ePrecision(3001966, 11),
+        to1ePrecision(1, 11) // 0.0000001 precision
+      )
       expect(amountWithdrawn.gt(vaultDepositAmount)).to.be.true
     })
   })
