@@ -1,30 +1,18 @@
 const { expect } = require("chai")
-const { BigNumber } = ethers
 const {
   resetFork,
   to1ePrecision,
   impersonateAccount,
   increaseTime,
-  to1e18,
 } = require("../helpers/contract-test-helpers.js")
 const { yearn, tbtc, forkBlockNumber } = require("./constants.js")
 const { allocateSynthetixRewards, deployYearnVault } = require("./functions.js")
+const { curveStrategyFixture } = require("./fixtures.js")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
 describeFn("System -- curve voter proxy strategy", () => {
-  // Name of the vault for tBTCv2 Curve pool.
-  const vaultName = "Curve tBTCv2 Pool yVault"
-  // Symbol of the vault for tBTCv2 Curve pool.
-  const vaultSymbol = "yvCurve-tBTCv2"
-  // Total deposit limit of the vault for tBTCv2 Curve pool.
-  const vaultDepositLimit = to1ePrecision(300, 15)
-  // Amount of the deposit made by the depositor.
-  const vaultDepositAmount = to1ePrecision(300, 15)
-  // Amount of Synthetix staking rewards which should be allocated.
-  const synthetixRewardsAllocation = to1e18(100000)
-
   let vaultGovernance
   let tbtcCurvePoolLPToken
   let vaultDepositor
@@ -47,7 +35,10 @@ describeFn("System -- curve voter proxy strategy", () => {
 
     // Allocate Synthetix rewards to obtain additional rewards (KEEP tokens)
     // from the Curve pool's gauge.
-    await allocateSynthetixRewards(tbtc, synthetixRewardsAllocation)
+    await allocateSynthetixRewards(
+      tbtc,
+      curveStrategyFixture.synthetixRewardsAllocation
+    )
 
     // Get tBTC v2 Curve pool LP token handle.
     tbtcCurvePoolLPToken = await ethers.getContractAt(
@@ -58,11 +49,11 @@ describeFn("System -- curve voter proxy strategy", () => {
     // Deploy a new experimental vault accepting tBTC v2 Curve pool LP tokens.
     vault = await deployYearnVault(
       yearn,
-      vaultName,
-      vaultSymbol,
+      curveStrategyFixture.vaultName,
+      curveStrategyFixture.vaultSymbol,
       tbtcCurvePoolLPToken,
       vaultGovernance,
-      vaultDepositLimit
+      curveStrategyFixture.vaultDepositLimit
     )
 
     // Deploy the CurveVoterProxyStrategy contract.
@@ -89,10 +80,10 @@ describeFn("System -- curve voter proxy strategy", () => {
     // Add CurveVoterProxyStrategy to the vault.
     await vault.addStrategy(
       strategy.address,
-      10000, // 100% debt ratio
-      0, // zero min debt per harvest
-      BigNumber.from(2).pow(256).sub(1), // infinite max debt per harvest
-      1000 // 10% performance fee
+      curveStrategyFixture.strategyDebtRatio,
+      curveStrategyFixture.strategyMinDebtPerHarvest,
+      curveStrategyFixture.strategyMaxDebtPerHarvest,
+      curveStrategyFixture.strategyPerformanceFee
     )
   })
 
@@ -100,12 +91,16 @@ describeFn("System -- curve voter proxy strategy", () => {
     before(async () => {
       await tbtcCurvePoolLPToken
         .connect(vaultDepositor)
-        .approve(vault.address, vaultDepositAmount)
-      await vault.connect(vaultDepositor).deposit(vaultDepositAmount)
+        .approve(vault.address, curveStrategyFixture.vaultDepositAmount)
+      await vault
+        .connect(vaultDepositor)
+        .deposit(curveStrategyFixture.vaultDepositAmount)
     })
 
     it("should correctly handle the deposit", async () => {
-      expect(await vault.totalAssets()).to.be.equal(vaultDepositAmount)
+      expect(await vault.totalAssets()).to.be.equal(
+        curveStrategyFixture.vaultDepositAmount
+      )
     })
   })
 
@@ -216,7 +211,8 @@ describeFn("System -- curve voter proxy strategy", () => {
         to1ePrecision(3001844, 11),
         to1ePrecision(1, 11) // 0.0000001 precision
       )
-      expect(amountWithdrawn.gt(vaultDepositAmount)).to.be.true
+      expect(amountWithdrawn.gt(curveStrategyFixture.vaultDepositAmount)).to.be
+        .true
     })
   })
 })

@@ -1,3 +1,6 @@
+// Block to which the mainnet fork should be resetted at the beginning of test.
+module.exports.forkBlockNumber = 12786839
+
 // Constants related with Yearn.
 module.exports.yearn = {
   // Address of the Yearn registry contract.
@@ -40,5 +43,3 @@ module.exports.tbtc = {
   synthetixCurveRewardsOwnerAddress:
     "0xb3726e69da808a689f2607939a2d9e958724fc2a",
 }
-
-module.exports.forkBlockNumber = 12786839
