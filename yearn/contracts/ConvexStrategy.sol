@@ -288,8 +288,7 @@ contract ConvexStrategy is BaseStrategy {
     function adjustPosition(uint256 debtOutstanding) internal override {
         uint256 wantBalance = balanceOfWant();
         if (wantBalance > 0) {
-            want.safeApprove(booster, 0);
-            want.safeApprove(booster, wantBalance);
+            want.safeIncreaseAllowance(booster, wantBalance);
 
             IConvexBooster(booster).deposit(
                 tbtcConvexRewardPoolId,
@@ -473,8 +472,7 @@ contract ConvexStrategy is BaseStrategy {
             // Deposit a portion of CRV to the voter to gain CRV boost.
             crvBalance = adjustCRV(crvBalance);
 
-            IERC20(crv).safeApprove(uniswap, 0);
-            IERC20(crv).safeApprove(uniswap, crvBalance);
+            IERC20(crv).safeIncreaseAllowance(uniswap, crvBalance);
 
             address[] memory path = new address[](3);
             path[0] = crv;
@@ -494,8 +492,7 @@ contract ConvexStrategy is BaseStrategy {
         // supported by UniSwap.
         uint256 cvxBalance = IERC20(cvx).balanceOf(address(this));
         if (cvxBalance > 0) {
-            IERC20(cvx).safeApprove(sushiswap, 0);
-            IERC20(cvx).safeApprove(sushiswap, cvxBalance);
+            IERC20(cvx).safeIncreaseAllowance(sushiswap, cvxBalance);
 
             address[] memory path = new address[](3);
             path[0] = cvx;
@@ -516,8 +513,7 @@ contract ConvexStrategy is BaseStrategy {
             uint256 extraRewardBalance = IERC20(tbtcConvexExtraReward)
             .balanceOf(address(this));
             if (extraRewardBalance > extraRewardSwapThreshold) {
-                IERC20(tbtcConvexExtraReward).safeApprove(uniswap, 0);
-                IERC20(tbtcConvexExtraReward).safeApprove(
+                IERC20(tbtcConvexExtraReward).safeIncreaseAllowance(
                     uniswap,
                     extraRewardBalance
                 );
@@ -541,8 +537,11 @@ contract ConvexStrategy is BaseStrategy {
         // vault's underlying tokens.
         uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
         if (wbtcBalance > 0) {
-            IERC20(wbtc).safeApprove(tbtcCurvePoolDepositor, 0);
-            IERC20(wbtc).safeApprove(tbtcCurvePoolDepositor, wbtcBalance);
+            IERC20(wbtc).safeIncreaseAllowance(
+                tbtcCurvePoolDepositor,
+                wbtcBalance
+            );
+
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
                 [0, 0, wbtcBalance, 0],
                 0
