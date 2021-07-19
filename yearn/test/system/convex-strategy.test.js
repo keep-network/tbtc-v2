@@ -7,45 +7,12 @@ const {
   increaseTime,
   to1e18,
 } = require("../helpers/contract-test-helpers.js")
+const { yearn, convex, tbtc } = require("./constants.js")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
-// TODO: The tBTC v2 token and their Curve pool are not deployed yet.
-//       This test uses tBTC v1 token and Curve pool temporarily.
-//       Once the new token and pool land, those addresses must be changed.
-// TODO: Refactor this test and extract common parts shared with other tests.
 describeFn("System -- convex strategy", () => {
-  // Address of the Yearn registry contract.
-  const registryAddress = "0x50c1a2eA0a861A967D9d0FFE2AE4012c2E053804"
-  // Address of the tBTC v2 Curve pool LP token.
-  const tbtcCurvePoolLPTokenAddress =
-    "0x64eda51d3Ad40D56b9dFc5554E06F94e1Dd786Fd"
-  // Example address which holds an amount of the tBTC v2 Curve pool LP token.
-  const tbtcCurvePoolLPTokenHolderAddress =
-    "0x26fcbd3afebbe28d0a8684f790c48368d21665b5"
-  // Address of the tBTC v2 Curve pool depositor contract.
-  const tbtcCurvePoolDepositorAddress =
-    "0xaa82ca713D94bBA7A89CEAB55314F9EfFEdDc78c"
-  // ID of the Convex reward pool paired with the tBTC v2 Curve pool.
-  const tbtcConvexRewardPoolId = 16
-  // Address of the tBTC v2 Curve pool gauge additional reward token.
-  const tbtcCurvePoolGaugeRewardAddress =
-    "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
-  // Example address which holds an amount of the tBTC v2 Curve pool gauge
-  // additional reward token and can act as its distributor.
-  const tbtcCurvePoolGaugeRewardDistributorAddress =
-    "0x5203aeaaee721195707b01e613b6c3259b3a5cf6"
-  // Address of the Synthetix Curve rewards contract used by the tBTC v2 Curve
-  // pool gauge.
-  const synthetixCurveRewardsAddress =
-    "0xAF379f0228ad0d46bB7B4f38f9dc9bCC1ad0360c"
-  // Address of the Synthetix Curve rewards contract owner.
-  const synthetixCurveRewardsOwnerAddress =
-    "0xb3726e69da808a689f2607939a2d9e958724fc2a"
-  // Address of the Convex booster contract.
-  const boosterAddress = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31"
-
   // Name of the vault for tBTCv2 Curve pool.
   const vaultName = "Curve tBTCv2 Pool yVault"
   // Symbol of the vault for tBTCv2 Curve pool.
@@ -72,22 +39,22 @@ describeFn("System -- convex strategy", () => {
     // Setup roles.
     vaultGovernance = await ethers.getSigner(0)
     vaultDepositor = await impersonateAccount(
-      tbtcCurvePoolLPTokenHolderAddress,
+      tbtc.curvePoolLPTokenHolderAddress,
       vaultGovernance
     )
     tbtcCurvePoolGaugeRewardDistributor = await impersonateAccount(
-      tbtcCurvePoolGaugeRewardDistributorAddress,
+      tbtc.curvePoolGaugeRewardDistributorAddress,
       vaultGovernance
     )
     synthetixCurveRewardsOwner = await impersonateAccount(
-      synthetixCurveRewardsOwnerAddress,
+      tbtc.synthetixCurveRewardsOwnerAddress,
       vaultGovernance
     )
 
     // Get tBTC v2 Curve pool LP token handle.
     tbtcCurvePoolLPToken = await ethers.getContractAt(
       "IERC20",
-      tbtcCurvePoolLPTokenAddress
+      tbtc.curvePoolLPTokenAddress
     )
 
     // Setup Synthetix staking rewards to provide Curve pool's gauge additional
@@ -95,12 +62,15 @@ describeFn("System -- convex strategy", () => {
     await setupSynthetixRewards()
 
     // Get Convex booster handle.
-    booster = await ethers.getContractAt("IConvexBooster", boosterAddress)
+    booster = await ethers.getContractAt(
+      "IConvexBooster",
+      convex.boosterAddress
+    )
 
     // Get a handle to the Yearn registry.
     const registry = await ethers.getContractAt(
       "IYearnRegistry",
-      registryAddress
+      yearn.registryAddress
     )
 
     // Always use the same vault release to avoid test failures in the future.
@@ -133,8 +103,8 @@ describeFn("System -- convex strategy", () => {
     const ConvexStrategy = await ethers.getContractFactory("ConvexStrategy")
     strategy = await ConvexStrategy.deploy(
       vault.address,
-      tbtcCurvePoolDepositorAddress,
-      tbtcConvexRewardPoolId
+      tbtc.curvePoolDepositorAddress,
+      tbtc.convexRewardPoolId
     )
     await strategy.deployed()
 
@@ -176,7 +146,7 @@ describeFn("System -- convex strategy", () => {
         // Move accumulated rewards from Curve gauge to Convex reward pool.
         // This is done after harvest in order to avoid very small extra
         // reward amounts in the first day.
-        await booster.earmarkRewards(tbtcConvexRewardPoolId)
+        await booster.earmarkRewards(tbtc.convexRewardPoolId)
       }
     })
 
@@ -290,14 +260,14 @@ describeFn("System -- convex strategy", () => {
     // Get a handle to the tBTC v2 Curve pool gauge additional reward token.
     tbtcCurvePoolGaugeReward = await ethers.getContractAt(
       "IERC20",
-      tbtcCurvePoolGaugeRewardAddress
+      tbtc.curvePoolGaugeRewardAddress
     )
 
     // Get a handle to the Synthetix Curve rewards contract used by the
     // tBTC v2 Curve pool gauge.
     synthetixCurveRewards = await ethers.getContractAt(
       "ICurveRewards",
-      synthetixCurveRewardsAddress
+      tbtc.synthetixCurveRewardsAddress
     )
 
     // Allocate 100k.

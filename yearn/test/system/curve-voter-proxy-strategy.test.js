@@ -7,53 +7,12 @@ const {
   increaseTime,
   to1e18,
 } = require("../helpers/contract-test-helpers.js")
+const { yearn, tbtc } = require("./constants.js")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
-// TODO: The tBTC v2 token and their Curve pool are not deployed yet.
-//       This test uses tBTC v1 token and Curve pool temporarily.
-//       Once the new token and pool land, those addresses must be changed:
-//       - tbtcCurvePoolLPTokenAddress
-//       - tbtcCurvePoolLPTokenHolderAddress
-//       - tbtcCurvePoolDepositorAddress
-//       - tbtcCurvePoolGaugeAddress
-//       - tbtcCurvePoolGaugeRewardAddress
-//       - tbtcCurvePoolGaugeRewardDistributorAddress
-//       - synthetixCurveRewardsAddress
-//       - synthetixCurveRewardsOwnerAddress
 describeFn("System -- curve voter proxy strategy", () => {
-  // Address of the Yearn registry contract.
-  const registryAddress = "0x50c1a2eA0a861A967D9d0FFE2AE4012c2E053804"
-  // Address of the tBTC v2 Curve pool LP token.
-  const tbtcCurvePoolLPTokenAddress =
-    "0x64eda51d3Ad40D56b9dFc5554E06F94e1Dd786Fd"
-  // Example address which holds an amount of the tBTC v2 Curve pool LP token.
-  const tbtcCurvePoolLPTokenHolderAddress =
-    "0x26fcbd3afebbe28d0a8684f790c48368d21665b5"
-  // Address of the tBTC v2 Curve pool depositor contract.
-  const tbtcCurvePoolDepositorAddress =
-    "0xaa82ca713D94bBA7A89CEAB55314F9EfFEdDc78c"
-  // Address of the tBTC v2 Curve pool gauge contract.
-  const tbtcCurvePoolGaugeAddress = "0x6828bcF74279eE32f2723eC536c22c51Eed383C6"
-  // Address of the tBTC v2 Curve pool gauge additional reward token.
-  const tbtcCurvePoolGaugeRewardAddress =
-    "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
-  // Example address which holds an amount of the tBTC v2 Curve pool gauge
-  // additional reward token and can act as its distributor.
-  const tbtcCurvePoolGaugeRewardDistributorAddress =
-    "0x5203aeaaee721195707b01e613b6c3259b3a5cf6"
-  // Address of the Synthetix Curve rewards contract used by the tBTC v2 Curve
-  // pool gauge.
-  const synthetixCurveRewardsAddress =
-    "0xAF379f0228ad0d46bB7B4f38f9dc9bCC1ad0360c"
-  // Address of the Synthetix Curve rewards contract owner.
-  const synthetixCurveRewardsOwnerAddress =
-    "0xb3726e69da808a689f2607939a2d9e958724fc2a"
-  // Address of the governance managing the StrategyProxy contract.
-  const strategyProxyGovernanceAddress =
-    "0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52"
-
   // Name of the vault for tBTCv2 Curve pool.
   const vaultName = "Curve tBTCv2 Pool yVault"
   // Symbol of the vault for tBTCv2 Curve pool.
@@ -80,25 +39,25 @@ describeFn("System -- curve voter proxy strategy", () => {
     // Setup roles.
     vaultGovernance = await ethers.getSigner(0)
     vaultDepositor = await impersonateAccount(
-      tbtcCurvePoolLPTokenHolderAddress,
+      tbtc.curvePoolLPTokenHolderAddress,
       vaultGovernance
     )
     strategyProxyGovernance = await impersonateAccount(
-      strategyProxyGovernanceAddress
+      yearn.strategyProxyGovernanceAddress
     )
     tbtcCurvePoolGaugeRewardDistributor = await impersonateAccount(
-      tbtcCurvePoolGaugeRewardDistributorAddress,
+      tbtc.curvePoolGaugeRewardDistributorAddress,
       vaultGovernance
     )
     synthetixCurveRewardsOwner = await impersonateAccount(
-      synthetixCurveRewardsOwnerAddress,
+      tbtc.synthetixCurveRewardsOwnerAddress,
       vaultGovernance
     )
 
     // Get tBTC v2 Curve pool LP token handle.
     tbtcCurvePoolLPToken = await ethers.getContractAt(
       "IERC20",
-      tbtcCurvePoolLPTokenAddress
+      tbtc.curvePoolLPTokenAddress
     )
 
     // Setup Synthetix staking rewards to provide Curve pool's gauge additional
@@ -108,7 +67,7 @@ describeFn("System -- curve voter proxy strategy", () => {
     // Get a handle to the Yearn registry.
     const registry = await ethers.getContractAt(
       "IYearnRegistry",
-      registryAddress
+      yearn.registryAddress
     )
 
     // Always use the same vault release to avoid test failures in the future.
@@ -143,9 +102,9 @@ describeFn("System -- curve voter proxy strategy", () => {
     )
     strategy = await CurveVoterProxyStrategy.deploy(
       vault.address,
-      tbtcCurvePoolDepositorAddress,
-      tbtcCurvePoolGaugeAddress,
-      tbtcCurvePoolGaugeRewardAddress
+      tbtc.curvePoolDepositorAddress,
+      tbtc.curvePoolGaugeAddress,
+      tbtc.curvePoolGaugeRewardAddress
     )
     await strategy.deployed()
 
@@ -156,7 +115,7 @@ describeFn("System -- curve voter proxy strategy", () => {
     )
     await strategyProxy
       .connect(strategyProxyGovernance)
-      .approveStrategy(tbtcCurvePoolGaugeAddress, strategy.address)
+      .approveStrategy(tbtc.curvePoolGaugeAddress, strategy.address)
 
     // Add CurveVoterProxyStrategy to the vault.
     await vault.addStrategy(
@@ -298,14 +257,14 @@ describeFn("System -- curve voter proxy strategy", () => {
     // Get a handle to the tBTC v2 Curve pool gauge additional reward token.
     tbtcCurvePoolGaugeReward = await ethers.getContractAt(
       "IERC20",
-      tbtcCurvePoolGaugeRewardAddress
+      tbtc.curvePoolGaugeRewardAddress
     )
 
     // Get a handle to the Synthetix Curve rewards contract used by the
     // tBTC v2 Curve pool gauge.
     synthetixCurveRewards = await ethers.getContractAt(
       "ICurveRewards",
-      synthetixCurveRewardsAddress
+      tbtc.synthetixCurveRewardsAddress
     )
 
     // Allocate 100k.
