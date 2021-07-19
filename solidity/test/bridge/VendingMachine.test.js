@@ -161,30 +161,27 @@ describe("VendingMachine", () => {
     })
 
     context("when called via approveAndCall", () => {
+      const amount = to1e18(2)
       let tx
 
       beforeEach(async () => {
         tx = await tbtcV1
           .connect(tokenHolder)
-          .approveAndCall(vendingMachine.address, initialBalance, [])
+          .approveAndCall(vendingMachine.address, amount, [])
       })
 
       it("should mint TBTC v2 to the caller", async () => {
-        expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(
-          initialBalance
-        )
+        expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(amount)
       })
 
       it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
-        expect(await tbtcV1.balanceOf(vendingMachine.address)).is.equal(
-          initialBalance
-        )
+        expect(await tbtcV1.balanceOf(vendingMachine.address)).is.equal(amount)
       })
 
       it("should emit Minted event", async () => {
         await expect(tx)
           .to.emit(vendingMachine, "Minted")
-          .withArgs(tokenHolder.address, initialBalance)
+          .withArgs(tokenHolder.address, amount)
       })
     })
   })
