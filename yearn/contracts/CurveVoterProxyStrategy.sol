@@ -438,7 +438,10 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         // vault's underlying tokens.
         uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
         if (wbtcBalance > 0) {
-            IERC20(wbtc).safeIncreaseAllowance(tbtcCurvePoolDepositor, wbtcBalance);
+            IERC20(wbtc).safeIncreaseAllowance(
+                tbtcCurvePoolDepositor,
+                wbtcBalance
+            );
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
                 [0, 0, wbtcBalance, 0],
                 0
