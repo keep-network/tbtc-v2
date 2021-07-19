@@ -1015,7 +1015,7 @@ describe("ERC20WithPermit", () => {
   })
 
   describe("approveAndCall", () => {
-    const amount = initialSupply
+    const amount = to1e18(3)
     let approvalReceiver
 
     beforeEach(async () => {
