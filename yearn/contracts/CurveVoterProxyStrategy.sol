@@ -387,8 +387,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
             // Deposit a portion of CRV to the voter to gain CRV boost.
             crvBalance = adjustCRV(crvBalance);
 
-            IERC20(crv).safeApprove(dex, 0);
-            IERC20(crv).safeApprove(dex, crvBalance);
+            IERC20(crv).safeIncreaseAllowance(dex, crvBalance);
 
             address[] memory path = new address[](3);
             path[0] = crv;
@@ -415,8 +414,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
                 address(this)
             );
             if (rewardBalance > 0) {
-                IERC20(tbtcCurvePoolGaugeReward).safeApprove(dex, 0);
-                IERC20(tbtcCurvePoolGaugeReward).safeApprove(
+                IERC20(tbtcCurvePoolGaugeReward).safeIncreaseAllowance(
                     dex,
                     rewardBalance
                 );
@@ -440,8 +438,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         // vault's underlying tokens.
         uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
         if (wbtcBalance > 0) {
-            IERC20(wbtc).safeApprove(tbtcCurvePoolDepositor, 0);
-            IERC20(wbtc).safeApprove(tbtcCurvePoolDepositor, wbtcBalance);
+            IERC20(wbtc).safeIncreaseAllowance(tbtcCurvePoolDepositor, wbtcBalance);
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
                 [0, 0, wbtcBalance, 0],
                 0
