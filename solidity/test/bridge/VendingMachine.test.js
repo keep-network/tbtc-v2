@@ -781,11 +781,21 @@ describe("VendingMachine", () => {
   })
 
   describe("transferUnmintFeeUpdateInitiatorRole", () => {
-    context("when caller is no the update initiator", () => {
+    context("when caller is the owner", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine
             .connect(governance)
+            .transferUnmintFeeUpdateInitiatorRole(thirdParty.address)
+        ).to.be.revertedWith("Caller is not authorized")
+      })
+    })
+
+    context("when caller is a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(thirdParty)
             .transferUnmintFeeUpdateInitiatorRole(thirdParty.address)
         ).to.be.revertedWith("Caller is not authorized")
       })
@@ -814,11 +824,21 @@ describe("VendingMachine", () => {
   })
 
   describe("transferVendingMachineUpgradeInitiatorRole", () => {
-    context("when caller is no the update initiator", () => {
+    context("when caller is the owner", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine
             .connect(governance)
+            .transferVendingMachineUpgradeInitiatorRole(thirdParty.address)
+        ).to.be.revertedWith("Caller is not authorized")
+      })
+    })
+
+    context("when caller is a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          vendingMachine
+            .connect(thirdParty)
             .transferVendingMachineUpgradeInitiatorRole(thirdParty.address)
         ).to.be.revertedWith("Caller is not authorized")
       })
