@@ -15,28 +15,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     hre,
     "TBTC_CURVE_POOL_DEPOSITOR_ADDRESS"
   )
-  const tbtcCurvePoolGauge = addressFromEnv(
-    hre,
-    "TBTC_CURVE_POOL_GAUGE_ADDRESS"
-  )
-  const tbtcCurvePoolGaugeReward = addressFromEnv(
-    hre,
-    "TBTC_CURVE_POOL_GAUGE_REWARD_ADDRESS",
-    false
-  )
+  const tbtcConvexRewardPoolId = parseInt(process.env.TBTC_CONVEX_REWARD_POOL_ID)
+
+  if (!tbtcConvexRewardPoolId) {
+    throw new Error("TBTC_CONVEX_REWARD_POOL_ID must be set")
+  }
 
   log(`tbtcCurveVault: ${tbtcCurveVault}`)
   log(`tbtcCurvePoolDepositor: ${tbtcCurvePoolDepositor}`)
-  log(`tbtcCurvePoolGauge: ${tbtcCurvePoolGauge}`)
-  log(`tbtcCurvePoolGaugeReward: ${tbtcCurvePoolGaugeReward}`)
+  log(`tbtcConvexRewardPoolId: ${tbtcConvexRewardPoolId}`)
 
-  await deploy("CurveVoterProxyStrategy", {
+  await deploy("ConvexStrategy", {
     from: deployer,
     args: [
       tbtcCurveVault,
       tbtcCurvePoolDepositor,
-      tbtcCurvePoolGauge,
-      tbtcCurvePoolGaugeReward
+      tbtcConvexRewardPoolId
     ],
     log: true,
     gasLimit: parseInt(process.env.GAS_LIMIT) || undefined
@@ -45,4 +39,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["CurveVoterProxyStrategy"]
+func.tags = ["ConvexStrategy"]
