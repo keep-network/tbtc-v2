@@ -3,8 +3,6 @@ repos:
    rev: v1.3.0
    hooks:
     - id: check-added-large-files
-    - id: pretty-format-json
-      args: ['--autofix']
  - repo: local
    hooks:
     - id: lint-js

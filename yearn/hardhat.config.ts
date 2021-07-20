@@ -1,8 +1,12 @@
-require("@nomiclabs/hardhat-waffle")
-require("hardhat-gas-reporter")
-require("hardhat-contract-sizer")
+import { HardhatUserConfig } from "hardhat/config"
 
-module.exports = {
+import "@keep-network/hardhat-helpers"
+import "@nomiclabs/hardhat-waffle"
+import "hardhat-gas-reporter"
+import "hardhat-contract-sizer"
+import "hardhat-deploy"
+
+const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
@@ -17,6 +21,10 @@ module.exports = {
     ],
   },
 
+  paths: {
+    artifacts: "./build",
+  },
+
   networks: {
     hardhat: {
       forking: {
@@ -28,6 +36,18 @@ module.exports = {
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
+      tags: ["local"]
+    },
+    development: {
+      url: "http://localhost:8545",
+      chainId: 1101,
+      tags: ["local"]
+    }
+  },
+
+  namedAccounts: {
+    deployer: {
+      default: 0, // take the first account as deployer
     },
   },
 
@@ -35,3 +55,5 @@ module.exports = {
     timeout: 120000,
   },
 }
+
+export default config
