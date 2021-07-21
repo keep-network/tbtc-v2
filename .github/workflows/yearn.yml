@@ -1,0 +1,75 @@
+name: Yearn
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "yearn/**"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  contracts-detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      path-filter: ${{ steps.filter.outputs.path-filter }}
+    steps:
+      - uses: actions/checkout@v2
+        if: github.event_name == 'pull_request'
+        
+      - uses: dorny/paths-filter@v2
+        if: github.event_name == 'pull_request'
+        id: filter
+        with:
+          filters: |
+            path-filter:
+              - './yearn/**'
+  contracts-build-and-test:
+    needs: contracts-detect-changes
+    if: |
+      github.event_name != 'pull_request'
+        || needs.contracts-detect-changes.outputs.path-filter == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./yearn
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build contracts
+        run: yarn build
+
+      - name: Run system tests
+        env:
+          FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
+        run: yarn test:system
+
+  contracts-lint:
+    needs: contracts-detect-changes
+    if: |
+      github.event_name == 'push'
+        || needs.contracts-detect-changes.outputs.path-filter == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./yearn
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Lint
+        run: yarn lint

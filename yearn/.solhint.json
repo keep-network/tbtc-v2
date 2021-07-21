@@ -1,0 +1,14 @@
+{
+  "extends": "keep",
+  "plugins": [],
+  "rules": {
+    "func-visibility": [
+      "error",
+      {
+        "ignoreConstructors": true
+      }
+    ],
+    "no-unused-vars": "warn",
+    "not-rely-on-time": "warn"
+  }
+}
