@@ -174,8 +174,6 @@ contract SaddleStrategy is BaseStrategy {
     function withdrawSome(uint256 amount) internal returns (uint256) {
         amount = Math.min(amount, balanceOfPool());
         uint256 initialWantBalance = balanceOfWant();
-        // Withdraw some vault's underlying tokens but do not claim the rewards
-        // accumulated so far.
         ILPRewards(tbtcSaddleLPRewards).withdraw(amount);
         return balanceOfWant().sub(initialWantBalance);
     }
@@ -220,8 +218,6 @@ contract SaddleStrategy is BaseStrategy {
     ///         This strategy implements the aforementioned behavior by
     ///         withdrawing all vault's underlying tokens from the tBTC v2 Saddle
     ///         reward pool.
-    /// @dev This function is used during emergency exit instead of prepareReturn
-    ///      to liquidate all of the strategy's positions back to the vault.
     /// @return amountFreed Amount that got freed.
     function liquidateAllPositions()
         internal
@@ -249,9 +245,9 @@ contract SaddleStrategy is BaseStrategy {
     /// @param newStrategy Address of the new strategy meant to replace the
     ///        current one.
     function prepareMigration(address newStrategy) internal override {
-        // Withdraw all the LP tokens from the tBTC v2 Saddle reward pool.
-        // These tokens will be transferred to the new strategy in the `migrate`
-        // function.
+        // Just withdraw the vault's underlying token from the tBTC v2 Saddle reward pool.
+        // There is no need to transfer those tokens to the new strategy
+        // right here as this is done in the BaseStrategy's migrate() method.
         ILPRewards(tbtcSaddleLPRewards).withdraw(balanceOfPool());
         // Get all the earned KEEP tokens and transfer them to the new strategy.
         ILPRewards(tbtcSaddleLPRewards).getReward();
@@ -269,7 +265,12 @@ contract SaddleStrategy is BaseStrategy {
     ///         last time its core position(s) were adjusted. Examples include
     ///         unwrapping extra rewards. This call is only used during normal
     ///         operation of a strategy, and should be optimized to minimize
-    ///         losses as much as possible.
+    ///         losses as much as possible. This strategy implements the
+    ///         aforementioned behavior by getting KEEP tokens from the Saddle
+    ///         reward pool, using obtained tokens to buy one of the Saddle
+    ///         pool's accepted token and depositing that token back to the
+    ///         Saddle pool. This way the strategy is gaining new vault's
+    ///         underlying tokens thus making the profit.
     /// @param debtOutstanding Will be 0 if the strategy is not past the
     ///        configured debt limit, otherwise its value will be how far past
     ///        the debt limit the strategy is. The strategy's debt limit is
@@ -290,7 +291,6 @@ contract SaddleStrategy is BaseStrategy {
             uint256 debtPayment
         )
     {
-        /* solhint-disable not-rely-on-time */
         // Get the initial balance of the vault's underlying token under
         // strategy management.
         uint256 initialWantBalance = balanceOfWant();

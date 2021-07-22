@@ -286,8 +286,6 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///         to liquidate everything and return the amount that got freed.
     ///         This strategy implements the aforementioned behavior by withdrawing
     ///         all vault's underlying tokens from the Curve pool's gauge.
-    /// @dev This function is used during emergency exit instead of prepareReturn
-    ///      to liquidate all of the strategy's positions back to the vault.
     /// @return amountFreed Amount that got freed.
     function liquidateAllPositions()
         internal
