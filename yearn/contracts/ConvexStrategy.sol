@@ -16,8 +16,11 @@ interface ICurvePool {
     function add_liquidity(uint256[4] calldata amounts, uint256 min_mint_amount)
         external
         payable;
-    
-    function calc_token_amount(uint256[4] calldata amounts, bool deposit) external view returns (uint256);
+
+    function calc_token_amount(uint256[4] calldata amounts, bool deposit)
+        external
+        view
+        returns (uint256);
 }
 
 /// @notice Interface for the Convex booster.
@@ -60,7 +63,10 @@ interface IUniswapV2Router {
         uint256
     ) external;
 
-    function getAmountsOut(uint amountIn, address[] memory path) external view returns (uint[] memory amounts);
+    function getAmountsOut(uint256 amountIn, address[] memory path)
+        external
+        view
+        returns (uint256[] memory amounts);
 }
 
 /// @notice Interface for the Convex reward pool.
@@ -617,19 +623,28 @@ contract ConvexStrategy is BaseStrategy {
         path[0] = weth;
         path[1] = tbtc;
 
-        // LP token (Curve.fi tBTC/sbtcCrv) consists of 4 tokens: tBTC, renBTC,
-        // wBTC and sBTC. As of writing this contract, there's no pool available
-        // that trades 'Curve.fi tBTC/sbtcCrv' with ETH. However, all of these
-        // 4 tokens are pegged to bitcoin and hold similar value. In order to estimate
-        // profitability of calling 'harvest()' we need to workaround and see the
-        // rate between tBTC - ETH on dex like Uniswap. tBTC was chosen arbitrary
-        // since it is availbale on Uniswap and was built on the keep-network.
+        // As of writing this contract, there's no pool available that trades
+        // an underlying token with ETH. To overcome this, the ETH amount
+        // denominated in WEI should be converted into an amount denominated
+        // in one of the tokens accepted by the tBTC v2 Curve pool using Uniswap.
+        // The tBTC v2 token was chosen arbitrarily since it is available on Uniswap
+        // and was built on the Keep Network.
         // amounts[0] -> ETH in wei
-        // amounts[1] -> tBTC
-        uint256[] memory amounts = IUniswapV2Router(uniswap).getAmountsOut(amtInWei, path);
+        // amounts[1] -> tBTC v2
+        uint256[] memory amounts = IUniswapV2Router(uniswap).getAmountsOut(
+            amtInWei,
+            path
+        );
 
-        // By knowing ETH->tBTC amounts it is possible to estimate the amount of
-        // 'Curve.fi tBTC/sbtcCrv' LP tokens to be received for tBTC tokens.
-        return ICurvePool(tbtcCurvePoolDepositor).calc_token_amount([amounts[1], 0, 0, 0], false);
+        // Use the amount denominated in tBTC v2 to calculate the amount of LP token
+        // (vault's underlying token) that could be obtained if that tBTC v2 amount
+        // was deposited in the tBTC v2 Curve pool. This way we obtain an
+        // estimated value of the original WEI amount represented in the vault's
+        // underlying token.
+        return
+            ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
+                [amounts[1], 0, 0, 0],
+                true
+            );
     }
 }
