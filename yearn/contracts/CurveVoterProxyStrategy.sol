@@ -132,6 +132,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     // Address of the WBTC token contract.
     address public constant wbtc =
         address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
+    // TODO: REPLACE WITH TBTC v2 ADDRESS ONCE IT IS DEPLOYED!
     // Address of the tBTC token contract.
     address public constant tbtc =
         address(0x8dAEBADE922dF735c38C80C7eBD708Af50815fAa);
@@ -539,6 +540,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         // was deposited in the tBTC v2 Curve pool. This way we obtain an
         // estimated value of the original WEI amount represented in the vault's
         // underlying token.
+        // TODO: when the curve pool with tBTC v2 is deployed, verify the index
+        // of tBTC v2 in the array (amounts[1]).
         return
             ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
                 [amounts[1], 0, 0, 0],
