@@ -488,7 +488,7 @@ contract ConvexStrategy is BaseStrategy {
 
             IUniswapV2Router(uniswap).swapExactTokensForTokens(
                 crvBalance,
-                uint256(0),
+                0,
                 path,
                 address(this),
                 now
@@ -508,7 +508,7 @@ contract ConvexStrategy is BaseStrategy {
 
             IUniswapV2Router(sushiswap).swapExactTokensForTokens(
                 cvxBalance,
-                uint256(0),
+                0,
                 path,
                 address(this),
                 now
@@ -532,7 +532,7 @@ contract ConvexStrategy is BaseStrategy {
 
                 IUniswapV2Router(uniswap).swapExactTokensForTokens(
                     extraRewardBalance,
-                    uint256(0),
+                    0,
                     path,
                     address(this),
                     now
