@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         if: github.event_name == 'pull_request'
-        
+
       - uses: dorny/paths-filter@v2
         if: github.event_name == 'pull_request'
         id: filter
