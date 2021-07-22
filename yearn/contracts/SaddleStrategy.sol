@@ -15,8 +15,8 @@ interface IERC20Metadata {
 }
 
 /// @notice Interface for the Saddle Swap contract.
-/// @dev This is an interface with just a few function signatures of the pool.
-///      For more info and function description please see:
+/// @dev This is an interface with just a few function signatures of the pool
+///      swap contract. For more info and function description please see:
 ///      https://github.com/saddle-finance/saddle-contract/blob/master/contracts/Swap.sol
 ///      https://github.com/saddle-finance/saddle-contract/blob/master/contracts/guarded/SwapGuarded.sol
 interface ISaddlePoolSwap {
@@ -28,7 +28,7 @@ interface ISaddlePoolSwap {
     ) external returns (uint256);
 }
 
-/// @notice Interface for the LPRewardsTBTCSaddle reward pool contract.
+/// @notice Interface for the LPRewards contracts.
 /// @dev This is an interface with just a few functions. For more info and
 ///      function description please see:
 ///      https://github.com/keep-network/keep-ecdsa/blob/main/solidity/contracts/LPRewards.sol
@@ -96,7 +96,8 @@ contract SaddleStrategy is BaseStrategy {
     address public constant uniswap =
         0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
 
-    // Address of the Saddle Swap contract, see https://docs.saddle.finance/contracts
+    // Address of the tBTC v2 Saddle pool swap contract, see
+    // https://docs.saddle.finance/contracts
     address public tbtcSaddlePoolSwap;
     // Address of the tBTC v2 Saddle reward pool.
     address public tbtcSaddleLPRewards;
