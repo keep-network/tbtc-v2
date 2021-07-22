@@ -321,12 +321,10 @@ contract ConvexStrategy is BaseStrategy {
     ///         the amount of want tokens made available by the liquidation.
     ///         If there is a difference between them, loss indicates whether
     ///         the difference is due to a realized loss, or if there is some
-    ///         other situation at play (e.g. locked funds). This function is
-    ///         used during emergency exit instead of prepareReturn to
-    ///         liquidate all of the strategy's positions back to the vault.
-    ///         This strategy implements the aforementioned behavior by
-    ///         withdrawing a portion of the vault's underlying token
-    ///         (want token) from the Convex reward pool.
+    ///         other situation at play (e.g. locked funds). This strategy
+    ///         implements the aforementioned behavior by withdrawing a portion
+    ///         of the vault's underlying token (want token) from the Convex
+    ///         reward pool.
     /// @dev The invariant `liquidatedAmount + loss <= amountNeeded` should
     ///      always be maintained.
     /// @param amountNeeded Amount of the vault's underlying tokens needed by
@@ -353,6 +351,8 @@ contract ConvexStrategy is BaseStrategy {
     ///         to liquidate everything and return the amount that got freed.
     ///         This strategy implements the aforementioned behavior by withdrawing
     ///         all vault's underlying tokens from the Convex reward pool.
+    /// @dev This function is used during emergency exit instead of prepareReturn
+    ///      to liquidate all of the strategy's positions back to the vault.
     /// @return amountFreed Amount that got freed.
     function liquidateAllPositions()
         internal
