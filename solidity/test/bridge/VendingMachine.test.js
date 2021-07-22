@@ -635,7 +635,7 @@ describe("VendingMachine", () => {
           expect(await tbtcV2.owner()).is.equal(vendingMachine.address)
         })
 
-        it("should start the update initiation time", async () => {
+        it("should start the upgrade initiation time", async () => {
           expect(
             await vendingMachine.vendingMachineUpgradeInitiatedTimestamp()
           ).to.equal(await getBlockTime(tx.blockNumber))
