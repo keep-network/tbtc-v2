@@ -5,6 +5,7 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IERC20WithPermit.sol";
+import "./IReceiveApproval.sol";
 
 /// @title  ERC20WithPermit
 /// @notice Burnable ERC20 token with EIP2612 permit functionality. User can
@@ -134,6 +135,23 @@ contract ERC20WithPermit is IERC20WithPermit, Ownable {
         require(currentAllowance >= amount, "Burn amount exceeds allowance");
         _approve(account, msg.sender, currentAllowance - amount);
         _burn(account, amount);
+    }
+
+    function approveAndCall(
+        address spender,
+        uint256 value,
+        bytes memory extraData
+    ) external override returns (bool) {
+        if (approve(spender, value)) {
+            IReceiveApproval(spender).receiveApproval(
+                msg.sender,
+                value,
+                address(this),
+                extraData
+            );
+            return true;
+        }
+        return false;
     }
 
     function approve(address spender, uint256 amount)
