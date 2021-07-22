@@ -299,8 +299,8 @@ contract VendingMachine is Ownable, IReceiveApproval {
             );
     }
 
-    /// @notice Returns the fee that needs to be paid to the `VendingMachine` to
-    ///         unmint the given amount of TBTC v2 back into TBTC v1.
+    /// @notice Calculates the fee that needs to be paid to the `VendingMachine`
+    ///         to unmint the given amount of TBTC v2 back into TBTC v1.
     function unmintFeeFor(uint256 amount) public view returns (uint256) {
         return (amount * unmintFee) / FLOATING_POINT_DIVISOR;
     }
