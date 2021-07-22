@@ -16,6 +16,8 @@ interface ICurvePool {
     function add_liquidity(uint256[4] calldata amounts, uint256 min_mint_amount)
         external
         payable;
+
+    function calc_token_amount(uint256[4] calldata amounts, bool deposit) external view returns (uint256);
 }
 
 /// @notice Interface for the proxy contract which allows strategies to
@@ -59,6 +61,8 @@ interface IUniswapV2Router {
         address,
         uint256
     ) external;
+
+    function getAmountsOut(uint amountIn, address[] memory path) external view returns (uint[] memory amounts);
 }
 
 /// @notice Interface for the optional metadata functions from the ERC20 standard.
@@ -122,6 +126,9 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     // Address of the WBTC token contract.
     address public constant wbtc =
         address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
+    // Address of the tBTC token contract.
+    address public constant tbtc =
+        address(0x8dAEBADE922dF735c38C80C7eBD708Af50815fAa);
     // Address of the Uniswap V2 router contract.
     address public constant uniswap =
         address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
@@ -504,7 +511,23 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         override
         returns (uint256)
     {
-        // TODO: Create an accurate price oracle.
-        return amtInWei;
+        address[] memory path = new address[](2);
+        path[0] = weth;
+        path[1] = tbtc;
+
+        // LP token (Curve.fi tBTC/sbtcCrv) consists of 4 tokens: tBTC, renBTC,
+        // wBTC and sBTC. As of writing this contract, there's no pool available
+        // that trades 'Curve.fi tBTC/sbtcCrv' with ETH. However, all of these
+        // 4 tokens are pegged to bitcoin and hold similar value. In order to estimate
+        // profitability of calling 'harvest()' we need to workaround and see the
+        // rate between tBTC - ETH on dex like Uniswap. tBTC was chosen arbitrary
+        // since it is availbale on Uniswap and was built on the keep-network.
+        // amounts[0] -> ETH in wei
+        // amounts[1] -> tBTC
+        uint256[] memory amounts = IUniswapV2Router(dex).getAmountsOut(amtInWei, path);
+
+        // By knowing ETH->tBTC amounts it is possible to estimate the amount of
+        // 'Curve.fi tBTC/sbtcCrv' LP tokens to be received for tBTC tokens.
+        return ICurvePool(tbtcCurvePoolDepositor).calc_token_amount([amounts[1], 0, 0, 0], false);
     }
 }
