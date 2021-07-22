@@ -42,4 +42,14 @@ module.exports.tbtc = {
   // Address of the Synthetix Curve rewards contract owner.
   synthetixCurveRewardsOwnerAddress:
     "0xb3726e69da808a689f2607939a2d9e958724fc2a",
+  // Address of the Saddle Pool Swap
+  saddlePoolSwapAddress: "0x4f6A43Ad7cba042606dECaCA730d4CE0A57ac62e",
+  // Address of the tBTC v2 Saddle pool LP token.
+  saddlePoolLPTokenAddress: "0xC28DF698475dEC994BE00C9C9D8658A548e6304F",
+  // Example address which holds an amount of the tBTC v2 Saddle pool LP token.
+  saddlePoolLPTokenHolderAddress: "0x1f032a27b369299c73b331c9fc1e80978db45b15",
+  // Address of the tBTC v2 Saddle pool (LPRewardsTBTCSaddle),
+  saddlePoolAddress: "0x78aa83BD6c9DE5De0A2231366900AB060A482edd",
+  // Address of the owner of the tBTC v2 Saddle pool
+  saddlePoolOwner: "0xb3726e69da808a689f2607939a2d9e958724fc2a",
 }

@@ -39,6 +39,8 @@ interface ILPRewards {
 
     function getReward() external;
 
+    function setGated(bool _gated) external;
+
     function balanceOf(address account) external view returns (uint256);
 
     function wrappedToken() external view returns (address);
