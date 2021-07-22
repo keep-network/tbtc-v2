@@ -19,7 +19,7 @@ interface IERC20Metadata {
 ///      For more info and function description please see:
 ///      https://github.com/saddle-finance/saddle-contract/blob/master/contracts/Swap.sol
 ///      https://github.com/saddle-finance/saddle-contract/blob/master/contracts/guarded/SwapGuarded.sol
-interface ISaddleSwap {
+interface ISaddlePoolSwap {
     function addLiquidity(
         uint256[] calldata amounts,
         uint256 minToMint,
@@ -32,7 +32,7 @@ interface ISaddleSwap {
 /// @dev This is an interface with just a few functions. For more info and
 ///      function description please see:
 ///      https://github.com/keep-network/keep-ecdsa/blob/main/solidity/contracts/LPRewards.sol
-interface ILPRewardsTBTCV2Saddle {
+interface ILPRewards {
     function stake(uint256 amount) external;
 
     function withdraw(uint256 amount) external;
@@ -95,16 +95,17 @@ contract SaddleStrategy is BaseStrategy {
     // Address of the Uniswap V2 router contract.
     address public constant uniswap =
         0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-    // Address of the Saddle Swap contract, taken from
-    // https://docs.saddle.finance/contracts
-    address public constant swap = 0x4f6A43Ad7cba042606dECaCA730d4CE0A57ac62e;
-    // Address of the tBTC v2 Saddle reward pool.
-    address public lpRewardsTbtcV2Saddle;
 
-    constructor(address _vault, address _lpRewardsTbtcV2Saddle)
-        public
-        BaseStrategy(_vault)
-    {
+    // Address of the Saddle Swap contract, see https://docs.saddle.finance/contracts
+    address public tbtcSaddlePoolSwap;
+    // Address of the tBTC v2 Saddle reward pool.
+    address public tbtcSaddleLPRewards;
+
+    constructor(
+        address _vault,
+        address _tbtcSaddlePoolSwap,
+        address _tbtcSaddleLPRewards
+    ) public BaseStrategy(_vault) {
         // TODO: Check what the correct values should be
         // Strategy settings.
         minReportDelay = 6 hours;
@@ -113,9 +114,9 @@ contract SaddleStrategy is BaseStrategy {
         debtThreshold = 1e24;
 
         // tBTC-related settings.
-        lpRewardsTbtcV2Saddle = _lpRewardsTbtcV2Saddle;
-        address lpToken = ILPRewardsTBTCV2Saddle(_lpRewardsTbtcV2Saddle)
-        .wrappedToken();
+        tbtcSaddlePoolSwap = _tbtcSaddlePoolSwap;
+        tbtcSaddleLPRewards = _tbtcSaddleLPRewards;
+        address lpToken = ILPRewards(_tbtcSaddleLPRewards).wrappedToken();
         require(lpToken == address(want), "Incorrect reward pool LP token");
     }
 
@@ -138,31 +139,12 @@ contract SaddleStrategy is BaseStrategy {
     /// @return Balance of the vault's underlying token staked into the tBTC v2
     ///         Saddle reward pool.
     function balanceOfPool() public view returns (uint256) {
-        return
-            ILPRewardsTBTCV2Saddle(lpRewardsTbtcV2Saddle).balanceOf(
-                address(this)
-            );
+        return ILPRewards(tbtcSaddleLPRewards).balanceOf(address(this));
     }
 
     /// @return Sum of balanceOfWant and balanceOfPool.
     function estimatedTotalAssets() public view override returns (uint256) {
         return balanceOfWant().add(balanceOfPool());
-    }
-
-    /// @notice This method is defined in the BaseStrategy contract and is meant
-    ///         to provide an accurate conversion from amtInWei (denominated in wei)
-    ///         to want token (using the native decimal characteristics of want token).
-    /// @param amtInWei The amount (in wei/1e-18 ETH) to convert to want tokens.
-    /// @return The amount in want tokens.
-    function ethToWant(uint256 amtInWei)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
-        // TODO: Create an accurate price oracle.
-        return amtInWei;
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is
@@ -180,8 +162,8 @@ contract SaddleStrategy is BaseStrategy {
     function adjustPosition(uint256 debtOutstanding) internal override {
         uint256 wantBalance = balanceOfWant();
         if (wantBalance > 0) {
-            want.safeIncreaseAllowance(lpRewardsTbtcV2Saddle, wantBalance);
-            ILPRewardsTBTCV2Saddle(lpRewardsTbtcV2Saddle).stake(wantBalance);
+            want.safeIncreaseAllowance(tbtcSaddleLPRewards, wantBalance);
+            ILPRewards(tbtcSaddleLPRewards).stake(wantBalance);
         }
     }
 
@@ -194,7 +176,7 @@ contract SaddleStrategy is BaseStrategy {
         uint256 initialWantBalance = balanceOfWant();
         // Withdraw some vault's underlying tokens but do not claim the rewards
         // accumulated so far.
-        ILPRewardsTBTCV2Saddle(lpRewardsTbtcV2Saddle).withdraw(amount);
+        ILPRewards(tbtcSaddleLPRewards).withdraw(amount);
         return balanceOfWant().sub(initialWantBalance);
     }
 
@@ -246,7 +228,7 @@ contract SaddleStrategy is BaseStrategy {
         override
         returns (uint256 amountFreed)
     {
-        ILPRewardsTBTCV2Saddle(lpRewardsTbtcV2Saddle).withdraw(balanceOfPool());
+        ILPRewards(tbtcSaddleLPRewards).withdraw(balanceOfPool());
 
         // Yearn docs doesn't specify clear enough what exactly should be
         // returned here. It may be either the total balance after
@@ -270,9 +252,9 @@ contract SaddleStrategy is BaseStrategy {
         // Withdraw all the LP tokens from the tBTC v2 Saddle reward pool.
         // These tokens will be transferred to the new strategy in the `migrate`
         // function.
-        ILPRewardsTBTCV2Saddle(lpRewardsTbtcV2Saddle).withdraw(balanceOfPool());
+        ILPRewards(tbtcSaddleLPRewards).withdraw(balanceOfPool());
         // Get all the earned KEEP tokens and transfer them to the new strategy.
-        ILPRewardsTBTCV2Saddle(lpRewardsTbtcV2Saddle).getReward();
+        ILPRewards(tbtcSaddleLPRewards).getReward();
         IERC20(keep).safeTransfer(
             newStrategy,
             IERC20(keep).balanceOf(address(this))
@@ -314,7 +296,7 @@ contract SaddleStrategy is BaseStrategy {
         uint256 initialWantBalance = balanceOfWant();
 
         // Get KEEP rewards from the Saddle reward pool.
-        ILPRewardsTBTCV2Saddle(lpRewardsTbtcV2Saddle).getReward();
+        ILPRewards(tbtcSaddleLPRewards).getReward();
 
         // Buy WBTC using obtained KEEP tokens.
         uint256 keepBalance = IERC20(keep).balanceOf(address(this));
@@ -339,7 +321,7 @@ contract SaddleStrategy is BaseStrategy {
         // vault's underlying tokens.
         uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
         if (wbtcBalance > 0) {
-            IERC20(wbtc).safeIncreaseAllowance(swap, wbtcBalance);
+            IERC20(wbtc).safeIncreaseAllowance(tbtcSaddlePoolSwap, wbtcBalance);
 
             uint256[] memory amounts = new uint256[](4);
             amounts[1] = wbtcBalance;
@@ -348,7 +330,7 @@ contract SaddleStrategy is BaseStrategy {
 
             //TODO: Check what the values of minToMint, deadline and merkleProof
             // should be
-            ISaddleSwap(swap).addLiquidity(
+            ISaddlePoolSwap(tbtcSaddlePoolSwap).addLiquidity(
                 amounts,
                 0,
                 uint256(-1),
@@ -391,5 +373,21 @@ contract SaddleStrategy is BaseStrategy {
         address[] memory protected = new address[](1);
         protected[0] = keep;
         return protected;
+    }
+
+    /// @notice This method is defined in the BaseStrategy contract and is meant
+    ///         to provide an accurate conversion from amtInWei (denominated in wei)
+    ///         to want token (using the native decimal characteristics of want token).
+    /// @param amtInWei The amount (in wei/1e-18 ETH) to convert to want tokens.
+    /// @return The amount in want tokens.
+    function ethToWant(uint256 amtInWei)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        // TODO: Create an accurate price oracle.
+        return amtInWei;
     }
 }
