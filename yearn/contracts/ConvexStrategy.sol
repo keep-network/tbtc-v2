@@ -164,10 +164,6 @@ contract ConvexStrategy is BaseStrategy {
     // Address of the WBTC token contract.
     address public constant wbtc =
         address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
-    // TODO: REPLACE WITH TBTC v2 ADDRESS ONCE IT IS DEPLOYED!
-    // Address of the tBTC token contract.
-    address public constant tbtc =
-        address(0x8dAEBADE922dF735c38C80C7eBD708Af50815fAa);
     // Address of the Uniswap V2 router contract.
     address public constant uniswap =
         address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
@@ -555,7 +551,8 @@ contract ConvexStrategy is BaseStrategy {
                 tbtcCurvePoolDepositor,
                 wbtcBalance
             );
-
+            // TODO: When the new curve pool with tBTC v2 is deployed, verify that
+            // the index of wBTC in the array is correct.
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
                 [0, 0, wbtcBalance, 0],
                 0
@@ -622,28 +619,28 @@ contract ConvexStrategy is BaseStrategy {
     {
         address[] memory path = new address[](2);
         path[0] = weth;
-        path[1] = tbtc;
+        path[1] = wbtc;
 
         // As of writing this contract, there's no pool available that trades
         // an underlying token with ETH. To overcome this, the ETH amount
         // denominated in WEI should be converted into an amount denominated
         // in one of the tokens accepted by the tBTC v2 Curve pool using Uniswap.
-        // The tBTC v2 token was chosen arbitrarily since it is available on Uniswap
-        // and was built on the Keep Network.
+        // The wBTC token was chosen arbitrarily since it is already used in this
+        // contract for other operations on Uniswap.
         // amounts[0] -> ETH in wei
-        // amounts[1] -> tBTC v2
+        // amounts[1] -> wBTC
         uint256[] memory amounts = IUniswapV2Router(uniswap).getAmountsOut(
             amtInWei,
             path
         );
 
-        // Use the amount denominated in tBTC v2 to calculate the amount of LP token
-        // (vault's underlying token) that could be obtained if that tBTC v2 amount
-        // was deposited in the tBTC v2 Curve pool. This way we obtain an
-        // estimated value of the original WEI amount represented in the vault's
-        // underlying token.
-        // TODO: when the curve pool with tBTC v2 is deployed, verify the index
-        // of tBTC v2 in the array (amounts[1]).
+        // Use the amount denominated in wBTC to calculate the amount of LP token
+        // (vault's underlying token) that could be obtained if that wBTC amount
+        // was deposited in the Curve pool that has tBTC v2 in it. This way we
+        // obtain an estimated value of the original WEI amount represented in
+        // the vault's underlying token.
+        // TODO: When the new curve pool with tBTC v2 is deployed, verify that
+        // the index of wBTC (amounts[1]) in the array is correct.
         return
             ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
                 [amounts[1], 0, 0, 0],
