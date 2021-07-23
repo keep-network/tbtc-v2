@@ -4,6 +4,7 @@ const {
   to1ePrecision,
   impersonateAccount,
   increaseTime,
+  to1e18,
 } = require("../helpers/contract-test-helpers.js")
 const { yearn, convex, tbtc, forkBlockNumber } = require("./constants.js")
 const { allocateSynthetixRewards, deployYearnVault } = require("./functions.js")
@@ -219,6 +220,25 @@ describeFn("System -- convex strategy", () => {
       )
       expect(amountWithdrawn.gt(curveStrategyFixture.vaultDepositAmount)).to.be
         .true
+    })
+
+    describe("eth to LP token (want) conversion", () => {
+      // At block 12786839 (Jul-08-2021) the exchange rate between wBTC/ETH was
+      // ~1/15.65 Swapping 1000ETH on Uniswap gave ~63.9wBTC. It means that by
+      // depositing 63.9wBTC to Curve.fi LP Pool a depositor would get
+      // ~63,3018 LP tokens.
+      //
+      // TODO: When the new curve pool with tBTC v2 is deployed, the fork block
+      // number would need be adjusted acoordingly. In consequnce, the rates of
+      // tokens will be different and will need be adjusted as well.
+      it("should calculate LP tokens in exchange for ETH ", async () => {
+        const lpTokens = await strategy.ethToWant(to1e18(1000))
+
+        expect(lpTokens).to.be.closeTo(
+          to1ePrecision(633018, 14),
+          to1ePrecision(1, 14) // 0.0000001 precision
+        )
+      })
     })
   })
 })
