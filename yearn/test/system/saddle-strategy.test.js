@@ -15,8 +15,8 @@ const describeFn =
 describeFn("System -- saddle strategy", () => {
   let vaultGovernance
   let vaultDepositor
-  let saddlePoolGovernance
-  let saddlePool
+  let saddleLPRewardsGovernance
+  let saddleLPRewards
   let tbtcSaddlePoolLPToken
   let vault
   let strategy
@@ -32,20 +32,20 @@ describeFn("System -- saddle strategy", () => {
       vaultGovernance
     )
 
-    saddlePoolGovernance = await impersonateAccount(
-      tbtc.saddlePoolOwner,
+    saddleLPRewardsGovernance = await impersonateAccount(
+      tbtc.saddleLPRewardsOwner,
       vaultGovernance
     )
 
-    // Get tBTC v2 Saddle pool handle and set `gated` to false to allow
+    // Get tBTC v2 Saddle LP Rewards handle and set `gated` to false to allow
     // non-externally-owned accounts to perform staking
-    saddlePool = await ethers.getContractAt(
+    saddleLPRewards = await ethers.getContractAt(
       "ILPRewards",
-      tbtc.saddlePoolAddress
+      tbtc.saddleLPRewards
     )
-    await saddlePool.connect(saddlePoolGovernance).setGated(false)
+    await saddleLPRewards.connect(saddleLPRewardsGovernance).setGated(false)
 
-    // Get tBTC v2 Saddle rewards pool LP token handle.
+    // Get tBTC v2 Saddle pool LP token handle.
     tbtcSaddlePoolLPToken = await ethers.getContractAt(
       "IERC20",
       tbtc.saddlePoolLPTokenAddress
@@ -66,7 +66,7 @@ describeFn("System -- saddle strategy", () => {
     strategy = await SaddleStrategy.deploy(
       vault.address,
       tbtc.saddlePoolSwapAddress,
-      tbtc.saddlePoolAddress
+      tbtc.saddleLPRewards
     )
     await strategy.deployed()
 
