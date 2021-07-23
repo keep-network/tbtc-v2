@@ -16,6 +16,11 @@ interface ICurvePool {
     function add_liquidity(uint256[4] calldata amounts, uint256 min_mint_amount)
         external
         payable;
+
+    function calc_token_amount(uint256[4] calldata amounts, bool deposit)
+        external
+        view
+        returns (uint256);
 }
 
 /// @notice Interface for the proxy contract which allows strategies to
@@ -59,6 +64,11 @@ interface IUniswapV2Router {
         address,
         uint256
     ) external;
+
+    function getAmountsOut(uint256 amountIn, address[] memory path)
+        external
+        view
+        returns (uint256[] memory amounts);
 }
 
 /// @notice Interface for the optional metadata functions from the ERC20 standard.
@@ -442,6 +452,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
                 tbtcCurvePoolDepositor,
                 wbtcBalance
             );
+            // TODO: When the new curve pool with tBTC v2 is deployed, verify that
+            // the index of wBTC in the array is correct.
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
                 [0, 0, wbtcBalance, 0],
                 0
@@ -504,7 +516,35 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         override
         returns (uint256)
     {
-        // TODO: Create an accurate price oracle.
-        return amtInWei;
+        address[] memory path = new address[](2);
+        path[0] = weth;
+        path[1] = wbtc;
+
+        // As of writing this contract, there's no pool available that trades
+        // an underlying token with ETH. To overcome this, the ETH amount
+        // denominated in WEI should be converted into an amount denominated
+        // in one of the tokens accepted by the tBTC v2 Curve pool using Uniswap.
+        // The wBTC token was chosen arbitrarily since it is already used in this
+        // contract for other operations on Uniswap.
+        // amounts[0] -> ETH in wei
+        // amounts[1] -> wBTC
+        uint256[] memory amounts = IUniswapV2Router(dex).getAmountsOut(
+            amtInWei,
+            path
+        );
+
+        // Use the amount denominated in wBTC to calculate the amount of LP token
+        // (vault's underlying token) that could be obtained if that wBTC amount
+        // was deposited in the Curve pool that has tBTC v2 in it. This way we
+        // obtain an estimated value of the original WEI amount represented in
+        // the vault's underlying token.
+        //
+        // TODO: When the new curve pool with tBTC v2 is deployed, verify that
+        // the index of wBTC (amounts[1]) in the array is correct.
+        return
+            ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
+                [0, 0, amounts[1], 0],
+                true
+            );
     }
 }
