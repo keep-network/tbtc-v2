@@ -10,5 +10,6 @@
   },
   "rules": {
     "new-cap": "off"
-  }
+  },
+  "root": true
 }
