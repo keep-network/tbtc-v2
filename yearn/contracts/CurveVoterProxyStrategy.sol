@@ -538,6 +538,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         // was deposited in the Curve pool that has tBTC v2 in it. This way we
         // obtain an estimated value of the original WEI amount represented in
         // the vault's underlying token.
+        //
         // TODO: When the new curve pool with tBTC v2 is deployed, verify that
         // the index of wBTC (amounts[1]) in the array is correct.
         return
