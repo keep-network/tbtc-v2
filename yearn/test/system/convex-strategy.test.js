@@ -224,12 +224,12 @@ describeFn("System -- convex strategy", () => {
 
     describe("eth to LP token (want) conversion", () => {
       // At block 12786839 (Jul-08-2021) the exchange rate between wBTC/ETH was
-      // ~1/15.65 Swapping 1000ETH on Uniswap gave ~63.9wBTC. It means that by
+      // ~1/15.65. Swapping 1000ETH on Uniswap gave ~63.9wBTC. It means that by
       // depositing 63.9wBTC to Curve.fi LP Pool a depositor would get
       // ~63.3018 LP tokens.
       //
       // TODO: When the new curve pool with tBTC v2 is deployed, the fork block
-      // number would need to be adjusted acoordingly. In consequnce, the rates of
+      // number would need to be adjusted accordingly. In consequence, the rates of
       // tokens will be different and they will need to be adjusted as well.
       it("should calculate LP tokens in exchange for ETH ", async () => {
         const lpTokens = await strategy.ethToWant(to1e18(1000))

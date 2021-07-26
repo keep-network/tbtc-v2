@@ -26,6 +26,12 @@ interface ISaddlePoolSwap {
         uint256 deadline,
         bytes32[] calldata merkleProof
     ) external returns (uint256);
+
+    function calculateTokenAmount(
+        address account,
+        uint256[] calldata amounts,
+        bool deposit
+    ) external view returns (uint256);
 }
 
 /// @notice Interface for the LPRewards contracts.
@@ -63,6 +69,11 @@ interface IUniswapV2Router {
         address,
         uint256
     ) external;
+
+    function getAmountsOut(uint256 amountIn, address[] memory path)
+        external
+        view
+        returns (uint256[] memory amounts);
 }
 
 /// @title SaddleStrategy
@@ -393,7 +404,38 @@ contract SaddleStrategy is BaseStrategy {
         override
         returns (uint256)
     {
-        // TODO: Create an accurate price oracle.
-        return amtInWei;
+        address[] memory path = new address[](2);
+        path[0] = weth;
+        path[1] = wbtc;
+
+        // As of writing this contract, there's no pool available that trades
+        // an underlying token with ETH. To overcome this, the ETH amount
+        // denominated in WEI should be converted into an amount denominated
+        // in one of the tokens accepted by the tBTC v2 Saddle pool swap using
+        // Uniswap. The wBTC token was chosen arbitrarily since it is already
+        // used in this contract for other operations on Uniswap.
+        // amounts[0] -> ETH in wei
+        // amounts[1] -> wBTC
+        uint256[] memory amounts = IUniswapV2Router(uniswap).getAmountsOut(
+            amtInWei,
+            path
+        );
+
+        // Use the amount denominated in wBTC to calculate the amount of LP token
+        // (vault's underlying token) that could be obtained if that wBTC amount
+        // was deposited in the Saddle pool swap that has tBTC v2 in it. This way we
+        // obtain an estimated value of the original WEI amount represented in
+        // the vault's underlying token.
+        //
+        // TODO: When the new saddle pool swap with tBTC v2 is deployed, verify that
+        // the index of wBTC (amounts[1]) in the array is correct.
+        uint256[] memory deposits = new uint256[](4);
+        deposits[1] = amounts[1];
+        return
+            ISaddlePoolSwap(tbtcSaddlePoolSwap).calculateTokenAmount(
+                address(this),
+                deposits,
+                true
+            );
     }
 }
