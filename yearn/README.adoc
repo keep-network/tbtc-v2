@@ -76,7 +76,25 @@ into account when comparing profitability of different strategies.
 
 === `SaddleStrategy` contract
 
-Currently implemented. Will be described soon.
+This strategy is meant to be used with the Saddle tBTC v2 pool vault.
+The vault's underlying token (a.k.a. want token) should be the LP
+token of the tBTC v2 Saddle pool. This strategy borrows the vault's
+underlying token up to the debt limit configured for this strategy
+in the vault. In order to make the profit, the strategy deposits
+the borrowed tokens into the tBTC v2 Saddle reward pool. Depositing
+tokens in the reward pool generates KEEP token rewards.
+The financial outcome is settled upon a call of the `harvest` method
+(BaseStrategy.sol). Once that call is made, the strategy gets the
+KEEP token rewards from Saddle reward pool. These reward tokens are
+then used to buy wBTC via a decentralized exchange. At the end, the
+strategy takes acquired wBTC and deposits them to the Saddle tBTC v2
+pool. This way it obtains new LP tokens the vault is interested in,
+and makes the profit in result. At this stage, the strategy may
+repay some debt back to the vault, if needed. The entire cycle
+repeats for the strategy lifetime, so all gains are constantly
+reinvested. Worth to flag that the current implementation uses wBTC
+as the intermediary token because of its liquidity and ubiquity in
+BTC-based Curve pools.
 
 == Build, test and deploy
 
@@ -121,8 +139,8 @@ To deploy all contracts on the given network, please run:
 ```
 yarn deploy --network <network>
 ```
-with required environment variables listed in the <<deployment-parametrization>>
-section.
+If applicable, use environment variables listed in the
+<<deployment-parametrization>> section.
 
 To deploy a single contract, use the same command with the `--tags` option
 followed by the contract name:
@@ -145,11 +163,9 @@ with the Yearn vault API.
 The following environment variables should be used for deployment parametrization.
 
 |===
-|Variable|Description|Applicable to|Required
+|Variable|Description
 
 | `GAS_LIMIT`
 | Custom gas limit for the deployment transaction. Can be useful in case when
   the environment cannot estimate the gas limit itself.
-| All
-| No
 |===
