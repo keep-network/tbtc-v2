@@ -133,7 +133,6 @@ describeFn("System -- saddle strategy", () => {
       for (let i = 0; i < 7; i++) {
         await increaseTime(86400) // ~1 day
         await strategy.harvest()
-        // TODO: Check if anything needs to happen at this moment
       }
     })
 
@@ -146,8 +145,6 @@ describeFn("System -- saddle strategy", () => {
       // KEEP rewards which are used to buy wBTC. Acquired wBTC are deposited
       // back to the Saddle pool in order to earn new LP tokens.
       // All numbers are presented in the 18 digits format.
-      //
-      // TODO: Fill the calculations below, find the expected gain
       //
       // Day 1:
       // KEEP earned: 2354216975965155399

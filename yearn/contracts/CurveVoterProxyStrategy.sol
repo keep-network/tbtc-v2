@@ -296,12 +296,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///         all vault's underlying tokens from the Curve pool's gauge.
     /// @dev This function is used during emergency exit instead of prepareReturn
     ///      to liquidate all of the strategy's positions back to the vault.
-    /// @return amountFreed Amount that got freed.
-    function liquidateAllPositions()
-        internal
-        override
-        returns (uint256 amountFreed)
-    {
+    /// @return Total balance of want tokens held by this strategy.
+    function liquidateAllPositions() internal override returns (uint256) {
         IStrategyProxy(strategyProxy).withdrawAll(
             tbtcCurvePoolGauge,
             address(want)

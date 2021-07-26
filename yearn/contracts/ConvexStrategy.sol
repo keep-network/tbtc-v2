@@ -363,12 +363,8 @@ contract ConvexStrategy is BaseStrategy {
     ///         all vault's underlying tokens from the Convex reward pool.
     /// @dev This function is used during emergency exit instead of prepareReturn
     ///      to liquidate all of the strategy's positions back to the vault.
-    /// @return amountFreed Amount that got freed.
-    function liquidateAllPositions()
-        internal
-        override
-        returns (uint256 amountFreed)
-    {
+    /// @return Total balance of want token held by this strategy.
+    function liquidateAllPositions() internal override returns (uint256) {
         // Withdraw all vault's underlying tokens from the Convex reward pool.
         // However, do not claim the rewards accumulated so far because this is
         // an emergency action and we just focus on recovering all principle

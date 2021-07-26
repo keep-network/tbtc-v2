@@ -240,12 +240,8 @@ contract SaddleStrategy is BaseStrategy {
     ///         reward pool.
     /// @dev This function is used during emergency exit instead of prepareReturn
     ///      to liquidate all of the strategy's positions back to the vault.
-    /// @return amountFreed Amount that got freed.
-    function liquidateAllPositions()
-        internal
-        override
-        returns (uint256 amountFreed)
-    {
+    /// @return Total balance of want token held by this strategy.
+    function liquidateAllPositions() internal override returns (uint256) {
         ILPRewards(tbtcSaddleLPRewards).withdraw(balanceOfPool());
 
         // Yearn docs doesn't specify clear enough what exactly should be
@@ -399,8 +395,9 @@ contract SaddleStrategy is BaseStrategy {
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant
-    ///         to provide an accurate conversion from amtInWei (denominated in wei)
-    ///         to want token (using the native decimal characteristics of want token).
+    ///         to provide an accurate conversion from amtInWei (denominated in
+    ///         wei) to want token (using the native decimal characteristics of
+    ///         want token).
     /// @param amtInWei The amount (in wei/1e-18 ETH) to convert to want tokens.
     /// @return The amount in want tokens.
     function ethToWant(uint256 amtInWei)
@@ -427,14 +424,14 @@ contract SaddleStrategy is BaseStrategy {
             path
         );
 
-        // Use the amount denominated in wBTC to calculate the amount of LP token
-        // (vault's underlying token) that could be obtained if that wBTC amount
-        // was deposited in the Saddle pool swap that has tBTC v2 in it. This way we
-        // obtain an estimated value of the original WEI amount represented in
-        // the vault's underlying token.
+        // Use the amount denominated in wBTC to calculate the amount of LP
+        // token (vault's underlying token) that could be obtained if that wBTC
+        // amount was deposited in the Saddle pool swap that has tBTC v2 in it.
+        // This way we obtain an estimated value of the original WEI amount
+        // represented in the vault's underlying token.
         //
-        // TODO: When the new saddle pool swap with tBTC v2 is deployed, verify that
-        // the index of wBTC (amounts[1]) in the array is correct.
+        // TODO: When the new saddle pool swap with tBTC v2 is deployed, verify
+        // that the index of wBTC (amounts[1]) in the array is correct.
         uint256[] memory deposits = new uint256[](4);
         deposits[1] = amounts[1];
         return
