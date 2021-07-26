@@ -153,16 +153,16 @@ contract ConvexStrategy is BaseStrategy {
     address public constant booster =
         address(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
     // Address of the CRV token contract.
-    address public constant crv =
+    address public constant crvToken =
         address(0xD533a949740bb3306d119CC777fa900bA034cd52);
     // Address of the Convex CVX token contract.
-    address public constant cvx =
+    address public constant cvxToken =
         address(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
     // Address of the WETH token contract.
-    address public constant weth =
+    address public constant wethToken =
         address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     // Address of the WBTC token contract.
-    address public constant wbtc =
+    address public constant wbtcToken =
         address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
     // Address of the Uniswap V2 router contract.
     address public constant uniswap =
@@ -404,13 +404,13 @@ contract ConvexStrategy is BaseStrategy {
         IConvexRewardPool(tbtcConvexRewardPool).withdrawAllAndUnwrap(true);
 
         // Transfer all claimed rewards to the new strategy manually.
-        IERC20(crv).safeTransfer(
+        IERC20(crvToken).safeTransfer(
             newStrategy,
-            IERC20(crv).balanceOf(address(this))
+            IERC20(crvToken).balanceOf(address(this))
         );
-        IERC20(cvx).safeTransfer(
+        IERC20(cvxToken).safeTransfer(
             newStrategy,
-            IERC20(cvx).balanceOf(address(this))
+            IERC20(cvxToken).balanceOf(address(this))
         );
         if (tbtcConvexExtraReward != address(0)) {
             IERC20(tbtcConvexExtraReward).safeTransfer(
@@ -427,7 +427,7 @@ contract ConvexStrategy is BaseStrategy {
     ///         transfer.
     function adjustCRV(uint256 crvBalance) internal returns (uint256) {
         uint256 crvTransfer = crvBalance.mul(keepCRV).div(DENOMINATOR);
-        IERC20(crv).safeTransfer(voter, crvTransfer);
+        IERC20(crvToken).safeTransfer(voter, crvTransfer);
         return crvBalance.sub(crvTransfer);
     }
 
@@ -475,17 +475,17 @@ contract ConvexStrategy is BaseStrategy {
         IConvexRewardPool(tbtcConvexRewardPool).getReward(address(this), true);
 
         // Buy WBTC using obtained CRV tokens.
-        uint256 crvBalance = IERC20(crv).balanceOf(address(this));
+        uint256 crvBalance = IERC20(crvToken).balanceOf(address(this));
         if (crvBalance > 0) {
             // Deposit a portion of CRV to the voter to gain CRV boost.
             crvBalance = adjustCRV(crvBalance);
 
-            IERC20(crv).safeIncreaseAllowance(uniswap, crvBalance);
+            IERC20(crvToken).safeIncreaseAllowance(uniswap, crvBalance);
 
             address[] memory path = new address[](3);
-            path[0] = crv;
-            path[1] = weth;
-            path[2] = wbtc;
+            path[0] = crvToken;
+            path[1] = wethToken;
+            path[2] = wbtcToken;
 
             IUniswapV2Router(uniswap).swapExactTokensForTokens(
                 crvBalance,
@@ -498,14 +498,14 @@ contract ConvexStrategy is BaseStrategy {
 
         // Buy WBTC using obtained CVX tokens. Use SushiSwap as CVX is not
         // supported by UniSwap.
-        uint256 cvxBalance = IERC20(cvx).balanceOf(address(this));
+        uint256 cvxBalance = IERC20(cvxToken).balanceOf(address(this));
         if (cvxBalance > 0) {
-            IERC20(cvx).safeIncreaseAllowance(sushiswap, cvxBalance);
+            IERC20(cvxToken).safeIncreaseAllowance(sushiswap, cvxBalance);
 
             address[] memory path = new address[](3);
-            path[0] = cvx;
-            path[1] = weth;
-            path[2] = wbtc;
+            path[0] = cvxToken;
+            path[1] = wethToken;
+            path[2] = wbtcToken;
 
             IUniswapV2Router(sushiswap).swapExactTokensForTokens(
                 cvxBalance,
@@ -528,8 +528,8 @@ contract ConvexStrategy is BaseStrategy {
 
                 address[] memory path = new address[](3);
                 path[0] = tbtcConvexExtraReward;
-                path[1] = weth;
-                path[2] = wbtc;
+                path[1] = wethToken;
+                path[2] = wbtcToken;
 
                 IUniswapV2Router(uniswap).swapExactTokensForTokens(
                     extraRewardBalance,
@@ -543,9 +543,9 @@ contract ConvexStrategy is BaseStrategy {
 
         // Deposit acquired WBTC to the Curve pool to gain additional
         // vault's underlying tokens.
-        uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
+        uint256 wbtcBalance = IERC20(wbtcToken).balanceOf(address(this));
         if (wbtcBalance > 0) {
-            IERC20(wbtc).safeIncreaseAllowance(
+            IERC20(wbtcToken).safeIncreaseAllowance(
                 tbtcCurvePoolDepositor,
                 wbtcBalance
             );
@@ -591,15 +591,15 @@ contract ConvexStrategy is BaseStrategy {
     {
         if (tbtcConvexExtraReward != address(0)) {
             address[] memory protected = new address[](3);
-            protected[0] = crv;
-            protected[1] = cvx;
+            protected[0] = crvToken;
+            protected[1] = cvxToken;
             protected[2] = tbtcConvexExtraReward;
             return protected;
         }
 
         address[] memory protected = new address[](2);
-        protected[0] = crv;
-        protected[1] = cvx;
+        protected[0] = crvToken;
+        protected[1] = cvxToken;
         return protected;
     }
 
@@ -616,8 +616,8 @@ contract ConvexStrategy is BaseStrategy {
         returns (uint256)
     {
         address[] memory path = new address[](2);
-        path[0] = weth;
-        path[1] = wbtc;
+        path[0] = wethToken;
+        path[1] = wbtcToken;
 
         // As of writing this contract, there's no pool available that trades
         // an underlying token with ETH. To overcome this, the ETH amount

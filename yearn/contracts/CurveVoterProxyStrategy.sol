@@ -124,13 +124,13 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     address public strategyProxy =
         address(0xA420A63BbEFfbda3B147d0585F1852C358e2C152);
     // Address of the CRV token contract.
-    address public constant crv =
+    address public constant crvToken =
         address(0xD533a949740bb3306d119CC777fa900bA034cd52);
     // Address of the WETH token contract.
-    address public constant weth =
+    address public constant wethToken =
         address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     // Address of the WBTC token contract.
-    address public constant wbtc =
+    address public constant wbtcToken =
         address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
     // Address of the Uniswap V2 router contract.
     address public constant uniswap =
@@ -341,7 +341,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///         transfer.
     function adjustCRV(uint256 crvBalance) internal returns (uint256) {
         uint256 crvTransfer = crvBalance.mul(keepCRV).div(DENOMINATOR);
-        IERC20(crv).safeTransfer(voter, crvTransfer);
+        IERC20(crvToken).safeTransfer(voter, crvTransfer);
         return crvBalance.sub(crvTransfer);
     }
 
@@ -390,17 +390,17 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         IStrategyProxy(strategyProxy).harvest(tbtcCurvePoolGauge);
 
         // Buy WBTC using harvested CRV tokens.
-        uint256 crvBalance = IERC20(crv).balanceOf(address(this));
+        uint256 crvBalance = IERC20(crvToken).balanceOf(address(this));
         if (crvBalance > 0) {
             // Deposit a portion of CRV to the voter to gain CRV boost.
             crvBalance = adjustCRV(crvBalance);
 
-            IERC20(crv).safeIncreaseAllowance(dex, crvBalance);
+            IERC20(crvToken).safeIncreaseAllowance(dex, crvBalance);
 
             address[] memory path = new address[](3);
-            path[0] = crv;
-            path[1] = weth;
-            path[2] = wbtc;
+            path[0] = crvToken;
+            path[1] = wethToken;
+            path[2] = wbtcToken;
 
             IUniswapV2Router(dex).swapExactTokensForTokens(
                 crvBalance,
@@ -429,8 +429,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
                 address[] memory path = new address[](3);
                 path[0] = tbtcCurvePoolGaugeReward;
-                path[1] = weth;
-                path[2] = wbtc;
+                path[1] = wethToken;
+                path[2] = wbtcToken;
 
                 IUniswapV2Router(dex).swapExactTokensForTokens(
                     rewardBalance,
@@ -444,9 +444,9 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
         // Deposit acquired WBTC to the Curve pool to gain additional
         // vault's underlying tokens.
-        uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
+        uint256 wbtcBalance = IERC20(wbtcToken).balanceOf(address(this));
         if (wbtcBalance > 0) {
-            IERC20(wbtc).safeIncreaseAllowance(
+            IERC20(wbtcToken).safeIncreaseAllowance(
                 tbtcCurvePoolDepositor,
                 wbtcBalance
             );
@@ -492,13 +492,13 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     {
         if (tbtcCurvePoolGaugeReward != address(0)) {
             address[] memory protected = new address[](2);
-            protected[0] = crv;
+            protected[0] = crvToken;
             protected[1] = tbtcCurvePoolGaugeReward;
             return protected;
         }
 
         address[] memory protected = new address[](1);
-        protected[0] = crv;
+        protected[0] = crvToken;
         return protected;
     }
 
@@ -515,8 +515,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         returns (uint256)
     {
         address[] memory path = new address[](2);
-        path[0] = weth;
-        path[1] = wbtc;
+        path[0] = wethToken;
+        path[1] = wbtcToken;
 
         // As of writing this contract, there's no pool available that trades
         // an underlying token with ETH. To overcome this, the ETH amount

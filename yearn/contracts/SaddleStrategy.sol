@@ -105,11 +105,14 @@ contract SaddleStrategy is BaseStrategy {
     using SafeMath for uint256;
 
     // Address of the KEEP token contract.
-    address public constant keep = 0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC;
+    address public constant keepToken =
+        0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC;
     // Address of the WETH token contract.
-    address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant wethToken =
+        0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     // Address of the WBTC token contract.
-    address public constant wbtc = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    address public constant wbtcToken =
+        0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
     // Address of the Uniswap V2 router contract.
     address public constant uniswap =
         0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
@@ -270,9 +273,9 @@ contract SaddleStrategy is BaseStrategy {
         ILPRewards(tbtcSaddleLPRewards).withdraw(balanceOfPool());
         // Get all the earned KEEP tokens and transfer them to the new strategy.
         ILPRewards(tbtcSaddleLPRewards).getReward();
-        IERC20(keep).safeTransfer(
+        IERC20(keepToken).safeTransfer(
             newStrategy,
-            IERC20(keep).balanceOf(address(this))
+            IERC20(keepToken).balanceOf(address(this))
         );
     }
 
@@ -316,14 +319,14 @@ contract SaddleStrategy is BaseStrategy {
         ILPRewards(tbtcSaddleLPRewards).getReward();
 
         // Buy WBTC using obtained KEEP tokens.
-        uint256 keepBalance = IERC20(keep).balanceOf(address(this));
+        uint256 keepBalance = IERC20(keepToken).balanceOf(address(this));
         if (keepBalance > 0) {
-            IERC20(keep).safeIncreaseAllowance(uniswap, keepBalance);
+            IERC20(keepToken).safeIncreaseAllowance(uniswap, keepBalance);
 
             address[] memory path = new address[](3);
-            path[0] = keep;
-            path[1] = weth;
-            path[2] = wbtc;
+            path[0] = keepToken;
+            path[1] = wethToken;
+            path[2] = wbtcToken;
 
             IUniswapV2Router(uniswap).swapExactTokensForTokens(
                 keepBalance,
@@ -336,9 +339,12 @@ contract SaddleStrategy is BaseStrategy {
 
         // Deposit acquired WBTC to the Saddle pool to gain additional
         // vault's underlying tokens.
-        uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
+        uint256 wbtcBalance = IERC20(wbtcToken).balanceOf(address(this));
         if (wbtcBalance > 0) {
-            IERC20(wbtc).safeIncreaseAllowance(tbtcSaddlePoolSwap, wbtcBalance);
+            IERC20(wbtcToken).safeIncreaseAllowance(
+                tbtcSaddlePoolSwap,
+                wbtcBalance
+            );
 
             uint256[] memory amounts = new uint256[](4);
             amounts[1] = wbtcBalance;
@@ -388,7 +394,7 @@ contract SaddleStrategy is BaseStrategy {
         returns (address[] memory)
     {
         address[] memory protected = new address[](1);
-        protected[0] = keep;
+        protected[0] = keepToken;
         return protected;
     }
 
@@ -405,8 +411,8 @@ contract SaddleStrategy is BaseStrategy {
         returns (uint256)
     {
         address[] memory path = new address[](2);
-        path[0] = weth;
-        path[1] = wbtc;
+        path[0] = wethToken;
+        path[1] = wbtcToken;
 
         // As of writing this contract, there's no pool available that trades
         // an underlying token with ETH. To overcome this, the ETH amount
