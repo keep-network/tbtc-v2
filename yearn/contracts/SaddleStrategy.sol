@@ -32,6 +32,7 @@ interface ISaddlePoolSwap {
 /// @dev This is an interface with just a few functions. For more info and
 ///      function description please see:
 ///      https://github.com/keep-network/keep-ecdsa/blob/main/solidity/contracts/LPRewards.sol
+//TODO: Make sure the LPRewards contract for tBTC v2 has the same interface
 interface ILPRewards {
     function stake(uint256 amount) external;
 
@@ -105,7 +106,7 @@ contract SaddleStrategy is BaseStrategy {
     // Address of the tBTC v2 Saddle pool swap contract, see
     // https://docs.saddle.finance/contracts
     address public tbtcSaddlePoolSwap;
-    // Address of the tBTC v2 Saddle reward pool.
+    // Address of the tBTC v2 Saddle LP rewards contract.
     address public tbtcSaddleLPRewards;
 
     constructor(
@@ -262,8 +263,6 @@ contract SaddleStrategy is BaseStrategy {
             newStrategy,
             IERC20(keep).balanceOf(address(this))
         );
-        //TODO: Check if both the LP Token and KEEP token should be migrated to
-        // the new strategy, or just the LP token.
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant
