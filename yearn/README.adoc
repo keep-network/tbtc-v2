@@ -125,7 +125,10 @@ with required environment variables listed in the <<deployment-parametrization>>
 section.
 
 To deploy a single contract, use the same command with the `--tags` option
-followed by the contract name.
+followed by the contract name:
+```
+yarn deploy --network localhost --tags ConvexStrategy
+```
 
 If contracts haven't been built yet or changes occurred, this task will build
 the contracts before running the deployment script. This command produces
@@ -143,35 +146,6 @@ The following environment variables should be used for deployment parametrizatio
 
 |===
 |Variable|Description|Applicable to|Required
-
-| `TBTC_CURVE_VAULT_ADDRESS`
-| Address of the Yearn vault working with the tBTC v2 Curve pool LP token.
-| `CurveVoterProxyStrategy`, `ConvexStrategy`
-| Yes
-
-| `TBTC_CURVE_POOL_DEPOSITOR_ADDRESS`
-| Address of the depositor contract for the tBTC v2 Curve pool
-| `CurveVoterProxyStrategy`, `ConvexStrategy`
-| Yes
-
-| `TBTC_CURVE_POOL_GAUGE_ADDRESS`
-| Address of the gauge contract for the tBTC v2 Curve pool.
-| `CurveVoterProxyStrategy`
-| Yes
-
-| `TBTC_CURVE_POOL_GAUGE_REWARD_ADDRESS`
-| Address of the additional reward token distributed by the gauge contract
-  of the tBTC v2 Curve pool. This is applicable only in case when the gauge
-  stakes LP tokens into the Synthetix staking rewards contract
-  (i.e. the gauge is an instance of `LiquidityGaugeReward` contract).
-  Can be unset if additional rewards are not supported by the gauge.
-| `CurveVoterProxyStrategy`
-| No
-
-| `TBTC_CONVEX_REWARD_POOL_ID`
-| ID of the Convex reward pool paired with the tBTC v2 Curve pool.
-| `ConvexStrategy`
-| Yes
 
 | `GAS_LIMIT`
 | Custom gas limit for the deployment transaction. Can be useful in case when

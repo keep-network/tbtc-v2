@@ -45,6 +45,16 @@ const config: HardhatUserConfig = {
     }
   },
 
+  // TODO: Once tBTC v2 is deployed, revisit `./external/mainnet` files and set
+  //       correct addresses and parameters.
+  external: {
+    deployments: {
+      mainnet: [
+        "./external/mainnet"
+      ],
+    },
+  },
+
   namedAccounts: {
     deployer: {
       default: 0, // take the first account as deployer

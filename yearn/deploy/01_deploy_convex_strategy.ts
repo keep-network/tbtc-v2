@@ -1,36 +1,36 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
-import { addressFromEnv } from "./helpers"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
+  const { deployments, getNamedAccounts, helpers } = hre
   const { deploy, log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const tbtcCurveVault = addressFromEnv(
-    hre,
-    "TBTC_CURVE_VAULT_ADDRESS"
-  )
-  const tbtcCurvePoolDepositor = addressFromEnv(
-    hre,
-    "TBTC_CURVE_POOL_DEPOSITOR_ADDRESS"
-  )
-  const tbtcConvexRewardPoolId = parseInt(process.env.TBTC_CONVEX_REWARD_POOL_ID)
-
-  if (!tbtcConvexRewardPoolId) {
-    throw new Error("TBTC_CONVEX_REWARD_POOL_ID must be set")
+  const TBTCCurveVault = await deployments.getOrNull("TBTCCurveVault")
+  if (!TBTCCurveVault || !helpers.address.isValid(TBTCCurveVault.address)) {
+    throw new Error("Address of TBTCCurveVault must be set")
   }
 
-  log(`tbtcCurveVault: ${tbtcCurveVault}`)
-  log(`tbtcCurvePoolDepositor: ${tbtcCurvePoolDepositor}`)
-  log(`tbtcConvexRewardPoolId: ${tbtcConvexRewardPoolId}`)
+  const TBTCCurvePoolDepositor = await deployments.getOrNull("TBTCCurvePoolDepositor")
+  if (!TBTCCurvePoolDepositor || !helpers.address.isValid(TBTCCurvePoolDepositor.address)) {
+    throw new Error("Address of TBTCCurvePoolDepositor must be set")
+  }
+
+  const TBTCConvexRewardPool = await deployments.getOrNull("TBTCConvexRewardPool")
+  if (!TBTCConvexRewardPool || !TBTCConvexRewardPool.linkedData.id) {
+    throw new Error("ID of TBTCConvexRewardPool must be set")
+  }
+
+  log(`tbtcCurveVault: ${TBTCCurveVault.address}`)
+  log(`tbtcCurvePoolDepositor: ${TBTCCurvePoolDepositor.address}`)
+  log(`tbtcConvexRewardPoolId: ${TBTCConvexRewardPool.linkedData.id}`)
 
   await deploy("ConvexStrategy", {
     from: deployer,
     args: [
-      tbtcCurveVault,
-      tbtcCurvePoolDepositor,
-      tbtcConvexRewardPoolId
+      TBTCCurveVault.address,
+      TBTCCurvePoolDepositor.address,
+      TBTCConvexRewardPool.linkedData.id
     ],
     log: true,
     gasLimit: parseInt(process.env.GAS_LIMIT) || undefined
