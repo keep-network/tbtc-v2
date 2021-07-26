@@ -38,6 +38,18 @@ interface IERC20WithPermit is IERC20 {
     ///         from caller's allowance.
     function burnFrom(address account, uint256 amount) external;
 
+    /// @notice Executes receiveApproval function on spender as specified in
+    ///         IReceiveApproval interface. Approves spender to withdraw from
+    ///         the caller multiple times, up to the value amount. If this
+    ///         function is called again, it overwrites the current allowance
+    ///         with value. Reverts if the approval reverted or if
+    ///         receiveApproval call on the spender reverted.
+    function approveAndCall(
+        address spender,
+        uint256 value,
+        bytes memory extraData
+    ) external returns (bool);
+
     /// @notice Returns hash of EIP712 Domain struct with the token name as
     ///         a signing domain and token contract as a verifying contract.
     ///         Used to construct EIP2612 signature provided to `permit`
