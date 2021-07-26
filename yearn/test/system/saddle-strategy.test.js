@@ -1,6 +1,7 @@
 const { expect } = require("chai")
 const {
   resetFork,
+  to1e18,
   to1ePrecision,
   impersonateAccount,
   increaseTime,
@@ -16,6 +17,8 @@ describeFn("System -- saddle strategy", () => {
   let vaultGovernance
   let vaultDepositor
   let saddleLPRewardsGovernance
+  let rewardDistribution
+  let keepToken
   let saddleLPRewards
   let tbtcSaddlePoolLPToken
   let vault
@@ -37,13 +40,37 @@ describeFn("System -- saddle strategy", () => {
       vaultGovernance
     )
 
-    // Get tBTC v2 Saddle LP Rewards handle and set `gated` to false to allow
-    // non-externally-owned accounts to perform staking
+    rewardDistribution = await impersonateAccount(
+      tbtc.keepTokenHolderAddress,
+      vaultGovernance
+    )
+
+    // Get tBTC v2 Saddle LP Rewards handle
     saddleLPRewards = await ethers.getContractAt(
       "ILPRewards",
       tbtc.saddleLPRewards
     )
+
+    // Set `gated` to false to allow non-externally-owned accounts to perform
+    // staking
     await saddleLPRewards.connect(saddleLPRewardsGovernance).setGated(false)
+
+    // Set reward distribution account that will deposit KEEP tokens
+    await saddleLPRewards
+      .connect(saddleLPRewardsGovernance)
+      .setRewardDistribution(rewardDistribution.address)
+
+    // Get KEEP token handle.
+    keepToken = await ethers.getContractAt("IERC20", tbtc.keepTokenAddress)
+
+    // Deposit 100 KEEP tokens as reward
+    const amountReward = to1e18(100)
+    await keepToken
+      .connect(rewardDistribution)
+      .approve(saddleLPRewards.address, amountReward)
+    await saddleLPRewards
+      .connect(rewardDistribution)
+      .notifyRewardAmount(amountReward)
 
     // Get tBTC v2 Saddle pool LP token handle.
     tbtcSaddlePoolLPToken = await ethers.getContractAt(
@@ -123,45 +150,45 @@ describeFn("System -- saddle strategy", () => {
       // TODO: Fill the calculations below, find the expected gain
       //
       // Day 1:
-      // KEEP earned:
-      // wBTC bought:
-      // LP tokens profit:
+      // KEEP earned: 2354216975965155399
+      // wBTC bought: 2149
+      // LP tokens profit: 21019199600110
       //
       // Day 2:
-      // KEEP earned:
-      // wBTC bought:
-      // LP tokens profit:
+      // KEEP earned: 2354216975965155399
+      // wBTC bought: 2149
+      // LP tokens profit: 21019199592617
       //
       // Day 3:
-      // KEEP earned:
-      // wBTC bought:
-      // LP tokens profit:
+      // KEEP earned: 2354381859214170296
+      // wBTC bought: 2149
+      // LP tokens profit: 21019199585122
       //
       // Day 4:
-      // KEEP earned:
-      // wBTC bought:
-      // LP tokens profit:
+      // KEEP earned: 2354546742454357499
+      // wBTC bought: 2150
+      // LP tokens profit: 21028980498790
       //
       // Day 5:
-      // KEEP earned:
-      // wBTC bought:
-      // LP tokens profit:
+      // KEEP earned: 2354711625685716993
+      // wBTC bought: 2150
+      // LP tokens profit: 21028980491289
       //
       // Day 6:
-      // KEEP earned:
-      // wBTC bought:
-      // LP tokens profit:
+      // KEEP earned: 2354876585633803994
+      // wBTC bought: 2150
+      // LP tokens profit: 21028980483789
       //
       // Day 7:
-      // KEEP earned:
-      // wBTC bought:
-      // LP tokens profit:
+      // KEEP earned: 2354659946035572609
+      // wBTC bought: 2150
+      // LP tokens profit: 21028980476286
       //
-      // Sum of LP tokens profits: (15 digits)
+      // Sum of LP tokens profits: 147173520728003 (15 digits)
       expect(
         (await vault.strategies(strategy.address)).totalGain
       ).to.be.closeTo(
-        to1ePrecision(4137, 11),
+        to1ePrecision(1471, 11),
         to1ePrecision(1, 11) // 0.0001 precision because there are 15 digits.
       )
     })
@@ -182,11 +209,26 @@ describeFn("System -- saddle strategy", () => {
     })
 
     it("should correctly handle the withdrawal", async () => {
-      // TODO: Add calculation for the `amountWithdrawn` here
+      // Initially, the depositor deposited 300000000000000000 of LP tokens
+      // into the vault and received the same amount of vault shares because
+      // it was the first depositor. The strategy just yielded another
+      // 147173520728003 LP tokens. It also created 144444834110257 of
+      // additional shares (see IYearnVault's totalSupply() method) which
+      // represent the management and performance fees taken by the protocol.
+      // In result, the vault has 300147173520728003 of LP tokens (totalAssets)
+      // and 300144444834110257 (totalSupply) of shares. The price per share is
+      // calculated as (totalAssets - lockedProfit) / totalSupply. In this case,
+      // the price is 1.000007792549389153 (see IYearnVault's pricePerShare()).
+      // During the withdrawal, the withdrawing depositor passes an amount
+      // of vault shares it wants to withdraw. For each share, it receives
+      // an amount of LP tokens, according to the current price per share.
+      // In this case, the depositor withdraws all of its 300000000000000000
+      // shares so in return it should receive 300000000000000000 * 1.000007792549389153  =
+      // ~300002337764816746 of LP tokens.
 
       expect(amountWithdrawn).to.be.closeTo(
-        to1ePrecision(3001966, 11),
-        to1ePrecision(1, 11) // 0.0000001 precision
+        to1ePrecision(3000023377, 8),
+        to1ePrecision(1, 8) // 0.0000000001 precision
       )
       expect(amountWithdrawn.gt(saddleStrategyFixture.vaultDepositAmount)).to.be
         .true

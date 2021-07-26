@@ -39,7 +39,11 @@ interface ILPRewards {
 
     function getReward() external;
 
-    function setGated(bool _gated) external;
+    function setGated(bool gated) external;
+
+    function setRewardDistribution(address rewardDistribution) external;
+
+    function notifyRewardAmount(uint256 amount) external;
 
     function balanceOf(address account) external view returns (uint256);
 
