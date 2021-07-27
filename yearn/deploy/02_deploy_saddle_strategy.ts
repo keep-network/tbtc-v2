@@ -8,17 +8,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const TBTCSaddleVault = await deployments.get("TBTCSaddleVault")
   if (!helpers.address.isValid(TBTCSaddleVault.address)) {
-    throw new Error("Address of TBTCSaddleVault must be set")
+    throw new Error(
+      `Invalid TBTCSaddleVault address: ${TBTCSaddleVault.address}`
+    )
   }
 
   const TBTCSaddlePoolSwap = await deployments.get("TBTCSaddlePoolSwap")
   if (!helpers.address.isValid(TBTCSaddlePoolSwap.address)) {
-    throw new Error("Address of TBTCSaddlePoolSwap must be set")
+    throw new Error(
+      `Invalid TBTCSaddlePoolSwap address: ${TBTCSaddlePoolSwap.address}`
+    )
   }
 
   const TBTCSaddleLPRewards = await deployments.get("TBTCSaddleLPRewards")
   if (!helpers.address.isValid(TBTCSaddleLPRewards.address)) {
-    throw new Error("Address of TBTCSaddleLPRewards must be set")
+    throw new Error(
+      `Invalid TBTCSaddleLPRewards address: ${TBTCSaddleLPRewards.address}`
+    )
   }
 
   log(`tbtcSaddleVault: ${TBTCSaddleVault.address}`)

@@ -8,21 +8,36 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const TBTCCurveVault = await deployments.get("TBTCCurveVault")
   if (!helpers.address.isValid(TBTCCurveVault.address)) {
-    throw new Error("Address of TBTCCurveVault must be set")
+    throw new Error(
+      `Invalid TBTCCurveVault address: ${TBTCCurveVault.address}`
+    )
   }
 
   const TBTCCurvePoolDepositor = await deployments.get("TBTCCurvePoolDepositor")
   if (!helpers.address.isValid(TBTCCurvePoolDepositor.address)) {
-    throw new Error("Address of TBTCCurvePoolDepositor must be set")
+    throw new Error(
+      `Invalid TBTCCurvePoolDepositor address: ${TBTCCurvePoolDepositor.address}`
+    )
   }
 
   const TBTCCurvePoolGauge = await deployments.get("TBTCCurvePoolGauge")
   if (!helpers.address.isValid(TBTCCurvePoolGauge.address)) {
-    throw new Error("Address of TBTCCurvePoolGauge must be set")
+    throw new Error(
+      `Invalid TBTCCurvePoolGauge address: ${TBTCCurvePoolGauge.address}`
+    )
   }
 
   const TBTCCurvePoolGaugeReward = await deployments.getOrNull("TBTCCurvePoolGaugeReward")
-  if (!TBTCCurvePoolGaugeReward || !helpers.address.isValid(TBTCCurvePoolGaugeReward.address)) {
+  if (!TBTCCurvePoolGaugeReward) {
+    log(`Deployment TBTCCurvePoolGaugeReward not found - using default address`)
+
+    TBTCCurvePoolGaugeReward.address = "0x0000000000000000000000000000000000000000"
+  } else if (!helpers.address.isValid(TBTCCurvePoolGaugeReward.address)) {
+    log(
+      `Invalid TBTCCurvePoolGaugeReward address: 
+      ${TBTCCurvePoolGaugeReward.address} - using default address`
+    )
+
     TBTCCurvePoolGaugeReward.address = "0x0000000000000000000000000000000000000000"
   }
 

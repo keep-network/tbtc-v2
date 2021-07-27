@@ -8,12 +8,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const TBTCCurveVault = await deployments.get("TBTCCurveVault")
   if (!helpers.address.isValid(TBTCCurveVault.address)) {
-    throw new Error("Address of TBTCCurveVault must be set")
+    throw new Error(
+      `Invalid TBTCCurveVault address: ${TBTCCurveVault.address}`
+    )
   }
 
   const TBTCCurvePoolDepositor = await deployments.get("TBTCCurvePoolDepositor")
   if (!helpers.address.isValid(TBTCCurvePoolDepositor.address)) {
-    throw new Error("Address of TBTCCurvePoolDepositor must be set")
+    throw new Error(
+      `Invalid TBTCCurvePoolDepositor address: ${TBTCCurvePoolDepositor.address}`
+    )
   }
 
   const TBTCConvexRewardPool = await deployments.get("TBTCConvexRewardPool")
