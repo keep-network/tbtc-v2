@@ -341,6 +341,8 @@ contract SaddleStrategy is BaseStrategy {
                 wbtcBalance
             );
 
+            // TODO: When the new curve pool with tBTC v2 is deployed, verify
+            //       that the index of wBTC in the array is correct.
             uint256[] memory amounts = new uint256[](4);
             amounts[1] = wbtcBalance;
 
