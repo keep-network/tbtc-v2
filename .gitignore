@@ -7,3 +7,6 @@ deployments/
 export.json
 
 typechain/
+
+*/.hardhat/*
+!*/.hardhat/networks_TEMPLATE.ts

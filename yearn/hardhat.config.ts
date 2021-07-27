@@ -42,15 +42,11 @@ const config: HardhatUserConfig = {
       url: "http://localhost:8545",
       chainId: 1101,
       tags: ["local"]
-    },
-    mainnet: {
-      url: process.env.CHAIN_API_URL || "",
-      chainId: 1,
-      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
-        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
-        : undefined,
-    },
+    }
   },
+
+  // Define local networks configuration file path to load networks from file.
+  // localNetworksConfig: "./.hardhat/networks.ts",
 
   // TODO: Once tBTC v2 is deployed, revisit `./external/mainnet` files and set
   //       correct addresses and parameters.
