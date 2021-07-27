@@ -345,15 +345,11 @@ contract SaddleStrategy is BaseStrategy {
             uint256[] memory amounts = new uint256[](4);
             amounts[1] = wbtcBalance;
 
-            bytes32[] memory merkleProof = new bytes32[](1);
-
-            //TODO: Check what the values of minToMint, deadline and merkleProof
-            // should be
             ISaddlePoolSwap(tbtcSaddlePoolSwap).addLiquidity(
                 amounts,
                 0,
                 uint256(-1),
-                merkleProof
+                new bytes32[](0) // ignored
             );
         }
 
