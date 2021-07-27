@@ -245,9 +245,8 @@ contract SaddleStrategy is BaseStrategy {
         ILPRewards(tbtcSaddleLPRewards).withdraw(balanceOfPool());
 
         // Yearn docs doesn't specify clear enough what exactly should be
-        // returned here. It may be either the total balance after
-        // withdrawAllAndUnwrap or just the amount withdrawn. Currently opting
-        // for the former because of
+        // returned here. It may be either the total balance after withdraw or
+        // just the amount withdrawn. Currently opting for the former because of
         // https://github.com/yearn/yearn-vaults/pull/311#discussion_r625588313.
         // Also, usage of this result in the harvest method in the BaseStrategy
         // seems to confirm that.
