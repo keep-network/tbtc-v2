@@ -6,18 +6,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy, log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const TBTCCurveVault = await deployments.getOrNull("TBTCCurveVault")
-  if (!TBTCCurveVault || !helpers.address.isValid(TBTCCurveVault.address)) {
+  const TBTCCurveVault = await deployments.get("TBTCCurveVault")
+  if (!helpers.address.isValid(TBTCCurveVault.address)) {
     throw new Error("Address of TBTCCurveVault must be set")
   }
 
-  const TBTCCurvePoolDepositor = await deployments.getOrNull("TBTCCurvePoolDepositor")
-  if (!TBTCCurvePoolDepositor || !helpers.address.isValid(TBTCCurvePoolDepositor.address)) {
+  const TBTCCurvePoolDepositor = await deployments.get("TBTCCurvePoolDepositor")
+  if (!helpers.address.isValid(TBTCCurvePoolDepositor.address)) {
     throw new Error("Address of TBTCCurvePoolDepositor must be set")
   }
 
-  const TBTCCurvePoolGauge = await deployments.getOrNull("TBTCCurvePoolGauge")
-  if (!TBTCCurvePoolGauge || !helpers.address.isValid(TBTCCurvePoolGauge.address)) {
+  const TBTCCurvePoolGauge = await deployments.get("TBTCCurvePoolGauge")
+  if (!helpers.address.isValid(TBTCCurvePoolGauge.address)) {
     throw new Error("Address of TBTCCurvePoolGauge must be set")
   }
 

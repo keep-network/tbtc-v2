@@ -6,18 +6,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy, log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const TBTCSaddleVault = await deployments.getOrNull("TBTCSaddleVault")
-  if (!TBTCSaddleVault || !helpers.address.isValid(TBTCSaddleVault.address)) {
+  const TBTCSaddleVault = await deployments.get("TBTCSaddleVault")
+  if (!helpers.address.isValid(TBTCSaddleVault.address)) {
     throw new Error("Address of TBTCSaddleVault must be set")
   }
 
-  const TBTCSaddlePoolSwap = await deployments.getOrNull("TBTCSaddlePoolSwap")
-  if (!TBTCSaddlePoolSwap || !helpers.address.isValid(TBTCSaddlePoolSwap.address)) {
+  const TBTCSaddlePoolSwap = await deployments.get("TBTCSaddlePoolSwap")
+  if (!helpers.address.isValid(TBTCSaddlePoolSwap.address)) {
     throw new Error("Address of TBTCSaddlePoolSwap must be set")
   }
 
-  const TBTCSaddleLPRewards = await deployments.getOrNull("TBTCSaddleLPRewards")
-  if (!TBTCSaddleLPRewards || !helpers.address.isValid(TBTCSaddleLPRewards.address)) {
+  const TBTCSaddleLPRewards = await deployments.get("TBTCSaddleLPRewards")
+  if (!helpers.address.isValid(TBTCSaddleLPRewards.address)) {
     throw new Error("Address of TBTCSaddleLPRewards must be set")
   }
 
