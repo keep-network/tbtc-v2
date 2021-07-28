@@ -5,20 +5,21 @@ repos:
       - id: check-added-large-files
   - repo: local
     hooks:
-      - id: lint-js
-        name: "lint js"
-        entry: /usr/bin/env bash -c "npm run lint:js"
-        files: '\.js$'
+      - id: root-format
+        name: "Check root directory code formatting"
+        entry: /usr/bin/env bash -c "yarn format"
+        exclude: '^solidity\/|^yearn\/'
         language: script
-        description: "Checks JS code according to the package's linter configuration"
-      - id: lint-sol
-        name: "lint solidity"
-        entry: /usr/bin/env bash -c "npm run lint:sol"
-        files: '\.sol$'
+        description: "Checks root directory code according to the formatting configuration"
+      - id: solidity-format
+        name: "Check solidity directory code formatting"
+        entry: /usr/bin/env bash -c "cd solidity && yarn format"
+        files: "^solidity/"
         language: script
-        description: "Checks Solidity code according to the package's linter configuration"
-      - id: prettier
-        name: "prettier"
-        entry: /usr/bin/env bash -c "npx prettier --check ."
+        description: "Checks solidity directory code according to the formatting configuration"
+      - id: yearn-format
+        name: "Check yearn directory code formatting"
+        entry: /usr/bin/env bash -c "cd yearn && yarn format"
+        files: "^yearn/"
         language: script
-        description: "Checks code according to the package's formatting configuration"
+        description: "Checks yearn directory code according to the formatting configuration"
