@@ -52,7 +52,7 @@ jobs:
           FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
         run: yarn test:system
 
-  contracts-lint:
+  contracts-format:
     needs: contracts-detect-changes
     if: |
       github.event_name == 'push'
@@ -79,5 +79,5 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Lint
-        run: yarn lint
+      - name: Check formatting
+        run: yarn format
