@@ -132,11 +132,19 @@ describeFn("System -- saddle strategy migrate", () => {
       )
     })
 
-    it("the new strategy should not have any LP tokens or rewards", async () => {
+    it("should return zero LP tokens and rewards for the new strategy", async () => {
       expect(await keepToken.balanceOf(newStrategy.address)).to.be.equal(0)
       expect(
         await tbtcSaddlePoolLPToken.balanceOf(newStrategy.address)
       ).to.be.equal(0)
+    })
+
+    it("should return true for is active call for the old strategy", async () => {
+      expect(await oldStrategy.isActive()).to.be.true
+    })
+
+    it("should return false for is active call for the new strategy", async () => {
+      expect(await newStrategy.isActive()).to.be.false
     })
   })
 
@@ -160,6 +168,35 @@ describeFn("System -- saddle strategy migrate", () => {
       expect(await keepToken.balanceOf(oldStrategy.address)).to.be.equal(0)
       expect(await keepToken.balanceOf(newStrategy.address)).to.be.equal(
         BigNumber.from("27247566300912")
+      )
+    })
+
+    it("should deactivate the old strategy", async () => {
+      expect(await oldStrategy.isActive()).to.be.false
+    })
+
+    it("should activate the new strategy", async () => {
+      expect(await newStrategy.isActive()).to.be.true
+    })
+  })
+
+  describe("when withdrawal occurs after migration", async () => {
+    let amountWithdrawn
+
+    before(async () => {
+      const initialBalance = await tbtcSaddlePoolLPToken.balanceOf(
+        vaultDepositor.address
+      )
+      await vault.connect(vaultDepositor).withdraw() // withdraw all shares
+      const currentBalance = await tbtcSaddlePoolLPToken.balanceOf(
+        vaultDepositor.address
+      )
+      amountWithdrawn = currentBalance.sub(initialBalance)
+    })
+
+    it("should correctly handle the withdrawal", async () => {
+      expect(amountWithdrawn).to.be.equal(
+        saddleStrategyFixture.vaultDepositAmount
       )
     })
   })
