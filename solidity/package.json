@@ -2,6 +2,7 @@
     "name": "@keep-network/tbtc-v2",
     "license": "MIT",
     "dependencies": {
+      "@thesis/solidity-contracts": "github:thesis/solidity-contracts#bf514ba",
       "@openzeppelin/contracts": "^4.1.0"
     },
     "devDependencies": {

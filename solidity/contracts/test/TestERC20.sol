@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.4;
 
-import "../token/ERC20WithPermit.sol";
+import "@thesis/solidity-contracts/contracts/token/ERC20WithPermit.sol";
 
 contract TestERC20 is ERC20WithPermit {
     string public constant NAME = "Test ERC20 Token";

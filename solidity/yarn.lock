@@ -704,6 +704,12 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
+"@thesis/solidity-contracts@github:thesis/solidity-contracts#bf514ba":
+  version "0.0.1"
+  resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/bf514bab374552528a8ad03f43cbb3e827e48923"
+  dependencies:
+    "@openzeppelin/contracts" "^4.1.0"
+
 "@typechain/ethers-v5@^2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@typechain/ethers-v5/-/ethers-v5-2.0.0.tgz#cd3ca1590240d587ca301f4c029b67bfccd08810"
