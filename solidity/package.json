@@ -22,11 +22,14 @@
   },
   "scripts": {
     "build": "hardhat compile",
+    "format": "npm run lint && prettier --check .",
+    "format:fix": "npm run lint:fix && prettier --write .",
     "lint": "npm run lint:js && npm run lint:sol",
+    "lint:js": "eslint .",
+    "lint:sol": "solhint 'contracts/**/*.sol'",
+    "lint:fix": "npm run lint:fix:js && npm run lint:fix:sol",
     "lint:fix:js": "eslint . --fix",
-    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
-    "lint:js": "eslint . ",
-    "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
+    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
     "test": "hardhat test"
   }
 }
