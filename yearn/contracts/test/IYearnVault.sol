@@ -36,6 +36,8 @@ interface IYearnVault {
 
     function setDepositLimit(uint256 limit) external;
 
+    function migrateStrategy(address oldVersion, address newVersion) external;
+
     function totalSupply() external view returns (uint256);
 
     function pricePerShare() external view returns (uint256);
