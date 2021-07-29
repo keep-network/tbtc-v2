@@ -145,7 +145,7 @@ If applicable, use environment variables listed in the
 To deploy a single contract, use the same command with the `--tags` option
 followed by the contract name:
 ```
-yarn deploy --network localhost --tags ConvexStrategy
+yarn deploy --network development --tags ConvexStrategy
 ```
 
 If contracts haven't been built yet or changes occurred, this task will build
