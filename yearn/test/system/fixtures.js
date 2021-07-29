@@ -21,3 +21,22 @@ module.exports.curveStrategyFixture = {
   // The fee the strategist will receive based on this Vault's performance.
   strategyPerformanceFee: 1000, // 10%
 }
+
+module.exports.saddleStrategyFixture = {
+  // Name of the vault for tBTCv2 Saddle pool.
+  vaultName: "Saddle tBTCv2 Pool yVault",
+  // Symbol of the vault for tBTCv2 Saddle pool.
+  vaultSymbol: "yvSaddle-tBTCv2",
+  // Total deposit limit of the vault for tBTCv2 Saddle pool.
+  vaultDepositLimit: to1ePrecision(300, 15), // 0.3
+  // Amount of the deposit made by the depositor.
+  vaultDepositAmount: to1ePrecision(300, 15), // 0.3
+  // The share of the total assets in the vault that the strategy has access to.
+  strategyDebtRatio: 10000, // 100%
+  // Lower limit on the increase of debt since last harvest.
+  strategyMinDebtPerHarvest: 0,
+  // Upper limit on the increase of debt since last harvest.
+  strategyMaxDebtPerHarvest: BigNumber.from(2).pow(256).sub(1), // infinite
+  // The fee the strategist will receive based on this Vault's performance.
+  strategyPerformanceFee: 1000, // 10%
+}

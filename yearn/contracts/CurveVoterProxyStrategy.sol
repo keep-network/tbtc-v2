@@ -16,6 +16,11 @@ interface ICurvePool {
     function add_liquidity(uint256[4] calldata amounts, uint256 min_mint_amount)
         external
         payable;
+
+    function calc_token_amount(uint256[4] calldata amounts, bool deposit)
+        external
+        view
+        returns (uint256);
 }
 
 /// @notice Interface for the proxy contract which allows strategies to
@@ -59,6 +64,11 @@ interface IUniswapV2Router {
         address,
         uint256
     ) external;
+
+    function getAmountsOut(uint256 amountIn, address[] memory path)
+        external
+        view
+        returns (uint256[] memory amounts);
 }
 
 /// @notice Interface for the optional metadata functions from the ERC20 standard.
@@ -114,13 +124,13 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     address public strategyProxy =
         address(0xA420A63BbEFfbda3B147d0585F1852C358e2C152);
     // Address of the CRV token contract.
-    address public constant crv =
+    address public constant crvToken =
         address(0xD533a949740bb3306d119CC777fa900bA034cd52);
     // Address of the WETH token contract.
-    address public constant weth =
+    address public constant wethToken =
         address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     // Address of the WBTC token contract.
-    address public constant wbtc =
+    address public constant wbtcToken =
         address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
     // Address of the Uniswap V2 router contract.
     address public constant uniswap =
@@ -254,12 +264,10 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///         the amount of want tokens made available by the liquidation.
     ///         If there is a difference between them, loss indicates whether
     ///         the difference is due to a realized loss, or if there is some
-    ///         other situation at play (e.g. locked funds). This function is
-    ///         used during emergency exit instead of prepareReturn to
-    ///         liquidate all of the strategy's positions back to the vault.
-    ///         This strategy implements the aforementioned behavior by
-    ///         withdrawing a portion of the vault's underlying token
-    ///         (want token) from the Curve pool's gauge.
+    ///         other situation at play (e.g. locked funds). This strategy
+    ///         implements the aforementioned behavior by withdrawing a portion
+    ///         of the vault's underlying token (want token) from the Curve
+    ///         pool's gauge.
     /// @dev The invariant `liquidatedAmount + loss <= amountNeeded` should
     ///      always be maintained.
     /// @param amountNeeded Amount of the vault's underlying tokens needed by
@@ -288,12 +296,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///         all vault's underlying tokens from the Curve pool's gauge.
     /// @dev This function is used during emergency exit instead of prepareReturn
     ///      to liquidate all of the strategy's positions back to the vault.
-    /// @return amountFreed Amount that got freed.
-    function liquidateAllPositions()
-        internal
-        override
-        returns (uint256 amountFreed)
-    {
+    /// @return Total balance of want tokens held by this strategy.
+    function liquidateAllPositions() internal override returns (uint256) {
         IStrategyProxy(strategyProxy).withdrawAll(
             tbtcCurvePoolGauge,
             address(want)
@@ -324,6 +328,26 @@ contract CurveVoterProxyStrategy is BaseStrategy {
             tbtcCurvePoolGauge,
             address(want)
         );
+        // Harvest the CRV rewards from the Curve pool's gauge and transfer
+        // them to the new strategy
+        IStrategyProxy(strategyProxy).harvest(tbtcCurvePoolGauge);
+        IERC20(crvToken).safeTransfer(
+            newStrategy,
+            IERC20(crvToken).balanceOf(address(this))
+        );
+
+        // Claim additional reward tokens from the gauge if applicable and
+        // transfer them to the new strategy
+        if (tbtcCurvePoolGaugeReward != address(0)) {
+            IStrategyProxy(strategyProxy).claimRewards(
+                tbtcCurvePoolGauge,
+                tbtcCurvePoolGaugeReward
+            );
+            IERC20(tbtcCurvePoolGaugeReward).safeTransfer(
+                newStrategy,
+                IERC20(tbtcCurvePoolGaugeReward).balanceOf(address(this))
+            );
+        }
     }
 
     /// @notice Takes the keepCRV portion of the CRV balance and transfers
@@ -333,7 +357,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     ///         transfer.
     function adjustCRV(uint256 crvBalance) internal returns (uint256) {
         uint256 crvTransfer = crvBalance.mul(keepCRV).div(DENOMINATOR);
-        IERC20(crv).safeTransfer(voter, crvTransfer);
+        IERC20(crvToken).safeTransfer(voter, crvTransfer);
         return crvBalance.sub(crvTransfer);
     }
 
@@ -382,17 +406,17 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         IStrategyProxy(strategyProxy).harvest(tbtcCurvePoolGauge);
 
         // Buy WBTC using harvested CRV tokens.
-        uint256 crvBalance = IERC20(crv).balanceOf(address(this));
+        uint256 crvBalance = IERC20(crvToken).balanceOf(address(this));
         if (crvBalance > 0) {
             // Deposit a portion of CRV to the voter to gain CRV boost.
             crvBalance = adjustCRV(crvBalance);
 
-            IERC20(crv).safeIncreaseAllowance(dex, crvBalance);
+            IERC20(crvToken).safeIncreaseAllowance(dex, crvBalance);
 
             address[] memory path = new address[](3);
-            path[0] = crv;
-            path[1] = weth;
-            path[2] = wbtc;
+            path[0] = crvToken;
+            path[1] = wethToken;
+            path[2] = wbtcToken;
 
             IUniswapV2Router(dex).swapExactTokensForTokens(
                 crvBalance,
@@ -421,8 +445,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
                 address[] memory path = new address[](3);
                 path[0] = tbtcCurvePoolGaugeReward;
-                path[1] = weth;
-                path[2] = wbtc;
+                path[1] = wethToken;
+                path[2] = wbtcToken;
 
                 IUniswapV2Router(dex).swapExactTokensForTokens(
                     rewardBalance,
@@ -436,12 +460,14 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
         // Deposit acquired WBTC to the Curve pool to gain additional
         // vault's underlying tokens.
-        uint256 wbtcBalance = IERC20(wbtc).balanceOf(address(this));
+        uint256 wbtcBalance = IERC20(wbtcToken).balanceOf(address(this));
         if (wbtcBalance > 0) {
-            IERC20(wbtc).safeIncreaseAllowance(
+            IERC20(wbtcToken).safeIncreaseAllowance(
                 tbtcCurvePoolDepositor,
                 wbtcBalance
             );
+            // TODO: When the new curve pool with tBTC v2 is deployed, verify that
+            // the index of wBTC in the array is correct.
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
                 [0, 0, wbtcBalance, 0],
                 0
@@ -482,13 +508,13 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     {
         if (tbtcCurvePoolGaugeReward != address(0)) {
             address[] memory protected = new address[](2);
-            protected[0] = crv;
+            protected[0] = crvToken;
             protected[1] = tbtcCurvePoolGaugeReward;
             return protected;
         }
 
         address[] memory protected = new address[](1);
-        protected[0] = crv;
+        protected[0] = crvToken;
         return protected;
     }
 
@@ -504,7 +530,35 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         override
         returns (uint256)
     {
-        // TODO: Create an accurate price oracle.
-        return amtInWei;
+        address[] memory path = new address[](2);
+        path[0] = wethToken;
+        path[1] = wbtcToken;
+
+        // As of writing this contract, there's no pool available that trades
+        // an underlying token with ETH. To overcome this, the ETH amount
+        // denominated in WEI should be converted into an amount denominated
+        // in one of the tokens accepted by the tBTC v2 Curve pool using Uniswap.
+        // The wBTC token was chosen arbitrarily since it is already used in this
+        // contract for other operations on Uniswap.
+        // amounts[0] -> ETH in wei
+        // amounts[1] -> wBTC
+        uint256[] memory amounts = IUniswapV2Router(dex).getAmountsOut(
+            amtInWei,
+            path
+        );
+
+        // Use the amount denominated in wBTC to calculate the amount of LP token
+        // (vault's underlying token) that could be obtained if that wBTC amount
+        // was deposited in the Curve pool that has tBTC v2 in it. This way we
+        // obtain an estimated value of the original WEI amount represented in
+        // the vault's underlying token.
+        //
+        // TODO: When the new curve pool with tBTC v2 is deployed, verify that
+        // the index of wBTC (amounts[1]) in the array is correct.
+        return
+            ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
+                [0, 0, amounts[1], 0],
+                true
+            );
     }
 }
