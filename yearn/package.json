@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@keep-network/yearn-vaults": "git://github.com/keep-network/yearn-vaults.git#5f1e829",
+    "@keep-network/yearn-vaults": "git://github.com/keep-network/yearn-vaults.git#yearn-vaults-v0.4.3-1",
     "@openzeppelin/contracts": "3.4.0"
   },
   "devDependencies": {

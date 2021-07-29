@@ -552,9 +552,9 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz#87de7af9c231826fdd68ac7258f77c429e0e5fcf"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
-"@keep-network/yearn-vaults@git://github.com/keep-network/yearn-vaults.git#5f1e829":
-  version "0.4.2"
-  resolved "git://github.com/keep-network/yearn-vaults.git#5f1e829584fc6e683450584c68e4fbf87b55e07d"
+"@keep-network/yearn-vaults@git://github.com/keep-network/yearn-vaults.git#yearn-vaults-v0.4.3-1":
+  version "0.4.3-1"
+  resolved "git://github.com/keep-network/yearn-vaults.git#b23fc54cf1f8c6c590ae2dc2e314f5e93e666e45"
 
 "@nomiclabs/hardhat-ethers@^2.0.2":
   version "2.0.2"
