@@ -3,6 +3,7 @@ const {
   resetFork,
   impersonateAccount,
 } = require("../helpers/contract-test-helpers.js")
+const { BigNumber } = ethers
 const { yearn, tbtc, forkBlockNumber } = require("./constants.js")
 const { allocateSynthetixRewards, deployYearnVault } = require("./functions.js")
 const { curveStrategyFixture } = require("./fixtures.js")
@@ -13,6 +14,8 @@ const describeFn =
 describeFn("System -- curve voter proxy strategy migration", () => {
   let vaultGovernance
   let tbtcCurvePoolLPToken
+  let crvToken
+  let tbtcCurvePoolGaugeRewardToken
   let vaultDepositor
   let strategyProxyGovernance
   let vault
@@ -43,6 +46,15 @@ describeFn("System -- curve voter proxy strategy migration", () => {
     tbtcCurvePoolLPToken = await ethers.getContractAt(
       "IERC20",
       tbtc.curvePoolLPTokenAddress
+    )
+
+    // Get CRV token handle.
+    crvToken = await ethers.getContractAt("IERC20", tbtc.crvTokenAddress)
+
+    // Get tBTC curve reward token handle
+    tbtcCurvePoolGaugeRewardToken = await ethers.getContractAt(
+      "IERC20",
+      tbtc.curvePoolGaugeRewardAddress
     )
 
     // Deploy a new experimental vault accepting tBTC v2 Curve pool LP tokens.
@@ -117,14 +129,14 @@ describeFn("System -- curve voter proxy strategy migration", () => {
       expect(
         await tbtcCurvePoolLPToken.balanceOf(newStrategy.address)
       ).to.be.equal(0)
+      expect(await crvToken.balanceOf(newStrategy.address)).to.be.equal(0)
+      expect(
+        await tbtcCurvePoolGaugeRewardToken.balanceOf(newStrategy.address)
+      ).to.be.equal(0)
     })
 
     it("should return true for is active call for the old strategy", async () => {
       expect(await oldStrategy.isActive()).to.be.true
-    })
-
-    it("should return false for is active call for the new strategy", async () => {
-      expect(await newStrategy.isActive()).to.be.false
     })
   })
 
@@ -144,8 +156,18 @@ describeFn("System -- curve voter proxy strategy migration", () => {
       ).to.be.equal(curveStrategyFixture.vaultDepositAmount)
     })
 
-    // TODO: should reward tokens (CRV) also be migrated to a new
-    // strategy? If so, add checks for their balance change.
+    it("should move reward tokens to the new strategy", async () => {
+      expect(await crvToken.balanceOf(oldStrategy.address)).to.be.equal(0)
+      expect(
+        await tbtcCurvePoolGaugeRewardToken.balanceOf(oldStrategy.address)
+      ).to.be.equal(0)
+      expect(await crvToken.balanceOf(newStrategy.address)).to.be.equal(
+        BigNumber.from("7233457460951")
+      )
+      expect(
+        await tbtcCurvePoolGaugeRewardToken.balanceOf(newStrategy.address)
+      ).to.be.equal(BigNumber.from("36050337891286"))
+    })
 
     it("should deactivate the old strategy", async () => {
       expect(await oldStrategy.isActive()).to.be.false
