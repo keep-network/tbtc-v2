@@ -1,0 +1,102 @@
+:toc: macro
+
+= RFC 1: tBTCv2 Design
+
+:icons: font
+:numbered:
+toc::[]
+
+== Overview
+
+=== Minting
+
+Stakers periodically create https://en.bitcoin.it/wiki/BIP_0032[Hierarchical
+Deterministic Wallets] to hold frozen BTC assets to maintain the peg.
+Depositors send BTC funds to the most-recently-created-wallet at a secret
+derivation path. Then, the depositor hashes the combination of their secret
+derivation path and ethereum address and publishes that to the ethereum
+blockchain (a commitment). Once the commitment is published, the depositor
+reveals their secret derivation path and ethereum address. The tbtc system
+verifies that the reveal matches the commitment and that there UTXOs at the
+specified secret derivation path. If everything checks out, the bitcoin wallet
+moves the funds from the secret derivation path to the public derivation path
+and mints the equivalent amount of tBTCv2 at the revealed ethereum address.
+
+=== Redemption
+
+A user supplies tBTCv2 and a bitcoin address. The system burns the tBTCv2 and
+releases the equivalent amount of bitcoin to the user from the oldest
+outstanding bitcoin wallet. If the oldest does not have enough, the remaining
+balance carries over to the next oldest until an equivalent amount of BTC has
+been released.
+
+== In Depth
+
+=== Minting
+
+==== Hierarchical Deterministic Wallet Derivation Paths Are A Secret
+
+A huge part of understanding the technical side of the minting process is
+understanding how Hierarchical Deterministic Wallets work. The basic concept is
+that you have a root private key and public key that allows you to supply an
+index that creates another private key + public key. To experiment with this,
+check out https://iancoleman.io/bip39/[bip39]. Conventionally, a derivation path is written as
+`m / purpose' / coin_type' / account' / change / address_index`. A `'` denotes
+that the index is "hardened", which means that a base of `2147483648` has been
+added to the address (and that the private key is required to derive the
+address). The HD wallet standard is blockchain agnostic, and different
+standards have been adopted for each community. Bitcoin, for example, always
+uses a purpose of `44'`, a coin type of `0`, and a change of `0` (the change
+address denotes where leftover bitcoin goes after being sent from the address).
+This means that for our purposes, we can vary the `account` and `address_index`
+fields: `m/44'/0/x/0/y`. Each path has `2^31` available hardened addresses,
+which means there are `2^62` unique hardened paths.
+
+The main attack that we want to avoid is someone monitoring children of the
+active wallet for deposits, and then telling the ethereum chain that they
+deposited the bitcoin before the real depositor did. With `2^62` possible child
+addresses, it is currently computationally infeasible to churn through the
+addresses fast enough to accomplish this.
+
+==== Commit + Reveal Scheme
+
+Now that we've establed that a particular derivation path like
+`m/44'/0/281'/0/1821912'` is a secret, then we can craft a commit+reveal scheme
+from it. First, the user deposits BTC to the public key at
+`m/44'/0/281'/0/1821912'`. Second, the user concatenates that secret path with their minting address:
+`m/44'/0/281'/0/1821912'+0x6EB149f6FBA44724cD2e7CAD13B18E5E8D2b709D`. This is their final secret.
+
+They hash that secret and get something like `keep btc deposit:
+924deb62fcb9780220c04ecab100b97ee1dea25a30771552d483d1c7fc7ef04a` (using
+sha256) and submit that to the ethereum chain.
+
+Then, once that commitment is on the blockchain, they reveal their secret in
+plain text:
+`m/44'/0/281'/0/1821912'+0x6EB149f6FBA44724cD2e7CAD13B18E5E8D2b709D` to the
+ethereum chain. Once the keep network sees the derivation path + minting
+address, it checks to see if there was a deposit at the supplied address and if
+the sha256 of the supplied data is an existing commitment. This prevents miners
+from reading the mempool and submitting their own message like
+`m/44'/0/281'/0/1821912'+0xMYADDRESS` to claim that the tBTC should be theirs.
+If everything checks out, then we're good!
+
+==== Sweeping The Wallet
+
+When a user submits their reveal, the wallet should move the funds from the
+secret derivation path to the main wallet located at `m/44'/0/0/0/0`. After
+this step, the system is good to mint the equivalent amount of tBTC to the
+supplied ethereum address in the reveal.
+
+==== Automated Refunds
+
+A bitcoin transaction is an amount and a script. The script can be something as
+simple as "these funds can be spent by wallet 0xabc", or in our case, as
+complex as "these funds can be spent by wallet 0xabc but if they aren't spent
+within 30 days they can be spent by wallet 0x123". This gives us the ability to
+create deposits that automatically are refunded after 30 days if they aren't
+swept. Then, if a user misfunds or they get cold feet (for any reason), all
+they need to do is not submit their reveal (or commitment) and wait 30 days.
+
+=== Redemption
+
+TODO
