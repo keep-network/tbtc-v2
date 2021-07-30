@@ -328,6 +328,26 @@ contract CurveVoterProxyStrategy is BaseStrategy {
             tbtcCurvePoolGauge,
             address(want)
         );
+        // Harvest the CRV rewards from the Curve pool's gauge and transfer
+        // them to the new strategy
+        IStrategyProxy(strategyProxy).harvest(tbtcCurvePoolGauge);
+        IERC20(crvToken).safeTransfer(
+            newStrategy,
+            IERC20(crvToken).balanceOf(address(this))
+        );
+
+        // Claim additional reward tokens from the gauge if applicable and
+        // transfer them to the new strategy
+        if (tbtcCurvePoolGaugeReward != address(0)) {
+            IStrategyProxy(strategyProxy).claimRewards(
+                tbtcCurvePoolGauge,
+                tbtcCurvePoolGaugeReward
+            );
+            IERC20(tbtcCurvePoolGaugeReward).safeTransfer(
+                newStrategy,
+                IERC20(tbtcCurvePoolGaugeReward).balanceOf(address(this))
+            );
+        }
     }
 
     /// @notice Takes the keepCRV portion of the CRV balance and transfers

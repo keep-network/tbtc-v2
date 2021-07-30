@@ -24,11 +24,14 @@
   "name": "@keep-network/tbtc-v2-yearn",
   "scripts": {
     "build": "hardhat compile",
+    "format": "npm run lint && prettier --check .",
+    "format:fix": "npm run lint:fix && prettier --write .",
     "lint": "npm run lint:js && npm run lint:sol",
+    "lint:js": "eslint .",
+    "lint:sol": "solhint 'contracts/**/*.sol'",
+    "lint:fix": "npm run lint:fix:js && npm run lint:fix:sol",
     "lint:fix:js": "eslint . --fix",
-    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
-    "lint:js": "eslint . ",
-    "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
+    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
     "size-contracts": "hardhat compile && hardhat size-contracts",
     "test": "hardhat test",
     "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js"
