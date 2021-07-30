@@ -8,9 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const TBTCCurveVault = await deployments.get("TBTCCurveVault")
   if (!helpers.address.isValid(TBTCCurveVault.address)) {
-    throw new Error(
-      `Invalid TBTCCurveVault address: ${TBTCCurveVault.address}`
-    )
+    throw new Error(`Invalid TBTCCurveVault address: ${TBTCCurveVault.address}`)
   }
 
   const TBTCCurvePoolDepositor = await deployments.get("TBTCCurvePoolDepositor")
@@ -34,10 +32,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [
       TBTCCurveVault.address,
       TBTCCurvePoolDepositor.address,
-      TBTCConvexRewardPool.linkedData.id
+      TBTCConvexRewardPool.linkedData.id,
     ],
     log: true,
-    gasLimit: parseInt(process.env.GAS_LIMIT) || undefined
+    gasLimit: parseInt(process.env.GAS_LIMIT) || undefined,
   })
 }
 

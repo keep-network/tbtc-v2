@@ -8,9 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const TBTCCurveVault = await deployments.get("TBTCCurveVault")
   if (!helpers.address.isValid(TBTCCurveVault.address)) {
-    throw new Error(
-      `Invalid TBTCCurveVault address: ${TBTCCurveVault.address}`
-    )
+    throw new Error(`Invalid TBTCCurveVault address: ${TBTCCurveVault.address}`)
   }
 
   const TBTCCurvePoolDepositor = await deployments.get("TBTCCurvePoolDepositor")
@@ -27,18 +25,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     )
   }
 
-  const TBTCCurvePoolGaugeReward = await deployments.getOrNull("TBTCCurvePoolGaugeReward")
+  const TBTCCurvePoolGaugeReward = await deployments.getOrNull(
+    "TBTCCurvePoolGaugeReward"
+  )
   if (!TBTCCurvePoolGaugeReward) {
     log(`Deployment TBTCCurvePoolGaugeReward not found - using default address`)
 
-    TBTCCurvePoolGaugeReward.address = "0x0000000000000000000000000000000000000000"
+    TBTCCurvePoolGaugeReward.address =
+      "0x0000000000000000000000000000000000000000"
   } else if (!helpers.address.isValid(TBTCCurvePoolGaugeReward.address)) {
     log(
       `Invalid TBTCCurvePoolGaugeReward address: 
       ${TBTCCurvePoolGaugeReward.address} - using default address`
     )
 
-    TBTCCurvePoolGaugeReward.address = "0x0000000000000000000000000000000000000000"
+    TBTCCurvePoolGaugeReward.address =
+      "0x0000000000000000000000000000000000000000"
   }
 
   log(`tbtcCurveVault: ${TBTCCurveVault.address}`)
@@ -52,10 +54,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       TBTCCurveVault.address,
       TBTCCurvePoolDepositor.address,
       TBTCCurvePoolGauge.address,
-      TBTCCurvePoolGaugeReward.address
+      TBTCCurvePoolGaugeReward.address,
     ],
     log: true,
-    gasLimit: parseInt(process.env.GAS_LIMIT) || undefined
+    gasLimit: parseInt(process.env.GAS_LIMIT) || undefined,
   })
 }
 

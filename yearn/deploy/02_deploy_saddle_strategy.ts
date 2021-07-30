@@ -36,10 +36,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [
       TBTCSaddleVault.address,
       TBTCSaddlePoolSwap.address,
-      TBTCSaddleLPRewards.address
+      TBTCSaddleLPRewards.address,
     ],
     log: true,
-    gasLimit: parseInt(process.env.GAS_LIMIT) || undefined
+    gasLimit: parseInt(process.env.GAS_LIMIT) || undefined,
   })
 }
 

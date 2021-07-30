@@ -37,7 +37,7 @@ const config: HardhatUserConfig = {
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
-      tags: ["local"]
+      tags: ["local"],
     },
   },
 
@@ -51,12 +51,8 @@ const config: HardhatUserConfig = {
   //       pass on hardhat network.
   external: {
     deployments: {
-      hardhat: [
-        "./external/hardhat"
-      ],
-      mainnet: [
-        "./external/mainnet"
-      ],
+      hardhat: ["./external/hardhat"],
+      mainnet: ["./external/mainnet"],
     },
   },
 
