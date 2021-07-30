@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         if: github.event_name == 'pull_request'
-        
+
       - uses: dorny/paths-filter@v2
         if: github.event_name == 'pull_request'
         id: filter
@@ -50,7 +50,7 @@ jobs:
       - name: Run tests
         run: yarn test
 
-  contracts-lint:
+  contracts-format:
     needs: contracts-detect-changes
     if: |
       github.event_name == 'push'
@@ -66,11 +66,19 @@ jobs:
         with:
           node-version: "14.x"
 
+      # Below step is a workaround. Eslint executed in `solidity` directory
+      # finds `.prettierrc.js` config in the root directory and fails if
+      # referenced `@keep-network/prettier-config-keep` module is missing.
+      - name: Install dependencies in the root directory
+        run: |
+          cd ..
+          yarn install --frozen-lockfile
+
       - name: Install dependencies
         run: yarn install
 
-      - name: Lint
-        run: yarn lint
+      - name: Check formatting
+        run: yarn format
 
   contracts-slither:
     needs: contracts-detect-changes
