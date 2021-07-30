@@ -564,9 +564,9 @@
     deepmerge "^4.2.2"
     untildify "^4.0.0"
 
-"@keep-network/yearn-vaults@git://github.com/keep-network/yearn-vaults.git#yearn-vaults-v0.4.3-1":
+"@keep-network/yearn-vaults@github:keep-network/yearn-vaults.git#yearn-vaults-v0.4.3-1":
   version "0.4.3-1"
-  resolved "git://github.com/keep-network/yearn-vaults.git#b23fc54cf1f8c6c590ae2dc2e314f5e93e666e45"
+  resolved "https://codeload.github.com/keep-network/yearn-vaults/tar.gz/b23fc54cf1f8c6c590ae2dc2e314f5e93e666e45"
 
 "@nomiclabs/hardhat-ethers@^2.0.2":
   version "2.0.2"
