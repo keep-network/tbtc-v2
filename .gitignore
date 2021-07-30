@@ -1,5 +1,13 @@
 node_modules/
+
 artifacts/
+build/
 cache/
+deployments/
+export.json
+
 typechain/
 .vscode/
+
+*/.hardhat/*
+!*/.hardhat/networks_TEMPLATE.ts
