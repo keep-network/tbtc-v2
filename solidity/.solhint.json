@@ -1,8 +1,7 @@
 {
-    "extends": "keep",
-    "plugins": [],
-    "rules": {
-      "func-visibility": ["error", {"ignoreConstructors": true}]
-    }
+  "extends": "keep",
+  "plugins": [],
+  "rules": {
+    "func-visibility": ["error", { "ignoreConstructors": true }]
   }
-  
+}
