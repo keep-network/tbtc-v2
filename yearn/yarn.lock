@@ -552,6 +552,18 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz#87de7af9c231826fdd68ac7258f77c429e0e5fcf"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
+"@keep-network/hardhat-helpers@github:keep-network/hardhat-helpers#v0.1.0":
+  version "0.1.0"
+  resolved "https://codeload.github.com/keep-network/hardhat-helpers/tar.gz/f076fdb32ea6f1d4668347d68994f764fd55ace2"
+
+"@keep-network/hardhat-local-networks-config@^0.1.0-pre.0":
+  version "0.1.0-pre.0"
+  resolved "https://registry.yarnpkg.com/@keep-network/hardhat-local-networks-config/-/hardhat-local-networks-config-0.1.0-pre.0.tgz#55ab2f524f3bc5ad094d878c74644a0f77054396"
+  integrity sha512-wrVuXPA64nItBKXhhucf9u6rrXbXQ8mRYb455EuBkbeN20OA4umznLNniXNkkhDrePVr0d5WgRV7Mn3wO8KKcQ==
+  dependencies:
+    deepmerge "^4.2.2"
+    untildify "^4.0.0"
+
 "@keep-network/yearn-vaults@git://github.com/keep-network/yearn-vaults.git#yearn-vaults-v0.4.3-1":
   version "0.4.3-1"
   resolved "git://github.com/keep-network/yearn-vaults.git#b23fc54cf1f8c6c590ae2dc2e314f5e93e666e45"
