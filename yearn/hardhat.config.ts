@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config"
 
 import "@keep-network/hardhat-helpers"
+import "@keep-network/hardhat-local-networks-config"
 import "@nomiclabs/hardhat-waffle"
 import "hardhat-gas-reporter"
 import "hardhat-contract-sizer"
@@ -36,13 +37,8 @@ const config: HardhatUserConfig = {
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
-      tags: ["local"]
+      tags: ["local"],
     },
-    development: {
-      url: "http://localhost:8545",
-      chainId: 1101,
-      tags: ["local"]
-    }
   },
 
   // Define local networks configuration file path to load networks from file.
@@ -50,11 +46,13 @@ const config: HardhatUserConfig = {
 
   // TODO: Once tBTC v2 is deployed, revisit `./external/mainnet` files and set
   //       correct addresses and parameters.
+  // TODO: Once Saddle vault is created, revisit `./external/hardhat/TBTCSaddleVault.json`
+  //       and set its address hare. This will make the deployment script
+  //       pass on hardhat network.
   external: {
     deployments: {
-      mainnet: [
-        "./external/mainnet"
-      ],
+      hardhat: ["./external/hardhat"],
+      mainnet: ["./external/mainnet"],
     },
   },
 

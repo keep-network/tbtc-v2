@@ -106,7 +106,7 @@ below.
 
 Please make sure you have the following prerequisites installed on your machine:
 
-- https://nodejs.org[Node.js] >12.22.1
+- https://nodejs.org[Node.js] >14.17.4
 - https://yarnpkg.com[Yarn] >1.22.10
 
 === Build contracts
@@ -145,11 +145,20 @@ If applicable, use environment variables listed in the
 To deploy a single contract, use the same command with the `--tags` option
 followed by the contract name:
 ```
-yarn deploy --network localhost --tags ConvexStrategy
+yarn deploy --network development --tags ConvexStrategy
 ```
 
-If contracts haven't been built yet or changes occurred, this task will build
-the contracts before running the deployment script. This command produces
+Deployment scripts can be tested on `hardhat` network with mainnet forking
+enabled. To run them, invoke:
+```
+FORKING_URL=<url> FORKING_BLOCK=12786839 yarn deploy --network hardhat
+```
+where `FORKING_URL` is an URL of an Ethereum mainnet node with access to
+archival data (Alchemy recommended). Bear in mind the `FORKING_BLOCK` variable
+must be set to block `12786839` to get a predictable state of the mainnet fork.
+
+If contracts haven't been built yet or changes occurred, the `deploy` task will
+build the contracts before running the deployment script. This command produces
 an `export.json` file containing contract deployment info.
 
 Please note that all strategies contracts make a call to their vault contract

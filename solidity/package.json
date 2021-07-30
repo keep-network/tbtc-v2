@@ -4,15 +4,19 @@
   "scripts": {
     "build": "hardhat compile",
     "deploy": "hardhat deploy --export export.json",
+    "format": "npm run lint && prettier --check .",
+    "format:fix": "npm run lint:fix && prettier --write .",
     "lint": "npm run lint:js && npm run lint:sol",
+    "lint:js": "eslint .",
+    "lint:sol": "solhint 'contracts/**/*.sol'",
+    "lint:fix": "npm run lint:fix:js && npm run lint:fix:sol",
     "lint:fix:js": "eslint . --fix",
-    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
-    "lint:js": "eslint . ",
-    "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
+    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
     "test": "hardhat test"
   },
   "dependencies": {
     "@keep-network/tbtc": ">1.1.2-dev <1.1.2-ropsten",
+    "@thesis/solidity-contracts": "github:thesis/solidity-contracts#bf514ba",
     "@openzeppelin/contracts": "^4.1.0"
   },
   "devDependencies": {
