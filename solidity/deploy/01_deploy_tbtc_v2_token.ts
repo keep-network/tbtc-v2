@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deploy("TBTCTokenV2", {
     contract: "TBTCToken",
     from: deployer,
-    log: true
+    log: true,
   })
 }
 

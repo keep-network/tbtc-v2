@@ -17,12 +17,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deploy("VendingMachineV2", {
     contract: "VendingMachine",
     from: deployer,
-    args: [
-      TBTCToken.address,
-      TBTCTokenV2.address,
-      unmintFee
-    ],
-    log: true
+    args: [TBTCToken.address, TBTCTokenV2.address, unmintFee],
+    log: true,
   })
 }
 

@@ -1416,6 +1416,12 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
+"@thesis/solidity-contracts@github:thesis/solidity-contracts#bf514ba":
+  version "0.0.1"
+  resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/bf514bab374552528a8ad03f43cbb3e827e48923"
+  dependencies:
+    "@openzeppelin/contracts" "^4.1.0"
+
 "@tsconfig/node10@^1.0.7":
   version "1.0.8"
   resolved "https://registry.yarnpkg.com/@tsconfig/node10/-/node10-1.0.8.tgz#c1e4e80d6f964fbecb3359c43bd48b40f7cadad9"

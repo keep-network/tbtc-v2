@@ -27,15 +27,15 @@ const config: HardhatUserConfig = {
         url: process.env.FORKING_URL || "",
         // latest block is taken if FORKING_BLOCK env is not provided
         blockNumber:
-            process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
+          process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
-      tags: ["local"]
+      tags: ["local"],
     },
     development: {
       url: "http://localhost:8545",
       chainId: 1101,
-      tags: ["local"]
-    }
+      tags: ["local"],
+    },
   },
 
   // Define local networks configuration file path to load networks from file.
@@ -50,15 +50,9 @@ const config: HardhatUserConfig = {
     deployments: {
       // For development environment we expect the local dependencies to be
       // linked with `yarn link` command.
-      development: [
-        "node_modules/@keep-network/tbtc/artifacts"
-      ],
-      ropsten: [
-        "node_modules/@keep-network/tbtc/artifacts",
-      ],
-      mainnet: [
-        "./external/mainnet"
-      ],
+      development: ["node_modules/@keep-network/tbtc/artifacts"],
+      ropsten: ["node_modules/@keep-network/tbtc/artifacts"],
+      mainnet: ["./external/mainnet"],
     },
   },
 
@@ -70,4 +64,3 @@ const config: HardhatUserConfig = {
 }
 
 export default config
-
