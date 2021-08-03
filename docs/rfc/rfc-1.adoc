@@ -10,17 +10,14 @@ toc::[]
 
 === Minting
 
-Stakers periodically create https://en.bitcoin.it/wiki/BIP_0032[Hierarchical
-Deterministic Wallets] to hold frozen BTC assets to maintain the peg.
-Depositors send BTC funds to the most-recently-created-wallet at a secret
-derivation path. Then, the depositor hashes the combination of their secret
-derivation path and ethereum address and publishes that to the ethereum
-blockchain (a commitment). Once the commitment is published, the depositor
-reveals their secret derivation path and ethereum address. The tbtc system
-verifies that the reveal matches the commitment and that there UTXOs at the
-specified secret derivation path. If everything checks out, the bitcoin wallet
-moves the funds from the secret derivation path to the public derivation path
-and mints the equivalent amount of tBTCv2 at the revealed ethereum address.
+Stakers periodically create 51-of-100 ecdsa-backed wallets to hold frozen BTC
+assets to maintain the peg. Depositors send BTC funds to the
+most-recently-created-wallet by using pay-to-script-hash (P2SH) which contains
+hashed information about the depositor's minting ethereum address. Once
+the block is mined, the depositor reveals their desired ethereum minting
+address to the ethereum chain. The TBTC system listens for these sorts of
+messages and when it gets one, it checks the bitcoin network to make sure the
+funds line up. If everything checks out, then we mint!
 
 === Redemption
 
@@ -34,58 +31,38 @@ been released.
 
 === Minting
 
-==== Hierarchical Deterministic Wallet Derivation Paths Are A Secret
+==== Deposit + Commitment
 
-A huge part of understanding the technical side of the minting process is
-understanding how Hierarchical Deterministic Wallets work. The basic concept is
-that you have a root private key and public key that allows you to supply an
-index that creates another private key + public key. To experiment with this,
-check out https://iancoleman.io/bip39/[bip39]. Conventionally, a derivation path is written as
-`m / purpose' / coin_type' / account' / change / address_index`. A `'` denotes
-that the index is "hardened", which means that a base of `2147483648` has been
-added to the address (and that the private key is required to derive the
-address). The HD wallet standard is blockchain agnostic, and different
-standards have been adopted for each community. Bitcoin, for example, always
-uses a purpose of `44'`, a coin type of `0`, and a change of `0` (the change
-address denotes where leftover bitcoin goes after being sent from the address).
-This means that for our purposes, we can vary the `account` and `address_index`
-fields: `m/44'/0/x/0/y`. Each path has `2^31` available hardened addresses,
-which means there are `2^62` unique hardened paths.
+Once we know the active wallet's public key hash, the dApp can put together a
+pay-to-script-hash (P2SH) address to receive the funds. This script will be
+unique to each depositor and will look like:
+```
+if(verifySig(signingGroupPubKey) && hash160(ethereumAddress + blindingFactor)) {
+    // allow funds to be spent
+} else if(verifySig(refundPubKey) && daysSinceUTXOCreation > 30) {
+    // allow funds to be spent
+}
+```
 
-The main attack that we want to avoid is someone monitoring children of the
-active wallet for deposits, and then telling the ethereum chain that they
-deposited the bitcoin before the real depositor did. With `2^62` possible child
-addresses, it is currently computationally infeasible to churn through the
-addresses fast enough to accomplish this.
+// TODO: represent the above script in the bitcoin scripting language and prototype it
 
-==== Commit + Reveal Scheme
+Since each depositor has their own ethereum address and their own secret
+blinding factor (which is an additional security layer), each depositor's
+script will be unique, and the hash of each depositor's script will be unique.
 
-Now that we've establed that a particular derivation path like
-`m/44'/0/281'/0/1821912'` is a secret, then we can craft a commit+reveal scheme
-from it. First, the user deposits BTC to the public key at
-`m/44'/0/281'/0/1821912'`. Second, the user concatenates that secret path with their minting address:
-`m/44'/0/281'/0/1821912'+0x6EB149f6FBA44724cD2e7CAD13B18E5E8D2b709D`. This is their final secret.
+Once the deposit has been made, the active wallet will be unable to spend the
+funds until the ethereumAddress and blinding factor are revealed.
 
-They hash that secret and get something like `keep btc deposit:
-924deb62fcb9780220c04ecab100b97ee1dea25a30771552d483d1c7fc7ef04a` (using
-sha256) and submit that to the ethereum chain.
+After 30 days, the refund wallet (specified by the user) will be able to spend the funds.
 
-Then, once that commitment is on the blockchain, they reveal their secret in
-plain text:
-`m/44'/0/281'/0/1821912'+0x6EB149f6FBA44724cD2e7CAD13B18E5E8D2b709D` to the
-ethereum chain. Once the keep network sees the derivation path + minting
-address, it checks to see if there was a deposit at the supplied address and if
-the sha256 of the supplied data is an existing commitment. This prevents miners
-from reading the mempool and submitting their own message like
-`m/44'/0/281'/0/1821912'+0xMYADDRESS` to claim that the tBTC should be theirs.
-If everything checks out, then we're good!
+==== The Big Reveal
 
-==== Sweeping The Wallet
-
-When a user submits their reveal, the wallet should move the funds from the
-secret derivation path to the main wallet located at `m/44'/0/0/0/0`. After
-this step, the system is good to mint the equivalent amount of tBTC to the
-supplied ethereum address in the reveal.
+After the deposit transaction has been mined, the user is able to reveal their
+ethereum address and blinding factor to the ethereum chain. The TBTC system listens
+for these sorts of messages and when it sees one, is able to generate a script that
+can spend the funds. Once successful, wallet moves the funds from the P2SH
+address to the main wallet address, which allows the system to mint tBTC and
+disables the 30-day refund.
 
 ==== Automated Refunds
 
@@ -94,9 +71,57 @@ simple as "these funds can be spent by wallet 0xabc", or in our case, as
 complex as "these funds can be spent by wallet 0xabc but if they aren't spent
 within 30 days they can be spent by wallet 0x123". This gives us the ability to
 create deposits that automatically are refunded after 30 days if they aren't
-swept. Then, if a user misfunds or they get cold feet (for any reason), all
-they need to do is not submit their reveal (or commitment) and wait 30 days.
+swept. Thus, if a user misfunds or they get cold feet (for any reason), all
+they need to do is not submit their reveal and wait 30 days.
 
 === Redemption
 
-TODO
+To initiate a redemption, a user supplies an amount `x` of TBTC and a bitcoin
+address. Then, the system calculates the redemption fee `fee`, and releases an
+amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
+`y` amount of TBTC is burned to maintain the peg. The remaining `fee` TBTC is
+sold by the system to buy back `T` tokens (more about this process in the fee
+section).
+
+Redemptions for BTC follow first-in-first-out principles. Reedemed bitcoin is
+sent from the oldest, live wallet, potentially carrying over until the full
+amount is covered. For example, if 100 BTC needs to be redeemed, and the 4
+oldest live wallets each have a 30 BTC balance, then 30 BTC would come from the
+oldest, 30 BTC would come from the second oldest, 30 BTC would come from the
+third oldest, and 10 BTC would come from the 4th oldest. Wallets that no longer
+have a balance and are not the active wallet for deposits are effectively archived.
+
+=== Wallet Lifecycle
+
+Wallets are periodically created, where the period length is a governable
+parameter. To create a new wallet, a group of 100 operators is selected from
+the pool of available operators (some operators may be selected twice if there
+are not enough) using a process called sortition. The probabiliy that a
+particular operator is chosen is based on their stake weight, which in turn is
+based on the number of `T` tokens they have invested in the staking contract.
+
+Once the 100 operators have been selected, they generate a 51-of-100 ecdsa
+signing group to handle the bitcoin key material. The distributed key
+generation process requires that all 100 participants are available, but future
+signing events (like minting and redemption) only require 51 of the 100.
+
+As time passes and operators drop out of the system, a wallet becomes at risk of
+being able to meet the 51-of-100 threshhold to produce signatures. Additionally,
+we want to avoid situations where operators are the custodians of a wallet for
+extended periods. To avoid these issues, we can set a max age of a wallet and a minimum
+liveness threshhold. Once a wallet is older than the max age, or if it drops below
+the liveness threshhold (say, below 60 on a heartbeat), we motion to transfer
+the funds to another randomly selected wallet.
+
+Once a wallet no longer has funds and is not the primary wallet for new
+deposits, it can be archived and operators are no longer required to maintain
+it.
+
+=== Heartbeats
+
+To make sure that older wallets are still accessible for redemption, we need to
+perform heartbeats. This can take the form of small, cheap work that can be
+used to verify that a node is still able to provide its part in a 51-of-100
+signing event.
+
+// FIXME: figure out how this works
