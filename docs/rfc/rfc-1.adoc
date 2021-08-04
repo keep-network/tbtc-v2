@@ -27,6 +27,16 @@ outstanding bitcoin wallet. If the oldest does not have enough, the remaining
 balance carries over to the next oldest until an equivalent amount of BTC has
 been released.
 
+=== Continuous Fees
+
+The system is able to collect fees in the form of tBTC when the BTC is
+deposited and when it is redeemed. Rather than paying operators at those two
+instances we would prefer to pay them continuously. Since we do not have the
+tBTC to pay them with until we collect the redemption fee (and can't mint it
+and maintain the peg), we must turn to another token. Instead, the system pays
+operators continuously in mintable T tokens and whenever it collects tBTC fees
+it uses those fees to buy T tokens back for its treasury.
+
 == In Depth
 
 === Minting
