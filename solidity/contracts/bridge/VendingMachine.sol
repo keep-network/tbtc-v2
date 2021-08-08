@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@thesis/solidity-contracts/contracts/token/IReceiveApproval.sol";
 
-import "../token/TBTCToken.sol";
+import "../token/TBTC.sol";
 import "../GovernanceUtils.sol";
 
 /// @title TBTC v2 Vending Machine
@@ -33,7 +33,7 @@ import "../GovernanceUtils.sol";
 ///         governance delay passes.
 contract VendingMachine is Ownable, IReceiveApproval {
     using SafeERC20 for IERC20;
-    using SafeERC20 for TBTCToken;
+    using SafeERC20 for TBTC;
 
     /// @notice The time delay that needs to pass between initializing and
     ///         finalizing update of any governable parameter in this contract.
@@ -44,7 +44,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
     uint256 public constant FLOATING_POINT_DIVISOR = 1e18;
 
     IERC20 public immutable tbtcV1;
-    TBTCToken public immutable tbtcV2;
+    TBTC public immutable tbtcV2;
 
     /// @notice The fee for unminting TBTC v2 back into TBTC v1 represented as
     ///         1e18 precision fraction. The fee is proportional to the amount
@@ -94,7 +94,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
 
     constructor(
         IERC20 _tbtcV1,
-        TBTCToken _tbtcV2,
+        TBTC _tbtcV2,
         uint256 _unmintFee
     ) {
         tbtcV1 = _tbtcV1;
