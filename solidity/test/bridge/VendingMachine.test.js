@@ -33,8 +33,8 @@ describe("VendingMachine", () => {
     tbtcV1 = await TestERC20.deploy()
     await tbtcV1.deployed()
 
-    const TBTCToken = await ethers.getContractFactory("TBTCToken")
-    tbtcV2 = await TBTCToken.deploy()
+    const TBTC = await ethers.getContractFactory("TBTC")
+    tbtcV2 = await TBTC.deploy()
     await tbtcV2.deployed()
 
     await tbtcV1.mint(tokenHolder.address, initialBalance)
