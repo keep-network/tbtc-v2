@@ -7,7 +7,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
 
   const TBTCToken = await deployments.get("TBTCToken")
-  const TBTCTokenV2 = await deployments.get("TBTCTokenV2")
+  const TBTC = await deployments.get("TBTC") // tBTC v2
 
   const unmintFee = 1000000000000000 // 0.001 of the amount being unminted
 
@@ -17,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deploy("VendingMachineV2", {
     contract: "VendingMachine",
     from: deployer,
-    args: [TBTCToken.address, TBTCTokenV2.address, unmintFee],
+    args: [TBTCToken.address, TBTC.address, unmintFee],
     log: true,
   })
 }
@@ -25,4 +25,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["VendingMachineV2"]
-func.dependencies = ["TBTCToken", "TBTCTokenV2"]
+func.dependencies = ["TBTCToken", "TBTC"]
