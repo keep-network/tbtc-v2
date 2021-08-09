@@ -11,11 +11,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const unmintFee = 1000000000000000 // 0.001 of the amount being unminted
 
-  // This deployment is named VendingMachineV2 to avoid conflict with
-  // VendingMachine deployment which represents the vending machine for tBTC v1
-  // shipped via an external dependency.
-  await deploy("VendingMachineV2", {
-    contract: "VendingMachine",
+  await deploy("VendingMachine", {
     from: deployer,
     args: [TBTCToken.address, TBTC.address, unmintFee],
     log: true,
@@ -24,5 +20,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["VendingMachineV2"]
+func.tags = ["VendingMachine"]
 func.dependencies = ["TBTCToken", "TBTC"]
