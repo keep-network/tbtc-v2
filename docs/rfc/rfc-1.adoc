@@ -46,24 +46,30 @@ it uses those fees to buy T tokens back for its treasury.
 Once we know the active wallet's public key hash, the dApp can put together a
 pay-to-script-hash (P2SH) address to receive the funds. This script will be
 unique to each depositor and will look like:
-```
-if(verifySig(signingGroupPubKey) && hash160(ethereumAddress + blindingFactor)) {
-    // allow funds to be spent
-} else if(verifySig(refundPubKey) && daysSinceUTXOCreation > 30) {
-    // allow funds to be spent
-}
-```
 
-// TODO: represent the above script in the bitcoin scripting language and prototype it
+```
+<eth-address> DROP
+<blinding-factor> DROP
+DUP HASH160 <signingGroupPubkey> EQUAL
+IF
+  CHECKSIG
+ELSE
+  DUP HASH160 <refundPubkey> EQUALVERIFY
+  <locktime> CHECKLOCKTIMEVERIFY DROP
+  CHECKSIG
+ENDIF
+```
 
 Since each depositor has their own ethereum address and their own secret
 blinding factor (which is an additional security layer), each depositor's
 script will be unique, and the hash of each depositor's script will be unique.
 
-Once the deposit has been made, the active wallet will be unable to spend the
-funds until the ethereumAddress and blinding factor are revealed.
-
-After 30 days, the refund wallet (specified by the user) will be able to spend the funds.
+In order to unlock the funds, one must provide the unhashed script, (which
+means that they know the eth address and blinding factor), as well as an
+unlocking script with a signature and public key. If the sig+pubkey matches the
+signing group public key, the funds are able to be moved immediately. If the
+sig+pubkey matches the refund public key, then the funds can be moved after 30
+days (specified as `locktime`).
 
 ==== The Big Reveal
 
@@ -93,13 +99,13 @@ amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
 sold by the system to buy back `T` tokens (more about this process in the fee
 section).
 
-Redemptions for BTC follow first-in-first-out principles. Reedemed bitcoin is
-sent from the oldest, live wallet, potentially carrying over until the full
-amount is covered. For example, if 100 BTC needs to be redeemed, and the 4
-oldest live wallets each have a 30 BTC balance, then 30 BTC would come from the
-oldest, 30 BTC would come from the second oldest, 30 BTC would come from the
-third oldest, and 10 BTC would come from the 4th oldest. Wallets that no longer
-have a balance and are not the active wallet for deposits are effectively archived.
+In the MVP version of the system, a redemption is capped at the amount of
+bitcoin contained in the largest wallet. Redemptions are fulfilled from the
+oldest wallet that contains enough bitcoin to fulfil the redemption. If more
+tBTC needs to be redeemed than there is in the largest wallet, then the user
+needs to submit multiple redemptions. After a redemption, if a wallet has under
+a governable threshhold of BTC remaining, it transfers that BTC to the active
+wallet and closes.
 
 === Wallet Lifecycle
 
@@ -124,7 +130,7 @@ the liveness threshhold (say, below 60 on a heartbeat), we motion to transfer
 the funds to another randomly selected wallet.
 
 Once a wallet no longer has funds and is not the primary wallet for new
-deposits, it can be archived and operators are no longer required to maintain
+deposits, it can be closed and operators are no longer required to maintain
 it.
 
 === Heartbeats
