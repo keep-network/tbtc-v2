@@ -10,14 +10,14 @@ toc::[]
 
 === Minting
 
-Stakers periodically create 51-of-100 ecdsa-backed wallets to hold frozen BTC
-assets to maintain the peg. Depositors send BTC funds to the
+Stakers periodically create 51-of-100 (subject to change) ecdsa-backed wallets
+to hold frozen BTC assets to maintain the peg. Depositors send BTC funds to the
 most-recently-created-wallet by using pay-to-script-hash (P2SH) which contains
-hashed information about the depositor's minting ethereum address. Once
-the block is mined, the depositor reveals their desired ethereum minting
-address to the ethereum chain. The TBTC system listens for these sorts of
-messages and when it gets one, it checks the bitcoin network to make sure the
-funds line up. If everything checks out, then we mint!
+hashed information about the depositor's minting ethereum address. Once the
+block is mined, the depositor reveals their desired ethereum minting address to
+the ethereum chain. The TBTC system listens for these sorts of messages and
+when it gets one, it checks the bitcoin network to make sure the funds line up.
+If everything checks out, then we mint!
 
 === Redemption
 
