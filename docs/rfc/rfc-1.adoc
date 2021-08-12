@@ -22,10 +22,14 @@ If everything checks out, then we mint!
 === Redemption
 
 A user supplies tBTCv2 and a bitcoin address. The system burns the tBTCv2 and
-releases the equivalent amount of bitcoin to the user from the oldest
-outstanding bitcoin wallet. If the oldest does not have enough, the remaining
-balance carries over to the next oldest until an equivalent amount of BTC has
-been released.
+releases the equivalent amount of bitcoin to the user from a user-supplied bitcoin wallet.
+
+In the default case, the user-supplied wallet will be determined by the dApp,
+and will be the oldest wallet that is large enough to fulfill the redemption.
+
+The maximum redemption size is capped by the size of the largest wallet, and
+any redemption bigger than that will need to be split into multiple
+redemptions.
 
 === Continuous Fees
 
