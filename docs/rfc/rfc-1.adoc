@@ -80,7 +80,7 @@ days (specified as `locktime`).
 After the deposit transaction has been mined, the user is able to reveal their
 ethereum address and blinding factor to the ethereum chain. The TBTC system listens
 for these sorts of messages and when it sees one, is able to generate a script that
-can spend the funds. Once successful, wallet moves the funds from the P2SH
+can spend the funds. Once successful, the wallet moves the funds from the P2SH
 address to the main wallet address, which allows the system to mint tBTC and
 disables the 30-day refund.
 
