@@ -61,6 +61,12 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 0, // take the first account as deployer
     },
+    keepTechnicalWalletTeam: {
+      mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
+    },
+    keepCommunityMultiSig: {
+      mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
+    },
   },
 }
 

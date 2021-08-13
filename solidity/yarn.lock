@@ -1034,9 +1034,10 @@
     "@ethersproject/properties" "^5.4.0"
     "@ethersproject/strings" "^5.4.0"
 
-"@keep-network/hardhat-helpers@github:keep-network/hardhat-helpers#v0.1.0":
-  version "0.1.0"
-  resolved "https://codeload.github.com/keep-network/hardhat-helpers/tar.gz/f076fdb32ea6f1d4668347d68994f764fd55ace2"
+"@keep-network/hardhat-helpers@^0.2.0-pre":
+  version "0.2.0-pre"
+  resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.2.0-pre.tgz#f3c83b0798087408d791220437c6b70117aa80b8"
+  integrity sha512-HMOjve/0cGpXrbjw1VBeTBHe7dcOCk+Uz7C+hx7XsWFMCvzKJyGL57BjfLrsNSLaS1hPU3MlB8lbOJFQex4OHg==
 
 "@keep-network/hardhat-local-networks-config@^0.1.0-pre.0":
   version "0.1.0-pre.0"
