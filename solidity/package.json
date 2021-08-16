@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@keep-network/tbtc": ">1.1.2-dev <1.1.2-ropsten",
-    "@thesis/solidity-contracts": "github:thesis/solidity-contracts#657d210",
+    "@thesis/solidity-contracts": "github:thesis/solidity-contracts#507c647",
     "@openzeppelin/contracts": "^4.1.0"
   },
   "devDependencies": {
