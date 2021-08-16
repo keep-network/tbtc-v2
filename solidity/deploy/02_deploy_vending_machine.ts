@@ -9,7 +9,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const TBTCToken = await deployments.get("TBTCToken")
   const TBTC = await deployments.get("TBTC") // tBTC v2
 
-  const unmintFee = 1000000000000000 // 0.001 of the amount being unminted
+  const unmintFee = 0
 
   await deploy("VendingMachine", {
     from: deployer,
