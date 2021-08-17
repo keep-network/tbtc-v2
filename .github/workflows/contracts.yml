@@ -41,6 +41,7 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
+          cache-dependency-path: solidity/yarn.lock
 
       - name: Install dependencies
         run: yarn install
@@ -67,6 +68,7 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
+          cache-dependency-path: solidity/yarn.lock
 
       # Below step is a workaround. Eslint executed in `solidity` directory
       # finds `.prettierrc.js` config in the root directory and fails if
@@ -98,6 +100,7 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
+          cache-dependency-path: solidity/yarn.lock
 
       - uses: actions/setup-python@v2
         with:
