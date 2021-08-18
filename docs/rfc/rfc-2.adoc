@@ -1,0 +1,300 @@
+:toc: macro
+
+= RFC 2: tBTCv2 Group Selection and Key Generation
+
+:icons: font
+:numbered:
+toc::[]
+
+== Overview
+
+The key generation uses the protocol from `tss-lib`.
+
+We select members from the sortition pool,
+and they perform one or more attempts to complete the key generation.
+
+Inactive members are removed from the DKG participants
+and the resulting wallet if the DKG is successful.
+
+If there is misbehaviour,
+the accusations will be resolved by governance
+as the protocol in `tss-lib` is not attributable.
+
+=== Parameter selection
+
+For tbtc2 wallets,
+we need to choose the group size _N_
+(how many members we select from the sortition pool)
+and the threshold _T_
+(how many members must cooperate to generate a threshold ECDSA signature.
+
+In addition, we need to choose the critical size _C_
+which is number of members required for a successful key generation.
+Some of the selected _N_ members may not be available for the key generation.
+To reduce sortition costs,
+we let some of the original _N_ be inactive
+as long as at least _C_ participants can be assembled to complete the DKG.
+After successful DKG completion,
+the created wallet will have a number of members
+that is between _C_ and _N_ (inclusive).
+The inactive members that did not participate in the successful DKG
+are removed from the wallet's members and are ineligible for rewards.
+
+If we cannot complete DKG successfully
+with at least _C_ participants
+within the allowed time,
+the failed wallet will not be used by TBTC.
+
+==== Group size and threshold
+
+Assuming we create groups every 24h and the lifespan of TBTC is 100 years,
+we would perform 36,500 sortitions in total.
+If an adversary has a 1:1,000,000 probability of controlling any given group,
+they'd have a roughly 3.6% probability of controlling one group at some point.
+
+Assuming 51/100 (N = 100, T = 51) would make an acceptably secure wallet,
+we can compare it to other parameter choices of similar security.
+
+It can be generally observed,
+that a slight increase in the T:N ratio
+compensates for a fairly large reduction in N (and T).
+A lower _N_ significantly reduces sortition costs.
+The downside of this is that the group has fewer redundant members
+which requires greater reliability from each individual node.
+In addition,
+a malicious actor with more than _N - T_ members
+is guaranteed to be able to DoS the group.
+In practice this is less significant
+as non-attributable threshold ECDSA protocols are vulnerable to DoS
+by an adversary controlling a significantly smaller number of members.
+
+From modeling we get the following security levels for different parameters
+against adversaries of various power:
+
+[%header,cols=7]
+|===
+|Parameters |Bits against 0.15 |0.2 |0.25 |0.3 |0.35 |0.4
+
+|76/150 |>54 |>54 |36.74 |23.64 |14.23 |7.66
+
+|51/100 |>54 |38.00 |25.74 |16.91 |10.49 |5.94
+
+|41/80 |>54 |31.19 |21.36 |14.21 |8.97 |5.23
+
+|44/80 |>54 |37.90 |26.78 |18.56 |12.38 |7.78
+
+|36/70 |40.30 | 27.82 |19.16 |12.85 |8.21 |4.87
+
+|40/70 |>54 |37.01 |26.66 |18.93 |13.03 |8.54
+
+|26/50 |29.95 |21.07 |14.75 |10.11 |6.66 |4.14
+
+|32/50 |>54 |36.07 |27.29 |20.53 |15.20 |10.95
+|===
+
+The probability of an adversary controlling the given fraction of operators
+controlling at least _T_ members of _N_ randomly selected operators
+equals `1 / 2^bits`.
+
+The given numbers are calculated using a hypergeometric distribution
+out of 10,000 operators;
+using a binomial distribution instead has insignificant effect.
+
+==== Critical size
+
+We don't expect all _N_ members to be available for key generation.
+However, to ensure sufficient availability
+we require at least _C_ members to complete key generation.
+
+A _C_ closer to _N_ prevents the creation of low-quality wallets
+which would be at risk of low availability
+at the cost of increasing the risk of key generation failing to complete.
+A lower _C_ increases the odds of successfully creating a wallet.
+
+In any case,
+_C_ should be sufficiently above _T_
+that created wallets are adequately reliable in use
+and the risk of losing a wallet in its entirety
+by the number of active operators falling below _T_
+is minimised.
+
+=== Group selection
+
+At any time,
+anyone can submit (and pay for) a transaction creating a new wallet.
+This transaction uses the sortition pool to select N members
+and creates a new wallet with the selected members,
+instructing them to begin key generation.
+The selected members may contain duplicate operators.
+The new wallet is added to the pending wallets.
+
+The submitter of this sortition transaction is rewarded.
+
+==== Sortition transaction reimbursement
+
+When TBTC is collected in deposit fees,
+a certain fraction (e.g. 10%) of the fee is placed in the sortition fee pool.
+
+The transaction to perform a new sortition can be submitted by anyone.
+The submitter of the transaction is reimbursed from the sortition fee pool.
+If at least 24h has elapsed since the most recent sortition,
+the full contents of the sortition fee pool are released to the submitter.
+If less than 24h has elapsed,
+the amount released to the submitter is reduced,
+and the remainder is released as general rewards
+to other participants in the TBTC system.
+
+This reduction can be linear
+(the fraction released equals the fraction of 24h that has passed),
+quadratic/cubic
+(the fraction released equals the square/cube of the time passed)
+or exponential
+(for every hour before 24h has passed, the released fraction is halved).
+
+This lets the market decide when enough reward has accumulated
+to cover the gas fees of a new sortition transaction
+without the need for methods such as price oracles.
+It also balances the creation rate of new wallets with the deposit rate;
+when large amounts of BTC are deposited,
+new wallets will be created more frequently.
+
+By limiting the reward before 24h has elapsed,
+excessive creation of new wallets is disincentivised.
+This aims to give each wallet a reasonable opportunity to collect deposits
+before it is replaced by a new one,
+and limit the number of wallets active at the same time.
+
+=== Key generation
+
+Because every participant needs to be present and active
+for the full duration of key generation,
+failures are likely to happen.
+To avoid expensive new sortition,
+a two-phase retry protocol is specified to deal with failures.
+
+In this RFC, the word "majority" means at least _T_ out of _N_ operators,
+if _T_ is greater than _N/2+1_.
+
+==== Two-phase retry protocol
+
+The full key generation protocol consists of individual _attempts_.
+In each attempt,
+the specified participants try to perform DKG
+with the protocol from `tss-lib`.
+If the attempt fails due to one or more participants being inactive,
+the inactive participants are removed from the DKG participants
+and another attempt is made.
+
+If the number of DKG participants falls below the critical size _C_,
+no further attempt is made by the remaining participants.
+Instead, the group will clear the list of inactive participants
+and wait 12h before making another attempt with the entire group.
+This repeats until 7 days have elapsed
+since the timestamp of the sortition transaction.
+If this ultimate timeout is reached without succesful key generation,
+the group dissolves and makes no further attempts.
+
+The intent of the two-phase retry protocol is
+to give node maintainers time to be alerted of and fix any problems
+that may have caused a large number of participants to drop out.
+
+==== Communication between participants
+
+Participants communicate using a broadcast channel.
+One-to-one messages are delivered by broadcasting them in encrypted form,
+using the key specific to the pair of participants.
+
+When operator Alice starts key generation,
+she establishes encryption keys with all other participants.
+When Alice sends a message that is intended for everyone,
+it is broadcast in plaintext to the entire group.
+When Alice sends a message intended only for Bob,
+she encrypts it using the key she has established with Bob,
+and broadcasts the ciphertext message.
+When Bob expects to receive an encrypted message from Alice,
+he takes Alice's broadcast message
+containing her encrypted payloads to all other participants,
+and decrypts the payload addressed to him
+using the key he has established with Alice.
+
+Both plaintext and ciphertext messages are authenticated by the sender.
+
+==== Removing inactive operators
+
+If Alice fails to receive the expected message from Bob
+within the specified timeout for the phase,
+she broadcasts this information to the rest of the group.
+If the majority of members agree that Bob failed to send the message,
+Bob is added to the list of inactive operators.
+
+If the majority does not agree that Bob failed to send the message,
+they will re-broadcast Bob's message to ensure that all members receive it.
+
+Whenever an operator is deemed to be inactive,
+the remaining participants start another key generation attempt
+with all inactive members removed.
+
+==== Dealing with misbehaviour
+
+The protocol in `tss-lib` is not attributable.
+When a participant is unable to proceed
+because they have received an invalid message from another participant,
+they will broadcast a special message declaring a _disqualification abort_
+and naming one or more participants who sent invalid messages.
+
+When a _disqualification abort message_ is broadcast by any member,
+group selection is aborted and no further attempts are made by the group.
+Instead, the group signs and submits an on-chain transaction
+announcing that key generation was aborted due to disqualification,
+and identifying the participants in the aborted attempt,
+the members who declared a disqualification abort
+and the members who were accused of sending invalid messages.
+All participants will also store their logs of the aborted attempt
+to facilitate later investigation.
+These logs must contain all messages sent and received by the participant,
+private keys the participant had established with all other participants,
+and all secret values the participant generated for the key generation attempt.
+
+Governance will then resolve the matter by investigating the stored logs
+and taking any action deemed appropriate as permitted by the contract.
+Governance may penalise any operators
+named in a disqualification abort transaction
+as either the accusing or accused parties.
+
+The `tss-lib` protocol is intended to be eventually replaced
+with a fully attributable key generation protocol.
+When the key generation protocol is replaced,
+the powers of governance to adjudicate misbehaviour off-chain
+and penalise operators deemed to have misbehaved
+are to be removed in favour of a fully on-chain resolution method.
+
+==== Successful key generation
+
+When an attempt at key generation finishes successfully,
+a transaction announcing this result is submitted on-chain.
+The transaction contains the public key from the successful DKG attempt,
+the list of participants in that successful attempt,
+and signatures from a majority of participants.
+
+The on-chain contract verifies
+that all listed participants are among the originally selected members,
+and that all provided signatures are valid signatures from different members.
+If the submission passes these checks,
+the newly created wallet is removed from the pending wallets
+and appended to the list of active wallets,
+its state is set to _Active_,
+and its activation time is recorded.
+
+If some participants were inactive in the key generation,
+it might be desirable to remove them from the sortition pool.
+
+==== Key generation timeout
+
+If the on-chain contract does not receive a valid DKG result submission
+within 7 days of the sortition timestamp,
+the wallet is deemed to have timed out.
+Any submission after 7 days is rejected,
+and the wallet is removed from the list of pending wallets.
+If no late submission is made,
+the wallet should eventually be removed from the list of pending wallets
+by a maintenance procedure not specified in this RFC.
