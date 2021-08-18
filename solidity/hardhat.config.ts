@@ -3,6 +3,7 @@ import { HardhatUserConfig } from "hardhat/config"
 import "@keep-network/hardhat-helpers"
 import "@keep-network/hardhat-local-networks-config"
 import "@nomiclabs/hardhat-waffle"
+import "@nomiclabs/hardhat-etherscan"
 import "hardhat-gas-reporter"
 import "hardhat-deploy"
 
@@ -67,6 +68,9 @@ const config: HardhatUserConfig = {
     keepCommunityMultiSig: {
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
 }
 
