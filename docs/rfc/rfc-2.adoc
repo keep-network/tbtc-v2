@@ -26,7 +26,7 @@ For tbtc2 wallets,
 we need to choose the group size _N_
 (how many members we select from the sortition pool)
 and the threshold _T_
-(how many members must cooperate to generate a threshold ECDSA signature.
+(how many members must cooperate to generate a threshold ECDSA signature).
 
 In addition, we need to choose the critical size _C_
 which is number of members required for a successful key generation.
@@ -73,7 +73,7 @@ against adversaries of various power:
 
 [%header,cols=7]
 |===
-|Parameters |Bits against 0.15 |0.2 |0.25 |0.3 |0.35 |0.4
+|T/N |Bits against 0.15 |0.2 |0.25 |0.3 |0.35 |0.4
 
 |76/150 |>54 |>54 |36.74 |23.64 |14.23 |7.66
 
@@ -224,8 +224,8 @@ Both plaintext and ciphertext messages are authenticated by the sender.
 If Alice fails to receive the expected message from Bob
 within the specified timeout for the phase,
 she broadcasts this information to the rest of the group.
-If the majority of members agree that Bob failed to send the message,
-Bob is added to the list of inactive operators.
+If the majority of participants agree that Bob failed to send the message,
+Bob is added to the list of inactive members.
 
 If the majority does not agree that Bob failed to send the message,
 they will re-broadcast Bob's message to ensure that all members receive it.
@@ -266,7 +266,7 @@ with a fully attributable key generation protocol.
 When the key generation protocol is replaced,
 the powers of governance to adjudicate misbehaviour off-chain
 and penalise operators deemed to have misbehaved
-are to be removed in favour of a fully on-chain resolution method.
+are to be removed in favour of a fully objective resolution method.
 
 ==== Successful key generation
 
