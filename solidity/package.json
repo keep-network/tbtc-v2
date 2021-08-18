@@ -1,6 +1,14 @@
 {
   "name": "@keep-network/tbtc-v2",
   "license": "MIT",
+  "files": [
+    "artifacts/",
+    "build/contracts/",
+    "contracts/",
+    "!**/test/",
+    "deploy/",
+    "export.json"
+  ],
   "scripts": {
     "build": "hardhat compile",
     "deploy": "hardhat deploy --export export.json",
@@ -12,7 +20,8 @@
     "lint:fix": "npm run lint:fix:js && npm run lint:fix:sol",
     "lint:fix:js": "eslint . --fix",
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "prepublishOnly": "./scripts/prepare-artifacts.sh --network $npm_config_network"
   },
   "dependencies": {
     "@keep-network/tbtc": ">1.1.2-dev <1.1.2-ropsten",
