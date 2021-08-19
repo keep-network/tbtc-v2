@@ -140,8 +140,11 @@ it.
 === Heartbeats
 
 To make sure that older wallets are still accessible for redemption, we need to
-perform heartbeats. This can take the form of small, cheap work that can be
-used to verify that a node is still able to provide its part in a 51-of-100
-signing event.
+perform heartbeats. The signing group signs each bitcoin block and then does _not_
+publish the result. If a signer suspects other signers are not online, they can
+issue an on-chain challenge to publish a specified signed bitcoin block (with a
+maximum block age). Since publishing this information costs the signers gas, the
+challenger must pay a deposit to be distributed to the signers if they pass.
 
-// FIXME: figure out how this works
+Any signer unable to publish the signed block within a specified amount of time
+will begin to be slashed and the challenger will be rewarded.
