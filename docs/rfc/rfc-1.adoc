@@ -38,8 +38,8 @@ deposited and when it is redeemed. Rather than paying operators at those two
 instances we would prefer to pay them continuously. Since we do not have the
 tBTC to pay them with until we collect the redemption fee (and can't mint it
 and maintain the peg), we must turn to another token. Instead, the system pays
-operators continuously in mintable T tokens and whenever it collects tBTC fees
-it uses those fees to buy T tokens back for its treasury.
+operators in T tokens from a treasury funded by the T-token DAO and whenever it
+collects tBTC fees it uses those fees to buy T tokens back for its treasury.
 
 == In Depth
 
