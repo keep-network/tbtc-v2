@@ -1,0 +1,53 @@
+name: NPM
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "solidity/contracts/**"
+      - "solidity/package.json"
+      - "solidity/yarn.lock"
+  pull_request: #TODO: remove before merging
+
+jobs:
+  npm-compile-publish-contracts:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./solidity
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          registry-url: "https://registry.npmjs.org"
+          cache: "yarn"
+          cache-dependency-path: solidity/yarn.lock
+
+      - name: Resolve latest contracts
+        run: |
+          yarn add @keep-network/tbtc
+
+      - name: Compile contracts
+        run: yarn build
+
+      - name: Copy artifacts
+        run: |
+          mkdir -p artifacts
+          cp -r build/contracts/* artifacts/
+
+      - name: Bump up package version
+        id: npm-version-bump
+        uses: keep-network/npm-version-bump@v2
+        with:
+          work-dir: ./solidity
+          environment: dev
+          branch: ${{ github.ref }}
+          commit: ${{ github.sha }}
+
+      - name: Publish package # TODO: remove `--dry-run` before merge to main
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access=public --network=development --dry-run

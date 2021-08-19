@@ -37,6 +37,13 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["local"],
     },
+    ropsten: {
+      url: process.env.CHAIN_API_URL || "",
+      chainId: 3,
+      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
+        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
+        : undefined,
+    },
   },
 
   // Define local networks configuration file path to load networks from file.

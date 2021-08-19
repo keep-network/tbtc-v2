@@ -8,6 +8,18 @@ on:
       - "solidity/**"
   pull_request:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment for workflow execution"
+        required: false
+        default: "dev"
+      upstream_builds:
+        description: "Upstream builds"
+        required: false
+      upstream_ref:
+        description: "Git reference to checkout (e.g. branch name)"
+        required: false
+        default: "main"
 
 jobs:
   contracts-detect-changes:
@@ -25,6 +37,7 @@ jobs:
           filters: |
             path-filter:
               - './solidity/**'
+
   contracts-build-and-test:
     needs: contracts-detect-changes
     if: |
@@ -51,6 +64,107 @@ jobs:
 
       - name: Run tests
         run: yarn test
+
+  contracts-deployment-dry-run:
+    if: |
+      github.event_name != 'pull_request'
+        || needs.contracts-detect-changes.outputs.path-filter == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./solidity
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: solidity/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Deploy contracts
+        run: yarn deploy
+
+  contracts-deployment-testnet:
+    needs: [contracts-detect-changes, contracts-build-and-test]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./solidity
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Load environment variables
+        uses: keep-network/ci/actions/load-env-variables@v1
+        with:
+          environment: ${{ github.event.inputs.environment }}
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: solidity/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Get upstream packages versions
+        uses: keep-network/ci/actions/upstream-builds-query@v1
+        id: upstream-builds-query
+        with:
+          upstream-builds: ${{ github.event.inputs.upstream_builds }}
+          query: tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
+
+      - name: Resolve latest contracts
+        run: yarn add @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+
+      - name: Deploy contracts
+        env:
+          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
+          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.KEEP_TEST_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
+        run: yarn deploy --network ${{ github.event.inputs.environment }}
+
+      - name: Bump up package version
+        id: npm-version-bump
+        uses: keep-network/npm-version-bump@v2
+        with:
+          work-dir: solidity
+          environment: ${{ github.event.inputs.environment }}
+          branch: ${{ github.ref }}
+          commit: ${{ github.sha }}
+
+      - name: Push contracts to Tenderly
+        if: github.event.inputs.environment == 'ropsten'
+        uses: keep-network/tenderly-push-action@v1
+        continue-on-error: true
+        with:
+          working-directory: solidity
+          tenderly-token: ${{ secrets.TENDERLY_TOKEN }}
+          tenderly-project: thesis/keep-test
+          eth-network-id: ${{ env.NETWORK_ID }}
+          github-project-name: tbtc-v2
+          version-tag: ${{ steps.npm-version-bump.outputs.version }}
+
+      - name: Publish to npm # TODO: remove `--dry-run` before merge to main
+        run: |
+          echo //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} > .npmrc
+          npm publish --access=public --network=${{ github.event.inputs.environment }} --dry-run
+
+      - name: Notify CI about completion of the workflow
+        uses: keep-network/ci/actions/notify-workflow-completed@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+        with:
+          module: "github.com/keep-network/tbtc-v2/solidity"
+          url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          environment: ${{ github.event.inputs.environment }}
+          upstream_builds: ${{ github.event.inputs.upstream_builds }}
+          upstream_ref: ${{ github.event.inputs.upstream_ref }}
+          version: ${{ steps.npm-version-bump.outputs.version }}
 
   contracts-format:
     needs: contracts-detect-changes
