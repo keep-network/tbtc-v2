@@ -80,9 +80,55 @@ days (specified as `locktime`).
 After the deposit transaction has been mined, the user is able to reveal their
 ethereum address and blinding factor to the ethereum chain. The TBTC system listens
 for these sorts of messages and when it sees one, is able to generate a script that
-can spend the funds. Once successful, the wallet moves the funds from the P2SH
-address to the main wallet address, which allows the system to mint tBTC and
-disables the 30-day refund.
+can spend the funds. Once successful, we begin two parallel processes:
+
+1) Now that we know that we _could_ move the funds once we generate the signature,
+we can create a transacion that issues the user a NFT that represents their bitcoin
+UTXO. That NFT is assigned a GUID that which is preditable in advance. Next, we generate
+a transaction that sells the NFT to a
+https://github.com/keep-network/tbtc-research/pull/3/files#diff-93ad61cca4bd3006ea9d4948930a3e30b95a52de58ae02d0246e034ef85a6f1b[quickminter]
+for the proper amount of TBTC. This quickminter transaction can only work if the quickminter
+has enough TBTC in its reserves. Both of these transactions can be submitted in the same
+ethereum block and can be created simultaneously, so long as the nonce for the quickminter
+transaction is higher than the nonce for the NFT minting transaction.
+
+2) We schedule an operation that batches all outstanding known-refundable transactions
+together to be combined with the existing wallet output into a single output. The frequency
+of this operation is a governable parameter. When this sweep occurs, we mint the associated
+amount of TBTC to the quickminter. This disables the 30-day refund.
+
+There were three main alternatives to this process that were considered.
+
+1) The simpler alternative is to sweep immediately after each reveal. This incurs more bitcoin
+fees since the transactions cannot be batched.
+
+2) Sweeping in batches, minting afterward. This causes a potentially large delay for the user
+to receive their TBTC after depositing their BTC.
+
+3) Sweeping in batches, minting immediately. This opens us up to an attack
+where if someone can denial-of-service (DoS) a particular wallet's sweep for an amount of time that is
+at least the refund period, they can do the following:
+
+* Say there is Wallet_A (safe) with 100 BTC, and Wallet_DoS with 100 BTC, and Mallory with 10 BTC.
+* Deposit 10 BTC to Wallet_DoS, mint 10 TBTC. Balances: Wallet_A - 100 BTC; Wallet_DoS - 100 BTC (unswept 10 BTC); Mallory 0 BTC, 10 TBTC
+* Redeem 10 TBTC from Wallet_A. Balances: Wallet_A - 90 BTC; Wallet_DoS - 100 BTC (unswept 10 BTC); Mallory 10 BTC, 0 TBTC
+* Deposit 10 BTC to Wallet_DoS, mint 10 TBTC. Balances: Wallet_A - 90 BTC; Wallet_DoS - 100 BTC (unswept 20 BTC); Mallory 0 BTC, 10 TBTC
+* Redeem 10 TBTC from Wallet_A. Balances: Wallet_A - 80 BTC; Wallet_DoS - 100 BTC (unswept 20 BTC); Mallory 10 BTC, 0 TBTC
+* repeat
+
+At the end, Wallet_A (and every other wallet) can be drained and Wallet_DoS has
+tons of unswept funds. If Mallory can successfully prevent Wallet_DoS from
+sweeping until the refund period has passed, they can refund all of their
+deposited BTC and end up with all of the funds except those in Wallet_DoS.
+
+By minting to the quickminter instead of directly to the depositor, Mallory
+would only be able to drain the quickminter's treasury rather than the whole
+system.
+
+From a UX perspective, the quickminter performs like the
+sweep-in-batches-mint-afterward strategy when the treasury is empty, and
+performs like sweep-in-batches-mint-immediately when the treasury is
+sufficient.
 
 ==== Automated Refunds
 
