@@ -120,7 +120,8 @@ is minimised.
 
 === Group selection
 
-At any time,
+When at least a _minimum sortition interval_ (_I~min~_, e.g. 12h)
+has passed since the last group selection for a new wallet,
 anyone can submit (and pay for) a transaction creating a new wallet.
 This transaction uses the sortition pool to select N members
 and creates a new wallet with the selected members,
@@ -130,6 +131,9 @@ The new wallet is added to the pending wallets.
 
 The submitter of this sortition transaction is rewarded.
 
+If the minimum sortition interval has not passed,
+transactions attempting to create a new wallet are rejected.
+
 ==== Sortition transaction reimbursement
 
 When TBTC is collected in deposit fees,
@@ -137,17 +141,30 @@ a certain fraction (e.g. 10%) of the fee is placed in the sortition fee pool.
 
 The transaction to perform a new sortition can be submitted by anyone.
 The submitter of the transaction is reimbursed from the sortition fee pool.
-If at least 24h has elapsed since the most recent sortition,
+
+The amount reimbursed depends
+on whether the _nominal sortition interval_ (_I~nom~_, e.g. 24h)
+has passed since the last sortition.
+If at least the nominal interval has elapsed since the most recent sortition,
 the full contents of the sortition fee pool are released to the submitter.
-If less than 24h has elapsed,
+If less than the nominal interval has elapsed,
 the amount released to the submitter is reduced,
 and the remainder is released as general rewards
 to other participants in the TBTC system.
 
+This reduction is calculated
+based on the amount of time since the last sortition,
+compared to the minimum and nominal intervals:
+_fraction = time - I~min~ / I~nom~ - I~min~_.
+For example, if _I~min~_ = 12h, _I~nom~_ = 24h,
+and 21h has elapsed since the last sortition,
+we calculate the fraction of passed time as
+`21 - 12 / 24 - 12 = 9 / 12 = 0.75`.
+
 This reduction can be linear
-(the fraction released equals the fraction of 24h that has passed),
+(the fraction released equals the fraction of time that has passed),
 quadratic/cubic
-(the fraction released equals the square/cube of the time passed)
+(the fraction released equals the square/cube of the time fraction)
 or exponential
 (for every hour before 24h has passed, the released fraction is halved).
 
@@ -179,8 +196,10 @@ if _T_ is greater than _N/2+1_.
 
 The full key generation protocol consists of individual _attempts_.
 In each attempt,
-the specified participants try to perform DKG
-with the protocol from `tss-lib`.
+the specified participants signal their readiness,
+establish encryption keys between each other,
+and then try to perform DKG with the protocol from `tss-lib`.
+
 If the attempt fails due to one or more participants being inactive,
 the inactive participants are removed from the DKG participants
 and another attempt is made.
@@ -227,12 +246,17 @@ she broadcasts this information to the rest of the group.
 If the majority of participants agree that Bob failed to send the message,
 Bob is added to the list of inactive members.
 
-If the majority does not agree that Bob failed to send the message,
-they will re-broadcast Bob's message to ensure that all members receive it.
-
-Whenever an operator is deemed to be inactive,
+If one or more operators are deemed to be inactive
+in the readiness signaling and key exchange phases,
+before the DKG proper begins,
+they are removed from the DKG participants and the attempt continues.
+If an operator becomes inactive during DKG,
 the remaining participants start another key generation attempt
-with all inactive members removed.
+with all inactive participants removed.
+
+If the majority does not agree that Bob failed to send the message,
+Bob will not be considered inactive.
+The current attempt will continue if no operators were deemed inactive.
 
 ==== Dealing with misbehaviour
 
