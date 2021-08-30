@@ -1,0 +1,119 @@
+:toc: macro
+
+= RFC 3: Rewards
+
+:icons: font
+:numbered:
+toc::[]
+
+== Overview
+
+When various actions are taken in the tBTC system,
+some TBTC tokens are collected as fees.
+These tokens may be sold for T tokens
+which are then distributed as rewards to various participants,
+or used as rewards directly.
+
+Operators are rewarded for being present and available in the sortition pool,
+and for performing various required transactions on the Ethereum blockchain
+as a member of an active wallet.
+In addition, any Ethereum account may be rewarded
+for performing various necessary maintenance tasks.
+
+=== Sortition pool rewards
+
+All operators present in the sortition pool
+accumulate rewards while they remain in the pool.
+For a simple solution,
+any rewards paid to the sortition pool
+are immediately divided among the currently present operators
+in proportion to their current weight in the pool.
+This requires that joining and leaving the sortition pool quickly is prevented
+so that operators can't pop in for rewards and leave afterwards,
+but requires very little bookkeeping or expensive calculations.
+
+The pool maintains a single global variable for rewards:
+`accumulatedWeightReward`.
+In addition, the total weight of the sortition pool `poolWeight` can be queried.
+Whenever `r` tokens are paid to the pool,
+the accumulator is increased: `accumulatedRewardPerWeight += r / poolWeight`.
+
+Each operator maintains 2 variables for their rewards:
+`weightRewardCollected` and `rewardAvailable`.
+In addition, each operator's `weight` can be queried.
+Whenever an operator's weight changes from `oldWeight` to `newWeight`,
+the rewards earned with the old weight are collected:
+`rewardAvailable += (accumulatedWeightReward - weightRewardCollected) * oldWeight`,
+`weightRewardCollected = accumulatedWeightReward`
+and `weight = newWeight`.
+
+At any time, an operator can withdraw their collected rewards,
+transferring `rewardAvailable` T tokens to them,
+and setting their `rewardAvailable = 0`.
+
+=== Wallet action rewards
+
+Whenever a wallet is required to perform some transaction on-chain,
+a _transaction reward_ is reserved for the wallet.
+When the transaction is correctly submitted,
+the transaction reward is divided
+between the submitter and the rest of the wallet members.
+If the transaction is submitted immediately,
+the full transaction reward is paid out
+and the non-submitter members receive a larger share.
+If the transaction is submitted later,
+the submitter gets a larger reward,
+the other members receive less,
+and some of the reward is withheld from the wallet members altogether.
+The withheld amount is either paid to the sortition pool,
+or kept for future transaction rewards.
+
+For a precise calculation,
+we can use e.g. the Random Beacon entry submission reward rules.
+
+==== Earmarking
+
+Because wallet actions are tied to specific BTC deposits or redemptions,
+it is easy to earmark a specific amount of tBTC for the actions.
+As an example,
+if depositing some amount of BTC takes 0.30% of the deposit as a fee,
+this fee could be divided as follows:
+
+- 0.05% for sweeping the deposit
+- 0.05% for redeeming the deposit (or interwallet transfers)
+- 0.17% for sortition pool members
+- 0.03% for maintenance, e.g. new wallet creation
+
+If someone were to deposit 1 BTC,
+the fee would be 0.003 BTC
+of which 0.0005 BTC would be earmarked for sweeping
+and another 0.0005 BTC for redemption.
+These fees could be collected in the form of TBTC tokens
+immediately upon sweeping the deposit transaction
+and either paid out (sweeping reward)
+or kept in the wallet for future use (redemption reward).
+The remaining 0.002 TBTC
+would be used for sortition pool and maintenance rewards.
+
+=== Maintenance rewards
+
+For global maintenance actions such as new wallet creation,
+we need somebody to submit the transactions,
+but it doesn't have to be an operator.
+In these cases we can have a _maintenance reward pool_ for each task.
+
+Whenever fees are collected by the tBTC system,
+some fraction of the fees would be added to each maintenance reward pool.
+
+When the specified task is successfully performed,
+the sender of the transaction is rewarded
+with some fraction (or all) of the maintenance reward pool for the task,
+according to the reward rules of that particular maintenance task.
+
+If a part of the maintenance reward is withheld
+the withheld amount should be paid out as a sortition pool reward.
+This is distinct from paying out a fraction;
+e.g. the maintenance reward pool might pay 20% of its contents each time,
+but in some circumstances 50% of this might be withheld,
+resulting in 10% being paid to the submitter of the transaction
+and another 10% being withheld and paid to the sortition pool instead.
