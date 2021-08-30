@@ -1,0 +1,121 @@
+:toc: macro
+
+= RFC 5: Emptying and closing wallets
+
+:icons: font
+:numbered:
+toc::[]
+
+== Overview
+
+If a wallet still containing BTC is to be closed,
+the remaining BTC must be transferred to a new wallet if possible.
+
+This applies in the following situations:
+
+- a wallet has fallen below a specified minimum BTC amount
+- a wallet has failed a heartbeat due to losing too many operators
+- a wallet has reached a specified maximum lifetime
+
+When one of these _closure criteria_ is met,
+the wallet changes state to `Emptying`
+and must produce a transaction moving its remaining BTC to a newer wallet.
+
+=== Emptying wallets
+
+When a wallet has began `Emptying`
+the following things change:
+
+- If the wallet was previously a valid deposit wallet,
+it stops being a valid deposit wallet.
+- No redemptions can be made from the wallet.
+- The wallet has 24h to sweep any remaining unswept deposits
+and 48h to transfer its remaining BTC to a newer wallet.
+- The time the wallet began emptying may be recorded,
+or it may be calculated from the time the wallet reached its maximum age
+or reached a timeout in some operation.
+
+==== Sweeping and rejecting deposits
+
+In the scenario where a previously valid deposit wallet begins emptying,
+it stops receiving deposits.
+Any deposits erroneously made to an emptying wallet after it began emptying
+will be rejected and not add to the depositor's BTC balance,
+and must be allowed to time out.
+
+Any deposits made before the wallet began emptying,
+if the wallet was a valid deposit wallet when the deposit was made,
+must be swept within 24h of the wallet beginning to empty.
+This overrides any other deposit sweeping timeouts
+that would give the wallet more time to complete the sweep.
+If the deposit had an earlier timeout,
+the original timeout is unchanged.
+The submitter/s of transaction/s proving the sweeps are rewarded as usual.
+
+Failure to sweep a remaining deposit within the allowed 24h
+is treated like any other failure to sweep.
+
+==== Transferring remaining BTC
+
+An emptying wallet has 48h to move its remaining BTC to a newer wallet.
+The recipient wallet can either be the most recent valid deposit wallet,
+or it can be chosen pseudorandomly
+from some number of most recently created wallets.
+
+This is done in the form of a simple transfer from the emptying wallet
+to the recipient wallet.
+This is similar to a redemption transaction,
+except that the recipient address is another wallet.
+
+When the proof of this BTC transaction is submitted on-chain,
+the transferred amount (minus the transaction fee)
+is immediately added to the recipient wallet's BTC balance
+and the emptying wallet's BTC balance is set to zero.
+The submitter of this transaction is rewarded
+like the submitter of a redemption transaction.
+
+Failure to transfer the BTC balance within 48h
+is treated like a failure to complete a BTC redemption.
+
+==== Closing empty wallets
+
+When a wallet is `Emptying` and its BTC balance reaches 0
+(which can happen simultaneously,
+e.g. if all BTC remaining in the wallet are redeemed in one go)
+it is closed and its members are relieved of any further obligations.
+
+=== Closure criteria
+
+==== Insufficient BTC remaining
+
+As wallets process redemptions,
+the BTC remaining in them shrinks.
+When a redemption reduces a wallet's contents below a specified minimum,
+the wallet`s status is changed on-chain to `Emptying`.
+
+==== Weak heartbeat
+
+If a wallet's heartbeat is signed
+by less than the specified minimum number of active members,
+the wallet's status is changed on-chain to `Emptying`.
+
+==== Failed heartbeat or other operation
+
+If the wallet fails to submit a valid heartbeat within the allowed timeout
+the wallet counts as `Emptying` without a change in on-chain status,
+and is considered to have started `Emptying`
+when the heartbeat timeout was reached.
+
+The same applies to any other operation the wallet fails to perform
+within the allowed timespan,
+such as sweeping a deposit or processing a redemption.
+
+==== Maximum lifetime exceeded
+
+Operators monitor the age of each wallet they are participating in.
+When the wallet's age exceeds a specified maximum
+without some other closure criterion being met
+the operators must begin emptying the wallet.
+The on-chain state of the wallet is not changed,
+but for all purposes a wallet whose age has exceeded the maximum
+will count as `Emptying` from the moment its age reached the maximum.
