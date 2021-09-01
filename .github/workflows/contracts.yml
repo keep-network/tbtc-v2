@@ -150,9 +150,9 @@ jobs:
           version-tag: ${{ steps.npm-version-bump.outputs.version }}
 
       - name: Publish to npm # TODO: remove `--dry-run` before merge to main
-        run: |
-          echo //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} > .npmrc
-          npm publish --access=public --network=${{ github.event.inputs.environment }} --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access=public --network=${{ github.event.inputs.environment }} --dry-run
 
       - name: Notify CI about completion of the workflow
         uses: keep-network/ci/actions/notify-workflow-completed@v1
