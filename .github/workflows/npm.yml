@@ -8,7 +8,6 @@ on:
       - "solidity/contracts/**"
       - "solidity/package.json"
       - "solidity/yarn.lock"
-  pull_request: #TODO: remove before merging
   workflow_dispatch:
 
 jobs:
@@ -45,7 +44,7 @@ jobs:
           branch: ${{ github.ref }}
           commit: ${{ github.sha }}
 
-      - name: Publish package # TODO: remove `--dry-run` before merge to main
+      - name: Publish package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access=public --network=hardhat --dry-run
+        run: npm publish --access=public --network=hardhat
