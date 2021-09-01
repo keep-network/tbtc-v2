@@ -10,7 +10,7 @@ toc::[]
 
 === Minting
 
-Stakers periodically create 51-of-100 (subject to change) ecdsa-backed wallets
+Stakers periodically create <<group-size,51-of-100>> ecdsa-backed wallets
 to hold frozen BTC assets to maintain the peg. Depositors send BTC funds to the
 most-recently-created-wallet by using pay-to-script-hash (P2SH) which contains
 hashed information about the depositor's minting ethereum address. Once the
@@ -42,6 +42,34 @@ operators in T tokens from a treasury funded by the T-token DAO and whenever it
 collects tBTC fees it uses those fees to buy T tokens back for its treasury.
 
 == In Depth
+
+[[group-size]]
+=== Group Size
+There are three main governable parameters that we need to choose:
+* The total size of the group
+* The number of signers required to sign messages
+* The number of group members required for a <<heartbeat,heartbeat>> to be considered "strong".
+
+The total gas cost for sortiton increases linearly with group size by at least
+20k gas per member. Requiring more signers to sign messages makes it harder for
+adversaries to take over the group, but makes it so that the pool is less
+resilient to undelegation or operators going offline. Raising the
+strong-heartbeat threshold decreases the chance that you'll not have enough
+signers to sign transactions, but decreases a wallets lifespan and increases
+overhead.
+
+Another important thing to keep in mind is optics - even though a group size of
+70 with 40 signers required to sign messages might have all of the same
+security properties as a group size of 100 with 51 signers required to sign
+messages, it might not _feel_ as secure. That perception may cause a decreased
+willingness to invest capital in the system leading to less money going over
+the bridge, even though the fees are less overall.
+
+Since we don't have any workable data that allows us to reasonably estimate
+costs (especially with regard to optics), I suggest we start the system out
+at decent https://en.wikipedia.org/wiki/Focal_point_(game_theory)[schelling
+point] of groupsize = 100, signers = 51, strong heartbeat = 70, and then let
+governance adjust from there once we've gathered data from the system being used.
 
 === Minting
 
@@ -176,13 +204,14 @@ being able to meet the 51-of-100 threshhold to produce signatures. Additionally,
 we want to avoid situations where operators are the custodians of a wallet for
 extended periods. To avoid these issues, we can set a max age of a wallet and a minimum
 liveness threshhold. Once a wallet is older than the max age, or if it drops below
-the liveness threshhold (say, below 60 on a heartbeat), we motion to transfer
+the liveness threshhold (say, below 60 on a <<heartbeat,heartbeat>>), we motion to transfer
 the funds to another randomly selected wallet.
 
 Once a wallet no longer has funds and is not the primary wallet for new
 deposits, it can be closed and operators are no longer required to maintain
 it.
 
+[[heartbeat]]
 === Heartbeats
 
 To make sure that older wallets are still accessible for redemption, we need to
