@@ -9,6 +9,7 @@ on:
       - "solidity/package.json"
       - "solidity/yarn.lock"
   pull_request: #TODO: remove before merging
+  workflow_dispatch:
 
 jobs:
   npm-compile-publish-contracts:
