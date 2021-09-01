@@ -31,13 +31,10 @@ jobs:
         run: |
           yarn add @keep-network/tbtc
 
-      - name: Compile contracts
-        run: yarn build
-
-      - name: Copy artifacts
-        run: |
-          mkdir -p artifacts
-          cp -r build/contracts/* artifacts/
+      # Deploy contracts to a local network to generate deployment artifacts that
+      # are required by dashboard compilation.
+      - name: Deploy contracts
+        run: yarn deploy --network hardhat --write true
 
       - name: Bump up package version
         id: npm-version-bump
@@ -51,4 +48,4 @@ jobs:
       - name: Publish package # TODO: remove `--dry-run` before merge to main
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access=public --network=development --dry-run
+        run: npm publish --access=public --network=hardhat --dry-run

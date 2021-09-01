@@ -37,15 +37,6 @@ shift $(expr $OPTIND - 1) # remove options from positional parameters
   exit 1
 }
 
-# For `development` network we don't expect the deployment artifacts to be published.
-# We want to gracefully exit the script, so the package publication can be
-# completed. This is a solution we use to publish a NPM package that can be used
-# in other projects.
-[[ $NETWORK == "development" ]] && {
-  echo "Skipping execution for network: $NETWORK"
-  exit 0
-}
-
 echo "Copying deployments artifacts for network: $NETWORK"
 
 ROOT_DIR="$(realpath "$(dirname "$0")/..")"
