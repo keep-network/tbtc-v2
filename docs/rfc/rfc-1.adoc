@@ -46,9 +46,13 @@ collects tBTC fees it uses those fees to buy T tokens back for its treasury.
 [[group-size]]
 === Group Size
 There are three main governable parameters that we need to choose:
-* The total size of the group
-* The number of signers required to sign messages
-* The number of group members required for a <<heartbeat,heartbeat>> to be considered "strong".
+* The number of signers required to sign messages `threshold`
+* The number of group members required for a <<heartbeat,heartbeat>> to be considered "strong". `heartbeat`
+* The minimum number of members we're allowed to drop down to during the DKG
+  group formation re-try period. `dkg`
+* The total size of the group `groupSize`
+
+`threshold < heartbeat < dkg < groupSize`
 
 The total gas cost for sortiton increases linearly with group size by at least
 20k gas per member. Requiring more signers to sign messages makes it harder for
@@ -56,20 +60,24 @@ adversaries to take over the group, but makes it so that the pool is less
 resilient to undelegation or operators going offline. Raising the
 strong-heartbeat threshold decreases the chance that you'll not have enough
 signers to sign transactions, but decreases a wallets lifespan and increases
-overhead.
+overhead. Loweringing the dkg threshold increases the chance that we're able to
+create a wallet successfully but gives us a wallet with potentially fewer
+operators and a lower lifespan.
 
-Another important thing to keep in mind is optics - even though a group size of
-70 with 40 signers required to sign messages might have all of the same
-security properties as a group size of 100 with 51 signers required to sign
-messages, it might not _feel_ as secure. That perception may cause a decreased
-willingness to invest capital in the system leading to less money going over
-the bridge, even though the fees are less overall.
+Also important is optics - even though a group size of 70 with 40 signers
+required to sign messages might have all of the same security properties as a
+group size of 100 with 51 signers required to sign messages, it might not
+_feel_ as secure. That perception may cause a decreased willingness to invest
+capital in the system leading to less money going over the bridge, even though
+the fees are less overall.
 
 Since we don't have any workable data that allows us to reasonably estimate
 costs (especially with regard to optics), I suggest we start the system out
 at decent https://en.wikipedia.org/wiki/Focal_point_(game_theory)[schelling
-point] of groupsize = 100, signers = 51, strong heartbeat = 70, and then let
+point] of `groupSize = 100`, `threshold = 51`, `heartbeat = 70`, `dkg = 90` and then let
 governance adjust from there once we've gathered data from the system being used.
+
+See link:rfc-2.adoc[RFC 2: tBTCv2 Group Selection and Key Generation] for a deeper dive here
 
 === Minting
 
