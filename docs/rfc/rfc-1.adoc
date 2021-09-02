@@ -46,6 +46,7 @@ collects tBTC fees it uses those fees to buy T tokens back for its treasury.
 [[group-size]]
 === Group Size
 There are three main governable parameters that we need to choose:
+
 * The number of signers required to sign messages `threshold`
 * The number of group members required for a <<heartbeat,heartbeat>> to be considered "strong". `heartbeat`
 * The minimum number of members we're allowed to drop down to during the DKG
