@@ -33,6 +33,7 @@ The maximum redemption size is capped by the size of the largest wallet, and
 any redemption bigger than that will need to be split into multiple
 redemptions.
 
+[[continuous-fees]]
 === Continuous Fees
 
 The system is able to collect fees in the form of tBTC when the BTC is
@@ -207,12 +208,11 @@ they need to do is not submit their reveal and wait 30 days.
 
 === Redemption
 
-To initiate a redemption, a user supplies an amount `x` of TBTC and a bitcoin
+To initiate a redemption, a user with a balance > `x` supplies a bitcoin
 address. Then, the system calculates the redemption fee `fee`, and releases an
 amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
-`y` amount of TBTC is burned to maintain the peg. The remaining `fee` TBTC is
-sold by the system to buy back `T` tokens (more about this process in the fee
-section).
+The remaining `fee` sold by the system to buy back `T` tokens (more about this
+process in the <<continuous-fees,fee section>>) to pay to the operators.
 
 In the MVP version of the system, a redemption is capped at the amount of
 bitcoin contained in the largest wallet. Redemptions are fulfilled from the
