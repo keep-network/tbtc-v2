@@ -79,7 +79,34 @@ governance adjust from there once we've gathered data from the system being used
 
 See link:rfc-2.adoc[RFC 2: tBTCv2 Group Selection and Key Generation] for a deeper dive here
 
-=== Minting
+=== Account Balances
+
+The bridge is able to maintain a clean separation of concerns as well as provide the backbone
+an extensible financial system rooted in bitcoin-on-ethereum by concerning itself _just_ with
+how much bitcoin has gone over the bridge. We keep track of account balances like:
+```
+contract Balances {
+  mapping(address => uint256) private unsweptBalances;
+  mapping(address => uint256) private balances;
+}
+```
+
+When bitcoin enters the system, the associated account's unsweptBalance
+increases. When that deposit is swept, that amount is tranfered to the balance.
+_If_ a user decides to mint a TBTC bitcoin from their balance, their balance
+would be drained and a TBTC token would be minted. When a user brings back TBTC
+to the system, the token is burned and the account balance increases. If the
+user wants BTC, they can drain their account balance to redeem it.
+
+This more abstract design lets us not only do things like mint TBTC by draining
+account balances, but also move into other financial concepts like
+bitcoin-collateralized loans or bitcoin-backed stablecoins.
+
+Neither of the above concepts are in-scope for this RFC, but the important part
+is that we want to make sure we're starting with the more flexible
+account-balances design so that we're not stuck later.
+
+=== Depositing
 
 ==== Deposit + Commitment
 
