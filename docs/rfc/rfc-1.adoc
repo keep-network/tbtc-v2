@@ -8,21 +8,23 @@ toc::[]
 
 == Overview
 
-=== Minting
+=== Depositing
 
 Stakers periodically create <<group-size,51-of-100>> ecdsa-backed wallets
-to hold frozen BTC assets to maintain the peg. Depositors send BTC funds to the
-most-recently-created-wallet by using pay-to-script-hash (P2SH) which contains
-hashed information about the depositor's minting ethereum address. Once the
-block is mined, the depositor reveals their desired ethereum minting address to
-the ethereum chain. The TBTC system listens for these sorts of messages and
-when it gets one, it checks the bitcoin network to make sure the funds line up.
-If everything checks out, then we mint!
+to hold frozen BTC assets to maintain account balances. Depositors send BTC
+funds to the most-recently-created-wallet by using pay-to-script-hash (P2SH)
+which contains hashed information about the depositor's minting ethereum
+address. Once the block is mined, the depositor reveals their desired ethereum
+minting address to the ethereum chain. The bridge listens for these sorts
+of messages and when it gets one, it checks the bitcoin network to make sure
+the funds line up. If everything checks out, then we update your ethereum-side
+account balance.
 
 === Redemption
 
-A user supplies tBTCv2 and a bitcoin address. The system burns the tBTCv2 and
-releases the equivalent amount of bitcoin to the user from a user-supplied bitcoin wallet.
+A user with an account balance supplies a bitcoin address. The system decreases
+their account balance releases the equivalent amount of bitcoin to the user
+from a user-supplied bitcoin wallet.
 
 In the default case, the user-supplied wallet will be determined by the dApp,
 and will be the oldest wallet that is large enough to fulfill the redemption.
