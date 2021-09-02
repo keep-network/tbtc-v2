@@ -44,6 +44,14 @@ and maintain the peg), we must turn to another token. Instead, the system pays
 operators in T tokens from a treasury funded by the T-token DAO and whenever it
 collects tBTC fees it uses those fees to buy T tokens back for its treasury.
 
+=== Minting And Unminting
+
+A user with an account balance can drain their account balance to mint TBTC.
+Similarly, a user can burn TBTC to refill their account balance.
+
+// FIXME: fill in this section with how much TBTC they can mint with regards to
+// their unswept balance
+
 == In Depth
 
 [[group-size]]
