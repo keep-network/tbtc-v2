@@ -20,6 +20,8 @@ as a member of an active wallet.
 In addition, any Ethereum account may be rewarded
 for performing various necessary maintenance tasks.
 
+All reward allocations are governable.
+
 === Sortition pool rewards
 
 All operators present in the sortition pool
