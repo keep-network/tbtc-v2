@@ -1,0 +1,196 @@
+:toc: macro
+
+= RFC 1: tBTCv2 Design
+
+:icons: font
+:numbered:
+toc::[]
+
+== Overview
+
+=== Minting
+
+Stakers periodically create 51-of-100 (subject to change) ecdsa-backed wallets
+to hold frozen BTC assets to maintain the peg. Depositors send BTC funds to the
+most-recently-created-wallet by using pay-to-script-hash (P2SH) which contains
+hashed information about the depositor's minting ethereum address. Once the
+block is mined, the depositor reveals their desired ethereum minting address to
+the ethereum chain. The TBTC system listens for these sorts of messages and
+when it gets one, it checks the bitcoin network to make sure the funds line up.
+If everything checks out, then we mint!
+
+=== Redemption
+
+A user supplies tBTCv2 and a bitcoin address. The system burns the tBTCv2 and
+releases the equivalent amount of bitcoin to the user from a user-supplied bitcoin wallet.
+
+In the default case, the user-supplied wallet will be determined by the dApp,
+and will be the oldest wallet that is large enough to fulfill the redemption.
+
+The maximum redemption size is capped by the size of the largest wallet, and
+any redemption bigger than that will need to be split into multiple
+redemptions.
+
+=== Continuous Fees
+
+The system is able to collect fees in the form of tBTC when the BTC is
+deposited and when it is redeemed. Rather than paying operators at those two
+instances we would prefer to pay them continuously. Since we do not have the
+tBTC to pay them with until we collect the redemption fee (and can't mint it
+and maintain the peg), we must turn to another token. Instead, the system pays
+operators in T tokens from a treasury funded by the T-token DAO and whenever it
+collects tBTC fees it uses those fees to buy T tokens back for its treasury.
+
+== In Depth
+
+=== Minting
+
+==== Deposit + Commitment
+
+Once we know the active wallet's public key hash, the dApp can put together a
+pay-to-script-hash (P2SH) address to receive the funds. This script will be
+unique to each depositor and will look like:
+
+```
+<eth-address> DROP
+<blinding-factor> DROP
+DUP HASH160 <signingGroupPubkey> EQUAL
+IF
+  CHECKSIG
+ELSE
+  DUP HASH160 <refundPubkey> EQUALVERIFY
+  <locktime> CHECKLOCKTIMEVERIFY DROP
+  CHECKSIG
+ENDIF
+```
+
+Since each depositor has their own ethereum address and their own secret
+blinding factor (which is an additional security layer), each depositor's
+script will be unique, and the hash of each depositor's script will be unique.
+
+In order to unlock the funds, one must provide the unhashed script, (which
+means that they know the eth address and blinding factor), as well as an
+unlocking script with a signature and public key. If the sig+pubkey matches the
+signing group public key, the funds are able to be moved immediately. If the
+sig+pubkey matches the refund public key, then the funds can be moved after 30
+days (specified as `locktime`).
+
+==== The Big Reveal
+
+After the deposit transaction has been mined, the user is able to reveal their
+ethereum address and blinding factor to the ethereum chain. The TBTC system listens
+for these sorts of messages and when it sees one, is able to generate a script that
+can spend the funds. Once successful, we begin two parallel processes:
+
+1) Now that we know that we _could_ move the funds once we generate the signature,
+we can create a transacion that issues the user a NFT that represents their bitcoin
+UTXO. That NFT is assigned a GUID that which is preditable in advance. Next, we generate
+a transaction that sells the NFT to a
+https://github.com/keep-network/tbtc-research/pull/3/files#diff-93ad61cca4bd3006ea9d4948930a3e30b95a52de58ae02d0246e034ef85a6f1b[quickminter]
+for the proper amount of TBTC. This quickminter transaction can only work if the quickminter
+has enough TBTC in its reserves. Both of these transactions can be submitted in the same
+ethereum block and can be created simultaneously, so long as the nonce for the quickminter
+transaction is higher than the nonce for the NFT minting transaction.
+
+2) We schedule an operation that batches all outstanding known-refundable transactions
+together to be combined with the existing wallet output into a single output. The frequency
+of this operation is a governable parameter. When this sweep occurs, we mint the associated
+amount of TBTC to the quickminter. This disables the 30-day refund.
+
+There were three main alternatives to this process that were considered.
+
+1) The simpler alternative is to sweep immediately after each reveal. This incurs more bitcoin
+fees since the transactions cannot be batched.
+
+2) Sweeping in batches, minting afterward. This causes a potentially large delay for the user
+to receive their TBTC after depositing their BTC.
+
+3) Sweeping in batches, minting immediately. This opens us up to an attack
+where if someone can denial-of-service (DoS) a particular wallet's sweep for an amount of time that is
+at least the refund period, they can do the following:
+
+* Say there is Wallet_A (safe) with 100 BTC, and Wallet_DoS with 100 BTC, and Mallory with 10 BTC.
+* Deposit 10 BTC to Wallet_DoS, mint 10 TBTC. Balances: Wallet_A - 100 BTC; Wallet_DoS - 100 BTC (unswept 10 BTC); Mallory 0 BTC, 10 TBTC
+* Redeem 10 TBTC from Wallet_A. Balances: Wallet_A - 90 BTC; Wallet_DoS - 100 BTC (unswept 10 BTC); Mallory 10 BTC, 0 TBTC
+* Deposit 10 BTC to Wallet_DoS, mint 10 TBTC. Balances: Wallet_A - 90 BTC; Wallet_DoS - 100 BTC (unswept 20 BTC); Mallory 0 BTC, 10 TBTC
+* Redeem 10 TBTC from Wallet_A. Balances: Wallet_A - 80 BTC; Wallet_DoS - 100 BTC (unswept 20 BTC); Mallory 10 BTC, 0 TBTC
+* repeat
+
+At the end, Wallet_A (and every other wallet) can be drained and Wallet_DoS has
+tons of unswept funds. If Mallory can successfully prevent Wallet_DoS from
+sweeping until the refund period has passed, they can refund all of their
+deposited BTC and end up with all of the funds except those in Wallet_DoS.
+
+By minting to the quickminter instead of directly to the depositor, Mallory
+would only be able to drain the quickminter's treasury rather than the whole
+system.
+
+From a UX perspective, the quickminter performs like the
+sweep-in-batches-mint-afterward strategy when the treasury is empty, and
+performs like sweep-in-batches-mint-immediately when the treasury is
+sufficient.
+
+==== Automated Refunds
+
+A bitcoin transaction is an amount and a script. The script can be something as
+simple as "these funds can be spent by wallet 0xabc", or in our case, as
+complex as "these funds can be spent by wallet 0xabc but if they aren't spent
+within 30 days they can be spent by wallet 0x123". This gives us the ability to
+create deposits that automatically are refunded after 30 days if they aren't
+swept. Thus, if a user misfunds or they get cold feet (for any reason), all
+they need to do is not submit their reveal and wait 30 days.
+
+=== Redemption
+
+To initiate a redemption, a user supplies an amount `x` of TBTC and a bitcoin
+address. Then, the system calculates the redemption fee `fee`, and releases an
+amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
+`y` amount of TBTC is burned to maintain the peg. The remaining `fee` TBTC is
+sold by the system to buy back `T` tokens (more about this process in the fee
+section).
+
+In the MVP version of the system, a redemption is capped at the amount of
+bitcoin contained in the largest wallet. Redemptions are fulfilled from the
+oldest wallet that contains enough bitcoin to fulfil the redemption. If more
+tBTC needs to be redeemed than there is in the largest wallet, then the user
+needs to submit multiple redemptions. After a redemption, if a wallet has under
+a governable threshhold of BTC remaining, it transfers that BTC to the active
+wallet and closes.
+
+=== Wallet Lifecycle
+
+Wallets are periodically created, where the period length is a governable
+parameter. To create a new wallet, a group of 100 operators is selected from
+the pool of available operators (some operators may be selected twice if there
+are not enough) using a process called sortition. The probabiliy that a
+particular operator is chosen is based on their stake weight, which in turn is
+based on the number of `T` tokens they have invested in the staking contract.
+
+Once the 100 operators have been selected, they generate a 51-of-100 ecdsa
+signing group to handle the bitcoin key material. The distributed key
+generation process requires that all 100 participants are available, but future
+signing events (like minting and redemption) only require 51 of the 100.
+
+As time passes and operators drop out of the system, a wallet becomes at risk of
+being able to meet the 51-of-100 threshhold to produce signatures. Additionally,
+we want to avoid situations where operators are the custodians of a wallet for
+extended periods. To avoid these issues, we can set a max age of a wallet and a minimum
+liveness threshhold. Once a wallet is older than the max age, or if it drops below
+the liveness threshhold (say, below 60 on a heartbeat), we motion to transfer
+the funds to another randomly selected wallet.
+
+Once a wallet no longer has funds and is not the primary wallet for new
+deposits, it can be closed and operators are no longer required to maintain
+it.
+
+=== Heartbeats
+
+To make sure that older wallets are still accessible for redemption, we need to
+perform heartbeats. The signing group signs each bitcoin block and then does _not_
+publish the result. If a signer suspects other signers are not online, they can
+issue an on-chain challenge to publish a specified signed bitcoin block (with a
+maximum block age). Since publishing this information costs the signers gas, the
+challenger must pay a deposit to be distributed to the signers if they pass.
+
+Any signer unable to publish the signed block within a specified amount of time
+will begin to be slashed and the challenger will be rewarded.
