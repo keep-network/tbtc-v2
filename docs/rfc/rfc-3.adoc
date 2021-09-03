@@ -56,20 +56,13 @@ and setting their `rewardAvailable = 0`.
 Whenever a wallet is required to perform some transaction on-chain,
 a _transaction reward_ is reserved for the wallet.
 When the transaction is correctly submitted,
-the transaction reward is divided
-between the submitter and the rest of the wallet members.
+the submitter of the transaction receives a fraction of the transaction reward.
 If the transaction is submitted immediately,
-the full transaction reward is paid out
-and the non-submitter members receive a larger share.
-If the transaction is submitted later,
-the submitter gets a larger reward,
-the other members receive less,
-and some of the reward is withheld from the wallet members altogether.
-The withheld amount is either paid to the sortition pool,
-or kept for future transaction rewards.
-
-For a precise calculation,
-we can use e.g. the Random Beacon entry submission reward rules.
+the size of the reward is zero.
+The transaction reward grows until the _maximum reward time_ has elapsed.
+From that point to the applicable timeout,
+the submitter of the transaction would receive the entire transaction reward.
+Any leftover reward is paid to the sortition pool.
 
 ==== Earmarking
 
