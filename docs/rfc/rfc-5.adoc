@@ -99,6 +99,8 @@ the wallet`s status is changed on-chain to `Emptying`.
 If a wallet's heartbeat is signed
 by less than the specified minimum number of active members,
 the wallet's status is changed on-chain to `Emptying`.
+Undelegating members are also counted as inactive
+for the purposes of determining a weak heartbeat.
 
 ==== Failed heartbeat or other operation
 
