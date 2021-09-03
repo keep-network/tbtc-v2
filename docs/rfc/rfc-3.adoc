@@ -103,8 +103,11 @@ the sender of the transaction is rewarded
 with some fraction (or all) of the maintenance reward pool for the task,
 according to the reward rules of that particular maintenance task.
 
-If a part of the maintenance reward is withheld
-the withheld amount should be paid out as a sortition pool reward.
+It is possible for maintenance rewards to be accumulated
+much faster than they can be spent on appropriate maintenance tasks.
+To prevent maintenance tasks from being performed excessively often,
+a part of the maintenance reward can be withheld from the recipient
+and paid out to the sortition pool instead.
 This is distinct from paying out a fraction;
 e.g. the maintenance reward pool might pay 20% of its contents each time,
 but in some circumstances 50% of this might be withheld,
