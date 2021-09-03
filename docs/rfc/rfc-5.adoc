@@ -23,7 +23,8 @@ and must produce a transaction moving its remaining BTC to a newer wallet.
 
 === Emptying wallets
 
-When a wallet has began `Emptying`
+When a wallet has began `Emptying`,
+either from its on-chain state being updated or from a timeout being reached,
 the following things change:
 
 - If the wallet was previously a valid deposit wallet,
