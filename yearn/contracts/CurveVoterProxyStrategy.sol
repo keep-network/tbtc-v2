@@ -189,6 +189,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     /// @param _keepCRV Portion as counter of a fraction denominated by the
     ///        DENOMINATOR constant.
     function setKeepCRV(uint256 _keepCRV) external onlyAuthorized {
+        require(_keepCRV <= DENOMINATOR, "Max value is 10000");
         keepCRV = _keepCRV;
     }
 
