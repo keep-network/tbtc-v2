@@ -293,7 +293,7 @@ contract ConvexStrategy is BaseStrategy {
     }
 
     /// @notice Finalizes the keep CRV threshold update process.
-    /// @dev Can be called only by the strategist and governance, after the the
+    /// @dev Can be called only by the strategist and governance, after the
     ///      governance delay elapses.
     function finalizeKeepCRVUpdate()
         external
@@ -321,7 +321,7 @@ contract ConvexStrategy is BaseStrategy {
     }
 
     /// @notice Finalizes the update of the extra reward swap threshold.
-    /// @dev Can be called only by the strategist and governance, after the the
+    /// @dev Can be called only by the strategist and governance, after the
     ///      governance delay elapses.
     function finalizeExtraRewardSwapThresholdUpdate()
         external

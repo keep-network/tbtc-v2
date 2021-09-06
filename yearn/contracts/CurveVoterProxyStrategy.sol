@@ -232,8 +232,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     }
 
     /// @notice Finalizes the update of the strategy proxy contract address.
-    /// @dev Can be called only by the governance, after the the
-    ///      governance delay elapses.
+    /// @dev Can be called only by the governance, after the governance
+    ///      delay elapses.
     function finalizeStrategyProxyUpdate()
         external
         onlyGovernance
@@ -259,7 +259,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     }
 
     /// @notice Finalizes the keep CRV threshold update process.
-    /// @dev Can be called only by the strategist and governance, after the the
+    /// @dev Can be called only by the strategist and governance, after the
     ///      governance delay elapses.
     function finalizeKeepCRVUpdate()
         external
