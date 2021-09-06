@@ -615,11 +615,14 @@ contract ConvexStrategy is BaseStrategy {
                 tbtcCurvePoolDepositor,
                 wbtcBalance
             );
-            // TODO: When the new curve pool with tBTC v2 is deployed, verify that
-            // the index of wBTC in the array is correct.
+
+            // TODO: When the new curve pool with tBTC v2 is deployed, verify
+            //       that the index of wBTC in the array is correct.
+            uint256[4] memory amounts = [0, 0, wbtcBalance, 0];
+
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
-                [0, 0, wbtcBalance, 0],
-                0
+                amounts,
+                minLiquidityDepositOutAmount(amounts)
             );
         }
 
@@ -662,6 +665,28 @@ contract ConvexStrategy is BaseStrategy {
         ];
 
         // Include slippage tolerance into the maximum amount of output tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
+    }
+
+    /// @notice Calculates the minimum amount of LP tokens that must be
+    ///         received for the liquidity deposit transaction not to revert.
+    /// @param amountsIn Amounts of each underlying coin being deposited.
+    /// @return The minimum amount of LP tokens that must be received for
+    ///         the liquidity deposit transaction not to revert.
+    function minLiquidityDepositOutAmount(uint256[4] memory amountsIn)
+        internal
+        view
+        returns (uint256)
+    {
+        // Get the maximum possible amount of LP tokens received in return
+        // for liquidity deposit basing on pool reserves.
+        uint256 amount = ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
+            amountsIn,
+            true
+        );
+
+        // Include slippage tolerance into the maximum amount of LP tokens
         // in order to obtain the minimum amount desired.
         return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
     }

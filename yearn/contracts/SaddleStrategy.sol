@@ -354,7 +354,7 @@ contract SaddleStrategy is BaseStrategy {
 
             ISaddlePoolSwap(tbtcSaddlePoolSwap).addLiquidity(
                 amounts,
-                0,
+                minLiquidityDepositOutAmount(amounts),
                 uint256(-1),
                 new bytes32[](0) // ignored
             );
@@ -399,6 +399,26 @@ contract SaddleStrategy is BaseStrategy {
         )[path.length - 1];
 
         // Include slippage tolerance into the maximum amount of output tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
+    }
+
+    /// @notice Calculates the minimum amount of LP tokens that must be
+    ///         received for the liquidity deposit transaction not to revert.
+    /// @param amountsIn Amounts of each underlying coin being deposited.
+    /// @return The minimum amount of LP tokens that must be received for
+    ///         the liquidity deposit transaction not to revert.
+    function minLiquidityDepositOutAmount(uint256[] memory amountsIn)
+        internal
+        view
+        returns (uint256)
+    {
+        // Get the maximum possible amount of LP tokens received in return
+        // for liquidity deposit basing on pool reserves.
+        uint256 amount = ISaddlePoolSwap(tbtcSaddlePoolSwap)
+        .calculateTokenAmount(address(this), amountsIn, true);
+
+        // Include slippage tolerance into the maximum amount of LP tokens
         // in order to obtain the minimum amount desired.
         return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
     }
