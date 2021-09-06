@@ -207,6 +207,10 @@ contract ConvexStrategy is BaseStrategy {
     uint256 public extraRewardSwapThreshold;
     uint256 public newExtraRewardSwapThreshold;
     uint256 public extraRewardSwapThresholdChangeInitiated;
+    // Determines the slippage tolerance for price-sensitive transactions.
+    // If transaction's slippage is higher, transaction will be reverted.
+    // Default value is 100 basis points (1%).
+    uint256 public slippageTolerance = 100;
 
     event KeepCRVUpdateStarted(uint256 keepCRV, uint256 timestamp);
     event KeepCRVUpdated(uint256 keepCRV);
@@ -551,7 +555,7 @@ contract ConvexStrategy is BaseStrategy {
 
             IUniswapV2Router(uniswap).swapExactTokensForTokens(
                 crvBalance,
-                0,
+                minSwapOutAmount(uniswap, crvBalance, path),
                 path,
                 address(this),
                 now
@@ -571,7 +575,7 @@ contract ConvexStrategy is BaseStrategy {
 
             IUniswapV2Router(sushiswap).swapExactTokensForTokens(
                 cvxBalance,
-                0,
+                minSwapOutAmount(sushiswap, cvxBalance, path),
                 path,
                 address(this),
                 now
@@ -595,7 +599,7 @@ contract ConvexStrategy is BaseStrategy {
 
                 IUniswapV2Router(uniswap).swapExactTokensForTokens(
                     extraRewardBalance,
-                    0,
+                    minSwapOutAmount(uniswap, extraRewardBalance, path),
                     path,
                     address(this),
                     now
@@ -637,6 +641,29 @@ contract ConvexStrategy is BaseStrategy {
                 balanceOfWant().sub(profit)
             );
         }
+    }
+
+    /// @notice Calculates the minimum amount of output tokens that must be
+    ///         received for the swap transaction not to revert.
+    /// @param dex Address of DEX executing the swap.
+    /// @param amountIn The amount of input tokens to send.
+    /// @param path An array of token addresses determining the swap route.
+    /// @return The minimum amount of output tokens that must be received for
+    ///         the swap transaction not to revert.
+    function minSwapOutAmount(
+        address dex,
+        uint256 amountIn,
+        address[] memory path
+    ) internal view returns (uint256) {
+        // Get the maximum possible amount of the output token basing on
+        // pair reserves.
+        uint256 amount = IUniswapV2Router(dex).getAmountsOut(amountIn, path)[
+            path.length - 1
+        ];
+
+        // Include slippage tolerance into the maximum amount of output tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant

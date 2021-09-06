@@ -104,6 +104,8 @@ contract SaddleStrategy is BaseStrategy {
     using Address for address;
     using SafeMath for uint256;
 
+    uint256 public constant DENOMINATOR = 10000;
+
     // Address of the KEEP token contract.
     address public constant keepToken =
         0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC;
@@ -122,6 +124,10 @@ contract SaddleStrategy is BaseStrategy {
     address public tbtcSaddlePoolSwap;
     // Address of the tBTC v2 Saddle LP rewards contract.
     address public tbtcSaddleLPRewards;
+    // Determines the slippage tolerance for price-sensitive transactions.
+    // If transaction's slippage is higher, transaction will be reverted.
+    // Default value is 100 basis points (1%).
+    uint256 public slippageTolerance = 100;
 
     constructor(
         address _vault,
@@ -325,7 +331,7 @@ contract SaddleStrategy is BaseStrategy {
 
             IUniswapV2Router(uniswap).swapExactTokensForTokens(
                 keepBalance,
-                0,
+                minSwapOutAmount(keepBalance, path),
                 path,
                 address(this),
                 now
@@ -372,6 +378,29 @@ contract SaddleStrategy is BaseStrategy {
                 balanceOfWant().sub(profit)
             );
         }
+    }
+
+    /// @notice Calculates the minimum amount of output tokens that must be
+    ///         received for the swap transaction not to revert.
+    /// @param amountIn The amount of input tokens to send.
+    /// @param path An array of token addresses determining the swap route.
+    /// @return The minimum amount of output tokens that must be received for
+    ///         the swap transaction not to revert.
+    function minSwapOutAmount(uint256 amountIn, address[] memory path)
+        internal
+        view
+        returns (uint256)
+    {
+        // Get the maximum possible amount of the output token basing on
+        // pair reserves.
+        uint256 amount = IUniswapV2Router(uniswap).getAmountsOut(
+            amountIn,
+            path
+        )[path.length - 1];
+
+        // Include slippage tolerance into the maximum amount of output tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant
