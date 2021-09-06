@@ -167,6 +167,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     // If transaction's slippage is higher, transaction will be reverted.
     // Default value is 100 basis points (1%).
     uint256 public slippageTolerance = 100;
+    uint256 public newSlippageTolerance;
+    uint256 public slippageToleranceChangeInitiated;
 
     event KeepCRVUpdateStarted(uint256 keepCRV, uint256 timestamp);
     event KeepCRVUpdated(uint256 keepCRV);
@@ -176,6 +178,12 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         uint256 timestamp
     );
     event StrategyProxyUpdated(address indexed strategyProxy);
+
+    event SlippageToleranceUpdateStarted(
+        uint256 slippageTolerance,
+        uint256 timestamp
+    );
+    event SlippageToleranceUpdated(uint256 slippageTolerance);
 
     /// @notice Reverts if called before the governance delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
@@ -262,6 +270,37 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         emit KeepCRVUpdated(newKeepCRV);
         keepCRVChangeInitiated = 0;
         newKeepCRV = 0;
+    }
+
+    /// @notice Begins the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance.
+    /// @param _newSlippageTolerance Slippage tolerance as counter of a fraction
+    ///        denominated by the DENOMINATOR constant.
+    function beginSlippageToleranceUpdate(uint256 _newSlippageTolerance)
+        external
+        onlyAuthorized
+    {
+        require(_newSlippageTolerance <= DENOMINATOR, "Max value is 10000");
+        newSlippageTolerance = _newSlippageTolerance;
+        slippageToleranceChangeInitiated = block.timestamp;
+        emit SlippageToleranceUpdateStarted(
+            _newSlippageTolerance,
+            block.timestamp
+        );
+    }
+
+    /// @notice Finalizes the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance, after the the
+    ///      governance delay elapses.
+    function finalizeSlippageToleranceUpdate()
+        external
+        onlyAuthorized
+        onlyAfterGovernanceDelay(slippageToleranceChangeInitiated)
+    {
+        slippageTolerance = newSlippageTolerance;
+        emit SlippageToleranceUpdated(newSlippageTolerance);
+        slippageToleranceChangeInitiated = 0;
+        newSlippageTolerance = 0;
     }
 
     /// @return Name of the Yearn vault strategy.

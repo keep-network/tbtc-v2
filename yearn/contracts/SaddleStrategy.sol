@@ -104,6 +104,10 @@ contract SaddleStrategy is BaseStrategy {
     using Address for address;
     using SafeMath for uint256;
 
+    /// @notice Governance delay that needs to pass before any parameter change
+    ///         initiated by the governance takes effect.
+    uint256 public constant GOVERNANCE_DELAY = 48 hours;
+
     uint256 public constant DENOMINATOR = 10000;
 
     // Address of the KEEP token contract.
@@ -128,6 +132,27 @@ contract SaddleStrategy is BaseStrategy {
     // If transaction's slippage is higher, transaction will be reverted.
     // Default value is 100 basis points (1%).
     uint256 public slippageTolerance = 100;
+    uint256 public newSlippageTolerance;
+    uint256 public slippageToleranceChangeInitiated;
+
+    event SlippageToleranceUpdateStarted(
+        uint256 slippageTolerance,
+        uint256 timestamp
+    );
+    event SlippageToleranceUpdated(uint256 slippageTolerance);
+
+    /// @notice Reverts if called before the governance delay elapses.
+    /// @param changeInitiatedTimestamp Timestamp indicating the beginning
+    ///        of the change.
+    modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
+        require(changeInitiatedTimestamp > 0, "Change not initiated");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp - changeInitiatedTimestamp >= GOVERNANCE_DELAY,
+            "Governance delay has not elapsed"
+        );
+        _;
+    }
 
     constructor(
         address _vault,
@@ -146,6 +171,37 @@ contract SaddleStrategy is BaseStrategy {
         tbtcSaddleLPRewards = _tbtcSaddleLPRewards;
         address lpToken = ILPRewards(_tbtcSaddleLPRewards).wrappedToken();
         require(lpToken == address(want), "Incorrect reward pool LP token");
+    }
+
+    /// @notice Begins the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance.
+    /// @param _newSlippageTolerance Slippage tolerance as counter of a fraction
+    ///        denominated by the DENOMINATOR constant.
+    function beginSlippageToleranceUpdate(uint256 _newSlippageTolerance)
+        external
+        onlyAuthorized
+    {
+        require(_newSlippageTolerance <= DENOMINATOR, "Max value is 10000");
+        newSlippageTolerance = _newSlippageTolerance;
+        slippageToleranceChangeInitiated = block.timestamp;
+        emit SlippageToleranceUpdateStarted(
+            _newSlippageTolerance,
+            block.timestamp
+        );
+    }
+
+    /// @notice Finalizes the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance, after the the
+    ///      governance delay elapses.
+    function finalizeSlippageToleranceUpdate()
+        external
+        onlyAuthorized
+        onlyAfterGovernanceDelay(slippageToleranceChangeInitiated)
+    {
+        slippageTolerance = newSlippageTolerance;
+        emit SlippageToleranceUpdated(newSlippageTolerance);
+        slippageToleranceChangeInitiated = 0;
+        newSlippageTolerance = 0;
     }
 
     /// @return Name of the Yearn vault strategy.
