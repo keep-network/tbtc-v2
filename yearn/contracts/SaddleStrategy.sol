@@ -119,9 +119,9 @@ contract SaddleStrategy is BaseStrategy {
 
     // Address of the tBTC v2 Saddle pool swap contract, see
     // https://docs.saddle.finance/contracts
-    address public tbtcSaddlePoolSwap;
+    address public immutable tbtcSaddlePoolSwap;
     // Address of the tBTC v2 Saddle LP rewards contract.
-    address public tbtcSaddleLPRewards;
+    address public immutable tbtcSaddleLPRewards;
 
     constructor(
         address _vault,
