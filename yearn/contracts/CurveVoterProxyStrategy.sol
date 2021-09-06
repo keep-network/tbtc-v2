@@ -115,6 +115,10 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     using Address for address;
     using SafeMath for uint256;
 
+    /// @notice Governance delay that needs to pass before any parameter change
+    ///         initiated by the governance takes effect.
+    uint256 public constant GOVERNANCE_DELAY = 48 hours;
+
     uint256 public constant DENOMINATOR = 10000;
 
     // Address of the CurveYCRVVoter contract.
@@ -123,6 +127,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     // Address of the StrategyProxy contract.
     address public strategyProxy =
         address(0xA420A63BbEFfbda3B147d0585F1852C358e2C152);
+    address public newStrategyProxy;
+    uint256 public strategyProxyChangeInitiated;
     // Address of the CRV token contract.
     address public constant crvToken =
         address(0xD533a949740bb3306d119CC777fa900bA034cd52);
@@ -155,6 +161,30 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     // is `1000`, that means 10% of tokens will be locked because
     // 1000/10000 = 0.1
     uint256 public keepCRV;
+    uint256 public newKeepCRV;
+    uint256 public keepCRVChangeInitiated;
+
+    event KeepCRVUpdateStarted(uint256 keepCRV, uint256 timestamp);
+    event KeepCRVUpdated(uint256 keepCRV);
+
+    event StrategyProxyUpdateStarted(
+        address indexed strategyProxy,
+        uint256 timestamp
+    );
+    event StrategyProxyUpdated(address indexed strategyProxy);
+
+    /// @notice Reverts if called before the governance delay elapses.
+    /// @param changeInitiatedTimestamp Timestamp indicating the beginning
+    ///        of the change.
+    modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
+        require(changeInitiatedTimestamp > 0, "Change not initiated");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp - changeInitiatedTimestamp >= GOVERNANCE_DELAY,
+            "Governance delay has not elapsed"
+        );
+        _;
+    }
 
     constructor(
         address _vault,
@@ -176,21 +206,58 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         tbtcCurvePoolGaugeReward = _tbtcCurvePoolGaugeReward;
     }
 
-    /// @notice Sets the strategy proxy contract address.
+    /// @notice Begins the update of the strategy proxy contract address.
     /// @dev Can be called only by the governance.
-    /// @param _strategyProxy Address of the new proxy.
-    function setStrategyProxy(address _strategyProxy) external onlyGovernance {
-        strategyProxy = _strategyProxy;
+    /// @param _newStrategyProxy Address of the new proxy.
+    function beginStrategyProxyUpdate(address _newStrategyProxy)
+        external
+        onlyGovernance
+    {
+        require(_newStrategyProxy != address(0), "Invalid address");
+        newStrategyProxy = _newStrategyProxy;
+        strategyProxyChangeInitiated = block.timestamp;
+        emit StrategyProxyUpdateStarted(_newStrategyProxy, block.timestamp);
     }
 
-    /// @notice Sets the portion of CRV tokens which should be locked in
-    ///         the Curve vote escrow to gain CRV boost.
+    /// @notice Finalizes the update of the strategy proxy contract address.
+    /// @dev Can be called only by the governance, after the the
+    ///      governance delay elapses.
+    function finalizeStrategyProxyUpdate()
+        external
+        onlyGovernance
+        onlyAfterGovernanceDelay(strategyProxyChangeInitiated)
+    {
+        strategyProxy = newStrategyProxy;
+        emit StrategyProxyUpdated(newStrategyProxy);
+        strategyProxyChangeInitiated = 0;
+        newStrategyProxy = address(0);
+    }
+
+    /// @notice Begins the update of the threshold determining the portion of
+    ///         CRV tokens which should be locked in the Curve vote escrow to
+    ///         gain CRV boost.
     /// @dev Can be called only by the strategist and governance.
-    /// @param _keepCRV Portion as counter of a fraction denominated by the
+    /// @param _newKeepCRV Portion as counter of a fraction denominated by the
     ///        DENOMINATOR constant.
-    function setKeepCRV(uint256 _keepCRV) external onlyAuthorized {
-        require(_keepCRV <= DENOMINATOR, "Max value is 10000");
-        keepCRV = _keepCRV;
+    function beginKeepCRVUpdate(uint256 _newKeepCRV) external onlyAuthorized {
+        require(_newKeepCRV <= DENOMINATOR, "Max value is 10000");
+        newKeepCRV = _newKeepCRV;
+        keepCRVChangeInitiated = block.timestamp;
+        emit KeepCRVUpdateStarted(_newKeepCRV, block.timestamp);
+    }
+
+    /// @notice Finalizes the keep CRV threshold update process.
+    /// @dev Can be called only by the strategist and governance, after the the
+    ///      governance delay elapses.
+    function finalizeKeepCRVUpdate()
+        external
+        onlyAuthorized
+        onlyAfterGovernanceDelay(keepCRVChangeInitiated)
+    {
+        keepCRV = newKeepCRV;
+        emit KeepCRVUpdated(newKeepCRV);
+        keepCRVChangeInitiated = 0;
+        newKeepCRV = 0;
     }
 
     /// @return Name of the Yearn vault strategy.
