@@ -176,12 +176,12 @@ contract ConvexStrategy is BaseStrategy {
         address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
 
     // Address of the depositor contract for the tBTC v2 Curve pool.
-    address public tbtcCurvePoolDepositor;
+    address public immutable tbtcCurvePoolDepositor;
     // ID of the Convex reward pool paired with the tBTC v2 Curve pool.
-    uint256 public tbtcConvexRewardPoolId;
+    uint256 public immutable tbtcConvexRewardPoolId;
     // Address of the Convex reward pool contract paired with the
     // tBTC v2 Curve pool.
-    address public tbtcConvexRewardPool;
+    address public immutable tbtcConvexRewardPool;
     // Address of the extra reward token distributed by the Convex reward pool
     // paired with the tBTC v2 Curve pool. This is applicable only in case when
     // the Curve pool's gauge stakes LP tokens into the Synthetix staking

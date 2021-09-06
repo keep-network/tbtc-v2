@@ -143,18 +143,18 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
 
     // Address of the depositor contract for the tBTC v2 Curve pool.
-    address public tbtcCurvePoolDepositor;
+    address public immutable tbtcCurvePoolDepositor;
     // Address of the gauge contract for the tBTC v2 Curve pool.
-    address public tbtcCurvePoolGauge;
+    address public immutable tbtcCurvePoolGauge;
     // Address of the additional reward token distributed by the gauge contract
     // of the tBTC v2 Curve pool. This is applicable only in case when the gauge
     // stakes LP tokens into the Synthetix staking rewards contract
     // (i.e. the gauge is an instance of LiquidityGaugeReward contract).
     // Can be unset if additional rewards are not supported by the gauge.
-    address public tbtcCurvePoolGaugeReward;
+    address public immutable tbtcCurvePoolGaugeReward;
     // Address of the DEX used to swap reward tokens back to the vault's
     // underlying token. This can be Uniswap or other Uni-like DEX.
-    address public dex;
+    address public immutable dex;
     // Determines the portion of CRV tokens which should be locked in the
     // Curve vote escrow to gain a CRV boost. This is the counter of a fraction
     // denominated by the DENOMINATOR constant. For example, if the value
