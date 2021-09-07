@@ -207,6 +207,12 @@ contract ConvexStrategy is BaseStrategy {
     uint256 public extraRewardSwapThreshold;
     uint256 public newExtraRewardSwapThreshold;
     uint256 public extraRewardSwapThresholdChangeInitiated;
+    // Determines the slippage tolerance for price-sensitive transactions.
+    // If transaction's slippage is higher, transaction will be reverted.
+    // Default value is 100 basis points (1%).
+    uint256 public slippageTolerance = 100;
+    uint256 public newSlippageTolerance;
+    uint256 public slippageToleranceChangeInitiated;
 
     event KeepCRVUpdateStarted(uint256 keepCRV, uint256 timestamp);
     event KeepCRVUpdated(uint256 keepCRV);
@@ -216,6 +222,12 @@ contract ConvexStrategy is BaseStrategy {
         uint256 timestamp
     );
     event ExtraRewardSwapThresholdUpdated(uint256 extraRewardSwapThreshold);
+
+    event SlippageToleranceUpdateStarted(
+        uint256 slippageTolerance,
+        uint256 timestamp
+    );
+    event SlippageToleranceUpdated(uint256 slippageTolerance);
 
     /// @notice Reverts if called before the governance delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
@@ -320,6 +332,37 @@ contract ConvexStrategy is BaseStrategy {
         emit ExtraRewardSwapThresholdUpdated(newExtraRewardSwapThreshold);
         extraRewardSwapThresholdChangeInitiated = 0;
         newExtraRewardSwapThreshold = 0;
+    }
+
+    /// @notice Begins the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance.
+    /// @param _newSlippageTolerance Slippage tolerance as counter of a fraction
+    ///        denominated by the DENOMINATOR constant.
+    function beginSlippageToleranceUpdate(uint256 _newSlippageTolerance)
+        external
+        onlyAuthorized
+    {
+        require(_newSlippageTolerance <= DENOMINATOR, "Max value is 10000");
+        newSlippageTolerance = _newSlippageTolerance;
+        slippageToleranceChangeInitiated = block.timestamp;
+        emit SlippageToleranceUpdateStarted(
+            _newSlippageTolerance,
+            block.timestamp
+        );
+    }
+
+    /// @notice Finalizes the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance, after the the
+    ///      governance delay elapses.
+    function finalizeSlippageToleranceUpdate()
+        external
+        onlyAuthorized
+        onlyAfterGovernanceDelay(slippageToleranceChangeInitiated)
+    {
+        slippageTolerance = newSlippageTolerance;
+        emit SlippageToleranceUpdated(newSlippageTolerance);
+        slippageToleranceChangeInitiated = 0;
+        newSlippageTolerance = 0;
     }
 
     /// @return Name of the Yearn vault strategy.
@@ -551,7 +594,7 @@ contract ConvexStrategy is BaseStrategy {
 
             IUniswapV2Router(uniswap).swapExactTokensForTokens(
                 crvBalance,
-                0,
+                minSwapOutAmount(uniswap, crvBalance, path),
                 path,
                 address(this),
                 now
@@ -571,7 +614,7 @@ contract ConvexStrategy is BaseStrategy {
 
             IUniswapV2Router(sushiswap).swapExactTokensForTokens(
                 cvxBalance,
-                0,
+                minSwapOutAmount(sushiswap, cvxBalance, path),
                 path,
                 address(this),
                 now
@@ -595,7 +638,7 @@ contract ConvexStrategy is BaseStrategy {
 
                 IUniswapV2Router(uniswap).swapExactTokensForTokens(
                     extraRewardBalance,
-                    0,
+                    minSwapOutAmount(uniswap, extraRewardBalance, path),
                     path,
                     address(this),
                     now
@@ -611,11 +654,14 @@ contract ConvexStrategy is BaseStrategy {
                 tbtcCurvePoolDepositor,
                 wbtcBalance
             );
-            // TODO: When the new curve pool with tBTC v2 is deployed, verify that
-            // the index of wBTC in the array is correct.
+
+            // TODO: When the new curve pool with tBTC v2 is deployed, verify
+            //       that the index of wBTC in the array is correct.
+            uint256[4] memory amounts = [0, 0, wbtcBalance, 0];
+
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
-                [0, 0, wbtcBalance, 0],
-                0
+                amounts,
+                minLiquidityDepositOutAmount(amounts)
             );
         }
 
@@ -637,6 +683,51 @@ contract ConvexStrategy is BaseStrategy {
                 balanceOfWant().sub(profit)
             );
         }
+    }
+
+    /// @notice Calculates the minimum amount of output tokens that must be
+    ///         received for the swap transaction not to revert.
+    /// @param dex Address of DEX executing the swap.
+    /// @param amountIn The amount of input tokens to send.
+    /// @param path An array of token addresses determining the swap route.
+    /// @return The minimum amount of output tokens that must be received for
+    ///         the swap transaction not to revert.
+    function minSwapOutAmount(
+        address dex,
+        uint256 amountIn,
+        address[] memory path
+    ) internal view returns (uint256) {
+        // Get the maximum possible amount of the output token based on
+        // pair reserves.
+        uint256 amount = IUniswapV2Router(dex).getAmountsOut(amountIn, path)[
+            path.length - 1
+        ];
+
+        // Include slippage tolerance into the maximum amount of output tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
+    }
+
+    /// @notice Calculates the minimum amount of LP tokens that must be
+    ///         received for the liquidity deposit transaction not to revert.
+    /// @param amountsIn Amounts of each underlying coin being deposited.
+    /// @return The minimum amount of LP tokens that must be received for
+    ///         the liquidity deposit transaction not to revert.
+    function minLiquidityDepositOutAmount(uint256[4] memory amountsIn)
+        internal
+        view
+        returns (uint256)
+    {
+        // Get the maximum possible amount of LP tokens received in return
+        // for liquidity deposit based on pool reserves.
+        uint256 amount = ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
+            amountsIn,
+            true
+        );
+
+        // Include slippage tolerance into the maximum amount of LP tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant
