@@ -619,7 +619,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         view
         returns (uint256)
     {
-        // Get the maximum possible amount of the output token basing on
+        // Get the maximum possible amount of the output token based on
         // pair reserves.
         uint256 amount = IUniswapV2Router(dex).getAmountsOut(amountIn, path)[
             path.length - 1
@@ -641,7 +641,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         returns (uint256)
     {
         // Get the maximum possible amount of LP tokens received in return
-        // for liquidity deposit basing on pool reserves.
+        // for liquidity deposit based on pool reserves.
         uint256 amount = ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
             amountsIn,
             true

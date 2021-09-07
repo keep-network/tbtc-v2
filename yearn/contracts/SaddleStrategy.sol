@@ -447,7 +447,7 @@ contract SaddleStrategy is BaseStrategy {
         view
         returns (uint256)
     {
-        // Get the maximum possible amount of the output token basing on
+        // Get the maximum possible amount of the output token based on
         // pair reserves.
         uint256 amount = IUniswapV2Router(uniswap).getAmountsOut(
             amountIn,
@@ -470,7 +470,7 @@ contract SaddleStrategy is BaseStrategy {
         returns (uint256)
     {
         // Get the maximum possible amount of LP tokens received in return
-        // for liquidity deposit basing on pool reserves.
+        // for liquidity deposit based on pool reserves.
         uint256 amount = ISaddlePoolSwap(tbtcSaddlePoolSwap)
         .calculateTokenAmount(address(this), amountsIn, true);
 
