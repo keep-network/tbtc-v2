@@ -77,11 +77,11 @@ create a wallet successfully but gives us a wallet with potentially fewer
 operators and a lower lifespan.
 
 Also important is optics - even though a group size of 70 with 40 signers
-required to sign messages might have all of the same security properties as a
-group size of 100 with 51 signers required to sign messages, it might not
-_feel_ as secure. That perception may cause a decreased willingness to invest
-capital in the system leading to less money going over the bridge, even though
-the fees are less overall.
+required to sign messages equally secure against being controlled by an
+adversary as a group size of 100 with 51 signers required to sign messages, it
+might not _feel_ as secure. That perception may cause a decreased willingness
+to invest capital in the system leading to less money going over the bridge,
+even though the fees are less overall.
 
 Since we don't have any workable data that allows us to reasonably estimate
 costs (especially with regard to optics), I suggest we start the system out
