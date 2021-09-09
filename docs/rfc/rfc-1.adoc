@@ -155,7 +155,8 @@ days (specified as `locktime`).
 After the deposit transaction has been mined, the user is able to reveal their
 ethereum address and blinding factor to the ethereum chain. The bridge listens
 for these sorts of messages and when it sees one, is able to generate a script that
-can spend the funds. Once successful, we increase the account's unswept balance.
+can spend the funds. Once successful, we increase the account's unswept balance
+and charge a deposit fee.
 
 Second, we schedule an operation that batches all outstanding known-refundable
 transactions together to be combined with the existing wallet output into a
