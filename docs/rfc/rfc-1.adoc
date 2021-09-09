@@ -23,7 +23,7 @@ account balance.
 === Redemption
 
 A user with an account balance supplies a bitcoin address. The system decreases
-their account balance releases the equivalent amount of bitcoin to the user
+their account balance and releases the equivalent amount of bitcoin to the user
 from a user-supplied bitcoin wallet.
 
 In the default case, the user-supplied wallet will be determined by the dApp,
@@ -157,10 +157,10 @@ ethereum address and blinding factor to the ethereum chain. The bridge listens
 for these sorts of messages and when it sees one, is able to generate a script that
 can spend the funds. Once successful, we increase the account's unswept balance.
 
-Second, we schedule an operation that batces all outstanding known-refundable
+Second, we schedule an operation that batches all outstanding known-refundable
 transactions together to be combined with the existing wallet output into a
 single output. The frequency of this operation is a governable parameter. When
-this sweep occurs, we decrease the relevant account's unswept balances and
+this sweep occurs, we decrease the relevant accounts' unswept balances and
 increase their balances. This disables any outstanding 30-day refunds.
 
 ==== Automated Refunds
