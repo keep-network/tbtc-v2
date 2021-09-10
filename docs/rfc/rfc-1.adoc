@@ -67,14 +67,15 @@ There are three main governable parameters that we need to choose:
 `threshold < heartbeat < dkg < groupSize`
 
 The total gas cost for sortiton increases linearly with group size by at least
-20k gas per member. Requiring more signers to sign messages makes it harder for
-adversaries to take over the group, but makes it so that the pool is less
-resilient to undelegation or operators going offline. Raising the
-strong-heartbeat threshold decreases the chance that you'll not have enough
-signers to sign transactions, but decreases a wallets lifespan and increases
-overhead. Lowering the dkg threshold increases the chance that we're able to
-create a wallet successfully but gives us a wallet with potentially fewer
-operators and a lower lifespan.
+20k gas per member (though, we think we can get this down to roughly 6k gas per
+member in the happy path with some upcoming optimizations). Requiring more
+signers to sign messages makes it harder for adversaries to take over the
+group, but makes it so that the pool is less resilient to undelegation or
+operators going offline. Raising the strong-heartbeat threshold decreases the
+chance that you'll not have enough signers to sign transactions, but decreases
+a wallets lifespan and increases overhead. Lowering the dkg threshold increases
+the chance that we're able to create a wallet successfully but gives us a
+wallet with potentially fewer operators and a lower lifespan.
 
 Also important is optics - even though a group size of 70 with 40 signers
 required to sign messages equally secure against being controlled by an
