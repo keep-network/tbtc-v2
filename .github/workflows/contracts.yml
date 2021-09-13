@@ -122,6 +122,12 @@ jobs:
       - name: Resolve latest contracts
         run: yarn add @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
 
+      - name: Configure tenderly
+        if: github.event.inputs.environment == 'ropsten'
+        env:
+          TENDERLY_TOKEN: ${{ secrets.TENDERLY_TOKEN }}
+        run: ./config_tenderly.sh
+
       - name: Deploy contracts
         env:
           CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
@@ -136,18 +142,6 @@ jobs:
           environment: ${{ github.event.inputs.environment }}
           branch: ${{ github.ref }}
           commit: ${{ github.sha }}
-
-      - name: Push contracts to Tenderly
-        if: github.event.inputs.environment == 'ropsten'
-        uses: keep-network/tenderly-push-action@v1
-        continue-on-error: true
-        with:
-          working-directory: solidity
-          tenderly-token: ${{ secrets.TENDERLY_TOKEN }}
-          tenderly-project: thesis/keep-test
-          eth-network-id: ${{ env.NETWORK_ID }}
-          github-project-name: tbtc-v2
-          version-tag: ${{ steps.npm-version-bump.outputs.version }}
 
       - name: Publish to npm
         env:
