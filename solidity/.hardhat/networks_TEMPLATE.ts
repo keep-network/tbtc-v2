@@ -11,11 +11,13 @@ const config: LocalNetworksConfig = {
       url: "url not set",
       from: "address not set",
       accounts: ["private key not set"],
+      tags: ["tenderly"],
     },
     mainnet: {
       url: "url not set",
       from: "address not set",
       accounts: ["private key not set"],
+      tags: ["tenderly"],
     },
   },
 }
