@@ -17,18 +17,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
+  await helpers.ownable.transferOwnership(
+    "TBTC",
+    VendingMachine.address,
+    deployer
+  )
+
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
       name: "VendingMachine",
       address: VendingMachine.address,
     })
   }
-
-  await helpers.ownable.transferOwnership(
-    "TBTC",
-    VendingMachine.address,
-    deployer
-  )
 }
 
 export default func
