@@ -24,7 +24,7 @@ account balance.
 
 A user with an account balance supplies a bitcoin address. The system decreases
 their account balance and releases the equivalent amount of bitcoin to the user
-from a user-supplied bitcoin wallet.
+from the redeeming bitcoin wallet.
 
 The redeeming wallet will be determined by the system on chain via an upgradable
 (by governance) contract. The initial implementation for this contract should
