@@ -144,6 +144,10 @@ contract ConvexStrategy is BaseStrategy {
     using Address for address;
     using SafeMath for uint256;
 
+    /// @notice Governance delay that needs to pass before any parameter change
+    ///         initiated by the governance takes effect.
+    uint256 public constant GOVERNANCE_DELAY = 48 hours;
+
     uint256 public constant DENOMINATOR = 10000;
 
     // Address of the CurveYCRVVoter contract.
@@ -172,12 +176,12 @@ contract ConvexStrategy is BaseStrategy {
         address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
 
     // Address of the depositor contract for the tBTC v2 Curve pool.
-    address public tbtcCurvePoolDepositor;
+    address public immutable tbtcCurvePoolDepositor;
     // ID of the Convex reward pool paired with the tBTC v2 Curve pool.
-    uint256 public tbtcConvexRewardPoolId;
+    uint256 public immutable tbtcConvexRewardPoolId;
     // Address of the Convex reward pool contract paired with the
     // tBTC v2 Curve pool.
-    address public tbtcConvexRewardPool;
+    address public immutable tbtcConvexRewardPool;
     // Address of the extra reward token distributed by the Convex reward pool
     // paired with the tBTC v2 Curve pool. This is applicable only in case when
     // the Curve pool's gauge stakes LP tokens into the Synthetix staking
@@ -192,6 +196,8 @@ contract ConvexStrategy is BaseStrategy {
     // is `1000`, that means 10% of tokens will be locked because
     // 1000/10000 = 0.1
     uint256 public keepCRV;
+    uint256 public newKeepCRV;
+    uint256 public keepCRVChangeInitiated;
     // If extra reward balance is below this threshold, those rewards won't
     // be sold during prepareReturn method execution. This parameter is here
     // because extra reward amounts can be to small to exchange them on DEX
@@ -199,6 +205,42 @@ contract ConvexStrategy is BaseStrategy {
     // method. Setting that threshold to a non-zero value allows to accumulate
     // extra rewards to a specific amount which can be sold without troubles.
     uint256 public extraRewardSwapThreshold;
+    uint256 public newExtraRewardSwapThreshold;
+    uint256 public extraRewardSwapThresholdChangeInitiated;
+    // Determines the slippage tolerance for price-sensitive transactions.
+    // If transaction's slippage is higher, transaction will be reverted.
+    // Default value is 100 basis points (1%).
+    uint256 public slippageTolerance = 100;
+    uint256 public newSlippageTolerance;
+    uint256 public slippageToleranceChangeInitiated;
+
+    event KeepCRVUpdateStarted(uint256 keepCRV, uint256 timestamp);
+    event KeepCRVUpdated(uint256 keepCRV);
+
+    event ExtraRewardSwapThresholdUpdateStarted(
+        uint256 extraRewardSwapThreshold,
+        uint256 timestamp
+    );
+    event ExtraRewardSwapThresholdUpdated(uint256 extraRewardSwapThreshold);
+
+    event SlippageToleranceUpdateStarted(
+        uint256 slippageTolerance,
+        uint256 timestamp
+    );
+    event SlippageToleranceUpdated(uint256 slippageTolerance);
+
+    /// @notice Reverts if called before the governance delay elapses.
+    /// @param changeInitiatedTimestamp Timestamp indicating the beginning
+    ///        of the change.
+    modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
+        require(changeInitiatedTimestamp > 0, "Change not initiated");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp - changeInitiatedTimestamp >= GOVERNANCE_DELAY,
+            "Governance delay has not elapsed"
+        );
+        _;
+    }
 
     constructor(
         address _vault,
@@ -237,23 +279,90 @@ contract ConvexStrategy is BaseStrategy {
         }
     }
 
-    /// @notice Sets the portion of CRV tokens which should be locked in
-    ///         the Curve vote escrow to gain CRV boost.
+    /// @notice Begins the update of the threshold determining the portion of
+    ///         CRV tokens which should be locked in the Curve vote escrow to
+    ///         gain CRV boost.
     /// @dev Can be called only by the strategist and governance.
-    /// @param _keepCRV Portion as counter of a fraction denominated by the
+    /// @param _newKeepCRV Portion as counter of a fraction denominated by the
     ///        DENOMINATOR constant.
-    function setKeepCRV(uint256 _keepCRV) external onlyAuthorized {
-        keepCRV = _keepCRV;
+    function beginKeepCRVUpdate(uint256 _newKeepCRV) external onlyAuthorized {
+        require(_newKeepCRV <= DENOMINATOR, "Max value is 10000");
+        newKeepCRV = _newKeepCRV;
+        keepCRVChangeInitiated = block.timestamp;
+        emit KeepCRVUpdateStarted(_newKeepCRV, block.timestamp);
     }
 
-    /// @notice Sets the extra reward swap threshold.
+    /// @notice Finalizes the keep CRV threshold update process.
+    /// @dev Can be called only by the strategist and governance, after the
+    ///      governance delay elapses.
+    function finalizeKeepCRVUpdate()
+        external
+        onlyAuthorized
+        onlyAfterGovernanceDelay(keepCRVChangeInitiated)
+    {
+        keepCRV = newKeepCRV;
+        emit KeepCRVUpdated(newKeepCRV);
+        keepCRVChangeInitiated = 0;
+        newKeepCRV = 0;
+    }
+
+    /// @notice Begins the update of the extra reward swap threshold.
     /// @dev Can be called only by the strategist and governance.
-    /// @param _extraRewardSwapThreshold New swap threshold.
-    function setExtraRewardSwapThreshold(uint256 _extraRewardSwapThreshold)
+    /// @param _newExtraRewardSwapThreshold New swap threshold.
+    function beginExtraRewardSwapThresholdUpdate(
+        uint256 _newExtraRewardSwapThreshold
+    ) external onlyAuthorized {
+        newExtraRewardSwapThreshold = _newExtraRewardSwapThreshold;
+        extraRewardSwapThresholdChangeInitiated = block.timestamp;
+        emit ExtraRewardSwapThresholdUpdateStarted(
+            _newExtraRewardSwapThreshold,
+            block.timestamp
+        );
+    }
+
+    /// @notice Finalizes the update of the extra reward swap threshold.
+    /// @dev Can be called only by the strategist and governance, after the
+    ///      governance delay elapses.
+    function finalizeExtraRewardSwapThresholdUpdate()
+        external
+        onlyAuthorized
+        onlyAfterGovernanceDelay(extraRewardSwapThresholdChangeInitiated)
+    {
+        extraRewardSwapThreshold = newExtraRewardSwapThreshold;
+        emit ExtraRewardSwapThresholdUpdated(newExtraRewardSwapThreshold);
+        extraRewardSwapThresholdChangeInitiated = 0;
+        newExtraRewardSwapThreshold = 0;
+    }
+
+    /// @notice Begins the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance.
+    /// @param _newSlippageTolerance Slippage tolerance as counter of a fraction
+    ///        denominated by the DENOMINATOR constant.
+    function beginSlippageToleranceUpdate(uint256 _newSlippageTolerance)
         external
         onlyAuthorized
     {
-        extraRewardSwapThreshold = _extraRewardSwapThreshold;
+        require(_newSlippageTolerance <= DENOMINATOR, "Max value is 10000");
+        newSlippageTolerance = _newSlippageTolerance;
+        slippageToleranceChangeInitiated = block.timestamp;
+        emit SlippageToleranceUpdateStarted(
+            _newSlippageTolerance,
+            block.timestamp
+        );
+    }
+
+    /// @notice Finalizes the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance, after the the
+    ///      governance delay elapses.
+    function finalizeSlippageToleranceUpdate()
+        external
+        onlyAuthorized
+        onlyAfterGovernanceDelay(slippageToleranceChangeInitiated)
+    {
+        slippageTolerance = newSlippageTolerance;
+        emit SlippageToleranceUpdated(newSlippageTolerance);
+        slippageToleranceChangeInitiated = 0;
+        newSlippageTolerance = 0;
     }
 
     /// @return Name of the Yearn vault strategy.
@@ -485,7 +594,7 @@ contract ConvexStrategy is BaseStrategy {
 
             IUniswapV2Router(uniswap).swapExactTokensForTokens(
                 crvBalance,
-                0,
+                minSwapOutAmount(uniswap, crvBalance, path),
                 path,
                 address(this),
                 now
@@ -505,7 +614,7 @@ contract ConvexStrategy is BaseStrategy {
 
             IUniswapV2Router(sushiswap).swapExactTokensForTokens(
                 cvxBalance,
-                0,
+                minSwapOutAmount(sushiswap, cvxBalance, path),
                 path,
                 address(this),
                 now
@@ -529,7 +638,7 @@ contract ConvexStrategy is BaseStrategy {
 
                 IUniswapV2Router(uniswap).swapExactTokensForTokens(
                     extraRewardBalance,
-                    0,
+                    minSwapOutAmount(uniswap, extraRewardBalance, path),
                     path,
                     address(this),
                     now
@@ -545,11 +654,14 @@ contract ConvexStrategy is BaseStrategy {
                 tbtcCurvePoolDepositor,
                 wbtcBalance
             );
-            // TODO: When the new curve pool with tBTC v2 is deployed, verify that
-            // the index of wBTC in the array is correct.
+
+            // TODO: When the new curve pool with tBTC v2 is deployed, verify
+            //       that the index of wBTC in the array is correct.
+            uint256[4] memory amounts = [0, 0, wbtcBalance, 0];
+
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
-                [0, 0, wbtcBalance, 0],
-                0
+                amounts,
+                minLiquidityDepositOutAmount(amounts)
             );
         }
 
@@ -571,6 +683,51 @@ contract ConvexStrategy is BaseStrategy {
                 balanceOfWant().sub(profit)
             );
         }
+    }
+
+    /// @notice Calculates the minimum amount of output tokens that must be
+    ///         received for the swap transaction not to revert.
+    /// @param dex Address of DEX executing the swap.
+    /// @param amountIn The amount of input tokens to send.
+    /// @param path An array of token addresses determining the swap route.
+    /// @return The minimum amount of output tokens that must be received for
+    ///         the swap transaction not to revert.
+    function minSwapOutAmount(
+        address dex,
+        uint256 amountIn,
+        address[] memory path
+    ) internal view returns (uint256) {
+        // Get the maximum possible amount of the output token based on
+        // pair reserves.
+        uint256 amount = IUniswapV2Router(dex).getAmountsOut(amountIn, path)[
+            path.length - 1
+        ];
+
+        // Include slippage tolerance into the maximum amount of output tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
+    }
+
+    /// @notice Calculates the minimum amount of LP tokens that must be
+    ///         received for the liquidity deposit transaction not to revert.
+    /// @param amountsIn Amounts of each underlying coin being deposited.
+    /// @return The minimum amount of LP tokens that must be received for
+    ///         the liquidity deposit transaction not to revert.
+    function minLiquidityDepositOutAmount(uint256[4] memory amountsIn)
+        internal
+        view
+        returns (uint256)
+    {
+        // Get the maximum possible amount of LP tokens received in return
+        // for liquidity deposit based on pool reserves.
+        uint256 amount = ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
+            amountsIn,
+            true
+        );
+
+        // Include slippage tolerance into the maximum amount of LP tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant

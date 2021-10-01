@@ -1,6 +1,8 @@
 name: Solidity
 
 on:
+  schedule:
+    - cron: "0 0 * * *"
   push:
     branches:
       - main
@@ -120,7 +122,7 @@ jobs:
           query: tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
 
       - name: Resolve latest contracts
-        run: yarn add @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+        run: yarn upgrade @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
 
       - name: Configure tenderly
         if: github.event.inputs.environment == 'ropsten'
