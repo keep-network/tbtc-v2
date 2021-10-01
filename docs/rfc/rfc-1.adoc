@@ -8,29 +8,40 @@ toc::[]
 
 == Overview
 
-=== Minting
+=== Depositing
 
-Stakers periodically create 51-of-100 (subject to change) ecdsa-backed wallets
-to hold frozen BTC assets to maintain the peg. Depositors send BTC funds to the
-most-recently-created-wallet by using pay-to-script-hash (P2SH) which contains
-hashed information about the depositor's minting ethereum address. Once the
-block is mined, the depositor reveals their desired ethereum minting address to
-the ethereum chain. The TBTC system listens for these sorts of messages and
-when it gets one, it checks the bitcoin network to make sure the funds line up.
-If everything checks out, then we mint!
+Stakers periodically create <<group-size,51-of-100>> ecdsa-backed wallets
+to hold frozen BTC assets to maintain account balances. Depositors send BTC
+funds to the most-recently-created-wallet by using pay-to-script-hash (P2SH)
+which contains hashed information about the depositor's minting ethereum
+address. Once the block is mined, the depositor reveals their desired ethereum
+minting address to the ethereum chain. The bridge listens for these sorts
+of messages and when it gets one, it checks the bitcoin network to make sure
+the funds line up. If everything checks out, then we update your ethereum-side
+account balance.
 
 === Redemption
 
-A user supplies tBTCv2 and a bitcoin address. The system burns the tBTCv2 and
-releases the equivalent amount of bitcoin to the user from a user-supplied bitcoin wallet.
+A user with an account balance supplies a bitcoin address. The system decreases
+their account balance and releases the equivalent amount of bitcoin to the user
+from the redeeming bitcoin wallet.
 
-In the default case, the user-supplied wallet will be determined by the dApp,
-and will be the oldest wallet that is large enough to fulfill the redemption.
+The redeeming wallet will be determined by the system on chain via an upgradable
+(by governance) contract. The initial implementation for this contract should
+select the oldest wallet. Redemptions should be batched (details to be
+determined) to both decrease fees and processing time.
+
+One possible implementation for efficient on-chain calculation of the oldest wallet
+is to store the wallet information in a tree similar to what we use for sortition
+pools, ensuring that no matter how many wallets we have active, the cost of
+finding a wallet is always logarithmic over the maximum number of wallets during
+the system's lifetime.
 
 The maximum redemption size is capped by the size of the largest wallet, and
 any redemption bigger than that will need to be split into multiple
 redemptions.
 
+[[continuous-fees]]
 === Continuous Fees
 
 The system is able to collect fees in the form of tBTC when the BTC is
@@ -41,9 +52,82 @@ and maintain the peg), we must turn to another token. Instead, the system pays
 operators in T tokens from a treasury funded by the T-token DAO and whenever it
 collects tBTC fees it uses those fees to buy T tokens back for its treasury.
 
+=== Minting And Unminting
+
+A user with an account balance can drain their account balance to mint TBTC.
+Similarly, a user can burn TBTC to refill their account balance.
+
+// FIXME: fill in this section with how much TBTC they can mint with regards to
+// their unswept balance
+
 == In Depth
 
-=== Minting
+[[group-size]]
+=== Group Size
+There are three main governable parameters that we need to choose:
+
+* The number of signers that can be controlled by the adversary before the key is in danger `threshold`
+* The number of group members required for a <<heartbeat,heartbeat>> to be considered "strong". `heartbeat`
+* The minimum number of members we're allowed to drop down to during the DKG
+  group formation re-try period. `dkg`
+* The total size of the group `groupSize`
+
+`threshold < heartbeat < dkg < groupSize`
+
+The total gas cost for sortiton increases linearly with group size by at least
+20k gas per member (though, we think we can get this down to roughly 6k gas per
+member in the happy path with some upcoming optimizations). Requiring more
+signers to sign messages makes it harder for adversaries to take over the
+group, but makes it so that the pool is less resilient to undelegation or
+operators going offline. Raising the strong-heartbeat threshold decreases the
+chance that you'll not have enough signers to sign transactions, but decreases
+a wallets lifespan and increases overhead. Lowering the dkg threshold increases
+the chance that we're able to create a wallet successfully but gives us a
+wallet with potentially fewer operators and a lower lifespan.
+
+Also important is optics - even though a group size of 70 with 40 signers
+required to sign messages equally secure against being controlled by an
+adversary as a group size of 100 with 51 signers required to sign messages, it
+might not _feel_ as secure. That perception may cause a decreased willingness
+to invest capital in the system leading to less money going over the bridge,
+even though the fees are less overall.
+
+Since we don't have any workable data that allows us to reasonably estimate
+costs (especially with regard to optics), I suggest we start the system out
+at decent https://en.wikipedia.org/wiki/Focal_point_(game_theory)[schelling
+point] of `groupSize = 100`, `threshold = 50`, `heartbeat = 70`, `dkg = 90` and then let
+governance adjust from there once we've gathered data from the system being used.
+
+See link:rfc-2.adoc[RFC 2: tBTCv2 Group Selection and Key Generation] for a deeper dive here
+
+=== Account Balances
+
+The bridge is able to maintain a clean separation of concerns as well as provide the backbone
+an extensible financial system rooted in bitcoin-on-ethereum by concerning itself _just_ with
+how much bitcoin has gone over the bridge. We keep track of account balances like:
+```
+contract Balances {
+  mapping(address => uint256) private unsweptBalances;
+  mapping(address => uint256) private balances;
+}
+```
+
+When bitcoin enters the system, the associated account's unsweptBalance
+increases. When that deposit is swept, that amount is tranfered to the balance.
+_If_ a user decides to mint a TBTC bitcoin from their balance, their balance
+would be drained and a TBTC token would be minted. When a user brings back TBTC
+to the system, the token is burned and the account balance increases. If the
+user wants BTC, they can drain their account balance to redeem it.
+
+This more abstract design lets us not only do things like mint TBTC by draining
+account balances, but also move into other financial concepts like
+bitcoin-collateralized loans or bitcoin-backed stablecoins.
+
+Neither of the above concepts are in-scope for this RFC, but the important part
+is that we want to make sure we're starting with the more flexible
+account-balances design so that we're not stuck later.
+
+=== Depositing
 
 ==== Deposit + Commitment
 
@@ -78,57 +162,16 @@ days (specified as `locktime`).
 ==== The Big Reveal
 
 After the deposit transaction has been mined, the user is able to reveal their
-ethereum address and blinding factor to the ethereum chain. The TBTC system listens
+ethereum address and blinding factor to the ethereum chain. The bridge listens
 for these sorts of messages and when it sees one, is able to generate a script that
-can spend the funds. Once successful, we begin two parallel processes:
+can spend the funds. Once successful, we increase the account's unswept balance
+and charge a deposit fee.
 
-1) Now that we know that we _could_ move the funds once we generate the signature,
-we can create a transacion that issues the user a NFT that represents their bitcoin
-UTXO. That NFT is assigned a GUID that which is preditable in advance. Next, we generate
-a transaction that sells the NFT to a
-https://github.com/keep-network/tbtc-research/pull/3/files#diff-93ad61cca4bd3006ea9d4948930a3e30b95a52de58ae02d0246e034ef85a6f1b[quickminter]
-for the proper amount of TBTC. This quickminter transaction can only work if the quickminter
-has enough TBTC in its reserves. Both of these transactions can be submitted in the same
-ethereum block and can be created simultaneously, so long as the nonce for the quickminter
-transaction is higher than the nonce for the NFT minting transaction.
-
-2) We schedule an operation that batches all outstanding known-refundable transactions
-together to be combined with the existing wallet output into a single output. The frequency
-of this operation is a governable parameter. When this sweep occurs, we mint the associated
-amount of TBTC to the quickminter. This disables the 30-day refund.
-
-There were three main alternatives to this process that were considered.
-
-1) The simpler alternative is to sweep immediately after each reveal. This incurs more bitcoin
-fees since the transactions cannot be batched.
-
-2) Sweeping in batches, minting afterward. This causes a potentially large delay for the user
-to receive their TBTC after depositing their BTC.
-
-3) Sweeping in batches, minting immediately. This opens us up to an attack
-where if someone can denial-of-service (DoS) a particular wallet's sweep for an amount of time that is
-at least the refund period, they can do the following:
-
-* Say there is Wallet_A (safe) with 100 BTC, and Wallet_DoS with 100 BTC, and Mallory with 10 BTC.
-* Deposit 10 BTC to Wallet_DoS, mint 10 TBTC. Balances: Wallet_A - 100 BTC; Wallet_DoS - 100 BTC (unswept 10 BTC); Mallory 0 BTC, 10 TBTC
-* Redeem 10 TBTC from Wallet_A. Balances: Wallet_A - 90 BTC; Wallet_DoS - 100 BTC (unswept 10 BTC); Mallory 10 BTC, 0 TBTC
-* Deposit 10 BTC to Wallet_DoS, mint 10 TBTC. Balances: Wallet_A - 90 BTC; Wallet_DoS - 100 BTC (unswept 20 BTC); Mallory 0 BTC, 10 TBTC
-* Redeem 10 TBTC from Wallet_A. Balances: Wallet_A - 80 BTC; Wallet_DoS - 100 BTC (unswept 20 BTC); Mallory 10 BTC, 0 TBTC
-* repeat
-
-At the end, Wallet_A (and every other wallet) can be drained and Wallet_DoS has
-tons of unswept funds. If Mallory can successfully prevent Wallet_DoS from
-sweeping until the refund period has passed, they can refund all of their
-deposited BTC and end up with all of the funds except those in Wallet_DoS.
-
-By minting to the quickminter instead of directly to the depositor, Mallory
-would only be able to drain the quickminter's treasury rather than the whole
-system.
-
-From a UX perspective, the quickminter performs like the
-sweep-in-batches-mint-afterward strategy when the treasury is empty, and
-performs like sweep-in-batches-mint-immediately when the treasury is
-sufficient.
+Second, we schedule an operation that batches all outstanding known-refundable
+transactions together to be combined with the existing wallet output into a
+single output. The frequency of this operation is a governable parameter. When
+this sweep occurs, we decrease the relevant accounts' unswept balances and
+increase their balances. This disables any outstanding 30-day refunds.
 
 ==== Automated Refunds
 
@@ -142,19 +185,19 @@ they need to do is not submit their reveal and wait 30 days.
 
 === Redemption
 
-To initiate a redemption, a user supplies an amount `x` of TBTC and a bitcoin
+To initiate a redemption, a user with a balance > `x` supplies a bitcoin
 address. Then, the system calculates the redemption fee `fee`, and releases an
 amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
-`y` amount of TBTC is burned to maintain the peg. The remaining `fee` TBTC is
-sold by the system to buy back `T` tokens (more about this process in the fee
-section).
+The remaining `fee` sold by the system to buy back `T` tokens (more about this
+process in the <<continuous-fees,fee section>>) to pay to the operators.
 
 In the MVP version of the system, a redemption is capped at the amount of
-bitcoin contained in the largest wallet. Redemptions are fulfilled from the
-oldest wallet that contains enough bitcoin to fulfil the redemption. If more
-tBTC needs to be redeemed than there is in the largest wallet, then the user
-needs to submit multiple redemptions. After a redemption, if a wallet has under
-a governable threshhold of BTC remaining, it transfers that BTC to the active
+bitcoin contained in the largest wallet. The wallet doing the redemption is
+selected by the redeemer, but the dApp should suggest that this is the oldest
+wallet that contains enough bitcoin to fulfil the redemption. If more BTC
+needs to be redeemed than there is in the largest wallet, then the user needs
+to submit multiple redemptions. After a redemption, if a wallet has under a
+governable threshhold of BTC remaining, it transfers that BTC to the active
 wallet and closes.
 
 === Wallet Lifecycle
@@ -166,23 +209,25 @@ are not enough) using a process called sortition. The probabiliy that a
 particular operator is chosen is based on their stake weight, which in turn is
 based on the number of `T` tokens they have invested in the staking contract.
 
-Once the 100 operators have been selected, they generate a 51-of-100 ecdsa
-signing group to handle the bitcoin key material. The distributed key
-generation process requires that all 100 participants are available, but future
-signing events (like minting and redemption) only require 51 of the 100.
+Once the operators have been selected from the sortition pool, they generate a
+51-of-100 ecdsa signing group to handle the bitcoin key material per the
+process described in link:rfc-2.adoc[RFC 2: tBTCv2 Group Selection and Key
+Generation]. The group size may end up being smaller depending on retries.
 
-As time passes and operators drop out of the system, a wallet becomes at risk of
-being able to meet the 51-of-100 threshhold to produce signatures. Additionally,
-we want to avoid situations where operators are the custodians of a wallet for
-extended periods. To avoid these issues, we can set a max age of a wallet and a minimum
-liveness threshhold. Once a wallet is older than the max age, or if it drops below
-the liveness threshhold (say, below 60 on a heartbeat), we motion to transfer
-the funds to another randomly selected wallet.
+As time passes and operators drop out of the system, a wallet becomes at risk
+of being able to meet the 51-of-100 threshhold to produce signatures.
+Additionally, we want to avoid situations where operators are the custodians of
+a wallet for extended periods. To avoid these issues, we can set a max age of a
+wallet and a heartbeat threshold. Once a wallet is older than the max age, or
+if it drops below the liveness threshhold (say, below 70 on a
+<<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
+selected wallet.
 
 Once a wallet no longer has funds and is not the primary wallet for new
 deposits, it can be closed and operators are no longer required to maintain
 it.
 
+[[heartbeat]]
 === Heartbeats
 
 To make sure that older wallets are still accessible for redemption, we need to

@@ -110,6 +110,7 @@ jobs:
           node-version: "14.x"
           cache: "yarn"
           cache-dependency-path: solidity/yarn.lock
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
