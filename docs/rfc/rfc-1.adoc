@@ -54,11 +54,10 @@ collects tBTC fees it uses those fees to buy T tokens back for its treasury.
 
 === Minting And Unminting
 
-A user with an account balance can drain their account balance to mint TBTC.
+A user with a swept account balance can drain their account balance to mint TBTC.
 Similarly, a user can burn TBTC to refill their account balance.
 
-// FIXME: fill in this section with how much TBTC they can mint with regards to
-// their unswept balance
+A user with a swept account balance can drain their account balance to redeem BTC.
 
 == In Depth
 
@@ -170,7 +169,7 @@ and charge a deposit fee.
 Second, we schedule an operation that batches all outstanding known-refundable
 transactions together to be combined with the existing wallet output into a
 single output. The frequency of this operation is a governable parameter. When
-this sweep occurs, we decrease the relevant accounts' unswept balances and
+this <<sweeping,sweep>> occurs, we decrease the relevant accounts' unswept balances and
 increase their balances. This disables any outstanding 30-day refunds.
 
 ==== Automated Refunds
@@ -180,12 +179,48 @@ simple as "these funds can be spent by wallet 0xabc", or in our case, as
 complex as "these funds can be spent by wallet 0xabc but if they aren't spent
 within 30 days they can be spent by wallet 0x123". This gives us the ability to
 create deposits that automatically are refunded after 30 days if they aren't
-swept. Thus, if a user misfunds or they get cold feet (for any reason), all
-they need to do is not submit their reveal and wait 30 days.
+<<sweeping,swept>>. Thus, if a user misfunds or they get cold feet (for any
+reason), all they need to do is not submit their reveal and wait 30 days.
+
+[[sweeping]]
+==== Sweeping
+The operators sign a transaction that unlocks all revealed deposits, combines
+them into a single UTXO with the existing UTXO, and relocks that transactions
+without a 30-day refund clause to same wallet. This has two main effects: it
+consolidates the UTXO set and it disables the refund.
+
+This process is called a "sweep", and occurs based on a governable frequency.
+Any deposit below a governable threshold is ignored.
+
+After submitting the transaction, it will cost some amount of bitcoin based on
+what miners are charging for the bitcoin fee. This fee comes out of the unswept
+deposits. When the transaction clears, the users unswept balances are
+decreased, and their swept balances are increased (after paying their share of
+the mining fee).
+
+The main downside to this approach is that it can take, in the worst case, up
+to the frequency parameter in time for a user to be able to mint TBTC. To help
+alleviate this, two suggestions:
+
+1) We surface when the next scheduled sweep is somewhere in the dApp. This
+allows users to feel a lot better about when sweeps are happening, and feel
+better about when their funds will be available. There is also something to be
+said about the marketing around explaining that we're batching in order to
+reduce fees across the board for the end user, which allows for the decentralized
+product to compete with the centralized ones.
+
+2) We allow users to request that their TBTC is minted as soon as they have a
+swept account balance. This makes it so they don't have to wait, check, and
+come back later and mint.
+
+Combining these ideas, a user would deposit some BTC, reveal their eth address
+and blinding factor, and then request that TBTC gets minted ASAP. Checking the
+dApp, they can see that they should expect TBTC in their provided wallet
+address in 3 hours with no further interaction.
 
 === Redemption
 
-To initiate a redemption, a user with a balance > `x` supplies a bitcoin
+To initiate a redemption, a user with a swept balance > `x` supplies a bitcoin
 address. Then, the system calculates the redemption fee `fee`, and releases an
 amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
 The remaining `fee` sold by the system to buy back `T` tokens (more about this
