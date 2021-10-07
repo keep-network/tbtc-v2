@@ -203,7 +203,7 @@ The main downside to this approach is that it can take, in the worst case, up
 to the frequency parameter in time for a user to be able to mint TBTC. To help
 alleviate this, two suggestions:
 
-1) We surface when the next scheduled sweep and the accumulation threshhold
+1) We surface when the next scheduled sweep and the accumulation threshold
 data is somewhere in the dApp. This allows users to feel a lot better about
 when sweeps are happening, and feel better about when their funds will be
 available. There is also something to be said about the marketing around
@@ -234,7 +234,7 @@ selected by the redeemer, but the dApp should suggest that this is the oldest
 wallet that contains enough bitcoin to fulfil the redemption. If more BTC
 needs to be redeemed than there is in the largest wallet, then the user needs
 to submit multiple redemptions. After a redemption, if a wallet has under a
-governable threshhold of BTC remaining, it transfers that BTC to the active
+governable threshold of BTC remaining, it transfers that BTC to the active
 wallet and closes.
 
 === Wallet Lifecycle
@@ -252,11 +252,11 @@ process described in link:rfc-2.adoc[RFC 2: tBTCv2 Group Selection and Key
 Generation]. The group size may end up being smaller depending on retries.
 
 As time passes and operators drop out of the system, a wallet becomes at risk
-of being able to meet the 51-of-100 threshhold to produce signatures.
+of being able to meet the 51-of-100 threshold to produce signatures.
 Additionally, we want to avoid situations where operators are the custodians of
 a wallet for extended periods. To avoid these issues, we can set a max age of a
 wallet and a heartbeat threshold. Once a wallet is older than the max age, or
-if it drops below the liveness threshhold (say, below 70 on a
+if it drops below the liveness threshold (say, below 70 on a
 <<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
 selected wallet.
 
