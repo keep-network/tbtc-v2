@@ -189,7 +189,8 @@ them into a single UTXO with the existing UTXO, and relocks that transactions
 without a 30-day refund clause to same wallet. This has two main effects: it
 consolidates the UTXO set and it disables the refund.
 
-This process is called a "sweep", and occurs based on a governable frequency.
+This process is called a "sweep", and occurs based on a governable frequency or
+if enough deposits have accumulated (also governable), whichever comes first.
 Any deposit below a governable threshold is ignored.
 
 After submitting the transaction, it will cost some amount of bitcoin based on
@@ -202,12 +203,13 @@ The main downside to this approach is that it can take, in the worst case, up
 to the frequency parameter in time for a user to be able to mint TBTC. To help
 alleviate this, two suggestions:
 
-1) We surface when the next scheduled sweep is somewhere in the dApp. This
-allows users to feel a lot better about when sweeps are happening, and feel
-better about when their funds will be available. There is also something to be
-said about the marketing around explaining that we're batching in order to
-reduce fees across the board for the end user, which allows for the decentralized
-product to compete with the centralized ones.
+1) We surface when the next scheduled sweep and the accumulation threshhold
+data is somewhere in the dApp. This allows users to feel a lot better about
+when sweeps are happening, and feel better about when their funds will be
+available. There is also something to be said about the marketing around
+explaining that we're batching in order to reduce fees across the board for the
+end user, which allows for the decentralized product to compete with the
+centralized ones.
 
 2) We allow users to request that their TBTC is minted as soon as they have a
 swept account balance. This makes it so they don't have to wait, check, and
