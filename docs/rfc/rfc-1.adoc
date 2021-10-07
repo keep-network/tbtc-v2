@@ -195,9 +195,15 @@ Any deposit below a governable threshold is ignored.
 
 After submitting the transaction, it will cost some amount of bitcoin based on
 what miners are charging for the bitcoin fee. This fee comes out of the unswept
-deposits. When the transaction clears, the users unswept balances are
-decreased, and their swept balances are increased (after paying their share of
-the mining fee).
+deposits. When the transaction clears, and the information has made its way
+over the relay maintainer, then another transaction needs to be created to on
+the ethereum side to update the account balances. The users unswept balances
+are decreased, and their swept balances are increased (after paying their share
+of the mining fee).
+
+This transaction will be expensive gas-wise, and can be submitted by anyone
+with the motivation to do so. For more details on transaction incentives,
+check out the <<transaction-incentives,dedicated section>>.
 
 The main downside to this approach is that it can take, in the worst case, up
 to the frequency parameter in time for a user to be able to mint TBTC. To help
@@ -276,3 +282,8 @@ challenger must pay a deposit to be distributed to the signers if they pass.
 
 Any signer unable to publish the signed block within a specified amount of time
 will begin to be slashed and the challenger will be rewarded.
+
+[[transaction-incentives]]
+===
+
+stub!
