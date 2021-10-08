@@ -163,6 +163,51 @@ jobs:
           upstream_ref: ${{ github.event.inputs.upstream_ref }}
           version: ${{ steps.npm-version-bump.outputs.version }}
 
+      - name: Upload files needed for etherscan verification
+        uses: actions/upload-artifact@v2
+        with:
+          name: Artifacts for etherscan verifcation
+          path: |
+            ./solidity/deployments
+            ./solidity/package.json
+            ./solidity/yarn.lock
+
+  contracts-etherscan-verification:
+    needs: [contracts-deployment-testnet]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./solidity
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download files needed for etherscan verification
+        uses: actions/download-artifact@v2
+        with:
+          name: Artifacts for etherscan verifcation
+          path: ./solidity
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: solidity/yarn.lock
+
+      - name: Install needed dependencies
+        run: yarn install --frozen-lockfile
+
+      # If we don't remove the `tbtc` contracts from `node-modules`, the
+      # `etherscan-verify` plugins tries to verify them, which is not desired.
+      - name: Prepare for verification on Etherscan
+        run: |
+          rm -rf ./node_modules/@keep-network/tbtc
+
+      - name: Verify contracts on Etherscan
+        env:
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
+        run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify --license MIT
+
   contracts-format:
     needs: contracts-detect-changes
     if: |
