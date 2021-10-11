@@ -54,11 +54,10 @@ collects tBTC fees it uses those fees to buy T tokens back for its treasury.
 
 === Minting And Unminting
 
-A user with an account balance can drain their account balance to mint TBTC.
+A user with a swept account balance can drain their account balance to mint TBTC.
 Similarly, a user can burn TBTC to refill their account balance.
 
-// FIXME: fill in this section with how much TBTC they can mint with regards to
-// their unswept balance
+A user with a swept account balance can drain their account balance to redeem BTC.
 
 == In Depth
 
@@ -170,7 +169,7 @@ and charge a deposit fee.
 Second, we schedule an operation that batches all outstanding known-refundable
 transactions together to be combined with the existing wallet output into a
 single output. The frequency of this operation is a governable parameter. When
-this sweep occurs, we decrease the relevant accounts' unswept balances and
+this <<sweeping,sweep>> occurs, we decrease the relevant accounts' unswept balances and
 increase their balances. This disables any outstanding 30-day refunds.
 
 ==== Automated Refunds
@@ -180,12 +179,56 @@ simple as "these funds can be spent by wallet 0xabc", or in our case, as
 complex as "these funds can be spent by wallet 0xabc but if they aren't spent
 within 30 days they can be spent by wallet 0x123". This gives us the ability to
 create deposits that automatically are refunded after 30 days if they aren't
-swept. Thus, if a user misfunds or they get cold feet (for any reason), all
-they need to do is not submit their reveal and wait 30 days.
+<<sweeping,swept>>. Thus, if a user misfunds or they get cold feet (for any
+reason), all they need to do is not submit their reveal and wait 30 days.
+
+[[sweeping]]
+==== Sweeping
+The operators sign a transaction that unlocks all revealed deposits, combines
+them into a single UTXO with the existing UTXO, and relocks that transactions
+without a 30-day refund clause to same wallet. This has two main effects: it
+consolidates the UTXO set and it disables the refund.
+
+This process is called a "sweep", and occurs based on a governable frequency or
+if enough deposits have accumulated (also governable), whichever comes first.
+Any deposit below a governable threshold is ignored.
+
+After submitting the transaction, it will cost some amount of bitcoin based on
+what miners are charging for the bitcoin fee. This fee comes out of the unswept
+deposits. When the transaction clears, and the information has made its way
+over the relay maintainer, then another transaction needs to be created to on
+the ethereum side to update the account balances. The users unswept balances
+are decreased, and their swept balances are increased (after paying their share
+of the mining fee).
+
+This transaction will be expensive gas-wise, and can be submitted by anyone
+with the motivation to do so. For more details on transaction incentives,
+check out the <<transaction-incentives,dedicated section>>.
+
+The main downside to this approach is that it can take, in the worst case, up
+to the frequency parameter in time for a user to be able to mint TBTC. To help
+alleviate this, two suggestions:
+
+1) We surface when the next scheduled sweep and the accumulation threshold
+data is somewhere in the dApp. This allows users to feel a lot better about
+when sweeps are happening, and feel better about when their funds will be
+available. There is also something to be said about the marketing around
+explaining that we're batching in order to reduce fees across the board for the
+end user, which allows for the decentralized product to compete with the
+centralized ones.
+
+2) We allow users to request that their TBTC is minted as soon as they have a
+swept account balance. This makes it so they don't have to wait, check, and
+come back later and mint.
+
+Combining these ideas, a user would deposit some BTC, reveal their eth address
+and blinding factor, and then request that TBTC gets minted ASAP. Checking the
+dApp, they can see that they should expect TBTC in their provided wallet
+address in 3 hours with no further interaction.
 
 === Redemption
 
-To initiate a redemption, a user with a balance > `x` supplies a bitcoin
+To initiate a redemption, a user with a swept balance > `x` supplies a bitcoin
 address. Then, the system calculates the redemption fee `fee`, and releases an
 amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
 The remaining `fee` sold by the system to buy back `T` tokens (more about this
@@ -197,7 +240,7 @@ selected by the redeemer, but the dApp should suggest that this is the oldest
 wallet that contains enough bitcoin to fulfil the redemption. If more BTC
 needs to be redeemed than there is in the largest wallet, then the user needs
 to submit multiple redemptions. After a redemption, if a wallet has under a
-governable threshhold of BTC remaining, it transfers that BTC to the active
+governable threshold of BTC remaining, it transfers that BTC to the active
 wallet and closes.
 
 === Wallet Lifecycle
@@ -215,11 +258,11 @@ process described in link:rfc-2.adoc[RFC 2: tBTCv2 Group Selection and Key
 Generation]. The group size may end up being smaller depending on retries.
 
 As time passes and operators drop out of the system, a wallet becomes at risk
-of being able to meet the 51-of-100 threshhold to produce signatures.
+of being able to meet the 51-of-100 threshold to produce signatures.
 Additionally, we want to avoid situations where operators are the custodians of
 a wallet for extended periods. To avoid these issues, we can set a max age of a
 wallet and a heartbeat threshold. Once a wallet is older than the max age, or
-if it drops below the liveness threshhold (say, below 70 on a
+if it drops below the liveness threshold (say, below 70 on a
 <<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
 selected wallet.
 
@@ -239,3 +282,8 @@ challenger must pay a deposit to be distributed to the signers if they pass.
 
 Any signer unable to publish the signed block within a specified amount of time
 will begin to be slashed and the challenger will be rewarded.
+
+[[transaction-incentives]]
+===
+
+stub!
