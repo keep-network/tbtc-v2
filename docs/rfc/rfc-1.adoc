@@ -189,6 +189,14 @@ them into a single UTXO with the existing UTXO, and relocks that transactions
 without a 30-day refund clause to same wallet. This has two main effects: it
 consolidates the UTXO set and it disables the refund.
 
+Caveat: We only include deposits in batches that have at least 8 remaining
+hours on their refund window. This prevents potential attacks or weird corner
+cases where we create a transaction with a valid, unspent input, but by the
+time we have signed that transaction, the depositor has already submitted a
+refund to the mining pool. Giving ourselves 8 hours of leeway stops this from
+happening. Once a deposit crosses that 8-hour threshold, the depositor should
+refund their deposit.
+
 This process is called a "sweep", and occurs based on a governable frequency or
 if enough deposits have accumulated (also governable), whichever comes first.
 Any deposit below a governable threshold is ignored.
