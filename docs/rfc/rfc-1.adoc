@@ -268,10 +268,9 @@ A new wallet is created when either enough time has passed as defined in
 `wallet_creation_period` *AND* the wallet contains at least
 `wallet_min_btc` btc *OR* the wallet currently contains more btc than
 `wallet_max_btc`, whichever happens first. To create a new wallet, a group of
-100 operators is selected from the pool of available operators (some operators
-may be selected twice if there are not enough) using a process called
-sortition. The probabiliy that a particular operator is chosen is based on
-their stake weight, which in turn is based on the number of `T` tokens they
+100 operators is selected from the pool of available operators using a process
+called sortition. The probabiliy that a particular operator is chosen is based
+on their stake weight, which in turn is based on the number of `T` tokens they
 have invested in the staking contract.
 
 Once the operators have been selected from the sortition pool, they generate a
