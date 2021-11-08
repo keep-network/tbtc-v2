@@ -255,18 +255,18 @@ wallet and closes.
 
 Governable Parameters:
 
-- `wallet_dust_threshold` the smallest amount of btc a wallet can hold before we
+- `wallet_creation_period` how frequently we attempt to create new wallets
+- `wallet_min_btc` the smallest amount of btc a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet
-- `wallet_creation_period` how frequently we attempt to create new wallets
 - `wallet_max_btc` the amount of btc a wallet can hold before we trigger the
   early creation of a new wallet
-- `max_wallet_age` the oldest we allow a wallet to become before we transfer the funds
+- `wallet_max_age` the oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet
 
 A new wallet is created when either enough time has passed as defined in
 `wallet_creation_period` *AND* the wallet contains at least
-`wallet_dust_threshold` btc *OR* the wallet currently contains more btc than
+`wallet_min_btc` btc *OR* the wallet currently contains more btc than
 `wallet_max_btc`, whichever happens first. To create a new wallet, a group of
 100 operators is selected from the pool of available operators (some operators
 may be selected twice if there are not enough) using a process called
@@ -283,7 +283,7 @@ As time passes and operators drop out of the system, a wallet becomes at risk
 of being able to meet the 51-of-100 threshold to produce signatures.
 Additionally, we want to avoid situations where operators are the custodians of
 a wallet for extended periods. To avoid these issues, once a wallet is older
-than the `max_wallet_age`, or if it drops below the liveness threshold (say, below 70 on
+than the `wallet_max_age`, or if it drops below the liveness threshold (say, below 70 on
 a <<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
 selected wallet.
 
