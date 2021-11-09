@@ -1,25 +1,33 @@
-const { expect } = require("chai")
-const {
-  increaseTime,
+import { ethers, waffle, helpers } from "hardhat"
+import { expect } from "chai"
+import type { Signer } from "ethers"
+import { vendingMachineDeployment, constants } from "../fixtures"
+// eslint-disable-next-line import/extensions
+import type { TestERC20, TBTC, VendingMachine } from "../../typechain"
+
+import {
   to1e18,
   to1ePrecision,
   ZERO_ADDRESS,
   getBlockTime,
-} = require("../helpers/contract-test-helpers")
+} from "../helpers/contract-test-helpers"
 
 describe("VendingMachine", () => {
-  let tbtcV1
-  let tbtcV2
-  let vendingMachine
+  let tbtcV1: TestERC20
+  let tbtcV2: TBTC
+  let vendingMachine: VendingMachine
 
-  let governance
-  let tokenHolder
-  let thirdParty
+  let deployer: Signer
+  let unmintFeeUpdateInitiator: Signer
+  let vendingMachineUpgradeInitiator: Signer
+  let governance: Signer
+  let tokenHolder: Signer
+  let thirdParty: Signer
 
-  const unmintFee = to1ePrecision(1, 15) // 0.001
   const initialBalance = to1e18(5) // 5 TBTC v1
 
-  beforeEach(async () => {
+  before(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[
       deployer,
       unmintFeeUpdateInitiator,
@@ -28,33 +36,28 @@ describe("VendingMachine", () => {
       tokenHolder,
       thirdParty,
     ] = await ethers.getSigners()
+  })
 
-    const TestERC20 = await ethers.getContractFactory("TestERC20")
-    tbtcV1 = await TestERC20.deploy()
-    await tbtcV1.deployed()
+  beforeEach("load test fixture", async () => {
+    const contracts = await waffle.loadFixture(vendingMachineDeployment)
+    tbtcV1 = contracts.tbtcV1 as TestERC20
+    tbtcV2 = contracts.tbtcV2 as TBTC
+    vendingMachine = contracts.vendingMachine as VendingMachine
 
-    const TBTC = await ethers.getContractFactory("TBTC")
-    tbtcV2 = await TBTC.deploy()
-    await tbtcV2.deployed()
+    await tbtcV1.mint(await tokenHolder.getAddress(), initialBalance)
 
-    await tbtcV1.mint(tokenHolder.address, initialBalance)
-
-    const VendingMachine = await ethers.getContractFactory("VendingMachine")
-    vendingMachine = await VendingMachine.deploy(
-      tbtcV1.address,
-      tbtcV2.address,
-      unmintFee
-    )
-    await vendingMachine.deployed()
-
-    await vendingMachine.connect(deployer).transferOwnership(governance.address)
     await vendingMachine
       .connect(deployer)
-      .transferUnmintFeeUpdateInitiatorRole(unmintFeeUpdateInitiator.address)
+      .transferOwnership(await governance.getAddress())
+    await vendingMachine
+      .connect(deployer)
+      .transferUnmintFeeUpdateInitiatorRole(
+        await unmintFeeUpdateInitiator.getAddress()
+      )
     await vendingMachine
       .connect(deployer)
       .transferVendingMachineUpgradeInitiatorRole(
-        vendingMachineUpgradeInitiator.address
+        await vendingMachineUpgradeInitiator.getAddress()
       )
     await tbtcV2.connect(deployer).transferOwnership(vendingMachine.address)
 
@@ -87,7 +90,9 @@ describe("VendingMachine", () => {
         })
 
         it("should mint the same amount of TBTC v2", async () => {
-          expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(amount)
+          expect(
+            await tbtcV2.balanceOf(await tokenHolder.getAddress())
+          ).is.equal(amount)
         })
 
         it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
@@ -99,7 +104,7 @@ describe("VendingMachine", () => {
         it("should emit Minted event", async () => {
           await expect(tx)
             .to.emit(vendingMachine, "Minted")
-            .withArgs(tokenHolder.address, amount)
+            .withArgs(await tokenHolder.getAddress(), amount)
         })
       })
 
@@ -111,7 +116,9 @@ describe("VendingMachine", () => {
         })
 
         it("should mint the same amount of TBTC v2", async () => {
-          expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(amount)
+          expect(
+            await tbtcV2.balanceOf(await tokenHolder.getAddress())
+          ).is.equal(amount)
         })
 
         it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
@@ -123,7 +130,7 @@ describe("VendingMachine", () => {
         it("should emit Minted event", async () => {
           await expect(tx)
             .to.emit(vendingMachine, "Minted")
-            .withArgs(tokenHolder.address, amount)
+            .withArgs(await tokenHolder.getAddress(), amount)
         })
       })
     })
@@ -136,7 +143,7 @@ describe("VendingMachine", () => {
           vendingMachine
             .connect(tokenHolder)
             .receiveApproval(
-              tokenHolder.address,
+              await tokenHolder.getAddress(),
               initialBalance,
               tbtcV1.address,
               []
@@ -151,7 +158,7 @@ describe("VendingMachine", () => {
           vendingMachine
             .connect(tokenHolder)
             .receiveApproval(
-              tokenHolder.address,
+              await tokenHolder.getAddress(),
               initialBalance,
               tbtcV2.address,
               []
@@ -171,7 +178,9 @@ describe("VendingMachine", () => {
       })
 
       it("should mint TBTC v2 to the caller", async () => {
-        expect(await tbtcV2.balanceOf(tokenHolder.address)).is.equal(amount)
+        expect(await tbtcV2.balanceOf(await tokenHolder.getAddress())).is.equal(
+          amount
+        )
       })
 
       it("should transfer TBTC v1 tokens to the VendingMachine", async () => {
@@ -181,7 +190,7 @@ describe("VendingMachine", () => {
       it("should emit Minted event", async () => {
         await expect(tx)
           .to.emit(vendingMachine, "Minted")
-          .withArgs(tokenHolder.address, amount)
+          .withArgs(await tokenHolder.getAddress(), amount)
       })
     })
   })
@@ -199,7 +208,7 @@ describe("VendingMachine", () => {
         await vendingMachine
           .connect(unmintFeeUpdateInitiator)
           .initiateUnmintFeeUpdate(0)
-        await increaseTime(604800) // +7 days contract governance delay
+        await helpers.time.increaseTime(604800) // +7 days contract governance delay
         await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
       })
 
@@ -219,8 +228,12 @@ describe("VendingMachine", () => {
           let tx
 
           beforeEach(async () => {
-            v1StartBalance = await tbtcV1.balanceOf(tokenHolder.address)
-            v2StartBalance = await tbtcV2.balanceOf(tokenHolder.address)
+            v1StartBalance = await tbtcV1.balanceOf(
+              await tokenHolder.getAddress()
+            )
+            v2StartBalance = await tbtcV2.balanceOf(
+              await tokenHolder.getAddress()
+            )
             tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
           })
 
@@ -229,24 +242,24 @@ describe("VendingMachine", () => {
           })
 
           it("should burn unminted TBTC v2 tokens", async () => {
-            expect(await tbtcV2.balanceOf(tokenHolder.address)).to.equal(
-              v2StartBalance.sub(unmintAmount)
-            )
+            expect(
+              await tbtcV2.balanceOf(await tokenHolder.getAddress())
+            ).to.equal(v2StartBalance.sub(unmintAmount))
             expect(await tbtcV2.totalSupply()).to.equal(
               v2StartBalance.sub(unmintAmount)
             )
           })
 
           it("should transfer unminted TBTC v1 tokens back to the owner", async () => {
-            expect(await tbtcV1.balanceOf(tokenHolder.address)).to.equal(
-              v1StartBalance.add(unmintAmount)
-            )
+            expect(
+              await tbtcV1.balanceOf(await tokenHolder.getAddress())
+            ).to.equal(v1StartBalance.add(unmintAmount))
           })
 
           it("should emit the Unminted event", async () => {
             await expect(tx)
               .to.emit(vendingMachine, "Unminted")
-              .withArgs(tokenHolder.address, unmintAmount, 0)
+              .withArgs(await tokenHolder.getAddress(), unmintAmount, 0)
           })
         })
 
@@ -257,8 +270,12 @@ describe("VendingMachine", () => {
           let tx
 
           beforeEach(async () => {
-            v1StartBalance = await tbtcV1.balanceOf(tokenHolder.address)
-            v2StartBalance = await tbtcV2.balanceOf(tokenHolder.address)
+            v1StartBalance = await tbtcV1.balanceOf(
+              await tokenHolder.getAddress()
+            )
+            v2StartBalance = await tbtcV2.balanceOf(
+              await tokenHolder.getAddress()
+            )
             tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
           })
 
@@ -267,24 +284,24 @@ describe("VendingMachine", () => {
           })
 
           it("should burn unminted TBTC v2 tokens", async () => {
-            expect(await tbtcV2.balanceOf(tokenHolder.address)).to.equal(
-              v2StartBalance.sub(unmintAmount)
-            )
+            expect(
+              await tbtcV2.balanceOf(await tokenHolder.getAddress())
+            ).to.equal(v2StartBalance.sub(unmintAmount))
             expect(await tbtcV2.totalSupply()).to.equal(
               v2StartBalance.sub(unmintAmount)
             )
           })
 
           it("should transfer unminted TBTC v1 tokens back to the owner", async () => {
-            expect(await tbtcV1.balanceOf(tokenHolder.address)).to.equal(
-              v1StartBalance.add(unmintAmount)
-            )
+            expect(
+              await tbtcV1.balanceOf(await tokenHolder.getAddress())
+            ).to.equal(v1StartBalance.add(unmintAmount))
           })
 
           it("should emit the Unminted event", async () => {
             await expect(tx)
               .to.emit(vendingMachine, "Unminted")
-              .withArgs(tokenHolder.address, unmintAmount, 0)
+              .withArgs(await tokenHolder.getAddress(), unmintAmount, 0)
           })
         })
       })
@@ -304,7 +321,7 @@ describe("VendingMachine", () => {
           // 1e18 * balance / (1e18 + unmintFee)
           const unmintAmount = initialBalance
             .mul(to1e18(1))
-            .div(to1e18(1).add(unmintFee))
+            .div(to1e18(1).add(constants.unmintFee))
 
           let fee
           let v1StartBalance
@@ -312,8 +329,12 @@ describe("VendingMachine", () => {
           let tx
 
           beforeEach(async () => {
-            v1StartBalance = await tbtcV1.balanceOf(tokenHolder.address)
-            v2StartBalance = await tbtcV2.balanceOf(tokenHolder.address)
+            v1StartBalance = await tbtcV1.balanceOf(
+              await tokenHolder.getAddress()
+            )
+            v2StartBalance = await tbtcV2.balanceOf(
+              await tokenHolder.getAddress()
+            )
             fee = await vendingMachine.unmintFeeFor(unmintAmount)
             tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
           })
@@ -323,24 +344,24 @@ describe("VendingMachine", () => {
           })
 
           it("should burn unminted TBTC v2 tokens", async () => {
-            expect(await tbtcV2.balanceOf(tokenHolder.address)).to.equal(
-              v2StartBalance.sub(unmintAmount).sub(fee)
-            )
+            expect(
+              await tbtcV2.balanceOf(await tokenHolder.getAddress())
+            ).to.equal(v2StartBalance.sub(unmintAmount).sub(fee))
             expect(await tbtcV2.totalSupply()).to.equal(
               v2StartBalance.sub(unmintAmount)
             )
           })
 
           it("should transfer unminted TBTC v1 tokens back to the owner", async () => {
-            expect(await tbtcV1.balanceOf(tokenHolder.address)).to.equal(
-              v1StartBalance.add(unmintAmount)
-            )
+            expect(
+              await tbtcV1.balanceOf(await tokenHolder.getAddress())
+            ).to.equal(v1StartBalance.add(unmintAmount))
           })
 
           it("should emit the Unminted event", async () => {
             await expect(tx)
               .to.emit(vendingMachine, "Unminted")
-              .withArgs(tokenHolder.address, unmintAmount, fee)
+              .withArgs(await tokenHolder.getAddress(), unmintAmount, fee)
           })
         })
 
@@ -353,8 +374,12 @@ describe("VendingMachine", () => {
           let tx
 
           beforeEach(async () => {
-            v1StartBalance = await tbtcV1.balanceOf(tokenHolder.address)
-            v2StartBalance = await tbtcV2.balanceOf(tokenHolder.address)
+            v1StartBalance = await tbtcV1.balanceOf(
+              await tokenHolder.getAddress()
+            )
+            v2StartBalance = await tbtcV2.balanceOf(
+              await tokenHolder.getAddress()
+            )
             fee = await vendingMachine.unmintFeeFor(unmintAmount)
             tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
           })
@@ -364,24 +389,24 @@ describe("VendingMachine", () => {
           })
 
           it("should burn unminted TBTC v2 tokens", async () => {
-            expect(await tbtcV2.balanceOf(tokenHolder.address)).to.equal(
-              v2StartBalance.sub(unmintAmount).sub(fee)
-            )
+            expect(
+              await tbtcV2.balanceOf(await tokenHolder.getAddress())
+            ).to.equal(v2StartBalance.sub(unmintAmount).sub(fee))
             expect(await tbtcV2.totalSupply()).to.equal(
               v2StartBalance.sub(unmintAmount)
             )
           })
 
           it("should transfer unminted TBTC v1 tokens back to the owner", async () => {
-            expect(await tbtcV1.balanceOf(tokenHolder.address)).to.equal(
-              v1StartBalance.add(unmintAmount)
-            )
+            expect(
+              await tbtcV1.balanceOf(await tokenHolder.getAddress())
+            ).to.equal(v1StartBalance.add(unmintAmount))
           })
 
           it("should emit the Unminted event", async () => {
             await expect(tx)
               .to.emit(vendingMachine, "Unminted")
-              .withArgs(tokenHolder.address, unmintAmount, fee)
+              .withArgs(await tokenHolder.getAddress(), unmintAmount, fee)
           })
         })
       })
@@ -406,7 +431,7 @@ describe("VendingMachine", () => {
         await expect(
           vendingMachine
             .connect(thirdParty)
-            .withdrawFees(thirdParty.address, unmintFee)
+            .withdrawFees(await thirdParty.getAddress(), unmintFee)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -419,11 +444,11 @@ describe("VendingMachine", () => {
 
         await vendingMachine
           .connect(governance)
-          .withdrawFees(thirdParty.address, withdrawnFee)
+          .withdrawFees(await thirdParty.getAddress(), withdrawnFee)
       })
 
       it("should withdraw the provided amount of fees", async () => {
-        expect(await tbtcV2.balanceOf(thirdParty.address)).is.equal(
+        expect(await tbtcV2.balanceOf(await thirdParty.getAddress())).is.equal(
           withdrawnFee
         )
       })
@@ -465,7 +490,7 @@ describe("VendingMachine", () => {
       })
 
       it("should not update the unmint fee", async () => {
-        expect(await vendingMachine.unmintFee()).to.equal(unmintFee)
+        expect(await vendingMachine.unmintFee()).to.equal(constants.unmintFee)
       })
 
       it("should start the update initiation time", async () => {
@@ -531,7 +556,7 @@ describe("VendingMachine", () => {
 
         context("when governance delay has not passed", () => {
           it("should revert", async () => {
-            await increaseTime(601200) // +7 days 23 hours
+            await helpers.time.increaseTime(601200) // +7 days 23 hours
             await expect(
               vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
             ).to.be.revertedWith("Governance delay has not elapsed")
@@ -542,7 +567,7 @@ describe("VendingMachine", () => {
           let tx
 
           beforeEach(async () => {
-            await increaseTime(604800) // +7 days contract governance delay
+            await helpers.time.increaseTime(604800) // +7 days contract governance delay
             tx = await vendingMachine
               .connect(governance)
               .finalizeUnmintFeeUpdate()
@@ -586,7 +611,7 @@ describe("VendingMachine", () => {
       newVendingMachine = await VendingMachine.deploy(
         tbtcV1.address,
         tbtcV2.address,
-        unmintFee
+        constants.unmintFee
       )
       await newVendingMachine.deployed()
     })
@@ -706,7 +731,7 @@ describe("VendingMachine", () => {
           newVendingMachine = await VendingMachine.deploy(
             tbtcV1.address,
             tbtcV2.address,
-            unmintFee
+            constants.unmintFee
           )
           await newVendingMachine.deployed()
 
@@ -722,7 +747,7 @@ describe("VendingMachine", () => {
 
         context("when governance delay has not passed", () => {
           it("should revert", async () => {
-            await increaseTime(601200) // +7days 23 hours
+            await helpers.time.increaseTime(601200) // +7days 23 hours
             await expect(
               vendingMachine.connect(governance).finalizeVendingMachineUpgrade()
             ).to.be.revertedWith("Governance delay has not elapsed")
@@ -733,7 +758,7 @@ describe("VendingMachine", () => {
           let tx
 
           beforeEach(async () => {
-            await increaseTime(604800) // +7 days contract governance delay
+            await helpers.time.increaseTime(604800) // +7 days contract governance delay
             tx = await vendingMachine
               .connect(governance)
               .finalizeVendingMachineUpgrade()
@@ -783,7 +808,7 @@ describe("VendingMachine", () => {
         await expect(
           vendingMachine
             .connect(governance)
-            .transferUnmintFeeUpdateInitiatorRole(thirdParty.address)
+            .transferUnmintFeeUpdateInitiatorRole(await thirdParty.getAddress())
         ).to.be.revertedWith("Caller is not authorized")
       })
     })
@@ -793,7 +818,7 @@ describe("VendingMachine", () => {
         await expect(
           vendingMachine
             .connect(thirdParty)
-            .transferUnmintFeeUpdateInitiatorRole(thirdParty.address)
+            .transferUnmintFeeUpdateInitiatorRole(await thirdParty.getAddress())
         ).to.be.revertedWith("Caller is not authorized")
       })
     })
@@ -802,9 +827,9 @@ describe("VendingMachine", () => {
       it("should transfer the role", async () => {
         await vendingMachine
           .connect(unmintFeeUpdateInitiator)
-          .transferUnmintFeeUpdateInitiatorRole(thirdParty.address)
+          .transferUnmintFeeUpdateInitiatorRole(await thirdParty.getAddress())
         expect(await vendingMachine.unmintFeeUpdateInitiator()).to.equal(
-          thirdParty.address
+          await thirdParty.getAddress()
         )
       })
 
@@ -826,7 +851,9 @@ describe("VendingMachine", () => {
         await expect(
           vendingMachine
             .connect(governance)
-            .transferVendingMachineUpgradeInitiatorRole(thirdParty.address)
+            .transferVendingMachineUpgradeInitiatorRole(
+              await thirdParty.getAddress()
+            )
         ).to.be.revertedWith("Caller is not authorized")
       })
     })
@@ -836,7 +863,9 @@ describe("VendingMachine", () => {
         await expect(
           vendingMachine
             .connect(thirdParty)
-            .transferVendingMachineUpgradeInitiatorRole(thirdParty.address)
+            .transferVendingMachineUpgradeInitiatorRole(
+              await thirdParty.getAddress()
+            )
         ).to.be.revertedWith("Caller is not authorized")
       })
     })
@@ -845,9 +874,11 @@ describe("VendingMachine", () => {
       it("should transfer the role", async () => {
         await vendingMachine
           .connect(vendingMachineUpgradeInitiator)
-          .transferVendingMachineUpgradeInitiatorRole(thirdParty.address)
+          .transferVendingMachineUpgradeInitiatorRole(
+            await thirdParty.getAddress()
+          )
         expect(await vendingMachine.vendingMachineUpgradeInitiator()).to.equal(
-          thirdParty.address
+          await thirdParty.getAddress()
         )
       })
     })
@@ -880,7 +911,7 @@ describe("VendingMachine", () => {
         await vendingMachine
           .connect(unmintFeeUpdateInitiator)
           .initiateUnmintFeeUpdate(0)
-        await increaseTime(604800) // +7 days contract governance delay
+        await helpers.time.increaseTime(604800) // +7 days contract governance delay
         await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
       })
 
