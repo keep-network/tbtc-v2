@@ -234,6 +234,22 @@ and blinding factor, and then request that TBTC gets minted ASAP. Checking the
 dApp, they can see that they should expect TBTC in their provided wallet
 address in 3 hours with no further interaction.
 
+==== Fraud Proof
+
+There are only two valid types of transactions for a sweep:
+
+1) A collection of deposit UTXO's plus the main UTXO for the wallet are the
+inputs are unlocked using the `signingGroupPubkey` and locked under a single
+UTXO using the same `signingGroupPubkey`. This is a normal non-fraudulent sweep.
+
+2) After the 30-day refund time has passed, a particular UTXO is unlocked using
+the `refundPubkey` and then locked with whatever script the refunder wants. This
+is a normal refund.
+
+Any transaction that unlocks a UTXO using the `signingGroupPubkey` and then
+locks it using any other script other than to a single UTXO to any other public
+key than the same `signingGroupPubkey` is fraud.
+
 === Redemption
 
 To initiate a redemption, a user with a swept balance > `x` supplies a bitcoin
