@@ -251,6 +251,13 @@ to submit multiple redemptions. After a redemption, if a wallet has under a
 governable threshold of BTC remaining, it transfers that BTC to the active
 wallet and closes.
 
+==== Fraud Proof
+
+When a redemption is requested, the redeeming bitcoin public key and amount are
+known on the ethereum chain. Any bitcoin transactions with the main wallet
+wallet UTXO as the input must have outputs that match those known redemption
+requests, otherwise the transaction was fraudulent.
+
 === Wallet Lifecycle
 
 Wallets are periodically created, where the period length is a governable
