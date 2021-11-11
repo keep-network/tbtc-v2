@@ -1,3 +1,5 @@
+# This workflow is not intended for merge to main. It's created to run etherscan
+# verification without publishing npm package.
 name: Solidity
 
 on:
@@ -24,74 +26,74 @@ on:
         default: "main"
 
 jobs:
-  contracts-detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      path-filter: ${{ steps.filter.outputs.path-filter }}
-    steps:
-      - uses: actions/checkout@v2
-        if: github.event_name == 'pull_request'
+  # contracts-detect-changes:
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     path-filter: ${{ steps.filter.outputs.path-filter }}
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       if: github.event_name == 'pull_request'
 
-      - uses: dorny/paths-filter@v2
-        if: github.event_name == 'pull_request'
-        id: filter
-        with:
-          filters: |
-            path-filter:
-              - './solidity/**'
+  #     - uses: dorny/paths-filter@v2
+  #       if: github.event_name == 'pull_request'
+  #       id: filter
+  #       with:
+  #         filters: |
+  #           path-filter:
+  #             - './solidity/**'
 
-  contracts-build-and-test:
-    needs: contracts-detect-changes
-    if: |
-      github.event_name != 'pull_request'
-        || needs.contracts-detect-changes.outputs.path-filter == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./solidity
-    steps:
-      - uses: actions/checkout@v2
+  # contracts-build-and-test:
+  #   needs: contracts-detect-changes
+  #   if: |
+  #     github.event_name != 'pull_request'
+  #       || needs.contracts-detect-changes.outputs.path-filter == 'true'
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: ./solidity
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
-          cache-dependency-path: solidity/yarn.lock
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: "14.x"
+  #         cache: "yarn"
+  #         cache-dependency-path: solidity/yarn.lock
 
-      - name: Install dependencies
-        run: yarn install
+  #     - name: Install dependencies
+  #       run: yarn install
 
-      - name: Build contracts
-        run: yarn build
+  #     - name: Build contracts
+  #       run: yarn build
 
-      - name: Run tests
-        run: yarn test
+  #     - name: Run tests
+  #       run: yarn test
 
-  contracts-deployment-dry-run:
-    if: |
-      github.event_name != 'pull_request'
-        || needs.contracts-detect-changes.outputs.path-filter == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./solidity
-    steps:
-      - uses: actions/checkout@v2
+  # contracts-deployment-dry-run:
+  #   if: |
+  #     github.event_name != 'pull_request'
+  #       || needs.contracts-detect-changes.outputs.path-filter == 'true'
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: ./solidity
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
-          cache-dependency-path: solidity/yarn.lock
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: "14.x"
+  #         cache: "yarn"
+  #         cache-dependency-path: solidity/yarn.lock
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+  #     - name: Install dependencies
+  #       run: yarn install --frozen-lockfile
 
-      - name: Deploy contracts
-        run: yarn deploy
+  #     - name: Deploy contracts
+  #       run: yarn deploy
 
   contracts-deployment-testnet:
-    needs: [contracts-detect-changes, contracts-build-and-test]
+    # needs: [contracts-detect-changes, contracts-build-and-test]
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
@@ -137,31 +139,31 @@ jobs:
           CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.KEEP_TEST_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
         run: yarn deploy --network ${{ github.event.inputs.environment }}
 
-      - name: Bump up package version
-        id: npm-version-bump
-        uses: keep-network/npm-version-bump@v2
-        with:
-          work-dir: solidity
-          environment: ${{ github.event.inputs.environment }}
-          branch: ${{ github.ref }}
-          commit: ${{ github.sha }}
+      # - name: Bump up package version
+      #   id: npm-version-bump
+      #   uses: keep-network/npm-version-bump@v2
+      #   with:
+      #     work-dir: solidity
+      #     environment: ${{ github.event.inputs.environment }}
+      #     branch: ${{ github.ref }}
+      #     commit: ${{ github.sha }}
 
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access=public --tag ${{ github.event.inputs.environment }} --network=${{ github.event.inputs.environment }}
+      # - name: Publish to npm
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      #   run: npm publish --access=public --tag ${{ github.event.inputs.environment }} --network=${{ github.event.inputs.environment }}
 
-      - name: Notify CI about completion of the workflow
-        uses: keep-network/ci/actions/notify-workflow-completed@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
-        with:
-          module: "github.com/keep-network/tbtc-v2/solidity"
-          url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          environment: ${{ github.event.inputs.environment }}
-          upstream_builds: ${{ github.event.inputs.upstream_builds }}
-          upstream_ref: ${{ github.event.inputs.upstream_ref }}
-          version: ${{ steps.npm-version-bump.outputs.version }}
+      # - name: Notify CI about completion of the workflow
+      #   uses: keep-network/ci/actions/notify-workflow-completed@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+      #   with:
+      #     module: "github.com/keep-network/tbtc-v2/solidity"
+      #     url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      #     environment: ${{ github.event.inputs.environment }}
+      #     upstream_builds: ${{ github.event.inputs.upstream_builds }}
+      #     upstream_ref: ${{ github.event.inputs.upstream_ref }}
+      #     version: ${{ steps.npm-version-bump.outputs.version }}
 
       - name: Upload files needed for etherscan verification
         uses: actions/upload-artifact@v2
@@ -208,75 +210,75 @@ jobs:
           CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
         run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify --license MIT
 
-  contracts-format:
-    needs: contracts-detect-changes
-    if: |
-      github.event_name == 'push'
-        || needs.contracts-detect-changes.outputs.path-filter == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./solidity
-    steps:
-      - uses: actions/checkout@v2
+  # contracts-format:
+  #   needs: contracts-detect-changes
+  #   if: |
+  #     github.event_name == 'push'
+  #       || needs.contracts-detect-changes.outputs.path-filter == 'true'
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: ./solidity
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
-          cache-dependency-path: solidity/yarn.lock
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: "14.x"
+  #         cache: "yarn"
+  #         cache-dependency-path: solidity/yarn.lock
 
-      # Below step is a workaround. Eslint executed in `solidity` directory
-      # finds `.prettierrc.js` config in the root directory and fails if
-      # referenced `@keep-network/prettier-config-keep` module is missing.
-      - name: Install dependencies in the root directory
-        run: |
-          cd ..
-          yarn install --frozen-lockfile
+  #     # Below step is a workaround. Eslint executed in `solidity` directory
+  #     # finds `.prettierrc.js` config in the root directory and fails if
+  #     # referenced `@keep-network/prettier-config-keep` module is missing.
+  #     - name: Install dependencies in the root directory
+  #       run: |
+  #         cd ..
+  #         yarn install --frozen-lockfile
 
-      - name: Install dependencies
-        run: yarn install
+  #     - name: Install dependencies
+  #       run: yarn install
 
-      - name: Check formatting
-        run: yarn format
+  #     - name: Check formatting
+  #       run: yarn format
 
-  contracts-slither:
-    needs: contracts-detect-changes
-    if: |
-      github.event_name == 'push'
-        || needs.contracts-detect-changes.outputs.path-filter == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./solidity
-    steps:
-      - uses: actions/checkout@v2
+  # contracts-slither:
+  #   needs: contracts-detect-changes
+  #   if: |
+  #     github.event_name == 'push'
+  #       || needs.contracts-detect-changes.outputs.path-filter == 'true'
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: ./solidity
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
-          cache-dependency-path: solidity/yarn.lock
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: "14.x"
+  #         cache: "yarn"
+  #         cache-dependency-path: solidity/yarn.lock
 
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.8.5
+  #     - uses: actions/setup-python@v2
+  #       with:
+  #         python-version: 3.8.5
 
-      - name: Install Solidity
-        env:
-          SOLC_VERSION: 0.8.4 # according to solidity.version in hardhat.config.js
-        run: |
-          pip3 install solc-select
-          solc-select install $SOLC_VERSION
-          solc-select use $SOLC_VERSION
+  #     - name: Install Solidity
+  #       env:
+  #         SOLC_VERSION: 0.8.4 # according to solidity.version in hardhat.config.js
+  #       run: |
+  #         pip3 install solc-select
+  #         solc-select install $SOLC_VERSION
+  #         solc-select use $SOLC_VERSION
 
-      - name: Install Slither
-        env:
-          SLITHER_VERSION: 0.8.0
-        run: pip3 install slither-analyzer==$SLITHER_VERSION
+  #     - name: Install Slither
+  #       env:
+  #         SLITHER_VERSION: 0.8.0
+  #       run: pip3 install slither-analyzer==$SLITHER_VERSION
 
-      - name: Install dependencies
-        run: yarn install
+  #     - name: Install dependencies
+  #       run: yarn install
 
-      - name: Run Slither
-        run: slither --hardhat-artifacts-directory build .
+  #     - name: Run Slither
+  #       run: slither --hardhat-artifacts-directory build .
