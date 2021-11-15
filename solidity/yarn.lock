@@ -1869,9 +1869,9 @@
   version "0.0.1"
   resolved "https://codeload.github.com/thesis/prettier-config/tar.gz/a057ca0bab89fee9ee81ac580c446618c722d75d"
 
-"@thesis/solidity-contracts@github:thesis/solidity-contracts#507c647":
+"@thesis/solidity-contracts@github:thesis/solidity-contracts#4985bcf":
   version "0.0.1"
-  resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/507c64759a2783196b505365e0cb4bf13c1ad1fa"
+  resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/4985bcfc28e36eed9838993b16710e1b500f9e85"
   dependencies:
     "@openzeppelin/contracts" "^4.1.0"
 

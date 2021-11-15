@@ -11,6 +11,7 @@
     "export.json"
   ],
   "scripts": {
+    "clean": "hardhat clean",
     "build": "hardhat compile",
     "deploy": "hardhat deploy --export export.json",
     "format": "npm run lint && prettier --check .",
@@ -28,7 +29,7 @@
     "@keep-network/tbtc": ">1.1.2-dev <1.1.2-ropsten",
     "@openzeppelin/contracts": "^4.1.0",
     "@tenderly/hardhat-tenderly": "^1.0.12",
-    "@thesis/solidity-contracts": "github:thesis/solidity-contracts#507c647"
+    "@thesis/solidity-contracts": "github:thesis/solidity-contracts#4985bcf"
   },
   "devDependencies": {
     "@keep-network/hardhat-helpers": "^0.2.0-pre.4",

@@ -14,5 +14,3 @@ export function to1e18(n: number): BigNumber {
 export async function getBlockTime(blockNumber: number): Promise<number> {
   return (await ethers.provider.getBlock(blockNumber)).timestamp
 }
-
-export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"

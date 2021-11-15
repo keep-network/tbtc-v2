@@ -2,15 +2,15 @@ import { ethers, waffle, helpers } from "hardhat"
 import { expect } from "chai"
 import type { Signer } from "ethers"
 import { vendingMachineDeployment, constants } from "../fixtures"
-// eslint-disable-next-line import/extensions
 import type { TestERC20, TBTC, VendingMachine } from "../../typechain"
 
 import {
   to1e18,
   to1ePrecision,
-  ZERO_ADDRESS,
   getBlockTime,
 } from "../helpers/contract-test-helpers"
+
+const ZERO_ADDRESS = ethers.constants.AddressZero
 
 describe("VendingMachine", () => {
   let tbtcV1: TestERC20
