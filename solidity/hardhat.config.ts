@@ -7,6 +7,7 @@ import "@nomiclabs/hardhat-etherscan"
 import "hardhat-gas-reporter"
 import "hardhat-deploy"
 import "@tenderly/hardhat-tenderly"
+import "@typechain/hardhat"
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -30,7 +31,7 @@ const config: HardhatUserConfig = {
         url: process.env.FORKING_URL || "",
         // latest block is taken if FORKING_BLOCK env is not provided
         blockNumber:
-          process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
+          process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK, 10),
       },
       tags: ["local"],
     },
