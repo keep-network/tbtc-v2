@@ -188,7 +188,8 @@ reason), all they need to do is not submit their reveal and wait 30 days.
 Governable Parameters
 
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
-  becomes eligible where we will not include it in a sweeping transaction.
+  becomes eligible for a refund where we will not include it in a sweeping
+  transaction.
 - `sweep_period`: The amount of time we wait between sweeps.
 - `sweep_max_btc`: The amount of total bitcoin that will trigger an early sweep.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
