@@ -213,6 +213,18 @@ This process is called a "sweep", and occurs after `sweep_period` has passed or
 if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
 first. Any deposit below `dust_threshold` is ignored.
 
+
+Caveat: Checking to see if enough deposits have accumulated to exceed
+`sweep_max_btc` is complex. Since whether or not we pick a deposit to include
+in a sweep is based on their associated fee and the bitcoin fee market
+conditions, we have to check the going market rate for a bitcoin fee, and then
+do some bin-packing to see which deposits we can allow in. The more deposits,
+the low the per-deposit fee is (because they can share costs). Once we have
+enough deposits to exceed `sweep_max_btc`, we should check the market
+conditions for the btc fee and then off-chain see which deposits *would be*
+swept if we *were* to sweep. If the sum of those deposits exceeds the
+`sweep_max_btc` parameter, then we should initiate a sweep.
+
 After submitting the transaction, it will cost some amount of bitcoin based on
 what miners are charging for the bitcoin fee. This fee comes out of the unswept
 deposits. When the transaction clears, and the information has made its way
