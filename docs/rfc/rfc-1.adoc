@@ -283,7 +283,7 @@ it.
 
 Governable Parameters:
 
-- `failed_heartbeat_reward_timeout`: The amount of time an operator is
+- `failed_heartbeat_reward_removal_period`: The amount of time an operator is
   removed from reward eligibility after failing a heartbeat.
 - `heartbeat`: The number of group members required for a heartbeat to successful.
 - `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
@@ -296,7 +296,7 @@ are ever less than `heartbeat` operators that participate in the heartbeat, the
 ones that did can create and sign a new transaction that lists the _inactive_
 operators. Once this transaction is posted to the ethereum chain, we can
 iterate through the inactive operators, remove them from reward eligibility
-for `failed_heartbeat_reward_timeout` amount of time, transfer the remaining
+for `failed_heartbeat_reward_removal_period` amount of time, transfer the remaining
 btc from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
