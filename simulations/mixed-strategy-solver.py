@@ -1,5 +1,6 @@
 from random import random
 from abc import ABC, abstractmethod
+import statistics
 
 games = 3000
 player1Prob = 0
@@ -152,18 +153,10 @@ while i < len(probabilities):
             valueMatrix[i][j][1] += b.preference(outcome)
             count += 1
         j += 1
+    print(list(map(lambda pair: pair[1], valueMatrix[i])))
+    print(statistics.pvariance(map(lambda pair: pair[1], valueMatrix[i])))
+    print(i)
     i += 1
-
-i = 0
-while i < len(probabilities):
-    j = 0
-    total = 0
-    while j < len(probabilities):
-        total += valueMatrix[i][j][0]
-        j += 1
-    print(f'value for {i}: {total}')
-    i += 1
-print(valueMatrix[0][0])
 
 # visted = set([0, 0])
 # choices = [0, 0]
