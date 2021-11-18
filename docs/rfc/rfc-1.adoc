@@ -313,20 +313,21 @@ it.
 
 Governable Parameters:
 
-- `failed_heartbeat_sortition_timeout`: The amount of time an operator is
-  removed from the sortition pool after failing a heartbeat.
+- `failed_heartbeat_reward_removal_period`: The amount of time an operator is
+  removed from reward eligibility after failing a heartbeat.
 - `heartbeat`: The number of group members required for a heartbeat to successful.
+- `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
+  If set to 40, then the signers sign every 40th block.
 
 To make sure that older wallets are still accessible for redemption, we need to
-perform heartbeats. The signing group signs every 40th ethereum block and then
-does _not_ publish the result. If there are ever less than `heartbeat`
-operators that participate in the heartbeat, the ones that did can create and
-sign a new transaction that lists the _inactive_ operators. Once this
-transaction is posted to the ethereum chain, we can iterate through the
-inactive operators, remove them from the sortition pool for
-`failed_heartbeat_sortition_timeout` amount of time (which disables their `T`
-rewards), transfer the from the wallet to another random wallet and close this
-wallet.
+perform heartbeats. The signing group signs a block when block count mod
+`heartbeat_block_length` = 0 and then does _not_ publish the result. If there
+are ever less than `heartbeat` operators that participate in the heartbeat, the
+ones that did can create and sign a new transaction that lists the _inactive_
+operators. Once this transaction is posted to the ethereum chain, we can
+iterate through the inactive operators, remove them from reward eligibility
+for `failed_heartbeat_reward_removal_period` amount of time, transfer the remaining
+btc from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
 ===
