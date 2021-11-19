@@ -81,11 +81,11 @@ The total gas cost for sortiton increases linearly with group size by at least
 member in the happy path with some upcoming optimizations). Requiring more
 signers to sign messages makes it harder for adversaries to take over the
 group, but makes it so that the pool is less resilient to undelegation or
-operators going offline. Raising `heartbeat` decreases the
-chance that you'll not have enough signers to sign transactions, but decreases
-a wallets lifespan and increases overhead. Lowering `dkg` increases
-the chance that we're able to create a wallet successfully but gives us a
-wallet with potentially fewer operators and a lower lifespan.
+operators going offline. Raising `heartbeat` decreases the chance that you'll
+not have enough signers to sign transactions, but decreases a wallets lifespan
+and increases overhead. Lowering `dkg` increases the chance that we're able to
+create a wallet successfully but gives us a wallet with potentially fewer
+operators and a lower lifespan.
 
 Also important is optics - even though a `group_size` of 70 with a `threshold`
 of 40 is equally secure against being controlled by an adversary as a
