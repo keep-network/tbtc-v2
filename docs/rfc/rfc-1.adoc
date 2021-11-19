@@ -69,7 +69,7 @@ Governable Parameters:
 - `threshold`: The number of signers that can be controlled by the adversary
   before the key is in danger.
 - `heartbeat`: The number of group members required for a
-  <<heartbeat,heartbeat>> to successful.
+  <<heartbeat,heartbeat>> to be successful.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
   DKG group formation re-try period.
 - `group_size`: The total size of the signing group.
