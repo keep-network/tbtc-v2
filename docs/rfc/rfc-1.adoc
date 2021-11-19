@@ -83,7 +83,7 @@ signers to sign messages makes it harder for adversaries to take over the
 group, but makes it so that the pool is less resilient to undelegation or
 operators going offline. Raising `heartbeat` decreases the
 chance that you'll not have enough signers to sign transactions, but decreases
-a wallets lifespan and increases overhead. Lowering the dkg threshold increases
+a wallets lifespan and increases overhead. Lowering `dkg` increases
 the chance that we're able to create a wallet successfully but gives us a
 wallet with potentially fewer operators and a lower lifespan.
 
