@@ -191,7 +191,8 @@ Governable Parameters
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
 - `sweep_period`: The amount of time we wait between sweeps.
-- `sweep_max_btc`: The amount of total bitcoin that will trigger an early sweep.
+- `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
+  trigger an early sweep.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
   be included in a sweep.
 
