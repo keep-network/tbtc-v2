@@ -215,7 +215,7 @@ deposit.
 
 This process is called a "sweep", and occurs after `sweep_period` has passed or
 if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
-first. Any deposit below `dust_threshold` is ignored, for both for triggering a
+first. Any deposit below `dust_threshold` is ignored, both for triggering a
 sweep as well as being included in a sweep.
 
 
