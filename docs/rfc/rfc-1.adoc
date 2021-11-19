@@ -66,9 +66,12 @@ A user with a swept account balance can drain their account balance to redeem BT
 
 Governable Parameters:
 
-- `threshold`: The number of signers that can be controlled by the adversary before the key is in danger.
-- `heartbeat`: The number of group members required for a <<heartbeat,heartbeat>> to successful.
-- `dkg`: The minimum number of members we're allowed to drop down to during the DKG group formation re-try period.
+- `threshold`: The number of signers that can be controlled by the adversary
+  before the key is in danger.
+- `heartbeat`: The number of group members required for a
+  <<heartbeat,heartbeat>> to successful.
+- `dkg`: The minimum number of members we're allowed to drop down to during the
+  DKG group formation re-try period.
 - `group_size`: The total size of the signing group.
 
 `threshold < heartbeat < dkg < group_size`
