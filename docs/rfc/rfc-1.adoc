@@ -236,10 +236,10 @@ swept if we *were* to sweep. If the sum of those deposits exceeds the
 
 The sweeping transaction will cost some amount of bitcoin based on what miners
 are charging for the bitcoin fee in the current market conditions. The fee is
-paid proportionally from the unswept deposits. Once the transaction is
-submitted to the bitcoin mempool, the miners will either include it in a block
-within `sweeping_fee_bump_period` or not. If they don't, then we increment a
-fee multiplier: `fee_multiplier = fee_multiplier +
+split in proportion to the number of UTXOs associated to each depositor. Once
+the transaction is submitted to the bitcoin mempool, the miners will either
+include it in a block within `sweeping_fee_bump_period` or not. If they don't,
+then we increment a fee multiplier: `fee_multiplier = fee_multiplier +
 sweeping_fee_multiplier_increment` and then calculate the new fee: `fee =
 base_fee * fee_multiplier`. We repeat until either the transaction posts or
 `sweeping_fee_multiplier_increment` exceeds `sweeping_fee_max_multiplier`.
