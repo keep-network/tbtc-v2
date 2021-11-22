@@ -207,7 +207,7 @@ deposits. When the transaction clears, and the information has made its way
 over the relay maintainer, then another transaction needs to be created to on
 the ethereum side to update the account balances. The users unswept balances
 are decreased, and their swept balances are increased (after paying their share
-of the mining fee).
+of the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>).
 
 This transaction will be expensive gas-wise, and can be submitted by anyone
 with the motivation to do so. For more details on transaction incentives,
@@ -293,17 +293,64 @@ it.
 [[heartbeat]]
 === Heartbeats
 
-To make sure that older wallets are still accessible for redemption, we need to
-perform heartbeats. The signing group signs each bitcoin block and then does _not_
-publish the result. If a signer suspects other signers are not online, they can
-issue an on-chain challenge to publish a specified signed bitcoin block (with a
-maximum block age). Since publishing this information costs the signers gas, the
-challenger must pay a deposit to be distributed to the signers if they pass.
+Governable Parameters:
 
-Any signer unable to publish the signed block within a specified amount of time
-will begin to be slashed and the challenger will be rewarded.
+- `failed_heartbeat_reward_removal_period`: The amount of time an operator is
+  removed from reward eligibility after failing a heartbeat.
+- `heartbeat`: The number of group members required for a heartbeat to successful.
+- `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
+  If set to 40, then the signers sign every 40th block.
+
+To make sure that older wallets are still accessible for redemption, we need to
+perform heartbeats. The signing group signs a block when block count mod
+`heartbeat_block_length` = 0 and then does _not_ publish the result. If there
+are ever less than `heartbeat` operators that participate in the heartbeat, the
+ones that did can create and sign a new transaction that lists the _inactive_
+operators. Once this transaction is posted to the ethereum chain, we can
+iterate through the inactive operators, remove them from reward eligibility
+for `failed_heartbeat_reward_removal_period` amount of time, transfer the remaining
+btc from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
 ===
 
 stub!
+
+[[bitcoin-sweeping-fee]]
+=== Bitcoin Sweeping Fee
+
+Any time a bitcoin transaction needs to be posted and then mined on the bitcoin
+blockchain, the miners need to be paid a fee for their work. This fee
+fluctuates with market demand and is decently volatile.
+
+When the depositor posts their address reveal on ethereum, they include a
+bitcoin `max_fee` denominated in total BTC that they're willing to pay for
+three different fees:
+
+- the over-the-bridge percentage cut (say 0.2% or whatever governance decides)
+- the over-the-bridge fixed cut (say 0.001 mBTC or whatever governance decides)
+  to deter folks from depositing dust
+- the mining fee for getting the batch sweeping transaction to post
+
+Next, we hash the most recent ethereum block to generate the seed for a random
+number generator to generate a modulus that selects a random unlucky operator
+that needs to check the blockstream api for the 25-block target fee:
+https://blockstream.info/api/fee-estimates and then post that information to
+the ethereum chain. The 25-block target fee from blockstream is per vByte, so
+we need to know how many vBytes will be in the transaction, which will depend
+on how many inputs will be in the transaction, which will depend on how many
+deposits we will sweep, which will depend on how many deposits find the target
+fee palatable.
+
+In order to include a deposit in the transaction, we will end up needing to do
+some bin-packing. The more deposits we're able to include in a transaction the
+lower the per-depositor mining fee is (because we get batched cost savings).
+Thus, the more eligible depositors there are, the more eligible depositors
+there are (hence the bin-packing).
+
+After a particular fee has been chosen and all of the deposits have been selected,
+that deposit might not mine within the timeout period. If this happens, the
+unlucky operator should submit a transaction on-chain to multiply the fee by a
+fixed amount (like 1.1x, 1.2x, etc up to some cap like 1.4x). With this in mind,
+we should only include deposits in the initial transaction whose `max_fee` is set
+high enough to withstand a fee increase up to whatever the maximum multiplier is.

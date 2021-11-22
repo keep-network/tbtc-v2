@@ -13,7 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   } else if (hre.network.name !== "hardhat") {
     throw new Error("deployed TBTCToken contract not found")
   } else {
-    log(`deploying TBTCToken stub`)
+    log("deploying TBTCToken stub")
 
     await deployments.deploy("TBTCToken", {
       contract: "TestERC20",
