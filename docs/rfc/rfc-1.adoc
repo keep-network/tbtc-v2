@@ -205,9 +205,10 @@ Governable Parameters
   deposits to sweep.
 
 
-The operators sign a transaction that unlocks all revealed deposits, combines
-them into a single UTXO with the existing UTXO, and relocks that transactions
-without a 30-day refund clause to same wallet. This has two main effects: it
+The operators sign a transaction that unlocks some of revealed deposits based
+on the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>, combines them into a
+single UTXO with the existing UTXO, and relocks that transactions without a
+30-day refund clause to same wallet.  This has two main effects: it
 consolidates the UTXO set and it disables the refund.
 
 Caveat: We only include deposits in batches that have at least
