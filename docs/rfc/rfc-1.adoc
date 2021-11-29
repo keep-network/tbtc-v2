@@ -210,8 +210,8 @@ attacks or corner cases where we create a transaction with a valid, unspent
 input, but by the time we have signed that transaction, the depositor has
 already submitted a refund to the mining pool. Giving ourselves this leeway
 stops that from happening.  Once a deposit crosses that
-`sweeping_refund_safety_time` threshold, the depositor should refund their
-deposit.
+`sweeping_refund_safety_time` threshold, the depositor should wait and then
+refund their deposit.
 
 This process is called a "sweep", and occurs after `sweep_period` has passed or
 if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
