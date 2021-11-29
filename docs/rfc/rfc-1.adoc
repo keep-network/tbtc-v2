@@ -236,7 +236,7 @@ address in 3 hours with no further interaction.
 
 ==== Fraud Proof
 
-There are only two valid types of transactions for a sweep:
+There are only two valid types of transactions for an unswept deposit UTXO:
 
 1) A collection of deposit UTXO's plus the main UTXO for the wallet are the
 inputs are unlocked using the `signingGroupPubkey` and locked under a single
