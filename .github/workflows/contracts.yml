@@ -166,7 +166,7 @@ jobs:
       - name: Upload files needed for etherscan verification
         uses: actions/upload-artifact@v2
         with:
-          name: Artifacts for etherscan verifcation
+          name: Artifacts for etherscan verification
           path: |
             ./solidity/deployments
             ./solidity/package.json
@@ -184,7 +184,7 @@ jobs:
       - name: Download files needed for etherscan verification
         uses: actions/download-artifact@v2
         with:
-          name: Artifacts for etherscan verifcation
+          name: Artifacts for etherscan verification
           path: ./solidity
 
       - uses: actions/setup-node@v2
@@ -236,6 +236,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn install
+
+      - name: Build
+        run: yarn build
 
       - name: Check formatting
         run: yarn format
