@@ -63,38 +63,41 @@ A user with a swept account balance can drain their account balance to redeem BT
 
 [[group-size]]
 === Group Size
-There are three main governable parameters that we need to choose:
 
-* The number of signers that can be controlled by the adversary before the key is in danger `threshold`
-* The number of group members required for a <<heartbeat,heartbeat>> to be considered "strong". `heartbeat`
-* The minimum number of members we're allowed to drop down to during the DKG
-  group formation re-try period. `dkg`
-* The total size of the group `groupSize`
+Governable Parameters:
 
-`threshold < heartbeat < dkg < groupSize`
+- `threshold`: The number of signers that can be controlled by the adversary
+  before the key is in danger.
+- `heartbeat`: The number of group members required for a
+  <<heartbeat,heartbeat>> to be successful.
+- `dkg`: The minimum number of members we're allowed to drop down to during the
+  DKG group formation re-try period.
+- `group_size`: The total size of the signing group.
+
+`threshold < heartbeat < dkg < group_size`
 
 The total gas cost for sortiton increases linearly with group size by at least
 20k gas per member (though, we think we can get this down to roughly 6k gas per
 member in the happy path with some upcoming optimizations). Requiring more
 signers to sign messages makes it harder for adversaries to take over the
 group, but makes it so that the pool is less resilient to undelegation or
-operators going offline. Raising the strong-heartbeat threshold decreases the
-chance that you'll not have enough signers to sign transactions, but decreases
-a wallets lifespan and increases overhead. Lowering the dkg threshold increases
-the chance that we're able to create a wallet successfully but gives us a
-wallet with potentially fewer operators and a lower lifespan.
+operators going offline. Raising `heartbeat` decreases the chance that you'll
+not have enough signers to sign transactions, but decreases a wallets lifespan
+and increases overhead. Lowering `dkg` increases the chance that we're able to
+create a wallet successfully but gives us a wallet with potentially fewer
+operators and a lower lifespan.
 
-Also important is optics - even though a group size of 70 with 40 signers
-required to sign messages equally secure against being controlled by an
-adversary as a group size of 100 with 51 signers required to sign messages, it
-might not _feel_ as secure. That perception may cause a decreased willingness
-to invest capital in the system leading to less money going over the bridge,
-even though the fees are less overall.
+Also important is optics - even though a `group_size` of 70 with a `threshold`
+of 40 is equally secure against being controlled by an adversary as a
+`group_size` of 100 with a `threshold` of 50, it might not _feel_ as secure.
+That perception may cause a decreased willingness to invest capital in the
+system leading to less money going over the bridge, even though the fees are
+less overall.
 
 Since we don't have any workable data that allows us to reasonably estimate
 costs (especially with regard to optics), I suggest we start the system out
 at decent https://en.wikipedia.org/wiki/Focal_point_(game_theory)[schelling
-point] of `groupSize = 100`, `threshold = 50`, `heartbeat = 70`, `dkg = 90` and then let
+point] of `group_size = 100`, `threshold = 50`, `heartbeat = 70`, `dkg = 90` and then let
 governance adjust from there once we've gathered data from the system being used.
 
 See link:rfc-2.adoc[RFC 2: tBTCv2 Group Selection and Key Generation] for a deeper dive here
@@ -184,22 +187,48 @@ reason), all they need to do is not submit their reveal and wait 30 days.
 
 [[sweeping]]
 ==== Sweeping
+
+Governable Parameters
+
+- `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
+  becomes eligible for a refund where we will not include it in a sweeping
+  transaction.
+- `sweep_period`: The amount of time we wait between sweeps.
+- `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
+  trigger an early sweep.
+- `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
+  be included in a sweep.
+
 The operators sign a transaction that unlocks all revealed deposits, combines
 them into a single UTXO with the existing UTXO, and relocks that transactions
 without a 30-day refund clause to same wallet. This has two main effects: it
 consolidates the UTXO set and it disables the refund.
 
-Caveat: We only include deposits in batches that have at least 8 remaining
-hours on their refund window. This prevents potential attacks or corner cases
-where we create a transaction with a valid, unspent input, but by the time we
-have signed that transaction, the depositor has already submitted a refund to
-the mining pool. Giving ourselves 8 hours of leeway stops this from happening.
-Once a deposit crosses that 8-hour threshold, the depositor should refund their
-deposit.
+Caveat: We only include deposits in batches that have at least
+`sweeping_refund_safety_time` their refund window. This prevents potential
+attacks or corner cases where we create a transaction with a valid, unspent
+input, but by the time we have signed that transaction, the depositor has
+already submitted a refund to the mining pool. Giving ourselves this leeway
+stops that from happening.  Once a deposit crosses that
+`sweeping_refund_safety_time` threshold, the depositor should wait and then
+refund their deposit.
 
-This process is called a "sweep", and occurs based on a governable frequency or
-if enough deposits have accumulated (also governable), whichever comes first.
-Any deposit below a governable threshold is ignored.
+This process is called a "sweep", and occurs after `sweep_period` has passed or
+if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
+first. Any deposit below `dust_threshold` is ignored, both for triggering a
+sweep as well as being included in a sweep.
+
+
+Caveat: Checking to see if enough deposits have accumulated to exceed
+`sweep_max_btc` is complex. Since whether or not we pick a deposit to include
+in a sweep is based on their associated fee and the bitcoin fee market
+conditions, we have to check the going market rate for a bitcoin fee, and then
+do some bin-packing to see which deposits we can allow in. The more deposits,
+the low the per-deposit fee is (because they can share costs). Once we have
+enough deposits to exceed `sweep_max_btc`, we should check the market
+conditions for the btc fee and then off-chain see which deposits *would be*
+swept if we *were* to sweep. If the sum of those deposits exceeds the
+`sweep_max_btc` parameter, then we should initiate a sweep.
 
 After submitting the transaction, it will cost some amount of bitcoin based on
 what miners are charging for the bitcoin fee. This fee comes out of the unswept
@@ -214,7 +243,7 @@ with the motivation to do so. For more details on transaction incentives,
 check out the <<transaction-incentives,dedicated section>>.
 
 The main downside to this approach is that it can take, in the worst case, up
-to the frequency parameter in time for a user to be able to mint TBTC. To help
+to `sweep_period` for a user to be able to mint TBTC. To help
 alleviate this, two suggestions:
 
 1) We surface when the next scheduled sweep and the accumulation threshold
@@ -236,6 +265,12 @@ address in 3 hours with no further interaction.
 
 === Redemption
 
+Governable Parameters:
+
+`wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+  attempt to close the wallet and transfer the funds to a randomly selected
+  wallet.
+
 To initiate a redemption, a user with a swept balance > `x` supplies a bitcoin
 address. Then, the system calculates the redemption fee `fee`, and releases an
 amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
@@ -247,9 +282,9 @@ bitcoin contained in the largest wallet. The wallet doing the redemption is
 selected by the redeemer, but the dApp should suggest that this is the oldest
 wallet that contains enough bitcoin to fulfil the redemption. If more BTC
 needs to be redeemed than there is in the largest wallet, then the user needs
-to submit multiple redemptions. After a redemption, if a wallet has under a
-governable threshold of BTC remaining, it transfers that BTC to the active
-wallet and closes.
+to submit multiple redemptions. After a redemption, if the wallet has under
+`wallet_min_btc` remaining, it transfers that BTC to a randomly selected wallet
+and closes.
 
 === Wallet Lifecycle
 
