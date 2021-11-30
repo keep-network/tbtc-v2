@@ -163,6 +163,10 @@ days (specified as `locktime`).
 
 ==== The Big Reveal
 
+Governable Parameters:
+
+- `sweep_period`: The amount of time we wait between sweeps.
+
 After the deposit transaction has been mined, the user is able to reveal their
 ethereum address and blinding factor to the ethereum chain. The bridge listens
 for these sorts of messages and when it sees one, is able to generate a script that
@@ -171,9 +175,9 @@ and charge a deposit fee.
 
 Second, we schedule an operation that batches all outstanding known-refundable
 transactions together to be combined with the existing wallet output into a
-single output. The frequency of this operation is a governable parameter. When
-this <<sweeping,sweep>> occurs, we decrease the relevant accounts' unswept balances and
-increase their balances. This disables any outstanding 30-day refunds.
+single output. The frequency of this operation is the `sweep_period`. When this
+<<sweeping,sweep>> occurs, we decrease the relevant accounts' unswept balances
+and increase their balances. This disables any outstanding 30-day refunds.
 
 ==== Automated Refunds
 
@@ -372,8 +376,7 @@ for `failed_heartbeat_reward_removal_period` amount of time, transfer the remain
 btc from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
-===
-
+=== Transaction Incentives
 stub!
 
 [[bitcoin-sweeping-fee]]
