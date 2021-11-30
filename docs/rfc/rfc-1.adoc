@@ -254,7 +254,9 @@ When the transaction clears, and the information has made its way
 over the relay maintainer, then another transaction needs to be created to on
 the ethereum side to update the account balances. The users unswept balances
 are decreased, and their swept balances are increased (after paying their share
-of the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>).
+of the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>). Additionally, we also
+include any `unsweptBalances` that should be *decreased* due to not being swept
+before the 30-day refund period (from not having a high enough bitcoin fee).
 
 This transaction will be expensive gas-wise, and can be submitted by anyone
 with the motivation to do so. For more details on transaction incentives,
