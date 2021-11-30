@@ -250,6 +250,12 @@ sweeping_fee_multiplier_increment` and then calculate the new fee: `fee =
 base_fee * fee_multiplier`. We repeat until either the transaction posts or
 `sweeping_fee_multiplier_increment` exceeds `sweeping_fee_max_multiplier`.
 
+*Note*: In terms of bin-packing eligibility, we only include deposits whose
+associated fee is higher than the highest fee we could iterate to given
+`sweeping_fee_max_multiplier` and `base_fee`. We also only include deposits
+whose refund date fits within the `sweeping_refund_safety_time` for the worst
+case with respect to transaction retries for increasing the fee.
+
 When the transaction clears, and the information has made its way
 over the relay maintainer, then another transaction needs to be created to on
 the ethereum side to update the account balances. The users unswept balances
