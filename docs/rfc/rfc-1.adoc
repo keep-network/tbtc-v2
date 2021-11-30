@@ -253,12 +253,25 @@ wallet and closes.
 
 === Wallet Lifecycle
 
-Wallets are periodically created, where the period length is a governable
-parameter. To create a new wallet, a group of 100 operators is selected from
-the pool of available operators (some operators may be selected twice if there
-are not enough) using a process called sortition. The probabiliy that a
-particular operator is chosen is based on their stake weight, which in turn is
-based on the number of `T` tokens they have invested in the staking contract.
+Governable Parameters:
+
+- `wallet_creation_period`: How frequently we attempt to create new wallets.
+- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+  attempt to close the wallet and transfer the funds to a randomly selected
+  wallet.
+- `wallet_max_btc`: The amount of btc a wallet can hold before we trigger the
+  early creation of a new wallet.
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
+  to a randomly selected wallet.
+
+A new wallet is created when either enough time has passed as defined in
+`wallet_creation_period` *AND* the wallet contains at least
+`wallet_min_btc` btc *OR* the wallet currently contains more btc than
+`wallet_max_btc`, whichever happens first. To create a new wallet, a group of
+100 operators is selected from the pool of available operators using a process
+called sortition. The probabiliy that a particular operator is chosen is based
+on their stake weight, which in turn is based on the number of `T` tokens they
+have invested in the staking contract.
 
 Once the operators have been selected from the sortition pool, they generate a
 51-of-100 ecdsa signing group to handle the bitcoin key material per the
@@ -268,10 +281,9 @@ Generation]. The group size may end up being smaller depending on retries.
 As time passes and operators drop out of the system, a wallet becomes at risk
 of being able to meet the 51-of-100 threshold to produce signatures.
 Additionally, we want to avoid situations where operators are the custodians of
-a wallet for extended periods. To avoid these issues, we can set a max age of a
-wallet and a heartbeat threshold. Once a wallet is older than the max age, or
-if it drops below the liveness threshold (say, below 70 on a
-<<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
+a wallet for extended periods. To avoid these issues, once a wallet is older
+than the `wallet_max_age`, or if it drops below the liveness threshold (say, below 70 on
+a <<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
 selected wallet.
 
 Once a wallet no longer has funds and is not the primary wallet for new
