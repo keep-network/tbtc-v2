@@ -66,9 +66,12 @@ A user with a swept account balance can drain their account balance to redeem BT
 
 Governable Parameters:
 
-- `threshold`: The number of signers that can be controlled by the adversary before the key is in danger.
-- `heartbeat`: The number of group members required for a <<heartbeat,heartbeat>> to successful.
-- `dkg`: The minimum number of members we're allowed to drop down to during the DKG group formation re-try period.
+- `threshold`: The number of signers that can be controlled by the adversary
+  before the key is in danger.
+- `heartbeat`: The number of group members required for a
+  <<heartbeat,heartbeat>> to be successful.
+- `dkg`: The minimum number of members we're allowed to drop down to during the
+  DKG group formation re-try period.
 - `group_size`: The total size of the signing group.
 
 `threshold < heartbeat < dkg < group_size`
@@ -78,11 +81,11 @@ The total gas cost for sortiton increases linearly with group size by at least
 member in the happy path with some upcoming optimizations). Requiring more
 signers to sign messages makes it harder for adversaries to take over the
 group, but makes it so that the pool is less resilient to undelegation or
-operators going offline. Raising the strong-heartbeat threshold decreases the
-chance that you'll not have enough signers to sign transactions, but decreases
-a wallets lifespan and increases overhead. Lowering the dkg threshold increases
-the chance that we're able to create a wallet successfully but gives us a
-wallet with potentially fewer operators and a lower lifespan.
+operators going offline. Raising `heartbeat` decreases the chance that you'll
+not have enough signers to sign transactions, but decreases a wallets lifespan
+and increases overhead. Lowering `dkg` increases the chance that we're able to
+create a wallet successfully but gives us a wallet with potentially fewer
+operators and a lower lifespan.
 
 Also important is optics - even though a `group_size` of 70 with a `threshold`
 of 40 is equally secure against being controlled by an adversary as a
@@ -191,7 +194,8 @@ Governable Parameters
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
 - `sweep_period`: The amount of time we wait between sweeps.
-- `sweep_max_btc`: The amount of total bitcoin that will trigger an early sweep.
+- `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
+  trigger an early sweep.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
   be included in a sweep.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
@@ -217,12 +221,13 @@ attacks or corner cases where we create a transaction with a valid, unspent
 input, but by the time we have signed that transaction, the depositor has
 already submitted a refund to the mining pool. Giving ourselves this leeway
 stops that from happening.  Once a deposit crosses that
-`sweeping_refund_safety_time` threshold, the depositor should refund their
-deposit.
+`sweeping_refund_safety_time` threshold, the depositor should wait and then
+refund their deposit.
 
 This process is called a "sweep", and occurs after `sweep_period` has passed or
 if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
-first. Any deposit below `dust_threshold` is ignored.
+first. Any deposit below `dust_threshold` is ignored, both for triggering a
+sweep as well as being included in a sweep.
 
 Caveat: Checking to see if enough deposits have accumulated to exceed
 `sweep_max_btc` is complex. Since whether or not we pick a deposit to include
@@ -301,12 +306,25 @@ and closes.
 
 === Wallet Lifecycle
 
-Wallets are periodically created, where the period length is a governable
-parameter. To create a new wallet, a group of 100 operators is selected from
-the pool of available operators (some operators may be selected twice if there
-are not enough) using a process called sortition. The probabiliy that a
-particular operator is chosen is based on their stake weight, which in turn is
-based on the number of `T` tokens they have invested in the staking contract.
+Governable Parameters:
+
+- `wallet_creation_period`: How frequently we attempt to create new wallets.
+- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+  attempt to close the wallet and transfer the funds to a randomly selected
+  wallet.
+- `wallet_max_btc`: The amount of btc a wallet can hold before we trigger the
+  early creation of a new wallet.
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
+  to a randomly selected wallet.
+
+A new wallet is created when either enough time has passed as defined in
+`wallet_creation_period` *AND* the wallet contains at least
+`wallet_min_btc` btc *OR* the wallet currently contains more btc than
+`wallet_max_btc`, whichever happens first. To create a new wallet, a group of
+100 operators is selected from the pool of available operators using a process
+called sortition. The probabiliy that a particular operator is chosen is based
+on their stake weight, which in turn is based on the number of `T` tokens they
+have invested in the staking contract.
 
 Once the operators have been selected from the sortition pool, they generate a
 51-of-100 ecdsa signing group to handle the bitcoin key material per the
@@ -316,10 +334,9 @@ Generation]. The group size may end up being smaller depending on retries.
 As time passes and operators drop out of the system, a wallet becomes at risk
 of being able to meet the 51-of-100 threshold to produce signatures.
 Additionally, we want to avoid situations where operators are the custodians of
-a wallet for extended periods. To avoid these issues, we can set a max age of a
-wallet and a heartbeat threshold. Once a wallet is older than the max age, or
-if it drops below the liveness threshold (say, below 70 on a
-<<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
+a wallet for extended periods. To avoid these issues, once a wallet is older
+than the `wallet_max_age`, or if it drops below the liveness threshold (say, below 70 on
+a <<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
 selected wallet.
 
 Once a wallet no longer has funds and is not the primary wallet for new
@@ -331,20 +348,21 @@ it.
 
 Governable Parameters:
 
-- `failed_heartbeat_sortition_timeout`: The amount of time an operator is
-  removed from the sortition pool after failing a heartbeat.
+- `failed_heartbeat_reward_removal_period`: The amount of time an operator is
+  removed from reward eligibility after failing a heartbeat.
 - `heartbeat`: The number of group members required for a heartbeat to successful.
+- `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
+  If set to 40, then the signers sign every 40th block.
 
 To make sure that older wallets are still accessible for redemption, we need to
-perform heartbeats. The signing group signs every 40th ethereum block and then
-does _not_ publish the result. If there are ever less than `heartbeat`
-operators that participate in the heartbeat, the ones that did can create and
-sign a new transaction that lists the _inactive_ operators. Once this
-transaction is posted to the ethereum chain, we can iterate through the
-inactive operators, remove them from the sortition pool for
-`failed_heartbeat_sortition_timeout` amount of time (which disables their `T`
-rewards), transfer the from the wallet to another random wallet and close this
-wallet.
+perform heartbeats. The signing group signs a block when block count mod
+`heartbeat_block_length` = 0 and then does _not_ publish the result. If there
+are ever less than `heartbeat` operators that participate in the heartbeat, the
+ones that did can create and sign a new transaction that lists the _inactive_
+operators. Once this transaction is posted to the ethereum chain, we can
+iterate through the inactive operators, remove them from reward eligibility
+for `failed_heartbeat_reward_removal_period` amount of time, transfer the remaining
+btc from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
 ===
