@@ -193,7 +193,7 @@ Governable Parameters
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
-- `sweep_period`: The amount of time we wait between sweeps.
+- `sweep_period`: The amount of time we wait between sweep-period-sweeps.
 - `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
   trigger an early sweep.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
@@ -280,6 +280,36 @@ Combining these ideas, a user would deposit some BTC, reveal their eth address
 and blinding factor, and then request that TBTC gets minted ASAP. Checking the
 dApp, they can see that they should expect TBTC in their provided wallet
 address in 3 hours with no further interaction.
+
+===== How Frequently To Sweep
+
+Governable Parameters
+
+- `sweep_period`: The amount of time we wait between sweep-period-sweeps.
+- `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
+  trigger an early sweep.
+
+We've established in the <<sweeping,sweeping>> section that we should sweep
+whenever enough time has passed to exceed the `sweep_period` or whenever enough
+btc has been deposited to exceed `sweep_max_btc`. If we sweep early because a
+lot of btc was deposited, then we don't "push back" our scheduled
+`sweep_period` sweep. Rather, that sweep continues as planned, and if there
+aren't enough deposits (maybe because they all got swept in the `sweep_max_btc`
+sweep), then we wait until the next sweep and repeat the process.
+
+*Example*: We have a `sweep_period = 8 hours` and `sweep_max_btc = 10 btc`. At
+13:00, a sweep just occured, and the next is scheduled for 21:00. At 15:00, 13
+btc gets deposited which triggers a sweep due to `sweep_max_btc`. Rather than
+pushing back the next scheduled sweep to 23:00, it remains at 21:00. If by 21:00
+there are any deposits with a high enough <<bitcoin-sweeping-fee,sweeping fee>>
+to be included in a sweep, we do it. Otherwise, we schedule the next sweep for
+05:00 the next day. The process repeats.
+
+Here, we're making the tradeoff between reducing fees (having less frequent
+batches) and increasing reliability from a user experience standpoint. This
+setup allows us to have two active wallets that are always staggered from one
+another, so the worst case scenario for the next sweep is always half of
+`sweep_period`.
 
 === Redemption
 
