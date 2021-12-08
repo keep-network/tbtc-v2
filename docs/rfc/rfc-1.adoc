@@ -198,10 +198,21 @@ Governable Parameters
   trigger an early sweep.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
   be included in a sweep.
+- `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
+  tranaction is mined before increasing the fee.
+- `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
+  multiplier each time a sweeping transaction is not mined within the
+  `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
+  are currently at 1.6x, then the next time we would try 1.8x.
+- `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
+  multiplier to before giving up and picking a new base fee and different
+  deposits to sweep.
 
-The operators sign a transaction that unlocks all revealed deposits, combines
-them into a single UTXO with the existing UTXO, and relocks that transactions
-without a 30-day refund clause to same wallet. This has two main effects: it
+
+The operators sign a transaction that unlocks some of revealed deposits based
+on the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>, combines them into a
+single UTXO with the existing UTXO, and relocks that transactions without a
+30-day refund clause to same wallet.  This has two main effects: it
 consolidates the UTXO set and it disables the refund.
 
 Caveat: We only include deposits in batches that have at least
@@ -218,7 +229,6 @@ if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
 first. Any deposit below `dust_threshold` is ignored, both for triggering a
 sweep as well as being included in a sweep.
 
-
 Caveat: Checking to see if enough deposits have accumulated to exceed
 `sweep_max_btc` is complex. Since whether or not we pick a deposit to include
 in a sweep is based on their associated fee and the bitcoin fee market
@@ -230,9 +240,17 @@ conditions for the btc fee and then off-chain see which deposits *would be*
 swept if we *were* to sweep. If the sum of those deposits exceeds the
 `sweep_max_btc` parameter, then we should initiate a sweep.
 
-After submitting the transaction, it will cost some amount of bitcoin based on
-what miners are charging for the bitcoin fee. This fee comes out of the unswept
-deposits. When the transaction clears, and the information has made its way
+The sweeping transaction will cost some amount of bitcoin based on what miners
+are charging for the bitcoin fee in the current market conditions. The fee is
+split in proportion to the number of UTXOs associated to each depositor. Once
+the transaction is submitted to the bitcoin mempool, the miners will either
+include it in a block within `sweeping_fee_bump_period` or not. If they don't,
+then we increment a fee multiplier: `fee_multiplier = fee_multiplier +
+sweeping_fee_multiplier_increment` and then calculate the new fee: `fee =
+base_fee * fee_multiplier`. We repeat until either the transaction posts or
+`sweeping_fee_multiplier_increment` exceeds `sweeping_fee_max_multiplier`.
+
+When the transaction clears, and the information has made its way
 over the relay maintainer, then another transaction needs to be created to on
 the ethereum side to update the account balances. The users unswept balances
 are decreased, and their swept balances are increased (after paying their share
