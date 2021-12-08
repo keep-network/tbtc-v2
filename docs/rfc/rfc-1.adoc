@@ -281,6 +281,58 @@ and blinding factor, and then request that TBTC gets minted ASAP. Checking the
 dApp, they can see that they should expect TBTC in their provided wallet
 address in 3 hours with no further interaction.
 
+==== Minting From Unswept Balances
+
+Governable Parameters
+
+- `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
+  becomes eligible for a refund where we will not include it in a sweeping
+  transaction.
+- `wallet_max_btc`: The amount of btc a wallet can hold before we trigger the
+  early creation of a new wallet.
+- `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
+  trigger an early sweep.
+- `max_mint_from_unswept`: The amount of TBTC that the system will mint from
+  unswept deposits.
+
+Minting from the unswept balance is tricky - here's the attack we want to avoid:
+
+Wallet 1 has 70 btc. Wallet 2 has 50 btc. Wallet 3 has 30 btc. Mallory can
+Denial-of-Service attack (DoS) Wallet 3 to prevent it from sweeping.
+
+1. Mallory deposits 5 btc into Wallet 3, and receives an unswept balance of 5.
+2. Mallory DoS's Wallet 3 to prevent it from sweeping.
+3. Mallory mints 5 TBTC from their unswept balance.
+4. Mallory redeems 5 btc from Wallet 1.
+
+New balance: Wallet 1 has 65 btc. Wallet 2 has 50 btc. Wallet 3 has 30 btc and
+5 unswept btc.
+
+Mallory can repeat this process until Wallet 1 and 2 are completely drained and
+Wallet 3 has 30 btc and 120 unswept btc (everything from Wallet 1 and 2). Then,
+if Mallory can DoS the wallet until their refund is available, they leave with 120
+btc! 👿👿
+
+In order for Mallory to pull this off, Mallory must be able to DoS the Wallet from when
+they *reveal* until when their refund is available. This means that the longer
+`sweeping_refund_safety_time` is, the harder this attack becomes. It goes from
+feasible at 1 day to almost inconceivable at 25 days. With 25 days for us to
+respond, we could (as a last resort), create a private network for the
+operators!
+
+Further, as Mallory deposits more and more btc to Wallet 3, they start brushing up
+against `wallet_max_btc`. Once they cross that threshold, it'll become the
+secondary wallet, and then if they cross that threshold again, it won't accept
+deposits at all, so this provides a natural limiter.
+
+Additionally, governance can tweak `max_mint_from_unswept` to balance risk to
+the coverage pools against the user experience. A high `max_mint_from_unswept`
+is effectively like not having a max, since depositing a large amount of btc
+triggers a sweep due to `sweep_max_btc`.
+
+With these protections in mind and the params set to reasonable levels, we feel
+safe enough allowing the system to mint TBTC from unswept deposits!
+
 === Redemption
 
 Governable Parameters:
