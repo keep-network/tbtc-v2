@@ -304,6 +304,13 @@ to submit multiple redemptions. After a redemption, if the wallet has under
 `wallet_min_btc` remaining, it transfers that BTC to a randomly selected wallet
 and closes.
 
+==== Fraud Proof
+
+When a redemption is requested, the redeeming bitcoin public key and amount are
+known on the ethereum chain. Any bitcoin transactions with the main wallet
+wallet UTXO as the input must have outputs that match those known redemption
+requests, otherwise the transaction was fraudulent.
+
 === Wallet Lifecycle
 
 Governable Parameters:
