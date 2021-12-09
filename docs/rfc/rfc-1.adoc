@@ -270,6 +270,12 @@ This transaction will be expensive gas-wise, and can be submitted by anyone
 with the motivation to do so. For more details on transaction incentives,
 check out the <<transaction-incentives,dedicated section>>.
 
+*Caveat*: The `sweeping_fee_bump_period` and `sweeping_fee_max_multiplier`
+parameters should be constrained such that one sweep should either finish and
+either post or fail before the next sweep is scheduled (via `sweep_period`) to
+start. This is because sweeps include the main UTXO as one of the inputs, which
+is the result of the previous sweep's output.
+
 The main downside to this approach is that it can take, in the worst case, up
 to `sweep_period` for a user to be able to mint TBTC. To help
 alleviate this, two suggestions:
