@@ -163,6 +163,10 @@ days (specified as `locktime`).
 
 ==== The Big Reveal
 
+Governable Parameters:
+
+- `sweep_period`: The amount of time we wait between sweeps.
+
 After the deposit transaction has been mined, the user is able to reveal their
 ethereum address and blinding factor to the ethereum chain. The bridge listens
 for these sorts of messages and when it sees one, is able to generate a script that
@@ -171,9 +175,9 @@ and charge a deposit fee.
 
 Second, we schedule an operation that batches all outstanding known-refundable
 transactions together to be combined with the existing wallet output into a
-single output. The frequency of this operation is a governable parameter. When
-this <<sweeping,sweep>> occurs, we decrease the relevant accounts' unswept balances and
-increase their balances. This disables any outstanding 30-day refunds.
+single output. The frequency of this operation is the `sweep_period`. When this
+<<sweeping,sweep>> occurs, we decrease the relevant accounts' unswept balances
+and increase their balances. This disables any outstanding 30-day refunds.
 
 ==== Automated Refunds
 
@@ -198,10 +202,21 @@ Governable Parameters
   trigger an early sweep.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
   be included in a sweep.
+- `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
+  tranaction is mined before increasing the fee.
+- `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
+  multiplier each time a sweeping transaction is not mined within the
+  `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
+  are currently at 1.6x, then the next time we would try 1.8x.
+- `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
+  multiplier to before giving up and picking a new base fee and different
+  deposits to sweep.
 
-The operators sign a transaction that unlocks all revealed deposits, combines
-them into a single UTXO with the existing UTXO, and relocks that transactions
-without a 30-day refund clause to same wallet. This has two main effects: it
+
+The operators sign a transaction that unlocks some of revealed deposits based
+on the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>, combines them into a
+single UTXO with the existing UTXO, and relocks that transactions without a
+30-day refund clause to same wallet.  This has two main effects: it
 consolidates the UTXO set and it disables the refund.
 
 Caveat: We only include deposits in batches that have at least
@@ -218,7 +233,6 @@ if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
 first. Any deposit below `dust_threshold` is ignored, both for triggering a
 sweep as well as being included in a sweep.
 
-
 Caveat: Checking to see if enough deposits have accumulated to exceed
 `sweep_max_btc` is complex. Since whether or not we pick a deposit to include
 in a sweep is based on their associated fee and the bitcoin fee market
@@ -230,9 +244,17 @@ conditions for the btc fee and then off-chain see which deposits *would be*
 swept if we *were* to sweep. If the sum of those deposits exceeds the
 `sweep_max_btc` parameter, then we should initiate a sweep.
 
-After submitting the transaction, it will cost some amount of bitcoin based on
-what miners are charging for the bitcoin fee. This fee comes out of the unswept
-deposits. When the transaction clears, and the information has made its way
+The sweeping transaction will cost some amount of bitcoin based on what miners
+are charging for the bitcoin fee in the current market conditions. The fee is
+split in proportion to the number of UTXOs associated to each depositor. Once
+the transaction is submitted to the bitcoin mempool, the miners will either
+include it in a block within `sweeping_fee_bump_period` or not. If they don't,
+then we increment a fee multiplier: `fee_multiplier = fee_multiplier +
+sweeping_fee_multiplier_increment` and then calculate the new fee: `fee =
+base_fee * fee_multiplier`. We repeat until either the transaction posts or
+`sweeping_fee_multiplier_increment` exceeds `sweeping_fee_max_multiplier`.
+
+When the transaction clears, and the information has made its way
 over the relay maintainer, then another transaction needs to be created to on
 the ethereum side to update the account balances. The users unswept balances
 are decreased, and their swept balances are increased (after paying their share
@@ -302,6 +324,13 @@ to submit multiple redemptions. After a redemption, if the wallet has under
 `wallet_min_btc` remaining, it transfers that BTC to a randomly selected wallet
 and closes.
 
+==== Fraud Proof
+
+When a redemption is requested, the redeeming bitcoin public key and amount are
+known on the ethereum chain. Any bitcoin transactions with the main wallet
+wallet UTXO as the input must have outputs that match those known redemption
+requests, otherwise the transaction was fraudulent.
+
 === Wallet Lifecycle
 
 Governable Parameters:
@@ -363,12 +392,15 @@ for `failed_heartbeat_reward_removal_period` amount of time, transfer the remain
 btc from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
-===
-
+=== Transaction Incentives
 stub!
 
 [[bitcoin-sweeping-fee]]
 === Bitcoin Sweeping Fee
+
+Governable Parameters
+- `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
+- `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
 
 Any time a bitcoin transaction needs to be posted and then mined on the bitcoin
 blockchain, the miners need to be paid a fee for their work. This fee
@@ -378,9 +410,9 @@ When the depositor posts their address reveal on ethereum, they include a
 bitcoin `max_fee` denominated in total BTC that they're willing to pay for
 three different fees:
 
-- the over-the-bridge percentage cut (say 0.2% or whatever governance decides)
-- the over-the-bridge fixed cut (say 0.001 mBTC or whatever governance decides)
-  to deter folks from depositing dust
+- `bridge_deposit_percentage_fee` (say 0.2% or whatever governance decides)
+- `bridge_deposit_flat_fee` (say 0.001 mBTC or whatever governance decides) to
+  deter folks from depositing dust
 - the mining fee for getting the batch sweeping transaction to post
 
 Next, we hash the most recent ethereum block to generate the seed for a random
@@ -397,7 +429,8 @@ In order to include a deposit in the transaction, we will end up needing to do
 some bin-packing. The more deposits we're able to include in a transaction the
 lower the per-depositor mining fee is (because we get batched cost savings).
 Thus, the more eligible depositors there are, the more eligible depositors
-there are (hence the bin-packing).
+there are (hence the bin-packing). For a more in-depth explanation of how
+deposits are chosen, check out <<sweeping,sweeping>>
 
 After a particular fee has been chosen and all of the deposits have been selected,
 that deposit might not mine within the timeout period. If this happens, the
