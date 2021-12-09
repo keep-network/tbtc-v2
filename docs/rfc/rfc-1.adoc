@@ -173,6 +173,11 @@ for these sorts of messages and when it sees one, is able to generate a script t
 can spend the funds. Once successful, we increase the account's unswept balance
 and charge a deposit fee.
 
+Addtionally and optionally, as a part of the reveal transaction, the user the
+declare that they want their swept funds to be immediately minted into TBTC.
+This saves the user from having to make separate transactions or wait for a
+sweep to occur before an additional transaction.
+
 Second, we schedule an operation that batches all outstanding known-refundable
 transactions together to be combined with the existing wallet output into a
 single output. The frequency of this operation is the `sweep_period`. When this
@@ -219,7 +224,7 @@ single UTXO with the existing UTXO, and relocks that transactions without a
 30-day refund clause to same wallet.  This has two main effects: it
 consolidates the UTXO set and it disables the refund.
 
-Caveat: We only include deposits in batches that have at least
+*Caveat*: We only include deposits in batches that have at least
 `sweeping_refund_safety_time` their refund window. This prevents potential
 attacks or corner cases where we create a transaction with a valid, unspent
 input, but by the time we have signed that transaction, the depositor has
@@ -228,12 +233,18 @@ stops that from happening.  Once a deposit crosses that
 `sweeping_refund_safety_time` threshold, the depositor should wait and then
 refund their deposit.
 
+*Caveat*: A wallet only sweeps deposits that were deposited while while the
+wallet was either the youngest or second-youngest wallet. The dApp will only
+point deposits to the youngest wallet, so any other wallet receiving deposits
+is the result of funky custom user behavior. In those cases, the users will
+need to wait 30 days for their refund.
+
 This process is called a "sweep", and occurs after `sweep_period` has passed or
 if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
 first. Any deposit below `dust_threshold` is ignored, both for triggering a
 sweep as well as being included in a sweep.
 
-Caveat: Checking to see if enough deposits have accumulated to exceed
+*Caveat*: Checking to see if enough deposits have accumulated to exceed
 `sweep_max_btc` is complex. Since whether or not we pick a deposit to include
 in a sweep is based on their associated fee and the bitcoin fee market
 conditions, we have to check the going market rate for a bitcoin fee, and then
@@ -269,6 +280,12 @@ of the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>).
 This transaction will be expensive gas-wise, and can be submitted by anyone
 with the motivation to do so. For more details on transaction incentives,
 check out the <<transaction-incentives,dedicated section>>.
+
+*Caveat*: The `sweeping_fee_bump_period` and `sweeping_fee_max_multiplier`
+parameters should be constrained such that one sweep should either finish and
+either post or fail before the next sweep is scheduled (via `sweep_period`) to
+start. This is because sweeps include the main UTXO as one of the inputs, which
+is the result of the previous sweep's output.
 
 The main downside to this approach is that it can take, in the worst case, up
 to `sweep_period` for a user to be able to mint TBTC. To help
