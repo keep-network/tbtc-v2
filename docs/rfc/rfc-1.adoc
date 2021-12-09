@@ -219,7 +219,7 @@ single UTXO with the existing UTXO, and relocks that transactions without a
 30-day refund clause to same wallet.  This has two main effects: it
 consolidates the UTXO set and it disables the refund.
 
-Caveat: We only include deposits in batches that have at least
+*Caveat*: We only include deposits in batches that have at least
 `sweeping_refund_safety_time` their refund window. This prevents potential
 attacks or corner cases where we create a transaction with a valid, unspent
 input, but by the time we have signed that transaction, the depositor has
@@ -228,12 +228,18 @@ stops that from happening.  Once a deposit crosses that
 `sweeping_refund_safety_time` threshold, the depositor should wait and then
 refund their deposit.
 
+*Caveat*: A wallet only sweeps deposits that were deposited while while the
+wallet was either the youngest or second-youngest wallet. The dApp will only
+point deposits to the youngest wallet, so any other wallet receiving deposits
+is the result of funky custom user behavior. In those cases, the users will
+need to wait 30 days for their refund.
+
 This process is called a "sweep", and occurs after `sweep_period` has passed or
 if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
 first. Any deposit below `dust_threshold` is ignored, both for triggering a
 sweep as well as being included in a sweep.
 
-Caveat: Checking to see if enough deposits have accumulated to exceed
+*Caveat*: Checking to see if enough deposits have accumulated to exceed
 `sweep_max_btc` is complex. Since whether or not we pick a deposit to include
 in a sweep is based on their associated fee and the bitcoin fee market
 conditions, we have to check the going market rate for a bitcoin fee, and then
