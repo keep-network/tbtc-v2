@@ -173,6 +173,11 @@ for these sorts of messages and when it sees one, is able to generate a script t
 can spend the funds. Once successful, we increase the account's unswept balance
 and charge a deposit fee.
 
+Addtionally and optionally, as a part of the reveal transaction, the user the
+declare that they want their swept funds to be immediately minted into TBTC.
+This saves the user from having to make separate transactions or wait for a
+sweep to occur before an additional transaction.
+
 Second, we schedule an operation that batches all outstanding known-refundable
 transactions together to be combined with the existing wallet output into a
 single output. The frequency of this operation is the `sweep_period`. When this
