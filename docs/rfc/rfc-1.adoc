@@ -163,6 +163,10 @@ days (specified as `locktime`).
 
 ==== The Big Reveal
 
+Governable Parameters:
+
+- `sweep_period`: The amount of time we wait between sweeps.
+
 After the deposit transaction has been mined, the user is able to reveal their
 ethereum address and blinding factor to the ethereum chain. The bridge listens
 for these sorts of messages and when it sees one, is able to generate a script that
@@ -171,9 +175,9 @@ and charge a deposit fee.
 
 Second, we schedule an operation that batches all outstanding known-refundable
 transactions together to be combined with the existing wallet output into a
-single output. The frequency of this operation is a governable parameter. When
-this <<sweeping,sweep>> occurs, we decrease the relevant accounts' unswept balances and
-increase their balances. This disables any outstanding 30-day refunds.
+single output. The frequency of this operation is the `sweep_period`. When this
+<<sweeping,sweep>> occurs, we decrease the relevant accounts' unswept balances
+and increase their balances. This disables any outstanding 30-day refunds.
 
 ==== Automated Refunds
 
@@ -372,12 +376,15 @@ for `failed_heartbeat_reward_removal_period` amount of time, transfer the remain
 btc from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
-===
-
+=== Transaction Incentives
 stub!
 
 [[bitcoin-sweeping-fee]]
 === Bitcoin Sweeping Fee
+
+Governable Parameters
+- `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
+- `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
 
 Any time a bitcoin transaction needs to be posted and then mined on the bitcoin
 blockchain, the miners need to be paid a fee for their work. This fee
@@ -387,9 +394,9 @@ When the depositor posts their address reveal on ethereum, they include a
 bitcoin `max_fee` denominated in total BTC that they're willing to pay for
 three different fees:
 
-- the over-the-bridge percentage cut (say 0.2% or whatever governance decides)
-- the over-the-bridge fixed cut (say 0.001 mBTC or whatever governance decides)
-  to deter folks from depositing dust
+- `bridge_deposit_percentage_fee` (say 0.2% or whatever governance decides)
+- `bridge_deposit_flat_fee` (say 0.001 mBTC or whatever governance decides) to
+  deter folks from depositing dust
 - the mining fee for getting the batch sweeping transaction to post
 
 Next, we hash the most recent ethereum block to generate the seed for a random
@@ -406,7 +413,8 @@ In order to include a deposit in the transaction, we will end up needing to do
 some bin-packing. The more deposits we're able to include in a transaction the
 lower the per-depositor mining fee is (because we get batched cost savings).
 Thus, the more eligible depositors there are, the more eligible depositors
-there are (hence the bin-packing).
+there are (hence the bin-packing). For a more in-depth explanation of how
+deposits are chosen, check out <<sweeping,sweeping>>
 
 After a particular fee has been chosen and all of the deposits have been selected,
 that deposit might not mine within the timeout period. If this happens, the
