@@ -312,9 +312,42 @@ to be included in a sweep, we do it. Otherwise, we schedule the next sweep for
 
 Here, we're making the tradeoff between reducing fees (having less frequent
 batches) and increasing reliability from a user experience standpoint. This
-setup allows us to have two active wallets that are always staggered from one
+setup allows us to have two active wallets that are always <<staggering,staggered>> from one
 another, so the worst case scenario for the next sweep is always half of
 `sweep_period`.
+
+[[staggering]]
+===== Active Wallet Sweep Staggering
+Governable Parameters
+
+- `sweep_period`: The amount of time we wait between sweep-period-sweeps.
+
+Since the youngest two wallets both sweep deposits based on their
+`sweep_period`, we can improve our user experience by intentionally staggering
+the start time of these period sweeps to be equally spaced apart from each
+other.
+
+Good Example:
+- `sweep_period = 8 hours`
+- `wallet_1` sweeps at 12:00, 20:00, and 04:00
+- `wallet_2` sweeps at 16:00, 00:00, and 08:00
+
+Bad Example:
+- `sweep_period = 8 hours`
+- `wallet_1` sweeps at 12:00, 20:00, and 04:00
+- `wallet_2` sweeps at 13:00, 21:00, and 05:00
+
+In the "Good Example", there are 6 worst case scenarios: a user deposits at
+12:01, 20:01, 4:01, 16:01, 00:01, and 08:01. Those deposits would be swept at
+16:00, 24:00, 8:00, 20:00, 04:00, and 12:00 respectively, and the amount of
+time to wait is 3h59m.
+
+In the "Bad Example", there are 3 worst case scenarios: a user deposits at
+13:01, 21:01, and 05:01. Those deposits would be swept at 20:00, 04:00, and
+12:00 respectively, and the amount of time to wait is 6h59m.
+
+By intentionally offsetting the sweep schedule, we're able to reduce the worst
+case for a deposit significantly!
 
 === Redemption
 
