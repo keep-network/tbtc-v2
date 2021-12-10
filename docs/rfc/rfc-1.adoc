@@ -298,7 +298,8 @@ whenever enough time has passed to exceed the `sweep_period` or whenever enough
 btc has been deposited to exceed `sweep_max_btc`. If we sweep early because a
 lot of btc was deposited, then we don't "push back" our scheduled
 `sweep_period` sweep. Rather, that sweep continues as planned, and if there
-aren't enough deposits (maybe because they all got swept in the `sweep_max_btc`
+are no deposits with <<bitcoin-sweeping-fee,sweeping fee>> high enough to be
+included in a sweep (maybe because they all got swept in the `sweep_max_btc`
 sweep), then we wait until the next sweep and repeat the process.
 
 *Example*: We have a `sweep_period = 8 hours` and `sweep_max_btc = 10 btc`. At
