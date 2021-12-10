@@ -312,7 +312,7 @@ address in 3 hours with no further interaction.
 
 Governable Parameters:
 
-`wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
 
@@ -445,3 +445,45 @@ unlucky operator should submit a transaction on-chain to multiply the fee by a
 fixed amount (like 1.1x, 1.2x, etc up to some cap like 1.4x). With this in mind,
 we should only include deposits in the initial transaction whose `max_fee` is set
 high enough to withstand a fee increase up to whatever the maximum multiplier is.
+
+== Governable Parameters
+Alphabetized list of Governable Parameters with additional notes.
+
+
+- `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
+- `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
+- `dkg`: The minimum number of members we're allowed to drop down to during the
+  DKG group formation re-try period.
+- `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
+  be included in a sweep.
+- `failed_heartbeat_reward_removal_period`: The amount of time an operator is
+  removed from reward eligibility after failing a heartbeat.
+- `group_size`: The total size of the signing group.
+- `heartbeat`: The number of group members required for a
+  <<heartbeat,heartbeat>> to be successful.
+- `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
+  If set to 40, then the signers sign every 40th block.
+- `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
+  trigger an early sweep.
+- `sweep_period`: The amount of time we wait between sweeps.
+- `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
+  tranaction is mined before increasing the fee.
+- `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
+  multiplier to before giving up and picking a new base fee and different
+  deposits to sweep.
+- `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
+  multiplier each time a sweeping transaction is not mined within the
+  `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
+  are currently at 1.6x, then the next time we would try 1.8x.
+- `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
+  becomes eligible for a refund where we will not include it in a sweeping
+  transaction.
+- `threshold`: The number of signers that can be controlled by the adversary
+- `wallet_creation_period`: How frequently we attempt to create new wallets.
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
+  to a randomly selected wallet.
+- `wallet_max_btc`: The amount of btc a wallet can hold before we trigger the
+  early creation of a new wallet.
+- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+  attempt to close the wallet and transfer the funds to a randomly selected
+  wallet.
