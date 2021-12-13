@@ -308,6 +308,33 @@ and blinding factor, and then request that TBTC gets minted ASAP. Checking the
 dApp, they can see that they should expect TBTC in their provided wallet
 address in 3 hours with no further interaction.
 
+===== Deposit Overflow
+
+Governable Parameters
+
+- `wallet_max_btc`: The amount of btc a wallet can hold before we trigger the
+  early creation of a new wallet.
+- `wallet_overflow_btc`: The amount of btc a wallet can hold before we begin
+  refunding deposits.
+
+If a deposit pushes a wallet past `wallet_max_btc`, we accept a partial amount
+up to `wallet_max_btc`, and then refund the rest to the address supplied in
+`refundPubkey` in the deposit.
+
+*Example*: A wallet current has 38 btc, and has a `wallet_overflow_btc` of 40btc. A
+user with a `refundPubkey` of `0x8f1` and eth address of `0x37a` deposits 5
+btc. They would receive a 2 btc account balance (minus fees) at `0x37a` and a 3
+btc refund (minus fees) at `0x8f1`.
+
+This is a last-resort type situation! The reason we have `wallet_overflow_btc` is to
+limit the amount of btc the adversary could potentially steal by having control
+of one wallet. In the above example, the adversary *temporarily* has control
+over 43 btc, and can choose to *not* refund it. Larger overflow deposits could
+potentially wreck the coverage pools.
+
+Ideally, governance sets `wallet_max_btc` so that normal user behavior triggers
+new wallet creation without having users unexpectedly get their btc refunded.
+
 === Redemption
 
 Governable Parameters:
