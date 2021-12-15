@@ -206,7 +206,7 @@ Governable Parameters
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
   will trigger an early sweep on a wallet.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
-  be included in a sweep.
+  be considered for a sweep.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
   tranaction is mined before increasing the fee.
 - `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
@@ -455,7 +455,7 @@ Alphabetized list of Governable Parameters with additional notes.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
   DKG group formation re-try period.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
-  be included in a sweep.
+  be considered for a sweep.
 - `failed_heartbeat_reward_removal_period`: The amount of time an operator is
   removed from reward eligibility after failing a heartbeat.
 - `group_size`: The total size of the signing group.
