@@ -165,7 +165,7 @@ days (specified as `locktime`).
 
 Governable Parameters:
 
-- `sweep_period`: The amount of time we wait between sweeps.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
 
 After the deposit transaction has been mined, the user is able to reveal their
 ethereum address and blinding factor to the ethereum chain. The bridge listens
@@ -202,7 +202,7 @@ Governable Parameters
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
-- `sweep_period`: The amount of time we wait between sweeps.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
   will trigger an early sweep on a wallet.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
@@ -465,7 +465,7 @@ Alphabetized list of Governable Parameters with additional notes.
   If set to 40, then the signers sign every 40th block.
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
   will trigger an early sweep on a wallet.
-- `sweep_period`: The amount of time we wait between sweeps.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
   tranaction is mined before increasing the fee.
 - `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
