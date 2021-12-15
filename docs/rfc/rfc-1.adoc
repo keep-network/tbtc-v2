@@ -479,6 +479,7 @@ Alphabetized list of Governable Parameters with additional notes.
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
 - `threshold`: The number of signers that can be controlled by the adversary
+  before the key is in danger.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
