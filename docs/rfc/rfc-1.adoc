@@ -203,8 +203,8 @@ Governable Parameters
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
 - `sweep_period`: The amount of time we wait between sweeps.
-- `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
-  trigger an early sweep.
+- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
+  will trigger an early sweep on a wallet.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
   be included in a sweep.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
@@ -463,8 +463,8 @@ Alphabetized list of Governable Parameters with additional notes.
   <<heartbeat,heartbeat>> to be successful.
 - `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
   If set to 40, then the signers sign every 40th block.
-- `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
-  trigger an early sweep.
+- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
+  will trigger an early sweep on a wallet.
 - `sweep_period`: The amount of time we wait between sweeps.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
   tranaction is mined before increasing the fee.
