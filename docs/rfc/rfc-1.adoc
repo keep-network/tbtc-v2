@@ -312,9 +312,9 @@ address in 3 hours with no further interaction.
 
 Governable Parameters
 
-- `sweep_period`: The amount of time we wait between sweep-period-sweeps.
-- `sweep_max_btc`: The amount of summed unswept bitcoin deposits that will
-  trigger an early sweep.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
+  will trigger an early sweep on a wallet.
 
 We've established in the <<sweeping,sweeping>> section that we should sweep
 whenever enough time has passed to exceed the `sweep_period` or whenever enough
@@ -343,7 +343,7 @@ another, so the worst case scenario for the next sweep is always half of
 ===== Active Wallet Sweep Staggering
 Governable Parameters
 
-- `sweep_period`: The amount of time we wait between sweep-period-sweeps.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
 
 Since the youngest two wallets both sweep deposits based on their
 `sweep_period`, we can improve our user experience by intentionally staggering
