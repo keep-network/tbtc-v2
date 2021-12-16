@@ -352,7 +352,7 @@ Governable Parameters:
 A new wallet is created when either enough time has passed as defined in
 `wallet_creation_period` *AND* the wallet contains at least `wallet_min_btc`
 btc. To create a new wallet, a group of 100 operators is selected from the pool
-of available operators using a process called sortition. The probabiliy that a
+of available operators using a process called sortition. The probability that a
 particular operator is chosen is based on their stake weight, which in turn is
 based on the number of `T` tokens they have invested in the staking contract.
 
