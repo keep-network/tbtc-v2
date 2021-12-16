@@ -251,7 +251,7 @@ conditions, we have to check the going market rate for a bitcoin fee, and then
 do some bin-packing to see which deposits we can allow in. The more deposits,
 the low the per-deposit fee is (because they can share costs). Once we have
 enough deposits to exceed `sweep_max_btc`, we should check the market
-conditions for the btc fee and then off-chain see which deposits *would be*
+conditions for the BTC fee and then off-chain see which deposits *would be*
 swept if we *were* to sweep. If the sum of those deposits exceeds the
 `sweep_max_btc` parameter, then we should initiate a sweep.
 
@@ -312,7 +312,7 @@ address in 3 hours with no further interaction.
 
 Governable Parameters:
 
-- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
 
@@ -343,7 +343,7 @@ requests, otherwise the transaction was fraudulent.
 Governable Parameters:
 
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
-- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
@@ -392,7 +392,7 @@ ones that did can create and sign a new transaction that lists the _inactive_
 operators. Once this transaction is posted to the ethereum chain, we can
 iterate through the inactive operators, remove them from reward eligibility
 for `failed_heartbeat_reward_removal_period` amount of time, transfer the remaining
-btc from the wallet to another random wallet and close this wallet.
+BTC from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
 === Transaction Incentives
@@ -480,5 +480,6 @@ Alphabetized list of Governable Parameters with additional notes.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
 - `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
