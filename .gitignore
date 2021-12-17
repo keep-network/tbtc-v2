@@ -7,6 +7,7 @@ deployments/
 export.json
 
 typechain/
+dist/
 .vscode/
 
 */.hardhat/*
