@@ -24,8 +24,8 @@ repos:
         language: script
         description: "Checks yearn directory code according to the formatting configuration"
       - id: tbtc-ts-format
-        name: "Check tbtc-s directory code formatting"
+        name: "Check tbtc-ts directory code formatting"
         entry: /usr/bin/env bash -c "cd tbtc-ts && yarn format"
         files: "^tbtc-ts/"
         language: script
-        description: "Checks tbtc-s directory code according to the formatting configuration"
+        description: "Checks tbtc-ts directory code according to the formatting configuration"
