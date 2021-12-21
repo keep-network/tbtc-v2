@@ -14,10 +14,10 @@ export interface DepositData {
 }
 
 // TODO: Documentation
-export async function createDeposit(
-  bitcoinClient: BitcoinClient,
+export async function makeDeposit(
+  depositData: DepositData,
   depositorPrivateKey: string,
-  depositData: DepositData
+  bitcoinClient: BitcoinClient
 ): Promise<void> {
   const decodedDepositorPrivateKey = wif.decode(depositorPrivateKey)
 
@@ -45,10 +45,10 @@ export async function createDeposit(
     })
   }
 
-  const rawUnsignedTransaction = await assembleDepositTransaction(
+  const rawUnsignedTransaction = await createDepositTransaction(
+    depositData,
     utxosWithRaw,
-    depositorAddress,
-    depositData
+    depositorAddress
   )
 
   const unsignedTransaction = bcoin.MTX.fromRaw(
@@ -63,10 +63,10 @@ export async function createDeposit(
 }
 
 // TODO: Documentation
-export async function assembleDepositTransaction(
+export async function createDepositTransaction(
+  depositData: DepositData,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
-  changeAddress: string,
-  depositData: DepositData
+  changeAddress: string
 ): Promise<RawTransaction> {
   const inputCoins = utxos.map((utxo) =>
     bcoin.Coin.fromTX(
@@ -80,8 +80,10 @@ export async function assembleDepositTransaction(
 
   const transaction = new bcoin.MTX()
 
+  const rawScript = createDepositScript(depositData)
+
   transaction.addOutput({
-    script: {}, // TODO: Construct the script
+    script: bcoin.Script.fromRaw(rawScript, "hex"),
     value: depositData.amount,
   })
 
@@ -94,6 +96,59 @@ export async function assembleDepositTransaction(
   return {
     transactionHex: transaction.toRaw().toString("hex"),
   }
+}
+
+// TODO: Documentation
+// TODO: Consider introducing a dedicated return type.
+export function createDepositScript(depositData: DepositData): string {
+  // TODO: Should eth address be prefixed? Can be important during
+  //       script serialization.
+  const ethereumAddress = depositData.ethereumAddress
+  // TODO: Generate blinding factor. Dummy factor is used so far.
+  const blindingFactor = 20
+  // TODO: Select active wallet key. Dummy key is used for now.
+  const signingGroupPublicKey =
+    "0222a6145ec68cf6f3e94a17e4ed3ee4e092a8cdc551075b1376054479f65b7480"
+  const refundPublicKey = depositData.refundPublicKey
+  const locktime = Math.floor(Date.now() / 1000) + 2592000 // +30 days
+
+  const script = new bcoin.Script()
+
+  script.clear()
+  script.pushData(ethereumAddress)
+  script.pushOp(bcoin.opcodes.OP_DROP)
+  script.pushData(blindingFactor)
+  script.pushOp(bcoin.opcodes.OP_DROP)
+  script.pushOp(bcoin.opcodes.OP_DUP)
+  script.pushOp(bcoin.opcodes.OP_HASH160)
+  script.pushData(signingGroupPublicKey)
+  script.pushOp(bcoin.opcodes.OP_EQUAL)
+  script.pushOp(bcoin.opcodes.OP_IF)
+  script.pushOp(bcoin.opcodes.OP_CHECKSIG)
+  script.pushOp(bcoin.opcodes.OP_ELSE)
+  script.pushOp(bcoin.opcodes.OP_DUP)
+  script.pushOp(bcoin.opcodes.OP_HASH160)
+  script.pushData(refundPublicKey)
+  script.pushOp(bcoin.opcodes.OP_EQUALVERIFY)
+  script.pushData(locktime)
+  script.pushOp(bcoin.opcodes.OP_CHECKLOCKTIMEVERIFY)
+  script.pushOp(bcoin.opcodes.OP_DROP)
+  script.pushOp(bcoin.opcodes.OP_CHECKSIG)
+  script.pushOp(bcoin.opcodes.OP_ENDIF)
+
+  return script.toRaw("hex")
+}
+
+// TODO: Documentation
+// TODO: Consider introducing a dedicated return type.
+export function createDepositAddress(
+  depositData: DepositData,
+  network: string
+): string {
+  const rawScript = createDepositScript(depositData)
+  const script = bcoin.Script.fromRaw(rawScript, "hex")
+  const address = bcoin.Address.fromScripthash(script.hash160())
+  return address.toString(network)
 }
 
 export async function revealDeposit(): Promise<void> {
