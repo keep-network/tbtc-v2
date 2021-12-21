@@ -16,9 +16,12 @@
   "files": [
     "dist/src/",
     "src/",
-    "LICENSE",
     "README.md"
   ],
+  "dependencies": {
+    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#acdeb84",
+    "wif": "2.0.6"
+  },
   "devDependencies": {
     "@keep-network/prettier-config-keep": "github:keep-network/prettier-config-keep",
     "@types/chai": "^4.2.21",
