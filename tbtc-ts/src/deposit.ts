@@ -37,6 +37,11 @@ export interface DepositData {
    * public key and refund public key.
    */
   blindingFactor: BigNumber
+
+  /**
+   * Unix timestamp in seconds determining the moment of deposit creation.
+   */
+  createdAt: number
 }
 
 // TODO: Documentation
@@ -150,8 +155,9 @@ export async function createDepositScript(
     throw new Error("Refund public key must be compressed")
   }
 
-  // Locktime is an Unix timestamp in seconds, computed as now + 30 days.
-  const locktime = BigNumber.from(Math.floor(Date.now() / 1000) + 2592000)
+  // Locktime is an Unix timestamp in seconds, computed as deposit
+  // creation timestamp + 30 days.
+  const locktime = BigNumber.from(depositData.createdAt + 2592000)
 
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
