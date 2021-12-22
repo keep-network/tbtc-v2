@@ -1,4 +1,6 @@
+// @ts-ignore
 import bcoin from "bcoin"
+// @ts-ignore
 import wif from "wif"
 import {
   Client as BitcoinClient,

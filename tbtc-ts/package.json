@@ -11,7 +11,7 @@
     "lint:fix": "eslint . --ext .js,.ts --fix",
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
     "build": "tsc",
-    "prepare": "yarn run build"
+    "postinstall": "npm rebuild"
   },
   "files": [
     "dist/src/",
@@ -19,7 +19,7 @@
     "README.md"
   ],
   "dependencies": {
-    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#acdeb84",
+    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#semver:~2.2.0",
     "wif": "2.0.6"
   },
   "devDependencies": {
