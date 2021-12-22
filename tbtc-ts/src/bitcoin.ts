@@ -95,3 +95,12 @@ export interface Client {
 
   broadcast(transaction: RawTransaction): Promise<void>
 }
+
+// TODO: Documentation.
+export function isCompressedPublicKey(publicKey: string): boolean {
+  // Must have 33 bytes and 02 or 03 prefix.
+  return (
+    publicKey.length == 66 &&
+    (publicKey.substring(0, 2) == "02" || publicKey.substring(0, 2) == "03")
+  )
+}

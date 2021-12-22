@@ -1,9 +1,14 @@
 // @ts-ignore
 import bcoin from "bcoin"
 // @ts-ignore
+import { opcodes } from "bcoin/lib/script/common"
+// @ts-ignore
 import wif from "wif"
+import { BigNumber } from "ethers"
+import { randomBytes } from "crypto"
 import {
   Client as BitcoinClient,
+  isCompressedPublicKey,
   RawTransaction,
   UnspentTransactionOutput,
 } from "./bitcoin"
@@ -11,7 +16,7 @@ import {
 // TODO: Documentation
 export interface DepositData {
   ethereumAddress: string
-  amount: number
+  amount: BigNumber
   refundPublicKey: string
 }
 
@@ -101,56 +106,77 @@ export async function createDepositTransaction(
 }
 
 // TODO: Documentation
-// TODO: Consider introducing a dedicated return type.
-export function createDepositScript(depositData: DepositData): string {
-  // TODO: Should eth address be prefixed? Can be important during
-  //       script serialization.
+export async function createDepositScript(
+  depositData: DepositData
+): Promise<string> {
+  // Make sure Ethereum address is prefixed since the prefix is removed
+  // while constructing the script.
   const ethereumAddress = depositData.ethereumAddress
-  // TODO: Generate blinding factor. Dummy factor is used so far.
-  const blindingFactor = 20
-  // TODO: Select active wallet key. Dummy key is used for now.
-  const signingGroupPublicKey =
-    "0222a6145ec68cf6f3e94a17e4ed3ee4e092a8cdc551075b1376054479f65b7480"
+  if (ethereumAddress.substring(0, 2) !== "0x") {
+    throw new Error("Ethereum address must be prefixed with 0x")
+  }
+  // Blinding factor should be an 8 bytes random number.
+  // TODO: Must be unique for given Ethereum address, signing group and refund
+  //       public keys. If not, multiple deposits can refer to the same P2SH
+  //       address and cause wrong bookkeeping during sweep.
+  const blindingFactor = randomBytes(8)
+
+  // Get the active wallet public key and use it as signing group public key.
+  const signingGroupPublicKey = await getActiveWalletPublicKey()
+  if (!isCompressedPublicKey(signingGroupPublicKey)) {
+    throw new Error("Signing group public key must be compressed")
+  }
+
   const refundPublicKey = depositData.refundPublicKey
-  const locktime = Math.floor(Date.now() / 1000) + 2592000 // +30 days
+  if (!isCompressedPublicKey(refundPublicKey)) {
+    throw new Error("Refund public key must be compressed")
+  }
 
+  // Locktime is an Unix timestamp in seconds, computed as now + 30 days.
+  const locktime = BigNumber.from(Math.floor(Date.now() / 1000) + 2592000)
+
+  // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
-
   script.clear()
-  script.pushData(ethereumAddress)
-  script.pushOp(bcoin.opcodes.OP_DROP)
+  script.pushData(Buffer.from(ethereumAddress.substring(2), "hex"))
+  script.pushOp(opcodes.OP_DROP)
   script.pushData(blindingFactor)
-  script.pushOp(bcoin.opcodes.OP_DROP)
-  script.pushOp(bcoin.opcodes.OP_DUP)
-  script.pushOp(bcoin.opcodes.OP_HASH160)
-  script.pushData(signingGroupPublicKey)
-  script.pushOp(bcoin.opcodes.OP_EQUAL)
-  script.pushOp(bcoin.opcodes.OP_IF)
-  script.pushOp(bcoin.opcodes.OP_CHECKSIG)
-  script.pushOp(bcoin.opcodes.OP_ELSE)
-  script.pushOp(bcoin.opcodes.OP_DUP)
-  script.pushOp(bcoin.opcodes.OP_HASH160)
-  script.pushData(refundPublicKey)
-  script.pushOp(bcoin.opcodes.OP_EQUALVERIFY)
-  script.pushData(locktime)
-  script.pushOp(bcoin.opcodes.OP_CHECKLOCKTIMEVERIFY)
-  script.pushOp(bcoin.opcodes.OP_DROP)
-  script.pushOp(bcoin.opcodes.OP_CHECKSIG)
-  script.pushOp(bcoin.opcodes.OP_ENDIF)
+  script.pushOp(opcodes.OP_DROP)
+  script.pushOp(opcodes.OP_DUP)
+  script.pushOp(opcodes.OP_HASH160)
+  script.pushData(Buffer.from(signingGroupPublicKey, "hex"))
+  script.pushOp(opcodes.OP_EQUAL)
+  script.pushOp(opcodes.OP_IF)
+  script.pushOp(opcodes.OP_CHECKSIG)
+  script.pushOp(opcodes.OP_ELSE)
+  script.pushOp(opcodes.OP_DUP)
+  script.pushOp(opcodes.OP_HASH160)
+  script.pushData(Buffer.from(refundPublicKey, "hex"))
+  script.pushOp(opcodes.OP_EQUALVERIFY)
+  script.pushData(Buffer.from(locktime.toHexString().substring(2), "hex"))
+  script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
+  script.pushOp(opcodes.OP_DROP)
+  script.pushOp(opcodes.OP_CHECKSIG)
+  script.pushOp(opcodes.OP_ENDIF)
+  script.compile()
 
-  return script.toRaw("hex")
+  return script.toRaw().toString("hex")
 }
 
 // TODO: Documentation
-// TODO: Consider introducing a dedicated return type.
-export function createDepositAddress(
+export async function createDepositAddress(
   depositData: DepositData,
   network: string
-): string {
-  const rawScript = createDepositScript(depositData)
+): Promise<string> {
+  const rawScript = await createDepositScript(depositData)
   const script = bcoin.Script.fromRaw(rawScript, "hex")
   const address = bcoin.Address.fromScripthash(script.hash160())
   return address.toString(network)
+}
+
+// TODO: Implementation and documentation. Dummy key is returned for now,
+async function getActiveWalletPublicKey(): Promise<string> {
+  return "0222a6145ec68cf6f3e94a17e4ed3ee4e092a8cdc551075b1376054479f65b7480"
 }
 
 export async function revealDeposit(): Promise<void> {

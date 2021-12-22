@@ -26,9 +26,12 @@ export interface TBTC {
     changeAddress: string
   ): Promise<RawTransaction>
 
-  createDepositScript(depositData: DepositData): string
+  createDepositScript(depositData: DepositData): Promise<string>
 
-  createDepositAddress(depositData: DepositData, network: string): string
+  createDepositAddress(
+    depositData: DepositData,
+    network: string
+  ): Promise<string>
 
   revealDeposit(): Promise<void>
 }
