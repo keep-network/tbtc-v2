@@ -5,7 +5,6 @@ import { opcodes } from "bcoin/lib/script/common"
 // @ts-ignore
 import wif from "wif"
 import { BigNumber } from "ethers"
-import { randomBytes } from "crypto"
 import {
   Client as BitcoinClient,
   isCompressedPublicKey,
@@ -13,11 +12,31 @@ import {
   UnspentTransactionOutput,
 } from "./bitcoin"
 
-// TODO: Documentation
+/**
+ * Contains deposit data.
+ */
 export interface DepositData {
+  /**
+   * Ethereum address prefixed with '0x' that should be used for TBTC accounting.
+   */
   ethereumAddress: string
+
+  /**
+   * Deposit amount in sathoshis.
+   */
   amount: BigNumber
+
+  /**
+   * Compressed (33 bytes long with 02 or 03 prefix) Bitcoin public key that
+   * is meant to be used during deposit refund after the locktime passes.
+   */
   refundPublicKey: string
+
+  /**
+   * An 8 bytes number. Must be unique for given Ethereum address, signing group
+   * public key and refund public key.
+   */
+  blindingFactor: BigNumber
 }
 
 // TODO: Documentation
@@ -113,11 +132,12 @@ export async function createDepositScript(
   if (ethereumAddress.substring(0, 2) !== "0x") {
     throw new Error("Ethereum address must be prefixed with 0x")
   }
-  // Blinding factor should be an 8 bytes random number.
-  // TODO: Must be unique for given Ethereum address, signing group and refund
-  //       public keys. If not, multiple deposits can refer to the same P2SH
-  //       address and cause wrong bookkeeping during sweep.
-  const blindingFactor = randomBytes(8)
+
+  // Blinding factor should be an 8 bytes number.
+  const blindingFactor = depositData.blindingFactor
+  if (blindingFactor.toHexString().substring(2).length != 16) {
+    throw new Error("Blinding factor must be an 8 bytes number")
+  }
 
   // Get the active wallet public key and use it as signing group public key.
   const signingGroupPublicKey = await getActiveWalletPublicKey()
@@ -138,7 +158,7 @@ export async function createDepositScript(
   script.clear()
   script.pushData(Buffer.from(ethereumAddress.substring(2), "hex"))
   script.pushOp(opcodes.OP_DROP)
-  script.pushData(blindingFactor)
+  script.pushData(Buffer.from(blindingFactor.toHexString().substring(2), "hex"))
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)

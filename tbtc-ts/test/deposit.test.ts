@@ -9,6 +9,7 @@ describe("Deposit", () => {
     amount: BigNumber.from(120000000), // 1.2 BTC
     refundPublicKey:
       "0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
+    blindingFactor: BigNumber.from("0xf9f0c90d00039523"), // 18010115967526606115
   }
 
   describe("createDepositTransaction", () => {
