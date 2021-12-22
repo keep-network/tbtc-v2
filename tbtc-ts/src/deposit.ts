@@ -83,15 +83,13 @@ export async function createDepositTransaction(
     )
   )
 
-  // TODO: Fail fast if input coins sum is less than deposit amount.
-
   const transaction = new bcoin.MTX()
 
-  const rawScript = createDepositScript(depositData)
+  const scriptHash = await createDepositScriptHash(depositData)
 
   transaction.addOutput({
-    script: bcoin.Script.fromRaw(rawScript, "hex"),
-    value: depositData.amount,
+    script: bcoin.Script.fromScripthash(scriptHash),
+    value: depositData.amount.toNumber(),
   })
 
   await transaction.fund(inputCoins, {
@@ -160,7 +158,17 @@ export async function createDepositScript(
   script.pushOp(opcodes.OP_ENDIF)
   script.compile()
 
+  // Return script as HEX string.
   return script.toRaw().toString("hex")
+}
+
+// TODO: Documentation
+export async function createDepositScriptHash(
+  depositData: DepositData
+): Promise<Buffer> {
+  const script = await createDepositScript(depositData)
+  // Parse the script from HEX string and compute the HASH160.
+  return bcoin.Script.fromRaw(Buffer.from(script, "hex")).hash160()
 }
 
 // TODO: Documentation
@@ -168,9 +176,8 @@ export async function createDepositAddress(
   depositData: DepositData,
   network: string
 ): Promise<string> {
-  const rawScript = await createDepositScript(depositData)
-  const script = bcoin.Script.fromRaw(rawScript, "hex")
-  const address = bcoin.Address.fromScripthash(script.hash160())
+  const scriptHash = await createDepositScriptHash(depositData)
+  const address = bcoin.Address.fromScripthash(scriptHash)
   return address.toString(network)
 }
 

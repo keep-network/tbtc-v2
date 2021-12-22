@@ -1,6 +1,7 @@
 import {
   createDepositAddress,
   createDepositScript,
+  createDepositScriptHash,
   createDepositTransaction,
   DepositData,
   makeDeposit,
@@ -28,6 +29,8 @@ export interface TBTC {
 
   createDepositScript(depositData: DepositData): Promise<string>
 
+  createDepositScriptHash(depositData: DepositData): Promise<Buffer>
+
   createDepositAddress(
     depositData: DepositData,
     network: string
@@ -40,6 +43,7 @@ const tbtc: TBTC = {
   makeDeposit,
   createDepositTransaction,
   createDepositScript,
+  createDepositScriptHash,
   createDepositAddress,
   revealDeposit,
 }
