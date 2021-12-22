@@ -112,6 +112,8 @@ contract Bridge {
     ///         divided evenly between all swept deposits. Each depositor
     ///         receives a balance in the bank equal to the amount they have
     ///         declared during the reveal transaction, minus their fee share.
+    ///
+    ///         It is possible to prove the given sweep only one time.
     /// @param txVersion Transaction version number (4-byte LE)
     /// @param txInputVector All transaction inputs prepended by the number of
     ///                      inputs encoded as a VarInt, max 0xFC(252) inputs
@@ -144,6 +146,11 @@ contract Bridge {
         // TODO We need to validate txOutput to see if the balance was not
         //      transferred away from the wallet before increasing balances in
         //      the bank.
+        //
+        // TODO Delete deposit from unswept mapping or mark it as swept
+        //      depending on the gas costs. Alternativly, do not allow to
+        //      use the same TX input vector twice. Sweep should be provable
+        //      only one time.
     }
 
     // TODO It is possible a malicious wallet can sweep deposits that can not
