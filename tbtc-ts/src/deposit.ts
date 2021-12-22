@@ -50,14 +50,7 @@ export async function makeDeposit(
   depositorPrivateKey: string,
   bitcoinClient: BitcoinClient
 ): Promise<void> {
-  const decodedDepositorPrivateKey = wif.decode(depositorPrivateKey)
-
-  const depositorKeyRing = new bcoin.KeyRing({
-    witness: true,
-    privateKey: decodedDepositorPrivateKey.privateKey,
-    compressed: decodedDepositorPrivateKey.compressed,
-  })
-
+  const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
   const utxos = await bitcoinClient.findAllUnspentTransactionOutputs(
@@ -76,29 +69,24 @@ export async function makeDeposit(
     })
   }
 
-  const rawUnsignedTransaction = await createDepositTransaction(
+  const transaction = await createDepositTransaction(
     depositData,
     utxosWithRaw,
-    depositorAddress
+    depositorPrivateKey
   )
 
-  const unsignedTransaction = bcoin.MTX.fromRaw(
-    rawUnsignedTransaction.transactionHex,
-    "hex"
-  )
-  const signedTransaction = unsignedTransaction.sign(depositorKeyRing)
-
-  await bitcoinClient.broadcast({
-    transactionHex: signedTransaction.toRaw().toString("hex"),
-  })
+  await bitcoinClient.broadcast(transaction)
 }
 
 // TODO: Documentation
 export async function createDepositTransaction(
   depositData: DepositData,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
-  changeAddress: string
+  depositorPrivateKey: string
 ): Promise<RawTransaction> {
+  const depositorKeyRing = createKeyRing(depositorPrivateKey)
+  const depositorAddress = depositorKeyRing.getAddress("string")
+
   const inputCoins = utxos.map((utxo) =>
     bcoin.Coin.fromTX(
       bcoin.MTX.fromRaw(utxo.transactionHex, "hex"),
@@ -118,9 +106,11 @@ export async function createDepositTransaction(
 
   await transaction.fund(inputCoins, {
     rate: null, // set null explicitly to always use the default value
-    changeAddress: changeAddress,
+    changeAddress: depositorAddress,
     subtractFee: false, // do not subtract the fee from outputs
   })
+
+  transaction.sign(depositorKeyRing)
 
   return {
     transactionHex: transaction.toRaw().toString("hex"),
@@ -209,7 +199,18 @@ export async function createDepositAddress(
 
 // TODO: Implementation and documentation. Dummy key is returned for now,
 async function getActiveWalletPublicKey(): Promise<string> {
-  return "0222a6145ec68cf6f3e94a17e4ed3ee4e092a8cdc551075b1376054479f65b7480"
+  return "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+}
+
+// TODO: Documentation.
+function createKeyRing(privateKey: string): bcoin.KeyRing {
+  const decodedPrivateKey = wif.decode(privateKey)
+
+  return new bcoin.KeyRing({
+    witness: true,
+    privateKey: decodedPrivateKey.privateKey,
+    compressed: decodedPrivateKey.compressed,
+  })
 }
 
 export async function revealDeposit(): Promise<void> {

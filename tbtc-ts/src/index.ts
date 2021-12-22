@@ -24,7 +24,7 @@ export interface TBTC {
   createDepositTransaction(
     depositData: DepositData,
     utxos: (UnspentTransactionOutput & RawTransaction)[],
-    changeAddress: string
+    depositorPrivateKey: string
   ): Promise<RawTransaction>
 
   createDepositScript(depositData: DepositData): Promise<string>
