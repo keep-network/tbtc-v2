@@ -83,20 +83,45 @@ export type UnspentTransactionOutput = TransactionOutpoint & {
   value: number
 }
 
-// TODO: Documentation.
+/**
+ * Represents a Bitcoin client.
+ */
 export interface Client {
+  /**
+   * Finds all unspent transaction outputs (UTXOs) for given Bitcoin address.
+   * @param address - Bitcoin address UTXOs should be determined for.
+   * @returns List of UTXOs.
+   */
   findAllUnspentTransactionOutputs(
     address: string
   ): Promise<UnspentTransactionOutput[]>
 
+  /**
+   * Gets the full transaction object for given transaction hash.
+   * @param transactionHash - Hash of the transaction.
+   * @returns Transaction object.
+   */
   getTransaction(transactionHash: string): Promise<Transaction>
 
+  /**
+   * Gets the raw transaction data for given transaction hash.
+   * @param transactionHash - Hash of the transaction.
+   * @returns Raw transaction.
+   */
   getRawTransaction(transactionHash: string): Promise<RawTransaction>
 
+  /**
+   * Broadcasts the given transaction over the network.
+   * @param transaction - Transaction to broadcast.
+   */
   broadcast(transaction: RawTransaction): Promise<void>
 }
 
-// TODO: Documentation.
+/**
+ * Checks whether given public key is a compressed Bitcoin public key.
+ * @param publicKey - Public key that should be checked.
+ * @returns True if the key is a compressed Bitcoin public key, false otherwise.
+ */
 export function isCompressedPublicKey(publicKey: string): boolean {
   // Must have 33 bytes and 02 or 03 prefix.
   return (

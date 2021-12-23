@@ -44,7 +44,14 @@ export interface DepositData {
   createdAt: number
 }
 
-// TODO: Documentation
+/**
+ * Makes a deposit by creating and broadcasting a Bitcoin P2SH
+ * deposit transaction.
+ * @param depositData - Details of the deposit.
+ * @param depositorPrivateKey - Bitcoin private key of the depositor.
+ * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * @returns Empty promise.
+ */
 export async function makeDeposit(
   depositData: DepositData,
   depositorPrivateKey: string,
@@ -78,7 +85,13 @@ export async function makeDeposit(
   await bitcoinClient.broadcast(transaction)
 }
 
-// TODO: Documentation
+/**
+ * Creates a Bitcoin P2SH deposit transaction.
+ * @param depositData - Details of the deposit.
+ * @param utxos - UTXOs that should be used as transaction inputs.
+ * @param depositorPrivateKey - Bitcoin private key of the depositor.
+ * @returns Bitcoin P2SH deposit transaction in raw format.
+ */
 export async function createDepositTransaction(
   depositData: DepositData,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
@@ -117,7 +130,11 @@ export async function createDepositTransaction(
   }
 }
 
-// TODO: Documentation
+/**
+ * Creates a Bitcoin locking script for P2SH deposit transaction.
+ * @param depositData - Details of the deposit.
+ * @returns Script as an un-prefixed hex string.
+ */
 export async function createDepositScript(
   depositData: DepositData
 ): Promise<string> {
@@ -178,7 +195,11 @@ export async function createDepositScript(
   return script.toRaw().toString("hex")
 }
 
-// TODO: Documentation
+/**
+ * Creates a Bitcoin locking script hash for P2SH deposit transaction.
+ * @param depositData - Details of the deposit.
+ * @returns Buffer with script hash.
+ */
 export async function createDepositScriptHash(
   depositData: DepositData
 ): Promise<Buffer> {
@@ -187,7 +208,13 @@ export async function createDepositScriptHash(
   return bcoin.Script.fromRaw(Buffer.from(script, "hex")).hash160()
 }
 
-// TODO: Documentation
+/**
+ * Creates a Bitcoin target address for P2SH deposit transaction.
+ * @param depositData - Details of the deposit.
+ * @param network - Network that the address should be created for.
+ *        For example, `main` or `testnet`.
+ * @returns Address as string.
+ */
 export async function createDepositAddress(
   depositData: DepositData,
   network: string
@@ -197,12 +224,16 @@ export async function createDepositAddress(
   return address.toString(network)
 }
 
-// TODO: Implementation and documentation. Dummy key is returned for now,
+// TODO: Implementation and documentation. Dummy key is returned for now.
 export async function getActiveWalletPublicKey(): Promise<string> {
   return "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
 }
 
-// TODO: Documentation.
+/**
+ * Creates a Bitcoin key ring based on given private key.
+ * @param privateKey Private key that should be used to create the key ring.
+ * @returns Bitcoin key ring.
+ */
 function createKeyRing(privateKey: string): bcoin.KeyRing {
   const decodedPrivateKey = wif.decode(privateKey)
 
@@ -213,6 +244,5 @@ function createKeyRing(privateKey: string): bcoin.KeyRing {
   })
 }
 
-export async function revealDeposit(): Promise<void> {
-  // TODO: Implementation.
-}
+// TODO: Implementation and documentation.
+export async function revealDeposit(): Promise<void> {}
