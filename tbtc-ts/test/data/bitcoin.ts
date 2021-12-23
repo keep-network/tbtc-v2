@@ -2,6 +2,7 @@ import { RawTransaction, UnspentTransactionOutput } from "../../src/bitcoin"
 
 /**
  * An example address taken from the BTC testnet and having a non-zero balance.
+ * This address and its transaction data can be used to make deposits during tests.
  */
 export const testnetAddress = "tb1q0tpdjdu2r3r7tzwlhqy4e2276g2q6fexsz4j0m"
 
@@ -12,8 +13,14 @@ export const testnetPrivateKey =
   "cRJvyxtoggjAm9A94cB86hZ7Y62z2ei5VNJHLksFi2xdnz1GJ6xt"
 
 /**
- * Transaction 2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883
- * made by testnetAddress. It can be decoded, for example, with:
+ * Hash of one of the transactions originating from testnetAddress.
+ */
+export const testnetTransactionHash =
+  "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+
+/**
+ * Transaction corresponding to testnetTransactionHash and originating
+ * from testnetAddress. It can be decoded, for example, with:
  * https://live.blockcypher.com/btc-testnet/decodetx
  */
 export const testnetTransaction: RawTransaction = {
@@ -31,8 +38,7 @@ export const testnetTransaction: RawTransaction = {
  * An UTXO from the testnetTransaction.
  */
 export const testnetUTXO: UnspentTransactionOutput & RawTransaction = {
-  transactionHash:
-    "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883",
+  transactionHash: testnetTransactionHash,
   outputIndex: 1,
   value: 3933200,
   ...testnetTransaction,

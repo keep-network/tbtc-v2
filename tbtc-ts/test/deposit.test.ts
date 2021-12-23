@@ -1,8 +1,19 @@
 import TBTC from "./../src"
 import { expect } from "chai"
 import { BigNumber } from "ethers"
-import { testnetAddress, testnetPrivateKey, testnetUTXO } from "./data/bitcoin"
-import { RawTransaction } from "../src/bitcoin"
+import {
+  testnetAddress,
+  testnetPrivateKey,
+  testnetTransaction,
+  testnetTransactionHash,
+  testnetUTXO,
+} from "./data/bitcoin"
+import {
+  RawTransaction,
+  Client as BitcoinClient,
+  UnspentTransactionOutput,
+  Transaction,
+} from "../src/bitcoin"
 // @ts-ignore
 import bcoin from "bcoin"
 
@@ -16,6 +27,51 @@ describe("Deposit", () => {
     createdAt: 1640181600, // 22-12-2021 14:00:00 UTC
   }
 
+  // HEX of the expected deposit transaction made using the code from
+  // deposit.ts and given depositData. It can be decoded with:
+  // https://live.blockcypher.com/btc-testnet/decodetx.
+  const expectedDepositTransaction: RawTransaction = {
+    transactionHex:
+      "010000000001018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56b" +
+      "20dc2b952f0100000000ffffffff02102700000000000017a914867120d5480a9cc0" +
+      "c11c1193fa59b3a92e852da7877ed73b00000000001600147ac2d9378a1c47e589df" +
+      "b8095ca95ed2140d2726024730440220508131fc4e8ba454877cc5a44653580fe5de" +
+      "813a2a36ea1bba02aac66d6d2a8e022017aa81482239513e672e30ad33db3aa8460f" +
+      "cc09b4e5e7933aeb1aee02bf6361012102ee067a0273f2e3ba88d23140a24fdb290f" +
+      "27bbcd0f94117a9c65be3911c5c04e00000000",
+  }
+
+  describe("makeDeposit", () => {
+    let bitcoinClient: MockBitcoinClient
+
+    beforeEach(async () => {
+      bcoin.set("testnet")
+
+      bitcoinClient = new MockBitcoinClient()
+
+      // Tie used testnetAddress with testnetUTXO to use it during deposit
+      // creation.
+      const utxos = new Map<string, UnspentTransactionOutput[]>()
+      utxos.set(testnetAddress, [testnetUTXO])
+      bitcoinClient.unspentTransactionOutputs = utxos
+
+      // Tie testnetTransaction to testnetUTXO. This is needed since makeDeposit
+      // attach transaction data to each UTXO.
+      const rawTransactions = new Map<string, RawTransaction>()
+      rawTransactions.set(testnetTransactionHash, testnetTransaction)
+      bitcoinClient.rawTransactions = rawTransactions
+
+      await TBTC.makeDeposit(depositData, testnetPrivateKey, bitcoinClient)
+    })
+
+    it("should broadcast transaction with proper structure", async () => {
+      expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+      expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+        expectedDepositTransaction
+      )
+    })
+  })
+
   describe("createDepositTransaction", () => {
     let transaction: RawTransaction
 
@@ -28,10 +84,12 @@ describe("Deposit", () => {
     })
 
     it("should return transaction with proper structure", async () => {
-      // Convert raw transaction to JSON.
-      bcoin.set("testnet")
+      // Compare HEXes.
+      expect(transaction).to.be.eql(expectedDepositTransaction)
+
+      // Convert raw transaction to JSON to make detailed comparison.
       const buffer = Buffer.from(transaction.transactionHex, "hex")
-      const txJSON = bcoin.TX.fromRaw(buffer).toJSON()
+      const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
       expect(txJSON.hash).to.be.equal(
         "c219f45cb5c883161a064e3574c6206d64e5ac67bc349ce4687843202c8d2701"
@@ -246,3 +304,58 @@ describe("Deposit", () => {
     })
   })
 })
+
+class MockBitcoinClient implements BitcoinClient {
+  private _unspentTransactionOutputs = new Map<
+    string,
+    UnspentTransactionOutput[]
+  >()
+
+  private _rawTransactions = new Map<string, RawTransaction>()
+
+  private _broadcastLog: RawTransaction[] = []
+
+  set unspentTransactionOutputs(
+    value: Map<string, UnspentTransactionOutput[]>
+  ) {
+    this._unspentTransactionOutputs = value
+  }
+
+  set rawTransactions(value: Map<string, RawTransaction>) {
+    this._rawTransactions = value
+  }
+
+  get broadcastLog(): RawTransaction[] {
+    return this._broadcastLog
+  }
+
+  findAllUnspentTransactionOutputs(
+    address: string
+  ): Promise<UnspentTransactionOutput[]> {
+    return new Promise<UnspentTransactionOutput[]>((resolve, _) => {
+      resolve(
+        this._unspentTransactionOutputs.get(
+          address
+        ) as UnspentTransactionOutput[]
+      )
+    })
+  }
+
+  getTransaction(transactionHash: string): Promise<Transaction> {
+    // Not implemented.
+    return new Promise<Transaction>((resolve, _) => {})
+  }
+
+  getRawTransaction(transactionHash: string): Promise<RawTransaction> {
+    return new Promise<RawTransaction>((resolve, _) => {
+      resolve(this._rawTransactions.get(transactionHash) as RawTransaction)
+    })
+  }
+
+  broadcast(transaction: RawTransaction): Promise<void> {
+    this._broadcastLog.push(transaction)
+    return new Promise<void>((resolve, _) => {
+      resolve()
+    })
+  }
+}
