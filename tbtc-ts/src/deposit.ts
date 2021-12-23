@@ -198,7 +198,7 @@ export async function createDepositAddress(
 }
 
 // TODO: Implementation and documentation. Dummy key is returned for now,
-async function getActiveWalletPublicKey(): Promise<string> {
+export async function getActiveWalletPublicKey(): Promise<string> {
   return "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
 }
 

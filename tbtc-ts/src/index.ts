@@ -3,6 +3,7 @@ import {
   createDepositScript,
   createDepositScriptHash,
   createDepositTransaction,
+  getActiveWalletPublicKey,
   DepositData,
   makeDeposit,
   revealDeposit,
@@ -36,6 +37,8 @@ export interface TBTC {
     network: string
   ): Promise<string>
 
+  getActiveWalletPublicKey(): Promise<string>
+
   revealDeposit(): Promise<void>
 }
 
@@ -45,6 +48,7 @@ const tbtc: TBTC = {
   createDepositScript,
   createDepositScriptHash,
   createDepositAddress,
+  getActiveWalletPublicKey,
   revealDeposit,
 }
 
