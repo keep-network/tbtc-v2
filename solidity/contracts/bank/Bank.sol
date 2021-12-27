@@ -19,20 +19,38 @@ contract Bank is Ownable {
     }
 
     function increaseBalance(address recipient, uint256 amount)
-        external
+        public
         onlyBridge
     {
         require(
             recipient != address(this),
-            "Bank itself can not have a balance"
+            "Can not increase balance for Bank"
         );
         balanceOf[recipient] += amount;
     }
 
+    function increaseBalances(
+        address[] calldata recipients,
+        uint256[] calldata amounts
+    ) external {
+        for (uint256 i = 0; i < recipients.length; i++) {
+            increaseBalance(recipients[i], amounts[i]);
+        }
+    }
+
     function decreaseBalance(address spender, uint256 amount)
-        external
+        public
         onlyBridge
     {
         balanceOf[spender] -= amount;
+    }
+
+    function decreaseBalances(
+        address[] calldata spenders,
+        uint256[] calldata amounts
+    ) external {
+        for (uint256 i = 0; i < spenders.length; i++) {
+            decreaseBalance(spenders[i], amounts[i]);
+        }
     }
 }
