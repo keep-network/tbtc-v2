@@ -2,8 +2,8 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+
 contract Bank is Ownable {
-    
     address public bridge;
 
     /// @notice The balance of the given account in the Bank.
@@ -27,5 +27,12 @@ contract Bank is Ownable {
             "Bank itself can not have a balance"
         );
         balanceOf[recipient] += amount;
+    }
+
+    function decreaseBalance(address spender, uint256 amount)
+        external
+        onlyBridge
+    {
+        balanceOf[spender] -= amount;
     }
 }
