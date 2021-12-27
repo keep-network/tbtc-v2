@@ -1,11 +1,13 @@
 import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
+
 import type { Bank } from "../../typechain"
 
 const { to1e18 } = helpers.number
-
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
+
+const ZERO_ADDRESS = ethers.constants.AddressZero
 
 const fixture = async () => {
   const [deployer, governance, bridge, thirdParty] = await ethers.getSigners()
@@ -60,6 +62,158 @@ describe("Bank", () => {
       it("should update the bridge", async () => {
         await bank.connect(governance).updateBridge(thirdParty.address)
         expect(await bank.bridge()).to.equal(thirdParty.address)
+      })
+    })
+  })
+
+  describe("transferBalance", () => {
+    const initialBalance = to1e18(500)
+
+    let spender
+    let recipient
+
+    before(async () => {
+      await createSnapshot()
+
+      const accounts = await getUnnamedAccounts()
+      spender = await ethers.getSigner(accounts[0])
+      // eslint-disable-next-line prefer-destructuring
+      recipient = accounts[1]
+
+      await bank
+        .connect(bridge)
+        .increaseBalance(spender.address, initialBalance)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the recipient is the zero address", () => {
+      it("should revert", async () => {
+        await expect(
+          bank.connect(spender).transferBalance(ZERO_ADDRESS, initialBalance)
+        ).to.be.revertedWith("Can not transfer to the zero address")
+      })
+    })
+
+    context("when the recipient is the bank address", () => {
+      it("should revert", async () => {
+        await expect(
+          bank.connect(spender).transferBalance(bank.address, initialBalance)
+        ).to.be.revertedWith("Can not transfer to the Bank address")
+      })
+    })
+
+    context("when the spender has not enough balance", () => {
+      it("should revert", async () => {
+        await expect(
+          bank
+            .connect(spender)
+            .transferBalance(recipient, initialBalance.add(1))
+        ).to.be.revertedWith("Transfer amount exceeds balance")
+      })
+    })
+
+    context("when the spender transfers part of their balance", () => {
+      const amount = to1e18(21)
+      let tx
+
+      before(async () => {
+        await createSnapshot()
+        tx = await bank.connect(spender).transferBalance(recipient, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer the requested amount", async () => {
+        expect(await bank.balanceOf(spender.address)).to.equal(
+          initialBalance.sub(amount)
+        )
+        expect(await bank.balanceOf(recipient)).to.equal(amount)
+      })
+
+      it("should emit the BalanceTransferred event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceTransferred")
+          .withArgs(spender.address, recipient, amount)
+      })
+    })
+
+    context(
+      "when the spender transfers part of their balance in two transactions",
+      () => {
+        const amount1 = to1e18(21)
+        const amount2 = to1e18(12)
+
+        before(async () => {
+          await createSnapshot()
+          await bank.connect(spender).transferBalance(recipient, amount1)
+          await bank.connect(spender).transferBalance(recipient, amount2)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should transfer the requested amount", async () => {
+          expect(await bank.balanceOf(spender.address)).to.equal(
+            initialBalance.sub(amount1).sub(amount2)
+          )
+          expect(await bank.balanceOf(recipient)).to.equal(amount1.add(amount2))
+        })
+      }
+    )
+
+    context("when the spender transfers their entire balance", () => {
+      const amount = initialBalance
+      let tx
+
+      before(async () => {
+        await createSnapshot()
+        tx = await bank.connect(spender).transferBalance(recipient, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer the entire balance", async () => {
+        expect(await bank.balanceOf(spender.address)).to.equal(0)
+        expect(await bank.balanceOf(recipient)).to.equal(amount)
+      })
+
+      it("should emit the BalanceTransferred event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceTransferred")
+          .withArgs(spender.address, recipient, amount)
+      })
+    })
+
+    context("when the spender transfers 0 balance", () => {
+      const amount = 0
+      let tx
+
+      before(async () => {
+        await createSnapshot()
+        tx = await bank.connect(spender).transferBalance(recipient, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer no balance", async () => {
+        expect(await bank.balanceOf(spender.address)).to.equal(initialBalance)
+        expect(await bank.balanceOf(recipient)).to.equal(0)
+      })
+
+      it("should emit the BalanceTransferred event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceTransferred")
+          .withArgs(spender.address, recipient, 0)
       })
     })
   })
