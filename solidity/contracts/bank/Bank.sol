@@ -18,6 +18,24 @@ contract Bank is Ownable {
         bridge = _bridge;
     }
 
+    function increaseBalances(
+        address[] calldata recipients,
+        uint256[] calldata amounts
+    ) external {
+        for (uint256 i = 0; i < recipients.length; i++) {
+            increaseBalance(recipients[i], amounts[i]);
+        }
+    }
+
+    function decreaseBalances(
+        address[] calldata spenders,
+        uint256[] calldata amounts
+    ) external {
+        for (uint256 i = 0; i < spenders.length; i++) {
+            decreaseBalance(spenders[i], amounts[i]);
+        }
+    }
+
     function increaseBalance(address recipient, uint256 amount)
         public
         onlyBridge
@@ -29,28 +47,10 @@ contract Bank is Ownable {
         balanceOf[recipient] += amount;
     }
 
-    function increaseBalances(
-        address[] calldata recipients,
-        uint256[] calldata amounts
-    ) external {
-        for (uint256 i = 0; i < recipients.length; i++) {
-            increaseBalance(recipients[i], amounts[i]);
-        }
-    }
-
     function decreaseBalance(address spender, uint256 amount)
         public
         onlyBridge
     {
         balanceOf[spender] -= amount;
-    }
-
-    function decreaseBalances(
-        address[] calldata spenders,
-        uint256[] calldata amounts
-    ) external {
-        for (uint256 i = 0; i < spenders.length; i++) {
-            decreaseBalance(spenders[i], amounts[i]);
-        }
     }
 }
