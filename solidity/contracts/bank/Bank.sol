@@ -6,12 +6,23 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Bank is Ownable {
     address public bridge;
 
-    /// @notice The balance of the given account in the Bank.
+    /// @notice The balance of the given account in the Bank. Zero by default.
     mapping(address => uint256) public balanceOf;
+
+    /// @notice The remaining amount of balance that spender will be
+    ///         allowed to transfer on behalf of owner through `transferFrom`.
+    ///         Zero by default.
+    mapping(address => mapping(address => uint256)) public allowance;
 
     event BalanceTransferred(
         address indexed from,
         address indexed to,
+        uint256 amount
+    );
+
+    event BalanceApproved(
+        address indexed owner,
+        address indexed spender,
         uint256 amount
     );
 
@@ -26,6 +37,26 @@ contract Bank is Ownable {
 
     function transferBalance(address recipient, uint256 amount) external {
         _transferBalance(msg.sender, recipient, amount);
+    }
+
+    function approveBalance(address spender, uint256 amount) external {
+        _approveBalance(msg.sender, spender, amount);
+    }
+
+    function transferBalanceFrom(
+        address spender,
+        address recipient,
+        uint256 amount
+    ) external {
+        uint256 currentAllowance = allowance[spender][msg.sender];
+        if (currentAllowance != type(uint256).max) {
+            require(
+                currentAllowance >= amount,
+                "Transfer amount exceeds allowance"
+            );
+            _approveBalance(spender, msg.sender, currentAllowance - amount);
+        }
+        _transferBalance(spender, recipient, amount);
     }
 
     function increaseBalances(
@@ -83,5 +114,15 @@ contract Bank is Ownable {
         balanceOf[spender] = spenderBalance - amount;
         balanceOf[recipient] += amount;
         emit BalanceTransferred(spender, recipient, amount);
+    }
+
+    function _approveBalance(
+        address owner,
+        address spender,
+        uint256 amount
+    ) private {
+        require(spender != address(0), "Can not approve to the zero address");
+        allowance[owner][spender] = amount;
+        emit BalanceApproved(owner, spender, amount);
     }
 }

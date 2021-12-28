@@ -8,6 +8,7 @@ const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
+const MAX_UINT256 = ethers.constants.MaxUint256
 
 const fixture = async () => {
   const [deployer, governance, bridge, thirdParty] = await ethers.getSigners()
@@ -214,6 +215,316 @@ describe("Bank", () => {
         await expect(tx)
           .to.emit(bank, "BalanceTransferred")
           .withArgs(spender.address, recipient, 0)
+      })
+    })
+  })
+
+  describe("approve", () => {
+    const amount = to1e18(10)
+
+    let owner
+    let spender
+
+    before(async () => {
+      await createSnapshot()
+
+      const accounts = await getUnnamedAccounts()
+      owner = await ethers.getSigner(accounts[0])
+      // eslint-disable-next-line prefer-destructuring
+      spender = accounts[1]
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the spender is the zero address", () => {
+      it("should revert", async () => {
+        await expect(
+          bank.connect(owner).approveBalance(ZERO_ADDRESS, amount)
+        ).to.be.revertedWith("Can not approve to the zero address")
+      })
+    })
+
+    context("when the spender had no approved balance before", () => {
+      let tx
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bank.connect(owner).approveBalance(spender, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should approve the requested amount", async () => {
+        expect(await bank.allowance(owner.address, spender)).to.equal(amount)
+      })
+
+      it("should emit the BalanceApproved event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceApproved")
+          .withArgs(owner.address, spender, amount)
+      })
+    })
+
+    context("when the spender had an approved balance before", () => {
+      before(async () => {
+        await createSnapshot()
+        await bank.connect(owner).approveBalance(spender, to1e18(1337))
+        await bank.connect(owner).approveBalance(spender, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should replace the previous approval", async () => {
+        expect(await bank.allowance(owner.address, spender)).to.equal(amount)
+      })
+    })
+  })
+
+  describe("transferBalanceFrom", () => {
+    const initialBalance = to1e18(500)
+    const approvedBalance = to1e18(45)
+
+    let owner
+    let spender
+    let recipient
+
+    before(async () => {
+      await createSnapshot()
+
+      const accounts = await getUnnamedAccounts()
+      owner = await ethers.getSigner(accounts[0])
+      spender = await ethers.getSigner(accounts[1])
+      // eslint-disable-next-line prefer-destructuring
+      recipient = accounts[2]
+
+      await bank.connect(bridge).increaseBalance(owner.address, initialBalance)
+      await bank.connect(owner).approveBalance(spender.address, approvedBalance)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the recipient is the zero address", () => {
+      it("should revert", async () => {
+        await expect(
+          bank
+            .connect(spender)
+            .transferBalanceFrom(owner.address, ZERO_ADDRESS, approvedBalance)
+        ).to.be.revertedWith("Can not transfer to the zero address")
+      })
+    })
+
+    context("when the recipient is the bank address", () => {
+      it("should revert", async () => {
+        await expect(
+          bank
+            .connect(spender)
+            .transferBalanceFrom(owner.address, bank.address, approvedBalance)
+        ).to.be.revertedWith("Can not transfer to the Bank address")
+      })
+    })
+
+    context("when the spender has not enough balance approved", () => {
+      it("should revert", async () => {
+        await expect(
+          bank
+            .connect(spender)
+            .transferBalanceFrom(
+              owner.address,
+              recipient,
+              approvedBalance.add(1)
+            )
+        ).to.be.revertedWith("Transfer amount exceeds allowance")
+      })
+    })
+
+    context("when the owner has not enough balance", () => {
+      const amount = initialBalance.add(1)
+
+      before(async () => {
+        await createSnapshot()
+        await bank.connect(owner).approveBalance(spender.address, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bank
+            .connect(spender)
+            .transferBalanceFrom(owner.address, recipient, amount)
+        ).to.be.revertedWith("Transfer amount exceeds balance")
+      })
+    })
+
+    context("when the spender transfers part of the approved balance", () => {
+      const amount = to1e18(2)
+      let tx
+
+      before(async () => {
+        await createSnapshot()
+        tx = await bank
+          .connect(spender)
+          .transferBalanceFrom(owner.address, recipient, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer the requested amount", async () => {
+        expect(await bank.balanceOf(owner.address)).to.equal(
+          initialBalance.sub(amount)
+        )
+        expect(await bank.balanceOf(recipient)).to.equal(amount)
+      })
+
+      it("should emit the BalanceTransferred event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceTransferred")
+          .withArgs(owner.address, recipient, amount)
+      })
+
+      it("should reduce the spender allowance", async () => {
+        expect(await bank.allowance(owner.address, spender.address)).to.equal(
+          approvedBalance.sub(amount)
+        )
+      })
+    })
+
+    context(
+      "when the spender transfers part of the approved balance in two transactions",
+      () => {
+        const amount1 = to1e18(1)
+        const amount2 = to1e18(3)
+
+        let tx1
+        let tx2
+
+        before(async () => {
+          await createSnapshot()
+          tx1 = await bank
+            .connect(spender)
+            .transferBalanceFrom(owner.address, recipient, amount1)
+          tx2 = await bank
+            .connect(spender)
+            .transferBalanceFrom(owner.address, recipient, amount2)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should transfer the requested amount", async () => {
+          expect(await bank.balanceOf(owner.address)).to.equal(
+            initialBalance.sub(amount1).sub(amount2)
+          )
+          expect(await bank.balanceOf(recipient)).to.equal(amount1.add(amount2))
+        })
+
+        it("should emit BalanceTransferred events", async () => {
+          await expect(tx1)
+            .to.emit(bank, "BalanceTransferred")
+            .withArgs(owner.address, recipient, amount1)
+          await expect(tx2)
+            .to.emit(bank, "BalanceTransferred")
+            .withArgs(owner.address, recipient, amount2)
+        })
+
+        it("should reduce the spender allowance", async () => {
+          expect(await bank.allowance(owner.address, spender.address)).to.equal(
+            approvedBalance.sub(amount1).sub(amount2)
+          )
+        })
+      }
+    )
+
+    context(
+      "when the spender transfers the entire approved balance",
+      async () => {
+        const amount = approvedBalance
+
+        before(async () => {
+          await createSnapshot()
+          await bank
+            .connect(spender)
+            .transferBalanceFrom(owner.address, recipient, amount)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should transfer the requested amount", async () => {
+          expect(await bank.balanceOf(owner.address)).to.equal(
+            initialBalance.sub(amount)
+          )
+          expect(await bank.balanceOf(recipient)).to.equal(amount)
+        })
+
+        it("should reduce the spender allowance to zero", async () => {
+          expect(await bank.allowance(owner.address, spender.address)).to.equal(
+            0
+          )
+        })
+      }
+    )
+
+    context("when the spender transfers the entire balance", async () => {
+      const amount = initialBalance
+
+      before(async () => {
+        await createSnapshot()
+        await bank.connect(owner).approveBalance(spender.address, amount)
+        await bank
+          .connect(spender)
+          .transferBalanceFrom(owner.address, recipient, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer the requested amount", async () => {
+        expect(await bank.balanceOf(owner.address)).to.equal(0)
+        expect(await bank.balanceOf(recipient)).to.equal(amount)
+      })
+
+      it("should reduce the spender allowance to zero", async () => {
+        expect(await bank.allowance(owner.address, spender.address)).to.equal(0)
+      })
+    })
+
+    context("when given the maximum allowance", () => {
+      const allowance = MAX_UINT256
+      const amount = to1e18(21)
+
+      before(async () => {
+        await createSnapshot()
+        await bank.connect(owner).approveBalance(spender.address, allowance)
+        await bank
+          .connect(spender)
+          .transferBalanceFrom(owner.address, recipient, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not reduce the spender allowance", async () => {
+        expect(await bank.allowance(owner.address, spender.address)).to.equal(
+          allowance
+        )
       })
     })
   })
