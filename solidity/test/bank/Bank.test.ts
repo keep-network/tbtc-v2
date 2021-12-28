@@ -931,9 +931,27 @@ describe("Bank", () => {
         })
       })
 
-      it("should increase recipient's balance", async () => {
-        await bank.connect(bridge).increaseBalance(recipient, amount)
-        expect(await bank.balanceOf(recipient)).to.equal(amount)
+      context("when called for a valid recipient", () => {
+        let tx
+
+        before(async () => {
+          await createSnapshot()
+          tx = await bank.connect(bridge).increaseBalance(recipient, amount)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should increase recipient's balance", async () => {
+          expect(await bank.balanceOf(recipient)).to.equal(amount)
+        })
+
+        it("should emit the BalanceIncreased event", async () => {
+          await expect(tx)
+            .to.emit(bank, "BalanceIncreased")
+            .withArgs(recipient, amount)
+        })
       })
     })
   })
@@ -983,17 +1001,40 @@ describe("Bank", () => {
         })
       })
 
-      it("should increase recipients' balances", async () => {
-        await bank
-          .connect(bridge)
-          .increaseBalances(
-            [recipient1, recipient2, recipient3],
-            [amount1, amount2, amount3]
-          )
+      context("when called for a valid recipient", () => {
+        let tx
 
-        expect(await bank.balanceOf(recipient1)).to.equal(amount1)
-        expect(await bank.balanceOf(recipient2)).to.equal(amount2)
-        expect(await bank.balanceOf(recipient3)).to.equal(amount3)
+        before(async () => {
+          await createSnapshot()
+          tx = await bank
+            .connect(bridge)
+            .increaseBalances(
+              [recipient1, recipient2, recipient3],
+              [amount1, amount2, amount3]
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should increase recipients' balances", async () => {
+          expect(await bank.balanceOf(recipient1)).to.equal(amount1)
+          expect(await bank.balanceOf(recipient2)).to.equal(amount2)
+          expect(await bank.balanceOf(recipient3)).to.equal(amount3)
+        })
+
+        it("should emit BalanceIncreased events", async () => {
+          await expect(tx)
+            .to.emit(bank, "BalanceIncreased")
+            .withArgs(recipient1, amount1)
+          await expect(tx)
+            .to.emit(bank, "BalanceIncreased")
+            .withArgs(recipient2, amount2)
+          await expect(tx)
+            .to.emit(bank, "BalanceIncreased")
+            .withArgs(recipient3, amount3)
+        })
       })
     })
   })
@@ -1002,12 +1043,16 @@ describe("Bank", () => {
     const initialBalance = to1e18(21)
     const amount = to1e18(10)
 
+    let tx
+
     before(async () => {
       await createSnapshot()
       // first increase so that there is something to decrease from
       await bank
         .connect(bridge)
         .increaseBalance(thirdParty.address, initialBalance)
+
+      tx = await bank.connect(thirdParty).decreaseBalance(amount)
     })
 
     after(async () => {
@@ -1015,10 +1060,15 @@ describe("Bank", () => {
     })
 
     it("should decrease caller's balance", async () => {
-      await bank.connect(thirdParty).decreaseBalance(amount)
       expect(await bank.balanceOf(thirdParty.address)).to.equal(
         initialBalance.sub(amount)
       )
+    })
+
+    it("should emit the BalanceDecreased event", async () => {
+      await expect(tx)
+        .to.emit(bank, "BalanceDecreased")
+        .withArgs(thirdParty.address, amount)
     })
   })
 

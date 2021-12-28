@@ -62,6 +62,10 @@ contract Bank is Ownable {
         uint256 amount
     );
 
+    event BalanceIncreased(address indexed owner, uint256 amount);
+
+    event BalanceDecreased(address indexed owner, uint256 amount);
+
     modifier onlyBridge() {
         require(msg.sender == address(bridge), "Caller is not the bridge");
         _;
@@ -202,6 +206,7 @@ contract Bank is Ownable {
     ///         you really know what you are doing!
     function decreaseBalance(uint256 amount) external {
         balanceOf[msg.sender] -= amount;
+        emit BalanceDecreased(msg.sender, amount);
     }
 
     /// @notice Increases balance of the provided `recipient` by the provided
@@ -215,6 +220,7 @@ contract Bank is Ownable {
             "Can not increase balance for Bank"
         );
         balanceOf[recipient] += amount;
+        emit BalanceIncreased(recipient, amount);
     }
 
     /// @notice Returns hash of EIP712 Domain struct with `TBTC Bank` as
