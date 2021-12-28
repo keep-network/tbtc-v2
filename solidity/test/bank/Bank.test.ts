@@ -2,6 +2,7 @@ import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 
+import { ContractTransaction, Signature, Wallet } from "ethers"
 import type { Bank } from "../../typechain"
 
 const { to1e18 } = helpers.number
@@ -88,8 +89,8 @@ describe("Bank", () => {
   describe("transferBalance", () => {
     const initialBalance = to1e18(500)
 
-    let spender
-    let recipient
+    let spender: SignerWithAddress
+    let recipient: string
 
     before(async () => {
       await createSnapshot()
@@ -136,7 +137,7 @@ describe("Bank", () => {
 
     context("when the spender transfers part of their balance", () => {
       const amount = to1e18(21)
-      let tx
+      let tx: ContractTransaction
 
       before(async () => {
         await createSnapshot()
@@ -188,7 +189,7 @@ describe("Bank", () => {
 
     context("when the spender transfers their entire balance", () => {
       const amount = initialBalance
-      let tx
+      let tx: ContractTransaction
 
       before(async () => {
         await createSnapshot()
@@ -213,7 +214,7 @@ describe("Bank", () => {
 
     context("when the spender transfers 0 balance", () => {
       const amount = 0
-      let tx
+      let tx: ContractTransaction
 
       before(async () => {
         await createSnapshot()
@@ -240,8 +241,8 @@ describe("Bank", () => {
   describe("approve", () => {
     const amount = to1e18(10)
 
-    let owner
-    let spender
+    let owner: SignerWithAddress
+    let spender: string
 
     before(async () => {
       await createSnapshot()
@@ -265,7 +266,7 @@ describe("Bank", () => {
     })
 
     context("when the spender had no approved balance before", () => {
-      let tx
+      let tx: ContractTransaction
 
       before(async () => {
         await createSnapshot()
@@ -309,9 +310,9 @@ describe("Bank", () => {
     const initialBalance = to1e18(500)
     const approvedBalance = to1e18(45)
 
-    let owner
-    let spender
-    let recipient
+    let owner: SignerWithAddress
+    let spender: SignerWithAddress
+    let recipient: string
 
     before(async () => {
       await createSnapshot()
@@ -387,7 +388,7 @@ describe("Bank", () => {
 
     context("when the spender transfers part of the approved balance", () => {
       const amount = to1e18(2)
-      let tx
+      let tx: ContractTransaction
 
       before(async () => {
         await createSnapshot()
@@ -426,8 +427,8 @@ describe("Bank", () => {
         const amount1 = to1e18(1)
         const amount2 = to1e18(3)
 
-        let tx1
-        let tx2
+        let tx1: ContractTransaction
+        let tx2: ContractTransaction
 
         before(async () => {
           await createSnapshot()
@@ -551,7 +552,7 @@ describe("Bank", () => {
     const initialBalance = to1e18(1231)
     const permittedBalance = to1e18(45)
 
-    let owner
+    let owner: Wallet
     let spender: string
 
     let yesterday: number
@@ -766,7 +767,7 @@ describe("Bank", () => {
     })
 
     context("when the spender had no permitted balance before", () => {
-      let tx
+      let tx: ContractTransaction
 
       before(async () => {
         await createSnapshot()
@@ -810,7 +811,7 @@ describe("Bank", () => {
     })
 
     context("when the spender had a permitted balance before", () => {
-      let tx
+      let tx: ContractTransaction
 
       before(async () => {
         await createSnapshot()
@@ -867,7 +868,7 @@ describe("Bank", () => {
 
     context("when given never expiring permit", () => {
       const deadline = MAX_UINT256
-      let signature
+      let signature: Signature
 
       before(async () => {
         await createSnapshot()
@@ -903,7 +904,7 @@ describe("Bank", () => {
 
   describe("increaseBalance", () => {
     const amount = to1e18(10)
-    let recipient
+    let recipient: string
 
     before(async () => {
       await createSnapshot()
@@ -961,9 +962,9 @@ describe("Bank", () => {
     const amount2 = to1e18(15)
     const amount3 = to1e18(17)
 
-    let recipient1
-    let recipient2
-    let recipient3
+    let recipient1: string
+    let recipient2: string
+    let recipient3: string
 
     before(async () => {
       await createSnapshot()
@@ -1002,7 +1003,7 @@ describe("Bank", () => {
       })
 
       context("when called for a valid recipient", () => {
-        let tx
+        let tx: ContractTransaction
 
         before(async () => {
           await createSnapshot()
@@ -1043,7 +1044,7 @@ describe("Bank", () => {
     const initialBalance = to1e18(21)
     const amount = to1e18(10)
 
-    let tx
+    let tx: ContractTransaction
 
     before(async () => {
       await createSnapshot()
