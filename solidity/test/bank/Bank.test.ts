@@ -1002,96 +1002,23 @@ describe("Bank", () => {
     const initialBalance = to1e18(21)
     const amount = to1e18(10)
 
-    let spender
-
     before(async () => {
       await createSnapshot()
-      spender = thirdParty.address
-      // first increase so that there is something to decrease from
-      await bank.connect(bridge).increaseBalance(spender, initialBalance)
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when called by a third party", () => {
-      it("should revert", async () => {
-        await expect(
-          bank.connect(thirdParty).decreaseBalance(spender, amount)
-        ).to.be.revertedWith("Caller is not the bridge")
-      })
-    })
-
-    context("when called by the bridge", () => {
-      it("should decrease spender's balance", async () => {
-        await bank.connect(bridge).decreaseBalance(spender, amount)
-        expect(await bank.balanceOf(thirdParty.address)).to.equal(
-          initialBalance.sub(amount)
-        )
-      })
-    })
-  })
-
-  describe("decreaseBalances", () => {
-    const initialBalance = to1e18(181)
-    const amount1 = to1e18(12)
-    const amount2 = to1e18(15)
-    const amount3 = to1e18(17)
-
-    let spender1
-    let spender2
-    let spender3
-
-    before(async () => {
-      await createSnapshot()
-      ;[spender1, spender2, spender3] = await getUnnamedAccounts()
-
       // first increase so that there is something to decrease from
       await bank
         .connect(bridge)
-        .increaseBalances(
-          [spender1, spender2, spender3],
-          [initialBalance, initialBalance, initialBalance]
-        )
+        .increaseBalance(thirdParty.address, initialBalance)
     })
 
     after(async () => {
       await restoreSnapshot()
     })
 
-    context("when called by a third party", () => {
-      it("should revert", async () => {
-        await expect(
-          bank
-            .connect(thirdParty)
-            .decreaseBalances(
-              [spender1, spender2, spender3],
-              [amount1, amount2, amount3]
-            )
-        ).to.be.revertedWith("Caller is not the bridge")
-      })
-    })
-
-    context("when called by the bridge", () => {
-      it("should decrease spenders' balances", async () => {
-        await bank
-          .connect(bridge)
-          .decreaseBalances(
-            [spender1, spender2, spender3],
-            [amount1, amount2, amount3]
-          )
-
-        expect(await bank.balanceOf(spender1)).to.equal(
-          initialBalance.sub(amount1)
-        )
-        expect(await bank.balanceOf(spender2)).to.equal(
-          initialBalance.sub(amount2)
-        )
-        expect(await bank.balanceOf(spender3)).to.equal(
-          initialBalance.sub(amount3)
-        )
-      })
+    it("should decrease caller's balance", async () => {
+      await bank.connect(thirdParty).decreaseBalance(amount)
+      expect(await bank.balanceOf(thirdParty.address)).to.equal(
+        initialBalance.sub(amount)
+      )
     })
   })
 

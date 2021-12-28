@@ -135,13 +135,8 @@ contract Bank is Ownable {
         }
     }
 
-    function decreaseBalances(
-        address[] calldata spenders,
-        uint256[] calldata amounts
-    ) external {
-        for (uint256 i = 0; i < spenders.length; i++) {
-            decreaseBalance(spenders[i], amounts[i]);
-        }
+    function decreaseBalance(uint256 amount) external {
+        balanceOf[msg.sender] -= amount;
     }
 
     function increaseBalance(address recipient, uint256 amount)
@@ -153,13 +148,6 @@ contract Bank is Ownable {
             "Can not increase balance for Bank"
         );
         balanceOf[recipient] += amount;
-    }
-
-    function decreaseBalance(address spender, uint256 amount)
-        public
-        onlyBridge
-    {
-        balanceOf[spender] -= amount;
     }
 
     function DOMAIN_SEPARATOR() public view returns (bytes32) {
