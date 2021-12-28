@@ -262,7 +262,7 @@ describe("Bank", () => {
     })
   })
 
-  describe("approve", () => {
+  describe("approveBalance", () => {
     const amount = to1e18(10)
 
     let owner: SignerWithAddress
