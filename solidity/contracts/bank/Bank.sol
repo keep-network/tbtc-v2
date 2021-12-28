@@ -1,17 +1,38 @@
 // SPDX-License-Identifier: MIT
+
+// ██████████████     ▐████▌     ██████████████
+// ██████████████     ▐████▌     ██████████████
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+// ██████████████     ▐████▌     ██████████████
+// ██████████████     ▐████▌     ██████████████
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @title Bitcoin Bank
+/// @notice Bank is a central component tracking Bitcoin balances. Balances can
+///         be transferred between holders and holders can approve their
+///         balances to be spent by others. Balances in the Bank are updated for
+///         depositors who deposit their Bitcoin into the Bridge and only the
+///         Bridge can increase balances.
+/// @dev Bank is a governable contract and the Governance can upgrade the Bridge
+///      address.
 contract Bank is Ownable {
     address public bridge;
 
-    /// @notice The balance of the given account in the Bank. Zero by default.
+    /// @notice The balance of a given account in the Bank. Zero by default.
     mapping(address => uint256) public balanceOf;
 
-    /// @notice The remaining amount of balance that spender will be
-    ///         allowed to transfer on behalf of owner through `transferFrom`.
-    ///         Zero by default.
+    /// @notice The remaining amount of balance a spender will be
+    ///         allowed to transfer on behalf of an owner using
+    ///         `transferBalanceFrom`. Zero by default.
     mapping(address => mapping(address => uint256)) public allowance;
 
     /// @notice Returns the current nonce for EIP2612 permission for the
@@ -51,18 +72,46 @@ contract Bank is Ownable {
         cachedDomainSeparator = buildDomainSeparator();
     }
 
+    /// @notice Allows the Governance to upgrade the Bridge address.
+    /// @dev The function does not implement any governance delay and does not
+    ///      check the status of the Bridge. The Governance implementation needs
+    ///      to ensure all requirements for the upgrade are satisfied before
+    ///      executing this function.
     function updateBridge(address _bridge) external onlyOwner {
         bridge = _bridge;
     }
 
+    /// @notice Moves the given `amount` of balance from the caller to
+    ///         `recipient`.
+    /// @dev Requirements:
+    ///       - `recipient` cannot be the zero address,
+    ///       - the caller must have a balance of at least `amount`.
     function transferBalance(address recipient, uint256 amount) external {
         _transferBalance(msg.sender, recipient, amount);
     }
 
+    /// @notice Sets `amount` as the allowance of `spender` over the caller's
+    ///         balance.
+    /// @dev If the `amount` is set to `type(uint256).max` then
+    ///      `transferBalanceFrom` will not reduce an allowance.
+    ///      Beware that changing an allowance with this function brings the
+    ///      risk that someone may use both the old and the new allowance by
+    ///      unfortunate transaction ordering. One possible solution to mitigate
+    ///      this race condition is to first reduce the spender's allowance to 0
+    ///      and set the desired value afterwards:
+    ///      https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
     function approveBalance(address spender, uint256 amount) external {
         _approveBalance(msg.sender, spender, amount);
     }
 
+    /// @notice Moves `amount` of balance from `spender` to `recipient` using the
+    ///         allowance mechanism. `amount` is then deducted from the caller's
+    ///         allowance unless the allowance was made for `type(uint256).max`.
+    /// @dev Requirements:
+    ///      - `recipient` cannot be the zero address,
+    ///      - `spender` must have a balance of at least `amount`,
+    ///      - the caller must have allowance for `spender`'s balance of at
+    ///        least `amount`.
     function transferBalanceFrom(
         address spender,
         address recipient,
@@ -79,6 +128,16 @@ contract Bank is Ownable {
         _transferBalance(spender, recipient, amount);
     }
 
+    /// @notice EIP2612 approval made with secp256k1 signature.
+    ///         Users can authorize a transfer of their balance with a signature
+    ///         conforming EIP712 standard, rather than an on-chain transaction
+    ///         from their address. Anyone can submit this signature on the
+    ///         user's behalf by calling the permit function, paying gas fees,
+    ///         and possibly performing other actions in the same transaction.
+    /// @dev    The deadline argument can be set to `type(uint256).max to create
+    ///         permits that effectively never expire.  If the `amount` is set
+    ///         to `type(uint256).max` then `transferBalanceFrom` will not
+    ///         reduce an allowance.
     function permit(
         address owner,
         address spender,
@@ -126,6 +185,9 @@ contract Bank is Ownable {
         _approveBalance(owner, spender, amount);
     }
 
+    /// @notice Increases balances of the provided `recipients` by the provided
+    ///         `amounts`. Can only be called by the Bridge.
+    /// @dev This function fails if the lengths of the arrays are not the same.
     function increaseBalances(
         address[] calldata recipients,
         uint256[] calldata amounts
@@ -135,10 +197,15 @@ contract Bank is Ownable {
         }
     }
 
+    /// @notice Decreases caller's balance by the provided `amount`. There is no
+    ///         way to restore the balance so do not call this function unless
+    ///         you really know what you are doing!
     function decreaseBalance(uint256 amount) external {
         balanceOf[msg.sender] -= amount;
     }
 
+    /// @notice Increases balance of the provided `recipient` by the provided
+    ///         `amount`. Can only be called by the Bridge.
     function increaseBalance(address recipient, uint256 amount)
         public
         onlyBridge
@@ -150,6 +217,10 @@ contract Bank is Ownable {
         balanceOf[recipient] += amount;
     }
 
+    /// @notice Returns hash of EIP712 Domain struct with `TBTC Bank` as
+    ///         a signing domain and Bank contract as a verifying contract.
+    ///         Used to construct EIP2612 signature provided to `permit`
+    ///         function.
     function DOMAIN_SEPARATOR() public view returns (bytes32) {
         // As explained in EIP-2612, if the DOMAIN_SEPARATOR contains the
         // chainId and is defined at contract deployment instead of
