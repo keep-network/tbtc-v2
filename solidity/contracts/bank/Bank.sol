@@ -66,6 +66,8 @@ contract Bank is Ownable {
 
     event BalanceDecreased(address indexed owner, uint256 amount);
 
+    event BridgeUpdated(address newBridge);
+
     modifier onlyBridge() {
         require(msg.sender == address(bridge), "Caller is not the bridge");
         _;
@@ -84,6 +86,7 @@ contract Bank is Ownable {
     function updateBridge(address _bridge) external onlyOwner {
         require(_bridge != address(0), "Bridge address must not be 0x0");
         bridge = _bridge;
+        emit BridgeUpdated(_bridge);
     }
 
     /// @notice Moves the given `amount` of balance from the caller to

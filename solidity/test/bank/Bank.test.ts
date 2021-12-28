@@ -87,9 +87,25 @@ describe("Bank", () => {
     })
 
     context("when called by the governance", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+        tx = await bank.connect(governance).updateBridge(thirdParty.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
       it("should update the bridge", async () => {
-        await bank.connect(governance).updateBridge(thirdParty.address)
         expect(await bank.bridge()).to.equal(thirdParty.address)
+      })
+
+      it("should emit the BridgeUpdated event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BridgeUpdated")
+          .withArgs(thirdParty.address)
       })
     })
   })
