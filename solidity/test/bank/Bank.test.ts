@@ -78,6 +78,14 @@ describe("Bank", () => {
       })
     })
 
+    context("when called with 0-address bridge", () => {
+      it("should revert", async () => {
+        await expect(
+          bank.connect(governance).updateBridge(ZERO_ADDRESS)
+        ).to.be.revertedWith("Bridge address must not be 0x0")
+      })
+    })
+
     context("when called by the governance", () => {
       it("should update the bridge", async () => {
         await bank.connect(governance).updateBridge(thirdParty.address)

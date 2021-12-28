@@ -82,6 +82,7 @@ contract Bank is Ownable {
     ///      to ensure all requirements for the upgrade are satisfied before
     ///      executing this function.
     function updateBridge(address _bridge) external onlyOwner {
+        require(_bridge != address(0), "Bridge address must not be 0x0");
         bridge = _bridge;
     }
 
