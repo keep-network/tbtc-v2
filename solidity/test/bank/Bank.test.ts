@@ -29,6 +29,9 @@ const fixture = async () => {
 }
 
 describe("Bank", () => {
+  // default Hardhat's networks blockchain, see https://hardhat.org/config/
+  const hardhatNetworkId = 31337
+
   let governance: SignerWithAddress
   let bridge: SignerWithAddress
   let thirdParty: SignerWithAddress
@@ -40,6 +43,21 @@ describe("Bank", () => {
     ;({ governance, bridge, thirdParty, bank } = await waffle.loadFixture(
       fixture
     ))
+  })
+
+  describe("PERMIT_TYPEHASH", () => {
+    it("should be keccak256 of EIP2612 Permit message", async () => {
+      const expected = ethers.utils.keccak256(
+        ethers.utils.toUtf8Bytes(
+          "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+        )
+      )
+      expect(await bank.PERMIT_TYPEHASH()).to.equal(expected)
+      // double-checking...
+      expect(await bank.PERMIT_TYPEHASH()).to.equal(
+        "0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9"
+      )
+    })
   })
 
   describe("updateBridge", () => {
@@ -529,6 +547,360 @@ describe("Bank", () => {
     })
   })
 
+  describe("permit", () => {
+    const initialBalance = to1e18(1231)
+    const permittedBalance = to1e18(45)
+
+    let owner
+    let spender: string
+
+    let yesterday: number
+    let tomorrow: number
+
+    before(async () => {
+      await createSnapshot()
+
+      owner = await ethers.Wallet.createRandom()
+      await bank.connect(bridge).increaseBalance(owner.address, initialBalance)
+
+      const accounts = await getUnnamedAccounts()
+      // eslint-disable-next-line prefer-destructuring
+      spender = accounts[1]
+
+      const lastBlockTimestamp = await helpers.time.lastBlockTime()
+      yesterday = lastBlockTimestamp - 86400 // -1 day
+      tomorrow = lastBlockTimestamp + 86400 // +1 day
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    const getApproval = async (amount, spenderAddress, deadline) => {
+      // We use ethers.utils.SigningKey for a Wallet instead of
+      // Signer.signMessage to do not add '\x19Ethereum Signed Message:\n'
+      // prefix to the signed message. The '\x19` protection (see EIP191 for
+      // more details on '\x19' rationale and format) is already included in
+      // EIP2612 permit signed message and '\x19Ethereum Signed Message:\n'
+      // should not be used there.
+      const signingKey = new ethers.utils.SigningKey(owner.privateKey)
+
+      const domainSeparator = await bank.DOMAIN_SEPARATOR()
+      const permitTypehash = await bank.PERMIT_TYPEHASH()
+      const nonce = await bank.nonce(owner.address)
+
+      const approvalDigest = ethers.utils.keccak256(
+        ethers.utils.solidityPack(
+          ["bytes1", "bytes1", "bytes32", "bytes32"],
+          [
+            "0x19",
+            "0x01",
+            domainSeparator,
+            ethers.utils.keccak256(
+              ethers.utils.defaultAbiCoder.encode(
+                [
+                  "bytes32",
+                  "address",
+                  "address",
+                  "uint256",
+                  "uint256",
+                  "uint256",
+                ],
+                [
+                  permitTypehash,
+                  owner.address,
+                  spenderAddress,
+                  amount,
+                  nonce,
+                  deadline,
+                ]
+              )
+            ),
+          ]
+        )
+      )
+
+      return ethers.utils.splitSignature(
+        await signingKey.signDigest(approvalDigest)
+      )
+    }
+
+    context("when permission expired", () => {
+      it("should revert", async () => {
+        const deadline = yesterday
+        const signature = await getApproval(permittedBalance, spender, deadline)
+
+        await expect(
+          bank
+            .connect(thirdParty)
+            .permit(
+              owner.address,
+              spender,
+              permittedBalance,
+              deadline,
+              signature.v,
+              signature.r,
+              signature.s
+            )
+        ).to.be.revertedWith("Permission expired")
+      })
+    })
+
+    context("when permission has an invalid signature", () => {
+      context("when owner does not match the permitting one", () => {
+        it("should revert", async () => {
+          const deadline = tomorrow
+          const signature = await getApproval(
+            permittedBalance,
+            spender,
+            deadline
+          )
+
+          await expect(
+            bank.connect(thirdParty).permit(
+              thirdParty.address, // does not match the signature
+              spender,
+              permittedBalance,
+              deadline,
+              signature.v,
+              signature.r,
+              signature.s
+            )
+          ).to.be.revertedWith("Invalid signature")
+        })
+      })
+
+      context("when spender does not match the signature", () => {
+        it("should revert", async () => {
+          const deadline = tomorrow
+          const signature = await getApproval(
+            permittedBalance,
+            spender,
+            deadline
+          )
+
+          await expect(
+            bank.connect(thirdParty).permit(
+              owner.address,
+              thirdParty.address, // does not match the signature
+              permittedBalance,
+              deadline,
+              signature.v,
+              signature.r,
+              signature.s
+            )
+          ).to.be.revertedWith("Invalid signature")
+        })
+      })
+
+      context("when permitted balance does not match the signature", () => {
+        it("should revert", async () => {
+          const deadline = tomorrow
+          const signature = await getApproval(
+            permittedBalance,
+            spender,
+            deadline
+          )
+
+          await expect(
+            bank.connect(thirdParty).permit(
+              owner.address,
+              spender,
+              permittedBalance.add(1), // does not match the signature
+              deadline,
+              signature.v,
+              signature.r,
+              signature.s
+            )
+          ).to.be.revertedWith("Invalid signature")
+        })
+      })
+
+      context("when permitted deadline does not match the signature", () => {
+        it("should revert", async () => {
+          const deadline = tomorrow
+          const signature = await getApproval(
+            permittedBalance,
+            spender,
+            deadline
+          )
+
+          await expect(
+            bank.connect(thirdParty).permit(
+              owner.address,
+              spender,
+              permittedBalance,
+              deadline + 1, // does not match the signature
+              signature.v,
+              signature.r,
+              signature.s
+            )
+          ).to.be.revertedWith("Invalid signature")
+        })
+      })
+    })
+
+    context("when the spender is the zero address", () => {
+      it("should revert", async () => {
+        const deadline = tomorrow
+        const signature = await getApproval(
+          permittedBalance,
+          ZERO_ADDRESS,
+          deadline
+        )
+
+        await expect(
+          bank
+            .connect(thirdParty)
+            .permit(
+              owner.address,
+              ZERO_ADDRESS,
+              permittedBalance,
+              deadline,
+              signature.v,
+              signature.r,
+              signature.s
+            )
+        ).to.be.revertedWith("Can not approve to the zero address")
+      })
+    })
+
+    context("when the spender had no permitted balance before", () => {
+      let tx
+
+      before(async () => {
+        await createSnapshot()
+
+        const deadline = tomorrow
+        const signature = await getApproval(permittedBalance, spender, deadline)
+
+        tx = await bank
+          .connect(thirdParty)
+          .permit(
+            owner.address,
+            spender,
+            permittedBalance,
+            deadline,
+            signature.v,
+            signature.r,
+            signature.s
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should approve the requested amount", async () => {
+        expect(await bank.allowance(owner.address, spender)).to.equal(
+          permittedBalance
+        )
+      })
+
+      it("should emit the BalanceApproved event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceApproved")
+          .withArgs(owner.address, spender, permittedBalance)
+      })
+
+      it("should increment the nonce for the permitting owner", async () => {
+        expect(await bank.nonce(owner.address)).to.equal(1)
+        expect(await bank.nonce(spender)).to.equal(0)
+      })
+    })
+
+    context("when the spender had a permitted balance before", () => {
+      let tx
+
+      before(async () => {
+        await createSnapshot()
+        const deadline = tomorrow
+
+        let signature = await getApproval(to1e18(1337), spender, deadline)
+        await bank
+          .connect(thirdParty)
+          .permit(
+            owner.address,
+            spender,
+            to1e18(1337),
+            deadline,
+            signature.v,
+            signature.r,
+            signature.s
+          )
+
+        signature = await getApproval(permittedBalance, spender, deadline)
+        tx = await bank
+          .connect(thirdParty)
+          .permit(
+            owner.address,
+            spender,
+            permittedBalance,
+            deadline,
+            signature.v,
+            signature.r,
+            signature.s
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should replace the previous approval", async () => {
+        expect(await bank.allowance(owner.address, spender)).to.equal(
+          permittedBalance
+        )
+      })
+
+      it("should emit the BalanceApproved event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceApproved")
+          .withArgs(owner.address, spender, permittedBalance)
+      })
+
+      it("should increment the nonce for the permitting owner", async () => {
+        expect(await bank.nonce(owner.address)).to.equal(2)
+        expect(await bank.nonce(spender)).to.equal(0)
+      })
+    })
+
+    context("when given never expiring permit", () => {
+      const deadline = MAX_UINT256
+      let signature
+
+      before(async () => {
+        await createSnapshot()
+
+        signature = await getApproval(permittedBalance, spender, deadline)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should be accepted at any moment", async () => {
+        await helpers.time.increaseTime(63113904) // +2 years
+
+        await bank
+          .connect(thirdParty)
+          .permit(
+            owner.address,
+            spender,
+            permittedBalance,
+            deadline,
+            signature.v,
+            signature.r,
+            signature.s
+          )
+
+        expect(await bank.allowance(owner.address, spender)).to.equal(
+          permittedBalance
+        )
+      })
+    })
+  })
+
   describe("increaseBalance", () => {
     const amount = to1e18(10)
     let recipient
@@ -720,6 +1092,32 @@ describe("Bank", () => {
           initialBalance.sub(amount3)
         )
       })
+    })
+  })
+
+  describe("DOMAIN_SEPARATOR", () => {
+    it("should be keccak256 of EIP712 domain struct", async () => {
+      const { keccak256 } = ethers.utils
+      const { defaultAbiCoder } = ethers.utils
+      const { toUtf8Bytes } = ethers.utils
+
+      const expected = keccak256(
+        defaultAbiCoder.encode(
+          ["bytes32", "bytes32", "bytes32", "uint256", "address"],
+          [
+            keccak256(
+              toUtf8Bytes(
+                "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+              )
+            ),
+            keccak256(toUtf8Bytes("TBTC Bank")),
+            keccak256(toUtf8Bytes("1")),
+            hardhatNetworkId,
+            bank.address,
+          ]
+        )
+      )
+      expect(await bank.DOMAIN_SEPARATOR()).to.equal(expected)
     })
   })
 })
