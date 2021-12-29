@@ -48,9 +48,9 @@ contract TBTCVault is Vault {
     ///      least `amount`.
     /// @param amount Amount of TBTC to mint
     function mint(uint256 amount) external {
+        emit Minted(msg.sender, amount);
         lockBalance(msg.sender, amount);
         tbtcToken.mint(msg.sender, amount);
-        emit Minted(msg.sender, amount);
     }
 
     /// @notice Unlocks the given `amount` and transfers it back to the caller's
@@ -84,8 +84,8 @@ contract TBTCVault is Vault {
     }
 
     function _redeem(address from, uint256 amount) internal {
+        emit Redeemed(from, amount);
         tbtcToken.burnFrom(from, amount);
         unlockBalance(from, amount);
-        emit Redeemed(from, amount);
     }
 }

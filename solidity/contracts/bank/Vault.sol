@@ -49,8 +49,8 @@ contract Vault {
             bank.balanceOf(spender) > amount,
             "Amount exceeds balance in the bank"
         );
-        bank.transferBalanceFrom(spender, address(this), amount);
         lockedBalance[spender] += amount;
+        bank.transferBalanceFrom(spender, address(this), amount);
     }
 
     /// @notice Unlocks the given `amount` and transfers it back to `recipient`
@@ -61,7 +61,7 @@ contract Vault {
             lockedBalance[recipient] >= amount,
             "Amount exceeds locked balance"
         );
-        bank.transferBalance(recipient, amount);
         lockedBalance[recipient] -= amount;
+        bank.transferBalance(recipient, amount);
     }
 }
