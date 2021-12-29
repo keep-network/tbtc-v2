@@ -65,7 +65,7 @@ describe("Vault", () => {
     })
 
     context("when called with a non-zero bank address", () => {
-      it("should set the Bank address field", async () => {
+      it("should set the Bank field", async () => {
         expect(await vault.bank()).to.equal(bank.address)
       })
     })
@@ -73,12 +73,22 @@ describe("Vault", () => {
 
   describe("lockBalance", () => {
     context("when account has not enough balance in the bank", () => {
-      it("should revert", async () => {
-        const amount = initialBalance.add(1)
+      const amount = initialBalance.add(1)
+
+      before(async () => {
+        await createSnapshot()
+
         await bank.connect(account1).approveBalance(vault.address, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
         await expect(
           vault.publicLockBalance(account1.address, amount)
-        ).to.be.revertedWith("Transfer amount exceeds balance")
+        ).to.be.revertedWith("Amount exceeds balance in the bank")
       })
     })
 
@@ -143,8 +153,8 @@ describe("Vault", () => {
     context(
       "when multiple accounts several times locked their balances",
       () => {
-        const totalAmount1 = to1e18(5) // 3+2
-        const totalAmount2 = to1e18(11) // 10+1
+        const totalAmount1 = to1e18(5) // 3 + 2 = 5
+        const totalAmount2 = to1e18(11) // 10 + 1 = 11
 
         before(async () => {
           await createSnapshot()

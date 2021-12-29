@@ -45,6 +45,10 @@ contract Vault {
     /// @dev Vault must have an allowance for `spender`'s balance for at least
     ///      `amount`.
     function lockBalance(address spender, uint256 amount) internal {
+        require(
+            bank.balanceOf(spender) > amount,
+            "Amount exceeds balance in the bank"
+        );
         bank.transferBalanceFrom(spender, address(this), amount);
         lockedBalance[spender] += amount;
     }
