@@ -1,6 +1,7 @@
 import {
   Client,
   UnspentTransactionOutput,
+  TransactionMerkleBranch,
   RawTransaction,
   Transaction,
 } from "../../src/bitcoin"
@@ -52,6 +53,31 @@ export class MockBitcoinClient implements Client {
   getRawTransaction(transactionHash: string): Promise<RawTransaction> {
     return new Promise<RawTransaction>((resolve, _) => {
       resolve(this._rawTransactions.get(transactionHash) as RawTransaction)
+    })
+  }
+
+  latestBlockHeight(): Promise<number> {
+    return new Promise<number>((resolve, _) => {
+      resolve(0)
+    })
+  }
+
+  getHeadersChain(blockHeight: number, confirmations: number): Promise<string> {
+    return new Promise<string>((resolve, _) => {
+      resolve("")
+    })
+  }
+
+  getTransactionMerkle(
+    txHash: string,
+    blockHeight: number
+  ): Promise<TransactionMerkleBranch> {
+    return new Promise<TransactionMerkleBranch>((resolve, _) => {
+      resolve({
+        blockHeight: 0,
+        merkle: [],
+        position: 0,
+      })
     })
   }
 

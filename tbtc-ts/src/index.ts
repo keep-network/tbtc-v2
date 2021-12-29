@@ -9,10 +9,12 @@ import {
   revealDeposit,
 } from "./deposit"
 import { createSweepTransaction, sweepDeposits } from "./sweep"
+import { constructSweepProof } from "./sweepProof"
 import {
   Client as BitcoinClient,
   RawTransaction,
   UnspentTransactionOutput,
+  SweepProof,
 } from "./bitcoin"
 import { BigNumber } from "ethers"
 
@@ -143,6 +145,22 @@ export interface TBTC {
     depositData: DepositData[],
     mainUtxo?: UnspentTransactionOutput
   ): Promise<void>
+
+  /**
+   * Constructs a sweep transaction proof that proves the given transaction is
+   * included in the Bitcoin blockchain and has the required number of
+   * confirmations.
+   * @param transactionHash - Hash of the sweep transaction.
+   * @param confirmations - Required number of confirmations for the transaction.
+   * @param bitcoinClient - Bitcoin client used to interact with the network.
+   * @returns Sweep transaction proof that can be passed to on-chain proof
+   *          verification functions
+   */
+  constructSweepProof(
+    transactionHash: string,
+    confirmations: number,
+    bitcoinClient: BitcoinClient
+  ): Promise<SweepProof>
 }
 
 const tbtc: TBTC = {
@@ -155,6 +173,7 @@ const tbtc: TBTC = {
   revealDeposit,
   createSweepTransaction,
   sweepDeposits,
+  constructSweepProof,
 }
 
 export default tbtc

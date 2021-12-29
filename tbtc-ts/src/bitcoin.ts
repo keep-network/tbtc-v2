@@ -18,6 +18,23 @@ export interface Transaction {
   transactionHash: string
 
   /**
+   * The block hash of the transaction's containing block as an un-prefixed
+   * hex string.
+   */
+  blockHash: string
+
+  /**
+   * The number of confirmations the transaction has received, including the
+   * containing block hash.
+   */
+  confirmations: number
+
+  /**
+   * The full transaction payload as an un-prefixed hex string.
+   */
+  hex: string
+
+  /**
    * The vector of transaction inputs.
    */
   inputs: TransactionInput[]
@@ -83,6 +100,90 @@ export type UnspentTransactionOutput = TransactionOutpoint & {
   value: number
 }
 
+export interface Proof {
+  /**
+   * Raw transaction in hexadecimal format.
+   */
+  rawTransaction: string
+
+  /**
+   * Transaction merkle proof.
+   */
+  merkleProof: string
+
+  /**
+   * Transaction index in a block.
+   */
+  txInBlockIndex: number
+
+  /**
+   * Chain of blocks headers.
+   */
+  chainHeaders: string
+}
+
+/**
+ * Proof of that proves a given transaction is included in the Bitcoin
+ * blockchain.
+ */
+export interface SweepProof {
+  txVersion: Buffer
+  txInputVector: Buffer
+  txOutput: Buffer
+  txLocktime: Buffer
+  merkleProof: Buffer
+  txIndexInBlock: number
+  bitcoinHeaders: Buffer
+}
+
+/**
+ * Information about the merkle branch to a confirmed transaction.
+ *
+ */
+export interface TransactionMerkleBranch {
+  /**
+   * The height of the block the transaction was confirmed in.
+   */
+  blockHeight: number
+
+  /**
+   * A list of transaction hashes the current hash is paired with, recursively,
+   * in order to trace up to obtain the merkle root of the including block,
+   * deepest pairing first. Each hash is an unprefixed hex string.
+   */
+  merkle: string[]
+
+  /**
+   * The 0-based index of the transaction's position in the block.
+   */
+  position: number
+}
+
+/**
+ * String representation of important transaction fields
+ */
+export interface TransactionData {
+  /**
+   * The transaction's version field as an unprefixed hexadecimal string.
+   */
+  version: string
+
+  /**
+   * The transaction's input vector as an unprefixed hexadecimal string.
+   */
+  txInVector: string
+
+  /**
+   * The transaction's output vector as an unprefixed hexadecimal string.
+   */
+  txOutVector: string
+
+  /**
+   * The transaction's locktime field as an unprefixed hexadecimal string.
+   */
+  locktime: string
+}
+
 /**
  * Represents a Bitcoin client.
  */
@@ -109,6 +210,32 @@ export interface Client {
    * @returns Raw transaction.
    */
   getRawTransaction(transactionHash: string): Promise<RawTransaction>
+
+  /**
+   * Gets height of the latest mined block.
+   * @return Height of the last mined block.
+   */
+  latestBlockHeight(): Promise<number>
+
+  /**
+   * Gets concatenated chunk of block headers built on a starting block.
+   * @param blockHeight - Starting block height.
+   * @param confirmations -  Number of confirmations (subsequent blocks) built
+   *                         on the starting block.
+   * @return Concatenation of block headers in a hexadecimal format.
+   */
+  getHeadersChain(blockHeight: number, confirmations: number): Promise<string>
+
+  /**
+   * Get proof of transaction inclusion in the block.
+   * @param txHash - Hash of a transaction.
+   * @param blockHeight - Height of the block where transaction was confirmed.
+   * @return Transaction inclusion proof in hexadecimal form.
+   */
+  getTransactionMerkle(
+    txHash: string,
+    blockHeight: number
+  ): Promise<TransactionMerkleBranch>
 
   /**
    * Broadcasts the given transaction over the network.
