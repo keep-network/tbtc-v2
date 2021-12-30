@@ -66,7 +66,7 @@ contract TBTCVault is Vault {
     /// @notice Unlocks the given `amount` and transfers it back to the caller's
     ///         balance in the Bank. Burns `amount` of TBTC from the caller's
     ///         account.
-    /// @dev This function is doing the same as `reedeem` but it allows to
+    /// @dev This function is doing the same as `redeem` but it allows to
     ///      execute redemption without an additional approval transaction.
     ///      The function can be called only via `approveAndCall` of TBTC token.
     /// @param from TBTC token holder executing redemption

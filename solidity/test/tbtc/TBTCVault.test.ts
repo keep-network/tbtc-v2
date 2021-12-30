@@ -244,13 +244,13 @@ describe("TBTCVault", () => {
 
     context("when the redeemer has not enough TBTC", () => {
       const mintedAmount = to1e18(1)
-      const redemeedAmount = mintedAmount.add(1)
+      const redeemedAmount = mintedAmount.add(1)
 
       before(async () => {
         await createSnapshot()
 
         await vault.connect(account1).mint(mintedAmount)
-        await tbtc.connect(account1).approve(vault.address, redemeedAmount)
+        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
       })
 
       after(async () => {
@@ -259,7 +259,7 @@ describe("TBTCVault", () => {
 
       it("should revert", async () => {
         await expect(
-          vault.connect(account1).redeem(redemeedAmount)
+          vault.connect(account1).redeem(redeemedAmount)
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
     })
