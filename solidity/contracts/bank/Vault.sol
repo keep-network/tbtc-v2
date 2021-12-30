@@ -46,7 +46,7 @@ contract Vault {
     ///      `amount`.
     function lockBalance(address spender, uint256 amount) internal {
         require(
-            bank.balanceOf(spender) > amount,
+            bank.balanceOf(spender) >= amount,
             "Amount exceeds balance in the bank"
         );
         lockedBalance[spender] += amount;

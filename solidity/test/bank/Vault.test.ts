@@ -92,7 +92,7 @@ describe("Vault", () => {
       })
     })
 
-    context("when single account locked their balance", () => {
+    context("when single account locked part of their balance", () => {
       const amount = to1e18(3)
 
       before(async () => {
@@ -117,7 +117,30 @@ describe("Vault", () => {
       })
     })
 
-    context("when multiple accounts locked their balances", () => {
+    context("when single account locked their entire balance", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await vault.publicLockBalance(account1.address, initialBalance)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer balances to the vault", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(initialBalance)
+        expect(await bank.balanceOf(account1.address)).to.equal(0)
+      })
+
+      it("should update locked balances", async () => {
+        expect(await vault.lockedBalance(account1.address)).to.equal(
+          initialBalance
+        )
+      })
+    })
+
+    context("when multiple accounts locked part of their balances", () => {
       const amount1 = to1e18(3)
       const amount2 = to1e18(13)
 
@@ -147,6 +170,36 @@ describe("Vault", () => {
       it("should update locked balances", async () => {
         expect(await vault.lockedBalance(account1.address)).to.equal(amount1)
         expect(await vault.lockedBalance(account2.address)).to.equal(amount2)
+      })
+    })
+
+    context("when multiple accounts locked their entire balances", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await vault.publicLockBalance(account1.address, initialBalance)
+        await vault.publicLockBalance(account2.address, initialBalance)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer balances to the vault", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(
+          initialBalance.mul(2)
+        )
+        expect(await bank.balanceOf(account1.address)).to.equal(0)
+        expect(await bank.balanceOf(account2.address)).to.equal(0)
+      })
+
+      it("should update locked balances", async () => {
+        expect(await vault.lockedBalance(account1.address)).to.equal(
+          initialBalance
+        )
+        expect(await vault.lockedBalance(account2.address)).to.equal(
+          initialBalance
+        )
       })
     })
 
