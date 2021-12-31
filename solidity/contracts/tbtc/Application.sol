@@ -15,57 +15,60 @@
 
 pragma solidity 0.8.4;
 
-import "../bank/Vault.sol";
+import "../bank/Bank.sol";
 import "../token/TBTC.sol";
 
-/// @title TBTC application vault
+/// @title TBTC application
 /// @notice TBTC is a fully Bitcoin-backed ERC-20 token pegged to the price of
 ///         Bitcoin. It facilitates Bitcoin holders to act on the Ethereum
 ///         blockchain and access the decentralized finance (DeFi) ecosystem.
-///         Vault mints and redeems TBTC based on Bitcoin balances in the Bank.
-/// @dev TBTCVault is the owner of TBTC token contract and is the only contract
-///      minting the token.
-contract TBTCVault is Vault {
+///         Application mints and redeems TBTC based on Bitcoin balances in the
+///         Bank.
+/// @dev Application is the owner of TBTC token contract and is the only
+///      contract minting the token.
+contract Application {
+    Bank public bank;
     TBTC public tbtcToken;
 
     event Minted(address indexed to, uint256 amount);
 
     event Redeemed(address indexed from, uint256 amount);
 
-    constructor(Bank _bank, TBTC _tbtcToken) Vault(_bank) {
+    constructor(Bank _bank, TBTC _tbtcToken) {
+        require(
+            address(_bank) != address(0),
+            "Bank can not be the zero address"
+        );
+
         require(
             address(_tbtcToken) != address(0),
             "TBTC token can not be the zero address"
         );
 
+        bank = _bank;
         tbtcToken = _tbtcToken;
     }
 
     /// @notice Transfers the given `amount` of the Bank balance from caller
-    ///         to TBTC Vault, locks this balance under caller's account, and
-    ///         mints `amount` of TBTC to the caller.
-    /// @dev TBTC Vault must have an allowance for caller's balance for at
+    ///         to TBTC application, and mints `amount` of TBTC to the caller.
+    /// @dev TBTC application must have an allowance for caller's balance for at
     ///      least `amount`.
     /// @param amount Amount of TBTC to mint
     function mint(uint256 amount) external {
-        emit Minted(msg.sender, amount);
-        lockBalance(msg.sender, amount);
-        tbtcToken.mint(msg.sender, amount);
+        _mint(msg.sender, amount);
     }
 
-    /// @notice Unlocks the given `amount` and transfers it back to the caller's
-    ///         balance in the Bank. Burns `amount` of TBTC from the caller's
-    ///         account.
+    /// @notice Burns `amount` of TBTC from the caller's account and transfers
+    ///         `amount` back to the caller's balance in the Bank.
     /// @dev Caller must have at least `amount` of TBTC approved to
-    ///       TBTC Vault.
+    ///       TBTC application.
     /// @param amount Amount of TBTC to redeem
     function redeem(uint256 amount) external {
         _redeem(msg.sender, amount);
     }
 
-    /// @notice Unlocks the given `amount` and transfers it back to the caller's
-    ///         balance in the Bank. Burns `amount` of TBTC from the caller's
-    ///         account.
+    /// @notice Burns `amount` of TBTC from the caller's account and transfers
+    ///         `amount` back to the caller's balance in the Bank.
     /// @dev This function is doing the same as `redeem` but it allows to
     ///      execute redemption without an additional approval transaction.
     ///      The function can be called only via `approveAndCall` of TBTC token.
@@ -83,9 +86,19 @@ contract TBTCVault is Vault {
         _redeem(from, amount);
     }
 
-    function _redeem(address from, uint256 amount) internal {
-        emit Redeemed(from, amount);
-        tbtcToken.burnFrom(from, amount);
-        unlockBalance(from, amount);
+    function _mint(address minter, uint256 amount) internal {
+        require(
+            bank.balanceOf(minter) >= amount,
+            "Amount exceeds balance in the bank"
+        );
+        emit Minted(minter, amount);
+        bank.transferBalanceFrom(minter, address(this), amount);
+        tbtcToken.mint(minter, amount);
+    }
+
+    function _redeem(address redeemer, uint256 amount) internal {
+        emit Redeemed(redeemer, amount);
+        tbtcToken.burnFrom(redeemer, amount);
+        bank.transferBalance(redeemer, amount);
     }
 }
