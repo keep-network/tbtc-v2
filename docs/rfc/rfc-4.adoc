@@ -1,0 +1,91 @@
+:toc: macro
+
+= RFC 4: Using the Random Beacon
+
+:icons: font
+:numbered:
+toc::[]
+
+== Overview
+
+The Random Beacon provides high-quality randomness
+which is important for secure group selection.
+
+When the Random Beacon produces an entry,
+we should use that entry immediately
+so that operators don't have too much of an opportunity
+to manipulate sortition pool state.
+Additionally,
+the beacon may be busy and unable to produce an entry at a given time.
+
+To deal with these requirements,
+we can perform group selection as follows:
+
+=== Phase 1: entry generation
+
+Alice determines that the _maintenance reward_ for wallet creation
+has grown large enough to be worth paying the cost of performing it.
+The maintenance reward pool must have at least the amount of T tokens
+required to pay the random beacon for a new entry.
+Remaining T tokens after the entry payment
+will be used as the basis for determining the maintenance reward.
+
+She submits a transaction calling `requestNewEntry()`,
+which calls the random beacon asking for a new entry,
+passing on the appropriate payment in T tokens,
+and specifying the callback for the random beacon.
+If the beacon is available,
+Alice is recorded as the `currentEntryRequester`
+and `requestNewEntry()` is blocked from being called
+until `currentEntryRequester` is cleared.
+
+We can also freeze the sortition pool at this point,
+preventing any changes to the pool until a sortition is performed.
+Because the new entry is not known by anyone at this point,
+freezing the sortition pool prevents most forms of manipulation
+to influence the composition of the resulting group.
+Because joining and leaving the pool is prevented,
+the only remaining avenue for influencing the sortition
+is to make an operator that would be selected be ineligible
+and thus shift the distribution of subsequently selected operators.
+
+If the beacon is busy,
+or the provided payment is insufficient,
+the transaction reverts.
+
+=== Phase 2: using the entry for sortition
+
+Once the random beacon has generated an entry,
+it calls `submitEntry(newEntry)` to store the entry as `currentSortitionSeed`.
+
+After the sortition seed is set,
+the sortition outcome can be determined
+by calling a view function on the sortition pool.
+The operators should check the outcome off-chain 
+and form the resulting group and perform DKG.
+
+After DKG has been performed,
+a member of the formed group can call `submitDkgResult()` on tBTC.
+If the DKG result has been signed by at least `threshold + 1` members,
+the contract will accept the DKG result submission.
+This begins a challenge period of 100 blocks,
+during which anyone can report a discrepancy in the wallet members.
+If someone reports a discrepancy,
+tBTC can check the actual sortition outcome from the sortition pool.
+If the discrepancy is real,
+all operators who signed the incorrect group member list will be penalised
+and the fraudulent wallet is destroyed.
+The real group should now submit their DKG result.
+
+After the challenge period is over,
+the result can be confirmed in a transaction
+which also pays the appropriate reward to Alice,
+and clears `currentSortitionSeed`, `currentEntryRequester`,
+and unlocks the sortition pool.
+
+If the DKG timeout is reached without a valid result being submitted,
+the timeout can be reported.
+No wallet is created,
+but the sortition seed is discarded,
+the current entry requester is rewarded and cleared,
+and the sortition pool is unlocked.
