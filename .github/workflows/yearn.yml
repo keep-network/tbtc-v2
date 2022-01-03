@@ -27,6 +27,7 @@ jobs:
           filters: |
             path-filter:
               - './yearn/**'
+
   contracts-build-and-test:
     needs: contracts-detect-changes
     if: |
@@ -42,6 +43,8 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: yarn/yarn.lock
 
       - name: Install dependencies
         run: yarn install
@@ -69,6 +72,8 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: yarn/yarn.lock
 
       # Below step is a workaround. Eslint executed in `yearn` directory
       # finds `.prettierrc.js` config in the root directory and fails if
