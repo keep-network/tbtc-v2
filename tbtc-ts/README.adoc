@@ -1,0 +1,11 @@
+:toc: macro
+
+= `tbtc-ts`
+
+`tbtc-ts` provides TypeScript bindings to the tBTC v2 system.
+
+toc::[]
+
+== Build, test and deploy
+
+Under construction...
