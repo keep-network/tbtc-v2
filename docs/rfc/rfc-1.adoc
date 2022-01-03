@@ -480,6 +480,5 @@ Alphabetized list of Governable Parameters with additional notes.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
 - `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
-
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
