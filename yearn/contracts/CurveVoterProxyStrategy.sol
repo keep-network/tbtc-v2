@@ -115,6 +115,10 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     using Address for address;
     using SafeMath for uint256;
 
+    /// @notice Governance delay that needs to pass before any parameter change
+    ///         initiated by the governance takes effect.
+    uint256 public constant GOVERNANCE_DELAY = 48 hours;
+
     uint256 public constant DENOMINATOR = 10000;
 
     // Address of the CurveYCRVVoter contract.
@@ -123,6 +127,8 @@ contract CurveVoterProxyStrategy is BaseStrategy {
     // Address of the StrategyProxy contract.
     address public strategyProxy =
         address(0xA420A63BbEFfbda3B147d0585F1852C358e2C152);
+    address public newStrategyProxy;
+    uint256 public strategyProxyChangeInitiated;
     // Address of the CRV token contract.
     address public constant crvToken =
         address(0xD533a949740bb3306d119CC777fa900bA034cd52);
@@ -137,24 +143,60 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
 
     // Address of the depositor contract for the tBTC v2 Curve pool.
-    address public tbtcCurvePoolDepositor;
+    address public immutable tbtcCurvePoolDepositor;
     // Address of the gauge contract for the tBTC v2 Curve pool.
-    address public tbtcCurvePoolGauge;
+    address public immutable tbtcCurvePoolGauge;
     // Address of the additional reward token distributed by the gauge contract
     // of the tBTC v2 Curve pool. This is applicable only in case when the gauge
     // stakes LP tokens into the Synthetix staking rewards contract
     // (i.e. the gauge is an instance of LiquidityGaugeReward contract).
     // Can be unset if additional rewards are not supported by the gauge.
-    address public tbtcCurvePoolGaugeReward;
+    address public immutable tbtcCurvePoolGaugeReward;
     // Address of the DEX used to swap reward tokens back to the vault's
     // underlying token. This can be Uniswap or other Uni-like DEX.
-    address public dex;
+    address public immutable dex;
     // Determines the portion of CRV tokens which should be locked in the
     // Curve vote escrow to gain a CRV boost. This is the counter of a fraction
     // denominated by the DENOMINATOR constant. For example, if the value
     // is `1000`, that means 10% of tokens will be locked because
     // 1000/10000 = 0.1
     uint256 public keepCRV;
+    uint256 public newKeepCRV;
+    uint256 public keepCRVChangeInitiated;
+    // Determines the slippage tolerance for price-sensitive transactions.
+    // If transaction's slippage is higher, transaction will be reverted.
+    // Default value is 100 basis points (1%).
+    uint256 public slippageTolerance = 100;
+    uint256 public newSlippageTolerance;
+    uint256 public slippageToleranceChangeInitiated;
+
+    event KeepCRVUpdateStarted(uint256 keepCRV, uint256 timestamp);
+    event KeepCRVUpdated(uint256 keepCRV);
+
+    event StrategyProxyUpdateStarted(
+        address indexed strategyProxy,
+        uint256 timestamp
+    );
+    event StrategyProxyUpdated(address indexed strategyProxy);
+
+    event SlippageToleranceUpdateStarted(
+        uint256 slippageTolerance,
+        uint256 timestamp
+    );
+    event SlippageToleranceUpdated(uint256 slippageTolerance);
+
+    /// @notice Reverts if called before the governance delay elapses.
+    /// @param changeInitiatedTimestamp Timestamp indicating the beginning
+    ///        of the change.
+    modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
+        require(changeInitiatedTimestamp > 0, "Change not initiated");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp - changeInitiatedTimestamp >= GOVERNANCE_DELAY,
+            "Governance delay has not elapsed"
+        );
+        _;
+    }
 
     constructor(
         address _vault,
@@ -176,20 +218,89 @@ contract CurveVoterProxyStrategy is BaseStrategy {
         tbtcCurvePoolGaugeReward = _tbtcCurvePoolGaugeReward;
     }
 
-    /// @notice Sets the strategy proxy contract address.
+    /// @notice Begins the update of the strategy proxy contract address.
     /// @dev Can be called only by the governance.
-    /// @param _strategyProxy Address of the new proxy.
-    function setStrategyProxy(address _strategyProxy) external onlyGovernance {
-        strategyProxy = _strategyProxy;
+    /// @param _newStrategyProxy Address of the new proxy.
+    function beginStrategyProxyUpdate(address _newStrategyProxy)
+        external
+        onlyGovernance
+    {
+        require(_newStrategyProxy != address(0), "Invalid address");
+        newStrategyProxy = _newStrategyProxy;
+        strategyProxyChangeInitiated = block.timestamp;
+        emit StrategyProxyUpdateStarted(_newStrategyProxy, block.timestamp);
     }
 
-    /// @notice Sets the portion of CRV tokens which should be locked in
-    ///         the Curve vote escrow to gain CRV boost.
+    /// @notice Finalizes the update of the strategy proxy contract address.
+    /// @dev Can be called only by the governance, after the governance
+    ///      delay elapses.
+    function finalizeStrategyProxyUpdate()
+        external
+        onlyGovernance
+        onlyAfterGovernanceDelay(strategyProxyChangeInitiated)
+    {
+        strategyProxy = newStrategyProxy;
+        emit StrategyProxyUpdated(newStrategyProxy);
+        strategyProxyChangeInitiated = 0;
+        newStrategyProxy = address(0);
+    }
+
+    /// @notice Begins the update of the threshold determining the portion of
+    ///         CRV tokens which should be locked in the Curve vote escrow to
+    ///         gain CRV boost.
     /// @dev Can be called only by the strategist and governance.
-    /// @param _keepCRV Portion as counter of a fraction denominated by the
+    /// @param _newKeepCRV Portion as counter of a fraction denominated by the
     ///        DENOMINATOR constant.
-    function setKeepCRV(uint256 _keepCRV) external onlyAuthorized {
-        keepCRV = _keepCRV;
+    function beginKeepCRVUpdate(uint256 _newKeepCRV) external onlyAuthorized {
+        require(_newKeepCRV <= DENOMINATOR, "Max value is 10000");
+        newKeepCRV = _newKeepCRV;
+        keepCRVChangeInitiated = block.timestamp;
+        emit KeepCRVUpdateStarted(_newKeepCRV, block.timestamp);
+    }
+
+    /// @notice Finalizes the keep CRV threshold update process.
+    /// @dev Can be called only by the strategist and governance, after the
+    ///      governance delay elapses.
+    function finalizeKeepCRVUpdate()
+        external
+        onlyAuthorized
+        onlyAfterGovernanceDelay(keepCRVChangeInitiated)
+    {
+        keepCRV = newKeepCRV;
+        emit KeepCRVUpdated(newKeepCRV);
+        keepCRVChangeInitiated = 0;
+        newKeepCRV = 0;
+    }
+
+    /// @notice Begins the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance.
+    /// @param _newSlippageTolerance Slippage tolerance as counter of a fraction
+    ///        denominated by the DENOMINATOR constant.
+    function beginSlippageToleranceUpdate(uint256 _newSlippageTolerance)
+        external
+        onlyAuthorized
+    {
+        require(_newSlippageTolerance <= DENOMINATOR, "Max value is 10000");
+        newSlippageTolerance = _newSlippageTolerance;
+        slippageToleranceChangeInitiated = block.timestamp;
+        emit SlippageToleranceUpdateStarted(
+            _newSlippageTolerance,
+            block.timestamp
+        );
+    }
+
+    /// @notice Finalizes the update of the slippage tolerance parameter.
+    /// @dev Can be called only by the strategist and governance, after the the
+    ///      governance delay elapses.
+    function finalizeSlippageToleranceUpdate()
+        external
+        onlyAuthorized
+        onlyAfterGovernanceDelay(slippageToleranceChangeInitiated)
+    {
+        slippageTolerance = newSlippageTolerance;
+        emit SlippageToleranceUpdated(newSlippageTolerance);
+        slippageToleranceChangeInitiated = 0;
+        newSlippageTolerance = 0;
     }
 
     /// @return Name of the Yearn vault strategy.
@@ -420,7 +531,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
             IUniswapV2Router(dex).swapExactTokensForTokens(
                 crvBalance,
-                0,
+                minSwapOutAmount(crvBalance, path),
                 path,
                 address(this),
                 now
@@ -450,7 +561,7 @@ contract CurveVoterProxyStrategy is BaseStrategy {
 
                 IUniswapV2Router(dex).swapExactTokensForTokens(
                     rewardBalance,
-                    0,
+                    minSwapOutAmount(rewardBalance, path),
                     path,
                     address(this),
                     now
@@ -466,11 +577,14 @@ contract CurveVoterProxyStrategy is BaseStrategy {
                 tbtcCurvePoolDepositor,
                 wbtcBalance
             );
-            // TODO: When the new curve pool with tBTC v2 is deployed, verify that
-            // the index of wBTC in the array is correct.
+
+            // TODO: When the new curve pool with tBTC v2 is deployed, verify
+            //       that the index of wBTC in the array is correct.
+            uint256[4] memory amounts = [0, 0, wbtcBalance, 0];
+
             ICurvePool(tbtcCurvePoolDepositor).add_liquidity(
-                [0, 0, wbtcBalance, 0],
-                0
+                amounts,
+                minLiquidityDepositOutAmount(amounts)
             );
         }
 
@@ -492,6 +606,50 @@ contract CurveVoterProxyStrategy is BaseStrategy {
                 balanceOfWant().sub(profit)
             );
         }
+    }
+
+    /// @notice Calculates the minimum amount of output tokens that must be
+    ///         received for the swap transaction not to revert.
+    /// @param amountIn The amount of input tokens to send.
+    /// @param path An array of token addresses determining the swap route.
+    /// @return The minimum amount of output tokens that must be received for
+    ///         the swap transaction not to revert.
+    function minSwapOutAmount(uint256 amountIn, address[] memory path)
+        internal
+        view
+        returns (uint256)
+    {
+        // Get the maximum possible amount of the output token based on
+        // pair reserves.
+        uint256 amount = IUniswapV2Router(dex).getAmountsOut(amountIn, path)[
+            path.length - 1
+        ];
+
+        // Include slippage tolerance into the maximum amount of output tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
+    }
+
+    /// @notice Calculates the minimum amount of LP tokens that must be
+    ///         received for the liquidity deposit transaction not to revert.
+    /// @param amountsIn Amounts of each underlying coin being deposited.
+    /// @return The minimum amount of LP tokens that must be received for
+    ///         the liquidity deposit transaction not to revert.
+    function minLiquidityDepositOutAmount(uint256[4] memory amountsIn)
+        internal
+        view
+        returns (uint256)
+    {
+        // Get the maximum possible amount of LP tokens received in return
+        // for liquidity deposit based on pool reserves.
+        uint256 amount = ICurvePool(tbtcCurvePoolDepositor).calc_token_amount(
+            amountsIn,
+            true
+        );
+
+        // Include slippage tolerance into the maximum amount of LP tokens
+        // in order to obtain the minimum amount desired.
+        return (amount * (DENOMINATOR - slippageTolerance)) / DENOMINATOR;
     }
 
     /// @notice This method is defined in the BaseStrategy contract and is meant

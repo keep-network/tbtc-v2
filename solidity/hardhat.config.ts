@@ -6,6 +6,8 @@ import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-etherscan"
 import "hardhat-gas-reporter"
 import "hardhat-deploy"
+import "@tenderly/hardhat-tenderly"
+import "@typechain/hardhat"
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -29,7 +31,7 @@ const config: HardhatUserConfig = {
         url: process.env.FORKING_URL || "",
         // latest block is taken if FORKING_BLOCK env is not provided
         blockNumber:
-          process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
+          process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK, 10),
       },
       tags: ["local"],
     },
@@ -38,6 +40,19 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["local"],
     },
+    ropsten: {
+      url: process.env.CHAIN_API_URL || "",
+      chainId: 3,
+      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
+        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
+        : undefined,
+      tags: ["tenderly"],
+    },
+  },
+
+  tenderly: {
+    username: "thesis",
+    project: "",
   },
 
   // Define local networks configuration file path to load networks from file.

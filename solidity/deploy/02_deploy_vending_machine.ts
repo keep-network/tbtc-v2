@@ -22,6 +22,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     VendingMachine.address,
     deployer
   )
+
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "VendingMachine",
+      address: VendingMachine.address,
+    })
+  }
 }
 
 export default func

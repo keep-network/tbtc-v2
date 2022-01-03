@@ -8,29 +8,40 @@ toc::[]
 
 == Overview
 
-=== Minting
+=== Depositing
 
-Stakers periodically create 51-of-100 (subject to change) ecdsa-backed wallets
-to hold frozen BTC assets to maintain the peg. Depositors send BTC funds to the
-most-recently-created-wallet by using pay-to-script-hash (P2SH) which contains
-hashed information about the depositor's minting ethereum address. Once the
-block is mined, the depositor reveals their desired ethereum minting address to
-the ethereum chain. The TBTC system listens for these sorts of messages and
-when it gets one, it checks the bitcoin network to make sure the funds line up.
-If everything checks out, then we mint!
+Stakers periodically create <<group-size,51-of-100>> ecdsa-backed wallets
+to hold frozen BTC assets to maintain account balances. Depositors send BTC
+funds to the most-recently-created-wallet by using pay-to-script-hash (P2SH)
+which contains hashed information about the depositor's minting ethereum
+address. Once the block is mined, the depositor reveals their desired ethereum
+minting address to the ethereum chain. The bridge listens for these sorts
+of messages and when it gets one, it checks the bitcoin network to make sure
+the funds line up. If everything checks out, then we update your ethereum-side
+account balance.
 
 === Redemption
 
-A user supplies tBTCv2 and a bitcoin address. The system burns the tBTCv2 and
-releases the equivalent amount of bitcoin to the user from a user-supplied bitcoin wallet.
+A user with an account balance supplies a bitcoin address. The system decreases
+their account balance and releases the equivalent amount of bitcoin to the user
+from the redeeming bitcoin wallet.
 
-In the default case, the user-supplied wallet will be determined by the dApp,
-and will be the oldest wallet that is large enough to fulfill the redemption.
+The redeeming wallet will be determined by the system on chain via an upgradable
+(by governance) contract. The initial implementation for this contract should
+select the oldest wallet. Redemptions should be batched (details to be
+determined) to both decrease fees and processing time.
+
+One possible implementation for efficient on-chain calculation of the oldest wallet
+is to store the wallet information in a tree similar to what we use for sortition
+pools, ensuring that no matter how many wallets we have active, the cost of
+finding a wallet is always logarithmic over the maximum number of wallets during
+the system's lifetime.
 
 The maximum redemption size is capped by the size of the largest wallet, and
 any redemption bigger than that will need to be split into multiple
 redemptions.
 
+[[continuous-fees]]
 === Continuous Fees
 
 The system is able to collect fees in the form of tBTC when the BTC is
@@ -41,9 +52,92 @@ and maintain the peg), we must turn to another token. Instead, the system pays
 operators in T tokens from a treasury funded by the T-token DAO and whenever it
 collects tBTC fees it uses those fees to buy T tokens back for its treasury.
 
+=== Minting And Unminting
+
+A user with a swept account balance can drain their account balance to mint TBTC.
+Similarly, a user can burn TBTC to refill their account balance.
+
+A user with a swept account balance can drain their account balance to redeem BTC.
+
 == In Depth
 
-=== Minting
+[[group-size]]
+=== Group Size
+
+Governable Parameters:
+
+- `heartbeat`: The number of group members required for a
+  <<heartbeat,heartbeat>> to be successful.
+- `dkg`: The minimum number of members we're allowed to drop down to during the
+  DKG group formation re-try period.
+
+Non-Governable Parameters:
+
+- `threshold`: The number of signers that can be controlled by the adversary
+  before the key is in danger.
+- `group_size`: The total size of the signing group.
+
+`threshold < heartbeat < dkg < group_size`
+
+*Note*: `threshold` and `group_size` are mission-critial, cornerstone
+parameters for the system, and will be hardcoded into the bridge contract. If
+we want to change these parameters, we will need to upgrade the bridge
+contract.
+
+The total gas cost for sortiton increases linearly with group size by at least
+20k gas per member (though, we think we can get this down to roughly 6k gas per
+member in the happy path with some upcoming optimizations). Requiring more
+signers to sign messages makes it harder for adversaries to take over the
+group, but makes it so that the pool is less resilient to undelegation or
+operators going offline. Raising `heartbeat` decreases the chance that you'll
+not have enough signers to sign transactions, but decreases a wallets lifespan
+and increases overhead. Lowering `dkg` increases the chance that we're able to
+create a wallet successfully but gives us a wallet with potentially fewer
+operators and a lower lifespan.
+
+Also important is optics - even though a `group_size` of 70 with a `threshold`
+of 40 is equally secure against being controlled by an adversary as a
+`group_size` of 100 with a `threshold` of 50, it might not _feel_ as secure.
+That perception may cause a decreased willingness to invest capital in the
+system leading to less money going over the bridge, even though the fees are
+less overall.
+
+Since we don't have any workable data that allows us to reasonably estimate
+costs (especially with regard to optics), I suggest we start the system out
+at decent https://en.wikipedia.org/wiki/Focal_point_(game_theory)[schelling
+point] of `group_size = 100`, `threshold = 50`, `heartbeat = 70`, `dkg = 90` and then let
+governance adjust from there once we've gathered data from the system being used.
+
+See link:rfc-2.adoc[RFC 2: tBTCv2 Group Selection and Key Generation] for a deeper dive here
+
+=== Account Balances
+
+The bridge is able to maintain a clean separation of concerns as well as provide the backbone
+an extensible financial system rooted in bitcoin-on-ethereum by concerning itself _just_ with
+how much bitcoin has gone over the bridge. We keep track of account balances like:
+```
+contract Balances {
+  mapping(address => uint256) private unsweptBalances;
+  mapping(address => uint256) private balances;
+}
+```
+
+When bitcoin enters the system, the associated account's unsweptBalance
+increases. When that deposit is swept, that amount is tranfered to the balance.
+_If_ a user decides to mint a TBTC bitcoin from their balance, their balance
+would be drained and a TBTC token would be minted. When a user brings back TBTC
+to the system, the token is burned and the account balance increases. If the
+user wants BTC, they can drain their account balance to redeem it.
+
+This more abstract design lets us not only do things like mint TBTC by draining
+account balances, but also move into other financial concepts like
+bitcoin-collateralized loans or bitcoin-backed stablecoins.
+
+Neither of the above concepts are in-scope for this RFC, but the important part
+is that we want to make sure we're starting with the more flexible
+account-balances design so that we're not stuck later.
+
+=== Depositing
 
 ==== Deposit + Commitment
 
@@ -77,58 +171,26 @@ days (specified as `locktime`).
 
 ==== The Big Reveal
 
+Governable Parameters:
+
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+
 After the deposit transaction has been mined, the user is able to reveal their
-ethereum address and blinding factor to the ethereum chain. The TBTC system listens
+ethereum address and blinding factor to the ethereum chain. The bridge listens
 for these sorts of messages and when it sees one, is able to generate a script that
-can spend the funds. Once successful, we begin two parallel processes:
+can spend the funds. Once successful, we increase the account's unswept balance
+and charge a deposit fee.
 
-1) Now that we know that we _could_ move the funds once we generate the signature,
-we can create a transacion that issues the user a NFT that represents their bitcoin
-UTXO. That NFT is assigned a GUID that which is preditable in advance. Next, we generate
-a transaction that sells the NFT to a
-https://github.com/keep-network/tbtc-research/pull/3/files#diff-93ad61cca4bd3006ea9d4948930a3e30b95a52de58ae02d0246e034ef85a6f1b[quickminter]
-for the proper amount of TBTC. This quickminter transaction can only work if the quickminter
-has enough TBTC in its reserves. Both of these transactions can be submitted in the same
-ethereum block and can be created simultaneously, so long as the nonce for the quickminter
-transaction is higher than the nonce for the NFT minting transaction.
+Addtionally and optionally, as a part of the reveal transaction, the user the
+declare that they want their swept funds to be immediately minted into TBTC.
+This saves the user from having to make separate transactions or wait for a
+sweep to occur before an additional transaction.
 
-2) We schedule an operation that batches all outstanding known-refundable transactions
-together to be combined with the existing wallet output into a single output. The frequency
-of this operation is a governable parameter. When this sweep occurs, we mint the associated
-amount of TBTC to the quickminter. This disables the 30-day refund.
-
-There were three main alternatives to this process that were considered.
-
-1) The simpler alternative is to sweep immediately after each reveal. This incurs more bitcoin
-fees since the transactions cannot be batched.
-
-2) Sweeping in batches, minting afterward. This causes a potentially large delay for the user
-to receive their TBTC after depositing their BTC.
-
-3) Sweeping in batches, minting immediately. This opens us up to an attack
-where if someone can denial-of-service (DoS) a particular wallet's sweep for an amount of time that is
-at least the refund period, they can do the following:
-
-* Say there is Wallet_A (safe) with 100 BTC, and Wallet_DoS with 100 BTC, and Mallory with 10 BTC.
-* Deposit 10 BTC to Wallet_DoS, mint 10 TBTC. Balances: Wallet_A - 100 BTC; Wallet_DoS - 100 BTC (unswept 10 BTC); Mallory 0 BTC, 10 TBTC
-* Redeem 10 TBTC from Wallet_A. Balances: Wallet_A - 90 BTC; Wallet_DoS - 100 BTC (unswept 10 BTC); Mallory 10 BTC, 0 TBTC
-* Deposit 10 BTC to Wallet_DoS, mint 10 TBTC. Balances: Wallet_A - 90 BTC; Wallet_DoS - 100 BTC (unswept 20 BTC); Mallory 0 BTC, 10 TBTC
-* Redeem 10 TBTC from Wallet_A. Balances: Wallet_A - 80 BTC; Wallet_DoS - 100 BTC (unswept 20 BTC); Mallory 10 BTC, 0 TBTC
-* repeat
-
-At the end, Wallet_A (and every other wallet) can be drained and Wallet_DoS has
-tons of unswept funds. If Mallory can successfully prevent Wallet_DoS from
-sweeping until the refund period has passed, they can refund all of their
-deposited BTC and end up with all of the funds except those in Wallet_DoS.
-
-By minting to the quickminter instead of directly to the depositor, Mallory
-would only be able to drain the quickminter's treasury rather than the whole
-system.
-
-From a UX perspective, the quickminter performs like the
-sweep-in-batches-mint-afterward strategy when the treasury is empty, and
-performs like sweep-in-batches-mint-immediately when the treasury is
-sufficient.
+Second, we schedule an operation that batches all outstanding known-refundable
+transactions together to be combined with the existing wallet output into a
+single output. The frequency of this operation is the `sweep_period`. When this
+<<sweeping,sweep>> occurs, we decrease the relevant accounts' unswept balances
+and increase their balances. This disables any outstanding 30-day refunds.
 
 ==== Automated Refunds
 
@@ -137,60 +199,370 @@ simple as "these funds can be spent by wallet 0xabc", or in our case, as
 complex as "these funds can be spent by wallet 0xabc but if they aren't spent
 within 30 days they can be spent by wallet 0x123". This gives us the ability to
 create deposits that automatically are refunded after 30 days if they aren't
-swept. Thus, if a user misfunds or they get cold feet (for any reason), all
-they need to do is not submit their reveal and wait 30 days.
+<<sweeping,swept>>. Thus, if a user misfunds or they get cold feet (for any
+reason), all they need to do is not submit their reveal and wait 30 days.
+
+[[sweeping]]
+==== Sweeping
+
+Governable Parameters
+
+- `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
+  becomes eligible for a refund where we will not include it in a sweeping
+  transaction.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
+  will trigger an early sweep on a wallet.
+- `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
+  be considered for a sweep.
+- `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
+  tranaction is mined before increasing the fee.
+- `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
+  multiplier each time a sweeping transaction is not mined within the
+  `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
+  are currently at 1.6x, then the next time we would try 1.8x.
+- `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
+  multiplier to before giving up and picking a new base fee and different
+  deposits to sweep.
+
+
+The operators sign a transaction that unlocks some of revealed deposits based
+on the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>, combines them into a
+single UTXO with the existing UTXO, and relocks that transactions without a
+30-day refund clause to same wallet.  This has two main effects: it
+consolidates the UTXO set and it disables the refund.
+
+*Caveat*: We only include deposits in batches that have at least
+`sweeping_refund_safety_time` their refund window. This prevents potential
+attacks or corner cases where we create a transaction with a valid, unspent
+input, but by the time we have signed that transaction, the depositor has
+already submitted a refund to the mining pool. Giving ourselves this leeway
+stops that from happening.  Once a deposit crosses that
+`sweeping_refund_safety_time` threshold, the depositor should wait and then
+refund their deposit.
+
+*Caveat*: A wallet only sweeps deposits that were deposited while while the
+wallet was either the youngest or second-youngest wallet. The dApp will only
+point deposits to the youngest wallet, so any other wallet receiving deposits
+is the result of funky custom user behavior. In those cases, the users will
+need to wait 30 days for their refund.
+
+This process is called a "sweep", and occurs after `sweep_period` has passed or
+if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
+first. Any deposit below `dust_threshold` is ignored, both for triggering a
+sweep as well as being included in a sweep.
+
+*Caveat*: Checking to see if enough deposits have accumulated to exceed
+`sweep_max_btc` is complex. Since whether or not we pick a deposit to include
+in a sweep is based on their associated fee and the bitcoin fee market
+conditions, we have to check the going market rate for a bitcoin fee, and then
+do some bin-packing to see which deposits we can allow in. The more deposits,
+the low the per-deposit fee is (because they can share costs). Once we have
+enough deposits to exceed `sweep_max_btc`, we should check the market
+conditions for the BTC fee and then off-chain see which deposits *would be*
+swept if we *were* to sweep. If the sum of those deposits exceeds the
+`sweep_max_btc` parameter, then we should initiate a sweep.
+
+The sweeping transaction will cost some amount of bitcoin based on what miners
+are charging for the bitcoin fee in the current market conditions. The fee is
+split in proportion to the number of UTXOs associated to each depositor. Once
+the transaction is submitted to the bitcoin mempool, the miners will either
+include it in a block within `sweeping_fee_bump_period` or not. If they don't,
+then we increment a fee multiplier: `fee_multiplier = fee_multiplier +
+sweeping_fee_multiplier_increment` and then calculate the new fee: `fee =
+base_fee * fee_multiplier`. We repeat until either the transaction posts or
+`sweeping_fee_multiplier_increment` exceeds `sweeping_fee_max_multiplier`.
+
+*Note*: In terms of bin-packing eligibility, we only include deposits whose
+associated fee is higher than the highest fee we could iterate to given
+`sweeping_fee_max_multiplier` and `base_fee`. We also only include deposits
+whose refund date fits within the `sweeping_refund_safety_time` for the worst
+case with respect to transaction retries for increasing the fee.
+
+When the transaction clears, and the information has made its way
+over the relay maintainer, then another transaction needs to be created to on
+the ethereum side to update the account balances. The users unswept balances
+are decreased, and their swept balances are increased (after paying their share
+of the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>).
+
+This transaction will be expensive gas-wise, and can be submitted by anyone
+with the motivation to do so. For more details on transaction incentives,
+check out the <<transaction-incentives,dedicated section>>.
+
+*Caveat*: The `sweeping_fee_bump_period` and `sweeping_fee_max_multiplier`
+parameters should be constrained such that one sweep should either finish and
+either post or fail before the next sweep is scheduled (via `sweep_period`) to
+start. This is because sweeps include the main UTXO as one of the inputs, which
+is the result of the previous sweep's output.
+
+The main downside to this approach is that it can take, in the worst case, up
+to `sweep_period` for a user to be able to mint TBTC. To help
+alleviate this, two suggestions:
+
+1) We surface when the next scheduled sweep and the accumulation threshold
+data is somewhere in the dApp. This allows users to feel a lot better about
+when sweeps are happening, and feel better about when their funds will be
+available. There is also something to be said about the marketing around
+explaining that we're batching in order to reduce fees across the board for the
+end user, which allows for the decentralized product to compete with the
+centralized ones.
+
+2) We allow users to request that their TBTC is minted as soon as they have a
+swept account balance. This makes it so they don't have to wait, check, and
+come back later and mint.
+
+Combining these ideas, a user would deposit some BTC, reveal their eth address
+and blinding factor, and then request that TBTC gets minted ASAP. Checking the
+dApp, they can see that they should expect TBTC in their provided wallet
+address in 3 hours with no further interaction.
+
+===== How Frequently To Sweep
+
+Governable Parameters
+
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
+  will trigger an early sweep on a wallet.
+
+We've established in the <<sweeping,sweeping>> section that we should sweep
+whenever enough time has passed to exceed the `sweep_period` or whenever enough
+btc has been deposited to exceed `sweep_max_btc`. If we sweep early because a
+lot of btc was deposited, then we don't "push back" our scheduled
+`sweep_period` sweep. Rather, that sweep continues as planned, and if there
+are no deposits with <<bitcoin-sweeping-fee,sweeping fee>> high enough to be
+included in a sweep (maybe because they all got swept in the `sweep_max_btc`
+sweep), then we wait until the next sweep and repeat the process.
+
+*Example*: We have a `sweep_period = 8 hours` and `sweep_max_btc = 10 btc`. At
+13:00, a sweep just occured, and the next is scheduled for 21:00. At 15:00, 13
+btc gets deposited which triggers a sweep due to `sweep_max_btc`. Rather than
+pushing back the next scheduled sweep to 23:00, it remains at 21:00. If by 21:00
+there are any deposits with a high enough <<bitcoin-sweeping-fee,sweeping fee>>
+to be included in a sweep, we do it. Otherwise, we schedule the next sweep for
+05:00 the next day. The process repeats.
+
+Here, we're making the tradeoff between reducing fees (having less frequent
+batches) and increasing reliability from a user experience standpoint. This
+setup allows us to have two active wallets that are always <<staggering,staggered>> from one
+another, so the worst case scenario for the next sweep is always half of
+`sweep_period`.
+
+[[staggering]]
+===== Active Wallet Sweep Staggering
+Governable Parameters
+
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+
+Since the youngest two wallets both sweep deposits based on their
+`sweep_period`, we can improve our user experience by intentionally staggering
+the start time of these period sweeps to be equally spaced apart from each
+other.
+
+Good Example:
+- `sweep_period = 8 hours`
+- `wallet_1` sweeps at 12:00, 20:00, and 04:00
+- `wallet_2` sweeps at 16:00, 00:00, and 08:00
+
+Bad Example:
+- `sweep_period = 8 hours`
+- `wallet_1` sweeps at 12:00, 20:00, and 04:00
+- `wallet_2` sweeps at 13:00, 21:00, and 05:00
+
+In the "Good Example", there are 6 worst case scenarios: a user deposits at
+12:01, 20:01, 4:01, 16:01, 00:01, and 08:01. Those deposits would be swept at
+16:00, 24:00, 8:00, 20:00, 04:00, and 12:00 respectively, and the amount of
+time to wait is 3h59m.
+
+In the "Bad Example", there are 3 worst case scenarios: a user deposits at
+13:01, 21:01, and 05:01. Those deposits would be swept at 20:00, 04:00, and
+12:00 respectively, and the amount of time to wait is 6h59m.
+
+By intentionally offsetting the sweep schedule, we're able to reduce the worst
+case for a deposit significantly!
+
+==== Fraud Proof
+
+There are only two valid types of transactions for an unswept deposit UTXO:
+
+1) A collection of deposit UTXO's plus the main UTXO for the wallet are the
+inputs are unlocked using the `signingGroupPubkey` and locked under a single
+UTXO using the same `signingGroupPubkey`. This is a normal non-fraudulent sweep.
+
+2) After the 30-day refund time has passed, a particular UTXO is unlocked using
+the `refundPubkey` and then locked with whatever script the refunder wants. This
+is a normal refund.
+
+Any transaction that unlocks a UTXO using the `signingGroupPubkey` and then
+locks it using any other script other than to a single UTXO to any other public
+key than the same `signingGroupPubkey` is fraud.
 
 === Redemption
 
-To initiate a redemption, a user supplies an amount `x` of TBTC and a bitcoin
+Governable Parameters:
+
+- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
+  attempt to close the wallet and transfer the funds to a randomly selected
+  wallet.
+
+To initiate a redemption, a user with a swept balance > `x` supplies a bitcoin
 address. Then, the system calculates the redemption fee `fee`, and releases an
 amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
-`y` amount of TBTC is burned to maintain the peg. The remaining `fee` TBTC is
-sold by the system to buy back `T` tokens (more about this process in the fee
-section).
+The remaining `fee` sold by the system to buy back `T` tokens (more about this
+process in the <<continuous-fees,fee section>>) to pay to the operators.
 
 In the MVP version of the system, a redemption is capped at the amount of
-bitcoin contained in the largest wallet. Redemptions are fulfilled from the
-oldest wallet that contains enough bitcoin to fulfil the redemption. If more
-tBTC needs to be redeemed than there is in the largest wallet, then the user
-needs to submit multiple redemptions. After a redemption, if a wallet has under
-a governable threshhold of BTC remaining, it transfers that BTC to the active
-wallet and closes.
+bitcoin contained in the largest wallet. The wallet doing the redemption is
+selected by the redeemer, but the dApp should suggest that this is the oldest
+wallet that contains enough bitcoin to fulfil the redemption. If more BTC
+needs to be redeemed than there is in the largest wallet, then the user needs
+to submit multiple redemptions. After a redemption, if the wallet has under
+`wallet_min_btc` remaining, it transfers that BTC to a randomly selected wallet
+and closes.
+
+==== Fraud Proof
+
+When a redemption is requested, the redeeming bitcoin public key and amount are
+known on the ethereum chain. Any bitcoin transactions with the main wallet
+wallet UTXO as the input must have outputs that match those known redemption
+requests, otherwise the transaction was fraudulent.
 
 === Wallet Lifecycle
 
-Wallets are periodically created, where the period length is a governable
-parameter. To create a new wallet, a group of 100 operators is selected from
-the pool of available operators (some operators may be selected twice if there
-are not enough) using a process called sortition. The probabiliy that a
+Governable Parameters:
+
+- `wallet_creation_period`: How frequently we attempt to create new wallets.
+- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
+  attempt to close the wallet and transfer the funds to a randomly selected
+  wallet.
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
+  to a randomly selected wallet.
+
+A new wallet is created when enough time has passed as defined in
+`wallet_creation_period` *AND* the wallet contains at least `wallet_min_btc`
+btc. To create a new wallet, a group of 100 operators is selected from the pool
+of available operators using a process called sortition. The probability that a
 particular operator is chosen is based on their stake weight, which in turn is
 based on the number of `T` tokens they have invested in the staking contract.
 
-Once the 100 operators have been selected, they generate a 51-of-100 ecdsa
-signing group to handle the bitcoin key material. The distributed key
-generation process requires that all 100 participants are available, but future
-signing events (like minting and redemption) only require 51 of the 100.
+Once the operators have been selected from the sortition pool, they generate a
+51-of-100 ecdsa signing group to handle the bitcoin key material per the
+process described in link:rfc-2.adoc[RFC 2: tBTCv2 Group Selection and Key
+Generation]. The group size may end up being smaller depending on retries.
 
-As time passes and operators drop out of the system, a wallet becomes at risk of
-being able to meet the 51-of-100 threshhold to produce signatures. Additionally,
-we want to avoid situations where operators are the custodians of a wallet for
-extended periods. To avoid these issues, we can set a max age of a wallet and a minimum
-liveness threshhold. Once a wallet is older than the max age, or if it drops below
-the liveness threshhold (say, below 60 on a heartbeat), we motion to transfer
-the funds to another randomly selected wallet.
+As time passes and operators drop out of the system, a wallet becomes at risk
+of being able to meet the 51-of-100 threshold to produce signatures.
+Additionally, we want to avoid situations where operators are the custodians of
+a wallet for extended periods. To avoid these issues, once a wallet is older
+than the `wallet_max_age`, or if it drops below the liveness threshold (say, below 70 on
+a <<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
+selected wallet.
 
 Once a wallet no longer has funds and is not the primary wallet for new
 deposits, it can be closed and operators are no longer required to maintain
 it.
 
+[[heartbeat]]
 === Heartbeats
 
-To make sure that older wallets are still accessible for redemption, we need to
-perform heartbeats. The signing group signs each bitcoin block and then does _not_
-publish the result. If a signer suspects other signers are not online, they can
-issue an on-chain challenge to publish a specified signed bitcoin block (with a
-maximum block age). Since publishing this information costs the signers gas, the
-challenger must pay a deposit to be distributed to the signers if they pass.
+Governable Parameters:
 
-Any signer unable to publish the signed block within a specified amount of time
-will begin to be slashed and the challenger will be rewarded.
+- `failed_heartbeat_reward_removal_period`: The amount of time an operator is
+  removed from reward eligibility after failing a heartbeat.
+- `heartbeat`: The number of group members required for a heartbeat to successful.
+- `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
+  If set to 40, then the signers sign every 40th block.
+
+To make sure that older wallets are still accessible for redemption, we need to
+perform heartbeats. The signing group signs a block when block count mod
+`heartbeat_block_length` = 0 and then does _not_ publish the result. If there
+are ever less than `heartbeat` operators that participate in the heartbeat, the
+ones that did can create and sign a new transaction that lists the _inactive_
+operators. Once this transaction is posted to the ethereum chain, we can
+iterate through the inactive operators, remove them from reward eligibility
+for `failed_heartbeat_reward_removal_period` amount of time, transfer the remaining
+BTC from the wallet to another random wallet and close this wallet.
+
+[[transaction-incentives]]
+=== Transaction Incentives
+stub!
+
+[[bitcoin-sweeping-fee]]
+=== Bitcoin Sweeping Fee
+
+Governable Parameters
+- `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
+- `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
+
+Any time a bitcoin transaction needs to be posted and then mined on the bitcoin
+blockchain, the miners need to be paid a fee for their work. This fee
+fluctuates with market demand and is decently volatile.
+
+When the depositor posts their address reveal on ethereum, they include a
+bitcoin `max_fee` denominated in total BTC that they're willing to pay for
+three different fees:
+
+- `bridge_deposit_percentage_fee` (say 0.2% or whatever governance decides)
+- `bridge_deposit_flat_fee` (say 0.001 mBTC or whatever governance decides) to
+  deter folks from depositing dust
+- the mining fee for getting the batch sweeping transaction to post
+
+Next, we hash the most recent ethereum block to generate the seed for a random
+number generator to generate a modulus that selects a random unlucky operator
+that needs to check the blockstream api for the 25-block target fee:
+https://blockstream.info/api/fee-estimates and then post that information to
+the ethereum chain. The 25-block target fee from blockstream is per vByte, so
+we need to know how many vBytes will be in the transaction, which will depend
+on how many inputs will be in the transaction, which will depend on how many
+deposits we will sweep, which will depend on how many deposits find the target
+fee palatable.
+
+In order to include a deposit in the transaction, we will end up needing to do
+some bin-packing. The more deposits we're able to include in a transaction the
+lower the per-depositor mining fee is (because we get batched cost savings).
+Thus, the more eligible depositors there are, the more eligible depositors
+there are (hence the bin-packing). For a more in-depth explanation of how
+deposits are chosen, check out <<sweeping,sweeping>>
+
+After a particular fee has been chosen and all of the deposits have been selected,
+that deposit might not mine within the timeout period. If this happens, the
+unlucky operator should submit a transaction on-chain to multiply the fee by a
+fixed amount (like 1.1x, 1.2x, etc up to some cap like 1.4x). With this in mind,
+we should only include deposits in the initial transaction whose `max_fee` is set
+high enough to withstand a fee increase up to whatever the maximum multiplier is.
+
+== Governable Parameters
+Alphabetized list of Governable Parameters with additional notes.
+
+- `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
+- `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
+- `dkg`: The minimum number of members we're allowed to drop down to during the
+  DKG group formation re-try period.
+- `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
+  be considered for a sweep.
+- `failed_heartbeat_reward_removal_period`: The amount of time an operator is
+  removed from reward eligibility after failing a heartbeat.
+- `heartbeat`: The number of group members required for a
+  <<heartbeat,heartbeat>> to be successful.
+- `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
+  If set to 40, then the signers sign every 40th block.
+- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
+  will trigger an early sweep on a wallet.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+- `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
+  tranaction is mined before increasing the fee.
+- `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
+  multiplier to before giving up and picking a new base fee and different
+  deposits to sweep.
+- `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
+  multiplier each time a sweeping transaction is not mined within the
+  `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
+  are currently at 1.6x, then the next time we would try 1.8x.
+- `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
+  becomes eligible for a refund where we will not include it in a sweeping
+  transaction.
+- `wallet_creation_period`: How frequently we attempt to create new wallets.
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
+  to a randomly selected wallet.
+- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+  attempt to close the wallet and transfer the funds to a randomly selected
+  wallet.
