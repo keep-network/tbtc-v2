@@ -4,9 +4,9 @@ import { BigNumber } from "ethers"
 import {
   testnetAddress,
   testnetPrivateKey,
-  testnetTransaction1,
-  testnetTransactionHash1,
-  testnetUTXOraw1,
+  testnetTransaction,
+  testnetTransactionHash,
+  testnetUTXO,
 } from "./data/bitcoin"
 import {
   RawTransaction,
@@ -52,13 +52,13 @@ describe("Deposit", () => {
       // Tie used testnetAddress with testnetUTXO to use it during deposit
       // creation.
       const utxos = new Map<string, UnspentTransactionOutput[]>()
-      utxos.set(testnetAddress, [testnetUTXOraw1])
+      utxos.set(testnetAddress, [testnetUTXO])
       bitcoinClient.unspentTransactionOutputs = utxos
 
       // Tie testnetTransaction to testnetUTXO. This is needed since makeDeposit
       // attach transaction data to each UTXO.
       const rawTransactions = new Map<string, RawTransaction>()
-      rawTransactions.set(testnetTransactionHash1, testnetTransaction1)
+      rawTransactions.set(testnetTransactionHash, testnetTransaction)
       bitcoinClient.rawTransactions = rawTransactions
 
       await TBTC.makeDeposit(depositData, testnetPrivateKey, bitcoinClient)
@@ -78,7 +78,7 @@ describe("Deposit", () => {
     beforeEach(async () => {
       transaction = await TBTC.createDepositTransaction(
         depositData,
-        [testnetUTXOraw1],
+        [testnetUTXO],
         testnetPrivateKey
       )
     })
@@ -101,8 +101,8 @@ describe("Deposit", () => {
 
       const input = txJSON.inputs[0]
 
-      expect(input.prevout.hash).to.be.equal(testnetUTXOraw1.transactionHash)
-      expect(input.prevout.index).to.be.equal(testnetUTXOraw1.outputIndex)
+      expect(input.prevout.hash).to.be.equal(testnetUTXO.transactionHash)
+      expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
       // Transaction should be signed but this is SegWit input so the `script`
       // field should be empty and the `witness` field should be filled instead.
       expect(input.script.length).to.be.equal(0)
