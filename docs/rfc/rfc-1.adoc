@@ -380,6 +380,22 @@ In the "Bad Example", there are 3 worst case scenarios: a user deposits at
 By intentionally offsetting the sweep schedule, we're able to reduce the worst
 case for a deposit significantly!
 
+==== Fraud Proof
+
+There are only two valid types of transactions for an unswept deposit UTXO:
+
+1) A collection of deposit UTXO's plus the main UTXO for the wallet are the
+inputs are unlocked using the `signingGroupPubkey` and locked under a single
+UTXO using the same `signingGroupPubkey`. This is a normal non-fraudulent sweep.
+
+2) After the 30-day refund time has passed, a particular UTXO is unlocked using
+the `refundPubkey` and then locked with whatever script the refunder wants. This
+is a normal refund.
+
+Any transaction that unlocks a UTXO using the `signingGroupPubkey` and then
+locks it using any other script other than to a single UTXO to any other public
+key than the same `signingGroupPubkey` is fraud.
+
 === Redemption
 
 Governable Parameters:
