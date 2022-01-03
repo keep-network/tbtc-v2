@@ -66,15 +66,23 @@ A user with a swept account balance can drain their account balance to redeem BT
 
 Governable Parameters:
 
-- `threshold`: The number of signers that can be controlled by the adversary
-  before the key is in danger.
 - `heartbeat`: The number of group members required for a
   <<heartbeat,heartbeat>> to be successful.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
   DKG group formation re-try period.
+
+Non-Governable Parameters:
+
+- `threshold`: The number of signers that can be controlled by the adversary
+  before the key is in danger.
 - `group_size`: The total size of the signing group.
 
 `threshold < heartbeat < dkg < group_size`
+
+*Note*: `threshold` and `group_size` are mission-critial, cornerstone
+parameters for the system, and will be hardcoded into the bridge contract. If
+we want to change these parameters, we will need to upgrade the bridge
+contract.
 
 The total gas cost for sortiton increases linearly with group size by at least
 20k gas per member (though, we think we can get this down to roughly 6k gas per
@@ -445,7 +453,6 @@ high enough to withstand a fee increase up to whatever the maximum multiplier is
 == Governable Parameters
 Alphabetized list of Governable Parameters with additional notes.
 
-
 - `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
 - `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
@@ -454,7 +461,6 @@ Alphabetized list of Governable Parameters with additional notes.
   be considered for a sweep.
 - `failed_heartbeat_reward_removal_period`: The amount of time an operator is
   removed from reward eligibility after failing a heartbeat.
-- `group_size`: The total size of the signing group.
 - `heartbeat`: The number of group members required for a
   <<heartbeat,heartbeat>> to be successful.
 - `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
@@ -474,8 +480,6 @@ Alphabetized list of Governable Parameters with additional notes.
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
-- `threshold`: The number of signers that can be controlled by the adversary
-  before the key is in danger.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
