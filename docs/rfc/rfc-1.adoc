@@ -316,6 +316,86 @@ and blinding factor, and then request that TBTC gets minted ASAP. Checking the
 dApp, they can see that they should expect TBTC in their provided wallet
 address in 3 hours with no further interaction.
 
+===== How Frequently To Sweep
+
+Governable Parameters
+
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
+  will trigger an early sweep on a wallet.
+
+We've established in the <<sweeping,sweeping>> section that we should sweep
+whenever enough time has passed to exceed the `sweep_period` or whenever enough
+btc has been deposited to exceed `sweep_max_btc`. If we sweep early because a
+lot of btc was deposited, then we don't "push back" our scheduled
+`sweep_period` sweep. Rather, that sweep continues as planned, and if there
+are no deposits with <<bitcoin-sweeping-fee,sweeping fee>> high enough to be
+included in a sweep (maybe because they all got swept in the `sweep_max_btc`
+sweep), then we wait until the next sweep and repeat the process.
+
+*Example*: We have a `sweep_period = 8 hours` and `sweep_max_btc = 10 btc`. At
+13:00, a sweep just occured, and the next is scheduled for 21:00. At 15:00, 13
+btc gets deposited which triggers a sweep due to `sweep_max_btc`. Rather than
+pushing back the next scheduled sweep to 23:00, it remains at 21:00. If by 21:00
+there are any deposits with a high enough <<bitcoin-sweeping-fee,sweeping fee>>
+to be included in a sweep, we do it. Otherwise, we schedule the next sweep for
+05:00 the next day. The process repeats.
+
+Here, we're making the tradeoff between reducing fees (having less frequent
+batches) and increasing reliability from a user experience standpoint. This
+setup allows us to have two active wallets that are always <<staggering,staggered>> from one
+another, so the worst case scenario for the next sweep is always half of
+`sweep_period`.
+
+[[staggering]]
+===== Active Wallet Sweep Staggering
+Governable Parameters
+
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+
+Since the youngest two wallets both sweep deposits based on their
+`sweep_period`, we can improve our user experience by intentionally staggering
+the start time of these period sweeps to be equally spaced apart from each
+other.
+
+Good Example:
+- `sweep_period = 8 hours`
+- `wallet_1` sweeps at 12:00, 20:00, and 04:00
+- `wallet_2` sweeps at 16:00, 00:00, and 08:00
+
+Bad Example:
+- `sweep_period = 8 hours`
+- `wallet_1` sweeps at 12:00, 20:00, and 04:00
+- `wallet_2` sweeps at 13:00, 21:00, and 05:00
+
+In the "Good Example", there are 6 worst case scenarios: a user deposits at
+12:01, 20:01, 4:01, 16:01, 00:01, and 08:01. Those deposits would be swept at
+16:00, 24:00, 8:00, 20:00, 04:00, and 12:00 respectively, and the amount of
+time to wait is 3h59m.
+
+In the "Bad Example", there are 3 worst case scenarios: a user deposits at
+13:01, 21:01, and 05:01. Those deposits would be swept at 20:00, 04:00, and
+12:00 respectively, and the amount of time to wait is 6h59m.
+
+By intentionally offsetting the sweep schedule, we're able to reduce the worst
+case for a deposit significantly!
+
+==== Fraud Proof
+
+There are only two valid types of transactions for an unswept deposit UTXO:
+
+1) A collection of deposit UTXO's plus the main UTXO for the wallet are the
+inputs are unlocked using the `signingGroupPubkey` and locked under a single
+UTXO using the same `signingGroupPubkey`. This is a normal non-fraudulent sweep.
+
+2) After the 30-day refund time has passed, a particular UTXO is unlocked using
+the `refundPubkey` and then locked with whatever script the refunder wants. This
+is a normal refund.
+
+Any transaction that unlocks a UTXO using the `signingGroupPubkey` and then
+locks it using any other script other than to a single UTXO to any other public
+key than the same `signingGroupPubkey` is fraud.
+
 === Redemption
 
 Governable Parameters:
