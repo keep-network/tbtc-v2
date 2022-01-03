@@ -66,15 +66,23 @@ A user with a swept account balance can drain their account balance to redeem BT
 
 Governable Parameters:
 
-- `threshold`: The number of signers that can be controlled by the adversary
-  before the key is in danger.
 - `heartbeat`: The number of group members required for a
   <<heartbeat,heartbeat>> to be successful.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
   DKG group formation re-try period.
+
+Non-Governable Parameters:
+
+- `threshold`: The number of signers that can be controlled by the adversary
+  before the key is in danger.
 - `group_size`: The total size of the signing group.
 
 `threshold < heartbeat < dkg < group_size`
+
+*Note*: `threshold` and `group_size` are mission-critial, cornerstone
+parameters for the system, and will be hardcoded into the bridge contract. If
+we want to change these parameters, we will need to upgrade the bridge
+contract.
 
 The total gas cost for sortiton increases linearly with group size by at least
 20k gas per member (though, we think we can get this down to roughly 6k gas per
@@ -410,19 +418,15 @@ Governable Parameters:
 - `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
-- `wallet_max_btc`: The amount of BTC a wallet can hold before we trigger the
-  early creation of a new wallet.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
 
-A new wallet is created when either enough time has passed as defined in
-`wallet_creation_period` *AND* the wallet contains at least
-`wallet_min_btc` BTC *OR* the wallet currently contains more BTC than
-`wallet_max_btc`, whichever happens first. To create a new wallet, a group of
-100 operators is selected from the pool of available operators using a process
-called sortition. The probabiliy that a particular operator is chosen is based
-on their stake weight, which in turn is based on the number of `T` tokens they
-have invested in the staking contract.
+A new wallet is created when enough time has passed as defined in
+`wallet_creation_period` *AND* the wallet contains at least `wallet_min_btc`
+btc. To create a new wallet, a group of 100 operators is selected from the pool
+of available operators using a process called sortition. The probability that a
+particular operator is chosen is based on their stake weight, which in turn is
+based on the number of `T` tokens they have invested in the staking contract.
 
 Once the operators have been selected from the sortition pool, they generate a
 51-of-100 ecdsa signing group to handle the bitcoin key material per the
@@ -513,7 +517,6 @@ high enough to withstand a fee increase up to whatever the maximum multiplier is
 == Governable Parameters
 Alphabetized list of Governable Parameters with additional notes.
 
-
 - `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
 - `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
@@ -522,7 +525,6 @@ Alphabetized list of Governable Parameters with additional notes.
   be considered for a sweep.
 - `failed_heartbeat_reward_removal_period`: The amount of time an operator is
   removed from reward eligibility after failing a heartbeat.
-- `group_size`: The total size of the signing group.
 - `heartbeat`: The number of group members required for a
   <<heartbeat,heartbeat>> to be successful.
 - `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
@@ -542,13 +544,9 @@ Alphabetized list of Governable Parameters with additional notes.
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
-- `threshold`: The number of signers that can be controlled by the adversary
-  before the key is in danger.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
-- `wallet_max_btc`: The amount of BTC a wallet can hold before we trigger the
-  early creation of a new wallet.
-- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
+- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
