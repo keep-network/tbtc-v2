@@ -354,19 +354,15 @@ Governable Parameters:
 - `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
-- `wallet_max_btc`: The amount of BTC a wallet can hold before we trigger the
-  early creation of a new wallet.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
 
-A new wallet is created when either enough time has passed as defined in
-`wallet_creation_period` *AND* the wallet contains at least
-`wallet_min_btc` BTC *OR* the wallet currently contains more BTC than
-`wallet_max_btc`, whichever happens first. To create a new wallet, a group of
-100 operators is selected from the pool of available operators using a process
-called sortition. The probabiliy that a particular operator is chosen is based
-on their stake weight, which in turn is based on the number of `T` tokens they
-have invested in the staking contract.
+A new wallet is created when enough time has passed as defined in
+`wallet_creation_period` *AND* the wallet contains at least `wallet_min_btc`
+btc. To create a new wallet, a group of 100 operators is selected from the pool
+of available operators using a process called sortition. The probability that a
+particular operator is chosen is based on their stake weight, which in turn is
+based on the number of `T` tokens they have invested in the staking contract.
 
 Once the operators have been selected from the sortition pool, they generate a
 51-of-100 ecdsa signing group to handle the bitcoin key material per the
@@ -487,8 +483,6 @@ Alphabetized list of Governable Parameters with additional notes.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
-- `wallet_max_btc`: The amount of BTC a wallet can hold before we trigger the
-  early creation of a new wallet.
-- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
+- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
