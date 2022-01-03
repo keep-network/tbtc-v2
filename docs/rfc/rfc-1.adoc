@@ -357,7 +357,7 @@ Governable Parameters:
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
 
-A new wallet is created when either enough time has passed as defined in
+A new wallet is created when enough time has passed as defined in
 `wallet_creation_period` *AND* the wallet contains at least `wallet_min_btc`
 btc. To create a new wallet, a group of 100 operators is selected from the pool
 of available operators using a process called sortition. The probability that a
