@@ -184,7 +184,7 @@ export async function createDepositScript(
   script.pushOp(opcodes.OP_HASH160)
   script.pushData(Buffer.from(refundPublicKey, "hex"))
   script.pushOp(opcodes.OP_EQUALVERIFY)
-  script.pushData(Buffer.from(locktime.toHexString().substring(2), "hex"))
+  script.pushData(Buffer.from(locktime.toHexString().substring(2), "hex")) // TODO: Shouldn't be little endian?
   script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_CHECKSIG)

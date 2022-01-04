@@ -1,5 +1,8 @@
 pragma solidity 0.8.4;
 
+import {BTCUtils} from "./BTCUtils.sol";
+import {BytesLib} from "./BytesLib.sol";
+
 /// @title BTC Bridge
 /// @notice Bridge manages BTC deposit and redemption and is increasing and
 ///         decreasing balances in the Bank as a result of BTC deposit and
@@ -17,10 +20,31 @@ pragma solidity 0.8.4;
 ///         about the sweep increasing appropriate balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank.
 contract Bridge {
+    // TODO: Consider using a custom fork of Summa libs adjusted to Solidity 8.
+    using BTCUtils for bytes;
+    using BytesLib for bytes;
+
+    struct TxInfo {
+        bytes4 version;
+        bytes inputVector;
+        bytes outputVector;
+        bytes4 locktime;
+    }
+
+    struct RevealInfo {
+        uint8 fundingOutputIndex;
+        address depositor;
+        uint64 blindingFactor;
+        bytes walletPubKey;
+        bytes refundPubKey;
+        uint32 refundLocktime;
+    }
+
     struct DepositInfo {
+        address depositor;
         uint64 amount;
-        address vault;
         uint32 revealedAt;
+        address vault;
     }
 
     /// @notice Collection of all unswept deposits indexed by
@@ -41,64 +65,101 @@ contract Bridge {
         address vault
     );
 
-    /// @notice Used by the depositor to reveal information about their P2SH
-    ///         Bitcoin deposit to the Bridge on Ethereum chain. The off-chain
-    ///         wallet listens for revealed deposit events and may decide to
-    ///         include the revealed deposit in the next executed sweep.
-    ///         Information about the Bitcoin deposit can be revealed before or
-    ///         after the Bitcoin transaction with P2SH deposit is mined on the
-    ///         Bitcoin chain.
-    /// @param fundingTxHash The BTC transaction hash containing BTC P2SH
-    ///        deposit funding transaction
-    /// @param fundingOutputIndex The index of the transaction output in the
-    ///        funding TX with P2SH deposit, max 256
-    /// @param blindingFactor The blinding factor used in the BTC P2SH deposit,
-    ///        max 2^64
-    /// @param refundPubKey The refund pub key used in the BTC P2SH deposit
-    /// @param amount The amount locked in the BTC P2SH deposit
-    /// @param vault Bank vault to which the swept deposit should be routed
-    /// @dev Requirements:
-    ///      - `msg.sender` must be the Ethereum address used in the P2SH BTC deposit,
-    ///      - `blindingFactor` must be the blinding factor used in the P2SH BTC deposit,
-    ///      - `refundPubKey` must be the refund pub key used in the P2SH BTC deposit,
-    ///      - `amount` must be the same as locked in the P2SH BTC deposit,
-    ///      - BTC deposit for the given `fundingTxHash`, `fundingOutputIndex`
-    ///        can be revealed by `msg.sender` only one time.
-    ///
-    ///      If any of these requirements is not met, the wallet _must_ refuse
-    ///      to sweep the deposit and the depositor has to wait until the
-    ///      deposit script unlocks to receive their BTC back.
+    /// TODO: Documentation.
     function revealDeposit(
-        bytes32 fundingTxHash,
-        uint8 fundingOutputIndex,
-        uint64 blindingFactor,
-        bytes calldata refundPubKey,
-        uint64 amount,
+        TxInfo calldata fundingTx,
+        RevealInfo calldata reveal,
         address vault
     ) external {
+        // TODO: The .hash160() will work only for P2SH deposits. For P2WSH,
+        //       .hash256() must be done.
+        bytes memory expectedScriptHash =
+            abi
+                .encodePacked(
+                hex"14", // Byte length of depositor Ethereum address.
+                reveal
+                    .depositor,
+                hex"75", // OP_DROP
+                hex"08", // Byte length of blinding factor value.
+                reveal
+                    .blindingFactor,
+                hex"75", // OP_DROP
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"21", // Byte length of a compressed Bitcoin public key.
+                reveal
+                    .walletPubKey,
+                hex"87", // OP_EQUAL
+                hex"63", // OP_IF
+                hex"ac", // OP_CHECKSIG
+                hex"67", // OP_ELSE
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"21", // Byte length of a compressed Bitcoin public key.
+                reveal
+                    .refundPubKey,
+                hex"88", // OP_EQUALVERIFY
+                hex"04", // Byte length of refund locktime value.
+                reveal
+                    .refundLocktime,
+                hex"b1", // OP_CHECKLOCKTIMEVERIFY
+                hex"75", // OP_DROP
+                hex"ac", // OP_CHECKSIG
+                hex"68" // OP_ENDIF
+            )
+                .hash160();
+
+        bytes memory fundingOutput =
+            fundingTx.outputVector.extractOutputAtIndex(
+                reveal.fundingOutputIndex
+            );
+
+        require(
+            keccak256(fundingOutput.extractHash()) ==
+                keccak256(expectedScriptHash),
+            "Wrong script hash"
+        );
+
+        // TODO: Hash is wrong. Probably something with bytes endianess.
+        //       To be investigated.
+        bytes32 fundingTxHash =
+            abi
+                .encodePacked(
+                fundingTx
+                    .version,
+                fundingTx
+                    .inputVector,
+                fundingTx
+                    .outputVector,
+                fundingTx
+                    .locktime
+            )
+                .hash256();
+
         uint256 depositId =
             uint256(
                 keccak256(
-                    abi.encode(fundingTxHash, fundingOutputIndex, msg.sender)
+                    abi.encodePacked(fundingTxHash, reveal.fundingOutputIndex)
                 )
             );
 
         DepositInfo storage deposit = unswept[depositId];
         require(deposit.revealedAt == 0, "Deposit already revealed");
 
-        deposit.amount = amount;
-        deposit.vault = vault;
+        deposit.depositor = reveal.depositor;
+        deposit.amount = fundingOutput.extractValue();
         /* solhint-disable-next-line not-rely-on-time */
         deposit.revealedAt = uint32(block.timestamp);
+        deposit.vault = vault;
 
         emit DepositRevealed(
             depositId,
             fundingTxHash,
-            fundingOutputIndex,
-            msg.sender,
-            blindingFactor,
-            refundPubKey,
-            amount,
+            reveal.fundingOutputIndex,
+            reveal.depositor,
+            reveal.blindingFactor,
+            reveal.refundPubKey,
+            deposit.amount,
             vault
         );
     }
