@@ -17,6 +17,21 @@ pragma solidity 0.8.4;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
+import {
+    ValidateSPV
+} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
+
+/// @title Interface for the Bitcoin relay
+/// @notice Contains only the methods needed by tBTC v2. The Bitcoin relay
+///         provides the difficulty of the previous and current epoch. One
+///         difficulty epoch spans 2016 blocks.
+interface IRelay {
+    /// @notice Returns the difficulty of the current epoch.
+    function getCurrentEpochDifficulty() external view returns (uint256);
+
+    /// @notice Returns the difficulty of the previous epoch.
+    function getPrevEpochDifficulty() external view returns (uint256);
+}
 
 /// @title BTC Bridge
 /// @notice Bridge manages BTC deposit and redemption and is increasing and
@@ -37,7 +52,10 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 /// @dev Bridge is an upgradeable component of the Bank.
 contract Bridge {
     using BTCUtils for bytes;
+    using BTCUtils for uint256;
     using BytesLib for bytes;
+    using ValidateSPV for bytes;
+    using ValidateSPV for bytes32;
 
     /// @notice Represents Bitcoin transaction data as described in:
     ///         https://developer.bitcoin.org/reference/transactions.html#raw-transaction-format
@@ -98,6 +116,22 @@ contract Bridge {
         address vault;
     }
 
+    /// @notice Confirmations on the Bitcoin chain.
+    uint256 public constant TX_PROOF_DIFFICULTY_FACTOR = 6;
+
+    /// TODO: Make it updatable
+    /// @notice Handle to the Bitcoin relay.
+    IRelay public immutable relay;
+
+    /// @notice Hash of the previous sweep transaction. Updated every time a
+    ///         sweep occurs. Holds zeros during the first sweep transaction.
+    bytes32 public previousSweepTxHash;
+
+    /// @notice Value of the previous sweep transaction output. Updated every
+    ///         time a sweep occurs. Holds zero during the first sweep
+    ///         transaction.
+    uint256 public previousSweepTxValue;
+
     /// @notice Collection of all unswept deposits indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex).
     ///         The fundingTxHash is LE bytes32 and fundingOutputIndex an uint8.
@@ -117,6 +151,11 @@ contract Bridge {
         bytes20 refundPubKeyHash,
         bytes4 refundLocktime
     );
+
+    constructor(address _relay) {
+        require(_relay != address(0), "Relay address cannot be zero");
+        relay = IRelay(_relay);
+    }
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
     ///         Bitcoin deposit to the Bridge on Ethereum chain. The off-chain
@@ -307,6 +346,71 @@ contract Bridge {
         //      depending on the gas costs. Alternatively, do not allow to
         //      use the same TX input vector twice. Sweep should be provable
         //      only one time.
+    }
+
+    function checkProofFromTxHash(
+        bytes32 txHash,
+        bytes memory merkleProof,
+        uint256 txIndexInBlock,
+        bytes memory bitcoinHeaders
+    ) internal {
+        require(
+            txHash.prove(
+                bitcoinHeaders.extractMerkleRootLE().toBytes32(),
+                merkleProof,
+                txIndexInBlock
+            ),
+            "Tx merkle proof is not valid for provided header and tx hash"
+        );
+
+        evaluateProofDifficulty(bitcoinHeaders);
+    }
+
+    function evaluateProofDifficulty(bytes memory bitcoinHeaders)
+        internal
+        view
+    {
+        uint256 requestedDiff;
+        uint256 currentDiff = relay.getCurrentEpochDifficulty();
+        uint256 previousDiff = relay.getPrevEpochDifficulty();
+        uint256 firstHeaderDiff =
+            bitcoinHeaders.extractTarget().calculateDifficulty();
+
+        if (firstHeaderDiff == currentDiff) {
+            requestedDiff = currentDiff;
+        } else if (firstHeaderDiff == previousDiff) {
+            requestedDiff = previousDiff;
+        } else {
+            revert("Not at current or previous difficulty");
+        }
+
+        uint256 observedDiff = bitcoinHeaders.validateHeaderChain();
+
+        require(
+            observedDiff != ValidateSPV.getErrBadLength(),
+            "Invalid length of the headers chain"
+        );
+        require(
+            observedDiff != ValidateSPV.getErrInvalidChain(),
+            "Invalid headers chain"
+        );
+        require(
+            observedDiff != ValidateSPV.getErrLowWork(),
+            "Insufficient work in a header"
+        );
+
+        require(
+            observedDiff >= requestedDiff * TX_PROOF_DIFFICULTY_FACTOR,
+            "Insufficient accumulated difficulty in header chain"
+        );
+    }
+
+    function updateBalances(
+        bytes32 sweepTxHash,
+        bytes memory txInputVector,
+        bytes memory txOutputVector
+    ) internal {
+        // TODO: Implementation.
     }
 
     // TODO It is possible a malicious wallet can sweep deposits that can not
