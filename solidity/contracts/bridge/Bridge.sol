@@ -22,6 +22,7 @@ import {BytesLib} from "./BytesLib.sol";
 contract Bridge {
     // TODO: Consider using a custom fork of Summa libs adjusted to Solidity 8.
     using BTCUtils for bytes;
+    using BytesLib for bytes;
 
     struct TxInfo {
         bytes4 version;
@@ -37,6 +38,7 @@ contract Bridge {
         bytes walletPubKey;
         bytes refundPubKey;
         bytes4 refundLocktime;
+        address vault;
     }
 
     struct DepositInfo {
@@ -60,35 +62,26 @@ contract Bridge {
         bytes8 blindingFactor,
         bytes walletPubKey,
         bytes refundPubKey,
-        bytes4 refundLocktime,
-        uint64 amount,
-        address vault
+        bytes4 refundLocktime
     );
 
     /// TODO: Documentation.
     function revealDeposit(
         TxInfo calldata fundingTx,
-        RevealInfo calldata reveal,
-        address vault
+        RevealInfo calldata reveal
     ) external {
-        // TODO: The .hash160() will work only for P2SH deposits. For P2WSH,
-        //       .hash256() must be done.
-        bytes memory expectedScriptHash =
-            abi
-                .encodePacked(
+        bytes memory expectedScript =
+            abi.encodePacked(
                 hex"14", // Byte length of depositor Ethereum address.
-                reveal
-                    .depositor,
+                reveal.depositor,
                 hex"75", // OP_DROP
                 hex"08", // Byte length of blinding factor value.
-                reveal
-                    .blindingFactor,
+                reveal.blindingFactor,
                 hex"75", // OP_DROP
                 hex"76", // OP_DUP
                 hex"a9", // OP_HASH160
                 hex"21", // Byte length of a compressed Bitcoin public key.
-                reveal
-                    .walletPubKey,
+                reveal.walletPubKey,
                 hex"87", // OP_EQUAL
                 hex"63", // OP_IF
                 hex"ac", // OP_CHECKSIG
@@ -96,29 +89,36 @@ contract Bridge {
                 hex"76", // OP_DUP
                 hex"a9", // OP_HASH160
                 hex"21", // Byte length of a compressed Bitcoin public key.
-                reveal
-                    .refundPubKey,
+                reveal.refundPubKey,
                 hex"88", // OP_EQUALVERIFY
                 hex"04", // Byte length of refund locktime value.
-                reveal
-                    .refundLocktime,
+                reveal.refundLocktime,
                 hex"b1", // OP_CHECKLOCKTIMEVERIFY
                 hex"75", // OP_DROP
                 hex"ac", // OP_CHECKSIG
                 hex"68" // OP_ENDIF
-            )
-                .hash160();
+            );
 
         bytes memory fundingOutput =
             fundingTx.outputVector.extractOutputAtIndex(
                 reveal.fundingOutputIndex
             );
+        bytes memory fundingOutputHash = fundingOutput.extractHash();
 
-        require(
-            keccak256(fundingOutput.extractHash()) ==
-                keccak256(expectedScriptHash),
-            "Wrong script hash"
-        );
+        if (fundingOutputHash.length == 20) {
+            require(
+                keccak256(fundingOutputHash) ==
+                    keccak256(expectedScript.hash160()),
+                "Wrong P2SH output"
+            );
+        } else if (fundingOutputHash.length == 32) {
+            require(
+                fundingOutputHash.toBytes32() == expectedScript.hash256(),
+                "Wrong P2WSH output"
+            );
+        } else {
+            revert("Unsupported output type");
+        }
 
         // Resulting TX hash is in native Bitcoin little-endian format.
         bytes32 fundingTxHash =
@@ -152,7 +152,7 @@ contract Bridge {
         deposit.amount = fundingOutput.extractValue();
         /* solhint-disable-next-line not-rely-on-time */
         deposit.revealedAt = uint32(block.timestamp);
-        deposit.vault = vault;
+        deposit.vault = reveal.vault;
 
         emit DepositRevealed(
             fundingTxHash,
@@ -161,9 +161,7 @@ contract Bridge {
             reveal.blindingFactor,
             reveal.walletPubKey,
             reveal.refundPubKey,
-            reveal.refundLocktime,
-            deposit.amount,
-            vault
+            reveal.refundLocktime
         );
     }
 

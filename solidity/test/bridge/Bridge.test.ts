@@ -33,8 +33,8 @@ describe("Bridge", () => {
           refundPubKey:
             "0x0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
           refundLocktime: "0x60bcea61",
-        },
-        "0x594cfd89700040163727828AE20B52099C58F02C"
+          vault: "0x594cfd89700040163727828AE20B52099C58F02C",
+        }
       )
     })
   })
