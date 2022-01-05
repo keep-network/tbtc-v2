@@ -32,13 +32,13 @@ describe("Deposit", () => {
   // https://live.blockcypher.com/btc-testnet/decodetx.
   const expectedDepositTransaction: RawTransaction = {
     transactionHex:
-      "010000000001018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56b" +
-      "20dc2b952f0100000000ffffffff02102700000000000017a914867120d5480a9cc0" +
-      "c11c1193fa59b3a92e852da7877ed73b00000000001600147ac2d9378a1c47e589df" +
-      "b8095ca95ed2140d2726024730440220508131fc4e8ba454877cc5a44653580fe5de" +
-      "813a2a36ea1bba02aac66d6d2a8e022017aa81482239513e672e30ad33db3aa8460f" +
-      "cc09b4e5e7933aeb1aee02bf6361012102ee067a0273f2e3ba88d23140a24fdb290f" +
-      "27bbcd0f94117a9c65be3911c5c04e00000000",
+      "010000000001018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56" +
+      "b20dc2b952f0100000000ffffffff02102700000000000017a9146ade1c799a3e5a" +
+      "59678e776f21be14d66dc15ed8877ed73b00000000001600147ac2d9378a1c47e58" +
+      "9dfb8095ca95ed2140d272602483045022100ebabfee6c53b1911c44c0945ac5618" +
+      "19e06316e621ab096cb2a512fc79374e210220295cb9ee2ad324f46a55a66cbfe51" +
+      "417d9879c82fda10b8586f65053a888147e012102ee067a0273f2e3ba88d23140a2" +
+      "4fdb290f27bbcd0f94117a9c65be3911c5c04e00000000",
   }
 
   describe("makeDeposit", () => {
@@ -92,7 +92,7 @@ describe("Deposit", () => {
       const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
       expect(txJSON.hash).to.be.equal(
-        "c219f45cb5c883161a064e3574c6206d64e5ac67bc349ce4687843202c8d2701"
+        "12b3aaa989f686533ea410448682da5b820e1c37cccde3fa77b45da543e4d5c6"
       )
       expect(txJSON.version).to.be.equal(1)
 
@@ -118,18 +118,18 @@ describe("Deposit", () => {
       // Value should correspond to the deposit amount.
       expect(depositOutput.value).to.be.equal(depositData.amount.toNumber())
       // Should be OP_HASH160 <script-hash> OP_EQUAL. The script hash is
-      // 867120d5480a9cc0c11c1193fa59b3a92e852da7 (see createDepositScriptHash
+      // 6ade1c799a3e5a59678e776f21be14d66dc15ed8 (see createDepositScriptHash
       // scenario) and it should be prefixed with its byte length: 0x14.
       // The OP_HASH160 opcode is 0xa9 and OP_EQUAL is 0x87. So, the final
-      // form should be: a914867120d5480a9cc0c11c1193fa59b3a92e852da787.
+      // form should be: a9146ade1c799a3e5a59678e776f21be14d66dc15ed887.
       expect(depositOutput.script).to.be.equal(
-        "a914867120d5480a9cc0c11c1193fa59b3a92e852da787"
+        "a9146ade1c799a3e5a59678e776f21be14d66dc15ed887"
       )
       // The address should correspond to the script hash
-      // 867120d5480a9cc0c11c1193fa59b3a92e852da7 on testnet so it should be
-      // 2N5W64H5wBX8iGhWQdNP4DLP7TtnLh26PAa (see createDepositAddress scenario).
+      // 6ade1c799a3e5a59678e776f21be14d66dc15ed8 on testnet so it should be
+      // 2N2zHhBD61yjtzmg5ctMoDffVCLiByCpivr (see createDepositAddress scenario).
       expect(depositOutput.address).to.be.equal(
-        "2N5W64H5wBX8iGhWQdNP4DLP7TtnLh26PAa"
+        "2N2zHhBD61yjtzmg5ctMoDffVCLiByCpivr"
       )
 
       // Change value should be equal to: inputValue - depositAmount - fee.
@@ -229,9 +229,14 @@ describe("Deposit", () => {
       // In this case it's 4 bytes.
       expect(script.substring(218, 220)).to.be.equal("04")
       expect(script.substring(220, 228)).to.be.equal(
-        BigNumber.from(depositData.createdAt + 2592000)
-          .toHexString()
-          .substring(2)
+        Buffer.from(
+          BigNumber.from(depositData.createdAt + 2592000)
+            .toHexString()
+            .substring(2),
+          "hex"
+        )
+          .reverse()
+          .toString("hex")
       )
 
       // OP_CHECKLOCKTIMEVERIFY opcode is 0xb1.
@@ -261,13 +266,13 @@ describe("Deposit", () => {
       // 14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576a921
       // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d98763
       // ac6776a9210300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d9
-      // 7763a9880461eabc60b175ac68. The hash of this script should correspond
+      // 7763a9880460bcea61b175ac68. The hash of this script should correspond
       // to the OP_HASH160 opcode which applies SHA-256 and then RIPEMD-160
-      // on the input. In this case the hash is 867120d5480a9cc0c11c1193fa59b3a92e852da7
+      // on the input. In this case the hash is 6ade1c799a3e5a59678e776f21be14d66dc15ed8
       // and it can be verified with the following command:
       // echo -n $SCRIPT | xxd -r -p | openssl dgst -sha256 -binary | openssl dgst -rmd160
       expect(scriptHash.toString("hex")).to.be.equal(
-        "867120d5480a9cc0c11c1193fa59b3a92e852da7"
+        "6ade1c799a3e5a59678e776f21be14d66dc15ed8"
       )
     })
   })
@@ -282,10 +287,10 @@ describe("Deposit", () => {
 
       it("should return proper address with prefix 3", async () => {
         // Address is created from same script hash as presented in the
-        // createDepositScriptHash scenario: 867120d5480a9cc0c11c1193fa59b3a92e852da7.
+        // createDepositScriptHash scenario: 6ade1c799a3e5a59678e776f21be14d66dc15ed8.
         // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
         // the P2SH address prefix for mainnet is 3.
-        expect(address).to.be.equal("3DwszY9ua4dN4usrxEmBbPPrFYaArCvB47")
+        expect(address).to.be.equal("3BS5dSH4QXEYnz3XwkjvbigDyzW2C6BwUA")
       })
     })
 
@@ -296,10 +301,10 @@ describe("Deposit", () => {
 
       it("should return proper address with prefix 2", async () => {
         // Address is created from same script hash as presented in the
-        // createDepositScriptHash scenario: 867120d5480a9cc0c11c1193fa59b3a92e852da7.
+        // createDepositScriptHash scenario: 6ade1c799a3e5a59678e776f21be14d66dc15ed8.
         // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
         // the P2SH address prefix for testnet is 2.
-        expect(address).to.be.equal("2N5W64H5wBX8iGhWQdNP4DLP7TtnLh26PAa")
+        expect(address).to.be.equal("2N2zHhBD61yjtzmg5ctMoDffVCLiByCpivr")
       })
     })
   })
