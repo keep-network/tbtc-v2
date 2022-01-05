@@ -380,6 +380,33 @@ In the "Bad Example", there are 3 worst case scenarios: a user deposits at
 By intentionally offsetting the sweep schedule, we're able to reduce the worst
 case for a deposit significantly!
 
+===== Skipping the Sweeping Line
+
+Governable Parameters
+
+- `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
+  operator for the gas of the sweep and collect their account balance.
+
+Some depositors are not going to want to wait for the next sweep to occur, and
+are willing to pay the entire cost of the sweeping transaction to avoid
+waiting. We can accomodate them with the following flow:
+
+When the make their reveal transaction, they include a piece of information
+that lets us know that they want their deposit swept **right now**. As soon as
+the operators are available, they sweep the btc and an operator posts the
+balance update transaction to the ethereum chain, paying the associated gas
+costs.
+
+We send the account balance to a holding contract locked by the amount
+of ether that the operator had to pay in gas fees, unlockable only by the
+depositor's eth address. Once the depositor has paid the conract, the account
+balance moves to their address, and the operator who originally paid for the
+transaction is reimbursed.
+
+If the depositor does not pay to unlock their account balance within the
+`skip_sweep_timeout`, then the system siezes the balance, mints TBTC, uses it
+to buy back T tokens, and then uses those to reimburse the operator.
+
 ==== Fraud Proof
 
 There are only two valid types of transactions for an unswept deposit UTXO:
@@ -545,6 +572,8 @@ Alphabetized list of Governable Parameters with additional notes.
   <<heartbeat,heartbeat>> to be successful.
 - `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
   If set to 40, then the signers sign every 40th block.
+- `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
+  operator for the gas of the sweep and collect their account balance.
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
   will trigger an early sweep on a wallet.
 - `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
