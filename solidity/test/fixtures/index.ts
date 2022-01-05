@@ -1,7 +1,14 @@
 import { Contract } from "ethers"
 import { ethers } from "hardhat"
 // eslint-disable-next-line import/extensions
-import type { TestERC20, TBTC, VendingMachine } from "../../typechain"
+import type {
+  TestERC20,
+  TBTC,
+  VendingMachine,
+  TestRelay,
+  Bridge,
+  Bank,
+} from "../../typechain"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 export const constants = {
@@ -35,5 +42,24 @@ export async function vendingMachineDeployment(): Promise<DeployedContracts> {
     vendingMachine,
   }
 
+  return contracts
+}
+
+export async function bridgeDeployment(): Promise<DeployedContracts> {
+  const TestRelay = await ethers.getContractFactory("TestRelay")
+  const testRelay: TestRelay = await TestRelay.deploy()
+  await testRelay.deployed()
+
+  const Bank = await ethers.getContractFactory("Bank")
+  const bank: Bank = await Bank.deploy()
+  await bank.deployed()
+
+  const Bridge = await ethers.getContractFactory("Bridge")
+  const bridge: Bridge = await Bridge.deploy(testRelay.address, bank.address)
+  await bridge.deployed()
+
+  await bank.updateBridge(bridge.address)
+
+  const contracts: DeployedContracts = { bridge, testRelay, bank }
   return contracts
 }
