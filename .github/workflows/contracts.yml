@@ -100,11 +100,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Load environment variables
-        uses: keep-network/ci/actions/load-env-variables@v1
-        with:
-          environment: ${{ github.event.inputs.environment }}
-
       - uses: actions/setup-node@v2
         with:
           node-version: "14.x"
@@ -267,7 +262,7 @@ jobs:
 
       - name: Install Solidity
         env:
-          SOLC_VERSION: 0.8.4 # according to solidity.version in hardhat.config.js
+          SOLC_VERSION: 0.8.4 # according to solidity.version in hardhat.config.ts
         run: |
           pip3 install solc-select
           solc-select install $SOLC_VERSION
