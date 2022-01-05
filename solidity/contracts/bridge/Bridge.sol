@@ -43,7 +43,7 @@ contract Bridge {
 
     struct DepositInfo {
         address depositor;
-        uint64 amount;
+        bytes8 amount;
         uint32 revealedAt;
         address vault;
     }
@@ -148,8 +148,18 @@ contract Bridge {
             ];
         require(deposit.revealedAt == 0, "Deposit already revealed");
 
+        bytes8 fundingOutputAmountLE;
+        /* solhint-disable-next-line no-inline-assembly */
+        assembly {
+            // First 8 bytes (little-endian) of the funding output represents
+            // its value. To take the value, we need to jump over the first
+            // word determining the array length, load the array, and trim it
+            // by putting it to a bytes8.
+            fundingOutputAmountLE := mload(add(fundingOutput, 32))
+        }
+
+        deposit.amount = fundingOutputAmountLE;
         deposit.depositor = reveal.depositor;
-        deposit.amount = fundingOutput.extractValue();
         /* solhint-disable-next-line not-rely-on-time */
         deposit.revealedAt = uint32(block.timestamp);
         deposit.vault = reveal.vault;
