@@ -22,7 +22,6 @@ import {BytesLib} from "./BytesLib.sol";
 contract Bridge {
     // TODO: Consider using a custom fork of Summa libs adjusted to Solidity 8.
     using BTCUtils for bytes;
-    using BytesLib for bytes;
 
     struct TxInfo {
         bytes4 version;
@@ -34,10 +33,10 @@ contract Bridge {
     struct RevealInfo {
         uint8 fundingOutputIndex;
         address depositor;
-        uint64 blindingFactor;
+        bytes8 blindingFactor;
         bytes walletPubKey;
         bytes refundPubKey;
-        uint32 refundLocktime;
+        bytes4 refundLocktime;
     }
 
     struct DepositInfo {
@@ -48,19 +47,20 @@ contract Bridge {
     }
 
     /// @notice Collection of all unswept deposits indexed by
-    ///         keccak256(fundingTxHash | fundingOutputIndex | depositorAddress).
+    ///         keccak256(fundingTxHash | fundingOutputIndex).
     ///         This mapping may contain valid and invalid deposits and the
     ///         wallet is responsible for validating them before attempting to
     ///         execute a sweep.
     mapping(uint256 => DepositInfo) public unswept;
 
     event DepositRevealed(
-        uint256 depositId,
         bytes32 fundingTxHash,
         uint8 fundingOutputIndex,
         address depositor,
-        uint64 blindingFactor,
+        bytes8 blindingFactor,
+        bytes walletPubKey,
         bytes refundPubKey,
+        bytes4 refundLocktime,
         uint64 amount,
         address vault
     );
@@ -120,8 +120,7 @@ contract Bridge {
             "Wrong script hash"
         );
 
-        // TODO: Hash is wrong. Probably something with bytes endianess.
-        //       To be investigated.
+        // Resulting TX hash is in native Bitcoin little-endian format.
         bytes32 fundingTxHash =
             abi
                 .encodePacked(
@@ -136,14 +135,17 @@ contract Bridge {
             )
                 .hash256();
 
-        uint256 depositId =
-            uint256(
-                keccak256(
-                    abi.encodePacked(fundingTxHash, reveal.fundingOutputIndex)
+        DepositInfo storage deposit =
+            unswept[
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            fundingTxHash,
+                            reveal.fundingOutputIndex
+                        )
+                    )
                 )
-            );
-
-        DepositInfo storage deposit = unswept[depositId];
+            ];
         require(deposit.revealedAt == 0, "Deposit already revealed");
 
         deposit.depositor = reveal.depositor;
@@ -153,12 +155,13 @@ contract Bridge {
         deposit.vault = vault;
 
         emit DepositRevealed(
-            depositId,
             fundingTxHash,
             reveal.fundingOutputIndex,
             reveal.depositor,
             reveal.blindingFactor,
+            reveal.walletPubKey,
             reveal.refundPubKey,
+            reveal.refundLocktime,
             deposit.amount,
             vault
         );
