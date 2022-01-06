@@ -106,18 +106,27 @@ contract Bridge {
         bytes memory fundingOutputHash = fundingOutput.extractHash();
 
         if (fundingOutputHash.length == 20) {
+            // A 20-byte output hash is used by P2SH. That hash is constructed
+            // by applying OP_HASH160 on the redeem script. A 20-byte output
+            // hash is also the case for P2PKH and P2WPKH (OP_HASH160 on the
+            // public key). However, since we compare the actual output hash
+            // with an expected redeem script hash, the transaction type
+            // doesn't matter since the check will success only for P2SH
+            // with expected script hash value.
             require(
                 keccak256(fundingOutputHash) ==
                     keccak256(expectedScript.hash160()),
-                "Wrong P2SH output"
+                "Wrong 20-byte script hash"
             );
         } else if (fundingOutputHash.length == 32) {
+            // A 32-byte output hash is used by P2WSH. That hash is constructed
+            // by applying OP_HASH256 on the redeem script.
             require(
                 fundingOutputHash.toBytes32() == expectedScript.hash256(),
-                "Wrong P2WSH output"
+                "Wrong 32-byte script hash"
             );
         } else {
-            revert("Unsupported output type");
+            revert("Wrong script hash length");
         }
 
         // Resulting TX hash is in native Bitcoin little-endian format.
