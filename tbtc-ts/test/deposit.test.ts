@@ -27,10 +27,25 @@ describe("Deposit", () => {
     createdAt: 1640181600, // 22-12-2021 14:00:00 UTC
   }
 
-  // HEX of the expected deposit transaction made using the code from
+  // HEX of the expected P2WSH deposit transaction made using the code from
   // deposit.ts and given depositData. It can be decoded with:
   // https://live.blockcypher.com/btc-testnet/decodetx.
-  const expectedDepositTransaction: RawTransaction = {
+  const expectedP2WSHDepositTransaction: RawTransaction = {
+    transactionHex:
+      "010000000001018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56" +
+      "b20dc2b952f0100000000ffffffff021027000000000000220020835d670ed1c807" +
+      "810fcf0c50ded64c3a0a8689af8dadf79b1ddcf3563aceaf2810d73b00000000001" +
+      "600147ac2d9378a1c47e589dfb8095ca95ed2140d272602483045022100949e7989" +
+      "f9bfc8cb30757086ce6a9c5adafa2fd0a6c6f8c3117f482fc13c0fe702202edf405" +
+      "e7a3b0f5495670d07eadb12d7b29f3be9d6148320841851071f335587012102ee06" +
+      "7a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04e0000000" +
+      "0",
+  }
+
+  // HEX of the expected P2SH deposit transaction made using the code from
+  // deposit.ts and given depositData. It can be decoded with:
+  // https://live.blockcypher.com/btc-testnet/decodetx.
+  const expectedP2SHDepositTransaction: RawTransaction = {
     transactionHex:
       "010000000001018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56" +
       "b20dc2b952f0100000000ffffffff02102700000000000017a9146ade1c799a3e5a" +
@@ -60,87 +75,195 @@ describe("Deposit", () => {
       const rawTransactions = new Map<string, RawTransaction>()
       rawTransactions.set(testnetTransactionHash, testnetTransaction)
       bitcoinClient.rawTransactions = rawTransactions
-
-      await TBTC.makeDeposit(depositData, testnetPrivateKey, bitcoinClient)
     })
 
-    it("should broadcast transaction with proper structure", async () => {
-      expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
-      expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-        expectedDepositTransaction
-      )
+    context("when witness option is true", () => {
+      beforeEach(async () => {
+        await TBTC.makeDeposit(
+          depositData,
+          testnetPrivateKey,
+          bitcoinClient,
+          true
+        )
+      })
+
+      it("should broadcast P2WSH transaction with proper structure", async () => {
+        expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+        expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+          expectedP2WSHDepositTransaction
+        )
+      })
+    })
+
+    context("when witness option is false", () => {
+      beforeEach(async () => {
+        await TBTC.makeDeposit(
+          depositData,
+          testnetPrivateKey,
+          bitcoinClient,
+          false
+        )
+      })
+
+      it("should broadcast P2SH transaction with proper structure", async () => {
+        expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+        expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+          expectedP2SHDepositTransaction
+        )
+      })
     })
   })
 
   describe("createDepositTransaction", () => {
-    let transaction: RawTransaction
+    context("when witness option is true", () => {
+      let transaction: RawTransaction
 
-    beforeEach(async () => {
-      transaction = await TBTC.createDepositTransaction(
-        depositData,
-        [testnetUTXO],
-        testnetPrivateKey
-      )
+      beforeEach(async () => {
+        transaction = await TBTC.createDepositTransaction(
+          depositData,
+          [testnetUTXO],
+          testnetPrivateKey,
+          true
+        )
+      })
+
+      it("should return P2WSH transaction with proper structure", async () => {
+        // Compare HEXes.
+        expect(transaction).to.be.eql(expectedP2WSHDepositTransaction)
+
+        // Convert raw transaction to JSON to make detailed comparison.
+        const buffer = Buffer.from(transaction.transactionHex, "hex")
+        const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
+
+        expect(txJSON.hash).to.be.equal(
+          "391dc75fa182ad63bd825075bcbe17066431559e3d823356144fcb2895c8cae2"
+        )
+        expect(txJSON.version).to.be.equal(1)
+
+        // Validate inputs.
+        expect(txJSON.inputs.length).to.be.equal(1)
+
+        const input = txJSON.inputs[0]
+
+        expect(input.prevout.hash).to.be.equal(testnetUTXO.transactionHash)
+        expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
+        // Transaction should be signed but this is SegWit input so the `script`
+        // field should be empty and the `witness` field should be filled instead.
+        expect(input.script.length).to.be.equal(0)
+        expect(input.witness.length).to.be.greaterThan(0)
+        expect(input.address).to.be.equal(testnetAddress)
+
+        // Validate outputs.
+        expect(txJSON.outputs.length).to.be.equal(2)
+
+        const depositOutput = txJSON.outputs[0]
+        const changeOutput = txJSON.outputs[1]
+
+        // Value should correspond to the deposit amount.
+        expect(depositOutput.value).to.be.equal(depositData.amount.toNumber())
+        // Should be OP_0 <script-hash>. The script hash is
+        // 835d670ed1c807810fcf0c50ded64c3a0a8689af8dadf79b1ddcf3563aceaf28
+        // (see createDepositScriptHash witness scenario) and it should be
+        // prefixed with its byte length: 0x20. The OP_0 opcode is 0x00.
+        // So, the final form should be:
+        // 0020835d670ed1c807810fcf0c50ded64c3a0a8689af8dadf79b1ddcf3563aceaf28.
+        expect(depositOutput.script).to.be.equal(
+          "0020835d670ed1c807810fcf0c50ded64c3a0a8689af8dadf79b1ddcf3563aceaf28"
+        )
+        // The address should correspond to the script hash
+        // 835d670ed1c807810fcf0c50ded64c3a0a8689af8dadf79b1ddcf3563aceaf28 on
+        // testnet so it should be:
+        // tb1qsdwkwrk3eqrczr70p3gda4jv8g9gdzd03kkl0xcamne4vwkw4u5qupsmp8
+        // (see createDepositAddress witness scenario).
+        expect(depositOutput.address).to.be.equal(
+          "tb1qsdwkwrk3eqrczr70p3gda4jv8g9gdzd03kkl0xcamne4vwkw4u5qupsmp8"
+        )
+
+        // Change value should be equal to: inputValue - depositAmount - fee.
+        expect(changeOutput.value).to.be.equal(3921680)
+        // Should be OP_0 <public-key-hash>. Public key corresponds to
+        // depositor BTC address.
+        expect(changeOutput.script).to.be.equal(
+          "00147ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+        )
+        // Should return the change to depositor BTC address.
+        expect(changeOutput.address).to.be.equal(testnetAddress)
+      })
     })
 
-    it("should return transaction with proper structure", async () => {
-      // Compare HEXes.
-      expect(transaction).to.be.eql(expectedDepositTransaction)
+    context("when witness option is false", () => {
+      let transaction: RawTransaction
 
-      // Convert raw transaction to JSON to make detailed comparison.
-      const buffer = Buffer.from(transaction.transactionHex, "hex")
-      const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
+      beforeEach(async () => {
+        transaction = await TBTC.createDepositTransaction(
+          depositData,
+          [testnetUTXO],
+          testnetPrivateKey,
+          false
+        )
+      })
 
-      expect(txJSON.hash).to.be.equal(
-        "12b3aaa989f686533ea410448682da5b820e1c37cccde3fa77b45da543e4d5c6"
-      )
-      expect(txJSON.version).to.be.equal(1)
+      it("should return P2SH transaction with proper structure", async () => {
+        // Compare HEXes.
+        expect(transaction).to.be.eql(expectedP2SHDepositTransaction)
 
-      // Validate inputs.
-      expect(txJSON.inputs.length).to.be.equal(1)
+        // Convert raw transaction to JSON to make detailed comparison.
+        const buffer = Buffer.from(transaction.transactionHex, "hex")
+        const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
-      const input = txJSON.inputs[0]
+        expect(txJSON.hash).to.be.equal(
+          "12b3aaa989f686533ea410448682da5b820e1c37cccde3fa77b45da543e4d5c6"
+        )
+        expect(txJSON.version).to.be.equal(1)
 
-      expect(input.prevout.hash).to.be.equal(testnetUTXO.transactionHash)
-      expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
-      // Transaction should be signed but this is SegWit input so the `script`
-      // field should be empty and the `witness` field should be filled instead.
-      expect(input.script.length).to.be.equal(0)
-      expect(input.witness.length).to.be.greaterThan(0)
-      expect(input.address).to.be.equal(testnetAddress)
+        // Validate inputs.
+        expect(txJSON.inputs.length).to.be.equal(1)
 
-      // Validate outputs.
-      expect(txJSON.outputs.length).to.be.equal(2)
+        const input = txJSON.inputs[0]
 
-      const depositOutput = txJSON.outputs[0]
-      const changeOutput = txJSON.outputs[1]
+        expect(input.prevout.hash).to.be.equal(testnetUTXO.transactionHash)
+        expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
+        // Transaction should be signed but this is SegWit input so the `script`
+        // field should be empty and the `witness` field should be filled instead.
+        expect(input.script.length).to.be.equal(0)
+        expect(input.witness.length).to.be.greaterThan(0)
+        expect(input.address).to.be.equal(testnetAddress)
 
-      // Value should correspond to the deposit amount.
-      expect(depositOutput.value).to.be.equal(depositData.amount.toNumber())
-      // Should be OP_HASH160 <script-hash> OP_EQUAL. The script hash is
-      // 6ade1c799a3e5a59678e776f21be14d66dc15ed8 (see createDepositScriptHash
-      // scenario) and it should be prefixed with its byte length: 0x14.
-      // The OP_HASH160 opcode is 0xa9 and OP_EQUAL is 0x87. So, the final
-      // form should be: a9146ade1c799a3e5a59678e776f21be14d66dc15ed887.
-      expect(depositOutput.script).to.be.equal(
-        "a9146ade1c799a3e5a59678e776f21be14d66dc15ed887"
-      )
-      // The address should correspond to the script hash
-      // 6ade1c799a3e5a59678e776f21be14d66dc15ed8 on testnet so it should be
-      // 2N2zHhBD61yjtzmg5ctMoDffVCLiByCpivr (see createDepositAddress scenario).
-      expect(depositOutput.address).to.be.equal(
-        "2N2zHhBD61yjtzmg5ctMoDffVCLiByCpivr"
-      )
+        // Validate outputs.
+        expect(txJSON.outputs.length).to.be.equal(2)
 
-      // Change value should be equal to: inputValue - depositAmount - fee.
-      expect(changeOutput.value).to.be.equal(3921790)
-      // Should be OP_0 <public-key-hash>. Public key corresponds to
-      // depositor BTC address.
-      expect(changeOutput.script).to.be.equal(
-        "00147ac2d9378a1c47e589dfb8095ca95ed2140d2726"
-      )
-      // Should return the change to depositor BTC address.
-      expect(changeOutput.address).to.be.equal(testnetAddress)
+        const depositOutput = txJSON.outputs[0]
+        const changeOutput = txJSON.outputs[1]
+
+        // Value should correspond to the deposit amount.
+        expect(depositOutput.value).to.be.equal(depositData.amount.toNumber())
+        // Should be OP_HASH160 <script-hash> OP_EQUAL. The script hash is
+        // 6ade1c799a3e5a59678e776f21be14d66dc15ed8 (see createDepositScriptHash
+        // non-witness scenario) and it should be prefixed with its byte
+        // length: 0x14. The OP_HASH160 opcode is 0xa9 and OP_EQUAL is 0x87.
+        // So, the final form should be:
+        // a9146ade1c799a3e5a59678e776f21be14d66dc15ed887.
+        expect(depositOutput.script).to.be.equal(
+          "a9146ade1c799a3e5a59678e776f21be14d66dc15ed887"
+        )
+        // The address should correspond to the script hash
+        // 6ade1c799a3e5a59678e776f21be14d66dc15ed8 on testnet so it should be
+        // 2N2zHhBD61yjtzmg5ctMoDffVCLiByCpivr (see createDepositAddress
+        // non-witness scenario).
+        expect(depositOutput.address).to.be.equal(
+          "2N2zHhBD61yjtzmg5ctMoDffVCLiByCpivr"
+        )
+
+        // Change value should be equal to: inputValue - depositAmount - fee.
+        expect(changeOutput.value).to.be.equal(3921790)
+        // Should be OP_0 <public-key-hash>. Public key corresponds to
+        // depositor BTC address.
+        expect(changeOutput.script).to.be.equal(
+          "00147ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+        )
+        // Should return the change to depositor BTC address.
+        expect(changeOutput.address).to.be.equal(testnetAddress)
+      })
     })
   })
 
@@ -254,26 +377,53 @@ describe("Deposit", () => {
   })
 
   describe("createDepositScriptHash", () => {
-    let scriptHash: Buffer
+    context("when witness option is true", () => {
+      let scriptHash: Buffer
 
-    beforeEach(async () => {
-      scriptHash = await TBTC.createDepositScriptHash(depositData)
+      beforeEach(async () => {
+        scriptHash = await TBTC.createDepositScriptHash(depositData, true)
+      })
+
+      it("should return proper witness script hash", async () => {
+        // The script for given depositData should be the same as in
+        // createDepositScript test scenario:
+        // 14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576a921
+        // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d98763
+        // ac6776a9210300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d9
+        // 7763a9880460bcea61b175ac68. The hash of this script should correspond
+        // to the OP_HASH256 opcode which applies SHA-256 twice on the input.
+        // In this case the hash is
+        // 835d670ed1c807810fcf0c50ded64c3a0a8689af8dadf79b1ddcf3563aceaf28
+        // and it can be verified with the following command:
+        // echo -n $SCRIPT | xxd -r -p | openssl dgst -sha256 -binary | openssl dgst -sha256
+        expect(scriptHash.toString("hex")).to.be.equal(
+          "835d670ed1c807810fcf0c50ded64c3a0a8689af8dadf79b1ddcf3563aceaf28"
+        )
+      })
     })
 
-    it("should return proper script hash", async () => {
-      // The script for given depositData should be the same as in
-      // createDepositScript test scenario:
-      // 14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576a921
-      // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d98763
-      // ac6776a9210300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d9
-      // 7763a9880460bcea61b175ac68. The hash of this script should correspond
-      // to the OP_HASH160 opcode which applies SHA-256 and then RIPEMD-160
-      // on the input. In this case the hash is 6ade1c799a3e5a59678e776f21be14d66dc15ed8
-      // and it can be verified with the following command:
-      // echo -n $SCRIPT | xxd -r -p | openssl dgst -sha256 -binary | openssl dgst -rmd160
-      expect(scriptHash.toString("hex")).to.be.equal(
-        "6ade1c799a3e5a59678e776f21be14d66dc15ed8"
-      )
+    context("when witness option is false", () => {
+      let scriptHash: Buffer
+
+      beforeEach(async () => {
+        scriptHash = await TBTC.createDepositScriptHash(depositData, false)
+      })
+
+      it("should return proper non-witness script hash", async () => {
+        // The script for given depositData should be the same as in
+        // createDepositScript test scenario:
+        // 14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576a921
+        // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d98763
+        // ac6776a9210300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d9
+        // 7763a9880460bcea61b175ac68. The hash of this script should correspond
+        // to the OP_HASH160 opcode which applies SHA-256 and then RIPEMD-160
+        // on the input. In this case the hash is 6ade1c799a3e5a59678e776f21be14d66dc15ed8
+        // and it can be verified with the following command:
+        // echo -n $SCRIPT | xxd -r -p | openssl dgst -sha256 -binary | openssl dgst -rmd160
+        expect(scriptHash.toString("hex")).to.be.equal(
+          "6ade1c799a3e5a59678e776f21be14d66dc15ed8"
+        )
+      })
     })
   })
 
@@ -281,30 +431,76 @@ describe("Deposit", () => {
     let address: string
 
     context("when network is main", () => {
-      beforeEach(async () => {
-        address = await TBTC.createDepositAddress(depositData, "main")
+      context("when witness option is true", () => {
+        beforeEach(async () => {
+          address = await TBTC.createDepositAddress(depositData, "main", true)
+        })
+
+        it("should return proper address with prefix bc1", async () => {
+          // Address is created from same script hash as presented in the witness
+          // createDepositScriptHash scenario:
+          // 835d670ed1c807810fcf0c50ded64c3a0a8689af8dadf79b1ddcf3563aceaf28.
+          // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
+          // the P2WSH (Bech32) address prefix for mainnet is 3.
+          expect(address).to.be.equal(
+            "bc1qsdwkwrk3eqrczr70p3gda4jv8g9gdzd03kkl0xcamne4vwkw4u5qtfx5mg"
+          )
+        })
       })
 
-      it("should return proper address with prefix 3", async () => {
-        // Address is created from same script hash as presented in the
-        // createDepositScriptHash scenario: 6ade1c799a3e5a59678e776f21be14d66dc15ed8.
-        // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
-        // the P2SH address prefix for mainnet is 3.
-        expect(address).to.be.equal("3BS5dSH4QXEYnz3XwkjvbigDyzW2C6BwUA")
+      context("when witness option is false", () => {
+        beforeEach(async () => {
+          address = await TBTC.createDepositAddress(depositData, "main", false)
+        })
+
+        it("should return proper address with prefix 3", async () => {
+          // Address is created from same script hash as presented in the non-witness
+          // createDepositScriptHash scenario: 6ade1c799a3e5a59678e776f21be14d66dc15ed8.
+          // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
+          // the P2SH address prefix for mainnet is 3.
+          expect(address).to.be.equal("3BS5dSH4QXEYnz3XwkjvbigDyzW2C6BwUA")
+        })
       })
     })
 
     context("when network is testnet", () => {
-      beforeEach(async () => {
-        address = await TBTC.createDepositAddress(depositData, "testnet")
+      context("when witness option is true", () => {
+        beforeEach(async () => {
+          address = await TBTC.createDepositAddress(
+            depositData,
+            "testnet",
+            true
+          )
+        })
+
+        it("should return proper address with prefix tb1", async () => {
+          // Address is created from same script hash as presented in the witness
+          // createDepositScriptHash scenario:
+          // 835d670ed1c807810fcf0c50ded64c3a0a8689af8dadf79b1ddcf3563aceaf28.
+          // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
+          // the P2WSH (Bech32) address prefix for testnet is tb1.
+          expect(address).to.be.equal(
+            "tb1qsdwkwrk3eqrczr70p3gda4jv8g9gdzd03kkl0xcamne4vwkw4u5qupsmp8"
+          )
+        })
       })
 
-      it("should return proper address with prefix 2", async () => {
-        // Address is created from same script hash as presented in the
-        // createDepositScriptHash scenario: 6ade1c799a3e5a59678e776f21be14d66dc15ed8.
-        // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
-        // the P2SH address prefix for testnet is 2.
-        expect(address).to.be.equal("2N2zHhBD61yjtzmg5ctMoDffVCLiByCpivr")
+      context("when witness option is false", () => {
+        beforeEach(async () => {
+          address = await TBTC.createDepositAddress(
+            depositData,
+            "testnet",
+            false
+          )
+        })
+
+        it("should return proper address with prefix 2", async () => {
+          // Address is created from same script hash as presented in the
+          // createDepositScriptHash scenario: 6ade1c799a3e5a59678e776f21be14d66dc15ed8.
+          // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
+          // the P2SH address prefix for testnet is 2.
+          expect(address).to.be.equal("2N2zHhBD61yjtzmg5ctMoDffVCLiByCpivr")
+        })
       })
     })
   })
