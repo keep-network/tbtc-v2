@@ -45,7 +45,7 @@ export interface DepositData {
 }
 
 /**
- * Makes a deposit by creating and broadcasting a Bitcoin P2SH
+ * Makes a deposit by creating and broadcasting a Bitcoin P2(W)SH
  * deposit transaction.
  * @param depositData - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
@@ -85,12 +85,13 @@ export async function makeDeposit(
   await bitcoinClient.broadcast(transaction)
 }
 
+// TODO: Add possibility to create P2WSH transactions.
 /**
- * Creates a Bitcoin P2SH deposit transaction.
+ * Creates a Bitcoin P2(W)SH deposit transaction.
  * @param depositData - Details of the deposit.
  * @param utxos - UTXOs that should be used as transaction inputs.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
- * @returns Bitcoin P2SH deposit transaction in raw format.
+ * @returns Bitcoin P2(W)SH deposit transaction in raw format.
  */
 export async function createDepositTransaction(
   depositData: DepositData,
@@ -131,7 +132,7 @@ export async function createDepositTransaction(
 }
 
 /**
- * Creates a Bitcoin locking script for P2SH deposit transaction.
+ * Creates a Bitcoin locking script for P2(W)SH deposit transaction.
  * @param depositData - Details of the deposit.
  * @returns Script as an un-prefixed hex string.
  */
@@ -200,7 +201,7 @@ export async function createDepositScript(
 }
 
 /**
- * Creates a Bitcoin locking script hash for P2SH deposit transaction.
+ * Creates a Bitcoin locking script hash for P2(W)SH deposit transaction.
  * @param depositData - Details of the deposit.
  * @returns Buffer with script hash.
  */
@@ -213,7 +214,7 @@ export async function createDepositScriptHash(
 }
 
 /**
- * Creates a Bitcoin target address for P2SH deposit transaction.
+ * Creates a Bitcoin target address for P2(W)SH deposit transaction.
  * @param depositData - Details of the deposit.
  * @param network - Network that the address should be created for.
  *        For example, `main` or `testnet`.
