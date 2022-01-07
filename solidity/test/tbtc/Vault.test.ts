@@ -472,9 +472,7 @@ describe("Vault", () => {
     context("when called with no depositors", () => {
       it("should revert", async () => {
         await expect(
-          bank
-            .connect(bridge)
-            .increaseBalanceAndCall(vault.address, [], [])
+          bank.connect(bridge).increaseBalanceAndCall(vault.address, [], [])
         ).to.be.revertedWith("No depositors specified")
       })
     })

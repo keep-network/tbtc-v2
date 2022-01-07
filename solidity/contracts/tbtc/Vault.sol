@@ -66,8 +66,8 @@ contract Vault is IVault {
             bank.balanceOf(minter) >= amount,
             "Amount exceeds balance in the bank"
         );
-        bank.transferBalanceFrom(minter, address(this), amount);
         _mint(minter, amount);
+        bank.transferBalanceFrom(minter, address(this), amount);
     }
 
     /// @notice Mints the same amount of TBTC as the deposited amount for each
@@ -114,6 +114,7 @@ contract Vault is IVault {
         _redeem(from, amount);
     }
 
+    // slither-disable-next-line calls-loop
     function _mint(address minter, uint256 amount) internal {
         emit Minted(minter, amount);
         tbtcToken.mint(minter, amount);
