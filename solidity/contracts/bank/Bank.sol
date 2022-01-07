@@ -205,21 +205,21 @@ contract Bank is Ownable {
         }
     }
 
+    /// @notice Increases balance of the provided `recipient` by the provided
+    ///         `amount`. Can only be called by the Bridge.
+    function increaseBalance(address recipient, uint256 amount)
+        external
+        onlyBridge
+    {
+        _increaseBalance(recipient, amount);
+    }
+
     /// @notice Decreases caller's balance by the provided `amount`. There is no
     ///         way to restore the balance so do not call this function unless
     ///         you really know what you are doing!
     function decreaseBalance(uint256 amount) external {
         balanceOf[msg.sender] -= amount;
         emit BalanceDecreased(msg.sender, amount);
-    }
-
-    /// @notice Increases balance of the provided `recipient` by the provided
-    ///         `amount`. Can only be called by the Bridge.
-    function increaseBalance(address recipient, uint256 amount)
-        public
-        onlyBridge
-    {
-        _increaseBalance(recipient, amount);
     }
 
     /// @notice Returns hash of EIP712 Domain struct with `TBTC Bank` as
