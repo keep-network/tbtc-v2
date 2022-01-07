@@ -1102,7 +1102,6 @@ describe("Bank", () => {
             .connect(thirdParty)
             .increaseBalanceAndCall(
               application.address,
-              totalDepositedAmount,
               [depositor1, depositor2],
               [depositedAmount1, depositedAmount2]
             )
@@ -1120,7 +1119,6 @@ describe("Bank", () => {
           .connect(bridge)
           .increaseBalanceAndCall(
             application.address,
-            totalDepositedAmount,
             [depositor1, depositor2],
             [depositedAmount1, depositedAmount2]
           )

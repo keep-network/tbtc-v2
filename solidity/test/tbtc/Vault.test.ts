@@ -474,12 +474,7 @@ describe("Vault", () => {
         await expect(
           bank
             .connect(bridge)
-            .increaseBalanceAndCall(
-              application.address,
-              totalDepositedAmount,
-              [],
-              []
-            )
+            .increaseBalanceAndCall(application.address, [], [])
         ).to.be.revertedWith("No depositors specified")
       })
     })
@@ -493,7 +488,6 @@ describe("Vault", () => {
               .connect(bridge)
               .increaseBalanceAndCall(
                 application.address,
-                depositedAmount1,
                 [depositor1, depositor2],
                 [depositedAmount1]
               )
@@ -512,7 +506,6 @@ describe("Vault", () => {
           .connect(bridge)
           .increaseBalanceAndCall(
             application.address,
-            depositedAmount1,
             [depositor1],
             [depositedAmount1]
           )
@@ -544,7 +537,6 @@ describe("Vault", () => {
           .connect(bridge)
           .increaseBalanceAndCall(
             application.address,
-            totalDepositedAmount,
             [depositor1, depositor2, depositor3],
             [depositedAmount1, depositedAmount2, depositedAmount3]
           )

@@ -214,21 +214,22 @@ contract Bank is Ownable {
     ///         swept by the Bridge. This way, the depositor does not have to
     ///         issue a separate  transaction to the  `recipient` contract.
     ///         Can be called only by the Bridge.
-    /// @dev The `recipient` must implement `IVault` intrface. The sum of all
-    ///      `depositedAmount` array elements must be equal to `amount`. Bank
-    ///      trusts the Bridge and is not validating it.
+    /// @dev The `recipient` must implement `IVault` intrface.
     /// @param recipient Address of `IVault` recipient contract
-    /// @param amount The total amount swept by the Bridge
     /// @param depositors Addresses of depositors whose deposits have been swept
     /// @param depositedAmounts Amounts deposited by individual depositors and
-    ///        swept
+    ///        swept. The `recipient`'s balance will be increased by the sum of
+    ///        all elements in this array.
     function increaseBalanceAndCall(
         address recipient,
-        uint256 amount,
         address[] calldata depositors,
         uint256[] calldata depositedAmounts
     ) external {
-        increaseBalance(recipient, amount);
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < depositedAmounts.length; i++) {
+            totalAmount += depositedAmounts[i];
+        }
+        increaseBalance(recipient, totalAmount);
         IVault(recipient).onBalanceIncreased(depositors, depositedAmounts);
     }
 
