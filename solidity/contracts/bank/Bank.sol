@@ -196,14 +196,12 @@ contract Bank is Ownable {
     /// @notice Increases balances of the provided `recipients` by the provided
     ///         `amounts`. Can only be called by the Bridge.
     /// @dev This function fails if the lengths of the arrays are not the same.
-    ///      Authorization check is performed in `increaseBalance` called by
-    ///      this function.
     function increaseBalances(
         address[] calldata recipients,
         uint256[] calldata amounts
-    ) external {
+    ) external onlyBridge {
         for (uint256 i = 0; i < recipients.length; i++) {
-            increaseBalance(recipients[i], amounts[i]);
+            _increaseBalance(recipients[i], amounts[i]);
         }
     }
 
@@ -221,12 +219,7 @@ contract Bank is Ownable {
         public
         onlyBridge
     {
-        require(
-            recipient != address(this),
-            "Can not increase balance for Bank"
-        );
-        balanceOf[recipient] += amount;
-        emit BalanceIncreased(recipient, amount);
+        _increaseBalance(recipient, amount);
     }
 
     /// @notice Returns hash of EIP712 Domain struct with `TBTC Bank` as
@@ -246,6 +239,15 @@ contract Bank is Ownable {
         } else {
             return buildDomainSeparator();
         }
+    }
+
+    function _increaseBalance(address recipient, uint256 amount) internal {
+        require(
+            recipient != address(this),
+            "Can not increase balance for Bank"
+        );
+        balanceOf[recipient] += amount;
+        emit BalanceIncreased(recipient, amount);
     }
 
     function _transferBalance(
