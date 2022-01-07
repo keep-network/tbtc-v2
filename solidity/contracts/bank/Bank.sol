@@ -226,6 +226,7 @@ contract Bank is Ownable {
     ///         a signing domain and Bank contract as a verifying contract.
     ///         Used to construct EIP2612 signature provided to `permit`
     ///         function.
+    /* solhint-disable-next-line func-name-mixedcase */
     function DOMAIN_SEPARATOR() public view returns (bytes32) {
         // As explained in EIP-2612, if the DOMAIN_SEPARATOR contains the
         // chainId and is defined at contract deployment instead of
