@@ -25,7 +25,7 @@ pragma solidity 0.8.4;
 ///         additional transaction after the deposit gets swept by the Bridge.
 interface IVault {
     /// @notice Called by the Bank in `increaseBalanceAndCall` function after
-    ///         increasing the balance for the receiver.
+    ///         increasing the balance in the Bank for the vault.
     /// @param depositors Addresses of depositors whose deposits have been swept
     /// @param depositedAmounts Amounts deposited by individual depositors and
     ///        swept

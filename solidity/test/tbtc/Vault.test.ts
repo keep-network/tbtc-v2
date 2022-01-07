@@ -462,7 +462,7 @@ describe("Vault", () => {
     context("when called not by the Bank", () => {
       it("should revert", async () => {
         await expect(
-          application
+          vault
             .connect(bridge)
             .onBalanceIncreased([depositor1], [depositedAmount1])
         ).to.be.revertedWith("Caller is not the Bank")
@@ -474,7 +474,7 @@ describe("Vault", () => {
         await expect(
           bank
             .connect(bridge)
-            .increaseBalanceAndCall(application.address, [], [])
+            .increaseBalanceAndCall(vault.address, [], [])
         ).to.be.revertedWith("No depositors specified")
       })
     })
@@ -487,7 +487,7 @@ describe("Vault", () => {
             bank
               .connect(bridge)
               .increaseBalanceAndCall(
-                application.address,
+                vault.address,
                 [depositor1, depositor2],
                 [depositedAmount1]
               )
@@ -505,7 +505,7 @@ describe("Vault", () => {
         tx = await bank
           .connect(bridge)
           .increaseBalanceAndCall(
-            application.address,
+            vault.address,
             [depositor1],
             [depositedAmount1]
           )
@@ -522,7 +522,7 @@ describe("Vault", () => {
 
       it("should emit Minted event", async () => {
         await expect(tx)
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(depositor1, depositedAmount1)
       })
     })
@@ -536,7 +536,7 @@ describe("Vault", () => {
         tx = await bank
           .connect(bridge)
           .increaseBalanceAndCall(
-            application.address,
+            vault.address,
             [depositor1, depositor2, depositor3],
             [depositedAmount1, depositedAmount2, depositedAmount3]
           )
@@ -555,13 +555,13 @@ describe("Vault", () => {
 
       it("should emit Minted events", async () => {
         await expect(tx)
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(depositor1, depositedAmount1)
         await expect(tx)
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(depositor2, depositedAmount2)
         await expect(tx)
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(depositor3, depositedAmount3)
       })
     })

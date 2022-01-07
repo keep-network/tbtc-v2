@@ -73,7 +73,7 @@ contract Vault is IVault {
     /// @notice Mints the same amount of TBTC as the deposited amount for each
     ///         depositor in the array. Can only be called by the Bank after the
     ///         Bridge swept deposits and Bank increased balance for the
-    ///         application.
+    ///         vault.
     /// @dev Fails if the lenght of `depositors` and `depositedAmounts`
     ///      arrays is not the same. Fails if `depositors` array is empty.
     function onBalanceIncreased(

@@ -208,20 +208,20 @@ contract Bank is Ownable {
         }
     }
 
-    /// @notice Increases the given smart contract `recipient`'s balance and
-    ///         notifies the `recipient` contract. Called by the Bridge after
-    ///         the deposits routed by depositors to that `recipient` have been
+    /// @notice Increases the given smart contract `vault`'s balance and
+    ///         notifies the `vault` contract. Called by the Bridge after
+    ///         the deposits routed by depositors to that `vault` have been
     ///         swept by the Bridge. This way, the depositor does not have to
-    ///         issue a separate  transaction to the  `recipient` contract.
+    ///         issue a separate  transaction to the `vault` contract.
     ///         Can be called only by the Bridge.
-    /// @dev The `recipient` must implement `IVault` intrface.
-    /// @param recipient Address of `IVault` recipient contract
+    /// @dev The `vault` must implement `IVault` intrface.
+    /// @param vault Address of `IVault` recipient contract
     /// @param depositors Addresses of depositors whose deposits have been swept
     /// @param depositedAmounts Amounts deposited by individual depositors and
-    ///        swept. The `recipient`'s balance will be increased by the sum of
-    ///        all elements in this array.
+    ///        swept. The `vault`'s balance in the Bank will be increased by the
+    ///        sum of all elements in this array.
     function increaseBalanceAndCall(
-        address recipient,
+        address vault,
         address[] calldata depositors,
         uint256[] calldata depositedAmounts
     ) external {
@@ -229,8 +229,8 @@ contract Bank is Ownable {
         for (uint256 i = 0; i < depositedAmounts.length; i++) {
             totalAmount += depositedAmounts[i];
         }
-        increaseBalance(recipient, totalAmount);
-        IVault(recipient).onBalanceIncreased(depositors, depositedAmounts);
+        increaseBalance(vault, totalAmount);
+        IVault(vault).onBalanceIncreased(depositors, depositedAmounts);
     }
 
     /// @notice Decreases caller's balance by the provided `amount`. There is no

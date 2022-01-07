@@ -1074,7 +1074,7 @@ describe("Bank", () => {
     const depositedAmount2 = to1e18(11)
     const totalDepositedAmount = to1e18(30) // 19 + 11
 
-    let application
+    let vault
     let tbtc
 
     before(async () => {
@@ -1084,11 +1084,11 @@ describe("Bank", () => {
       tbtc = await TBTC.deploy()
       await tbtc.deployed()
 
-      const Application = await ethers.getContractFactory("Application")
-      application = await Application.deploy(bank.address, tbtc.address)
-      await application.deployed()
+      const Vault = await ethers.getContractFactory("Vault")
+      vault = await Vault.deploy(bank.address, tbtc.address)
+      await vault.deployed()
 
-      await tbtc.connect(deployer).transferOwnership(application.address)
+      await tbtc.connect(deployer).transferOwnership(vault.address)
     })
 
     after(async () => {
@@ -1101,7 +1101,7 @@ describe("Bank", () => {
           bank
             .connect(thirdParty)
             .increaseBalanceAndCall(
-              application.address,
+              vault.address,
               [depositor1, depositor2],
               [depositedAmount1, depositedAmount2]
             )
@@ -1118,7 +1118,7 @@ describe("Bank", () => {
         tx = await bank
           .connect(bridge)
           .increaseBalanceAndCall(
-            application.address,
+            vault.address,
             [depositor1, depositor2],
             [depositedAmount1, depositedAmount2]
           )
@@ -1129,7 +1129,7 @@ describe("Bank", () => {
       })
 
       it("should increase vault's balance", async () => {
-        expect(await bank.balanceOf(application.address)).to.equal(
+        expect(await bank.balanceOf(vault.address)).to.equal(
           totalDepositedAmount
         )
       })
@@ -1137,7 +1137,7 @@ describe("Bank", () => {
       it("should emit BalanceIncreased event", async () => {
         await expect(tx)
           .to.emit(bank, "BalanceIncreased")
-          .withArgs(application.address, totalDepositedAmount)
+          .withArgs(vault.address, totalDepositedAmount)
       })
 
       it("should call the vault", async () => {
