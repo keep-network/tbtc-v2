@@ -12,9 +12,12 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
+
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+
+import "./IVault.sol";
 
 /// @title Bitcoin Bank
 /// @notice Bank is a central component tracking Bitcoin balances. Balances can
@@ -203,6 +206,30 @@ contract Bank is Ownable {
         for (uint256 i = 0; i < recipients.length; i++) {
             increaseBalance(recipients[i], amounts[i]);
         }
+    }
+
+    /// @notice Increases the given smart contract `recipient`'s balance and
+    ///         notifies the `recipient` contract. Called by the Bridge after
+    ///         the deposits routed by depositors to that `recipient` have been
+    ///         swept by the Bridge. This way, the depositor does not have to
+    ///         issue a separate  transaction to the  `recipient` contract.
+    ///         Can be called only by the Bridge.
+    /// @dev The `recipient` must implement `IVault` intrface. The sum of all
+    ///      `depositedAmount` array elements must be equal to `amount`. Bank
+    ///      trusts the Bridge and is not validating it.
+    /// @param recipient Address of `IVault` recipient contract
+    /// @param amount The total amount swept by the Bridge
+    /// @param depositors Addresses of depositors whose deposits have been swept
+    /// @param depositedAmounts Amounts deposited by individual depositors and
+    ///        swept
+    function increaseBalanceAndCall(
+        address recipient,
+        uint256 amount,
+        address[] calldata depositors,
+        uint256[] calldata depositedAmounts
+    ) external {
+        increaseBalance(recipient, amount);
+        IVault(recipient).onBalanceIncreased(depositors, depositedAmounts);
     }
 
     /// @notice Decreases caller's balance by the provided `amount`. There is no

@@ -22,6 +22,7 @@ const fixture = async () => {
   await bank.connect(deployer).transferOwnership(governance.address)
 
   return {
+    deployer,
     governance,
     bridge,
     thirdParty,
@@ -33,6 +34,8 @@ describe("Bank", () => {
   // default Hardhat's networks blockchain, see https://hardhat.org/config/
   const hardhatNetworkId = 31337
 
+  let deployer: SignerWithAddress
+
   let governance: SignerWithAddress
   let bridge: SignerWithAddress
   let thirdParty: SignerWithAddress
@@ -41,9 +44,8 @@ describe("Bank", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, bridge, thirdParty, bank } = await waffle.loadFixture(
-      fixture
-    ))
+    ;({ deployer, governance, bridge, thirdParty, bank } =
+      await waffle.loadFixture(fixture))
   })
 
   describe("PERMIT_TYPEHASH", () => {
@@ -1060,6 +1062,90 @@ describe("Bank", () => {
             .to.emit(bank, "BalanceIncreased")
             .withArgs(recipient3, amount3)
         })
+      })
+    })
+  })
+
+  describe("increaseBalanceAndCall", () => {
+    const depositor1 = "0x30c371E0651B2Ff6062158ca1D95b07C7531c719"
+    const depositor2 = "0xb3464806d680722dBc678996F1670D19A42eA3e9"
+
+    const depositedAmount1 = to1e18(19)
+    const depositedAmount2 = to1e18(11)
+    const totalDepositedAmount = to1e18(30) // 19 + 11
+
+    let application
+    let tbtc
+
+    before(async () => {
+      await createSnapshot()
+
+      const TBTC = await ethers.getContractFactory("TBTC")
+      tbtc = await TBTC.deploy()
+      await tbtc.deployed()
+
+      const Application = await ethers.getContractFactory("Application")
+      application = await Application.deploy(bank.address, tbtc.address)
+      await application.deployed()
+
+      await tbtc.connect(deployer).transferOwnership(application.address)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called by a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          bank
+            .connect(thirdParty)
+            .increaseBalanceAndCall(
+              application.address,
+              totalDepositedAmount,
+              [depositor1, depositor2],
+              [depositedAmount1, depositedAmount2]
+            )
+        ).to.be.revertedWith("Caller is not the bridge")
+      })
+    })
+
+    context("when called by the bridge", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bank
+          .connect(bridge)
+          .increaseBalanceAndCall(
+            application.address,
+            totalDepositedAmount,
+            [depositor1, depositor2],
+            [depositedAmount1, depositedAmount2]
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should increase vault's balance", async () => {
+        expect(await bank.balanceOf(application.address)).to.equal(
+          totalDepositedAmount
+        )
+      })
+
+      it("should emit BalanceIncreased event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceIncreased")
+          .withArgs(application.address, totalDepositedAmount)
+      })
+
+      it("should call the vault", async () => {
+        expect(await tbtc.balanceOf(depositor1)).to.equal(depositedAmount1)
+        expect(await tbtc.balanceOf(depositor2)).to.equal(depositedAmount2)
+        expect(await tbtc.totalSupply()).to.equal(totalDepositedAmount)
       })
     })
   })

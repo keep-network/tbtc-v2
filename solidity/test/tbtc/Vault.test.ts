@@ -439,4 +439,139 @@ describe("Vault", () => {
       })
     })
   })
+
+  describe("onBalanceIncreased", () => {
+    const depositor1 = "0x30c371E0651B2Ff6062158ca1D95b07C7531c719"
+    const depositor2 = "0xb3464806d680722dBc678996F1670D19A42eA3e9"
+    const depositor3 = "0x6B9925e04bc46569d1F7362eD7f11539234f0aEc"
+
+    const depositedAmount1 = to1e18(19)
+    const depositedAmount2 = to1e18(11)
+    const depositedAmount3 = to1e18(301)
+
+    const totalDepositedAmount = to1e18(331) // 19 + 11 + 301
+
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the Bank", () => {
+      it("should revert", async () => {
+        await expect(
+          application
+            .connect(bridge)
+            .onBalanceIncreased([depositor1], [depositedAmount1])
+        ).to.be.revertedWith("Caller is not the Bank")
+      })
+    })
+
+    context("when called with no depositors", () => {
+      it("should revert", async () => {
+        await expect(
+          bank
+            .connect(bridge)
+            .increaseBalanceAndCall(
+              application.address,
+              totalDepositedAmount,
+              [],
+              []
+            )
+        ).to.be.revertedWith("No depositors specified")
+      })
+    })
+
+    context(
+      "when depositors array has different length than amounts array",
+      () => {
+        it("should revert", async () => {
+          await expect(
+            bank
+              .connect(bridge)
+              .increaseBalanceAndCall(
+                application.address,
+                depositedAmount1,
+                [depositor1, depositor2],
+                [depositedAmount1]
+              )
+          ).to.be.reverted
+        })
+      }
+    )
+
+    context("with single depositor", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bank
+          .connect(bridge)
+          .increaseBalanceAndCall(
+            application.address,
+            depositedAmount1,
+            [depositor1],
+            [depositedAmount1]
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should mint TBTC", async () => {
+        expect(await tbtc.balanceOf(depositor1)).to.equal(depositedAmount1)
+        expect(await tbtc.totalSupply()).to.equal(depositedAmount1)
+      })
+
+      it("should emit Minted event", async () => {
+        await expect(tx)
+          .to.emit(application, "Minted")
+          .withArgs(depositor1, depositedAmount1)
+      })
+    })
+
+    context("with multiple depositors", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bank
+          .connect(bridge)
+          .increaseBalanceAndCall(
+            application.address,
+            totalDepositedAmount,
+            [depositor1, depositor2, depositor3],
+            [depositedAmount1, depositedAmount2, depositedAmount3]
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should mint TBTC", async () => {
+        expect(await tbtc.balanceOf(depositor1)).to.equal(depositedAmount1)
+        expect(await tbtc.balanceOf(depositor2)).to.equal(depositedAmount2)
+        expect(await tbtc.balanceOf(depositor3)).to.equal(depositedAmount3)
+        expect(await tbtc.totalSupply()).to.equal(totalDepositedAmount)
+      })
+
+      it("should emit Minted events", async () => {
+        await expect(tx)
+          .to.emit(application, "Minted")
+          .withArgs(depositor1, depositedAmount1)
+        await expect(tx)
+          .to.emit(application, "Minted")
+          .withArgs(depositor2, depositedAmount2)
+        await expect(tx)
+          .to.emit(application, "Minted")
+          .withArgs(depositor3, depositedAmount3)
+      })
+    })
+  })
 })

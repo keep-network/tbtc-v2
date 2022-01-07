@@ -16,6 +16,7 @@
 pragma solidity 0.8.4;
 
 import "../bank/Bank.sol";
+import "../bank/IVault.sol";
 import "../token/TBTC.sol";
 
 /// @title TBTC application vault
@@ -26,13 +27,18 @@ import "../token/TBTC.sol";
 ///         Bank.
 /// @dev Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
-contract Vault {
+contract Vault is IVault {
     Bank public bank;
     TBTC public tbtcToken;
 
     event Minted(address indexed to, uint256 amount);
 
     event Redeemed(address indexed from, uint256 amount);
+
+    modifier onlyBank() {
+        require(msg.sender == address(bank), "Caller is not the Bank");
+        _;
+    }
 
     constructor(Bank _bank, TBTC _tbtcToken) {
         require(
@@ -55,7 +61,29 @@ contract Vault {
     ///      for at least `amount`.
     /// @param amount Amount of TBTC to mint
     function mint(uint256 amount) external {
-        _mint(msg.sender, amount);
+        address minter = msg.sender;
+        require(
+            bank.balanceOf(minter) >= amount,
+            "Amount exceeds balance in the bank"
+        );
+        bank.transferBalanceFrom(minter, address(this), amount);
+        _mint(minter, amount);
+    }
+
+    /// @notice Mints the same amount of TBTC as the deposited amount for each
+    ///         depositor in the array. Can only be called by the Bank after the
+    ///         Bridge swept deposits and Bank increased balance for the
+    ///         application.
+    /// @dev Fails if the lenght of `depositors` and `depositedAmounts`
+    ///      arrays is not the same. Fails if `depositors` array is empty.
+    function onBalanceIncreased(
+        address[] calldata depositors,
+        uint256[] calldata depositedAmounts
+    ) external override onlyBank {
+        require(depositors.length != 0, "No depositors specified");
+        for (uint256 i = 0; i < depositors.length; i++) {
+            _mint(depositors[i], depositedAmounts[i]);
+        }
     }
 
     /// @notice Burns `amount` of TBTC from the caller's account and transfers
@@ -87,12 +115,7 @@ contract Vault {
     }
 
     function _mint(address minter, uint256 amount) internal {
-        require(
-            bank.balanceOf(minter) >= amount,
-            "Amount exceeds balance in the bank"
-        );
         emit Minted(minter, amount);
-        bank.transferBalanceFrom(minter, address(this), amount);
         tbtcToken.mint(minter, amount);
     }
 
