@@ -14,29 +14,29 @@ describe("Bridge", () => {
 
   describe("revealDeposit", () => {
     // Data of a proper P2SH deposit funding transaction. Little-endian hash is:
-    // 0xc6d5e443a55db477fae3cdcc371c0e825bda82864410a43e5386f689a9aab312
+    // 0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2
     const P2SHFundingTx = {
       version: "0x01000000",
       inputVector:
         "0x018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56b20d" +
         "c2b952f0100000000ffffffff",
       outputVector:
-        "0x02102700000000000017a9146ade1c799a3e5a59678e776f21be14d66dc" +
-        "15ed8877ed73b00000000001600147ac2d9378a1c47e589dfb8095ca95ed2" +
+        "0x02102700000000000017a9142c1444d23936c57bdd8b3e67e5938a5440c" +
+        "da455877ed73b00000000001600147ac2d9378a1c47e589dfb8095ca95ed2" +
         "140d2726",
       locktime: "0x00000000",
     }
 
     // Data of a proper P2WSH deposit funding transaction. Little-endian hash is:
-    // 0xe2cac89528cb4f145633823d9e5531640617bebc755082bd63ad82a15fc71d39
+    // 0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7
     const P2WSHFundingTx = {
       version: "0x01000000",
       inputVector:
         "0x018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56b20d" +
         "c2b952f0100000000ffffffff",
       outputVector:
-        "0x021027000000000000220020835d670ed1c807810fcf0c50ded64c3a0a8" +
-        "689af8dadf79b1ddcf3563aceaf2810d73b00000000001600147ac2d9378a" +
+        "0x02102700000000000022002058afcec524e78c289a03df1ca88e29a664b" +
+        "d06481cfcd71101ccf7d041ed3b9110d73b00000000001600147ac2d9378a" +
         "1c47e589dfb8095ca95ed2140d2726",
       locktime: "0x00000000",
     }
@@ -47,10 +47,10 @@ describe("Bridge", () => {
       fundingOutputIndex: 0,
       depositor: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
       blindingFactor: "0xf9f0c90d00039523",
-      walletPubKey:
-        "0x03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-      refundPubKey:
-        "0x0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
+      // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+      walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+      // HASH160 of 0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9.
+      refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
       refundLocktime: "0x60bcea61",
       vault: "0x594cfd89700040163727828AE20B52099C58F02C",
     }
@@ -69,7 +69,7 @@ describe("Bridge", () => {
             const depositKey = ethers.utils.solidityKeccak256(
               ["bytes32", "uint8"],
               [
-                "0xc6d5e443a55db477fae3cdcc371c0e825bda82864410a43e5386f689a9aab312",
+                "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
                 reveal.fundingOutputIndex,
               ]
             )
@@ -98,12 +98,12 @@ describe("Bridge", () => {
             await expect(tx)
               .to.emit(bridge, "DepositRevealed")
               .withArgs(
-                "0xc6d5e443a55db477fae3cdcc371c0e825bda82864410a43e5386f689a9aab312",
+                "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
                 0,
                 "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                 "0xf9f0c90d00039523",
-                "0x03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-                "0x0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
+                "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                "0x28e081f285138ccbe389c1eb8985716230129f89",
                 "0x60bcea61"
               )
           })
@@ -150,7 +150,7 @@ describe("Bridge", () => {
             const depositKey = ethers.utils.solidityKeccak256(
               ["bytes32", "uint8"],
               [
-                "0xe2cac89528cb4f145633823d9e5531640617bebc755082bd63ad82a15fc71d39",
+                "0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7",
                 reveal.fundingOutputIndex,
               ]
             )
@@ -179,12 +179,12 @@ describe("Bridge", () => {
             await expect(tx)
               .to.emit(bridge, "DepositRevealed")
               .withArgs(
-                "0xe2cac89528cb4f145633823d9e5531640617bebc755082bd63ad82a15fc71d39",
+                "0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7",
                 0,
                 "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                 "0xf9f0c90d00039523",
-                "0x03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-                "0x0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
+                "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                "0x28e081f285138ccbe389c1eb8985716230129f89",
                 "0x60bcea61"
               )
           })

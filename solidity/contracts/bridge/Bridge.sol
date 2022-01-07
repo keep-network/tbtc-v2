@@ -55,12 +55,12 @@ contract Bridge {
         // as this factor is not interpreted as uint.
         bytes8 blindingFactor;
         // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
-        // of the deposit's wallet.
-        bytes walletPubKey;
+        // of the deposit's wallet hashed in the HASH160 Bitcoin opcode style.
+        bytes20 walletPubKeyHash;
         // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
         // that can be used to make the deposit refund after the refund
-        // locktime passes.
-        bytes refundPubKey;
+        // locktime passes. Hashed in the HASH160 Bitcoin opcode style.
+        bytes20 refundPubKeyHash;
         // The refund locktime (4-byte LE). Interpreted according to locktime
         // parsing rules described in:
         // https://developer.bitcoin.org/devguide/transactions.html#locktime-and-sequence-number
@@ -97,8 +97,8 @@ contract Bridge {
         uint8 fundingOutputIndex,
         address depositor,
         bytes8 blindingFactor,
-        bytes walletPubKey,
-        bytes refundPubKey,
+        bytes20 walletPubKeyHash,
+        bytes20 refundPubKeyHash,
         bytes4 refundLocktime
     );
 
@@ -120,10 +120,10 @@ contract Bridge {
     ///        P2(W)SH BTC deposit transaction,
     ///      - `reveal.blindingFactor` must be the blinding factor used in the
     ///        P2(W)SH BTC deposit transaction,
-    ///      - `reveal.walletPubKey` must be the wallet pub key used in the
-    ///        P2(W)SH BTC deposit transaction,
-    ///      - `reveal.refundPubKey` must be the refund pub key used in the
-    ///        P2(W)SH BTC deposit transaction,
+    ///      - `reveal.walletPubKeyHash` must be the wallet pub key hash used in
+    ///        the P2(W)SH BTC deposit transaction,
+    ///      - `reveal.refundPubKeyHash` must be the refund pub key hash used in
+    ///        the P2(W)SH BTC deposit transaction,
     ///      - `reveal.refundLocktime` must be the refund locktime used in the
     ///        P2(W)SH BTC deposit transaction,
     ///      - BTC deposit for the given `fundingTxHash`, `fundingOutputIndex`
@@ -146,16 +146,16 @@ contract Bridge {
                 hex"75", // OP_DROP
                 hex"76", // OP_DUP
                 hex"a9", // OP_HASH160
-                hex"21", // Byte length of a compressed Bitcoin public key.
-                reveal.walletPubKey,
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.walletPubKeyHash,
                 hex"87", // OP_EQUAL
                 hex"63", // OP_IF
                 hex"ac", // OP_CHECKSIG
                 hex"67", // OP_ELSE
                 hex"76", // OP_DUP
                 hex"a9", // OP_HASH160
-                hex"21", // Byte length of a compressed Bitcoin public key.
-                reveal.refundPubKey,
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.refundPubKeyHash,
                 hex"88", // OP_EQUALVERIFY
                 hex"04", // Byte length of refund locktime value.
                 reveal.refundLocktime,
@@ -244,8 +244,8 @@ contract Bridge {
             reveal.fundingOutputIndex,
             reveal.depositor,
             reveal.blindingFactor,
-            reveal.walletPubKey,
-            reveal.refundPubKey,
+            reveal.walletPubKeyHash,
+            reveal.refundPubKeyHash,
             reveal.refundLocktime
         );
     }

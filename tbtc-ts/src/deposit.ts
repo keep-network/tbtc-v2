@@ -1,6 +1,8 @@
 // @ts-ignore
 import bcoin from "bcoin"
 // @ts-ignore
+import hash160 from "bcrypto/lib/hash160"
+// @ts-ignore
 import hash256 from "bcrypto/lib/hash256"
 // @ts-ignore
 import { opcodes } from "bcoin/lib/script/common"
@@ -186,14 +188,14 @@ export async function createDepositScript(
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(signingGroupPublicKey, "hex"))
+  script.pushData(hash160.digest(Buffer.from(signingGroupPublicKey, "hex")))
   script.pushOp(opcodes.OP_EQUAL)
   script.pushOp(opcodes.OP_IF)
   script.pushOp(opcodes.OP_CHECKSIG)
   script.pushOp(opcodes.OP_ELSE)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(refundPublicKey, "hex"))
+  script.pushData(hash160.digest(Buffer.from(refundPublicKey, "hex")))
   script.pushOp(opcodes.OP_EQUALVERIFY)
   script.pushData(
     // Bitcoin locktime is interpreted as little-endian integer so we must
