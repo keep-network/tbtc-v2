@@ -3,7 +3,7 @@ import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 
 import { ContractTransaction } from "ethers"
-import type { Bank, TBTC, Application } from "../../typechain"
+import type { Bank, TBTC, Vault } from "../../typechain"
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
@@ -23,24 +23,24 @@ const fixture = async () => {
   const tbtc = await TBTC.deploy()
   await tbtc.deployed()
 
-  const Application = await ethers.getContractFactory("Application")
-  const application = await Application.deploy(bank.address, tbtc.address)
-  await application.deployed()
+  const Vault = await ethers.getContractFactory("Vault")
+  const vault = await Vault.deploy(bank.address, tbtc.address)
+  await vault.deployed()
 
-  await tbtc.connect(deployer).transferOwnership(application.address)
+  await tbtc.connect(deployer).transferOwnership(vault.address)
 
   return {
     bridge,
     bank,
-    application,
+    vault,
     tbtc,
   }
 }
 
-describe("Application", () => {
+describe("Vault", () => {
   let bridge: SignerWithAddress
   let bank: Bank
-  let application: Application
+  let vault: Vault
   let tbtc: TBTC
 
   const initialBalance = to1e18(100)
@@ -50,7 +50,7 @@ describe("Application", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ bridge, bank, application, tbtc } = await waffle.loadFixture(fixture))
+    ;({ bridge, bank, vault, tbtc } = await waffle.loadFixture(fixture))
 
     const accounts = await getUnnamedAccounts()
     account1 = await ethers.getSigner(accounts[0])
@@ -61,38 +61,38 @@ describe("Application", () => {
 
     await bank
       .connect(account1)
-      .approveBalance(application.address, initialBalance)
+      .approveBalance(vault.address, initialBalance)
     await bank
       .connect(account2)
-      .approveBalance(application.address, initialBalance)
+      .approveBalance(vault.address, initialBalance)
   })
 
   describe("constructor", () => {
     context("when called with a 0-address bank", () => {
       it("should revert", async () => {
-        const Application = await ethers.getContractFactory("Application")
+        const Vault = await ethers.getContractFactory("Vault")
         await expect(
-          Application.deploy(ZERO_ADDRESS, tbtc.address)
+          Vault.deploy(ZERO_ADDRESS, tbtc.address)
         ).to.be.revertedWith("Bank can not be the zero address")
       })
     })
 
     context("when called with a 0-address TBTC token", () => {
       it("should revert", async () => {
-        const Application = await ethers.getContractFactory("Application")
+        const Vault = await ethers.getContractFactory("Vault")
         await expect(
-          Application.deploy(bank.address, ZERO_ADDRESS)
+          Vault.deploy(bank.address, ZERO_ADDRESS)
         ).to.be.revertedWith("TBTC token can not be the zero address")
       })
     })
 
     context("when called with correct parameters", () => {
       it("should set the Bank field", async () => {
-        expect(await application.bank()).to.equal(bank.address)
+        expect(await vault.bank()).to.equal(bank.address)
       })
 
       it("should set the TBTC token field", async () => {
-        expect(await application.tbtcToken()).to.equal(tbtc.address)
+        expect(await vault.tbtcToken()).to.equal(tbtc.address)
       })
     })
   })
@@ -103,7 +103,7 @@ describe("Application", () => {
 
       before(async () => {
         await createSnapshot()
-        await bank.connect(account1).approveBalance(application.address, amount)
+        await bank.connect(account1).approveBalance(vault.address, amount)
       })
 
       after(async () => {
@@ -112,7 +112,7 @@ describe("Application", () => {
 
       it("should revert", async () => {
         await expect(
-          application.connect(account1).mint(amount)
+          vault.connect(account1).mint(amount)
         ).to.be.revertedWith("Amount exceeds balance in the bank")
       })
     })
@@ -125,17 +125,17 @@ describe("Application", () => {
       before(async () => {
         await createSnapshot()
 
-        transactions.push(await application.connect(account1).mint(to1e18(3)))
-        transactions.push(await application.connect(account1).mint(to1e18(1)))
-        transactions.push(await application.connect(account1).mint(to1e18(9)))
+        transactions.push(await vault.connect(account1).mint(to1e18(3)))
+        transactions.push(await vault.connect(account1).mint(to1e18(1)))
+        transactions.push(await vault.connect(account1).mint(to1e18(9)))
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should transfer balance to the application", async () => {
-        expect(await bank.balanceOf(application.address)).to.equal(amount)
+      it("should transfer balance to the vault", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(amount)
         expect(await bank.balanceOf(account1.address)).to.equal(
           initialBalance.sub(amount)
         )
@@ -148,13 +148,13 @@ describe("Application", () => {
 
       it("should emit Minted event", async () => {
         await expect(transactions[0])
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(account1.address, to1e18(3))
         await expect(transactions[1])
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(account1.address, to1e18(1))
         await expect(transactions[2])
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(account1.address, to1e18(9))
       })
     })
@@ -168,19 +168,19 @@ describe("Application", () => {
       before(async () => {
         await createSnapshot()
 
-        transactions.push(await application.connect(account1).mint(to1e18(3)))
-        transactions.push(await application.connect(account2).mint(to1e18(1)))
-        transactions.push(await application.connect(account1).mint(to1e18(1)))
-        transactions.push(await application.connect(account1).mint(to1e18(9)))
-        transactions.push(await application.connect(account2).mint(to1e18(2)))
+        transactions.push(await vault.connect(account1).mint(to1e18(3)))
+        transactions.push(await vault.connect(account2).mint(to1e18(1)))
+        transactions.push(await vault.connect(account1).mint(to1e18(1)))
+        transactions.push(await vault.connect(account1).mint(to1e18(9)))
+        transactions.push(await vault.connect(account2).mint(to1e18(2)))
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should transfer balances to the application", async () => {
-        expect(await bank.balanceOf(application.address)).to.equal(
+      it("should transfer balances to the vault", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(
           amount1.add(amount2)
         )
         expect(await bank.balanceOf(account1.address)).to.equal(
@@ -199,19 +199,19 @@ describe("Application", () => {
 
       it("should emit Minted event", async () => {
         await expect(transactions[0])
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(account1.address, to1e18(3))
         await expect(transactions[1])
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(account2.address, to1e18(1))
         await expect(transactions[2])
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(account1.address, to1e18(1))
         await expect(transactions[3])
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(account1.address, to1e18(9))
         await expect(transactions[4])
-          .to.emit(application, "Minted")
+          .to.emit(vault, "Minted")
           .withArgs(account2.address, to1e18(2))
       })
     })
@@ -223,7 +223,7 @@ describe("Application", () => {
       before(async () => {
         await createSnapshot()
 
-        await tbtc.connect(account1).approve(application.address, amount)
+        await tbtc.connect(account1).approve(vault.address, amount)
       })
 
       after(async () => {
@@ -232,7 +232,7 @@ describe("Application", () => {
 
       it("should revert", async () => {
         await expect(
-          application.connect(account1).redeem(to1e18(1))
+          vault.connect(account1).redeem(to1e18(1))
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
     })
@@ -244,10 +244,10 @@ describe("Application", () => {
       before(async () => {
         await createSnapshot()
 
-        await application.connect(account1).mint(mintedAmount)
+        await vault.connect(account1).mint(mintedAmount)
         await tbtc
           .connect(account1)
-          .approve(application.address, redeemedAmount)
+          .approve(vault.address, redeemedAmount)
       })
 
       after(async () => {
@@ -256,7 +256,7 @@ describe("Application", () => {
 
       it("should revert", async () => {
         await expect(
-          application.connect(account1).redeem(redeemedAmount)
+          vault.connect(account1).redeem(redeemedAmount)
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
     })
@@ -271,13 +271,13 @@ describe("Application", () => {
       before(async () => {
         await createSnapshot()
 
-        await application.connect(account1).mint(mintedAmount)
+        await vault.connect(account1).mint(mintedAmount)
         await tbtc
           .connect(account1)
-          .approve(application.address, redeemedAmount)
-        transactions.push(await application.connect(account1).redeem(to1e18(1)))
-        transactions.push(await application.connect(account1).redeem(to1e18(3)))
-        transactions.push(await application.connect(account1).redeem(to1e18(8)))
+          .approve(vault.address, redeemedAmount)
+        transactions.push(await vault.connect(account1).redeem(to1e18(1)))
+        transactions.push(await vault.connect(account1).redeem(to1e18(3)))
+        transactions.push(await vault.connect(account1).redeem(to1e18(8)))
       })
 
       after(async () => {
@@ -285,7 +285,7 @@ describe("Application", () => {
       })
 
       it("should transfer balance to the redeemer", async () => {
-        expect(await bank.balanceOf(application.address)).to.equal(
+        expect(await bank.balanceOf(vault.address)).to.equal(
           notRedeemedAmount
         )
         expect(await bank.balanceOf(account1.address)).to.equal(
@@ -302,13 +302,13 @@ describe("Application", () => {
 
       it("should emit Redeemed events", async () => {
         await expect(transactions[0])
-          .to.emit(application, "Redeemed")
+          .to.emit(vault, "Redeemed")
           .withArgs(account1.address, to1e18(1))
         await expect(transactions[1])
-          .to.emit(application, "Redeemed")
+          .to.emit(vault, "Redeemed")
           .withArgs(account1.address, to1e18(3))
         await expect(transactions[2])
-          .to.emit(application, "Redeemed")
+          .to.emit(vault, "Redeemed")
           .withArgs(account1.address, to1e18(8))
       })
     })
@@ -327,22 +327,22 @@ describe("Application", () => {
       before(async () => {
         await createSnapshot()
 
-        await application.connect(account1).mint(mintedAmount1)
-        await application.connect(account2).mint(mintedAmount2)
+        await vault.connect(account1).mint(mintedAmount1)
+        await vault.connect(account2).mint(mintedAmount2)
         await tbtc
           .connect(account1)
-          .approve(application.address, redeemedAmount1)
+          .approve(vault.address, redeemedAmount1)
         await tbtc
           .connect(account2)
-          .approve(application.address, redeemedAmount2)
-        transactions.push(await application.connect(account1).redeem(to1e18(1)))
+          .approve(vault.address, redeemedAmount2)
+        transactions.push(await vault.connect(account1).redeem(to1e18(1)))
         transactions.push(
-          await application.connect(account2).redeem(to1e18(20))
+          await vault.connect(account2).redeem(to1e18(20))
         )
-        transactions.push(await application.connect(account1).redeem(to1e18(3)))
-        transactions.push(await application.connect(account1).redeem(to1e18(8)))
+        transactions.push(await vault.connect(account1).redeem(to1e18(3)))
+        transactions.push(await vault.connect(account1).redeem(to1e18(8)))
         transactions.push(
-          await application.connect(account2).redeem(to1e18(10))
+          await vault.connect(account2).redeem(to1e18(10))
         )
       })
 
@@ -351,7 +351,7 @@ describe("Application", () => {
       })
 
       it("should transfer balances to redeemers", async () => {
-        expect(await bank.balanceOf(application.address)).to.equal(
+        expect(await bank.balanceOf(vault.address)).to.equal(
           notRedeemedAmount1.add(notRedeemedAmount2)
         )
         expect(await bank.balanceOf(account1.address)).to.equal(
@@ -376,19 +376,19 @@ describe("Application", () => {
 
       it("should emit Redeemed events", async () => {
         await expect(transactions[0])
-          .to.emit(application, "Redeemed")
+          .to.emit(vault, "Redeemed")
           .withArgs(account1.address, to1e18(1))
         await expect(transactions[1])
-          .to.emit(application, "Redeemed")
+          .to.emit(vault, "Redeemed")
           .withArgs(account2.address, to1e18(20))
         await expect(transactions[2])
-          .to.emit(application, "Redeemed")
+          .to.emit(vault, "Redeemed")
           .withArgs(account1.address, to1e18(3))
         await expect(transactions[3])
-          .to.emit(application, "Redeemed")
+          .to.emit(vault, "Redeemed")
           .withArgs(account1.address, to1e18(8))
         await expect(transactions[4])
-          .to.emit(application, "Redeemed")
+          .to.emit(vault, "Redeemed")
           .withArgs(account2.address, to1e18(10))
       })
     })
@@ -398,7 +398,7 @@ describe("Application", () => {
     context("when called not for TBTC token", () => {
       it("should revert", async () => {
         await expect(
-          application
+          vault
             .connect(account1)
             .receiveApproval(account1.address, to1e18(1), account1.address, [])
         ).to.be.revertedWith("Token is not TBTC")
@@ -408,7 +408,7 @@ describe("Application", () => {
     context("when called directly", () => {
       it("should revert", async () => {
         await expect(
-          application
+          vault
             .connect(account1)
             .receiveApproval(account1.address, to1e18(1), tbtc.address, [])
         ).to.be.revertedWith("Only TBTC caller allowed")
@@ -425,13 +425,13 @@ describe("Application", () => {
       before(async () => {
         await createSnapshot()
 
-        await application.connect(account1).mint(mintedAmount)
+        await vault.connect(account1).mint(mintedAmount)
         await tbtc
           .connect(account1)
-          .approve(application.address, redeemedAmount)
+          .approve(vault.address, redeemedAmount)
         tx = await tbtc
           .connect(account1)
-          .approveAndCall(application.address, redeemedAmount, [])
+          .approveAndCall(vault.address, redeemedAmount, [])
       })
 
       after(async () => {
@@ -439,7 +439,7 @@ describe("Application", () => {
       })
 
       it("should transfer balance to the redeemer", async () => {
-        expect(await bank.balanceOf(application.address)).to.equal(
+        expect(await bank.balanceOf(vault.address)).to.equal(
           notRedeemedAmount
         )
         expect(await bank.balanceOf(account1.address)).to.equal(
@@ -456,7 +456,7 @@ describe("Application", () => {
 
       it("should emit Redeemed event", async () => {
         await expect(tx)
-          .to.emit(application, "Redeemed")
+          .to.emit(vault, "Redeemed")
           .withArgs(account1.address, redeemedAmount)
       })
     })
