@@ -59,12 +59,8 @@ describe("Vault", () => {
     await bank.connect(bridge).increaseBalance(account1.address, initialBalance)
     await bank.connect(bridge).increaseBalance(account2.address, initialBalance)
 
-    await bank
-      .connect(account1)
-      .approveBalance(vault.address, initialBalance)
-    await bank
-      .connect(account2)
-      .approveBalance(vault.address, initialBalance)
+    await bank.connect(account1).approveBalance(vault.address, initialBalance)
+    await bank.connect(account2).approveBalance(vault.address, initialBalance)
   })
 
   describe("constructor", () => {
@@ -111,9 +107,9 @@ describe("Vault", () => {
       })
 
       it("should revert", async () => {
-        await expect(
-          vault.connect(account1).mint(amount)
-        ).to.be.revertedWith("Amount exceeds balance in the bank")
+        await expect(vault.connect(account1).mint(amount)).to.be.revertedWith(
+          "Amount exceeds balance in the bank"
+        )
       })
     })
 
@@ -245,9 +241,7 @@ describe("Vault", () => {
         await createSnapshot()
 
         await vault.connect(account1).mint(mintedAmount)
-        await tbtc
-          .connect(account1)
-          .approve(vault.address, redeemedAmount)
+        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
       })
 
       after(async () => {
@@ -272,9 +266,7 @@ describe("Vault", () => {
         await createSnapshot()
 
         await vault.connect(account1).mint(mintedAmount)
-        await tbtc
-          .connect(account1)
-          .approve(vault.address, redeemedAmount)
+        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
         transactions.push(await vault.connect(account1).redeem(to1e18(1)))
         transactions.push(await vault.connect(account1).redeem(to1e18(3)))
         transactions.push(await vault.connect(account1).redeem(to1e18(8)))
@@ -285,9 +277,7 @@ describe("Vault", () => {
       })
 
       it("should transfer balance to the redeemer", async () => {
-        expect(await bank.balanceOf(vault.address)).to.equal(
-          notRedeemedAmount
-        )
+        expect(await bank.balanceOf(vault.address)).to.equal(notRedeemedAmount)
         expect(await bank.balanceOf(account1.address)).to.equal(
           initialBalance.sub(notRedeemedAmount)
         )
@@ -329,21 +319,13 @@ describe("Vault", () => {
 
         await vault.connect(account1).mint(mintedAmount1)
         await vault.connect(account2).mint(mintedAmount2)
-        await tbtc
-          .connect(account1)
-          .approve(vault.address, redeemedAmount1)
-        await tbtc
-          .connect(account2)
-          .approve(vault.address, redeemedAmount2)
+        await tbtc.connect(account1).approve(vault.address, redeemedAmount1)
+        await tbtc.connect(account2).approve(vault.address, redeemedAmount2)
         transactions.push(await vault.connect(account1).redeem(to1e18(1)))
-        transactions.push(
-          await vault.connect(account2).redeem(to1e18(20))
-        )
+        transactions.push(await vault.connect(account2).redeem(to1e18(20)))
         transactions.push(await vault.connect(account1).redeem(to1e18(3)))
         transactions.push(await vault.connect(account1).redeem(to1e18(8)))
-        transactions.push(
-          await vault.connect(account2).redeem(to1e18(10))
-        )
+        transactions.push(await vault.connect(account2).redeem(to1e18(10)))
       })
 
       after(async () => {
@@ -426,9 +408,7 @@ describe("Vault", () => {
         await createSnapshot()
 
         await vault.connect(account1).mint(mintedAmount)
-        await tbtc
-          .connect(account1)
-          .approve(vault.address, redeemedAmount)
+        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
         tx = await tbtc
           .connect(account1)
           .approveAndCall(vault.address, redeemedAmount, [])
@@ -439,9 +419,7 @@ describe("Vault", () => {
       })
 
       it("should transfer balance to the redeemer", async () => {
-        expect(await bank.balanceOf(vault.address)).to.equal(
-          notRedeemedAmount
-        )
+        expect(await bank.balanceOf(vault.address)).to.equal(notRedeemedAmount)
         expect(await bank.balanceOf(account1.address)).to.equal(
           initialBalance.sub(notRedeemedAmount)
         )
