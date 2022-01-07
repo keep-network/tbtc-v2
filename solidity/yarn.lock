@@ -1822,6 +1822,10 @@
   resolved "https://registry.yarnpkg.com/@summa-tx/bitcoin-spv-sol/-/bitcoin-spv-sol-3.1.0.tgz#a2a5391f4430f7bbd87aa3a0bd403bf87a48b7d9"
   integrity sha512-YIwxTNCTIsL+qgzcMhzQk9f0A7yQ6dimlLj4i3gGhWrnqBIg3ljBxJ/aj9JRQyIdNDoCPmqS2s8ZZIdyM+vaGQ==
 
+"@summa-tx/bitcoin-spv-sol@https://gitpkg.now.sh/keep-network/bitcoin-spv/solidity?solidity/v3.1.0-solidity-0.8":
+  version "3.1.0"
+  resolved "https://gitpkg.now.sh/keep-network/bitcoin-spv/solidity?solidity/v3.1.0-solidity-0.8#fb872682c4357fc662fa6b7f8b83f81d4f63b435"
+
 "@summa-tx/relay-sol@^2.0.2":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@summa-tx/relay-sol/-/relay-sol-2.0.2.tgz#32078cf12c1fb7331cb64391bd90af2eb8827211"

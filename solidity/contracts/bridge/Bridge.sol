@@ -1,7 +1,7 @@
 pragma solidity 0.8.4;
 
-import {BTCUtils} from "./BTCUtils.sol";
-import {BytesLib} from "./BytesLib.sol";
+import {BTCUtils} from "@summa-tx/bitcoin-spv-sol/contracts/BTCUtils.sol";
+import {BytesLib} from "@summa-tx/bitcoin-spv-sol/contracts/BytesLib.sol";
 
 /// @title BTC Bridge
 /// @notice Bridge manages BTC deposit and redemption and is increasing and
