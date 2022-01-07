@@ -196,6 +196,8 @@ contract Bank is Ownable {
     /// @notice Increases balances of the provided `recipients` by the provided
     ///         `amounts`. Can only be called by the Bridge.
     /// @dev This function fails if the lengths of the arrays are not the same.
+    ///      Authorization check is performed in `increaseBalance` called by
+    ///      this function.
     function increaseBalances(
         address[] calldata recipients,
         uint256[] calldata amounts
