@@ -104,12 +104,42 @@ contract Bank is Ownable {
     ///      `transferBalanceFrom` will not reduce an allowance.
     ///      Beware that changing an allowance with this function brings the
     ///      risk that someone may use both the old and the new allowance by
-    ///      unfortunate transaction ordering. One possible solution to mitigate
-    ///      this race condition is to first reduce the spender's allowance to 0
-    ///      and set the desired value afterwards:
-    ///      https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+    ///      unfortunate transaction ordering. Please use
+    ///      `increaseBalanceAllowance` and `decreaseBalanceAllowance` to
+    ///      eliminate the risk.
     function approveBalance(address spender, uint256 amount) external {
         _approveBalance(msg.sender, spender, amount);
+    }
+
+    /// @notice Atomically increases the balance allowance granted to `spender`
+    ///         by the caller by the given `addedValue`.
+    function increaseBalanceAllowance(address spender, uint256 addedValue)
+        external
+    {
+        _approveBalance(
+            msg.sender,
+            spender,
+            allowance[msg.sender][spender] + addedValue
+        );
+    }
+
+    /// @notice Atomically decreases the balance allowance granted to `spender`
+    ///         by the caller by the given `subtractedValue`.
+    function decreaseBalanceAllowance(address spender, uint256 subtractedValue)
+        external
+    {
+        uint256 currentAllowance = allowance[msg.sender][spender];
+        require(
+            currentAllowance >= subtractedValue,
+            "Can not decrease balance allowance below zero"
+        );
+        unchecked {
+            _approveBalance(
+                msg.sender,
+                spender,
+                currentAllowance - subtractedValue
+            );
+        }
     }
 
     /// @notice Moves `amount` of balance from `spender` to `recipient` using the
@@ -131,7 +161,9 @@ contract Bank is Ownable {
                 currentAllowance >= amount,
                 "Transfer amount exceeds allowance"
             );
-            _approveBalance(spender, msg.sender, currentAllowance - amount);
+            unchecked {
+                _approveBalance(spender, msg.sender, currentAllowance - amount);
+            }
         }
         _transferBalance(spender, recipient, amount);
     }
@@ -142,10 +174,14 @@ contract Bank is Ownable {
     ///         from their address. Anyone can submit this signature on the
     ///         user's behalf by calling the permit function, paying gas fees,
     ///         and possibly performing other actions in the same transaction.
-    /// @dev    The deadline argument can be set to `type(uint256).max to create
-    ///         permits that effectively never expire.  If the `amount` is set
-    ///         to `type(uint256).max` then `transferBalanceFrom` will not
-    ///         reduce an allowance.
+    /// @dev The deadline argument can be set to `type(uint256).max to create
+    ///      permits that effectively never expire.  If the `amount` is set
+    ///      to `type(uint256).max` then `transferBalanceFrom` will not
+    ///      reduce an allowance. Beware that changing an allowance with this
+    ///      function brings the risk that someone may use both the old and the
+    ///      new allowance by unfortunate transaction ordering. Please use
+    ///      `increaseBalanceAllowance` and `decreaseBalanceAllowance` to
+    ///      eliminate the risk.
     function permit(
         address owner,
         address spender,
@@ -199,10 +235,23 @@ contract Bank is Ownable {
     function increaseBalances(
         address[] calldata recipients,
         uint256[] calldata amounts
-    ) external {
+    ) external onlyBridge {
+        require(
+            recipients.length == amounts.length,
+            "Arrays must have the same length"
+        );
         for (uint256 i = 0; i < recipients.length; i++) {
-            increaseBalance(recipients[i], amounts[i]);
+            _increaseBalance(recipients[i], amounts[i]);
         }
+    }
+
+    /// @notice Increases balance of the provided `recipient` by the provided
+    ///         `amount`. Can only be called by the Bridge.
+    function increaseBalance(address recipient, uint256 amount)
+        external
+        onlyBridge
+    {
+        _increaseBalance(recipient, amount);
     }
 
     /// @notice Decreases caller's balance by the provided `amount`. There is no
@@ -213,24 +262,11 @@ contract Bank is Ownable {
         emit BalanceDecreased(msg.sender, amount);
     }
 
-    /// @notice Increases balance of the provided `recipient` by the provided
-    ///         `amount`. Can only be called by the Bridge.
-    function increaseBalance(address recipient, uint256 amount)
-        public
-        onlyBridge
-    {
-        require(
-            recipient != address(this),
-            "Can not increase balance for Bank"
-        );
-        balanceOf[recipient] += amount;
-        emit BalanceIncreased(recipient, amount);
-    }
-
     /// @notice Returns hash of EIP712 Domain struct with `TBTC Bank` as
     ///         a signing domain and Bank contract as a verifying contract.
     ///         Used to construct EIP2612 signature provided to `permit`
     ///         function.
+    /* solhint-disable-next-line func-name-mixedcase */
     function DOMAIN_SEPARATOR() public view returns (bytes32) {
         // As explained in EIP-2612, if the DOMAIN_SEPARATOR contains the
         // chainId and is defined at contract deployment instead of
@@ -244,6 +280,15 @@ contract Bank is Ownable {
         } else {
             return buildDomainSeparator();
         }
+    }
+
+    function _increaseBalance(address recipient, uint256 amount) internal {
+        require(
+            recipient != address(this),
+            "Can not increase balance for Bank"
+        );
+        balanceOf[recipient] += amount;
+        emit BalanceIncreased(recipient, amount);
     }
 
     function _transferBalance(
@@ -262,7 +307,7 @@ contract Bank is Ownable {
 
         uint256 spenderBalance = balanceOf[spender];
         require(spenderBalance >= amount, "Transfer amount exceeds balance");
-        balanceOf[spender] = spenderBalance - amount;
+        unchecked {balanceOf[spender] = spenderBalance - amount;}
         balanceOf[recipient] += amount;
         emit BalanceTransferred(spender, recipient, amount);
     }

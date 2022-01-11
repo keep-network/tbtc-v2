@@ -11,14 +11,18 @@
     "lint:fix": "eslint . --ext .js,.ts --fix",
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
     "build": "tsc",
-    "prepare": "yarn run build"
+    "postinstall": "npm rebuild"
   },
   "files": [
     "dist/src/",
     "src/",
-    "LICENSE",
     "README.md"
   ],
+  "dependencies": {
+    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#semver:~2.2.0",
+    "ethers": "^5.5.2",
+    "wif": "2.0.6"
+  },
   "devDependencies": {
     "@keep-network/prettier-config-keep": "github:keep-network/prettier-config-keep",
     "@types/chai": "^4.2.21",
