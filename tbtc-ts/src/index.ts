@@ -8,11 +8,13 @@ import {
   makeDeposit,
   revealDeposit,
 } from "./deposit"
+import { createSweepTransaction, sweepDeposits } from "./sweep"
 import {
   Client as BitcoinClient,
   RawTransaction,
   UnspentTransactionOutput,
 } from "./bitcoin"
+import { BigNumber } from "ethers"
 
 /**
  * TBTC interface.
@@ -90,6 +92,46 @@ export interface TBTC {
 
   // TODO: Implementation and documentation.
   revealDeposit(): Promise<void>
+
+  /**
+   * Creates a Bitcoin P2WPKH sweep transaction.
+   * @param utxos - UTXOs that should be used as transaction inputs.
+   * @param depositData - data on deposits. Each elements corresponds to UTXO. The
+   *                      number of UTXOs and deposit data elements must equal.
+   * @param fee - the value that should be subtracted from the sum of the UTXOs
+   *              values and used as the transaction fee.
+   * @param walletPrivateKey - Bitcoin private key of the wallet.
+   * @returns Bitcoin sweep transaction in raw format.
+   */
+  createSweepTransaction(
+    utxos: (UnspentTransactionOutput & RawTransaction)[],
+    depositData: DepositData[],
+    fee: BigNumber,
+    walletPrivateKey: string
+  ): Promise<RawTransaction>
+
+  /**
+   * Sweeps UTXOs by combining all the provided UTXOs and broadcasting a Bitcoin
+   * P2WPKH sweep transaction.
+   * @dev The caller is responsible for ensuring the provided UTXOs are correctly
+   *      formed, can be spent by the wallet and their combined value is greater
+   *      then the fee.
+   * @param utxos - UTXOs to be combined into one output.
+   * @param depositData - data on deposits. Each elements corresponds to UTXO. The
+   *                      number of UTXOs and deposit data elements must equal.
+   * @param fee - the value that should be subtracted from the sum of the UTXOs
+   *              values and used as the transaction fee.
+   * @param walletPrivateKey - Bitcoin private key of the wallet.
+   * @param bitcoinClient - Bitcoin client used to interact with the network.
+   * @returns Empty promise.
+   */
+  sweepDeposits(
+    utxos: UnspentTransactionOutput[],
+    depositData: DepositData[],
+    fee: BigNumber,
+    walletPrivateKey: string,
+    bitcoinClient: BitcoinClient
+  ): Promise<void>
 }
 
 const tbtc: TBTC = {
@@ -100,6 +142,8 @@ const tbtc: TBTC = {
   createDepositAddress,
   getActiveWalletPublicKey,
   revealDeposit,
+  createSweepTransaction,
+  sweepDeposits,
 }
 
 export default tbtc
