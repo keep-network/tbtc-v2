@@ -104,12 +104,42 @@ contract Bank is Ownable {
     ///      `transferBalanceFrom` will not reduce an allowance.
     ///      Beware that changing an allowance with this function brings the
     ///      risk that someone may use both the old and the new allowance by
-    ///      unfortunate transaction ordering. One possible solution to mitigate
-    ///      this race condition is to first reduce the spender's allowance to 0
-    ///      and set the desired value afterwards:
-    ///      https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+    ///      unfortunate transaction ordering. Please use
+    ///      `increaseBalanceAllowance` and `decreaseBalanceAllowance` to
+    ///      eliminate the risk.
     function approveBalance(address spender, uint256 amount) external {
         _approveBalance(msg.sender, spender, amount);
+    }
+
+    /// @notice Atomically increases the balance allowance granted to `spender`
+    ///         by the caller by the given `addedValue`.
+    function increaseBalanceAllowance(address spender, uint256 addedValue)
+        external
+    {
+        _approveBalance(
+            msg.sender,
+            spender,
+            allowance[msg.sender][spender] + addedValue
+        );
+    }
+
+    /// @notice Atomically decreases the balance allowance granted to `spender`
+    ///         by the caller by the given `subtractedValue`.
+    function decreaseBalanceAllowance(address spender, uint256 subtractedValue)
+        external
+    {
+        uint256 currentAllowance = allowance[msg.sender][spender];
+        require(
+            currentAllowance >= subtractedValue,
+            "Can not decrease balance allowance below zero"
+        );
+        unchecked {
+            _approveBalance(
+                msg.sender,
+                spender,
+                currentAllowance - subtractedValue
+            );
+        }
     }
 
     /// @notice Moves `amount` of balance from `spender` to `recipient` using the
@@ -144,10 +174,14 @@ contract Bank is Ownable {
     ///         from their address. Anyone can submit this signature on the
     ///         user's behalf by calling the permit function, paying gas fees,
     ///         and possibly performing other actions in the same transaction.
-    /// @dev    The deadline argument can be set to `type(uint256).max to create
-    ///         permits that effectively never expire.  If the `amount` is set
-    ///         to `type(uint256).max` then `transferBalanceFrom` will not
-    ///         reduce an allowance.
+    /// @dev The deadline argument can be set to `type(uint256).max to create
+    ///      permits that effectively never expire.  If the `amount` is set
+    ///      to `type(uint256).max` then `transferBalanceFrom` will not
+    ///      reduce an allowance. Beware that changing an allowance with this
+    ///      function brings the risk that someone may use both the old and the
+    ///      new allowance by unfortunate transaction ordering. Please use
+    ///      `increaseBalanceAllowance` and `decreaseBalanceAllowance` to
+    ///      eliminate the risk.
     function permit(
         address owner,
         address spender,
