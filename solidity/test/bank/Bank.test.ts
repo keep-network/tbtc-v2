@@ -397,6 +397,23 @@ describe("Bank", () => {
         )
       })
     })
+
+    context("when the spender has a maximum allowance", () => {
+      before(async () => {
+        await createSnapshot()
+        await bank.connect(owner).approveBalance(spender, MAX_UINT256)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bank.connect(owner).increaseBalanceAllowance(spender, to1e18(1))
+        ).to.be.reverted
+      })
+    })
   })
 
   describe("decreaseBalanceAllowance", () => {
