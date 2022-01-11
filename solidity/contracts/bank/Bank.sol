@@ -131,7 +131,9 @@ contract Bank is Ownable {
                 currentAllowance >= amount,
                 "Transfer amount exceeds allowance"
             );
-            _approveBalance(spender, msg.sender, currentAllowance - amount);
+            unchecked {
+                _approveBalance(spender, msg.sender, currentAllowance - amount);
+            }
         }
         _transferBalance(spender, recipient, amount);
     }
@@ -267,7 +269,7 @@ contract Bank is Ownable {
 
         uint256 spenderBalance = balanceOf[spender];
         require(spenderBalance >= amount, "Transfer amount exceeds balance");
-        balanceOf[spender] = spenderBalance - amount;
+        unchecked {balanceOf[spender] = spenderBalance - amount;}
         balanceOf[recipient] += amount;
         emit BalanceTransferred(spender, recipient, amount);
     }
