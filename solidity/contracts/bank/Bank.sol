@@ -236,6 +236,10 @@ contract Bank is Ownable {
         address[] calldata recipients,
         uint256[] calldata amounts
     ) external onlyBridge {
+        require(
+            recipients.length == amounts.length,
+            "Arrays must have the same length"
+        );
         for (uint256 i = 0; i < recipients.length; i++) {
             _increaseBalance(recipients[i], amounts[i]);
         }

@@ -1169,6 +1169,29 @@ describe("Bank", () => {
         })
       })
 
+      context("when there is more recipients than amounts", () => {
+        it("should revert", async () => {
+          await expect(
+            bank
+              .connect(bridge)
+              .increaseBalances([recipient1, recipient2], [amount1])
+          ).to.be.revertedWith("Arrays must have the same length")
+        })
+      })
+
+      context("when there is more amounts than recipients", () => {
+        it("should revert", async () => {
+          await expect(
+            bank
+              .connect(bridge)
+              .increaseBalances(
+                [recipient1, recipient2],
+                [amount1, amount2, amount3]
+              )
+          ).to.be.revertedWith("Arrays must have the same length")
+        })
+      })
+
       context("when called for a valid recipient", () => {
         let tx: ContractTransaction
 
