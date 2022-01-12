@@ -1250,7 +1250,7 @@ describe("Bank", () => {
       tbtc = await TBTC.deploy()
       await tbtc.deployed()
 
-      const Vault = await ethers.getContractFactory("Vault")
+      const Vault = await ethers.getContractFactory("TBTCVault")
       vault = await Vault.deploy(bank.address, tbtc.address)
       await vault.deployed()
 

@@ -273,7 +273,7 @@ contract Bank is Ownable {
         address vault,
         address[] calldata depositors,
         uint256[] calldata depositedAmounts
-    ) external {
+    ) external onlyBridge {
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < depositedAmounts.length; i++) {
             totalAmount += depositedAmounts[i];
