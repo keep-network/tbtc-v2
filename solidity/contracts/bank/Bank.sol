@@ -17,7 +17,7 @@ pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./IVault.sol";
+import "../vault/IVault.sol";
 
 /// @title Bitcoin Bank
 /// @notice Bank is a central component tracking Bitcoin balances. Balances can

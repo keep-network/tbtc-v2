@@ -15,8 +15,8 @@
 
 pragma solidity 0.8.4;
 
+import "./IVault.sol";
 import "../bank/Bank.sol";
-import "../bank/IVault.sol";
 import "../token/TBTC.sol";
 
 /// @title TBTC application vault
