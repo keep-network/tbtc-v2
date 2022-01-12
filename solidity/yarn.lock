@@ -1429,42 +1429,38 @@
     deepmerge "^4.2.2"
     untildify "^4.0.0"
 
-"@keep-network/keep-core@1.8.0-rc.6":
-  version "1.8.0-rc.6"
-  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.0-rc.6.tgz#a9f6bec312aa8b1bc40f95c8a27c2ba8d09886f7"
-  integrity sha512-hGBwreQA636Gqgd0pIFNhPDSf9qq83MipQftRkGskeNb8TePJu07fJ2Almb9EUrsBG57E0SCo9VpugQCGVnibA==
+"@keep-network/keep-core@1.8.0-dev.5":
+  version "1.8.0-dev.5"
+  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.0-dev.5.tgz#8b4d08ec437f29c94723ee54fcf76456ba5408c3"
+  integrity sha512-QVkpO5X28Vczj/xHezV0z2UuMw8QFaR3C8x/d6+3adedsL3nCxgveIGTUcXSuYpBqfx0v4/xT+9bIK7BwLkGPw==
   dependencies:
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.4.0"
 
-"@keep-network/keep-ecdsa@1.7.0-rc.4":
-  version "1.7.0-rc.4"
-  resolved "https://registry.yarnpkg.com/@keep-network/keep-ecdsa/-/keep-ecdsa-1.7.0-rc.4.tgz#8460527ad22fb42b3c47492bd0cb45305873393e"
-  integrity sha512-87WgfQkfK854oCjW3h8otT3h/B0vM4P/TUBK4TfgJH8knzY8FPnxwemNp+PQN5W60dezfdTahylM/bQvgLkljg==
+"@keep-network/keep-ecdsa@>1.9.0-dev <1.9.0-ropsten":
+  version "1.9.0-dev.0"
+  resolved "https://registry.yarnpkg.com/@keep-network/keep-ecdsa/-/keep-ecdsa-1.9.0-dev.0.tgz#02be0c363099f40006d1ec3ac851e6aab5aede69"
+  integrity sha512-qkm7pEZYWQmkH5ppQz4azijxwV2jzPeeSQktkHw9Fa2w2GGkgfRuHVl8LYaPimtEYrvx5t2m0LAvmI7zlRQ4Lg==
   dependencies:
-    "@keep-network/keep-core" "1.8.0-rc.6"
-    "@keep-network/sortition-pools" ">1.2.0-pre <1.2.0-rc"
+    "@keep-network/keep-core" "1.8.0-dev.5"
+    "@keep-network/sortition-pools" "1.2.0-dev.1"
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
 
-"@keep-network/prettier-config-keep@github:keep-network/prettier-config-keep":
-  version "0.0.1"
-  resolved "https://codeload.github.com/keep-network/prettier-config-keep/tar.gz/a1a333e7ac49928a0f6ed39421906dd1e46ab0f3"
-
-"@keep-network/sortition-pools@>1.2.0-pre <1.2.0-rc":
-  version "1.2.0-pre.6"
-  resolved "https://registry.yarnpkg.com/@keep-network/sortition-pools/-/sortition-pools-1.2.0-pre.6.tgz#d526c0c8cde16bd4f027805b93d993028dbfcf98"
-  integrity sha512-6Tusle8KGZldO8jbFDfxChdgI6hMpTAW4LG+cAkf7jgRR48o6NkUiA7mDoWk/+dlitpHrQpWT1JM4N7aR/4/EQ==
+"@keep-network/sortition-pools@1.2.0-dev.1":
+  version "1.2.0-dev.1"
+  resolved "https://registry.yarnpkg.com/@keep-network/sortition-pools/-/sortition-pools-1.2.0-dev.1.tgz#2ee371f1dd1ff71f6d05c9ddc2a83a4a93ff56b3"
+  integrity sha512-CaOsvxNWHgXRFwPThDn3C/LiCwq9pL8ICLXXkysRSLw1Hx69wLnToaXYuwyXeIEy5pGqe5+288DBIqvJ3T4+jA==
   dependencies:
     "@openzeppelin/contracts" "^2.4.0"
 
-"@keep-network/tbtc@>1.1.2-dev <1.1.2-ropsten":
-  version "1.1.2-rc.3"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc/-/tbtc-1.1.2-rc.3.tgz#6e7c356a1924849cbc77cf5fc740dddc8b97b8e9"
-  integrity sha512-BG8YMqzvsXkjTPi3u3ELAEV2c26PP9rzztkeUBNYwO7CyFATE5eB0o2JFt3K4r/ADyVUBVv1mEi2bePyUX530g==
+"@keep-network/tbtc@>1.1.2-dev <1.1.2-pre":
+  version "1.1.2-dev.0"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc/-/tbtc-1.1.2-dev.0.tgz#52f61f6455406c2d3650d9f14cc3d734fe2addab"
+  integrity sha512-G/JbDht/IgdX8Ety0i0iUl+kB2J2ofiAmNw+HmN/YUN9BYFhhzQqltPtYjS/krBkWzBYmNJmZBFeX/h+q4EJvA==
   dependencies:
     "@celo/contractkit" "^1.0.2"
-    "@keep-network/keep-ecdsa" "1.7.0-rc.4"
+    "@keep-network/keep-ecdsa" ">1.9.0-dev <1.9.0-ropsten"
     "@summa-tx/bitcoin-spv-sol" "^3.1.0"
     "@summa-tx/relay-sol" "^2.0.2"
     openzeppelin-solidity "2.3.0"
@@ -4878,12 +4874,13 @@ eslint-config-google@^0.13.0:
   version "0.3.0"
   resolved "https://codeload.github.com/keep-network/eslint-config-keep/tar.gz/0c27ade54e725f980e971c3d91ea88bab76b2330"
   dependencies:
+    "@keep-network/prettier-config-keep" "github:keep-network/prettier-config-keep"
     eslint-config-google "^0.13.0"
-    eslint-config-prettier "^6.10.0"
+    eslint-config-prettier "^6.15.0"
     eslint-plugin-no-only-tests "^2.3.1"
     eslint-plugin-prettier "^3.1.2"
 
-eslint-config-prettier@^6.15.0:
+eslint-config-prettier@^6.10.0:
   version "6.15.0"
   resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-6.15.0.tgz#7f93f6cb7d45a92f1537a70ecc06366e1ac6fed9"
   integrity sha512-a1+kOYLR8wMGustcgAjdydMsQ2A/2ipRPwRKUmfYaSxc9ZPcrku080Ctl6zrZzZNs/U82MjSv+qKREkoq3bJaw==
