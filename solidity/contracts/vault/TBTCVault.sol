@@ -22,11 +22,11 @@ import "../token/TBTC.sol";
 /// @notice TBTC is a fully Bitcoin-backed ERC-20 token pegged to the price of
 ///         Bitcoin. It facilitates Bitcoin holders to act on the Ethereum
 ///         blockchain and access the decentralized finance (DeFi) ecosystem.
-///         Vault mints and redeems TBTC based on Bitcoin balances in the
+///         TBTC Vault mints and redeems TBTC based on Bitcoin balances in the
 ///         Bank.
-/// @dev Vault is the owner of TBTC token contract and is the only contract
+/// @dev TBTC Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
-contract Vault {
+contract TBTCVault {
     Bank public bank;
     TBTC public tbtcToken;
 
@@ -50,8 +50,8 @@ contract Vault {
     }
 
     /// @notice Transfers the given `amount` of the Bank balance from caller
-    ///         to TBTC vault, and mints `amount` of TBTC to the caller.
-    /// @dev TBTC vault must have an allowance for caller's balance in the Bank
+    ///         to TBTC Vault, and mints `amount` of TBTC to the caller.
+    /// @dev TBTC Vault must have an allowance for caller's balance in the Bank
     ///      for at least `amount`.
     /// @param amount Amount of TBTC to mint
     function mint(uint256 amount) external {
@@ -61,7 +61,7 @@ contract Vault {
     /// @notice Burns `amount` of TBTC from the caller's account and transfers
     ///         `amount` back to the caller's balance in the Bank.
     /// @dev Caller must have at least `amount` of TBTC approved to
-    ///       TBTC vault.
+    ///       TBTC Vault.
     /// @param amount Amount of TBTC to redeem
     function redeem(uint256 amount) external {
         _redeem(msg.sender, amount);

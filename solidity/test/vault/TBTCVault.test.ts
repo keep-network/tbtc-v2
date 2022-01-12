@@ -3,7 +3,7 @@ import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 
 import { ContractTransaction } from "ethers"
-import type { Bank, TBTC, Vault } from "../../typechain"
+import type { Bank, TBTC, TBTCVault } from "../../typechain"
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
@@ -23,8 +23,8 @@ const fixture = async () => {
   const tbtc = await TBTC.deploy()
   await tbtc.deployed()
 
-  const Vault = await ethers.getContractFactory("Vault")
-  const vault = await Vault.deploy(bank.address, tbtc.address)
+  const TBTCVault = await ethers.getContractFactory("TBTCVault")
+  const vault = await TBTCVault.deploy(bank.address, tbtc.address)
   await vault.deployed()
 
   await tbtc.connect(deployer).transferOwnership(vault.address)
@@ -37,10 +37,10 @@ const fixture = async () => {
   }
 }
 
-describe("Vault", () => {
+describe("TBTCVault", () => {
   let bridge: SignerWithAddress
   let bank: Bank
-  let vault: Vault
+  let vault: TBTCVault
   let tbtc: TBTC
 
   const initialBalance = to1e18(100)
@@ -66,18 +66,18 @@ describe("Vault", () => {
   describe("constructor", () => {
     context("when called with a 0-address bank", () => {
       it("should revert", async () => {
-        const Vault = await ethers.getContractFactory("Vault")
+        const TBTCVault = await ethers.getContractFactory("TBTCVault")
         await expect(
-          Vault.deploy(ZERO_ADDRESS, tbtc.address)
+          TBTCVault.deploy(ZERO_ADDRESS, tbtc.address)
         ).to.be.revertedWith("Bank can not be the zero address")
       })
     })
 
     context("when called with a 0-address TBTC token", () => {
       it("should revert", async () => {
-        const Vault = await ethers.getContractFactory("Vault")
+        const TBTCVault = await ethers.getContractFactory("TBTCVault")
         await expect(
-          Vault.deploy(bank.address, ZERO_ADDRESS)
+          TBTCVault.deploy(bank.address, ZERO_ADDRESS)
         ).to.be.revertedWith("TBTC token can not be the zero address")
       })
     })
