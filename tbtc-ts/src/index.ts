@@ -19,7 +19,7 @@ import {
  */
 export interface TBTC {
   /**
-   * Makes a deposit by creating and broadcasting a Bitcoin P2SH
+   * Makes a deposit by creating and broadcasting a Bitcoin P2(W)SH
    * deposit transaction.
    * @param depositData - Details of the deposit.
    * @param depositorPrivateKey - Bitcoin private key of the depositor.
@@ -36,13 +36,13 @@ export interface TBTC {
   ): Promise<void>
 
   /**
-   * Creates a Bitcoin P2SH deposit transaction.
+   * Creates a Bitcoin P2(W)SH deposit transaction.
    * @param depositData - Details of the deposit.
    * @param utxos - UTXOs that should be used as transaction inputs.
    * @param depositorPrivateKey - Bitcoin private key of the depositor.
    * @param witness - If true, a witness (P2WSH) transaction will be created.
    *        Otherwise, a legacy P2SH transaction will be made.
-   * @returns Bitcoin P2SH deposit transaction in raw format.
+   * @returns Bitcoin P2(W)SH deposit transaction in raw format.
    */
   createDepositTransaction(
     depositData: DepositData,
@@ -52,14 +52,14 @@ export interface TBTC {
   ): Promise<RawTransaction>
 
   /**
-   * Creates a Bitcoin locking script for P2SH deposit transaction.
+   * Creates a Bitcoin locking script for P2(W)SH deposit transaction.
    * @param depositData - Details of the deposit.
    * @returns Script as an un-prefixed hex string.
    */
   createDepositScript(depositData: DepositData): Promise<string>
 
   /**
-   * Creates a Bitcoin locking script hash for P2SH deposit transaction.
+   * Creates a Bitcoin locking script hash for P2(W)SH deposit transaction.
    * @param depositData - Details of the deposit.
    * @param witness - If true, a witness script hash will be created.
    *        Otherwise, a legacy script hash will be made.
@@ -71,7 +71,7 @@ export interface TBTC {
   ): Promise<Buffer>
 
   /**
-   * Creates a Bitcoin target address for P2SH deposit transaction.
+   * Creates a Bitcoin target address for P2(W)SH deposit transaction.
    * @param depositData - Details of the deposit.
    * @param network - Network that the address should be created for.
    *        For example, `main` or `testnet`.
