@@ -234,7 +234,8 @@ contract Bank is Ownable {
 
     /// @notice Increases balances of the provided `recipients` by the provided
     ///         `amounts`. Can only be called by the Bridge.
-    /// @dev This function fails if the lengths of the arrays are not the same.
+    /// @dev Requirements:
+    ///       - length of `recipients` and `amounts` must be the same.
     function increaseBalances(
         address[] calldata recipients,
         uint256[] calldata amounts
@@ -263,7 +264,9 @@ contract Bank is Ownable {
     ///         swept by the Bridge. This way, the depositor does not have to
     ///         issue a separate  transaction to the `vault` contract.
     ///         Can be called only by the Bridge.
-    /// @dev The `vault` must implement `IVault` intrface.
+    /// @dev Requirements:
+    ///       - `vault` must implement `IVault` interface,
+    ///       - length of `depositors` and `depositedAmounts` must be the same.
     /// @param vault Address of `IVault` recipient contract
     /// @param depositors Addresses of depositors whose deposits have been swept
     /// @param depositedAmounts Amounts deposited by individual depositors and
@@ -274,6 +277,10 @@ contract Bank is Ownable {
         address[] calldata depositors,
         uint256[] calldata depositedAmounts
     ) external onlyBridge {
+        require(
+            depositors.length == depositedAmounts.length,
+            "Arrays must have the same length"
+        );
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < depositedAmounts.length; i++) {
             totalAmount += depositedAmounts[i];

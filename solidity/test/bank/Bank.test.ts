@@ -1294,6 +1294,40 @@ describe("Bank", () => {
         await restoreSnapshot()
       })
 
+      context(
+        "when depositors array has greater length than deposited amounts array",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bank
+                .connect(bridge)
+                .increaseBalanceAndCall(
+                  vault.address,
+                  [depositor1, depositor2],
+                  [depositedAmount1]
+                )
+            ).to.be.revertedWith("Arrays must have the same length")
+          })
+        }
+      )
+
+      context(
+        "when deposited amounts array has greater length than depositors array",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bank
+                .connect(bridge)
+                .increaseBalanceAndCall(
+                  vault.address,
+                  [depositor1],
+                  [depositedAmount1, depositedAmount2]
+                )
+            ).to.be.revertedWith("Arrays must have the same length")
+          })
+        }
+      )
+
       it("should increase vault's balance", async () => {
         expect(await bank.balanceOf(vault.address)).to.equal(
           totalDepositedAmount

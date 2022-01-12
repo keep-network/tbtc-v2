@@ -477,23 +477,6 @@ describe("TBTCVault", () => {
       })
     })
 
-    context(
-      "when depositors array has different length than amounts array",
-      () => {
-        it("should revert", async () => {
-          await expect(
-            bank
-              .connect(bridge)
-              .increaseBalanceAndCall(
-                vault.address,
-                [depositor1, depositor2],
-                [depositedAmount1]
-              )
-          ).to.be.reverted
-        })
-      }
-    )
-
     context("with single depositor", () => {
       let tx: ContractTransaction
 

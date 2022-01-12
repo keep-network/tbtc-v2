@@ -74,8 +74,8 @@ contract TBTCVault is IVault {
     ///         depositor in the array. Can only be called by the Bank after the
     ///         Bridge swept deposits and Bank increased balance for the
     ///         vault.
-    /// @dev Fails if the lenght of `depositors` and `depositedAmounts`
-    ///      arrays is not the same. Fails if `depositors` array is empty.
+    /// @dev Fails if `depositors` array is empty. Expects the length of
+    ///      `depositors` and `depositedAmounts` is the same.
     function onBalanceIncreased(
         address[] calldata depositors,
         uint256[] calldata depositedAmounts
