@@ -326,8 +326,151 @@ describe("Bank", () => {
         await restoreSnapshot()
       })
 
-      it("should replace the previous approval", async () => {
+      it("should replace the previous allowance", async () => {
         expect(await bank.allowance(owner.address, spender)).to.equal(amount)
+      })
+    })
+  })
+
+  describe("increaseBalanceAllowance", () => {
+    const amount = to1e18(12)
+
+    let owner: SignerWithAddress
+    let spender: string
+
+    before(async () => {
+      await createSnapshot()
+
+      const accounts = await getUnnamedAccounts()
+      owner = await ethers.getSigner(accounts[0])
+      // eslint-disable-next-line prefer-destructuring
+      spender = accounts[1]
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the spender is the zero address", () => {
+      it("should revert", async () => {
+        await expect(
+          bank.connect(owner).increaseBalanceAllowance(ZERO_ADDRESS, amount)
+        ).to.be.revertedWith("Can not approve")
+      })
+    })
+
+    context("when the spender had no approved balance before", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+        tx = await bank.connect(owner).increaseBalanceAllowance(spender, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should approve the requested amount", async () => {
+        expect(await bank.allowance(owner.address, spender)).to.equal(amount)
+      })
+
+      it("should emit the BalanceApproved event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceApproved")
+          .withArgs(owner.address, spender, amount)
+      })
+    })
+
+    context("when the spender had an approved balance before", () => {
+      before(async () => {
+        await createSnapshot()
+        await bank.connect(owner).approveBalance(spender, to1e18(1337))
+        await bank.connect(owner).increaseBalanceAllowance(spender, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should increase the previous allowance", async () => {
+        expect(await bank.allowance(owner.address, spender)).to.equal(
+          to1e18(1337).add(amount)
+        )
+      })
+    })
+
+    context("when the spender has a maximum allowance", () => {
+      before(async () => {
+        await createSnapshot()
+        await bank.connect(owner).approveBalance(spender, MAX_UINT256)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bank.connect(owner).increaseBalanceAllowance(spender, to1e18(1))
+        ).to.be.reverted
+      })
+    })
+  })
+
+  describe("decreaseBalanceAllowance", () => {
+    const approvedAmount = to1e18(99)
+
+    let owner: SignerWithAddress
+    let spender: string
+
+    before(async () => {
+      await createSnapshot()
+
+      const accounts = await getUnnamedAccounts()
+      owner = await ethers.getSigner(accounts[0])
+      // eslint-disable-next-line prefer-destructuring
+      spender = accounts[1]
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the spender is the zero address", () => {
+      it("should revert", async () => {
+        await expect(
+          bank.connect(owner).decreaseBalanceAllowance(ZERO_ADDRESS, to1e18(1))
+        ).to.be.revertedWith("Can not decrease balance allowance below zero")
+      })
+    })
+
+    context("when the spender had no approved balance before", () => {
+      it("should revert", async () => {
+        await expect(
+          bank.connect(owner).decreaseBalanceAllowance(spender, to1e18(1))
+        ).to.be.revertedWith("Can not decrease balance allowance below zero")
+      })
+    })
+
+    context("when the spender had an approved balance before", () => {
+      const decreaseBy = to1e18(3)
+
+      before(async () => {
+        await createSnapshot()
+
+        await bank.connect(owner).approveBalance(spender, approvedAmount)
+        await bank.connect(owner).decreaseBalanceAllowance(spender, decreaseBy)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should decrease the previous allowance", async () => {
+        expect(await bank.allowance(owner.address, spender)).to.equal(
+          approvedAmount.sub(decreaseBy)
+        )
       })
     })
   })
@@ -1025,6 +1168,29 @@ describe("Bank", () => {
                 [amount1, amount2, amount3]
               )
           ).to.be.revertedWith("Can not increase balance for Bank")
+        })
+      })
+
+      context("when there is more recipients than amounts", () => {
+        it("should revert", async () => {
+          await expect(
+            bank
+              .connect(bridge)
+              .increaseBalances([recipient1, recipient2], [amount1])
+          ).to.be.revertedWith("Arrays must have the same length")
+        })
+      })
+
+      context("when there is more amounts than recipients", () => {
+        it("should revert", async () => {
+          await expect(
+            bank
+              .connect(bridge)
+              .increaseBalances(
+                [recipient1, recipient2],
+                [amount1, amount2, amount3]
+              )
+          ).to.be.revertedWith("Arrays must have the same length")
         })
       })
 

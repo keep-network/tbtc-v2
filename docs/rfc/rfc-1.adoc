@@ -66,15 +66,23 @@ A user with a swept account balance can drain their account balance to redeem BT
 
 Governable Parameters:
 
-- `threshold`: The number of signers that can be controlled by the adversary
-  before the key is in danger.
 - `heartbeat`: The number of group members required for a
   <<heartbeat,heartbeat>> to be successful.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
   DKG group formation re-try period.
+
+Non-Governable Parameters:
+
+- `threshold`: The number of signers that can be controlled by the adversary
+  before the key is in danger.
 - `group_size`: The total size of the signing group.
 
 `threshold < heartbeat < dkg < group_size`
+
+*Note*: `threshold` and `group_size` are mission-critial, cornerstone
+parameters for the system, and will be hardcoded into the bridge contract. If
+we want to change these parameters, we will need to upgrade the bridge
+contract.
 
 The total gas cost for sortiton increases linearly with group size by at least
 20k gas per member (though, we think we can get this down to roughly 6k gas per
@@ -207,6 +215,8 @@ Governable Parameters
   will trigger an early sweep on a wallet.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
   be considered for a sweep.
+- `base_sweeping_fee_max`: The highest amount of BTC that operators can
+  initially propose as a fee for miners in a sweeping transaction.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
   tranaction is mined before increasing the fee.
 - `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
@@ -218,11 +228,11 @@ Governable Parameters
   deposits to sweep.
 
 
-The operators sign a transaction that unlocks some of revealed deposits based
-on the <<bitcoin-sweeping-fee,bitcoin sweeping fee>>, combines them into a
-single UTXO with the existing UTXO, and relocks that transactions without a
-30-day refund clause to same wallet.  This has two main effects: it
-consolidates the UTXO set and it disables the refund.
+The operators sign a transaction that unlocks all of the revealed deposits
+above the `dust_threshold`, combines them into a single UTXO with the existing
+UTXO, and relocks that transactions without a 30-day refund clause to same
+wallet.  This has two main effects: it consolidates the UTXO set and it
+disables the refund.
 
 *Caveat*: We only include deposits in batches that have at least
 `sweeping_refund_safety_time` their refund window. This prevents potential
@@ -244,17 +254,6 @@ if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
 first. Any deposit below `dust_threshold` is ignored, both for triggering a
 sweep as well as being included in a sweep.
 
-*Caveat*: Checking to see if enough deposits have accumulated to exceed
-`sweep_max_btc` is complex. Since whether or not we pick a deposit to include
-in a sweep is based on their associated fee and the bitcoin fee market
-conditions, we have to check the going market rate for a bitcoin fee, and then
-do some bin-packing to see which deposits we can allow in. The more deposits,
-the low the per-deposit fee is (because they can share costs). Once we have
-enough deposits to exceed `sweep_max_btc`, we should check the market
-conditions for the BTC fee and then off-chain see which deposits *would be*
-swept if we *were* to sweep. If the sum of those deposits exceeds the
-`sweep_max_btc` parameter, then we should initiate a sweep.
-
 The sweeping transaction will cost some amount of bitcoin based on what miners
 are charging for the bitcoin fee in the current market conditions. The fee is
 split in proportion to the number of UTXOs associated to each depositor. Once
@@ -265,11 +264,10 @@ sweeping_fee_multiplier_increment` and then calculate the new fee: `fee =
 base_fee * fee_multiplier`. We repeat until either the transaction posts or
 `sweeping_fee_multiplier_increment` exceeds `sweeping_fee_max_multiplier`.
 
-*Note*: In terms of bin-packing eligibility, we only include deposits whose
-associated fee is higher than the highest fee we could iterate to given
-`sweeping_fee_max_multiplier` and `base_fee`. We also only include deposits
-whose refund date fits within the `sweeping_refund_safety_time` for the worst
-case with respect to transaction retries for increasing the fee.
+*Note*: We do not allow users to specify a max btc fee. When users deposit,
+they're agreeing to be swept at whatever fee the operators decide is
+appropriate (based on https://blockstream.info/api/fee-estimates). Operators
+cannot pick a starting fee higher than `base_sweeping_fee_max`.
 
 When the transaction clears, and the information has made its way
 over the relay maintainer, then another transaction needs to be created to on
@@ -307,6 +305,113 @@ Combining these ideas, a user would deposit some BTC, reveal their eth address
 and blinding factor, and then request that TBTC gets minted ASAP. Checking the
 dApp, they can see that they should expect TBTC in their provided wallet
 address in 3 hours with no further interaction.
+
+===== How Frequently To Sweep
+
+Governable Parameters
+
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
+  will trigger an early sweep on a wallet.
+
+We've established in the <<sweeping,sweeping>> section that we should sweep
+whenever enough time has passed to exceed the `sweep_period` or whenever enough
+btc has been deposited to exceed `sweep_max_btc`. If we sweep early because a
+lot of btc was deposited, then we don't "push back" our scheduled
+`sweep_period` sweep. Rather, that sweep continues as planned, and if there
+are no deposits with <<bitcoin-sweeping-fee,sweeping fee>> high enough to be
+included in a sweep (maybe because they all got swept in the `sweep_max_btc`
+sweep), then we wait until the next sweep and repeat the process.
+
+*Example*: We have a `sweep_period = 8 hours` and `sweep_max_btc = 10 btc`. At
+13:00, a sweep just occured, and the next is scheduled for 21:00. At 15:00, 13
+btc gets deposited which triggers a sweep due to `sweep_max_btc`. Rather than
+pushing back the next scheduled sweep to 23:00, it remains at 21:00. If by 21:00
+there are any deposits with a high enough <<bitcoin-sweeping-fee,sweeping fee>>
+to be included in a sweep, we do it. Otherwise, we schedule the next sweep for
+05:00 the next day. The process repeats.
+
+Here, we're making the tradeoff between reducing fees (having less frequent
+batches) and increasing reliability from a user experience standpoint. This
+setup allows us to have two active wallets that are always <<staggering,staggered>> from one
+another, so the worst case scenario for the next sweep is always half of
+`sweep_period`.
+
+[[staggering]]
+===== Active Wallet Sweep Staggering
+Governable Parameters
+
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+
+Since the youngest two wallets both sweep deposits based on their
+`sweep_period`, we can improve our user experience by intentionally staggering
+the start time of these period sweeps to be equally spaced apart from each
+other.
+
+Good Example:
+- `sweep_period = 8 hours`
+- `wallet_1` sweeps at 12:00, 20:00, and 04:00
+- `wallet_2` sweeps at 16:00, 00:00, and 08:00
+
+Bad Example:
+- `sweep_period = 8 hours`
+- `wallet_1` sweeps at 12:00, 20:00, and 04:00
+- `wallet_2` sweeps at 13:00, 21:00, and 05:00
+
+In the "Good Example", there are 6 worst case scenarios: a user deposits at
+12:01, 20:01, 4:01, 16:01, 00:01, and 08:01. Those deposits would be swept at
+16:00, 24:00, 8:00, 20:00, 04:00, and 12:00 respectively, and the amount of
+time to wait is 3h59m.
+
+In the "Bad Example", there are 3 worst case scenarios: a user deposits at
+13:01, 21:01, and 05:01. Those deposits would be swept at 20:00, 04:00, and
+12:00 respectively, and the amount of time to wait is 6h59m.
+
+By intentionally offsetting the sweep schedule, we're able to reduce the worst
+case for a deposit significantly!
+
+===== Skipping the Sweeping Line
+
+Governable Parameters
+
+- `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
+  operator for the gas of the sweep and collect their account balance.
+
+Some depositors are not going to want to wait for the next sweep to occur, and
+are willing to pay the entire cost of the sweeping transaction to avoid
+waiting. We can accomodate them with the following flow:
+
+When the make their reveal transaction, they include a piece of information
+that lets us know that they want their deposit swept **right now**. As soon as
+the operators are available, they sweep the btc and an operator posts the
+balance update transaction to the ethereum chain, paying the associated gas
+costs.
+
+We send the account balance to a holding contract locked by the amount
+of ether that the operator had to pay in gas fees, unlockable only by the
+depositor's eth address. Once the depositor has paid the conract, the account
+balance moves to their address, and the operator who originally paid for the
+transaction is reimbursed.
+
+If the depositor does not pay to unlock their account balance within the
+`skip_sweep_timeout`, then the system siezes the balance, mints TBTC, uses it
+to buy back T tokens, and then uses those to reimburse the operator.
+
+==== Fraud Proof
+
+There are only two valid types of transactions for an unswept deposit UTXO:
+
+1) A collection of deposit UTXO's plus the main UTXO for the wallet are the
+inputs are unlocked using the `signingGroupPubkey` and locked under a single
+UTXO using the same `signingGroupPubkey`. This is a normal non-fraudulent sweep.
+
+2) After the 30-day refund time has passed, a particular UTXO is unlocked using
+the `refundPubkey` and then locked with whatever script the refunder wants. This
+is a normal refund.
+
+Any transaction that unlocks a UTXO using the `signingGroupPubkey` and then
+locks it using any other script other than to a single UTXO to any other public
+key than the same `signingGroupPubkey` is fraud.
 
 === Redemption
 
@@ -346,19 +451,15 @@ Governable Parameters:
 - `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
-- `wallet_max_btc`: The amount of BTC a wallet can hold before we trigger the
-  early creation of a new wallet.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
 
-A new wallet is created when either enough time has passed as defined in
-`wallet_creation_period` *AND* the wallet contains at least
-`wallet_min_btc` BTC *OR* the wallet currently contains more BTC than
-`wallet_max_btc`, whichever happens first. To create a new wallet, a group of
-100 operators is selected from the pool of available operators using a process
-called sortition. The probabiliy that a particular operator is chosen is based
-on their stake weight, which in turn is based on the number of `T` tokens they
-have invested in the staking contract.
+A new wallet is created when enough time has passed as defined in
+`wallet_creation_period` *AND* the wallet contains at least `wallet_min_btc`
+btc. To create a new wallet, a group of 100 operators is selected from the pool
+of available operators using a process called sortition. The probability that a
+particular operator is chosen is based on their stake weight, which in turn is
+based on the number of `T` tokens they have invested in the staking contract.
 
 Once the operators have been selected from the sortition pool, they generate a
 51-of-100 ecdsa signing group to handle the bitcoin key material per the
@@ -449,7 +550,8 @@ high enough to withstand a fee increase up to whatever the maximum multiplier is
 == Governable Parameters
 Alphabetized list of Governable Parameters with additional notes.
 
-
+- `base_sweeping_fee_max`: The highest amount of BTC that operators can
+  initially propose as a fee for miners in a sweeping transaction.
 - `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
 - `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
@@ -458,11 +560,12 @@ Alphabetized list of Governable Parameters with additional notes.
   be considered for a sweep.
 - `failed_heartbeat_reward_removal_period`: The amount of time an operator is
   removed from reward eligibility after failing a heartbeat.
-- `group_size`: The total size of the signing group.
 - `heartbeat`: The number of group members required for a
   <<heartbeat,heartbeat>> to be successful.
 - `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
   If set to 40, then the signers sign every 40th block.
+- `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
+  operator for the gas of the sweep and collect their account balance.
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
   will trigger an early sweep on a wallet.
 - `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
@@ -478,13 +581,9 @@ Alphabetized list of Governable Parameters with additional notes.
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
-- `threshold`: The number of signers that can be controlled by the adversary
-  before the key is in danger.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
-- `wallet_max_btc`: The amount of BTC a wallet can hold before we trigger the
-  early creation of a new wallet.
-- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
+- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
