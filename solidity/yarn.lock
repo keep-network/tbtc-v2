@@ -1416,6 +1416,11 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
+"@keep-network/bitcoin-spv-sol@3.1.0-solc-0.8":
+  version "3.1.0-solc-0.8"
+  resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.1.0-solc-0.8.tgz#b8b990d4d0492199b1048b05d842ccc0f7507b69"
+  integrity sha512-SgmPYBj2LE8ARz4OnEeF9jMav3JWEh3jhmQxUlfIt1cucF0lOxE8XaUIaAzXuP8PVLjvZNlAjJy6+/ka96E3Cg==
+
 "@keep-network/hardhat-helpers@0.4.1-pre.1":
   version "0.4.1-pre.1"
   resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.4.1-pre.1.tgz#4e02f0e12ddb223b80198c451152b527388925f4"
@@ -1446,6 +1451,10 @@
     "@keep-network/sortition-pools" "1.2.0-dev.1"
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
+
+"@keep-network/prettier-config-keep@github:keep-network/prettier-config-keep":
+  version "0.0.1"
+  resolved "https://codeload.github.com/keep-network/prettier-config-keep/tar.gz/a1a333e7ac49928a0f6ed39421906dd1e46ab0f3"
 
 "@keep-network/sortition-pools@1.2.0-dev.1":
   version "1.2.0-dev.1"
@@ -4880,7 +4889,7 @@ eslint-config-google@^0.13.0:
     eslint-plugin-no-only-tests "^2.3.1"
     eslint-plugin-prettier "^3.1.2"
 
-eslint-config-prettier@^6.10.0:
+eslint-config-prettier@^6.15.0:
   version "6.15.0"
   resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-6.15.0.tgz#7f93f6cb7d45a92f1537a70ecc06366e1ac6fed9"
   integrity sha512-a1+kOYLR8wMGustcgAjdydMsQ2A/2ipRPwRKUmfYaSxc9ZPcrku080Ctl6zrZzZNs/U82MjSv+qKREkoq3bJaw==
