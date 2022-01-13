@@ -1,0 +1,88 @@
+name: tbtc-ts
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - "tbtc-ts/**"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      path-filter: ${{ steps.filter.outputs.path-filter }}
+    steps:
+      - uses: actions/checkout@v2
+        if: github.event_name == 'pull_request'
+
+      - uses: dorny/paths-filter@v2
+        if: github.event_name == 'pull_request'
+        id: filter
+        with:
+          filters: |
+            path-filter:
+              - './tbtc-ts/**'
+
+  build-and-test:
+    needs: detect-changes
+    if: |
+      github.event_name != 'pull_request'
+        || needs.detect-changes.outputs.path-filter == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./tbtc-ts
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: yearn/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build
+        run: yarn build
+
+      - name: Tests
+        run: yarn test
+
+  format:
+    needs: detect-changes
+    if: |
+      github.event_name == 'push'
+        || needs.detect-changes.outputs.path-filter == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./tbtc-ts
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: yearn/yarn.lock
+
+      # Below step is a workaround. Eslint executed in `yearn` directory
+      # finds `.prettierrc.js` config in the root directory and fails if
+      # referenced `@keep-network/prettier-config-keep` module is missing.
+      - name: Install dependencies in the root directory
+        run: |
+          cd ..
+          yarn install --frozen-lockfile
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Check formatting
+        run: yarn format
