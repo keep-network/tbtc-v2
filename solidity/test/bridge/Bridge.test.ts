@@ -1,15 +1,24 @@
 import { ethers, waffle } from "hardhat"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
-import { bridgeDeployment } from "../fixtures"
-import { Bridge } from "../../typechain"
+import type { Bridge } from "../../typechain"
+
+const fixture = async () => {
+  const Bridge = await ethers.getContractFactory("Bridge")
+  const bridge: Bridge = await Bridge.deploy()
+  await bridge.deployed()
+
+  return {
+    bridge,
+  }
+}
 
 describe("Bridge", () => {
   let bridge: Bridge
 
   beforeEach(async () => {
-    const contracts = await waffle.loadFixture(bridgeDeployment)
-    bridge = contracts.bridge as Bridge
+    // eslint-disable-next-line @typescript-eslint/no-extra-semi
+    ;({ bridge } = await waffle.loadFixture(fixture))
   })
 
   describe("revealDeposit", () => {

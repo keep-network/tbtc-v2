@@ -37,13 +37,3 @@ export async function vendingMachineDeployment(): Promise<DeployedContracts> {
 
   return contracts
 }
-
-export async function bridgeDeployment(): Promise<DeployedContracts> {
-  const Bridge = await ethers.getContractFactory("Bridge")
-  const bridge: Bridge = await Bridge.deploy()
-  await bridge.deployed()
-
-  const contracts: DeployedContracts = { bridge }
-
-  return contracts
-}
