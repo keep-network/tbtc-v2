@@ -46,13 +46,13 @@ contract Bridge {
         // Transaction version number (4-byte LE).
         bytes4 version;
         // All transaction inputs prepended by the number of inputs encoded
-        // as a VarInt. Single vector item looks as follows:
+        // as a compactSize uint. Single vector item looks as follows:
         // https://developer.bitcoin.org/reference/transactions.html#txin-a-transaction-input-non-coinbase
         // though SegWit inputs don't contain the signature script (scriptSig).
         // All encoded input transaction hashes are little-endian.
         bytes inputVector;
         // All transaction outputs prepended by the number of outputs encoded
-        // as a VarInt. Single vector item looks as follows:
+        // as a compactSize uint. Single vector item looks as follows:
         // https://developer.bitcoin.org/reference/transactions.html#txout-a-transaction-output
         bytes outputVector;
         // Transaction locktime (4-byte LE).
