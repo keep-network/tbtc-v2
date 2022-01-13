@@ -36,7 +36,6 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 ///         about the sweep increasing appropriate balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank.
 contract Bridge {
-    // TODO: Consider using a custom fork of Summa libs adjusted to Solidity 8.
     using BTCUtils for bytes;
     using BytesLib for bytes;
 
