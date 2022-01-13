@@ -148,11 +148,11 @@ unique to each depositor and will look like:
 ```
 <eth-address> DROP
 <blinding-factor> DROP
-DUP HASH160 <signingGroupPubkey> EQUAL
+DUP HASH160 <signingGroupPubkeyHash> EQUAL
 IF
   CHECKSIG
 ELSE
-  DUP HASH160 <refundPubkey> EQUALVERIFY
+  DUP HASH160 <refundPubkeyHash> EQUALVERIFY
   <locktime> CHECKLOCKTIMEVERIFY DROP
   CHECKSIG
 ENDIF
