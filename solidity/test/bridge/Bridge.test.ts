@@ -1,7 +1,9 @@
-import { ethers, waffle } from "hardhat"
+import { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 import type { Bridge } from "../../typechain"
+
+const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
 const fixture = async () => {
   const Bridge = await ethers.getContractFactory("Bridge")
@@ -16,7 +18,7 @@ const fixture = async () => {
 describe("Bridge", () => {
   let bridge: Bridge
 
-  beforeEach(async () => {
+  before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ bridge } = await waffle.loadFixture(fixture))
   })
@@ -73,8 +75,14 @@ describe("Bridge", () => {
         context("when deposit was not revealed yet", () => {
           let tx: ContractTransaction
 
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             tx = await bridge.revealDeposit(P2SHFundingTx, reveal)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should store proper deposit data", async () => {
@@ -123,8 +131,14 @@ describe("Bridge", () => {
         })
 
         context("when deposit was already revealed", () => {
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             await bridge.revealDeposit(P2SHFundingTx, reveal)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should revert", async () => {
@@ -154,8 +168,14 @@ describe("Bridge", () => {
         context("when deposit was not revealed yet", () => {
           let tx: ContractTransaction
 
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             tx = await bridge.revealDeposit(P2WSHFundingTx, reveal)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should store proper deposit data", async () => {
@@ -204,8 +224,14 @@ describe("Bridge", () => {
         })
 
         context("when deposit was already revealed", () => {
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             await bridge.revealDeposit(P2WSHFundingTx, reveal)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should revert", async () => {
