@@ -189,12 +189,13 @@ contract Bridge {
 
         if (fundingOutputHash.length == 20) {
             // A 20-byte output hash is used by P2SH. That hash is constructed
-            // by applying OP_HASH160 on the redeem script. A 20-byte output
-            // hash is also the case for P2PKH and P2WPKH (OP_HASH160 on the
+            // by applying OP_HASH160 on the locking script. A 20-byte output
+            // hash is used as well by P2PKH and P2WPKH (OP_HASH160 on the
             // public key). However, since we compare the actual output hash
-            // with an expected redeem script hash, the transaction type
-            // doesn't matter since the check will success only for P2SH
-            // with expected script hash value.
+            // with an expected locking script hash, this check will succeed only
+            // for P2SH transaction type with expected script hash value. For
+            // P2PKH and P2WPKH, it will fail on the output hash comparison with
+            // the expected locking script hash.
             require(
                 keccak256(fundingOutputHash) ==
                     keccak256(expectedScript.hash160()),
@@ -202,7 +203,7 @@ contract Bridge {
             );
         } else if (fundingOutputHash.length == 32) {
             // A 32-byte output hash is used by P2WSH. That hash is constructed
-            // by applying OP_HASH256 on the redeem script.
+            // by applying OP_HASH256 on the locking script.
             require(
                 fundingOutputHash.toBytes32() == expectedScript.hash256(),
                 "Wrong 32-byte script hash"
