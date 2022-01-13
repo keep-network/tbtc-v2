@@ -73,14 +73,6 @@ jobs:
           cache: "yarn"
           cache-dependency-path: tbtc-ts/yarn.lock
 
-      # Below step is a workaround. Eslint executed in `yearn` directory
-      # finds `.prettierrc.js` config in the root directory and fails if
-      # referenced `@keep-network/prettier-config-keep` module is missing.
-      - name: Install dependencies in the root directory
-        run: |
-          cd ..
-          yarn install --frozen-lockfile
-
       - name: Install dependencies
         run: yarn install
 
