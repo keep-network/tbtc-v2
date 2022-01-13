@@ -121,7 +121,7 @@ describe("Bridge", () => {
               .to.emit(bridge, "DepositRevealed")
               .withArgs(
                 "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
-                0,
+                reveal.fundingOutputIndex,
                 "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                 "0xf9f0c90d00039523",
                 "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -214,7 +214,7 @@ describe("Bridge", () => {
               .to.emit(bridge, "DepositRevealed")
               .withArgs(
                 "0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7",
-                0,
+                reveal.fundingOutputIndex,
                 "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                 "0xf9f0c90d00039523",
                 "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
