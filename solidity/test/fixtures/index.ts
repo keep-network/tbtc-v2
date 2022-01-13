@@ -1,7 +1,7 @@
 import { Contract } from "ethers"
 import { ethers } from "hardhat"
 // eslint-disable-next-line import/extensions
-import type { TestERC20, TBTC, VendingMachine, Bridge } from "../../typechain"
+import type { TestERC20, TBTC, VendingMachine } from "../../typechain"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 export const constants = {
