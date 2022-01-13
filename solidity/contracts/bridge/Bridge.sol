@@ -240,17 +240,17 @@ contract Bridge {
             ];
         require(deposit.revealedAt == 0, "Deposit already revealed");
 
-        bytes8 fundingOutputAmountLE;
+        bytes8 fundingOutputAmount;
         /* solhint-disable-next-line no-inline-assembly */
         assembly {
             // First 8 bytes (little-endian) of the funding output represents
             // its value. To take the value, we need to jump over the first
             // word determining the array length, load the array, and trim it
             // by putting it to a bytes8.
-            fundingOutputAmountLE := mload(add(fundingOutput, 32))
+            fundingOutputAmount := mload(add(fundingOutput, 32))
         }
 
-        deposit.amount = fundingOutputAmountLE;
+        deposit.amount = fundingOutputAmount;
         deposit.depositor = reveal.depositor;
         /* solhint-disable-next-line not-rely-on-time */
         deposit.revealedAt = uint32(block.timestamp);
