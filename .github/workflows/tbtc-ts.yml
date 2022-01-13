@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
-          cache-dependency-path: yearn/yarn.lock
+          cache-dependency-path: tbtc-ts/yarn.lock
 
       - name: Install dependencies
         run: yarn install
@@ -71,7 +71,7 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
-          cache-dependency-path: yearn/yarn.lock
+          cache-dependency-path: tbtc-ts/yarn.lock
 
       # Below step is a workaround. Eslint executed in `yearn` directory
       # finds `.prettierrc.js` config in the root directory and fails if
