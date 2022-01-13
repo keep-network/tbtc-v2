@@ -12,9 +12,12 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
+
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+
+import "../vault/IVault.sol";
 
 /// @title Bitcoin Bank
 /// @notice Bank is a central component tracking Bitcoin balances. Balances can
@@ -231,7 +234,8 @@ contract Bank is Ownable {
 
     /// @notice Increases balances of the provided `recipients` by the provided
     ///         `amounts`. Can only be called by the Bridge.
-    /// @dev This function fails if the lengths of the arrays are not the same.
+    /// @dev Requirements:
+    ///       - length of `recipients` and `amounts` must be the same.
     function increaseBalances(
         address[] calldata recipients,
         uint256[] calldata amounts
@@ -252,6 +256,37 @@ contract Bank is Ownable {
         onlyBridge
     {
         _increaseBalance(recipient, amount);
+    }
+
+    /// @notice Increases the given smart contract `vault`'s balance and
+    ///         notifies the `vault` contract. Called by the Bridge after
+    ///         the deposits routed by depositors to that `vault` have been
+    ///         swept by the Bridge. This way, the depositor does not have to
+    ///         issue a separate  transaction to the `vault` contract.
+    ///         Can be called only by the Bridge.
+    /// @dev Requirements:
+    ///       - `vault` must implement `IVault` interface,
+    ///       - length of `depositors` and `depositedAmounts` must be the same.
+    /// @param vault Address of `IVault` recipient contract
+    /// @param depositors Addresses of depositors whose deposits have been swept
+    /// @param depositedAmounts Amounts deposited by individual depositors and
+    ///        swept. The `vault`'s balance in the Bank will be increased by the
+    ///        sum of all elements in this array.
+    function increaseBalanceAndCall(
+        address vault,
+        address[] calldata depositors,
+        uint256[] calldata depositedAmounts
+    ) external onlyBridge {
+        require(
+            depositors.length == depositedAmounts.length,
+            "Arrays must have the same length"
+        );
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < depositedAmounts.length; i++) {
+            totalAmount += depositedAmounts[i];
+        }
+        _increaseBalance(vault, totalAmount);
+        IVault(vault).onBalanceIncreased(depositors, depositedAmounts);
     }
 
     /// @notice Decreases caller's balance by the provided `amount`. There is no
