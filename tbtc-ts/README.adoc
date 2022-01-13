@@ -8,4 +8,24 @@ toc::[]
 
 == Build, test and deploy
 
-Under construction...
+=== Prerequisites
+
+Please make sure you have the following prerequisites installed on your machine:
+
+- https://nodejs.org[Node.js] >14.17.4
+- https://yarnpkg.com[Yarn] >1.22.10
+
+=== Build
+
+To build the library, invoke:
+```
+yarn build
+```
+A `dist` directory containing the resulting artifacts will be created.
+
+=== Test
+
+To run unit tests, do:
+```
+yarn test
+```
