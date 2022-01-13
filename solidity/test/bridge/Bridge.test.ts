@@ -23,7 +23,9 @@ describe("Bridge", () => {
 
   describe("revealDeposit", () => {
     // Data of a proper P2SH deposit funding transaction. Little-endian hash is:
-    // 0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2
+    // 0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2 and
+    // this is the same as `expectedP2SHDepositTransaction` mentioned in
+    // tbtc-ts/test/deposit.test.ts file.
     const P2SHFundingTx = {
       version: "0x01000000",
       inputVector:
@@ -37,7 +39,9 @@ describe("Bridge", () => {
     }
 
     // Data of a proper P2WSH deposit funding transaction. Little-endian hash is:
-    // 0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7
+    // 0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7 and
+    // this is the same as `expectedP2WSHDepositTransaction` mentioned in
+    // tbtc-ts/test/deposit.test.ts file.
     const P2WSHFundingTx = {
       version: "0x01000000",
       inputVector:
