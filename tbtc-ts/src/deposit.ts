@@ -1,6 +1,10 @@
 // @ts-ignore
 import bcoin from "bcoin"
 // @ts-ignore
+import hash160 from "bcrypto/lib/hash160"
+// @ts-ignore
+import hash256 from "bcrypto/lib/hash256"
+// @ts-ignore
 import { opcodes } from "bcoin/lib/script/common"
 // @ts-ignore
 import wif from "wif"
@@ -45,17 +49,20 @@ export interface DepositData {
 }
 
 /**
- * Makes a deposit by creating and broadcasting a Bitcoin P2SH
+ * Makes a deposit by creating and broadcasting a Bitcoin P2(W)SH
  * deposit transaction.
  * @param depositData - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * @param witness - If true, a witness (P2WSH) transaction will be created.
+ *        Otherwise, a legacy P2SH transaction will be made.
  * @returns Empty promise.
  */
 export async function makeDeposit(
   depositData: DepositData,
   depositorPrivateKey: string,
-  bitcoinClient: BitcoinClient
+  bitcoinClient: BitcoinClient,
+  witness: boolean
 ): Promise<void> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
@@ -79,23 +86,27 @@ export async function makeDeposit(
   const transaction = await createDepositTransaction(
     depositData,
     utxosWithRaw,
-    depositorPrivateKey
+    depositorPrivateKey,
+    witness
   )
 
   await bitcoinClient.broadcast(transaction)
 }
 
 /**
- * Creates a Bitcoin P2SH deposit transaction.
+ * Creates a Bitcoin P2(W)SH deposit transaction.
  * @param depositData - Details of the deposit.
  * @param utxos - UTXOs that should be used as transaction inputs.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
- * @returns Bitcoin P2SH deposit transaction in raw format.
+ * @param witness - If true, a witness (P2WSH) transaction will be created.
+ *        Otherwise, a legacy P2SH transaction will be made.
+ * @returns Bitcoin P2(W)SH deposit transaction in raw format.
  */
 export async function createDepositTransaction(
   depositData: DepositData,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
-  depositorPrivateKey: string
+  depositorPrivateKey: string,
+  witness: boolean
 ): Promise<RawTransaction> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
@@ -110,10 +121,12 @@ export async function createDepositTransaction(
 
   const transaction = new bcoin.MTX()
 
-  const scriptHash = await createDepositScriptHash(depositData)
+  const scriptHash = await createDepositScriptHash(depositData, witness)
 
   transaction.addOutput({
-    script: bcoin.Script.fromScripthash(scriptHash),
+    script: witness
+      ? bcoin.Script.fromProgram(0, scriptHash)
+      : bcoin.Script.fromScripthash(scriptHash),
     value: depositData.amount.toNumber(),
   })
 
@@ -131,7 +144,7 @@ export async function createDepositTransaction(
 }
 
 /**
- * Creates a Bitcoin locking script for P2SH deposit transaction.
+ * Creates a Bitcoin locking script for P2(W)SH deposit transaction.
  * @param depositData - Details of the deposit.
  * @returns Script as an un-prefixed hex string.
  */
@@ -175,16 +188,20 @@ export async function createDepositScript(
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(signingGroupPublicKey, "hex"))
+  script.pushData(hash160.digest(Buffer.from(signingGroupPublicKey, "hex")))
   script.pushOp(opcodes.OP_EQUAL)
   script.pushOp(opcodes.OP_IF)
   script.pushOp(opcodes.OP_CHECKSIG)
   script.pushOp(opcodes.OP_ELSE)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(refundPublicKey, "hex"))
+  script.pushData(hash160.digest(Buffer.from(refundPublicKey, "hex")))
   script.pushOp(opcodes.OP_EQUALVERIFY)
-  script.pushData(Buffer.from(locktime.toHexString().substring(2), "hex"))
+  script.pushData(
+    // Bitcoin locktime is interpreted as little-endian integer so we must
+    // adhere to that convention by converting the locktime accordingly.
+    Buffer.from(locktime.toHexString().substring(2), "hex").reverse()
+  )
   script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_CHECKSIG)
@@ -196,31 +213,42 @@ export async function createDepositScript(
 }
 
 /**
- * Creates a Bitcoin locking script hash for P2SH deposit transaction.
+ * Creates a Bitcoin locking script hash for P2(W)SH deposit transaction.
  * @param depositData - Details of the deposit.
+ * @param witness - If true, a witness script hash will be created.
+ *        Otherwise, a legacy script hash will be made.
  * @returns Buffer with script hash.
  */
 export async function createDepositScriptHash(
-  depositData: DepositData
+  depositData: DepositData,
+  witness: boolean
 ): Promise<Buffer> {
   const script = await createDepositScript(depositData)
-  // Parse the script from HEX string and compute the HASH160.
-  return bcoin.Script.fromRaw(Buffer.from(script, "hex")).hash160()
+  // Parse the script from HEX string.
+  const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
+  // If witness script hash should be produced, HASH256 should be used.
+  // Legacy script hash needs HASH160.
+  return witness ? hash256.digest(parsedScript.toRaw()) : parsedScript.hash160()
 }
 
 /**
- * Creates a Bitcoin target address for P2SH deposit transaction.
+ * Creates a Bitcoin target address for P2(W)SH deposit transaction.
  * @param depositData - Details of the deposit.
  * @param network - Network that the address should be created for.
  *        For example, `main` or `testnet`.
+ * @param witness - If true, a witness address will be created.
+ *        Otherwise, a legacy address will be made.
  * @returns Address as string.
  */
 export async function createDepositAddress(
   depositData: DepositData,
-  network: string
+  network: string,
+  witness: boolean
 ): Promise<string> {
-  const scriptHash = await createDepositScriptHash(depositData)
-  const address = bcoin.Address.fromScripthash(scriptHash)
+  const scriptHash = await createDepositScriptHash(depositData, witness)
+  const address = witness
+    ? bcoin.Address.fromWitnessScripthash(scriptHash)
+    : bcoin.Address.fromScripthash(scriptHash)
   return address.toString(network)
 }
 

@@ -20,6 +20,7 @@
   ],
   "dependencies": {
     "bcoin": "git+https://github.com/bcoin-org/bcoin.git#semver:~2.2.0",
+    "bcrypto": "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0",
     "ethers": "^5.5.2",
     "wif": "2.0.6"
   },
