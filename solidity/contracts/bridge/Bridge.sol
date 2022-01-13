@@ -105,6 +105,8 @@ contract Bridge {
     ///         This mapping may contain valid and invalid deposits and the
     ///         wallet is responsible for validating them before attempting to
     ///         execute a sweep.
+    ///
+    /// TODO: Explore the possibility of storing just a hash of DepositInfo.
     mapping(uint256 => DepositInfo) public unswept;
 
     event DepositRevealed(
