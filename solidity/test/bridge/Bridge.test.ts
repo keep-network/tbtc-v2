@@ -202,7 +202,7 @@ describe("Bridge", () => {
             // value for the funding output.
             expect(deposit[1]).to.be.equal("0x1027000000000000")
             // Revealed time should be set.
-            expect(deposit[2]).to.be.greaterThan(0)
+            expect(deposit[2]).to.be.equal(await lastBlockTime())
             // Deposit vault, same as in `reveal.vault`.
             expect(deposit[3]).to.be.equal(
               "0x594cfd89700040163727828AE20B52099C58F02C"
