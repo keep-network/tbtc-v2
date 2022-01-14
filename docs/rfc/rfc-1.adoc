@@ -465,7 +465,27 @@ BTC from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
 === Transaction Incentives
-stub!
+We use two main types of transaction incentives: Unlucky Operators and Escalating Rewards.
+
+[[unlucky-operator]]
+==== Unlucky Operators
+The Unlucky Operator scheme involves using the a source of pseudo-randomness
+(like the next ethereum block hash) to choose who the operator to pay for the
+gas is. If that operator refuses, the remaining operators can sign a message to
+disable their rewards, where that message is incentivized via an
+<<escalating-reward,escalating reward>> to prevent recursion.
+
+[[escalating-reward]]
+==== Escalating Rewards
+The Escalating Reward scheme involves setting a governable floor price, ceiling
+price, and velocity. Whoever submits the transaction will be paid out according
+to how far the reward has escalated from the floor to the ceiling.
+
+*Example*: say that the reward started on block 110 at a floor of 100 T
+tokens, has a velocity of 2 T per block, and has a ceiling of 1000 T tokens. Someone
+submits the transaction on block 150. Thus, they would receive `min(2 T*(block
+150 - block 110) + 100 T, 1000 T) = 180 T`
+
 
 [[bitcoin-sweeping-fee]]
 === Bitcoin Sweeping Fee
