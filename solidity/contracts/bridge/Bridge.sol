@@ -15,6 +15,8 @@
 
 pragma solidity 0.8.4;
 
+import "./BitcoinTx.sol";
+
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 
@@ -39,25 +41,6 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 contract Bridge {
     using BTCUtils for bytes;
     using BytesLib for bytes;
-
-    /// @notice Represents Bitcoin transaction data as described in:
-    ///         https://developer.bitcoin.org/reference/transactions.html#raw-transaction-format
-    struct TxInfo {
-        // Transaction version number (4-byte LE).
-        bytes4 version;
-        // All transaction inputs prepended by the number of inputs encoded
-        // as a compactSize uint. Single vector item looks as follows:
-        // https://developer.bitcoin.org/reference/transactions.html#txin-a-transaction-input-non-coinbase
-        // though SegWit inputs don't contain the signature script (scriptSig).
-        // All encoded input transaction hashes are little-endian.
-        bytes inputVector;
-        // All transaction outputs prepended by the number of outputs encoded
-        // as a compactSize uint. Single vector item looks as follows:
-        // https://developer.bitcoin.org/reference/transactions.html#txout-a-transaction-output
-        bytes outputVector;
-        // Transaction locktime (4-byte LE).
-        bytes4 locktime;
-    }
 
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
@@ -128,7 +111,7 @@ contract Bridge {
     ///         the Bitcoin chain. Worth noting, the gas cost of this function
     ///         scales with the number of P2(W)SH transaction inputs and
     ///         outputs.
-    /// @param fundingTx Bitcoin funding transaction data, see `TxInfo` struct
+    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`
     /// @param reveal Deposit reveal data, see `RevealInfo struct
     /// @dev Requirements:
     ///      - `reveal.fundingOutputIndex` must point to the actual P2(W)SH
@@ -150,7 +133,7 @@ contract Bridge {
     ///      to sweep the deposit and the depositor has to wait until the
     ///      deposit script unlocks to receive their BTC back.
     function revealDeposit(
-        TxInfo calldata fundingTx,
+        BitcoinTx.Info calldata fundingTx,
         RevealInfo calldata reveal
     ) external {
         bytes memory expectedScript =
@@ -285,7 +268,7 @@ contract Bridge {
     /// @param bitcoinHeaders Single bytestring of 80-byte bitcoin headers,
     ///                       lowest height first.
     function sweep(
-        TxInfo calldata sweepTx,
+        BitcoinTx.Info calldata sweepTx,
         bytes memory merkleProof,
         uint256 txIndexInBlock,
         bytes memory bitcoinHeaders
