@@ -328,12 +328,85 @@ contract Bridge {
         uint256 txIndexInBlock,
         bytes memory bitcoinHeaders
     ) external {
-        // TODO We need to read `fundingTxHash`, `fundingOutputIndex` from
-        //      `sweepTx.inputVector`. We then hash them to obtain deposit
-        //      identifier and read DepositInfo. From DepositInfo we know what
-        //      amount was inferred during deposit reveal transaction and we
-        //      use that amount to update their Bank balance, minus fee.
-        //
+        require(
+            sweepTx.inputVector.validateVin(),
+            "Invalid input vector provided"
+        );
+        require(
+            sweepTx.outputVector.validateVout(),
+            "Invalid output vector provided"
+        );
+
+        bytes32 sweepTxHash =
+            abi
+                .encodePacked(
+                sweepTx
+                    .version,
+                sweepTx
+                    .inputVector,
+                sweepTx
+                    .outputVector,
+                sweepTx
+                    .locktime
+            )
+                .hash256();
+
+        // The actual transaction proof is performed here. After that point, we
+        // can assume the transaction happened on Bitcoin chain and has
+        // a sufficient number of confirmations as determined by
+        // `TX_PROOF_DIFFICULTY_FACTOR` constant.
+        checkProofFromTxHash(
+            sweepTxHash,
+            merkleProof,
+            txIndexInBlock,
+            bitcoinHeaders
+        );
+
+        // To determine the total number of sweep transaction outputs, we need to
+        // parse the compactSize uint (VarInt) the output vector is prepended by.
+        // That compactSize uint encodes the number of vector elements using the
+        // format presented in:
+        // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
+        // We don't need asserting the compactSize uint is parseable since it
+        // was already checked during `validateVout` validation.
+        (, uint256 outputsCount) = sweepTx.outputVector.parseVarInt();
+        require(outputsCount == 1, "Sweep transaction must have a single output");
+        bytes memory sweepTxOutput = sweepTx.outputVector.extractOutputAtIndex(0);
+
+        // Determining the total number of sweep transaction inputs in the same
+        // way as for number of outputs.
+        (inputsCompactSizeUintLength, inputsCount) = sweepTx.inputVector.parseVarInt();
+        // To determine the first input starting index, we must jump over
+        // the compactSize uint which prepends the input vector. One byte must
+        // be added because of how `parseVarInt` returns the length of the
+        // compactSize uint. Refer `BTCUtils` library for more details.
+        uint256 inputStartingIndex = 1 + inputsCompactSizeUintLength;
+
+        for (uint256 i = 0; i < inputsCount; i++) {
+            // Check if we are at the end of the input vector.
+            if (inputStartingIndex >= sweepTx.inputVector.length) {
+                break;
+            }
+
+            // First, determine the remaining vector using current input
+            // starting index.
+            bytes memory remainingVector = sweepTx.inputVector.slice(inputStartingIndex, sweepTx.inputVector.length - inputStartingIndex);
+            // Determine the current input's length using the head of remaining
+            // vector. Note that we don't check the result of
+            // `determineInputLength` is `ERR_BAD_ARG` since it was already
+            // done during `validateVin` validation.
+            uint256 inputLength = remainingVector.determineInputLength();
+            // Extract the current input from remaining vector using calculated
+            // input length.
+            bytes memory input = sweepTx.inputVector.slice(inputStartingIndex, inputLength);
+
+            // TODO: Implement balance updates.
+
+            // Make the `inputStartingIndex` pointing to the next input by
+            // increasing it by current input's length.
+            inputStartingIndex += inputLength;
+        }
+
         // TODO We need to validate if the sum in the output minus the
         //      amount from the previous wallet balance input minus fees is
         //      equal to the amount by which Bank balances were increased.
@@ -403,14 +476,6 @@ contract Bridge {
             observedDiff >= requestedDiff * TX_PROOF_DIFFICULTY_FACTOR,
             "Insufficient accumulated difficulty in header chain"
         );
-    }
-
-    function updateBalances(
-        bytes32 sweepTxHash,
-        bytes memory txInputVector,
-        bytes memory txOutputVector
-    ) internal {
-        // TODO: Implementation.
     }
 
     // TODO It is possible a malicious wallet can sweep deposits that can not
