@@ -80,7 +80,7 @@ contract Bridge {
     ///         deposit reveal.
     struct RevealInfo {
         // Index of the funding output belonging to the funding transaction.
-        uint8 fundingOutputIndex;
+        uint32 fundingOutputIndex;
         // Ethereum depositor address.
         address depositor;
         // The blinding factor as 8 bytes. Byte endianness doesn't matter
@@ -114,6 +114,10 @@ contract Bridge {
         uint32 revealedAt;
         // Address of the tBTC vault.
         address vault;
+        // UNIX timestamp the deposit was swept at. Note this is not the
+        // time when the deposit was swept on Bitcoin chain but actually
+        // the time when the sweep proof was delivered on Ethereum chain.
+        uint32 sweptAt;
     }
 
     /// @notice Confirmations on the Bitcoin chain.
@@ -322,6 +326,7 @@ contract Bridge {
     /// @param txIndexInBlock Transaction index in the block (0-indexed).
     /// @param bitcoinHeaders Single bytestring of 80-byte bitcoin headers,
     ///                       lowest height first.
+    /// TODO: List requirements in @dev section.
     function sweep(
         TxInfo calldata sweepTx,
         bytes memory merkleProof,
@@ -370,17 +375,25 @@ contract Bridge {
         // We don't need asserting the compactSize uint is parseable since it
         // was already checked during `validateVout` validation.
         (, uint256 outputsCount) = sweepTx.outputVector.parseVarInt();
-        require(outputsCount == 1, "Sweep transaction must have a single output");
-        bytes memory sweepTxOutput = sweepTx.outputVector.extractOutputAtIndex(0);
+        require(
+            outputsCount == 1,
+            "Sweep transaction must have a single output"
+        );
+        // bytes memory sweepTxOutput = sweepTx.outputVector.extractOutputAtIndex(0);
 
         // Determining the total number of sweep transaction inputs in the same
         // way as for number of outputs.
-        (inputsCompactSizeUintLength, inputsCount) = sweepTx.inputVector.parseVarInt();
+        (inputsCompactSizeUintLength, inputsCount) = sweepTx
+            .inputVector
+            .parseVarInt();
         // To determine the first input starting index, we must jump over
         // the compactSize uint which prepends the input vector. One byte must
         // be added because of how `parseVarInt` returns the length of the
         // compactSize uint. Refer `BTCUtils` library for more details.
         uint256 inputStartingIndex = 1 + inputsCompactSizeUintLength;
+
+        bool previousSweepTxHashFound = false;
+        uint256 totalAmountSwept = 0;
 
         for (uint256 i = 0; i < inputsCount; i++) {
             // Check if we are at the end of the input vector.
@@ -390,7 +403,11 @@ contract Bridge {
 
             // First, determine the remaining vector using current input
             // starting index.
-            bytes memory remainingVector = sweepTx.inputVector.slice(inputStartingIndex, sweepTx.inputVector.length - inputStartingIndex);
+            bytes memory remainingVector =
+                sweepTx.inputVector.slice(
+                    inputStartingIndex,
+                    sweepTx.inputVector.length - inputStartingIndex
+                );
             // Determine the current input's length using the head of remaining
             // vector. Note that we don't check the result of
             // `determineInputLength` is `ERR_BAD_ARG` since it was already
@@ -398,14 +415,58 @@ contract Bridge {
             uint256 inputLength = remainingVector.determineInputLength();
             // Extract the current input from remaining vector using calculated
             // input length.
-            bytes memory input = sweepTx.inputVector.slice(inputStartingIndex, inputLength);
+            bytes memory input =
+                sweepTx.inputVector.slice(inputStartingIndex, inputLength);
+            // Extract the transaction hash corresponding to the given input.
+            // Note that it's little-endian.
+            bytes32 inputTxHash = input.extractInputTxIdLE();
 
-            // TODO: Implement balance updates.
+            DepositInfo storage deposit =
+                unswept[
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                inputTxHash,
+                                uint32(
+                                    input
+                                        .extractTxIndexLE()
+                                        .reverseEndianness()
+                                        .bytesToUint()
+                                )
+                            )
+                        )
+                    )
+                ];
+
+            // Detect the given input type.
+            if (deposit.revealedAt != 0) {
+                // Regular revealed deposit whose value should be counted
+                // into the total amount swept.
+                require(deposit.sweptAt == 0, "Deposit already swept");
+                totalAmountSwept += uint64(
+                    deposit.amount.reverseEndianness().bytesToUint()
+                );
+                /* solhint-disable-next-line not-rely-on-time */
+                deposit.sweptAt = uint32(block.timestamp);
+            } else if (
+                !previousSweepTxHashFound && previousSweepTxHash == inputTxHash
+            ) {
+                // Previous sweep output. Don't count its value into the total
+                // amount swept.
+                previousSweepTxHashFound = true;
+            } else {
+                revert("Unknown input type");
+            }
 
             // Make the `inputStartingIndex` pointing to the next input by
             // increasing it by current input's length.
             inputStartingIndex += inputLength;
         }
+
+        require(
+            previousSweepTxHashFound || previousSweepTxHash == bytes32(0),
+            "Previous sweep output not present in sweep transaction inputs"
+        );
 
         // TODO We need to validate if the sum in the output minus the
         //      amount from the previous wallet balance input minus fees is
@@ -414,11 +475,6 @@ contract Bridge {
         // TODO We need to validate `sweepTx.outputVector` to see if the balance
         //      was not transferred away from the wallet before increasing
         //      balances in the bank.
-        //
-        // TODO Delete deposit from unswept mapping or mark it as swept
-        //      depending on the gas costs. Alternatively, do not allow to
-        //      use the same TX input vector twice. Sweep should be provable
-        //      only one time.
     }
 
     function checkProofFromTxHash(
