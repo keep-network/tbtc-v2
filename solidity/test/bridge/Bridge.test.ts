@@ -2,6 +2,7 @@ import { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 import type { Bank, Bridge, TestRelay } from "../../typechain"
+import { SingleP2SHSweepTestData, SweepTestData } from "../data/sweep"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime } = helpers.time
@@ -103,7 +104,7 @@ describe("Bridge", () => {
           it("should store proper deposit data", async () => {
             // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
             const depositKey = ethers.utils.solidityKeccak256(
-              ["bytes32", "uint8"],
+              ["bytes32", "uint32"],
               [
                 "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
                 reveal.fundingOutputIndex,
@@ -112,8 +113,8 @@ describe("Bridge", () => {
 
             const deposit = await bridge.unswept(depositKey)
 
-            // Should contain: depositor, amount, revealedAt and vault.
-            expect(deposit.length).to.be.equal(4)
+            // Should contain: depositor, amount, revealedAt, vault, sweptAt.
+            expect(deposit.length).to.be.equal(5)
             // Depositor address, same as in `reveal.depositor`.
             expect(deposit[0]).to.be.equal(
               "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
@@ -128,6 +129,8 @@ describe("Bridge", () => {
             expect(deposit[3]).to.be.equal(
               "0x594cfd89700040163727828AE20B52099C58F02C"
             )
+            // Swept time should be unset.
+            expect(deposit[4]).to.be.equal(0)
           })
 
           it("should emit DepositRevealed event", async () => {
@@ -196,7 +199,7 @@ describe("Bridge", () => {
           it("should store proper deposit data", async () => {
             // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
             const depositKey = ethers.utils.solidityKeccak256(
-              ["bytes32", "uint8"],
+              ["bytes32", "uint32"],
               [
                 "0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7",
                 reveal.fundingOutputIndex,
@@ -205,8 +208,8 @@ describe("Bridge", () => {
 
             const deposit = await bridge.unswept(depositKey)
 
-            // Should contain: depositor, amount, revealedAt and vault.
-            expect(deposit.length).to.be.equal(4)
+            // Should contain: depositor, amount, revealedAt, vault, sweptAt.
+            expect(deposit.length).to.be.equal(5)
             // Depositor address, same as in `reveal.depositor`.
             expect(deposit[0]).to.be.equal(
               "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
@@ -221,6 +224,8 @@ describe("Bridge", () => {
             expect(deposit[3]).to.be.equal(
               "0x594cfd89700040163727828AE20B52099C58F02C"
             )
+            // Swept time should be unset.
+            expect(deposit[4]).to.be.equal(0)
           })
 
           it("should emit DepositRevealed event", async () => {
@@ -294,7 +299,62 @@ describe("Bridge", () => {
           context("when there is only one input", () => {
             context(
               "when the single input is a revealed unswept P2SH deposit",
-              () => {}
+              () => {
+                let tx: ContractTransaction
+                const data: SweepTestData = SingleP2SHSweepTestData
+
+                before(async () => {
+                  await createSnapshot()
+
+                  tx = await runSweepScenario(data)
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should mark deposit as swept", async () => {
+                  // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                  const depositKey = ethers.utils.solidityKeccak256(
+                    ["bytes32", "uint32"],
+                    [
+                      data.deposits[0].fundingTx.hash,
+                      data.deposits[0].reveal.fundingOutputIndex,
+                    ]
+                  )
+
+                  const deposit = await bridge.unswept(depositKey)
+
+                  // Swept time is the last item.
+                  expect(deposit[4]).to.be.equal(await lastBlockTime())
+                })
+
+                it("should save sweep info for given wallet", async () => {
+                  // Take wallet public key hash from first deposit. All deposits
+                  // in same sweep batch should have the same value of that field.
+                  const { walletPubKeyHash } = data.deposits[0].reveal
+
+                  const sweep = await bridge.sweeps(walletPubKeyHash)
+
+                  // Should contain sweep tx hash and amount.
+                  expect(sweep.length).to.be.equal(2)
+                  expect(sweep[0]).to.be.equal(data.sweepTx.hash)
+                  // Amount can be checked by opening the sweep tx in a Bitcoin
+                  // testnet explorer. In this case, the sum of inputs is
+                  // 20000 satoshi (from the single deposit) and there is a
+                  // fee of 1500 so the output value is 18500.
+                  expect(sweep[1]).to.be.equal(18500)
+                })
+
+                it("should update the depositor's balance", async () => {
+                  // The sum of sweep tx inputs is 20000 satoshi. The output
+                  // value is 18500 so the fee is 1500. There is only one
+                  // deposit so it incurs the entire fee.
+                  expect(
+                    await bank.balanceOf(data.deposits[0].reveal.depositor)
+                  ).to.be.equal(18500)
+                })
+              }
             )
 
             context(
@@ -433,4 +493,19 @@ describe("Bridge", () => {
       )
     })
   })
+
+  async function runSweepScenario(
+    data: SweepTestData
+  ): Promise<ContractTransaction> {
+    await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+    await relay.setPrevEpochDifficulty(data.chainDifficulty)
+
+    for (let i = 0; i < data.deposits.length; i++) {
+      const { fundingTx, reveal } = data.deposits[i]
+      // eslint-disable-next-line no-await-in-loop
+      await bridge.revealDeposit(fundingTx, reveal)
+    }
+
+    return bridge.sweep(data.sweepTx, data.sweepProof)
+  }
 })
