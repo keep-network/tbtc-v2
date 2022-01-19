@@ -540,6 +540,8 @@ Alphabetized list of Governable Parameters with additional notes.
   initially propose as a fee for miners in a sweeping transaction.
 - `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
 - `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
+- `consecutive_failed_heartbeats`: The number of times a heartbeat can fail in
+  a row that triggers a move to close the wallet.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
   DKG group formation re-try period.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
