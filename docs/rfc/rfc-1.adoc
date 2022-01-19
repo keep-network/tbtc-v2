@@ -486,10 +486,10 @@ heartbeats).
 - Provide the proof for a <<redemption,redemption>> transaction.
 - Provide the proof that funds have moved between wallets.
 
-To make sure that these transactions get posted, we need an eth pool that
-provides gas refunds for anyone submitting these transactions. We know the
-amount of gas spent, and we know the gas price used, and so can reimburse the
-operator.
+To make sure that these transactions get posted, we need the DAO to fund an eth
+pool that provides gas refunds for anyone submitting these transactions. We
+know the amount of gas spent, and we know the gas price used, and so can
+reimburse the operator.
 
 To prevent abuse, we need to let governance set caps (`max_gas_refund_price`)
 on how much eth can be reimbursed (so that a miner can't drain the pool).
