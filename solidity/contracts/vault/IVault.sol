@@ -53,9 +53,7 @@ interface IVault {
     ///      by the Bank. The Bank guarantees that the vault's balance was
     ///      increased by the sum of all deposited amounts before this function
     ///      is called, in the same transaction.
-    // TODO rename to `receiveBalanceIncrease` to keep it aligned with
-    // TODO `receiveBalanceApproval`?
-    function onBalanceIncreased(
+    function receiveBalanceIncrease(
         address[] calldata depositors,
         uint256[] calldata depositedAmounts
     ) external;

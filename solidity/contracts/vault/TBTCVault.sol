@@ -94,7 +94,7 @@ contract TBTCVault is IVault {
     ///         vault.
     /// @dev Fails if `depositors` array is empty. Expects the length of
     ///      `depositors` and `depositedAmounts` is the same.
-    function onBalanceIncreased(
+    function receiveBalanceIncrease(
         address[] calldata depositors,
         uint256[] calldata depositedAmounts
     ) external override onlyBank {

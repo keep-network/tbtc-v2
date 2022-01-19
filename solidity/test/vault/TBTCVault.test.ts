@@ -598,7 +598,7 @@ describe("TBTCVault", () => {
     })
   })
 
-  describe("onBalanceIncreased", () => {
+  describe("receiveBalanceIncrease", () => {
     const depositor1 = "0x30c371E0651B2Ff6062158ca1D95b07C7531c719"
     const depositor2 = "0xb3464806d680722dBc678996F1670D19A42eA3e9"
     const depositor3 = "0x6B9925e04bc46569d1F7362eD7f11539234f0aEc"
@@ -622,7 +622,7 @@ describe("TBTCVault", () => {
         await expect(
           vault
             .connect(bridge)
-            .onBalanceIncreased([depositor1], [depositedAmount1])
+            .receiveBalanceIncrease([depositor1], [depositedAmount1])
         ).to.be.revertedWith("Caller is not the Bank")
       })
     })

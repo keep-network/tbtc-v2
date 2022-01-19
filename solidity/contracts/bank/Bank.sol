@@ -301,7 +301,7 @@ contract Bank is Ownable {
             totalAmount += depositedAmounts[i];
         }
         _increaseBalance(vault, totalAmount);
-        IVault(vault).onBalanceIncreased(depositors, depositedAmounts);
+        IVault(vault).receiveBalanceIncrease(depositors, depositedAmounts);
     }
 
     /// @notice Decreases caller's balance by the provided `amount`. There is no
