@@ -57,6 +57,17 @@ pragma solidity 0.8.4;
 ///      | 1+     | pk_script_bytes | compactSize uint (LE) | Number of bytes in the pubkey script |
 ///      | varies | pk_script       | char[]                | Pubkey script                        |
 ///
+///      compactSize uint format:
+///
+///      |                  Value                  | Bytes |                    Format                    |
+///      |-----------------------------------------|-------|----------------------------------------------|
+///      | >= 0 && <= 252                          | 1     | uint8_t                                      |
+///      | >= 253 && <= 0xffff                     | 3     | 0xfd followed by the number as uint16_t (LE) |
+///      | >= 0x10000 && <= 0xffffffff             | 5     | 0xfe followed by the number as uint32_t (LE) |
+///      | >= 0x100000000 && <= 0xffffffffffffffff | 9     | 0xff followed by the number as uint64_t (LE) |
+///
+///      (*) compactSize uint is often references as VarInt)
+///
 library BitcoinTx {
     /// @notice Represents Bitcoin transaction data for funding BTC deposit
     ///         P2(W)SH transaction.
