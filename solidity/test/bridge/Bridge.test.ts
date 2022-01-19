@@ -2,7 +2,11 @@ import { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 import type { Bank, Bridge, TestRelay } from "../../typechain"
-import { SingleP2SHSweepTestData, SweepTestData } from "../data/sweep"
+import {
+  MultipleDepositsNoPreviousSweep,
+  SingleP2SHDeposit,
+  SweepTestData,
+} from "../data/sweep"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime } = helpers.time
@@ -301,7 +305,7 @@ describe("Bridge", () => {
               "when the single input is a revealed unswept P2SH deposit",
               () => {
                 let tx: ContractTransaction
-                const data: SweepTestData = SingleP2SHSweepTestData
+                const data: SweepTestData = SingleP2SHDeposit
 
                 before(async () => {
                   await createSnapshot()
@@ -393,7 +397,25 @@ describe("Bridge", () => {
             context(
               "when input vector consists only of revealed unswept " +
                 "deposits but there is no previous sweep since it is not expected",
-              () => {}
+              () => {
+                let tx: ContractTransaction
+                const data: SweepTestData = MultipleDepositsNoPreviousSweep
+
+                before(async () => {
+                  await createSnapshot()
+
+                  tx = await runSweepScenario(data)
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                // TODO: Replace with proper assertions.
+                it("should work", async () => {
+                  expect(tx.hash.length).to.be.greaterThan(0)
+                })
+              }
             )
 
             context(
