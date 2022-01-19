@@ -113,8 +113,9 @@ contract Bridge {
         uint256 amount;
     }
 
-    /// @notice Confirmations on the Bitcoin chain.
-    uint256 public constant TX_PROOF_DIFFICULTY_FACTOR = 6;
+    /// @notice Confirmations on the Bitcoin chain required to successfully
+    ///         evaluate an SPV proof.
+    uint256 public immutable txProofDifficultyFactor;
 
     /// @notice Address of the Bank this Bridge belongs to.
     Bank public immutable bank;
@@ -148,12 +149,18 @@ contract Bridge {
         bytes4 refundLocktime
     );
 
-    constructor(address _bank, address _relay) {
+    constructor(
+        address _bank,
+        address _relay,
+        uint256 _txProofDifficultyFactor
+    ) {
         require(_bank != address(0), "Bank address cannot be zero");
         bank = Bank(_bank);
 
         require(_relay != address(0), "Relay address cannot be zero");
         relay = IRelay(_relay);
+
+        txProofDifficultyFactor = _txProofDifficultyFactor;
     }
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
@@ -326,7 +333,7 @@ contract Bridge {
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
-        // `TX_PROOF_DIFFICULTY_FACTOR` constant.
+        // `txProofDifficultyFactor` constant.
         bytes32 sweepTxHash = validateSweepTxProof(sweepTx, sweepProof);
 
         // Process sweep transaction output and extract its target wallet
@@ -450,7 +457,7 @@ contract Bridge {
         );
 
         require(
-            observedDiff >= requestedDiff * TX_PROOF_DIFFICULTY_FACTOR,
+            observedDiff >= requestedDiff * txProofDifficultyFactor,
             "Insufficient accumulated difficulty in header chain"
         );
     }

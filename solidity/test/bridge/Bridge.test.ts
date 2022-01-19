@@ -17,7 +17,7 @@ const fixture = async () => {
   await relay.deployed()
 
   const Bridge = await ethers.getContractFactory("Bridge")
-  const bridge: Bridge = await Bridge.deploy(bank.address, relay.address)
+  const bridge: Bridge = await Bridge.deploy(bank.address, relay.address, 1)
   await bridge.deployed()
 
   await bank.updateBridge(bridge.address)

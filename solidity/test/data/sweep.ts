@@ -1,6 +1,7 @@
 import { BytesLike } from "@ethersproject/bytes"
 import { BigNumberish } from "ethers"
 
+// TODO: Documentation
 export interface SweepTestData {
   deposits: {
     fundingTx: {
