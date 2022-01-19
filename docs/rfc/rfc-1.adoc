@@ -447,6 +447,8 @@ it.
 
 Governable Parameters:
 
+- `consecutive_failed_heartbeats`: The number of times a heartbeat can fail in
+  a row that triggers a move to close the wallet.
 - `failed_heartbeat_reward_removal_period`: The amount of time an operator is
   removed from reward eligibility after failing a heartbeat.
 - `heartbeat`: The number of group members required for a heartbeat to successful.
@@ -457,11 +459,31 @@ To make sure that older wallets are still accessible for redemption, we need to
 perform heartbeats. The signing group signs a block when block count mod
 `heartbeat_block_length` = 0 and then does _not_ publish the result. If there
 are ever less than `heartbeat` operators that participate in the heartbeat, the
-ones that did can create and sign a new transaction that lists the _inactive_
-operators. Once this transaction is posted to the ethereum chain, we can
-iterate through the inactive operators, remove them from reward eligibility
-for `failed_heartbeat_reward_removal_period` amount of time, transfer the remaining
-BTC from the wallet to another random wallet and close this wallet.
+active operators record the inactive operators. If this happens a number of
+times >= `consecutive_failed_heartbeats`, the operators take a union the
+recorded _inactive_ operators, and an operator from among the active operators
+posts a transaction to disable those inactive operators from receiving rewards
+for `failed_heartbeat_reward_removal_period` amount of time. The active
+operators move the remaining BTC to another random wallet and close this
+wallet.
+
+For the purposes of heartbeats, an operator that is currently unstaking (they
+started their two-week undelegation period) does not count as a live heartbeat,
+but also does not count as an inactive operator. Thus, operators who are
+unstaking might cause a wallet to fail a heartbeat, but can still be around to
+help move the funds to another wallet, and would not have their rewards turned
+off.
+
+*Example:*: Say that `heartbeat = 70, consecutive_failed_heartbeats = 1`.
+Operator-1 through Operator-72 are all active while Operator-73 through
+Operator-100 are inactive. Currently, there are 72 active operators, so the
+heartbeat check is passing. Then, Operator-25 through Operator-30 decide to
+unstake. Since unstaking operators do not count as a live heartbeat, there
+would only be 67 heartbeats, and the wallet would begin to transfer its funds.
+
+An operator from Operator-1 through Operator-72 (including 25-30) chooses to
+publish that Operator-73 through Operator-100 should have their rewards
+disabled (after the active operators sign this).
 
 [[transaction-incentives]]
 === Transaction Incentives
