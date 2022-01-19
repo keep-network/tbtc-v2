@@ -61,16 +61,6 @@ contract Bridge {
     using ValidateSPV for bytes;
     using ValidateSPV for bytes32;
 
-    /// @notice Represents data needed to perform a Bitcoin SPV proof.
-    struct ProofInfo {
-        // The merkle proof of transaction inclusion in a block.
-        bytes merkleProof;
-        // Transaction index in the block (0-indexed).
-        uint256 txIndexInBlock;
-        // Single byte-string of 80-byte bitcoin headers, lowest height first.
-        bytes bitcoinHeaders;
-    }
-
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
     struct RevealInfo {
@@ -331,7 +321,7 @@ contract Bridge {
     /// TODO: List requirements in @dev section.
     function sweep(
         BitcoinTx.Info calldata sweepTx,
-        ProofInfo calldata sweepProof
+        BitcoinTx.Proof calldata sweepProof
     ) external {
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
@@ -378,8 +368,8 @@ contract Bridge {
 
     // TODO: Documentation.
     function validateSweepTxProof(
-        TxInfo calldata sweepTx,
-        ProofInfo calldata sweepProof
+        BitcoinTx.Info calldata sweepTx,
+        BitcoinTx.Proof calldata sweepProof
     ) internal view returns (bytes32 sweepTxHash) {
         require(
             sweepTx.inputVector.validateVin(),
@@ -409,10 +399,10 @@ contract Bridge {
     }
 
     // TODO: Documentation.
-    function checkProofFromTxHash(bytes32 txHash, ProofInfo calldata proof)
-        internal
-        view
-    {
+    function checkProofFromTxHash(
+        bytes32 txHash,
+        BitcoinTx.Proof calldata proof
+    ) internal view {
         require(
             txHash.prove(
                 proof.bitcoinHeaders.extractMerkleRootLE().toBytes32(),
@@ -466,7 +456,7 @@ contract Bridge {
     }
 
     // TODO: Documentation.
-    function processSweepTxOutput(TxInfo calldata sweepTx)
+    function processSweepTxOutput(BitcoinTx.Info calldata sweepTx)
         internal
         pure
         returns (bytes20 walletPubKeyHash, uint64 value)
@@ -503,7 +493,7 @@ contract Bridge {
 
     // TODO: Documentation.
     function processSweepTxInputs(
-        TxInfo calldata sweepTx,
+        BitcoinTx.Info calldata sweepTx,
         bytes20 walletPubKeyHash
     )
         internal
@@ -616,11 +606,10 @@ contract Bridge {
     }
 
     // TODO: Documentation. Mention that `txInfo` data should be validated outside.
-    function extractTxInput(TxInfo calldata txInfo, uint256 inputStartingIndex)
-        internal
-        pure
-        returns (bytes memory input, uint256 inputLength)
-    {
+    function extractTxInput(
+        BitcoinTx.Info calldata txInfo,
+        uint256 inputStartingIndex
+    ) internal pure returns (bytes memory input, uint256 inputLength) {
         // First, determine the remaining vector using current input
         // starting index.
         bytes memory remainingVector =

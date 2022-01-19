@@ -101,4 +101,15 @@ library BitcoinTx {
         ///      Encoded as 4-bytes unsigned integer, little endian.
         bytes4 locktime;
     }
+
+    /// @notice Represents data needed to perform a Bitcoin SPV proof.
+    struct Proof {
+        /// @notice The merkle proof of transaction inclusion in a block.
+        bytes merkleProof;
+        /// @notice Transaction index in the block (0-indexed).
+        uint256 txIndexInBlock;
+        /// @notice Single byte-string of 80-byte bitcoin headers,
+        ///         lowest height first.
+        bytes bitcoinHeaders;
+    }
 }
