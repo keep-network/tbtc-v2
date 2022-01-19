@@ -369,11 +369,14 @@ contract Bridge {
 
         // Compute the sweep transaction fee which is a difference between
         // inputs amounts sum and the output amount.
+        // TODO: Check fee against max fee.
         uint256 fee = sweepTxInputsValue - sweepTxOutputValue;
         // Calculate fee share by dividing the total fee by deposits count.
+        // TODO: Deal with precision loss.
         uint256 feeShare = fee / depositedAmounts.length;
         // Reduce each deposit amount by fee share value.
         for (uint256 i = 0; i < depositedAmounts.length; i++) {
+            // TODO: The feeShare can be bigger than the amount.
             depositedAmounts[i] -= feeShare;
         }
 
@@ -587,6 +590,7 @@ contract Bridge {
                 ];
 
             if (deposit.revealedAt != 0) {
+                // TODO: Check if we can make the replay protection cheaper.
                 require(deposit.sweptAt == 0, "Deposit already swept");
                 /* solhint-disable-next-line not-rely-on-time */
                 deposit.sweptAt = uint32(block.timestamp);
