@@ -37,7 +37,7 @@ pragma solidity 0.8.4;
 ///      |--------|------------------|------------------------|---------------------------------------------|
 ///      | 36     | previous_output  | outpoint               | The previous outpoint being spent           |
 ///      | varies | script bytes     | compactSize uint (LE)  | The number of bytes in the signature script |
-///      | varies | signature script | char[]                 | The signature script, not present for P2WSH |
+///      | varies | signature script | char[]                 | The signature script, empty for P2WSH       |
 ///      | 4      | sequence         | uint32_t (LE)          | Sequence number                             |
 ///
 ///
