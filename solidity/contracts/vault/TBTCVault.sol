@@ -70,6 +70,24 @@ contract TBTCVault is IVault {
         bank.transferBalanceFrom(minter, address(this), amount);
     }
 
+    /// @notice Transfers the given `amount` of the Bank balance from the caller
+    ///         to TBTC Vault and mints `amount` of TBTC to the caller.
+    /// @dev Can only be called by the Bank via `approveBalanceAndCall`.
+    /// @param owner The owner who approved their Bank balance
+    /// @param amount Amount of TBTC to mint
+    function receiveBalanceApproval(address owner, uint256 amount)
+        external
+        override
+        onlyBank
+    {
+        require(
+            bank.balanceOf(owner) >= amount,
+            "Amount exceeds balance in the bank"
+        );
+        _mint(owner, amount);
+        bank.transferBalanceFrom(owner, address(this), amount);
+    }
+
     /// @notice Mints the same amount of TBTC as the deposited amount for each
     ///         depositor in the array. Can only be called by the Bank after the
     ///         Bridge swept deposits and Bank increased balance for the
