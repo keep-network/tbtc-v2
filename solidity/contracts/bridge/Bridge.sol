@@ -25,18 +25,18 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 ///         decreasing balances in the Bank as a result of BTC deposit and
 ///         redemption operations performed by depositors and redeemers.
 ///
-///         Depositors send BTC funds to the most-recently-created-wallet of the
-///         bridge using pay-to-script-hash (P2SH) or pay-to-witness-script-hash
-///         (P2WSH) containing hashed information about the depositor’s Ethereum
-///         address. Then, the depositor reveals their desired Ethereum address
-///         along with their deposit blinding factor to the Bridge on Ethereum
-///         chain. The off-chain ECDSA wallet listens for these sorts of
-///         messages and when it gets one, it checks the Bitcoin network to make
-///         sure the deposit lines up. If it does, the off-chain ECDSA wallet
-///         may decide to pick the deposit transaction for sweeping, and when
-///         the sweep operation is confirmed on the Bitcoin network, the ECDSA
-///         wallet informs the Bridge about the sweep increasing appropriate
-///         balances in the Bank.
+///         Depositors send BTC funds to the most recently created off-chain
+///         ECDSA wallet of the bridge using pay-to-script-hash (P2SH) or
+///         pay-to-witness-script-hash (P2WSH) containing hashed information
+///         about the depositor’s Ethereum address. Then, the depositor reveals
+///         their desired Ethereum address along with their deposit blinding
+///         factor to the Bridge on Ethereum chain. The off-chain ECDSA wallet
+///         listens for these sorts of messages and when it gets one, it checks
+///         the Bitcoin network to make sure the deposit lines up. If it does,
+///         the off-chain ECDSA wallet may decide to pick the deposit
+///         transaction for sweeping, and when the sweep operation is confirmed
+///         on the Bitcoin network, the ECDSA wallet informs the Bridge about
+///         the sweep increasing appropriate balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank.
 contract Bridge {
     using BTCUtils for bytes;
