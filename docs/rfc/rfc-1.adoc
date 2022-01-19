@@ -377,6 +377,7 @@ Any transaction that unlocks a UTXO using the `signingGroupPubkey` and then
 locks it using any other script other than to a single UTXO to any other public
 key than the same `signingGroupPubkey` is fraud.
 
+[[redemption]]
 === Redemption
 
 Governable Parameters:
@@ -465,27 +466,36 @@ BTC from the wallet to another random wallet and close this wallet.
 
 [[transaction-incentives]]
 === Transaction Incentives
-We use two main types of transaction incentives: Unlucky Operators and Escalating Rewards.
 
-[[unlucky-operator]]
-==== Unlucky Operators
-The Unlucky Operator scheme involves using the a source of pseudo-randomness
-(like the next ethereum block hash) to choose who the operator to pay for the
-gas is. If that operator refuses, the remaining operators can sign a message to
-disable their rewards, where that message is incentivized via an
-<<escalating-reward,escalating reward>> to prevent recursion.
+Governable Parameters
+- `max_gas_refund_price`: The highest amount of gwei that the gas refund
+  contract will pay out per gas for a refund transaction.
 
-[[escalating-reward]]
-==== Escalating Rewards
-The Escalating Reward scheme involves setting a governable floor price, ceiling
-price, and velocity. Whoever submits the transaction will be paid out according
-to how far the reward has escalated from the floor to the ceiling.
+There are 7 main transactions that require incentives:
 
-*Example*: say that the reward started on block 110 at a floor of 100 T
-tokens, has a velocity of 2 T per block, and has a ceiling of 1000 T tokens. Someone
-submits the transaction on block 150. Thus, they would receive `min(2 T*(block
-150 - block 110) + 100 T, 1000 T) = 180 T`
+==== Transactions That Must Be Submitted By Operators
+- Submit distributed key generation results for new wallet creation (weekly).
+- Signal that funds need to be moved between wallets if a <<heartbeat,heartbeat>> fails.
+- Signal that a staker is not performing their duty and should be marked as
+ineligible for rewards (as in the case that they were inactive during
+heartbeats).
 
+==== Transactions That Can Be Submitted By Anyone
+- Begin distributed key generation for new wallet creation (weekly).
+- Provide the proof for a <<sweeping,sweep>> transaction.
+- Provide the proof for a <<redemption,redemption>> transaction.
+- Provide the proof that funds have moved between wallets.
+
+To make sure that these transactions get posted, we need an eth pool that
+provides gas refunds for anyone submitting these transactions. We know the
+amount of gas spent, and we know the gas price used, and so can reimburse the
+operator.
+
+To prevent abuse, we need to let governance set caps (`max_gas_refund_price`)
+on how much eth can be reimbursed (so that a miner can't drain the pool).
+
+Further ideas are to run bots like those provided by https://www.gelato.network/[Gelato]
+in order to prevent problems like operators front-running each other.
 
 [[bitcoin-sweeping-fee]]
 === Bitcoin Sweeping Fee
@@ -548,6 +558,8 @@ Alphabetized list of Governable Parameters with additional notes.
   <<heartbeat,heartbeat>> to be successful.
 - `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
   If set to 40, then the signers sign every 40th block.
+- `max_gas_refund_price`: The highest amount of gwei that the gas refund
+  contract will pay out per gas for a refund transaction.
 - `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
   operator for the gas of the sweep and collect their account balance.
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
