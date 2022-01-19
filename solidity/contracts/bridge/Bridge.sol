@@ -445,7 +445,7 @@ contract Bridge {
         internal
         view
     {
-        uint256 requestedDiff;
+        uint256 requestedDiff = 0;
         uint256 currentDiff = relay.getCurrentEpochDifficulty();
         uint256 previousDiff = relay.getPrevEpochDifficulty();
         uint256 firstHeaderDiff =
@@ -483,7 +483,7 @@ contract Bridge {
     // TODO: Documentation.
     function processSweepTxOutput(TxInfo calldata sweepTx)
         internal
-        view
+        pure
         returns (bytes20 walletPubKeyHash, uint64 value)
     {
         // To determine the total number of sweep transaction outputs, we need to
@@ -630,28 +630,28 @@ contract Bridge {
         return (inputsValue, depositors, depositedAmounts);
     }
 
-    // TODO: Documentation. Mention that `tx` data should be validated outside.
-    function extractTxInput(TxInfo calldata tx, uint256 inputStartingIndex)
+    // TODO: Documentation. Mention that `txInfo` data should be validated outside.
+    function extractTxInput(TxInfo calldata txInfo, uint256 inputStartingIndex)
         internal
-        view
+        pure
         returns (bytes memory input, uint256 inputLength)
     {
         // First, determine the remaining vector using current input
         // starting index.
         bytes memory remainingVector =
-            tx.inputVector.slice(
+            txInfo.inputVector.slice(
                 inputStartingIndex,
-                tx.inputVector.length - inputStartingIndex
+                txInfo.inputVector.length - inputStartingIndex
             );
 
         // Determine the current input's length using the head of remaining
         // vector. We assume that the result of `determineInputLength` since
-        // the whole function assumes the `tx` data is valid.
+        // the whole function assumes the `txInfo` data is valid.
         inputLength = remainingVector.determineInputLength();
 
         // Extract the current input from remaining vector using calculated
         // input length.
-        input = tx.inputVector.slice(inputStartingIndex, inputLength);
+        input = txInfo.inputVector.slice(inputStartingIndex, inputLength);
 
         return (input, inputLength);
     }
