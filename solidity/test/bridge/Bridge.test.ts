@@ -1,27 +1,41 @@
 import { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
-import type { Bridge } from "../../typechain"
+import type { Bank, Bridge, TestRelay } from "../../typechain"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime } = helpers.time
 
 const fixture = async () => {
+  const Bank = await ethers.getContractFactory("Bank")
+  const bank: Bank = await Bank.deploy()
+  await bank.deployed()
+
+  const TestRelay = await ethers.getContractFactory("TestRelay")
+  const relay: TestRelay = await TestRelay.deploy()
+  await relay.deployed()
+
   const Bridge = await ethers.getContractFactory("Bridge")
-  const bridge: Bridge = await Bridge.deploy()
+  const bridge: Bridge = await Bridge.deploy(bank.address, relay.address)
   await bridge.deployed()
 
+  await bank.updateBridge(bridge.address)
+
   return {
+    bank,
+    relay,
     bridge,
   }
 }
 
 describe("Bridge", () => {
+  let bank: Bank
+  let relay: TestRelay
   let bridge: Bridge
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ bridge } = await waffle.loadFixture(fixture))
+    ;({ bank, relay, bridge } = await waffle.loadFixture(fixture))
   })
 
   describe("revealDeposit", () => {
@@ -270,6 +284,153 @@ describe("Bridge", () => {
           bridge.revealDeposit(corruptedP2SHFundingTx, reveal)
         ).to.be.revertedWith("Wrong script hash length")
       })
+    })
+  })
+
+  describe("sweep", () => {
+    context("when transaction proof is valid", () => {
+      context("when there is only one output", () => {
+        context("when wallet public key hash length is 20 bytes", () => {
+          context("when there is only one input", () => {
+            context(
+              "when the single input is a revealed unswept P2SH deposit",
+              () => {}
+            )
+
+            context(
+              "when the single input is a revealed unswept P2WSH deposit",
+              () => {}
+            )
+
+            context("when the single input is the previous sweep", () => {})
+
+            context(
+              "when the single input is a revealed but already swept deposit",
+              () => {
+                it("should revert", () => {
+                  // TODO: Implementation.
+                })
+              }
+            )
+
+            context("when the single input is an unknown", () => {
+              it("should revert", () => {
+                // TODO: Implementation.
+              })
+            })
+          })
+
+          // Since P2SH vs P2WSH path has been already checked in the scenario
+          // "when there is only one input", we no longer differentiate deposits
+          // using that criterion during "when there are multiple inputs" scenario.
+          context("when there are multiple inputs", () => {
+            context(
+              "when input vector consists only of revealed unswept " +
+                "deposits and the expected previous sweep",
+              () => {}
+            )
+
+            context(
+              "when input vector consists only of revealed unswept " +
+                "deposits but there is no previous sweep since it is not expected",
+              () => {}
+            )
+
+            context(
+              "when input vector consists only of revealed unswept " +
+                "deposits but there is no previous sweep despite it is expected",
+              () => {
+                it("should revert", () => {
+                  // TODO: Implementation.
+                })
+              }
+            )
+
+            context(
+              "when input vector contains a revealed but already swept deposit",
+              () => {
+                it("should revert", () => {
+                  // TODO: Implementation.
+                })
+              }
+            )
+
+            context("when input vector contains an unknown input", () => {
+              it("should revert", () => {
+                // TODO: Implementation.
+              })
+            })
+          })
+        })
+
+        context(
+          "when wallet public key hash length is other than 20 bytes",
+          () => {
+            it("should revert", () => {
+              // TODO: Implementation.
+            })
+          }
+        )
+      })
+
+      context("when output count is other than one", () => {
+        it("should revert", () => {
+          // TODO: Implementation.
+        })
+      })
+    })
+
+    context("when transaction proof is not valid", () => {
+      context("when input vector is not valid", () => {
+        it("should revert", () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when output vector is not valid", () => {
+        it("should revert", () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when merkle proof is not valid", () => {
+        it("should revert", () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when proof difficulty is not current nor previous", () => {
+        it("should revert", () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when headers chain length is not valid", () => {
+        it("should revert", () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when headers chain is not valid", () => {
+        it("should revert", () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when the work in the header is insufficient", () => {
+        it("should revert", () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context(
+        "when accumulated difficulty in headers chain is insufficient",
+        () => {
+          it("should revert", () => {
+            // TODO: Implementation.
+          })
+        }
+      )
     })
   })
 })
