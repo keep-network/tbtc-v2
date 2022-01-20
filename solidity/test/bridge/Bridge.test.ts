@@ -123,10 +123,10 @@ describe("Bridge", () => {
             expect(deposit[0]).to.be.equal(
               "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
             )
-            // Deposit amount encoded as 8-byte LE. In this case it's
-            // 10000 satoshi because the P2SH deposit transaction set this
-            // value for the funding output.
-            expect(deposit[1]).to.be.equal("0x1027000000000000")
+            // Deposit amount in satoshi. In this case it's 10000 satoshi
+            // because the P2SH deposit transaction set this value for the
+            // funding output.
+            expect(deposit[1]).to.be.equal(10000)
             // Revealed time should be set.
             expect(deposit[2]).to.be.equal(await lastBlockTime())
             // Deposit vault, same as in `reveal.vault`.
@@ -218,10 +218,10 @@ describe("Bridge", () => {
             expect(deposit[0]).to.be.equal(
               "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
             )
-            // Deposit amount encoded as 8-byte LE. In this case it's
-            // 10000 satoshi because the P2SH deposit transaction set this
-            // value for the funding output.
-            expect(deposit[1]).to.be.equal("0x1027000000000000")
+            // Deposit amount in satoshi. In this case it's 10000 satoshi
+            // because the P2WSH deposit transaction set this value for the
+            // funding output.
+            expect(deposit[1]).to.be.equal(10000)
             // Revealed time should be set.
             expect(deposit[2]).to.be.equal(await lastBlockTime())
             // Deposit vault, same as in `reveal.vault`.

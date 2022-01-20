@@ -92,9 +92,8 @@ contract Bridge {
     struct DepositInfo {
         // Ethereum depositor address.
         address depositor;
-        // Deposit amount in satoshi (8-byte LE). For example:
-        // 0.0001 BTC = 10000 satoshi = 0x1027000000000000
-        bytes8 amount;
+        // Deposit amount in satoshi.
+        uint64 amount;
         // UNIX timestamp the deposit was revealed at.
         uint32 revealedAt;
         // Address of the tBTC vault.
@@ -295,7 +294,7 @@ contract Bridge {
             fundingOutputAmount := mload(add(fundingOutput, 32))
         }
 
-        deposit.amount = fundingOutputAmount;
+        deposit.amount = BTCUtils.reverseUint64(uint64(fundingOutputAmount));
         deposit.depositor = reveal.depositor;
         /* solhint-disable-next-line not-rely-on-time */
         deposit.revealedAt = uint32(block.timestamp);
@@ -575,12 +574,7 @@ contract Bridge {
                 deposit.sweptAt = uint32(block.timestamp);
 
                 depositors[processedDepositsCount] = deposit.depositor;
-                depositedAmounts[processedDepositsCount] = uint64(
-                    abi
-                        .encodePacked(deposit.amount)
-                        .reverseEndianness()
-                        .bytesToUint()
-                );
+                depositedAmounts[processedDepositsCount] = deposit.amount;
                 inputsValue += depositedAmounts[processedDepositsCount];
 
                 processedDepositsCount++;
