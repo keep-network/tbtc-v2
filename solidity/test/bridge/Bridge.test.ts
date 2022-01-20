@@ -126,7 +126,8 @@ describe("Bridge", () => {
                 "0xf9f0c90d00039523",
                 "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
                 "0x28e081f285138ccbe389c1eb8985716230129f89",
-                "0x60bcea61"
+                "0x60bcea61",
+                reveal.vault
               )
           })
         })
@@ -219,7 +220,8 @@ describe("Bridge", () => {
                 "0xf9f0c90d00039523",
                 "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
                 "0x28e081f285138ccbe389c1eb8985716230129f89",
-                "0x60bcea61"
+                "0x60bcea61",
+                reveal.vault
               )
           })
         })

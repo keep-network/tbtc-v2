@@ -100,7 +100,8 @@ contract Bridge {
         bytes8 blindingFactor,
         bytes20 walletPubKeyHash,
         bytes20 refundPubKeyHash,
-        bytes4 refundLocktime
+        bytes4 refundLocktime,
+        address vault
     );
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
@@ -248,7 +249,8 @@ contract Bridge {
             reveal.blindingFactor,
             reveal.walletPubKeyHash,
             reveal.refundPubKeyHash,
-            reveal.refundLocktime
+            reveal.refundLocktime,
+            reveal.vault
         );
     }
 
