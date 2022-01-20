@@ -486,7 +486,7 @@ heartbeats).
 - Provide the proof for a <<redemption,redemption>> transaction.
 - Provide the proof that funds have moved between wallets.
 
-To make sure that these transactions get posted, we need the DAO to fund an eth
+To make sure that these transactions get posted, we need the DAO to fund an ETH
 pool that provides gas refunds for anyone submitting these transactions. We
 know the amount of gas spent, and we know the gas price used, and so can
 reimburse the operator.
