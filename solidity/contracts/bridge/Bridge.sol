@@ -412,7 +412,7 @@ contract Bridge {
     ) internal view {
         require(
             txHash.prove(
-                proof.bitcoinHeaders.extractMerkleRootLE().toBytes32(),
+                proof.bitcoinHeaders.extractMerkleRootLE(),
                 proof.merkleProof,
                 proof.txIndexInBlock
             ),
@@ -560,11 +560,8 @@ contract Bridge {
                         keccak256(
                             abi.encodePacked(
                                 inputTxHash,
-                                uint32(
-                                    input
-                                        .extractTxIndexLE()
-                                        .reverseEndianness()
-                                        .bytesToUint()
+                                BTCUtils.reverseUint32(
+                                    uint32(input.extractTxIndexLE())
                                 )
                             )
                         )
