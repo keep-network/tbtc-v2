@@ -467,7 +467,8 @@ BTC from the wallet to another random wallet and close this wallet.
 [[transaction-incentives]]
 === Transaction Incentives
 
-Governable Parameters
+Governable Parameters:
+
 - `max_gas_refund_price`: The highest amount of gwei that the gas refund
   contract will pay out per gas for a refund transaction.
 
