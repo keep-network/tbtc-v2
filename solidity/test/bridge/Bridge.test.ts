@@ -58,10 +58,12 @@ describe("Bridge", () => {
     })
 
     describe("when called by the governance", () => {
+      let tx: ContractTransaction
+
       describe("when setting vault status as trusted", () => {
         before(async () => {
           await createSnapshot()
-          await bridge.connect(governance).setVaultStatus(vault, true)
+          tx = await bridge.connect(governance).setVaultStatus(vault, true)
         })
 
         after(async () => {
@@ -72,21 +74,34 @@ describe("Bridge", () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           expect(await bridge.isVaultTrusted(vault)).to.be.true
         })
+
+        it("should emit VaultStatusUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "VaultStatusUpdated")
+            .withArgs(vault, true)
+        })
       })
 
       describe("when setting vault status as no longer trusted", () => {
         before(async () => {
           await createSnapshot()
           await bridge.connect(governance).setVaultStatus(vault, true)
-          await bridge.connect(governance).setVaultStatus(vault, false)
+          tx = await bridge.connect(governance).setVaultStatus(vault, false)
         })
 
         after(async () => {
           await restoreSnapshot()
         })
+
         it("should correctly update vault status", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           expect(await bridge.isVaultTrusted(vault)).to.be.false
+        })
+
+        it("should emit VaultStatusUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "VaultStatusUpdated")
+            .withArgs(vault, false)
         })
       })
     })

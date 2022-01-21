@@ -117,6 +117,8 @@ contract Bridge is Ownable {
         address vault
     );
 
+    event VaultStatusUpdated(address indexed vault, bool isTrusted);
+
     /// @notice Allows the Governance to mark the given vault address as trusted
     ///         or no longer trusted. Vaults are not trusted by default.
     ///         Trusted vault must meet the following criteria:
@@ -131,6 +133,7 @@ contract Bridge is Ownable {
     /// @dev Can only be called by the Governance.
     function setVaultStatus(address vault, bool isTrusted) external onlyOwner {
         isVaultTrusted[vault] = isTrusted;
+        emit VaultStatusUpdated(vault, isTrusted);
     }
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
