@@ -531,13 +531,13 @@ contract Bridge {
         // for given wallet and we shouldn't expect an additional input. If
         // so, all inputs should be deposits. Otherwise, we need to subtract
         // one input since it represents a previous sweep output.
-        uint256 depositsCount =
-            previousSweepFlag ? inputsCount : inputsCount - 1;
+        depositors = new address[](
+            previousSweepFlag ? inputsCount : inputsCount - 1
+        );
+        depositedAmounts = new uint256[](depositors.length);
 
         // Initialize helper variables.
         uint256 processedDepositsCount = 0;
-        depositors = new address[](depositsCount);
-        depositedAmounts = new uint256[](depositsCount);
 
         // Inputs processing loop.
         for (uint256 i = 0; i < inputsCount; i++) {
@@ -546,24 +546,13 @@ contract Bridge {
                 break;
             }
 
-            (bytes memory input, uint256 inputLength) =
-                extractTxInput(sweepTx, inputStartingIndex);
-
-            // Extract the transaction hash corresponding to the given input.
-            // Note that it's little-endian.
-            bytes32 inputTxHash = input.extractInputTxIdLE();
+            (bytes32 inputTxHash, uint32 inputTxIndex, uint256 inputLength) =
+                parseTxInputAt(sweepTx, inputStartingIndex);
 
             DepositInfo storage deposit =
                 unswept[
                     uint256(
-                        keccak256(
-                            abi.encodePacked(
-                                inputTxHash,
-                                BTCUtils.reverseUint32(
-                                    uint32(input.extractTxIndexLE())
-                                )
-                            )
-                        )
+                        keccak256(abi.encodePacked(inputTxHash, inputTxIndex))
                     )
                 ];
 
@@ -604,28 +593,31 @@ contract Bridge {
     }
 
     // TODO: Documentation. Mention that `txInfo` data should be validated outside.
-    function extractTxInput(
+    function parseTxInputAt(
         BitcoinTx.Info calldata txInfo,
         uint256 inputStartingIndex
-    ) internal pure returns (bytes memory input, uint256 inputLength) {
-        // First, determine the remaining vector using current input
-        // starting index.
-        bytes memory remainingVector =
-            txInfo.inputVector.slice(
-                inputStartingIndex,
-                txInfo.inputVector.length - inputStartingIndex
-            );
+    )
+        internal
+        pure
+        returns (
+            bytes32 inputTxHash,
+            uint32 inputTxIndex,
+            uint256 inputLength
+        )
+    {
+        inputTxHash = txInfo.inputVector.extractInputTxIdLeAt(
+            inputStartingIndex
+        );
 
-        // Determine the current input's length using the head of remaining
-        // vector. We assume that the result of `determineInputLength` since
-        // the whole function assumes the `txInfo` data is valid.
-        inputLength = remainingVector.determineInputLength();
+        inputTxIndex = BTCUtils.reverseUint32(
+            uint32(txInfo.inputVector.extractTxIndexLeAt(inputStartingIndex))
+        );
 
-        // Extract the current input from remaining vector using calculated
-        // input length.
-        input = txInfo.inputVector.slice(inputStartingIndex, inputLength);
+        inputLength = txInfo.inputVector.determineInputLengthAt(
+            inputStartingIndex
+        );
 
-        return (input, inputLength);
+        return (inputTxHash, inputTxIndex, inputLength);
     }
 
     // TODO It is possible a malicious wallet can sweep deposits that can not
