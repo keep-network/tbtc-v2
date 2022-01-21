@@ -483,7 +483,9 @@ would only be 67 heartbeats, and the wallet would begin to transfer its funds.
 
 An operator from Operator-1 through Operator-72 (including 25-30) chooses to
 publish that Operator-73 through Operator-100 should have their rewards
-disabled (after the active operators sign this).
+disabled (after the active operators sign this). See
+<<transaction-incentives,transaction incentives>> for more on how to encourage
+this transaction.
 
 [[transaction-incentives]]
 === Transaction Incentives
