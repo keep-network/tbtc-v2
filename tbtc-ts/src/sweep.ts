@@ -15,23 +15,50 @@ import {
   DepositData,
 } from "./deposit"
 
-// TODO: Add description
-export async function createScriptSig(
-  signature: Buffer,
-  depositScript: Buffer
-): Promise<bcoin.Script> {
-  // Get the active wallet public key and use it as signing group public key.
+/**
+ * Creates and sets `scriptSig` for the transaction input at the given index by
+ * combining signature, signing group public key and deposit script.
+ * @param transaction - Mutable transaction containing the input to be signed
+ * @param inputIndex - Index that points to the input to be signed
+ * @param depositData - Array of deposit data
+ * @param walletPrivateKey - Bitcoin private key of the wallet.
+ * @returns Empty promise.
+ */
+export async function resolveDepositScript(
+  transaction: bcoin.MTX,
+  inputIndex: number,
+  depositData: DepositData[],
+  walletPrivateKey: Buffer
+): Promise<void> {
+  const previousOutpoint = transaction.inputs[inputIndex].prevout
+  const previousOutput = transaction.view.getOutput(previousOutpoint)
+
+  const depositScript = bcoin.Script.fromRaw(
+    Buffer.from(await createDepositScript(depositData[inputIndex]), "hex")
+  )
+
+  const signature: Buffer = transaction.signature(
+    inputIndex,
+    depositScript,
+    previousOutput.value,
+    walletPrivateKey,
+    null,
+    0
+  )
+
   const signingGroupPublicKey = await getActiveWalletPublicKey()
   if (!isCompressedPublicKey(signingGroupPublicKey)) {
     throw new Error("Signing group public key must be compressed")
   }
+
   const scriptSig = new bcoin.Script()
   scriptSig.clear()
   scriptSig.pushData(signature)
   scriptSig.pushData(Buffer.from(signingGroupPublicKey, "hex"))
   scriptSig.pushData(depositScript)
   scriptSig.compile()
-  return scriptSig
+
+  transaction.inputs[inputIndex].script = scriptSig
 }
 
 /**
@@ -138,21 +165,12 @@ export async function createSweepTransaction(
   })
 
   for (let i = 0; i < transaction.inputs.length; i++) {
-    const previousOutpoint = transaction.inputs[i].prevout
-    const previousOutput = transaction.view.getOutput(previousOutpoint)
-    const depositScript = bcoin.Script.fromRaw(
-      Buffer.from(await createDepositScript(depositData[i]), "hex")
-    )
-    const signature: Buffer = transaction.signature(
+    await resolveDepositScript(
+      transaction,
       i,
-      depositScript,
-      previousOutput.value,
-      walletKeyRing.privateKey,
-      null,
-      0
+      depositData,
+      walletKeyRing.privateKey
     )
-    const scriptSig = await createScriptSig(signature, depositScript)
-    transaction.inputs[i].script = scriptSig
   }
 
   return {
