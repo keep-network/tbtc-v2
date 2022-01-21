@@ -474,6 +474,12 @@ unstaking might cause a wallet to fail a heartbeat, but can still be around to
 help move the funds to another wallet, and would not have their rewards turned
 off.
 
+Moving the funds costs a bitcoin mining fee, as well as a transaction on the
+ethereum side to prove this happened. To maintain the peg, we need to reduce
+the equivalent amount of fee from the treasury's account balance (set aside for
+such fees). This will need to be proven and updated ethereum-side, and
+<<transaction-incentives,properly incentivized>>.
+
 *Example:*: Say that `heartbeat = 70, consecutive_failed_heartbeats = 1`.
 Operator-1 through Operator-72 are all active while Operator-73 through
 Operator-100 are inactive. Currently, there are 72 active operators, so the
