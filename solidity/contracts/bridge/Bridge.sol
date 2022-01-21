@@ -108,8 +108,8 @@ contract Bridge {
     struct SweepInfo {
         // Hash of the sweep transaction.
         bytes32 txHash;
-        // Amount of the single transaction output.
-        uint256 amount;
+        // Value of the sweep transaction output.
+        uint64 txOutputValue;
     }
 
     /// @notice Confirmations on the Bitcoin chain required to successfully
@@ -134,9 +134,8 @@ contract Bridge {
     mapping(uint256 => DepositInfo) public unswept;
 
     /// @notice Maps the wallet public key hash (computed using HASH160 opcode)
-    ///         to the latest sweep.
-    /// TODO: Explore the possibility of storing just a hash of SweepInfo.
-    mapping(bytes20 => SweepInfo) public sweeps;
+    ///         to the latest sweep computed as keccak256(txHash | txOutputValue).
+    mapping(bytes20 => bytes32) public sweeps;
 
     event DepositRevealed(
         bytes32 fundingTxHash,
@@ -327,7 +326,8 @@ contract Bridge {
     /// TODO: List requirements in @dev section.
     function sweep(
         BitcoinTx.Info calldata sweepTx,
-        BitcoinTx.Proof calldata sweepProof
+        BitcoinTx.Proof calldata sweepProof,
+        SweepInfo calldata previousSweep
     ) external {
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
@@ -340,13 +340,32 @@ contract Bridge {
         (bytes20 walletPubKeyHash, uint64 sweepTxOutputValue) =
             processSweepTxOutput(sweepTx);
 
+        // Check if previous sweep for given wallet exists. If so, validate
+        // passed previous sweep data against the stored hash and use them for
+        // further processing. If no previous sweep exists, use empty data.
+        // TODO: Add test case to cover that.
+        SweepInfo memory resolvedPreviousSweep;
+        bytes32 previousSweepHash = sweeps[walletPubKeyHash];
+        if (previousSweepHash != bytes32(0)) {
+            require(
+                keccak256(
+                    abi.encodePacked(
+                        previousSweep.txHash,
+                        previousSweep.txOutputValue
+                    )
+                ) == previousSweepHash,
+                "Invalid previous sweep data"
+            );
+            resolvedPreviousSweep = previousSweep;
+        }
+
         // Process sweep transaction inputs and extract their value sum and
         // all information needed to perform deposit bookkeeping.
         (
             uint256 sweepTxInputsValue,
             address[] memory depositors,
             uint256[] memory depositedAmounts
-        ) = processSweepTxInputs(sweepTx, walletPubKeyHash);
+        ) = processSweepTxInputs(sweepTx, resolvedPreviousSweep);
 
         // Compute the sweep transaction fee which is a difference between
         // inputs amounts sum and the output amount.
@@ -362,7 +381,9 @@ contract Bridge {
         }
 
         // Record this sweep data and assign them to the wallet public key hash.
-        sweeps[walletPubKeyHash] = SweepInfo(sweepTxHash, sweepTxOutputValue);
+        sweeps[walletPubKeyHash] = keccak256(
+            abi.encodePacked(sweepTxHash, sweepTxOutputValue)
+        );
 
         // Update depositors balances in the Bank.
         bank.increaseBalances(depositors, depositedAmounts);
@@ -500,7 +521,7 @@ contract Bridge {
     // TODO: Documentation.
     function processSweepTxInputs(
         BitcoinTx.Info calldata sweepTx,
-        bytes20 walletPubKeyHash
+        SweepInfo memory previousSweep
     )
         internal
         returns (
@@ -509,7 +530,6 @@ contract Bridge {
             uint256[] memory depositedAmounts
         )
     {
-        SweepInfo storage previousSweep = sweeps[walletPubKeyHash];
         // Flag indicating whether the previous sweep transaction output
         // is included as an input. If current sweep is the first sweep
         // of given wallet, we use a shortcut and initialize it with `true`.
@@ -570,7 +590,7 @@ contract Bridge {
             } else if (
                 !previousSweepFlag && previousSweep.txHash == inputTxHash
             ) {
-                inputsValue += previousSweep.amount;
+                inputsValue += previousSweep.txOutputValue;
                 previousSweepFlag = true;
             } else {
                 revert("Unknown input type");

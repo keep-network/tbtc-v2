@@ -333,21 +333,23 @@ describe("Bridge", () => {
                   expect(deposit[4]).to.be.equal(await lastBlockTime())
                 })
 
-                it("should save sweep info for given wallet", async () => {
+                it("should save sweep hash for given wallet", async () => {
                   // Take wallet public key hash from first deposit. All deposits
                   // in same sweep batch should have the same value of that field.
                   const { walletPubKeyHash } = data.deposits[0].reveal
 
-                  const sweep = await bridge.sweeps(walletPubKeyHash)
+                  const sweepHash = await bridge.sweeps(walletPubKeyHash)
 
-                  // Should contain sweep tx hash and amount.
-                  expect(sweep.length).to.be.equal(2)
-                  expect(sweep[0]).to.be.equal(data.sweepTx.hash)
                   // Amount can be checked by opening the sweep tx in a Bitcoin
                   // testnet explorer. In this case, the sum of inputs is
                   // 20000 satoshi (from the single deposit) and there is a
                   // fee of 1500 so the output value is 18500.
-                  expect(sweep[1]).to.be.equal(18500)
+                  const expectedSweepHash = ethers.utils.solidityKeccak256(
+                    ["bytes32", "uint64"],
+                    [data.sweepTx.hash, 18500]
+                  )
+
+                  expect(sweepHash).to.be.equal(expectedSweepHash)
                 })
 
                 it("should update the depositor's balance", async () => {
@@ -528,6 +530,10 @@ describe("Bridge", () => {
       await bridge.revealDeposit(fundingTx, reveal)
     }
 
-    return bridge.sweep(data.sweepTx, data.sweepProof)
+    return bridge.sweep(data.sweepTx, data.sweepProof, {
+      txHash:
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+      txOutputValue: 0,
+    })
   }
 })
