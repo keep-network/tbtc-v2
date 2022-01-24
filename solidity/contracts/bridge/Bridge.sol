@@ -342,7 +342,6 @@ contract Bridge {
         // Check if previous sweep for given wallet exists. If so, validate
         // passed previous sweep data against the stored hash and use them for
         // further processing. If no previous sweep exists, use empty data.
-        // TODO: Add test case to cover that.
         SweepInfo memory resolvedPreviousSweep;
         bytes32 previousSweepHash = sweeps[walletPubKeyHash];
         if (previousSweepHash != bytes32(0)) {
@@ -576,7 +575,6 @@ contract Bridge {
                 ];
 
             if (deposit.revealedAt != 0) {
-                // TODO: Check if we can make the replay protection cheaper.
                 require(deposit.sweptAt == 0, "Deposit already swept");
                 /* solhint-disable-next-line not-rely-on-time */
                 deposit.sweptAt = uint32(block.timestamp);

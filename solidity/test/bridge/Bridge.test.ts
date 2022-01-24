@@ -300,149 +300,160 @@ describe("Bridge", () => {
     context("when transaction proof is valid", () => {
       context("when there is only one output", () => {
         context("when wallet public key hash length is 20 bytes", () => {
-          context("when there is only one input", () => {
-            context(
-              "when the single input is a revealed unswept P2SH deposit",
-              () => {
-                let tx: ContractTransaction
-                const data: SweepTestData = SingleP2SHDeposit
+          context("when previous sweep data are valid", () => {
+            context("when there is only one input", () => {
+              context(
+                "when the single input is a revealed unswept P2SH deposit",
+                () => {
+                  let tx: ContractTransaction
+                  const data: SweepTestData = SingleP2SHDeposit
 
-                before(async () => {
-                  await createSnapshot()
+                  before(async () => {
+                    await createSnapshot()
 
-                  tx = await runSweepScenario(data)
-                })
+                    tx = await runSweepScenario(data)
+                  })
 
-                after(async () => {
-                  await restoreSnapshot()
-                })
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
 
-                it("should mark deposit as swept", async () => {
-                  // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
-                  const depositKey = ethers.utils.solidityKeccak256(
-                    ["bytes32", "uint32"],
-                    [
-                      data.deposits[0].fundingTx.hash,
-                      data.deposits[0].reveal.fundingOutputIndex,
-                    ]
-                  )
+                  it("should mark deposit as swept", async () => {
+                    // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                    const depositKey = ethers.utils.solidityKeccak256(
+                      ["bytes32", "uint32"],
+                      [
+                        data.deposits[0].fundingTx.hash,
+                        data.deposits[0].reveal.fundingOutputIndex,
+                      ]
+                    )
 
-                  const deposit = await bridge.deposits(depositKey)
+                    const deposit = await bridge.deposits(depositKey)
 
-                  // Swept time is the last item.
-                  expect(deposit[4]).to.be.equal(await lastBlockTime())
-                })
+                    // Swept time is the last item.
+                    expect(deposit[4]).to.be.equal(await lastBlockTime())
+                  })
 
-                it("should save sweep hash for given wallet", async () => {
-                  // Take wallet public key hash from first deposit. All deposits
-                  // in same sweep batch should have the same value of that field.
-                  const { walletPubKeyHash } = data.deposits[0].reveal
+                  it("should save sweep hash for given wallet", async () => {
+                    // Take wallet public key hash from first deposit. All deposits
+                    // in same sweep batch should have the same value of that field.
+                    const { walletPubKeyHash } = data.deposits[0].reveal
 
-                  const sweepHash = await bridge.sweeps(walletPubKeyHash)
+                    const sweepHash = await bridge.sweeps(walletPubKeyHash)
 
-                  // Amount can be checked by opening the sweep tx in a Bitcoin
-                  // testnet explorer. In this case, the sum of inputs is
-                  // 20000 satoshi (from the single deposit) and there is a
-                  // fee of 1500 so the output value is 18500.
-                  const expectedSweepHash = ethers.utils.solidityKeccak256(
-                    ["bytes32", "uint64"],
-                    [data.sweepTx.hash, 18500]
-                  )
+                    // Amount can be checked by opening the sweep tx in a Bitcoin
+                    // testnet explorer. In this case, the sum of inputs is
+                    // 20000 satoshi (from the single deposit) and there is a
+                    // fee of 1500 so the output value is 18500.
+                    const expectedSweepHash = ethers.utils.solidityKeccak256(
+                      ["bytes32", "uint64"],
+                      [data.sweepTx.hash, 18500]
+                    )
 
-                  expect(sweepHash).to.be.equal(expectedSweepHash)
-                })
+                    expect(sweepHash).to.be.equal(expectedSweepHash)
+                  })
 
-                it("should update the depositor's balance", async () => {
-                  // The sum of sweep tx inputs is 20000 satoshi. The output
-                  // value is 18500 so the fee is 1500. There is only one
-                  // deposit so it incurs the entire fee.
-                  expect(
-                    await bank.balanceOf(data.deposits[0].reveal.depositor)
-                  ).to.be.equal(18500)
-                })
-              }
-            )
+                  it("should update the depositor's balance", async () => {
+                    // The sum of sweep tx inputs is 20000 satoshi. The output
+                    // value is 18500 so the fee is 1500. There is only one
+                    // deposit so it incurs the entire fee.
+                    expect(
+                      await bank.balanceOf(data.deposits[0].reveal.depositor)
+                    ).to.be.equal(18500)
+                  })
+                }
+              )
 
-            context(
-              "when the single input is a revealed unswept P2WSH deposit",
-              () => {}
-            )
+              context(
+                "when the single input is a revealed unswept P2WSH deposit",
+                () => {}
+              )
 
-            context("when the single input is the previous sweep", () => {})
+              context(
+                "when the single input is the expected previous sweep",
+                () => {}
+              )
 
-            context(
-              "when the single input is a revealed but already swept deposit",
-              () => {
+              context(
+                "when the single input is a revealed but already swept deposit",
+                () => {
+                  it("should revert", () => {
+                    // TODO: Implementation.
+                  })
+                }
+              )
+
+              context("when the single input is an unknown", () => {
                 it("should revert", () => {
                   // TODO: Implementation.
                 })
-              }
-            )
+              })
+            })
 
-            context("when the single input is an unknown", () => {
-              it("should revert", () => {
-                // TODO: Implementation.
+            // Since P2SH vs P2WSH path has been already checked in the scenario
+            // "when there is only one input", we no longer differentiate deposits
+            // using that criterion during "when there are multiple inputs" scenario.
+            context("when there are multiple inputs", () => {
+              context(
+                "when input vector consists only of revealed unswept " +
+                  "deposits and the expected previous sweep",
+                () => {}
+              )
+
+              context(
+                "when input vector consists only of revealed unswept " +
+                  "deposits but there is no previous sweep since it is not expected",
+                () => {
+                  let tx: ContractTransaction
+                  const data: SweepTestData = MultipleDepositsNoPreviousSweep
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    tx = await runSweepScenario(data)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  // TODO: Replace with proper assertions.
+                  it("should work", async () => {
+                    expect(tx.hash.length).to.be.greaterThan(0)
+                  })
+                }
+              )
+
+              context(
+                "when input vector consists only of revealed unswept " +
+                  "deposits but there is no previous sweep despite it is expected",
+                () => {
+                  it("should revert", () => {
+                    // TODO: Implementation.
+                  })
+                }
+              )
+
+              context(
+                "when input vector contains a revealed but already swept deposit",
+                () => {
+                  it("should revert", () => {
+                    // TODO: Implementation.
+                  })
+                }
+              )
+
+              context("when input vector contains an unknown input", () => {
+                it("should revert", () => {
+                  // TODO: Implementation.
+                })
               })
             })
           })
 
-          // Since P2SH vs P2WSH path has been already checked in the scenario
-          // "when there is only one input", we no longer differentiate deposits
-          // using that criterion during "when there are multiple inputs" scenario.
-          context("when there are multiple inputs", () => {
-            context(
-              "when input vector consists only of revealed unswept " +
-                "deposits and the expected previous sweep",
-              () => {}
-            )
-
-            context(
-              "when input vector consists only of revealed unswept " +
-                "deposits but there is no previous sweep since it is not expected",
-              () => {
-                let tx: ContractTransaction
-                const data: SweepTestData = MultipleDepositsNoPreviousSweep
-
-                before(async () => {
-                  await createSnapshot()
-
-                  tx = await runSweepScenario(data)
-                })
-
-                after(async () => {
-                  await restoreSnapshot()
-                })
-
-                // TODO: Replace with proper assertions.
-                it("should work", async () => {
-                  expect(tx.hash.length).to.be.greaterThan(0)
-                })
-              }
-            )
-
-            context(
-              "when input vector consists only of revealed unswept " +
-                "deposits but there is no previous sweep despite it is expected",
-              () => {
-                it("should revert", () => {
-                  // TODO: Implementation.
-                })
-              }
-            )
-
-            context(
-              "when input vector contains a revealed but already swept deposit",
-              () => {
-                it("should revert", () => {
-                  // TODO: Implementation.
-                })
-              }
-            )
-
-            context("when input vector contains an unknown input", () => {
-              it("should revert", () => {
-                // TODO: Implementation.
-              })
+          context("when previous sweep data are invalid", () => {
+            it("should revert", () => {
+              // TODO: Implementation.
             })
           })
         })
