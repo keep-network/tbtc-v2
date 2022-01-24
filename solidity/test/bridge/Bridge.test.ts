@@ -662,7 +662,7 @@ describe("Bridge", () => {
                 }
               )
 
-              context.only(
+              context(
                 "when input vector consists only of revealed unswept " +
                   "deposits but there is no previous sweep since it is not expected",
                 () => {
