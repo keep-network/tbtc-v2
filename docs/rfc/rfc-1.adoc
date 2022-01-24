@@ -475,6 +475,13 @@ unstaking might cause a wallet to fail a heartbeat, but can still be around to
 help move the funds to another wallet, and would not have their rewards turned
 off.
 
+To represent this, clients should monitor the ethereum chain for unstaking
+events to keep track of which operators are active/unstaking. Unstaking
+operators should continue to send heartbeats. Operators ignore heartbeats from
+unstaking operators for the purposes of determining wallet liveness. Operators
+*don't* ignore heartbeats from unstaking operators for determining reward
+eligibility.
+
 Moving the funds costs a bitcoin mining fee, as well as a transaction on the
 ethereum side to prove this happened. To maintain the peg, we need to reduce
 the equivalent amount of fee from the treasury's account balance (set aside for
