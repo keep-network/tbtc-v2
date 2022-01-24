@@ -380,7 +380,7 @@ contract Bridge is Ownable {
         // Process sweep transaction output and extract its target wallet
         // public key hash and value.
         (bytes20 walletPubKeyHash, uint64 sweepTxOutputValue) =
-            processSweepTxOutput(sweepTx);
+            processSweepTxOutput(sweepTx.outputVector);
 
         // Check if previous sweep for given wallet exists. If so, validate
         // passed previous sweep data against the stored hash and use them for
@@ -406,7 +406,7 @@ contract Bridge is Ownable {
             uint256 sweepTxInputsValue,
             address[] memory depositors,
             uint256[] memory depositedAmounts
-        ) = processSweepTxInputs(sweepTx, resolvedPreviousSweep);
+        ) = processSweepTxInputs(sweepTx.inputVector, resolvedPreviousSweep);
 
         // Compute the sweep transaction fee which is a difference between
         // inputs amounts sum and the output amount.
@@ -524,7 +524,7 @@ contract Bridge is Ownable {
     }
 
     // TODO: Documentation.
-    function processSweepTxOutput(BitcoinTx.Info calldata sweepTx)
+    function processSweepTxOutput(bytes memory sweepTxOutputVector)
         internal
         pure
         returns (bytes20 walletPubKeyHash, uint64 value)
@@ -536,13 +536,13 @@ contract Bridge is Ownable {
         // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
         // We don't need asserting the compactSize uint is parseable since it
         // was already checked during `validateVout` validation.
-        (, uint256 outputsCount) = sweepTx.outputVector.parseVarInt();
+        (, uint256 outputsCount) = sweepTxOutputVector.parseVarInt();
         require(
             outputsCount == 1,
             "Sweep transaction must have a single output"
         );
 
-        bytes memory output = sweepTx.outputVector.extractOutputAtIndex(0);
+        bytes memory output = sweepTxOutputVector.extractOutputAtIndex(0);
         value = output.extractValue();
         bytes memory walletPubKeyHashBytes = output.extractHash();
         // The sweep transaction output should always be P2PKH or P2WPKH.
@@ -561,7 +561,7 @@ contract Bridge is Ownable {
 
     // TODO: Documentation.
     function processSweepTxInputs(
-        BitcoinTx.Info calldata sweepTx,
+        bytes memory sweepTxInputVector,
         SweepInfo memory previousSweep
     )
         internal
@@ -579,7 +579,7 @@ contract Bridge is Ownable {
         // Determining the total number of sweep transaction inputs in the same
         // way as for number of outputs.
         (uint256 inputsCompactSizeUintLength, uint256 inputsCount) =
-            sweepTx.inputVector.parseVarInt();
+            sweepTxInputVector.parseVarInt();
 
         // To determine the first input starting index, we must jump over
         // the compactSize uint which prepends the input vector. One byte must
@@ -603,12 +603,12 @@ contract Bridge is Ownable {
         // Inputs processing loop.
         for (uint256 i = 0; i < inputsCount; i++) {
             // Check if we are at the end of the input vector.
-            if (inputStartingIndex >= sweepTx.inputVector.length) {
+            if (inputStartingIndex >= sweepTxInputVector.length) {
                 break;
             }
 
             (bytes32 inputTxHash, uint32 inputTxIndex, uint256 inputLength) =
-                parseTxInputAt(sweepTx, inputStartingIndex);
+                parseTxInputAt(sweepTxInputVector, inputStartingIndex);
 
             DepositInfo storage deposit =
                 deposits[
@@ -654,7 +654,7 @@ contract Bridge is Ownable {
 
     // TODO: Documentation. Mention that `txInfo` data should be validated outside.
     function parseTxInputAt(
-        BitcoinTx.Info calldata txInfo,
+        bytes memory inputVector,
         uint256 inputStartingIndex
     )
         internal
@@ -665,17 +665,13 @@ contract Bridge is Ownable {
             uint256 inputLength
         )
     {
-        inputTxHash = txInfo.inputVector.extractInputTxIdLeAt(
-            inputStartingIndex
-        );
+        inputTxHash = inputVector.extractInputTxIdLeAt(inputStartingIndex);
 
         inputTxIndex = BTCUtils.reverseUint32(
-            uint32(txInfo.inputVector.extractTxIndexLeAt(inputStartingIndex))
+            uint32(inputVector.extractTxIndexLeAt(inputStartingIndex))
         );
 
-        inputLength = txInfo.inputVector.determineInputLengthAt(
-            inputStartingIndex
-        );
+        inputLength = inputVector.determineInputLengthAt(inputStartingIndex);
 
         return (inputTxHash, inputTxIndex, inputLength);
     }
