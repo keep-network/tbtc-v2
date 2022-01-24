@@ -95,19 +95,21 @@ export interface TBTC {
 
   /**
    * Creates a Bitcoin P2WPKH sweep transaction.
-   * @param utxos - UTXOs that should be used as transaction inputs.
-   * @param depositData - data on deposits. Each elements corresponds to UTXO. The
-   *                      number of UTXOs and deposit data elements must equal.
    * @param fee - the value that should be subtracted from the sum of the UTXOs
    *              values and used as the transaction fee.
    * @param walletPrivateKey - Bitcoin private key of the wallet.
+   * @param utxos - UTXOs from new deposit transactions.
+   * @param depositData - data on deposits. Each elements corresponds to UTXO. The
+   *                      number of UTXOs and deposit data elements must equal.
+   * @param previousSweepUtxo - UTXO from the previous sweep transaction (optional).
    * @returns Bitcoin sweep transaction in raw format.
    */
   createSweepTransaction(
+    fee: BigNumber,
+    walletPrivateKey: string,
     utxos: (UnspentTransactionOutput & RawTransaction)[],
     depositData: DepositData[],
-    fee: BigNumber,
-    walletPrivateKey: string
+    previousUtxo?: UnspentTransactionOutput & RawTransaction
   ): Promise<RawTransaction>
 
   /**
@@ -116,21 +118,25 @@ export interface TBTC {
    * @dev The caller is responsible for ensuring the provided UTXOs are correctly
    *      formed, can be spent by the wallet and their combined value is greater
    *      then the fee.
-   * @param utxos - UTXOs to be combined into one output.
-   * @param depositData - data on deposits. Each elements corresponds to UTXO. The
-   *                      number of UTXOs and deposit data elements must equal.
+   * @param bitcoinClient - Bitcoin client used to interact with the network.
    * @param fee - the value that should be subtracted from the sum of the UTXOs
    *              values and used as the transaction fee.
    * @param walletPrivateKey - Bitcoin private key of the wallet.
-   * @param bitcoinClient - Bitcoin client used to interact with the network.
+   * @param utxos - UTXOs to be combined into one output.
+   * @param depositData - data on deposits. Each elements corresponds to UTXO.
+   *                      The number of UTXOs and deposit data elements must
+   *                      equal.
+   * @param previousSweepUtxo - UTXO from the previous sweep transaction
+   *                            (optional).
    * @returns Empty promise.
    */
   sweepDeposits(
-    utxos: UnspentTransactionOutput[],
-    depositData: DepositData[],
+    bitcoinClient: BitcoinClient,
     fee: BigNumber,
     walletPrivateKey: string,
-    bitcoinClient: BitcoinClient
+    utxos: UnspentTransactionOutput[],
+    depositData: DepositData[],
+    previousSweepUtxo?: UnspentTransactionOutput
   ): Promise<void>
 }
 

@@ -15,6 +15,17 @@ import {
   DepositData,
 } from "./deposit"
 
+export async function resolveRegularScript(
+  transaction: bcoin.MTX,
+  inputIndex: number,
+  walletKeyRing: bcoin.KeyRing
+) {
+  const previousOutpoint = transaction.inputs[inputIndex].prevout
+  const previousOutput = transaction.view.getOutput(previousOutpoint)
+  transaction.scriptInput(inputIndex, previousOutput, walletKeyRing)
+  transaction.signInput(inputIndex, previousOutput, walletKeyRing)
+}
+
 /**
  * Creates and sets `scriptSig` for the transaction input at the given index by
  * combining signature, signing group public key and deposit script.
@@ -28,7 +39,7 @@ export async function resolveDepositScript(
   transaction: bcoin.MTX,
   inputIndex: number,
   depositData: DepositData[],
-  walletPrivateKey: Buffer
+  walletPrivateKey: bcoin.KeyRing
 ): Promise<void> {
   const previousOutpoint = transaction.inputs[inputIndex].prevout
   const previousOutput = transaction.view.getOutput(previousOutpoint)
@@ -41,7 +52,7 @@ export async function resolveDepositScript(
     inputIndex,
     depositScript,
     previousOutput.value,
-    walletPrivateKey,
+    walletPrivateKey.privateKey,
     null,
     0
   )
@@ -67,21 +78,25 @@ export async function resolveDepositScript(
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee.
- * @param utxos - UTXOs to be combined into one output.
- * @param depositData - data on deposits. Each elements corresponds to UTXO. The
- *                      number of UTXOs and deposit data elements must equal.
+ * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param fee - the value that should be subtracted from the sum of the UTXOs
  *              values and used as the transaction fee.
  * @param walletPrivateKey - Bitcoin private key of the wallet.
- * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * @param utxos - UTXOs to be combined into one output.
+ * @param depositData - data on deposits. Each elements corresponds to UTXO.
+ *                      The number of UTXOs and deposit data elements must
+ *                      equal.
+ * @param previousSweepUtxo - UTXO from the previous sweep transaction
+ *                            (optional).
  * @returns Empty promise.
  */
 export async function sweepDeposits(
-  utxos: UnspentTransactionOutput[],
-  depositData: DepositData[],
+  bitcoinClient: BitcoinClient,
   fee: BigNumber,
   walletPrivateKey: string,
-  bitcoinClient: BitcoinClient
+  utxos: UnspentTransactionOutput[],
+  depositData: DepositData[],
+  previousSweepUtxo?: UnspentTransactionOutput
 ): Promise<void> {
   if (utxos.length != depositData.length) {
     throw new Error(
@@ -101,31 +116,70 @@ export async function sweepDeposits(
     })
   }
 
-  const transaction = await createSweepTransaction(
-    utxosWithRaw,
-    depositData,
-    fee,
-    walletPrivateKey
-  )
+  const rawTransaction = previousSweepUtxo
+    ? await bitcoinClient.getRawTransaction(previousSweepUtxo.transactionHash)
+    : { transactionHex: "" }
+
+  const previousUtxoWithRaw = previousSweepUtxo
+    ? {
+        ...previousSweepUtxo,
+        transactionHex: rawTransaction.transactionHex,
+      }
+    : {
+        transactionHash: "",
+        outputIndex: 0,
+        value: 0,
+        transactionHex: "",
+      }
+
+  const transaction = previousSweepUtxo
+    ? await createSweepTransaction(
+        fee,
+        walletPrivateKey,
+        utxosWithRaw,
+        depositData,
+        previousUtxoWithRaw
+      )
+    : await createSweepTransaction(
+        fee,
+        walletPrivateKey,
+        utxosWithRaw,
+        depositData
+      )
 
   await bitcoinClient.broadcast(transaction)
 }
 
+function isInputPreviousUtxo(
+  input: bcoin.Input,
+  utxo?: UnspentTransactionOutput & RawTransaction
+): boolean {
+  if (!utxo) {
+    return false
+  }
+  return (
+    input.prevout.hash == utxo.transactionHash &&
+    input.prevout.index == utxo.outputIndex
+  )
+}
+
 /**
  * Creates a Bitcoin P2WPKH sweep transaction.
- * @param utxos - UTXOs that should be used as transaction inputs.
- * @param depositData - data on deposits. Each elements corresponds to UTXO. The
- *                      number of UTXOs and deposit data elements must equal.
  * @param fee - the value that should be subtracted from the sum of the UTXOs
  *              values and used as the transaction fee.
  * @param walletPrivateKey - Bitcoin private key of the wallet.
+ * @param utxos - UTXOs from new deposit transactions.
+ * @param depositData - data on deposits. Each elements corresponds to UTXO. The
+ *                      number of UTXOs and deposit data elements must equal.
+ * @param previousUtxo - UTXO from the previous sweep transaction (optional).
  * @returns Bitcoin sweep transaction in raw format.
  */
 export async function createSweepTransaction(
+  fee: BigNumber,
+  walletPrivateKey: string,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   depositData: DepositData[],
-  fee: BigNumber,
-  walletPrivateKey: string
+  previousUtxo?: UnspentTransactionOutput & RawTransaction
 ): Promise<RawTransaction> {
   const decodedWalletPrivateKey = wif.decode(walletPrivateKey)
 
@@ -138,7 +192,18 @@ export async function createSweepTransaction(
   const walletAddress = walletKeyRing.getAddress("string")
 
   const inputCoins = []
-  let totalInputValue = BigNumber.from(0)
+  let totalInputValue = 0
+
+  if (previousUtxo) {
+    inputCoins.push(
+      bcoin.Coin.fromTX(
+        bcoin.MTX.fromRaw(previousUtxo.transactionHex, "hex"),
+        previousUtxo.outputIndex,
+        -1
+      )
+    )
+    totalInputValue += previousUtxo.value
+  }
 
   for (const utxo of utxos) {
     inputCoins.push(
@@ -148,14 +213,14 @@ export async function createSweepTransaction(
         -1
       )
     )
-    totalInputValue = totalInputValue.add(utxo.value)
+    totalInputValue += utxo.value
   }
 
   const transaction = new bcoin.MTX()
 
   transaction.addOutput({
     script: bcoin.Script.fromAddress(walletAddress),
-    value: totalInputValue.toNumber(),
+    value: totalInputValue,
   })
 
   await transaction.fund(inputCoins, {
@@ -165,12 +230,9 @@ export async function createSweepTransaction(
   })
 
   for (let i = 0; i < transaction.inputs.length; i++) {
-    await resolveDepositScript(
-      transaction,
-      i,
-      depositData,
-      walletKeyRing.privateKey
-    )
+    isInputPreviousUtxo(transaction.inputs[i], previousUtxo)
+      ? await resolveRegularScript(transaction, i, walletKeyRing)
+      : await resolveDepositScript(transaction, i, depositData, walletKeyRing)
   }
 
   return {
