@@ -385,7 +385,7 @@ contract Bridge is Ownable {
         // Check if previous sweep for given wallet exists. If so, validate
         // passed previous sweep data against the stored hash and use them for
         // further processing. If no previous sweep exists, use empty data.
-        SweepInfo memory resolvedPreviousSweep;
+        SweepInfo memory resolvedPreviousSweep = SweepInfo(bytes32(0), 0);
         bytes32 previousSweepHash = sweeps[walletPubKeyHash];
         if (previousSweepHash != bytes32(0)) {
             require(
