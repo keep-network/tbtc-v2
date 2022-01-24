@@ -15,13 +15,16 @@
 
 pragma solidity 0.8.4;
 
-import "../bank/Bank.sol";
-import "./BitcoinTx.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {
     ValidateSPV
 } from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
+
+import "../bank/Bank.sol";
+import "./BitcoinTx.sol";
 
 /// @title Interface for the Bitcoin relay
 /// @notice Contains only the methods needed by tBTC v2. The Bitcoin relay
@@ -54,7 +57,7 @@ interface IRelay {
 ///         wallet informs the Bridge about the sweep increasing appropriate
 ///         balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank.
-contract Bridge {
+contract Bridge is Ownable {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
     using BytesLib for bytes;
@@ -84,7 +87,8 @@ contract Bridge {
         // and used with OP_CHECKLOCKTIMEVERIFY opcode as described in:
         // https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki
         bytes4 refundLocktime;
-        // Address of the tBTC vault.
+        // Address of the Bank vault to which the deposit is routed to.
+        // Optional, can be 0x0. The vault must be trusted by the Bridge.
         address vault;
     }
 
@@ -96,7 +100,8 @@ contract Bridge {
         uint64 amount;
         // UNIX timestamp the deposit was revealed at.
         uint32 revealedAt;
-        // Address of the tBTC vault.
+        // Address of the Bank vault the deposit is routed to.
+        // Optional, can be 0x0.
         address vault;
         // UNIX timestamp the deposit was swept at. Note this is not the
         // time when the deposit was swept on Bitcoin chain but actually
@@ -123,6 +128,15 @@ contract Bridge {
     /// @notice Handle to the Bitcoin relay.
     IRelay public immutable relay;
 
+    /// @notice Indicates if the vault with the given address is trusted or not.
+    ///         Depositors can route their revealed deposits only to trusted
+    ///         vaults and have trusted vaults notified about new deposits as
+    ///         soon as these deposits get swept. Vaults not trusted by the
+    ///         Bridge can still be used by Bank balance owners on their own
+    ///         responsibility - anyone can approve their Bank balance to any
+    ///         address.
+    mapping(address => bool) public isVaultTrusted;
+
     /// @notice Collection of all revealed deposits indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex).
     ///         The fundingTxHash is LE bytes32 and fundingOutputIndex an uint32.
@@ -143,8 +157,11 @@ contract Bridge {
         bytes8 blindingFactor,
         bytes20 walletPubKeyHash,
         bytes20 refundPubKeyHash,
-        bytes4 refundLocktime
+        bytes4 refundLocktime,
+        address vault
     );
+
+    event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
     constructor(
         address _bank,
@@ -160,6 +177,23 @@ contract Bridge {
         txProofDifficultyFactor = _txProofDifficultyFactor;
     }
 
+    /// @notice Allows the Governance to mark the given vault address as trusted
+    ///         or no longer trusted. Vaults are not trusted by default.
+    ///         Trusted vault must meet the following criteria:
+    ///         - `IVault.onBalanceIncreased` must have a known, low gas cost.
+    ///         - `IVault.onBalanceIncreased` must never revert.
+    /// @dev Without restricting reveal only to trusted vaults, malicious
+    ///      vaults not meeting the criteria would be able to nuke sweep proof
+    ///      transactions executed by ECDSA wallet with  deposits routed to
+    ///      them.
+    /// @param vault The address of the vault
+    /// @param isTrusted flag indicating whether the vault is trusted or not
+    /// @dev Can only be called by the Governance.
+    function setVaultStatus(address vault, bool isTrusted) external onlyOwner {
+        isVaultTrusted[vault] = isTrusted;
+        emit VaultStatusUpdated(vault, isTrusted);
+    }
+
     /// @notice Used by the depositor to reveal information about their P2(W)SH
     ///         Bitcoin deposit to the Bridge on Ethereum chain. The off-chain
     ///         wallet listens for revealed deposit events and may decide to
@@ -168,10 +202,13 @@ contract Bridge {
     ///         after the Bitcoin transaction with P2(W)SH deposit is mined on
     ///         the Bitcoin chain. Worth noting, the gas cost of this function
     ///         scales with the number of P2(W)SH transaction inputs and
-    ///         outputs.
+    ///         outputs. The deposit may be routed to one of the trusted vaults.
+    ///         When a deposit is routed to a vault, vault gets notified when
+    ///         the deposit gets swept and it may execute the appropriate action.
     /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`
     /// @param reveal Deposit reveal data, see `RevealInfo struct
     /// @dev Requirements:
+    ///      - `reveal.vault` must be 0x0 or point to a trusted vault
     ///      - `reveal.fundingOutputIndex` must point to the actual P2(W)SH
     ///        output of the BTC deposit transaction
     ///      - `reveal.depositor` must be the Ethereum address used in the
@@ -194,6 +231,11 @@ contract Bridge {
         BitcoinTx.Info calldata fundingTx,
         RevealInfo calldata reveal
     ) external {
+        require(
+            reveal.vault == address(0) || isVaultTrusted[reveal.vault],
+            "Vault is not trusted"
+        );
+
         bytes memory expectedScript =
             abi.encodePacked(
                 hex"14", // Byte length of depositor Ethereum address.
@@ -305,7 +347,8 @@ contract Bridge {
             reveal.blindingFactor,
             reveal.walletPubKeyHash,
             reveal.refundPubKeyHash,
-            reveal.refundLocktime
+            reveal.refundLocktime,
+            reveal.vault
         );
     }
 
