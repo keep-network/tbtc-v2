@@ -39,6 +39,11 @@ export interface SweepTestData {
   chainDifficulty: number
 }
 
+// `SingleP2SHDeposit` test data represents a sweep with following properties:
+// - 1 P2SH deposit input
+// - 1 P2WPKH sweep output
+// - No prior sweeps made by this wallet
+// - 6+ on-chain confirmations of the sweep transaction
 export const SingleP2SHDeposit: SweepTestData = {
   deposits: [
     {
@@ -123,7 +128,15 @@ export const SingleP2SHDeposit: SweepTestData = {
   chainDifficulty: 22350181,
 }
 
-// TODO: Mix P2SH and P2WSH deposits and use different reveal data.
+// `MultipleDepositsNoPreviousSweep` test data represents a sweep with following properties:
+// - 3 P2WSH and 2 P2SH deposit inputs
+// - 1 P2WPKH sweep output
+// - No prior sweeps made by this wallet
+// - 6+ on-chain confirmations of the sweep transaction
+// TODO: Currently, the `MultipleDepositsNoPreviousSweep` test data contain
+//       only P2SH deposit transactions made by the same depositor.
+//       Once the code responsible for assembling sweep transactions (PR #96)
+//       supports P2WSH, we should make this data aligned with the above description.
 export const MultipleDepositsNoPreviousSweep: SweepTestData = {
   deposits: [
     {

@@ -13,6 +13,10 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime } = helpers.time
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
+const EMPTY_PREVIOUS_SWEEP = {
+  txHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+  txOutputValue: 0,
+}
 
 const fixture = async () => {
   const [deployer, governance, thirdParty] = await ethers.getSigners()
@@ -566,26 +570,80 @@ describe("Bridge", () => {
 
               context(
                 "when the single input is a revealed unswept P2WSH deposit",
-                () => {}
+                () => {
+                  // TODO: To be implemented once the code responsible for
+                  //       assembling sweep transactions (PR #96) supports
+                  //       P2WSH deposits.
+                }
               )
 
               context(
                 "when the single input is the expected previous sweep",
-                () => {}
+                () => {
+                  // TODO: To be implemented once the code responsible for
+                  //       assembling sweep transactions (PR #96) supports
+                  //       previous sweep output.
+                }
               )
 
               context(
                 "when the single input is a revealed but already swept deposit",
                 () => {
-                  it("should revert", () => {
-                    // TODO: Implementation.
+                  const data: SweepTestData = SingleP2SHDeposit
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    // Make a proper sweep to turn the tested deposit into
+                    // the swept state.
+                    await runSweepScenario(data)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should revert", async () => {
+                    // Previous sweep parameter must point to the properly
+                    // made sweep to avoid revert at validation stage.
+                    const previousSweep = {
+                      txHash: data.sweepTx.hash,
+                      txOutputValue: 18500,
+                    }
+
+                    // Try replaying the already done sweep.
+                    await expect(
+                      bridge.sweep(data.sweepTx, data.sweepProof, previousSweep)
+                    ).to.be.revertedWith("Deposit already swept")
                   })
                 }
               )
 
               context("when the single input is an unknown", () => {
-                it("should revert", () => {
-                  // TODO: Implementation.
+                const data: SweepTestData = SingleP2SHDeposit
+
+                before(async () => {
+                  await createSnapshot()
+
+                  // Necessary to pass the proof validation.
+                  await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+                  await relay.setPrevEpochDifficulty(data.chainDifficulty)
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  // Try to sweep a deposit which was not revealed before and
+                  // is unknown from system's point of view.
+                  await expect(
+                    bridge.sweep(
+                      data.sweepTx,
+                      data.sweepProof,
+                      EMPTY_PREVIOUS_SWEEP
+                    )
+                  ).to.be.revertedWith("Unknown input type")
                 })
               })
             })
@@ -597,10 +655,14 @@ describe("Bridge", () => {
               context(
                 "when input vector consists only of revealed unswept " +
                   "deposits and the expected previous sweep",
-                () => {}
+                () => {
+                  // TODO: To be implemented once the code responsible for
+                  //       assembling sweep transactions (PR #96) supports
+                  //       previous sweep output.
+                }
               )
 
-              context(
+              context.only(
                 "when input vector consists only of revealed unswept " +
                   "deposits but there is no previous sweep since it is not expected",
                 () => {
@@ -617,9 +679,59 @@ describe("Bridge", () => {
                     await restoreSnapshot()
                   })
 
-                  // TODO: Replace with proper assertions.
-                  it("should work", async () => {
-                    expect(tx.hash.length).to.be.greaterThan(0)
+                  it("should mark deposits as swept", async () => {
+                    for (let i = 0; i < data.deposits.length; i++) {
+                      // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                      const depositKey = ethers.utils.solidityKeccak256(
+                        ["bytes32", "uint32"],
+                        [
+                          data.deposits[i].fundingTx.hash,
+                          data.deposits[i].reveal.fundingOutputIndex,
+                        ]
+                      )
+
+                      // eslint-disable-next-line no-await-in-loop
+                      const deposit = await bridge.deposits(depositKey)
+
+                      // Swept time is the last item.
+                      expect(deposit[4]).to.be.equal(
+                        // eslint-disable-next-line no-await-in-loop
+                        await lastBlockTime(),
+                        `Deposit with index ${i} has an unexpected swept time`
+                      )
+                    }
+                  })
+
+                  it("should save sweep hash for given wallet", async () => {
+                    // Take wallet public key hash from first deposit. All deposits
+                    // in same sweep batch should have the same value of that field.
+                    const { walletPubKeyHash } = data.deposits[0].reveal
+
+                    const sweepHash = await bridge.sweeps(walletPubKeyHash)
+
+                    // Amount can be checked by opening the sweep tx in a Bitcoin
+                    // testnet explorer. In this case, the sum of inputs is
+                    // 900000 satoshi (from the single deposit) and there is a
+                    // fee of 2000 so the output value is 898000.
+                    const expectedSweepHash = ethers.utils.solidityKeccak256(
+                      ["bytes32", "uint64"],
+                      [data.sweepTx.hash, 898000]
+                    )
+
+                    expect(sweepHash).to.be.equal(expectedSweepHash)
+                  })
+
+                  it("should update the depositors balances", async () => {
+                    // The sum of sweep tx inputs is 900000 satoshi. The output
+                    // value is 898000 so the fee is 2000. There is 5 deposits
+                    // so 400 satoshi fee should be incurred per deposit.
+                    // TODO: For now, all deposits are made by the same
+                    //       depositor so it takes the entire balance.
+                    //       Once MultipleDepositsNoPreviousSweep contains
+                    //       proper data, this part should be revisited.
+                    expect(
+                      await bank.balanceOf(data.deposits[0].reveal.depositor)
+                    ).to.be.equal(898000)
                   })
                 }
               )
@@ -741,10 +853,6 @@ describe("Bridge", () => {
       await bridge.revealDeposit(fundingTx, reveal)
     }
 
-    return bridge.sweep(data.sweepTx, data.sweepProof, {
-      txHash:
-        "0x0000000000000000000000000000000000000000000000000000000000000000",
-      txOutputValue: 0,
-    })
+    return bridge.sweep(data.sweepTx, data.sweepProof, EMPTY_PREVIOUS_SWEEP)
   }
 })
