@@ -123,15 +123,14 @@ contract Bridge {
     /// @notice Handle to the Bitcoin relay.
     IRelay public immutable relay;
 
-    /// @notice Collection of all unswept deposits indexed by
+    /// @notice Collection of all revealed deposits indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex).
-    ///         The fundingTxHash is LE bytes32 and fundingOutputIndex an uint8.
+    ///         The fundingTxHash is LE bytes32 and fundingOutputIndex an uint32.
     ///         This mapping may contain valid and invalid deposits and the
     ///         wallet is responsible for validating them before attempting to
     ///         execute a sweep.
     ///
-    /// TODO: Explore the possibility of storing just a hash of DepositInfo.
-    mapping(uint256 => DepositInfo) public unswept;
+    mapping(uint256 => DepositInfo) public deposits;
 
     /// @notice Maps the wallet public key hash (computed using HASH160 opcode)
     ///         to the latest sweep computed as keccak256(txHash | txOutputValue).
@@ -271,7 +270,7 @@ contract Bridge {
                 .hash256();
 
         DepositInfo storage deposit =
-            unswept[
+            deposits[
                 uint256(
                     keccak256(
                         abi.encodePacked(
@@ -570,7 +569,7 @@ contract Bridge {
                 parseTxInputAt(sweepTx, inputStartingIndex);
 
             DepositInfo storage deposit =
-                unswept[
+                deposits[
                     uint256(
                         keccak256(abi.encodePacked(inputTxHash, inputTxIndex))
                     )

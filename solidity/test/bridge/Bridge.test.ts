@@ -115,7 +115,7 @@ describe("Bridge", () => {
               ]
             )
 
-            const deposit = await bridge.unswept(depositKey)
+            const deposit = await bridge.deposits(depositKey)
 
             // Should contain: depositor, amount, revealedAt, vault, sweptAt.
             expect(deposit.length).to.be.equal(5)
@@ -210,7 +210,7 @@ describe("Bridge", () => {
               ]
             )
 
-            const deposit = await bridge.unswept(depositKey)
+            const deposit = await bridge.deposits(depositKey)
 
             // Should contain: depositor, amount, revealedAt, vault, sweptAt.
             expect(deposit.length).to.be.equal(5)
@@ -327,7 +327,7 @@ describe("Bridge", () => {
                     ]
                   )
 
-                  const deposit = await bridge.unswept(depositKey)
+                  const deposit = await bridge.deposits(depositKey)
 
                   // Swept time is the last item.
                   expect(deposit[4]).to.be.equal(await lastBlockTime())
