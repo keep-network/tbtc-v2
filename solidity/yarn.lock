@@ -1416,9 +1416,9 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@keep-network/bitcoin-spv-sol@https://gitpkg.now.sh/keep-network/bitcoin-spv/solidity?d9248be6f752d636bd3ea12f1fe05aadee6c8cd5":
+"@keep-network/bitcoin-spv-sol@https://gitpkg.now.sh/keep-network/bitcoin-spv/solidity?65e7d988799e388c9dcf63da2765b4f5fae4be8a":
   version "3.1.0-solc-0.8"
-  resolved "https://gitpkg.now.sh/keep-network/bitcoin-spv/solidity?d9248be6f752d636bd3ea12f1fe05aadee6c8cd5#f1f14ac92d8a393fb84b20ac0098f8e4679124dd"
+  resolved "https://gitpkg.now.sh/keep-network/bitcoin-spv/solidity?65e7d988799e388c9dcf63da2765b4f5fae4be8a#527d3be4d4bfcf2d461e73cd16fb7c5ef577856a"
 
 "@keep-network/hardhat-helpers@0.4.1-pre.1":
   version "0.4.1-pre.1"
