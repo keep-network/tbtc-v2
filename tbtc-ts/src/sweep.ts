@@ -48,28 +48,51 @@ export async function resolveDepositScript(
     Buffer.from(await createDepositScript(depositData[inputIndex]), "hex")
   )
 
-  const signature: Buffer = transaction.signature(
-    inputIndex,
-    depositScript,
-    previousOutput.value,
-    walletPrivateKey.privateKey,
-    null,
-    0
-  )
-
   const signingGroupPublicKey = await getActiveWalletPublicKey()
   if (!isCompressedPublicKey(signingGroupPublicKey)) {
     throw new Error("Signing group public key must be compressed")
   }
 
-  const scriptSig = new bcoin.Script()
-  scriptSig.clear()
-  scriptSig.pushData(signature)
-  scriptSig.pushData(Buffer.from(signingGroupPublicKey, "hex"))
-  scriptSig.pushData(depositScript)
-  scriptSig.compile()
+  if (previousOutput.script.raw.length == 23) {
+    // P2SH
+    const signature: Buffer = transaction.signature(
+      inputIndex,
+      depositScript,
+      previousOutput.value,
+      walletPrivateKey.privateKey,
+      bcoin.Script.hashType.ALL,
+      0
+    )
+    const scriptSig = new bcoin.Script()
+    scriptSig.clear()
+    scriptSig.pushData(signature)
+    scriptSig.pushData(Buffer.from(signingGroupPublicKey, "hex"))
+    scriptSig.pushData(depositScript.toRaw())
+    scriptSig.compile()
 
-  transaction.inputs[inputIndex].script = scriptSig
+    transaction.inputs[inputIndex].script = scriptSig
+  } else if (previousOutput.script.raw.length == 34) {
+    // P2WSH
+    const signature: Buffer = transaction.signature(
+      inputIndex,
+      depositScript,
+      previousOutput.value,
+      walletPrivateKey.privateKey,
+      bcoin.Script.hashType.ALL,
+      1
+    )
+
+    const witness = new bcoin.Witness()
+    witness.clear()
+    witness.pushData(signature)
+    witness.pushData(Buffer.from(signingGroupPublicKey, "hex"))
+    witness.pushData(depositScript.toRaw())
+    witness.compile()
+
+    transaction.inputs[inputIndex].witness = witness
+  } else {
+    throw new Error("Deposit output is neither P2SH nor P2WSH")
+  }
 }
 
 /**
@@ -94,7 +117,7 @@ export async function sweepDeposits(
   bitcoinClient: BitcoinClient,
   fee: BigNumber,
   walletPrivateKey: string,
-  utxos: UnspentTransactionOutput[],
+  utxos: UnspentTransactionOutput[], // TODO: Update description: utxo can be either P2SH or P2WSH
   depositData: DepositData[],
   previousSweepUtxo?: UnspentTransactionOutput
 ): Promise<void> {

@@ -3,8 +3,6 @@ import bcoin from "bcoin"
 // @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
 // @ts-ignore
-import hash256 from "bcrypto/lib/hash256"
-// @ts-ignore
 import { opcodes } from "bcoin/lib/script/common"
 // @ts-ignore
 import wif from "wif"
@@ -228,7 +226,7 @@ export async function createDepositScriptHash(
   const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
   // If witness script hash should be produced, HASH256 should be used.
   // Legacy script hash needs HASH160.
-  return witness ? hash256.digest(parsedScript.toRaw()) : parsedScript.hash160()
+  return witness ? parsedScript.sha256() : parsedScript.hash160()
 }
 
 /**
