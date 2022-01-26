@@ -29,32 +29,65 @@ describe("Deposit", () => {
     createdAt: 1640181600, // 22-12-2021 14:00:00 UTC
   }
 
-  // HEX of the expected P2WSH deposit transaction made using the code from
-  // deposit.ts and given depositData. It can be decoded with:
-  // https://live.blockcypher.com/btc-testnet/decodetx.
-  const expectedP2WSHDepositTransaction: RawTransaction = {
-    transactionHex:
-      "010000000001018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56" +
-      "b20dc2b952f0100000000ffffffff02102700000000000022002058afcec524e78c" +
-      "289a03df1ca88e29a664bd06481cfcd71101ccf7d041ed3b9110d73b00000000001" +
-      "600147ac2d9378a1c47e589dfb8095ca95ed2140d272602473044022074e4e02410" +
-      "7dd44a98a5933f3fdf2f167ea4fcdcd06017660486ba7da26b236d02200f327162b" +
-      "aa8cc7df1d06d403933db05ea9b1513d8000d191e229081867c8204012102ee067a" +
-      "0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04e00000000",
+  // All test scenarios using the deposit script within `Deposit` group
+  // expect the same deposit script:
+  const expectedDepositScript =
+    "14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576a9148" +
+    "db50eb52063ea9d98b3eac91489a90f738986f68763ac6776a91428e081f285138ccbe3" +
+    "89c1eb8985716230129f89880460bcea61b175ac68"
+
+  // Expected data of created deposit in P2WSH scenarios.
+  const expectedP2WSHDepositData = {
+    transactionHash:
+      "9eb901fc68f0d9bcaf575f23783b7d30ac5dd8d95f3c83dceaa13dce17de816a",
+
+    // HEX of the expected P2WSH deposit transaction. It can be decoded with:
+    // https://live.blockcypher.com/btc-testnet/decodetx.
+    transaction: {
+      transactionHex:
+        "010000000001018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56" +
+        "b20dc2b952f0100000000ffffffff021027000000000000220020df74a2e385542c" +
+        "87acfafa564ea4bc4fc4eb87d2b6a37d6c3b64722be83c636f10d73b00000000001" +
+        "600147ac2d9378a1c47e589dfb8095ca95ed2140d272602483045022100ac3d4148" +
+        "2338262654418825c37a4c7b327ed4e0b1dfb80eba0c98f264a6cc2e02201cd321f" +
+        "1b806cc946141d71b229dd0a440917c9f429b5f8840f7be59d70dbfee012102ee06" +
+        "7a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04e0000000" +
+        "0",
+    },
+
+    scriptHash:
+      "df74a2e385542c87acfafa564ea4bc4fc4eb87d2b6a37d6c3b64722be83c636f",
+
+    mainnetAddress:
+      "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m",
+
+    testnetAddress:
+      "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05",
   }
 
-  // HEX of the expected P2SH deposit transaction made using the code from
-  // deposit.ts and given depositData. It can be decoded with:
-  // https://live.blockcypher.com/btc-testnet/decodetx.
-  const expectedP2SHDepositTransaction: RawTransaction = {
-    transactionHex:
-      "010000000001018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56" +
-      "b20dc2b952f0100000000ffffffff02102700000000000017a9142c1444d23936c5" +
-      "7bdd8b3e67e5938a5440cda455877ed73b00000000001600147ac2d9378a1c47e58" +
-      "9dfb8095ca95ed2140d27260247304402204582016a3cd3fa61fae1e1911b575625" +
-      "fe2ca75319de72349089724e80fb4a2f02207e76f992f64d0615779af763b157699" +
-      "a0d37270e136122408196084c1753a19e012102ee067a0273f2e3ba88d23140a24f" +
-      "db290f27bbcd0f94117a9c65be3911c5c04e00000000",
+  // Expected data of created deposit in P2SH scenarios.
+  const expectedP2SHDepositData = {
+    transactionHash:
+      "f21a9922c0c136c6d288cf1258b732d0f84a7d50d14a01d7d81cb6cd810f3517",
+
+    // HEX of the expected P2SH deposit transaction. It can be decoded with:
+    // https://live.blockcypher.com/btc-testnet/decodetx.
+    transaction: {
+      transactionHex:
+        "010000000001018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56" +
+        "b20dc2b952f0100000000ffffffff02102700000000000017a9142c1444d23936c5" +
+        "7bdd8b3e67e5938a5440cda455877ed73b00000000001600147ac2d9378a1c47e58" +
+        "9dfb8095ca95ed2140d27260247304402204582016a3cd3fa61fae1e1911b575625" +
+        "fe2ca75319de72349089724e80fb4a2f02207e76f992f64d0615779af763b157699" +
+        "a0d37270e136122408196084c1753a19e012102ee067a0273f2e3ba88d23140a24f" +
+        "db290f27bbcd0f94117a9c65be3911c5c04e00000000",
+    },
+
+    scriptHash: "2c1444d23936c57bdd8b3e67e5938a5440cda455",
+
+    mainnetAddress: "35i5wHdLir1hdjCr6hiQNk3yTH9ufe61eH",
+
+    testnetAddress: "2MwGJ12ZNLJX3qWqPmqLGzh3EfdN5XAEGQ8",
   }
 
   describe("makeDeposit", () => {
@@ -91,7 +124,7 @@ describe("Deposit", () => {
       it("should broadcast P2WSH transaction with proper structure", async () => {
         expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
         expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-          expectedP2WSHDepositTransaction
+          expectedP2WSHDepositData.transaction
         )
       })
     })
@@ -109,7 +142,7 @@ describe("Deposit", () => {
       it("should broadcast P2SH transaction with proper structure", async () => {
         expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
         expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-          expectedP2SHDepositTransaction
+          expectedP2SHDepositData.transaction
         )
       })
     })
@@ -130,14 +163,14 @@ describe("Deposit", () => {
 
       it("should return P2WSH transaction with proper structure", async () => {
         // Compare HEXes.
-        expect(transaction).to.be.eql(expectedP2WSHDepositTransaction)
+        expect(transaction).to.be.eql(expectedP2WSHDepositData.transaction)
 
         // Convert raw transaction to JSON to make detailed comparison.
         const buffer = Buffer.from(transaction.transactionHex, "hex")
         const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
         expect(txJSON.hash).to.be.equal(
-          "b74c5bff872f9b4c54c93be75cad2f7567fa3741f18b2a031779e0c5b5694df5"
+          expectedP2WSHDepositData.transactionHash
         )
         expect(txJSON.version).to.be.equal(1)
 
@@ -162,22 +195,19 @@ describe("Deposit", () => {
 
         // Value should correspond to the deposit amount.
         expect(depositOutput.value).to.be.equal(depositData.amount.toNumber())
-        // Should be OP_0 <script-hash>. The script hash is
-        // 58afcec524e78c289a03df1ca88e29a664bd06481cfcd71101ccf7d041ed3b91
-        // (see createDepositScriptHash witness scenario) and it should be
-        // prefixed with its byte length: 0x20. The OP_0 opcode is 0x00.
-        // So, the final form should be:
-        // 002058afcec524e78c289a03df1ca88e29a664bd06481cfcd71101ccf7d041ed3b91.
+        // Should be OP_0 <script-hash>. The script hash is the same as in
+        // expectedP2WSHDepositData.scriptHash (see createDepositScriptHash
+        // witness scenario) and it should be prefixed with its byte length:
+        // 0x20. The OP_0 opcode is 0x00.
         expect(depositOutput.script).to.be.equal(
-          "002058afcec524e78c289a03df1ca88e29a664bd06481cfcd71101ccf7d041ed3b91"
+          `0020${expectedP2WSHDepositData.scriptHash}`
         )
         // The address should correspond to the script hash
-        // 58afcec524e78c289a03df1ca88e29a664bd06481cfcd71101ccf7d041ed3b91 on
-        // testnet so it should be:
-        // tb1qtzhua3fyu7xz3xsrmuw23r3f5ejt6pjgrn7dwygpenmaqs0d8wgscwss42
-        // (see createDepositAddress witness scenario).
+        // expectedP2WSHDepositData.scriptHash on testnet so it should be:
+        // expectedP2WSHDepositData.testnetAddress (see createDepositAddress
+        // witness scenario).
         expect(depositOutput.address).to.be.equal(
-          "tb1qtzhua3fyu7xz3xsrmuw23r3f5ejt6pjgrn7dwygpenmaqs0d8wgscwss42"
+          expectedP2WSHDepositData.testnetAddress
         )
 
         // Change value should be equal to: inputValue - depositAmount - fee.
@@ -206,15 +236,13 @@ describe("Deposit", () => {
 
       it("should return P2SH transaction with proper structure", async () => {
         // Compare HEXes.
-        expect(transaction).to.be.eql(expectedP2SHDepositTransaction)
+        expect(transaction).to.be.eql(expectedP2SHDepositData.transaction)
 
         // Convert raw transaction to JSON to make detailed comparison.
         const buffer = Buffer.from(transaction.transactionHex, "hex")
         const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
-        expect(txJSON.hash).to.be.equal(
-          "f21a9922c0c136c6d288cf1258b732d0f84a7d50d14a01d7d81cb6cd810f3517"
-        )
+        expect(txJSON.hash).to.be.equal(expectedP2SHDepositData.transactionHash)
         expect(txJSON.version).to.be.equal(1)
 
         // Validate inputs.
@@ -239,20 +267,18 @@ describe("Deposit", () => {
         // Value should correspond to the deposit amount.
         expect(depositOutput.value).to.be.equal(depositData.amount.toNumber())
         // Should be OP_HASH160 <script-hash> OP_EQUAL. The script hash is
-        // 2c1444d23936c57bdd8b3e67e5938a5440cda455 (see createDepositScriptHash
+        // expectedP2SHDepositData.scriptHash (see createDepositScriptHash
         // non-witness scenario) and it should be prefixed with its byte
         // length: 0x14. The OP_HASH160 opcode is 0xa9 and OP_EQUAL is 0x87.
-        // So, the final form should be:
-        // a9142c1444d23936c57bdd8b3e67e5938a5440cda45587.
         expect(depositOutput.script).to.be.equal(
-          "a9142c1444d23936c57bdd8b3e67e5938a5440cda45587"
+          `a914${expectedP2SHDepositData.scriptHash}87`
         )
         // The address should correspond to the script hash
-        // 2c1444d23936c57bdd8b3e67e5938a5440cda455 on testnet so it should be
-        // 2MwGJ12ZNLJX3qWqPmqLGzh3EfdN5XAEGQ8 (see createDepositAddress
+        // expectedP2SHDepositData.scriptHash on testnet so it should be
+        // expectedP2SHDepositData.testnetAddress (see createDepositAddress
         // non-witness scenario).
         expect(depositOutput.address).to.be.equal(
-          "2MwGJ12ZNLJX3qWqPmqLGzh3EfdN5XAEGQ8"
+          expectedP2SHDepositData.testnetAddress
         )
 
         // Change value should be equal to: inputValue - depositAmount - fee.
@@ -276,7 +302,10 @@ describe("Deposit", () => {
     })
 
     it("should return script with proper structure", async () => {
-      expect(script.length).to.be.equal(184) // 92 bytes
+      // Returned script should ne the same as expectedDepositScript but
+      // here we make a breakdown an assert specific parts are as expected.
+
+      expect(script.length).to.be.equal(expectedDepositScript.length)
 
       // Assert the Ethereum address is encoded correctly.
       // According the Bitcoin script format, the first byte before arbitrary
@@ -389,17 +418,14 @@ describe("Deposit", () => {
 
       it("should return proper witness script hash", async () => {
         // The script for given depositData should be the same as in
-        // createDepositScript test scenario:
-        // 14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576a
-        // 9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776a91428e081f285
-        // 138ccbe389c1eb8985716230129f89880460bcea61b175ac68. The hash of this
-        // script should correspond to the OP_HASH256 opcode which applies
-        // SHA-256 twice on the input. In this case the hash is
-        // 58afcec524e78c289a03df1ca88e29a664bd06481cfcd71101ccf7d041ed3b91
-        // and it can be verified with the following command:
-        // echo -n $SCRIPT | xxd -r -p | openssl dgst -sha256 -binary | openssl dgst -sha256
+        // createDepositScript test scenario i.e. expectedDepositScript.
+        // The hash of this script should correspond to the OP_SHA256 opcode
+        // which applies SHA-256 on the input. In this case the hash is
+        // expectedP2WSHDepositData.scriptHash and it can be verified with
+        // the following command:
+        // echo -n $SCRIPT | xxd -r -p | openssl dgst -sha256
         expect(scriptHash.toString("hex")).to.be.equal(
-          "58afcec524e78c289a03df1ca88e29a664bd06481cfcd71101ccf7d041ed3b91"
+          expectedP2WSHDepositData.scriptHash
         )
       })
     })
@@ -413,17 +439,14 @@ describe("Deposit", () => {
 
       it("should return proper non-witness script hash", async () => {
         // The script for given depositData should be the same as in
-        // createDepositScript test scenario:
-        // 14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576a
-        // 9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776a91428e081f285
-        // 138ccbe389c1eb8985716230129f89880460bcea61b175ac68. The hash of this
-        // script should correspond to the OP_HASH160 opcode which applies
-        // SHA-256 and then RIPEMD-160 on the input. In this case the hash is
-        // 2c1444d23936c57bdd8b3e67e5938a5440cda455 and it can be verified
+        // createDepositScript test scenario i.e. expectedDepositScript.
+        // The hash of this script should correspond to the OP_HASH160 opcode
+        // which applies SHA-256 and then RIPEMD-160 on the input. In this case
+        // the hash is expectedP2SHDepositData.scriptHash and it can be verified
         // with the following command:
         // echo -n $SCRIPT | xxd -r -p | openssl dgst -sha256 -binary | openssl dgst -rmd160
         expect(scriptHash.toString("hex")).to.be.equal(
-          "2c1444d23936c57bdd8b3e67e5938a5440cda455"
+          expectedP2SHDepositData.scriptHash
         )
       })
     })
@@ -440,13 +463,10 @@ describe("Deposit", () => {
 
         it("should return proper address with prefix bc1", async () => {
           // Address is created from same script hash as presented in the witness
-          // createDepositScriptHash scenario:
-          // 58afcec524e78c289a03df1ca88e29a664bd06481cfcd71101ccf7d041ed3b91.
+          // createDepositScriptHash scenario i.e. expectedP2WSHDepositData.scriptHash.
           // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
-          // the P2WSH (Bech32) address prefix for mainnet is 3.
-          expect(address).to.be.equal(
-            "bc1qtzhua3fyu7xz3xsrmuw23r3f5ejt6pjgrn7dwygpenmaqs0d8wgs0xxl09"
-          )
+          // the P2WSH (Bech32) address prefix for mainnet is bc1.
+          expect(address).to.be.equal(expectedP2WSHDepositData.mainnetAddress)
         })
       })
 
@@ -457,10 +477,10 @@ describe("Deposit", () => {
 
         it("should return proper address with prefix 3", async () => {
           // Address is created from same script hash as presented in the non-witness
-          // createDepositScriptHash scenario: 2c1444d23936c57bdd8b3e67e5938a5440cda455.
+          // createDepositScriptHash scenario i.e. expectedP2SHDepositData.scriptHash.
           // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
           // the P2SH address prefix for mainnet is 3.
-          expect(address).to.be.equal("35i5wHdLir1hdjCr6hiQNk3yTH9ufe61eH")
+          expect(address).to.be.equal(expectedP2SHDepositData.mainnetAddress)
         })
       })
     })
@@ -477,13 +497,10 @@ describe("Deposit", () => {
 
         it("should return proper address with prefix tb1", async () => {
           // Address is created from same script hash as presented in the witness
-          // createDepositScriptHash scenario:
-          // 58afcec524e78c289a03df1ca88e29a664bd06481cfcd71101ccf7d041ed3b91.
+          // createDepositScriptHash scenario i.e. expectedP2WSHDepositData.scriptHash.
           // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
           // the P2WSH (Bech32) address prefix for testnet is tb1.
-          expect(address).to.be.equal(
-            "tb1qtzhua3fyu7xz3xsrmuw23r3f5ejt6pjgrn7dwygpenmaqs0d8wgscwss42"
-          )
+          expect(address).to.be.equal(expectedP2WSHDepositData.testnetAddress)
         })
       })
 
@@ -497,11 +514,11 @@ describe("Deposit", () => {
         })
 
         it("should return proper address with prefix 2", async () => {
-          // Address is created from same script hash as presented in the
-          // createDepositScriptHash scenario: 2c1444d23936c57bdd8b3e67e5938a5440cda455.
+          // Address is created from same script hash as presented in the witness
+          // createDepositScriptHash scenario i.e. expectedP2SHDepositData.scriptHash.
           // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
           // the P2SH address prefix for testnet is 2.
-          expect(address).to.be.equal("2MwGJ12ZNLJX3qWqPmqLGzh3EfdN5XAEGQ8")
+          expect(address).to.be.equal(expectedP2SHDepositData.testnetAddress)
         })
       })
     })
