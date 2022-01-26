@@ -302,8 +302,8 @@ describe("Deposit", () => {
     })
 
     it("should return script with proper structure", async () => {
-      // Returned script should ne the same as expectedDepositScript but
-      // here we make a breakdown an assert specific parts are as expected.
+      // Returned script should be the same as expectedDepositScript but
+      // here we make a breakdown and assert specific parts are as expected.
 
       expect(script.length).to.be.equal(expectedDepositScript.length)
 
