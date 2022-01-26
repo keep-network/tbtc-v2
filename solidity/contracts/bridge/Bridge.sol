@@ -122,8 +122,9 @@ contract Bridge is Ownable {
     /// @notice Allows the Governance to mark the given vault address as trusted
     ///         or no longer trusted. Vaults are not trusted by default.
     ///         Trusted vault must meet the following criteria:
-    ///         - `IVault.onBalanceIncreased` must have a known, low gas cost.
-    ///         - `IVault.onBalanceIncreased` must never revert.
+    ///         - `IVault.receiveBalanceIncrease` must have a known, low gas
+    ///           cost.
+    ///         - `IVault.receiveBalanceIncrease` must never revert.
     /// @dev Without restricting reveal only to trusted vaults, malicious
     ///      vaults not meeting the criteria would be able to nuke sweep proof
     ///      transactions executed by ECDSA wallet with  deposits routed to
