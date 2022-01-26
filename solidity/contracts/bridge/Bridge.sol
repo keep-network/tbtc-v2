@@ -15,48 +15,35 @@
 
 pragma solidity 0.8.4;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 
-/// @title BTC Bridge
-/// @notice Bridge manages BTC deposit and redemption and is increasing and
+import "./BitcoinTx.sol";
+
+/// @title Bitcoin Bridge
+/// @notice Bridge manages BTC deposit and redemption flow and is increasing and
 ///         decreasing balances in the Bank as a result of BTC deposit and
-///         redemption operations.
+///         redemption operations performed by depositors and redeemers.
 ///
-///         Depositors send BTC funds to the most-recently-created-wallet of the
-///         bridge using pay-to-script-hash (P2SH) or
-///         pay-to-witness-script-hash (P2WSH) which contains hashed
-///         information about the depositor’s minting Ethereum address. Then,
-///         the depositor reveals their desired Ethereum minting address to the
-///         Ethereum chain. The Bridge listens for these sorts of messages and
-///         when it gets one, it checks the Bitcoin network to make sure the
-///         funds line up. If they do, the off-chain wallet may decide to pick
-///         this transaction for sweeping, and when the sweep operation is
-///         confirmed on the Bitcoin network, the wallet informs the Bridge
-///         about the sweep increasing appropriate balances in the Bank.
+///         Depositors send BTC funds to the most recently created off-chain
+///         ECDSA wallet of the bridge using pay-to-script-hash (P2SH) or
+///         pay-to-witness-script-hash (P2WSH) containing hashed information
+///         about the depositor’s Ethereum address. Then, the depositor reveals
+///         their Ethereum address along with their deposit blinding factor,
+///         refund public key hash and refund locktime to the Bridge on Ethereum
+///         chain. The off-chain ECDSA wallet listens for these sorts of
+///         messages and when it gets one, it checks the Bitcoin network to make
+///         sure the deposit lines up. If it does, the off-chain ECDSA wallet
+///         may decide to pick the deposit transaction for sweeping, and when
+///         the sweep operation is confirmed on the Bitcoin network, the ECDSA
+///         wallet informs the Bridge about the sweep increasing appropriate
+///         balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank.
-contract Bridge {
+contract Bridge is Ownable {
     using BTCUtils for bytes;
     using BytesLib for bytes;
-
-    /// @notice Represents Bitcoin transaction data as described in:
-    ///         https://developer.bitcoin.org/reference/transactions.html#raw-transaction-format
-    struct TxInfo {
-        // Transaction version number (4-byte LE).
-        bytes4 version;
-        // All transaction inputs prepended by the number of inputs encoded
-        // as a compactSize uint. Single vector item looks as follows:
-        // https://developer.bitcoin.org/reference/transactions.html#txin-a-transaction-input-non-coinbase
-        // though SegWit inputs don't contain the signature script (scriptSig).
-        // All encoded input transaction hashes are little-endian.
-        bytes inputVector;
-        // All transaction outputs prepended by the number of outputs encoded
-        // as a compactSize uint. Single vector item looks as follows:
-        // https://developer.bitcoin.org/reference/transactions.html#txout-a-transaction-output
-        bytes outputVector;
-        // Transaction locktime (4-byte LE).
-        bytes4 locktime;
-    }
 
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
@@ -81,7 +68,8 @@ contract Bridge {
         // and used with OP_CHECKLOCKTIMEVERIFY opcode as described in:
         // https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki
         bytes4 refundLocktime;
-        // Address of the tBTC vault.
+        // Address of the Bank vault to which the deposit is routed to.
+        // Optional, can be 0x0. The vault must be trusted by the Bridge.
         address vault;
     }
 
@@ -94,9 +82,19 @@ contract Bridge {
         bytes8 amount;
         // UNIX timestamp the deposit was revealed at.
         uint32 revealedAt;
-        // Address of the tBTC vault.
+        // Address of the Bank vault the deposit is routed to.
+        // Optional, can be 0x0.
         address vault;
     }
+
+    /// @notice Indicates if the vault with the given address is trusted or not.
+    ///         Depositors can route their revealed deposits only to trusted
+    ///         vaults and have trusted vaults notified about new deposits as
+    ///         soon as these deposits get swept. Vaults not trusted by the
+    ///         Bridge can still be used by Bank balance owners on their own
+    ///         responsibility - anyone can approve their Bank balance to any
+    ///         address.
+    mapping(address => bool) public isVaultTrusted;
 
     /// @notice Collection of all unswept deposits indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex).
@@ -115,8 +113,28 @@ contract Bridge {
         bytes8 blindingFactor,
         bytes20 walletPubKeyHash,
         bytes20 refundPubKeyHash,
-        bytes4 refundLocktime
+        bytes4 refundLocktime,
+        address vault
     );
+
+    event VaultStatusUpdated(address indexed vault, bool isTrusted);
+
+    /// @notice Allows the Governance to mark the given vault address as trusted
+    ///         or no longer trusted. Vaults are not trusted by default.
+    ///         Trusted vault must meet the following criteria:
+    ///         - `IVault.onBalanceIncreased` must have a known, low gas cost.
+    ///         - `IVault.onBalanceIncreased` must never revert.
+    /// @dev Without restricting reveal only to trusted vaults, malicious
+    ///      vaults not meeting the criteria would be able to nuke sweep proof
+    ///      transactions executed by ECDSA wallet with  deposits routed to
+    ///      them.
+    /// @param vault The address of the vault
+    /// @param isTrusted flag indicating whether the vault is trusted or not
+    /// @dev Can only be called by the Governance.
+    function setVaultStatus(address vault, bool isTrusted) external onlyOwner {
+        isVaultTrusted[vault] = isTrusted;
+        emit VaultStatusUpdated(vault, isTrusted);
+    }
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
     ///         Bitcoin deposit to the Bridge on Ethereum chain. The off-chain
@@ -124,12 +142,15 @@ contract Bridge {
     ///         include the revealed deposit in the next executed sweep.
     ///         Information about the Bitcoin deposit can be revealed before or
     ///         after the Bitcoin transaction with P2(W)SH deposit is mined on
-    ///         the Bitcoin chain. Worth noting the gas cost of this function
+    ///         the Bitcoin chain. Worth noting, the gas cost of this function
     ///         scales with the number of P2(W)SH transaction inputs and
-    ///         outputs.
-    /// @param fundingTx Bitcoin funding transaction data.
-    /// @param reveal Deposit reveal data.
+    ///         outputs. The deposit may be routed to one of the trusted vaults.
+    ///         When a deposit is routed to a vault, vault gets notified when
+    ///         the deposit gets swept and it may execute the appropriate action.
+    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`
+    /// @param reveal Deposit reveal data, see `RevealInfo struct
     /// @dev Requirements:
+    ///      - `reveal.vault` must be 0x0 or point to a trusted vault
     ///      - `reveal.fundingOutputIndex` must point to the actual P2(W)SH
     ///        output of the BTC deposit transaction
     ///      - `reveal.depositor` must be the Ethereum address used in the
@@ -149,9 +170,14 @@ contract Bridge {
     ///      to sweep the deposit and the depositor has to wait until the
     ///      deposit script unlocks to receive their BTC back.
     function revealDeposit(
-        TxInfo calldata fundingTx,
+        BitcoinTx.Info calldata fundingTx,
         RevealInfo calldata reveal
     ) external {
+        require(
+            reveal.vault == address(0) || isVaultTrusted[reveal.vault],
+            "Vault is not trusted"
+        );
+
         bytes memory expectedScript =
             abi.encodePacked(
                 hex"14", // Byte length of depositor Ethereum address.
@@ -263,7 +289,8 @@ contract Bridge {
             reveal.blindingFactor,
             reveal.walletPubKeyHash,
             reveal.refundPubKeyHash,
-            reveal.refundLocktime
+            reveal.refundLocktime,
+            reveal.vault
         );
     }
 
@@ -284,7 +311,7 @@ contract Bridge {
     /// @param bitcoinHeaders Single bytestring of 80-byte bitcoin headers,
     ///                       lowest height first.
     function sweep(
-        TxInfo calldata sweepTx,
+        BitcoinTx.Info calldata sweepTx,
         bytes memory merkleProof,
         uint256 txIndexInBlock,
         bytes memory bitcoinHeaders
