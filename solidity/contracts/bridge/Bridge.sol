@@ -287,9 +287,9 @@ contract Bridge is Ownable {
             );
         } else if (fundingOutputHash.length == 32) {
             // A 32-byte output hash is used by P2WSH. That hash is constructed
-            // by applying OP_HASH256 on the locking script.
+            // by applying OP_SHA256 on the locking script.
             require(
-                fundingOutputHash.toBytes32() == expectedScript.hash256(),
+                fundingOutputHash.toBytes32() == sha256(expectedScript),
                 "Wrong 32-byte script hash"
             );
         } else {

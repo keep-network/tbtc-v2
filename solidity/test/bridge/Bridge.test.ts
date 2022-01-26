@@ -132,7 +132,7 @@ describe("Bridge", () => {
   describe("revealDeposit", () => {
     // Data of a proper P2SH deposit funding transaction. Little-endian hash is:
     // 0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2 and
-    // this is the same as `expectedP2SHDepositTransaction` mentioned in
+    // this is the same as `expectedP2SHDepositData.transaction` mentioned in
     // tbtc-ts/test/deposit.test.ts file.
     const P2SHFundingTx = {
       version: "0x01000000",
@@ -147,8 +147,8 @@ describe("Bridge", () => {
     }
 
     // Data of a proper P2WSH deposit funding transaction. Little-endian hash is:
-    // 0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7 and
-    // this is the same as `expectedP2WSHDepositTransaction` mentioned in
+    // 0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e and
+    // this is the same as `expectedP2WSHDepositData.transaction` mentioned in
     // tbtc-ts/test/deposit.test.ts file.
     const P2WSHFundingTx = {
       version: "0x01000000",
@@ -156,8 +156,8 @@ describe("Bridge", () => {
         "0x018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56b20d" +
         "c2b952f0100000000ffffffff",
       outputVector:
-        "0x02102700000000000022002058afcec524e78c289a03df1ca88e29a664b" +
-        "d06481cfcd71101ccf7d041ed3b9110d73b00000000001600147ac2d9378a" +
+        "0x021027000000000000220020df74a2e385542c87acfafa564ea4bc4fc4e" +
+        "b87d2b6a37d6c3b64722be83c636f10d73b00000000001600147ac2d9378a" +
         "1c47e589dfb8095ca95ed2140d2726",
       locktime: "0x00000000",
     }
@@ -353,7 +353,7 @@ describe("Bridge", () => {
               const depositKey = ethers.utils.solidityKeccak256(
                 ["bytes32", "uint32"],
                 [
-                  "0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7",
+                  "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                   reveal.fundingOutputIndex,
                 ]
               )
@@ -384,7 +384,7 @@ describe("Bridge", () => {
               await expect(tx)
                 .to.emit(bridge, "DepositRevealed")
                 .withArgs(
-                  "0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7",
+                  "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                   reveal.fundingOutputIndex,
                   "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                   "0xf9f0c90d00039523",
@@ -416,7 +416,7 @@ describe("Bridge", () => {
               await expect(tx)
                 .to.emit(bridge, "DepositRevealed")
                 .withArgs(
-                  "0xf54d69b5c5e07917032a8bf14137fa67752fad5ce73bc9544c9b2f87ff5b4cb7",
+                  "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                   reveal.fundingOutputIndex,
                   "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                   "0xf9f0c90d00039523",
