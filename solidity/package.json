@@ -28,7 +28,7 @@
   "dependencies": {
     "@keep-network/tbtc": ">1.1.2-dev <1.1.2-pre",
     "@openzeppelin/contracts": "^4.1.0",
-    "@keep-network/bitcoin-spv-sol": "https://gitpkg.now.sh/keep-network/bitcoin-spv/solidity?65e7d988799e388c9dcf63da2765b4f5fae4be8a",
+    "@keep-network/bitcoin-spv-sol": "3.2.0-solc-0.8",
     "@tenderly/hardhat-tenderly": "^1.0.12",
     "@thesis/solidity-contracts": "github:thesis/solidity-contracts#4985bcf"
   },
