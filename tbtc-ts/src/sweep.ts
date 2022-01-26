@@ -15,7 +15,7 @@ import {
   DepositData,
 } from "./deposit"
 
-export async function resolveRegularScript(
+async function resolvePreviousSweepScript(
   transaction: bcoin.MTX,
   inputIndex: number,
   walletKeyRing: bcoin.KeyRing
@@ -35,7 +35,7 @@ export async function resolveRegularScript(
  * @param walletPrivateKey - Bitcoin private key of the wallet.
  * @returns Empty promise.
  */
-export async function resolveDepositScript(
+async function resolveDepositScriptHash(
   transaction: bcoin.MTX,
   inputIndex: number,
   depositData: DepositData,
@@ -57,46 +57,72 @@ export async function resolveDepositScript(
     throw new Error("Signing group public key must be compressed")
   }
 
-  if (previousOutput.script.raw.length == 23) {
-    // P2SH
-    const signature: Buffer = transaction.signature(
-      inputIndex,
-      depositScript,
-      previousOutput.value,
-      walletPrivateKey.privateKey,
-      bcoin.Script.hashType.ALL,
-      0
-    )
-    const scriptSig = new bcoin.Script()
-    scriptSig.clear()
-    scriptSig.pushData(signature)
-    scriptSig.pushData(Buffer.from(signingGroupPublicKey, "hex"))
-    scriptSig.pushData(depositScript.toRaw())
-    scriptSig.compile()
+  const signature: Buffer = transaction.signature(
+    inputIndex,
+    depositScript,
+    previousOutput.value,
+    walletPrivateKey.privateKey,
+    bcoin.Script.hashType.ALL,
+    0
+  )
+  const scriptSig = new bcoin.Script()
+  scriptSig.clear()
+  scriptSig.pushData(signature)
+  scriptSig.pushData(Buffer.from(signingGroupPublicKey, "hex"))
+  scriptSig.pushData(depositScript.toRaw())
+  scriptSig.compile()
 
-    transaction.inputs[inputIndex].script = scriptSig
-  } else if (previousOutput.script.raw.length == 34) {
-    // P2WSH
-    const signature: Buffer = transaction.signature(
-      inputIndex,
-      depositScript,
-      previousOutput.value,
-      walletPrivateKey.privateKey,
-      bcoin.Script.hashType.ALL,
-      1
-    )
+  transaction.inputs[inputIndex].script = scriptSig
+}
 
-    const witness = new bcoin.Witness()
-    witness.clear()
-    witness.pushData(signature)
-    witness.pushData(Buffer.from(signingGroupPublicKey, "hex"))
-    witness.pushData(depositScript.toRaw())
-    witness.compile()
+/**
+ * Creates and sets `scriptSig` for the transaction input at the given index by
+ * combining signature, signing group public key and deposit script.
+ * @param transaction - Mutable transaction containing the input to be signed
+ * @param inputIndex - Index that points to the input to be signed
+ * @param depositData - Array of deposit data
+ * @param walletPrivateKey - Bitcoin private key of the wallet.
+ * @returns Empty promise.
+ */
+async function resolveDepositWitnessScriptHash(
+  transaction: bcoin.MTX,
+  inputIndex: number,
+  depositData: DepositData,
+  walletPrivateKey: bcoin.KeyRing
+): Promise<void> {
+  const previousOutpoint = transaction.inputs[inputIndex].prevout
+  const previousOutput = transaction.view.getOutput(previousOutpoint)
 
-    transaction.inputs[inputIndex].witness = witness
-  } else {
-    throw new Error("Deposit output is neither P2SH nor P2WSH")
+  if (previousOutput.value != depositData.amount.toNumber()) {
+    throw new Error("Mismatch between amount in deposit data and deposit tx")
   }
+
+  const depositScript = bcoin.Script.fromRaw(
+    Buffer.from(await createDepositScript(depositData), "hex")
+  )
+
+  const signingGroupPublicKey = await getActiveWalletPublicKey()
+  if (!isCompressedPublicKey(signingGroupPublicKey)) {
+    throw new Error("Signing group public key must be compressed")
+  }
+
+  const signature: Buffer = transaction.signature(
+    inputIndex,
+    depositScript,
+    previousOutput.value,
+    walletPrivateKey.privateKey,
+    bcoin.Script.hashType.ALL,
+    1
+  )
+
+  const witness = new bcoin.Witness()
+  witness.clear()
+  witness.pushData(signature)
+  witness.pushData(Buffer.from(signingGroupPublicKey, "hex"))
+  witness.pushData(depositScript.toRaw())
+  witness.compile()
+
+  transaction.inputs[inputIndex].witness = witness
 }
 
 /**
@@ -190,19 +216,8 @@ function mapUtxoToDepositData(
   return map
 }
 
-function isInputPreviousUtxo(
-  input: bcoin.Input,
-  utxo?: UnspentTransactionOutput & RawTransaction
-): boolean {
-  if (!utxo) {
-    return false
-  }
-  // Note: reverse() changes data. Need to work on a copy.
-  // TODO: refactor
-  return (
-    Buffer.from(input.prevout.hash).reverse().toString("hex") ==
-      utxo.transactionHash && input.prevout.index == utxo.outputIndex
-  )
+function buildKey(input: bcoin.Input): string {
+  return input.prevout.txid() + "/" + input.prevout.index
 }
 
 /**
@@ -276,16 +291,27 @@ export async function createSweepTransaction(
   const utxosToDepositData = mapUtxoToDepositData(utxos, depositData)
 
   for (let i = 0; i < transaction.inputs.length; i++) {
-    if (isInputPreviousUtxo(transaction.inputs[i], previousUtxo)) {
-      await resolveRegularScript(transaction, i, walletKeyRing)
-    } else {
-      const key =
-        transaction.inputs[i].prevout.txid() +
-        "/" +
-        transaction.inputs[i].prevout.index
+    const previousOutpoint = transaction.inputs[i].prevout
+    const previousOutput = transaction.view.getOutput(previousOutpoint)
+    const previousScript = previousOutput.script
+
+    if (previousScript.isWitnessPubkeyhash()) {
+      // P2WKH (previous sweep UTXO)
+      await resolvePreviousSweepScript(transaction, i, walletKeyRing)
+    } else if (previousScript.isScripthash()) {
+      // P2SH (deposit UTXO)
+      const key = buildKey(transaction.inputs[i])
       const data = utxosToDepositData.get(key)!
 
-      await resolveDepositScript(transaction, i, data, walletKeyRing)
+      await resolveDepositScriptHash(transaction, i, data, walletKeyRing)
+    } else if (previousScript.isWitnessScripthash()) {
+      // P2WSH (deposit UTXO)
+      const key = buildKey(transaction.inputs[i])
+      const data = utxosToDepositData.get(key)!
+
+      await resolveDepositWitnessScriptHash(transaction, i, data, walletKeyRing)
+    } else {
+      throw new Error("Unsupported UTXO script type")
     }
   }
 
