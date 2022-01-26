@@ -38,14 +38,18 @@ export async function resolveRegularScript(
 export async function resolveDepositScript(
   transaction: bcoin.MTX,
   inputIndex: number,
-  depositData: DepositData[],
+  depositData: DepositData,
   walletPrivateKey: bcoin.KeyRing
 ): Promise<void> {
   const previousOutpoint = transaction.inputs[inputIndex].prevout
   const previousOutput = transaction.view.getOutput(previousOutpoint)
 
+  if (previousOutput.value != depositData.amount.toNumber()) {
+    throw new Error("Mismatch between amount in deposit data and deposit tx")
+  }
+
   const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await createDepositScript(depositData[inputIndex]), "hex")
+    Buffer.from(await createDepositScript(depositData), "hex")
   )
 
   const signingGroupPublicKey = await getActiveWalletPublicKey()
@@ -121,12 +125,6 @@ export async function sweepDeposits(
   depositData: DepositData[],
   previousSweepUtxo?: UnspentTransactionOutput
 ): Promise<void> {
-  if (utxos.length != depositData.length) {
-    throw new Error(
-      "Number of UTXOs must equal the number of deposit data elements"
-    )
-  }
-
   const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
   for (const utxo of utxos) {
     const rawTransaction = await bitcoinClient.getRawTransaction(
@@ -173,6 +171,25 @@ export async function sweepDeposits(
   await bitcoinClient.broadcast(transaction)
 }
 
+function mapUtxoToDepositData(
+  utxos: UnspentTransactionOutput[],
+  depositData: DepositData[]
+): Map<string, DepositData> {
+  if (utxos.length != depositData.length) {
+    throw new Error(
+      "Number of UTXOs must equal the number of deposit data elements"
+    )
+  }
+
+  const map = new Map<string, DepositData>()
+  for (let i = 0; i < utxos.length; i++) {
+    const key = utxos[i].transactionHash + "/" + utxos[i].outputIndex.toString()
+    map.set(key, depositData[i])
+  }
+
+  return map
+}
+
 function isInputPreviousUtxo(
   input: bcoin.Input,
   utxo?: UnspentTransactionOutput & RawTransaction
@@ -180,9 +197,11 @@ function isInputPreviousUtxo(
   if (!utxo) {
     return false
   }
+  // Note: reverse() changes data. Need to work on a copy.
+  // TODO: refactor
   return (
-    input.prevout.hash == utxo.transactionHash &&
-    input.prevout.index == utxo.outputIndex
+    Buffer.from(input.prevout.hash).reverse().toString("hex") ==
+      utxo.transactionHash && input.prevout.index == utxo.outputIndex
   )
 }
 
@@ -252,10 +271,22 @@ export async function createSweepTransaction(
     subtractFee: true,
   })
 
+  // UTXOs must be mapped to deposit data, as `fund` may arrange inputs in any
+  // order
+  const utxosToDepositData = mapUtxoToDepositData(utxos, depositData)
+
   for (let i = 0; i < transaction.inputs.length; i++) {
-    isInputPreviousUtxo(transaction.inputs[i], previousUtxo)
-      ? await resolveRegularScript(transaction, i, walletKeyRing)
-      : await resolveDepositScript(transaction, i, depositData, walletKeyRing)
+    if (isInputPreviousUtxo(transaction.inputs[i], previousUtxo)) {
+      await resolveRegularScript(transaction, i, walletKeyRing)
+    } else {
+      const key =
+        transaction.inputs[i].prevout.txid() +
+        "/" +
+        transaction.inputs[i].prevout.index
+      const data = utxosToDepositData.get(key)!
+
+      await resolveDepositScript(transaction, i, data, walletKeyRing)
+    }
   }
 
   return {
