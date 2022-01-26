@@ -224,7 +224,7 @@ export async function createDepositScriptHash(
   const script = await createDepositScript(depositData)
   // Parse the script from HEX string.
   const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
-  // If witness script hash should be produced, HASH256 should be used.
+  // If witness script hash should be produced, SHA256 should be used.
   // Legacy script hash needs HASH160.
   return witness ? parsedScript.sha256() : parsedScript.hash160()
 }
