@@ -511,7 +511,7 @@ blockchain, the miners need to be paid a fee for their work. This fee
 fluctuates with market demand and is decently volatile.
 
 The operators need to all agree on a fee before they can construct the sweeping
-transacion, but communicating that fee is tricky. When the sortition pool
+transaction, but communicating that fee is tricky. When the sortition pool
 selects the operators, it selects them in an ordered list. We can leverage this
 on-chain order to be the fee-proposal-order. Say that the sortition pool chose
 Operators: [#71, #109, #34..., #2]. When it comes time to sweep deposits,
@@ -528,8 +528,8 @@ is, they can 51-of-100 agree to skip to the next operator.
 
 *Note*: We purposefully leave out on-chain incentives/punishments here. The
 attack vector is small and the overhead is high. We might need to revisit this
-in the future, but if someone maintianed a client fork in order to take
-advanage of manipulating btc fee consensus I would be very surprised.
+in the future, but if someone maintained a client fork in order to take
+advantage of manipulating btc fee consensus I would be very surprised.
 
 == Governable Parameters
 Alphabetized list of Governable Parameters with additional notes.
