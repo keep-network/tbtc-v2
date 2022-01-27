@@ -502,8 +502,9 @@ in order to prevent problems like operators front-running each other.
 === Bitcoin Sweeping Fee
 Governable Parameters
 
-- `btc_fee_broadcast_timeout`: The amount of an operator has to provide a suggested BTC fee
-  before the other operators give up and try the next operator.
+- `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
+  suggested BTC fee before the other operators give up and try the next
+  operator.
 
 Any time a bitcoin transaction needs to be posted and then mined on the bitcoin
 blockchain, the miners need to be paid a fee for their work. This fee
@@ -535,8 +536,9 @@ Alphabetized list of Governable Parameters with additional notes.
 
 - `base_sweeping_fee_max`: The highest amount of BTC that operators can
   initially propose as a fee for miners in a sweeping transaction.
-- `btc_fee_broadcast_timeout`: The amount of an operator has to provide a suggested BTC fee
-  before the other operators give up and try the next operator.
+- `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
+  suggested BTC fee before the other operators give up and try the next
+  operator.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
   DKG group formation re-try period.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
