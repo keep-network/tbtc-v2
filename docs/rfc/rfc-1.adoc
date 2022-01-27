@@ -561,7 +561,8 @@ moves to #109, and then #34, and so on.
 The operators then validate the fee they received against
 https://blockstream.info/api/fee-estimates to make sure that nothing fishy is
 going on - that the fee isn't too high or too low (TBD what that means). If it
-is, they can 51-of-100 agree to skip to the next operator.
+is, they can wait for `btc_fee_broadcast_timeout` to elapse and for a new fee
+to be proposed.
 
 *Note*: We purposefully leave out on-chain incentives/punishments here. The
 attack vector is small and the overhead is high. We might need to revisit this
