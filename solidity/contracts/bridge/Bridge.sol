@@ -414,7 +414,8 @@ contract Bridge is Ownable {
         uint256 fee = sweepTxInputsValue - sweepTxOutputValue;
         // Calculate fee share by dividing the total fee by deposits count.
         // TODO: Deal with precision loss.
-        uint256 feeShare = fee / depositedAmounts.length;
+        uint256 feeShare =
+            depositedAmounts.length > 0 ? fee / depositedAmounts.length : 0;
         // Reduce each deposit amount by fee share value.
         for (uint256 i = 0; i < depositedAmounts.length; i++) {
             // TODO: The feeShare can be bigger than the amount.

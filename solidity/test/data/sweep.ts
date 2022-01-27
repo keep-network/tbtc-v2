@@ -22,6 +22,11 @@ export interface SweepTestData {
     }
   }[]
 
+  previousSweep: {
+    txHash: BytesLike
+    txOutputValue: BigNumberish
+  }
+
   sweepTx: {
     hash: BytesLike
     version: BytesLike
@@ -37,6 +42,11 @@ export interface SweepTestData {
   }
 
   chainDifficulty: number
+}
+
+export const NO_PREVIOUS_SWEEP = {
+  txHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+  txOutputValue: 0,
 }
 
 // `SingleP2SHDeposit` test data represents a sweep with following properties:
@@ -76,6 +86,8 @@ export const SingleP2SHDeposit: SweepTestData = {
       },
     },
   ],
+
+  previousSweep: NO_PREVIOUS_SWEEP,
 
   // https://live.blockcypher.com/btc-testnet/tx/f5b9ad4e8cd5317925319ebc64dc923092bef3b56429c6b1bc2261bbdc73f351
   sweepTx: {
@@ -126,6 +138,145 @@ export const SingleP2SHDeposit: SweepTestData = {
   },
 
   chainDifficulty: 22350181,
+}
+
+// `SingleP2WSHDeposit` test data represents a sweep with following properties:
+// - 1 P2WSH deposit input
+// - 1 P2WPKH sweep output
+// - No prior sweeps made by this wallet
+// - 6+ on-chain confirmations of the sweep transaction
+export const SingleP2WSHDeposit: SweepTestData = {
+  deposits: [
+    {
+      // https://live.blockcypher.com/btc-testnet/tx/c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83
+      fundingTx: {
+        hash: "0x83dcd16fd296b903db783a472ea2e572db661648c69ee3849a072705462c08c1",
+        version: "0x01000000",
+        inputVector:
+          "0x0189f12fac482d2b036f74378a9c9af7ab17bcc963d4172cec78d01750dd1b" +
+          "13e20100000000ffffffff",
+        outputVector:
+          "0x028038010000000000220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7" +
+          "d671ef27d4b1d0db8dcc93bc1c7ad42900000000001600147ac2d9378a1c47e5" +
+          "89dfb8095ca95ed2140d2726",
+        locktime: "0x00000000",
+      },
+      reveal: {
+        fundingOutputIndex: 0,
+        depositor: "0xf4292022F75ADD9b079b0573d0FD63C376a85F41",
+        blindingFactor: "0xb0bb0e4d6083951d",
+        // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
+        walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+        // HASH160 of 02e17803749b7a8af2efd288de313a98e7c77bb0969e220edf25932d97686db83d
+        refundPubKeyHash: "0x056514a7032b0b486e56a607fb434756c61d1f74",
+        refundLocktime: "0x38421962",
+        vault: "0x0000000000000000000000000000000000000000",
+      },
+    },
+  ],
+
+  previousSweep: NO_PREVIOUS_SWEEP,
+
+  // https://live.blockcypher.com/btc-testnet/tx/9efc9d555233e12e06378a35a7b988d54f7043b5c3156adc79c7af0a0fd6f1a0
+  sweepTx: {
+    hash: "0xa0f1d60f0aafc779dc6a15c3b543704fd588b9a7358a37062ee13352559dfc9e",
+    version: "0x01000000",
+    inputVector:
+      "0x0183dcd16fd296b903db783a472ea2e572db661648c69ee3849a072705462c08c1" +
+      "0000000000ffffffff",
+    outputVector:
+      "0x01b0300100000000001600148db50eb52063ea9d98b3eac91489a90f738986f6",
+    locktime: "0x00000000",
+  },
+
+  sweepProof: {
+    merkleProof:
+      "0x1e385762f7d31965169347c77cdf80b97d9929db5a69c5ed806db32b076148eb5d" +
+      "e6c1ecf41b3d5850ddc4734e640055c1196aff7adc62f4142fb325d52f094d9fec4a" +
+      "45971e5e57dd7eba7c1a16f800f4d39ca840dde81afc94962fe11666ec25ffb29b0a" +
+      "fbf42def26d69660fc59495bfd57a33b3a4ab47efe33dd5d77f018df4c5c181f0c15" +
+      "a6fb2e5b6df6699379eb525e3d9f44093efe518f5ac3499850",
+    txIndexInBlock: 6,
+    bitcoinHeaders:
+      "0x04e0ff2ffe53ee270bc727b7b79a51fad230e89ffbe713a3a98e38bf61a6a60000" +
+      "000000e2ef3dc664f683c06d97562f7f664fc66524dbb37ef1ba1e961ecd25a6d8d9" +
+      "2f6996f261cbcd001a44861d0a0000e0205c5df9ba0f31cdf5ad8c146fb16c1199d2" +
+      "7309ed31e34934b8000000000000002c183edd5a6d3e7c2205a8a2c1dab8e0940bd1" +
+      "20d4f6fcc5ab4d38d77fbe0e572a9bf261ffff001d2a446a0e000060209727625876" +
+      "c086cee161094c5eb7e535dec7064c345c46b2413298000000000050d8a67fef29c6" +
+      "b9329257b3fe29e4c24894ee32cbce7c15a67a401169a065f3dc9ff261ffff001d8f" +
+      "b08e4100400020b52821b4fd96d162a27d4dcc1aafd6439de4fcec11dca8a4af70bc" +
+      "00000000000c76c80b49a7b3549fe8421d365fb31966cd41fe47b067dcc97108db1c" +
+      "20a27b8da4f261ffff001d2a74b0a70000002046501508ec2bea6c9d8fd891f1f596" +
+      "410068b178005ea5f5f0a7ae130000000070e9a74d4ab00d601c62fa42fd38c1ec5f" +
+      "ec628180341f4eaa667d6364fed3b193a5f261cbcd001a78634212d49820001e1adb" +
+      "3e29eb4aa11c99e7d5c77dbbe7803760926f57e1f9a50000000000000018182cbc30" +
+      "f44efa5eabbb9a2f9888a27feb6d2e2f1e1461534344cf1dafd437e3a6f261cbcd00" +
+      "1a8959a5db002000207cddca26ea39dd08f6345c0057300443d7720c5ab4937c2711" +
+      "000000000000004eb83f96a1f1ace06832a7eb8b3a407f04b37e211363422bf58dde" +
+      "b50f20a8a54ba7f261cbcd001a25011a61",
+  },
+
+  chainDifficulty: 20870012,
+}
+
+// `SinglePreviousSweep` test data represents a sweep with following properties:
+// - 1 P2WPKH previous sweep input
+// - 1 P2WPKH sweep output
+// - One prior sweeps made by this wallet
+// - 6+ on-chain confirmations of the sweep transaction
+export const SinglePreviousSweep: SweepTestData = {
+  deposits: [],
+
+  previousSweep: {
+    txHash:
+      "0x51f373dcbb6122bcb1c62964b5f3be923092dc64bc9e31257931d58c4eadb9f5",
+    txOutputValue: 18500,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/3c5e414be0a36e7cd8a6b3a554b4bd9bebe3eee4eddd0dd2a182652e5772b1ad
+  sweepTx: {
+    hash: "0xadb172572e6582a1d20dddede4eee3eb9bbdb454a5b3a6d87c6ea3e04b415e3c",
+    version: "0x01000000",
+    inputVector:
+      "0x0151f373dcbb6122bcb1c62964b5f3be923092dc64bc9e31257931d58c4eadb9f5" +
+      "0000000000ffffffff",
+    outputVector:
+      "0x0174400000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6",
+    locktime: "0x00000000",
+  },
+
+  sweepProof: {
+    merkleProof:
+      "0x420b7804b046b62d2c58ed265f1f4c1f5a870cb0dbb1788f251d4377a6ac198cca" +
+      "80146dde2a79fab2cdcec6704d3166c1a60cb03b685faf895d171929874798341f0b" +
+      "acfd708ccdb0de53fd6f99c56d6b5ecd4f68b9ce33e1ff2f38843671a6b252ef1c80" +
+      "e934fd37dba1a508eac0b4f574dee4bd2896d069594c07314c7f5668dd6f681ea181" +
+      "bfa9eb1b37825ba05f74fa8ec78f0014dff6d4365cf68697b630254f65249c7909d7" +
+      "5ca862aaf2ebb1d7eac6334a68104605ed0f57b7ab5e58744f028d58b36016f2e78c" +
+      "b4701aace4a64dcc85e3be1d4db96fe4275658c941",
+    txIndexInBlock: 12,
+    bitcoinHeaders:
+      "0x0000e0205c5df9ba0f31cdf5ad8c146fb16c1199d27309ed31e34934b800000000" +
+      "0000002c183edd5a6d3e7c2205a8a2c1dab8e0940bd120d4f6fcc5ab4d38d77fbe0e" +
+      "572a9bf261ffff001d2a446a0e000060209727625876c086cee161094c5eb7e535de" +
+      "c7064c345c46b2413298000000000050d8a67fef29c6b9329257b3fe29e4c24894ee" +
+      "32cbce7c15a67a401169a065f3dc9ff261ffff001d8fb08e4100400020b52821b4fd" +
+      "96d162a27d4dcc1aafd6439de4fcec11dca8a4af70bc00000000000c76c80b49a7b3" +
+      "549fe8421d365fb31966cd41fe47b067dcc97108db1c20a27b8da4f261ffff001d2a" +
+      "74b0a70000002046501508ec2bea6c9d8fd891f1f596410068b178005ea5f5f0a7ae" +
+      "130000000070e9a74d4ab00d601c62fa42fd38c1ec5fec628180341f4eaa667d6364" +
+      "fed3b193a5f261cbcd001a78634212d49820001e1adb3e29eb4aa11c99e7d5c77dbb" +
+      "e7803760926f57e1f9a50000000000000018182cbc30f44efa5eabbb9a2f9888a27f" +
+      "eb6d2e2f1e1461534344cf1dafd437e3a6f261cbcd001a8959a5db002000207cddca" +
+      "26ea39dd08f6345c0057300443d7720c5ab4937c2711000000000000004eb83f96a1" +
+      "f1ace06832a7eb8b3a407f04b37e211363422bf58ddeb50f20a8a54ba7f261cbcd00" +
+      "1a25011a6100000020a255594fd7ad6096e47c5b0b3a636cf0ac0dafc0dcf60277a5" +
+      "00000000000000d75ff7b7b32573d64219f81e65e61881446f68dcf47a7f5b47444b" +
+      "fd35db25f5a3a8f261cbcd001a32960f84",
+  },
+
+  chainDifficulty: 1,
 }
 
 // `MultipleDepositsNoPreviousSweep` test data represents a sweep with following properties:
@@ -266,6 +417,8 @@ export const MultipleDepositsNoPreviousSweep: SweepTestData = {
       },
     },
   ],
+
+  previousSweep: NO_PREVIOUS_SWEEP,
 
   // https://live.blockcypher.com/btc-testnet/tx/2a5d5f472e376dc28964e1b597b1ca5ee5ac042101b5199a3ca8dae2deec3538
   sweepTx: {
