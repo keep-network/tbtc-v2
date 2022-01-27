@@ -711,27 +711,35 @@ describe("Bridge", () => {
 
                     // Amount can be checked by opening the sweep tx in a Bitcoin
                     // testnet explorer. In this case, the sum of inputs is
-                    // 900000 satoshi (from the single deposit) and there is a
-                    // fee of 2000 so the output value is 898000.
+                    // 1060000 satoshi (from the single deposit) and there is a
+                    // fee of 2000 so the output value is 1058000.
                     const expectedSweepHash = ethers.utils.solidityKeccak256(
                       ["bytes32", "uint64"],
-                      [data.sweepTx.hash, 898000]
+                      [data.sweepTx.hash, 1058000]
                     )
 
                     expect(sweepHash).to.be.equal(expectedSweepHash)
                   })
 
                   it("should update the depositors balances", async () => {
-                    // The sum of sweep tx inputs is 900000 satoshi. The output
-                    // value is 898000 so the fee is 2000. There is 5 deposits
+                    // The sum of sweep tx inputs is 1060000 satoshi. The output
+                    // value is 1058000 so the fee is 2000. There is 5 deposits
                     // so 400 satoshi fee should be incurred per deposit.
-                    // TODO: For now, all deposits are made by the same
-                    //       depositor so it takes the entire balance.
-                    //       Once MultipleDepositsNoPreviousSweep contains
-                    //       proper data, this part should be revisited.
                     expect(
                       await bank.balanceOf(data.deposits[0].reveal.depositor)
-                    ).to.be.equal(898000)
+                    ).to.be.equal(29600)
+                    expect(
+                      await bank.balanceOf(data.deposits[1].reveal.depositor)
+                    ).to.be.equal(9600)
+                    expect(
+                      await bank.balanceOf(data.deposits[2].reveal.depositor)
+                    ).to.be.equal(209600)
+                    expect(
+                      await bank.balanceOf(data.deposits[3].reveal.depositor)
+                    ).to.be.equal(369600)
+                    expect(
+                      await bank.balanceOf(data.deposits[4].reveal.depositor)
+                    ).to.be.equal(439600)
                   })
                 }
               )
