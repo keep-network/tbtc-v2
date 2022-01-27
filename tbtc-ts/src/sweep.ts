@@ -22,6 +22,9 @@ async function resolvePreviousSweepScript(
 ) {
   const previousOutpoint = transaction.inputs[inputIndex].prevout
   const previousOutput = transaction.view.getOutput(previousOutpoint)
+  if (!walletKeyRing.ownOutput(previousOutput)) {
+    throw new Error("UTXO does not belong to the wallet")
+  }
   transaction.scriptInput(inputIndex, previousOutput, walletKeyRing)
   transaction.signInput(inputIndex, previousOutput, walletKeyRing)
 }
@@ -48,14 +51,20 @@ async function resolveDepositScriptHash(
     throw new Error("Mismatch between amount in deposit data and deposit tx")
   }
 
-  const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await createDepositScript(depositData), "hex")
-  )
-
   const signingGroupPublicKey = await getActiveWalletPublicKey()
   if (!isCompressedPublicKey(signingGroupPublicKey)) {
     throw new Error("Signing group public key must be compressed")
   }
+
+  if (walletPrivateKey.getPublicKey("hex") != signingGroupPublicKey) {
+    throw new Error(
+      "Signing group public key does not correspond to wallet private key"
+    )
+  }
+
+  const depositScript = bcoin.Script.fromRaw(
+    Buffer.from(await createDepositScript(depositData), "hex")
+  )
 
   const signature: Buffer = transaction.signature(
     inputIndex,
@@ -97,14 +106,20 @@ async function resolveDepositWitnessScriptHash(
     throw new Error("Mismatch between amount in deposit data and deposit tx")
   }
 
-  const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await createDepositScript(depositData), "hex")
-  )
-
   const signingGroupPublicKey = await getActiveWalletPublicKey()
   if (!isCompressedPublicKey(signingGroupPublicKey)) {
     throw new Error("Signing group public key must be compressed")
   }
+
+  if (walletPrivateKey.getPublicKey("hex") != signingGroupPublicKey) {
+    throw new Error(
+      "Signing group public key does not correspond to wallet private key"
+    )
+  }
+
+  const depositScript = bcoin.Script.fromRaw(
+    Buffer.from(await createDepositScript(depositData), "hex")
+  )
 
   const signature: Buffer = transaction.signature(
     inputIndex,
@@ -238,6 +253,9 @@ export async function createSweepTransaction(
   depositData: DepositData[],
   previousUtxo?: UnspentTransactionOutput & RawTransaction
 ): Promise<RawTransaction> {
+  if (utxos.length < 1) {
+    throw new Error("There must be at least one deposit UTXO to sweep")
+  }
   const decodedWalletPrivateKey = wif.decode(walletPrivateKey)
 
   const walletKeyRing = new bcoin.KeyRing({
