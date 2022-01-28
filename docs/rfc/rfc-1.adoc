@@ -558,6 +558,10 @@ this fee to the rest of the operators. If the operators don't receive the fee
 from operator #71 before `btc_fee_broadcast_timeout`, has elapsed, the duty
 moves to #109, and then #34, and so on.
 
+*Note*: Each operator may only propose one BTC fee per sweep (that the other
+operators will listen to) or we enable them to spam the communications with fee
+proposals until they find one that passes validation.
+
 The operators then validate the fee they received against
 https://blockstream.info/api/fee-estimates to make sure that nothing fishy is
 going on - that the fee isn't too high or too low (TBD what that means). If it
