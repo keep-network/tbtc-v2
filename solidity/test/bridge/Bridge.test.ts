@@ -918,7 +918,6 @@ describe("Bridge", () => {
                 "when input vector consists only of revealed unswept " +
                   "deposits but there is no previous sweep despite it is expected",
                 () => {
-                  let tx: Promise<ContractTransaction>
                   const previousData: SweepTestData = SingleP2WSHDeposit
                   const data: SweepTestData = {
                     ...MultipleDepositsNoPreviousSweep,
@@ -931,16 +930,6 @@ describe("Bridge", () => {
                     // that the tested sweep will contain the previous sweep
                     // input.
                     await runSweepScenario(previousData)
-
-                    // Use sweep data which doesn't reference any previous
-                    // sweep data but manually set the reference to expected
-                    // previous sweep in order to pass previous sweep
-                    // validation in the contract.
-                    data.previousSweep = {
-                      txHash: previousData.sweepTx.hash,
-                      txOutputValue: 78000,
-                    }
-                    tx = runSweepScenario(data)
                   })
 
                   after(async () => {
@@ -948,7 +937,15 @@ describe("Bridge", () => {
                   })
 
                   it("should revert", async () => {
-                    await expect(tx).to.be.revertedWith(
+                    // Use sweep data which doesn't reference any previous
+                    // sweep data. Also, pass a correct previous sweep parameter
+                    // in order to pass previous sweep validation in the contract.
+                    data.previousSweep = {
+                      txHash: previousData.sweepTx.hash,
+                      txOutputValue: 78000,
+                    }
+
+                    await expect(runSweepScenario(data)).to.be.revertedWith(
                       "Previous sweep output not present in sweep transaction inputs"
                     )
                   })
@@ -958,23 +955,82 @@ describe("Bridge", () => {
               context(
                 "when input vector contains a revealed but already swept deposit",
                 () => {
-                  it("should revert", () => {
-                    // TODO: Implementation.
+                  const data: SweepTestData = MultipleDepositsNoPreviousSweep
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    // Make a proper sweep to turn the tested deposits into
+                    // the swept state.
+                    await runSweepScenario(data)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should revert", async () => {
+                    // Previous sweep parameter must point to the properly
+                    // made sweep to avoid revert at validation stage.
+                    const previousSweep = {
+                      txHash: data.sweepTx.hash,
+                      txOutputValue: 1058000,
+                    }
+
+                    // Try replaying the already done sweep.
+                    await expect(
+                      bridge.sweep(data.sweepTx, data.sweepProof, previousSweep)
+                    ).to.be.revertedWith("Deposit already swept")
                   })
                 }
               )
 
               context("when input vector contains an unknown input", () => {
-                it("should revert", () => {
-                  // TODO: Implementation.
+                const data: SweepTestData = MultipleDepositsWithPreviousSweep
+
+                before(async () => {
+                  await createSnapshot()
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  // Used test data contains an actual previous sweep input
+                  // but that previous sweep proof was not submitted on-chain
+                  // so it is unknown from contract's perspective.
+                  await expect(runSweepScenario(data)).to.be.revertedWith(
+                    "Unknown input type"
+                  )
                 })
               })
             })
           })
 
           context("when previous sweep data are invalid", () => {
-            it("should revert", () => {
-              // TODO: Implementation.
+            const previousData: SweepTestData = MultipleDepositsNoPreviousSweep
+            const data: SweepTestData = { ...MultipleDepositsWithPreviousSweep }
+
+            before(async () => {
+              await createSnapshot()
+
+              // Make the first sweep which is actually the predecessor
+              // of the sweep tested within this scenario.
+              await runSweepScenario(previousData)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              // Forge the previous sweep parameter to force validation crash.
+              data.previousSweep = NO_PREVIOUS_SWEEP
+
+              await expect(runSweepScenario(data)).to.be.revertedWith(
+                "Invalid previous sweep data"
+              )
             })
           })
         })
@@ -982,16 +1038,115 @@ describe("Bridge", () => {
         context(
           "when wallet public key hash length is other than 20 bytes",
           () => {
-            it("should revert", () => {
-              // TODO: Implementation.
+            before(async () => {
+              await createSnapshot()
+
+              // Necessary to pass the proof validation.
+              await relay.setCurrentEpochDifficulty(20870012)
+              await relay.setPrevEpochDifficulty(20870012)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              // To test this case, an arbitrary transaction with single
+              // P2WSH output is used. In that case, the wallet public key
+              // hash will have a wrong length of 32 bytes. Used transaction:
+              // https://live.blockcypher.com/btc-testnet/tx/af56cae479215c5e44a6a4db0eeb10a1abdd98020a6c01b9c26ea7b829aa2809
+              const sweepTx = {
+                version: "0x01000000",
+                inputVector:
+                  "0x01d32586237f6a832c3aa324bb83151e43e6cca2e4312d676f14" +
+                  "dbbd6b1f04f4680100000000ffffffff",
+                outputVector:
+                  "0x012ea3090000000000220020af802a76c10b6a646fff8d358241" +
+                  "c121c9be1c53628adb26bd6554631bfc7d8b",
+                locktime: "0x00000000",
+              }
+
+              const sweepProof = {
+                merkleProof:
+                  "0xf09955dcfb05b1c369eb9f58b6e583e49f47b9b8d6e63537dcac" +
+                  "10bf0cc5407d06e76ee2d75b5be5ec365a4c1272067b786d79a64d" +
+                  "c015eb40dedd3c813f4dee40c149ee21036bba713d14b3c22454ef" +
+                  "44c958293a015e9e186983f20c46d74a29ca5f705913e210229078" +
+                  "af993e89d90bb731dab3c8cf8907d683ab60faca1866036118737e" +
+                  "07aaa74d489e80f773b4d9ff2887a4855b805aaf1b5a7a1b0bf382" +
+                  "be8dab2401ec758a705b648724f93d14c3b72ce4fb3cd7d414e8a1" +
+                  "75ef173e",
+                txIndexInBlock: 20,
+                bitcoinHeaders:
+                  "0x0000e020fbeb3a876746438f1fd793add061b0b7af2f88a387ee" +
+                  "f5b38600000000000000933a0cec98a028727df04dafbbe691c8ad" +
+                  "442351db7321c9f7cc169aa9f64a9a7af6f361cbcd001a65073028",
+              }
+
+              await expect(
+                bridge.sweep(sweepTx, sweepProof, NO_PREVIOUS_SWEEP)
+              ).to.be.revertedWith(
+                "Wallet public key hash should have 20 bytes"
+              )
             })
           }
         )
       })
 
       context("when output count is other than one", () => {
-        it("should revert", () => {
-          // TODO: Implementation.
+        before(async () => {
+          await createSnapshot()
+
+          // Necessary to pass the proof validation.
+          await relay.setCurrentEpochDifficulty(1)
+          await relay.setPrevEpochDifficulty(1)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // To test this case, an arbitrary transaction with two
+          // outputs is used. Used transaction:
+          // https://live.blockcypher.com/btc-testnet/tx/af56cae479215c5e44a6a4db0eeb10a1abdd98020a6c01b9c26ea7b829aa2809
+          const sweepTx = {
+            version: "0x01000000",
+            inputVector:
+              "0x011d9b71144a3ddbb56dd099ee94e6dd8646d7d1eb37fe1195367e6f" +
+              "a844a388e7010000006a47304402206f8553c07bcdc0c3b90631188810" +
+              "3d623ca9096ca0b28b7d04650a029a01fcf9022064cda02e39e65ace71" +
+              "2029845cfcf58d1b59617d753c3fd3556f3551b609bbb00121039d61d6" +
+              "2dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa" +
+              "ffffffff",
+            outputVector:
+              "0x02204e00000000000017a9143ec459d0f3c29286ae5df5fcc421e278" +
+              "6024277e87a6c2140000000000160014e257eccafbc07c381642ce6e7e" +
+              "55120fb077fbed",
+            locktime: "0x00000000",
+          }
+
+          const sweepProof = {
+            merkleProof:
+              "0x161d24e53fc61db783f0271d45ef43b76e69fc975cf38decbba654ae" +
+              "3d09f5d1a060c3448c0c06ededa9749e559ffa65e2d5f3abac749b278e" +
+              "1189aa5b49a499b032963ea3fad337c4a9c8df4e748865503b5aea083f" +
+              "b32efe4dca057a741a020790cde5b50acc2cdbd231e43594036388f1e5" +
+              "d20ebba319465c56e85bf4e4b4f8b7276402b6c114000c59149494f852" +
+              "84507c253bbc505fec7ea50f370aa150",
+            txIndexInBlock: 8,
+            bitcoinHeaders:
+              "0x00000020fbee5222c9fc99c8071cee3fed39b4c0d39f41075469ce9f" +
+              "52000000000000003fd9c72d0611b373ce2b1996e0ebb8bc36dc12d431" +
+              "cae5b9371f343111f3d7519015da61ffff001dbddfb528000040208a9f" +
+              "e49585b4cd8a94daeeb926c6f1e96151c74ae1ae0b18c6a6d564000000" +
+              "0065c05d9ea40cace1b6b0ad0b8a9a18646096b54484fbdd96b1596560" +
+              "f6999194a815da612ac0001a2e4c6405",
+          }
+
+          await expect(
+            bridge.sweep(sweepTx, sweepProof, NO_PREVIOUS_SWEEP)
+          ).to.be.revertedWith("Sweep transaction must have a single output")
         })
       })
     })
