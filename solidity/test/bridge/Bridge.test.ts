@@ -1010,7 +1010,9 @@ describe("Bridge", () => {
 
           context("when previous sweep data are invalid", () => {
             const previousData: SweepTestData = MultipleDepositsNoPreviousSweep
-            const data: SweepTestData = { ...MultipleDepositsWithPreviousSweep }
+            const data: SweepTestData = JSON.parse(
+              JSON.stringify(MultipleDepositsWithPreviousSweep)
+            )
 
             before(async () => {
               await createSnapshot()
@@ -1153,26 +1155,110 @@ describe("Bridge", () => {
 
     context("when transaction proof is not valid", () => {
       context("when input vector is not valid", () => {
-        it("should revert", () => {
-          // TODO: Implementation.
+        const data: SweepTestData = JSON.parse(
+          JSON.stringify(SingleP2SHDeposit)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the input vector by setting a compactSize uint claiming
+          // there is no inputs at all.
+          data.sweepTx.inputVector =
+            "0x0079544f374199c68869ce7df906eeb0ee5c0506a512d903e3900d5752" +
+            "e3e080c500000000c847304402205eff3ae003a5903eb33f32737e3442b6" +
+            "516685a1addb19339c2d02d400cf67ce0220707435fc2a0577373c63c99d" +
+            "242c30bea5959ec180169978d43ece50618fe0ff012103989d253b17a6a0" +
+            "f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d94c5c14934b" +
+            "98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576" +
+            "a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776a914e2" +
+            "57eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac68ff" +
+            "ffffff"
+
+          await expect(runSweepScenario(data)).to.be.revertedWith(
+            "Invalid input vector provided"
+          )
         })
       })
 
       context("when output vector is not valid", () => {
-        it("should revert", () => {
-          // TODO: Implementation.
+        const data: SweepTestData = JSON.parse(
+          JSON.stringify(SingleP2SHDeposit)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the output vector by setting a compactSize uint claiming
+          // there is no outputs at all.
+          data.sweepTx.outputVector =
+            "0x0044480000000000001600148db50eb52063ea9d98b3eac91489a90f73" +
+            "8986f6"
+
+          await expect(runSweepScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
         })
       })
 
       context("when merkle proof is not valid", () => {
-        it("should revert", () => {
-          // TODO: Implementation.
+        const data: SweepTestData = JSON.parse(
+          JSON.stringify(SingleP2SHDeposit)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the merkle proof by changing tx index in block to an
+          // invalid one. The proper one is 36 so any other will do the trick.
+          data.sweepProof.txIndexInBlock = 30
+
+          await expect(runSweepScenario(data)).to.be.revertedWith(
+            "Tx merkle proof is not valid for provided header and tx hash"
+          )
         })
       })
 
       context("when proof difficulty is not current nor previous", () => {
-        it("should revert", () => {
-          // TODO: Implementation.
+        const data: SweepTestData = JSON.parse(
+          JSON.stringify(SingleP2SHDeposit)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // To pass the proof validation, the difficulty returned by the relay
+          // must be 22350181 for test data used in this scenario. Setting
+          // a different value will cause difficulty comparison failure.
+          data.chainDifficulty = 1
+
+          await expect(runSweepScenario(data)).to.be.revertedWith(
+            "Not at current or previous difficulty"
+          )
         })
       })
 
