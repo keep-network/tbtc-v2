@@ -120,6 +120,13 @@ inactivity, the group must decide if the cost of the transaction is worth it.
 That is, if some operator was marked as inactive a minute ago, it does not make
 sense to mark it as inactive and ineligible for rewards one more time.
 
+IMPORTANT: There should be no token incentives for calling this function by
+the group. The only incentive should be their goodwill to save some rewards by
+DAO. Moreover, in the case of off-chain heartbeat failure, clients are trying to
+avoid slashing in the future. Marking operators as ineligible for rewards should
+not increase the rewards of other group members! Rewards saved on inactive
+operators marked as ineligible should return back to the DAO. 
+
 ==== Maintainer incentives
 
 For the first release, the role of maintainers will belong to the willing
