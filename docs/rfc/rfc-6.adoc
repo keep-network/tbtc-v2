@@ -1,0 +1,212 @@
+:toc: macro
+
+= RFC 6: Transaction incentives
+
+:icons: font
+:numbered:
+toc::[]
+
+== Goal
+The goal of this proposal is to reduce on-chain cost and complexity related to
+transaction submitter responsibilities, reduce the cost of operating a client,
+and provide tools to punish free-riders not operating their nodes properly.
+
+== Overview
+The scheme assumes that the majority of the group is honest and is interested in
+helping DAO to eliminate free-riders from the network while getting nothing in
+return. The group will vote to mark someone as ineligible for rewards if they
+consistently do not participate in off-chain heartbeats or if they skip their
+responsibilities for submitting on-chain transactions. 
+
+A real-world analogy would be team members discussing one of them is not
+contributing to the work at all so the entire team must do the work of that
+free-rider and have the team report this fact to the manager.
+
+All the responsibilities that do not have to be done by a group will be
+delegated to opt-in maintainers and third parties to reduce the cost of
+operating a node.
+
+== In depth
+
+=== Transaction types
+
+On-chain transactions can be divided into three types:
+
+- Transactions that can only be submitted by group members, given that only the
+  group members have the knowledge about input parameters. For example, submit
+  DKG result transaction for ECDSA wallet or submit relay entry transaction for
+  the random beacon.
+  
+- Transactions that can be submitted by anyone, usually submitted often and
+  mostly belonging to a happy path. Never leading to slashing For example,
+  submit sweep proof or submit redemption proof transaction for tBTC v2. 
+
+- Transactions that can be submitted by anyone, submitted rarely or never, and
+  usually leading to slashing. For example, challenge DKG result for ECDSA
+  wallet or report fraud proof transaction for tBTC v2.
+
+For the first group of transactions, we will not enforce the order on-chain and
+we will expect off-chain clients to respect the submission order. If some client
+skipped their round, other clients can vote to mark the inactive client as
+ineligible for rewards. To disincentivize frontrunning, we will only reimburse
+ETH costs, and no additional reward will be allocated.
+
+The responsibility of executing the second group of transactions should be
+delegated to willing maintainers. Given that the preparation of the input data
+in some cases is complicated and may require access to the Bitcoin chain, the
+maintainer functionality should be built-in into the client and activated in the
+configuration. Eventually, we may decide to use networks like Gelato but given
+that the ECSDSA wallet could be slashed on the redemption proof timeout, such
+functionality should also be implemented in the client so that the client can
+protect the stake if required. Last but not least, Gelato Polywrap resolver
+allowing assembling more complicated transaction inputs is not yet available and
+we do not want to block the release on this functionality. Maintainers will be
+reimbursed in ETH and may receive an additional reward for performing their
+duties.
+
+Transactions belonging to the third type can be executed by anyone and all
+off-chain clients will be responsible for submitting them. No ETH will be
+reimbursed and T coming from slashed stakes will be the only optional reward.
+No submission order will be maintained and all clients will try to report
+misbehavior at the same time. It is more important to keep the network healthy
+and free from misbehavior than to optimize costs.
+
+==== Group member incentives
+
+===== Submit + approve DKG result
+
+No submission order will be enforced on-chain and the transaction submitter will
+have ETH cost reimbursed. To disincentivize front-running, no additional reward
+will be released by this transaction. Off-chain clients should have a handshake
+agreement to follow the submission order based on
+`hash(new_group_pubkey) % group_size`.
+
+The first member responsible for submitting the DKG result is a member with
+index `hash(new_group_pubkey) % group_size`. If that member did not submit the
+result,  `(hash(new_group_pubkey) % group_size) + 1` becomes responsible next.
+Group members who were inactive and skipped their responsibility might be
+reported by the wallet as ones who failed the heartbeat and marked as ineligible
+for rewards.
+
+For example, if `hash(new_group_pubkey) % group_size = 62`, `group_size = 64`,
+and member `9` submitted DKG result, members with indexes
+`{62, 63, 64, 1, 2, 3, 4, 5, 6, 7, 8}` might be marked as ineligible for
+rewards. Inactive group members are determined once the result is submitted and
+accepted by the chain.
+
+Given that the DKG result submission actually consists of two transactions:
+submit the result and approve the result after the challenge period, the DKG
+result submitter to be considered as active must submit both transactions. That
+is, if the operator submitted the first transaction but did not submit the
+second one, they are considered inactive.
+
+===== Report heartbeat failed
+
+A wallet should periodically execute off-chain heartbeats and report inactive
+operators responsible for potential heartbeat failures. The majority of wallet
+members need to come together and sign a message with their private ECDSA
+operator keys. The message should contain the list of inactive operators and
+nonce ensuring uniqueness. The same mechanism can be used for reporting
+operators who failed their duty of submitting DKG result. 
+
+No submission order will be enforced on-chain for the heartbeat failure
+transaction and the transaction submitter will have ETH cost reimbursed. To
+disincentivize front-running, no additional reward will be released by this
+transaction. Off-chain clients should have a handshake agreement to follow the
+submission order: the operator submitting this TX is the first active one.
+
+When reporting heartbeat failure as a result of DKG result submission
+inactivity, the group must decide if the cost of the transaction is worth it.
+That is, if some operator was marked as inactive a minute ago, it does not make
+sense to mark it as inactive and ineligible for rewards one more time.
+
+==== Maintainer incentives
+
+For the first release, the role of maintainers will belong to the willing
+off-chain clients approved by DAO or council. Every client will have maintainer
+functionality built-in and enabled in the configuration file.
+
+We will implement a simple reimbursement contract for maintainers proxying calls
+to Bridge functions. Only approved maintainers should be able to use the proxy
+contract. Maintainers are expected to follow round-robin distribution of work
+but the order is not going to be enforced on-chain. DAO/council will have the
+functionality of removing maintainers not performing their duties.
+DAO/council may decide to distribute additional T rewards for maintainers. This
+functionality should be supported by the Maintainer contract.
+
+Eventually, the role of maintainers can be delegated to another network such as
+Gelato.
+
+
+```
+┌────────────────────────────────────────┐   calls  ┌─────────────────────────┐
+|               Maintainer               |─────────▶|          Bridge         |
+└────────────────────────────────────────┘          └─────────────────────────┘  
+| submitSweeProof() onlyMaintainer       |          | submitSweepProof()      | 
+| submitRedemptionProof() onlyMaintainer |          | submitRedemptionProof() | 
+| startDkg() onlyMaintainer              |          | startDkg()              | 
+└────────────────────────────────────────┘          └─────────────────────────┘
+```
+
+===== Submit sweep proof
+
+ETH reimbursed, no additional reward to disincentivize front-running between
+maintainers.
+
+===== Submit redemption proof
+
+ETH reimbursed, no additional reward to disincentivize front-running between
+maintainers.
+
+===== Start DKG
+
+ETH reimbursed, no additional reward to disincentivize front-running between
+maintainers. 
+
+===== Report DKG timeout
+
+ETH reimbursed, no additional reward to disincentivize front-running between
+maintainers.
+
+==== Third party incentives
+
+
+All transactions in this section must be supported by the off-chain client. We
+are not concerned about front-running. Front-running may happen and it is even
+desirable to some extent because these transactions protect the health of the
+network.
+
+===== Challenge DKG result
+
+No ETH cost reimbursed. Called exceptionally, ideally never. Incentivized by T
+from slashed stakes.
+
+===== Notify redemption timeout
+
+
+No ETH cost reimbursed. Called exceptionally, ideally never. Incentivized by T
+from slashed stakes.
+
+===== Report fraud
+
+No ETH cost reimbursed. Called exceptionally, ideally never. Incentivized by T
+from slashed stakes.
+
+=== ETH pool
+
+DAO needs to fund ETH pool that will be used for reimbursements. The pool should
+probably be a separate contract. The pool needs to protect against malicious
+miner-operators by placing a governable gas price ceiling. It should be possible
+to withdraw unspent ETH in case we decide to replace Maintainer incentives with
+something else (for example Gelato) or decide to add more functions there
+(for example, the SPV relay updates). 
+
+== Open questions
+
+- Should the DAO/council approve the wallet's decisions to mark some members as
+  ineligible for rewards? Are fine with the majority? Or maybe there should be
+  an option for the council to withdraw the wallet's decision?
+
+- Should the calls to DKG and heartbeat functions be proxied by a separate
+  contract with reimbursement logic, similar to `Maintainer` contract?
+
