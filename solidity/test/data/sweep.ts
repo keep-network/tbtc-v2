@@ -228,6 +228,7 @@ export const SingleP2WSHDeposit: SweepTestData = {
 export const SinglePreviousSweep: SweepTestData = {
   deposits: [],
 
+  // https://live.blockcypher.com/btc-testnet/tx/f5b9ad4e8cd5317925319ebc64dc923092bef3b56429c6b1bc2261bbdc73f351
   previousSweep: {
     txHash:
       "0x51f373dcbb6122bcb1c62964b5f3be923092dc64bc9e31257931d58c4eadb9f5",
@@ -476,4 +477,213 @@ export const MultipleDepositsNoPreviousSweep: SweepTestData = {
   },
 
   chainDifficulty: 20870012,
+}
+
+// `MultipleDepositsWithPreviousSweep` test data represents a sweep with following properties:
+// - 3 P2WSH, 2 P2SH, and 1 P2WPKH previous sweep inputs
+// - 1 P2WPKH sweep output
+// - One prior sweep made by this wallet
+// - 6+ on-chain confirmations of the sweep transaction
+export const MultipleDepositsWithPreviousSweep: SweepTestData = {
+  deposits: [
+    {
+      // https://live.blockcypher.com/btc-testnet/tx/85eb466ed605916ea764860ceda68fa05e7448cc772558c866a409366b997a85
+      fundingTx: {
+        hash: "0x857a996b3609a466c8582577cc48745ea08fa6ed0c8664a76e9105d66e46eb85",
+        version: "0x01000000",
+        inputVector:
+          "0x01fd1f9639ef881216e49ff8b15cb042172c942acbc12d6bb4491c2bb16d3b" +
+          "d42e0100000000ffffffff",
+        outputVector:
+          "0x02605b0300000000002200207b154340a9b625709bce586ccc4e46c716f5cd" +
+          "42c505f5f50aa7f6b0def024a698731700000000001600147ac2d9378a1c47e5" +
+          "89dfb8095ca95ed2140d2726",
+        locktime: "0x00000000",
+      },
+      reveal: {
+        fundingOutputIndex: 0,
+        depositor: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
+        blindingFactor: "0x1d5c0a1bc9528ea2",
+        // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+        walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+        // HASH160 of 0261b7f5be5c0549d722104f457485a50dd68c18bbd06ac8ed0878513653330af5.
+        refundPubKeyHash: "0x64c2b58db5259ecc3c169b76c6bd83f3a9421090",
+        refundLocktime: "0xe8fb1862",
+        vault: "0x0000000000000000000000000000000000000000",
+      },
+    },
+    {
+      // https://live.blockcypher.com/btc-testnet/tx/468e0be44cf5b2a529f22c49d8006fb29a147a4f1b6a54326a8c181208560ec6
+      fundingTx: {
+        hash: "0xc60e560812188c6a32546a1b4f7a149ab26f00d8492cf229a5b2f54ce40b8e46",
+        version: "0x01000000",
+        inputVector:
+          "0x01857a996b3609a466c8582577cc48745ea08fa6ed0c8664a76e9105d66e46" +
+          "eb850100000000ffffffff",
+        outputVector:
+          "0x02c0980b000000000017a91413ce939c44d9bac56d636fd4215a66874c9aea" +
+          "688756d50b00000000001600147ac2d9378a1c47e589dfb8095ca95ed2140d27" +
+          "26",
+        locktime: "0x00000000",
+      },
+      reveal: {
+        fundingOutputIndex: 0,
+        depositor: "0x2219eAC966FbC0454C4A2e122717e4429Dd7608F",
+        blindingFactor: "0x251c7239917eae29",
+        // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+        walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+        // HASH160 of 03ecc3fbee48644fb072424d42b109062f0945c2c68cbbeb1852e2ea97277a69ef.
+        refundPubKeyHash: "0x032a5188c34f2fb56a4228b2bb2b7165a797eb95",
+        refundLocktime: "0x88c61762",
+        vault: "0x0000000000000000000000000000000000000000",
+      },
+    },
+    {
+      // https://live.blockcypher.com/btc-testnet/tx/71b13c7b1e2968f869c832ccdb72bbdccd35d64b78826d251d350d79a7a32f30
+      fundingTx: {
+        hash:
+          "0x302fa3a7790d351d256d82784bd635cddcbb72dbcc32c869f868291e7b" +
+          "3cb171",
+        version: "0x01000000",
+        inputVector:
+          "0x0144178e5748d91b995a7f12da068efedb7b404e36be6002a4889b64d11f02" +
+          "ee1b0100000000ffffffff",
+        outputVector:
+          "0x02e0570e00000000002200205bbfa44ea2e4eea99808c4f3beee7fd31f2885" +
+          "0c0bff9592319d6306d0a67f330b0b0900000000001600147ac2d9378a1c47e5" +
+          "89dfb8095ca95ed2140d2726",
+        locktime: "0x00000000",
+      },
+      reveal: {
+        fundingOutputIndex: 0,
+        depositor: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
+        blindingFactor: "0x8bdbb150483eb2f2",
+        // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+        walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+        // HASH160 of 0257acc5233e598c4ea3b2216980833bd46e946a7fbde7a0933b0a122ff0af3789.
+        refundPubKeyHash: "0x73f3252d5e6b9f501dfafbfbca40836cc1f505f7",
+        refundLocktime: "0xb80f1762",
+        vault: "0x0000000000000000000000000000000000000000",
+      },
+    },
+    {
+      // https://live.blockcypher.com/btc-testnet/tx/68f4041f6bbddb146f672d31e4a2cce6431e1583bb24a33a2c836a7f238625d3
+      fundingTx: {
+        hash: "0xd32586237f6a832c3aa324bb83151e43e6cca2e4312d676f14dbbd6b1f04f468",
+        version: "0x01000000",
+        inputVector:
+          "0x0140caae8f45d9e3cc703241d68404216ead95cb3b704408a75740f039f8eb" +
+          "80e10000000000ffffffff",
+        outputVector:
+          "0x02806d0d000000000017a914323d36279d8cbb9214c94708d1e5815b24bfb3" +
+          "3d871ea90900000000001600147ac2d9378a1c47e589dfb8095ca95ed2140d27" +
+          "26",
+        locktime: "0x00000000",
+      },
+      reveal: {
+        fundingOutputIndex: 0,
+        depositor: "0x35D54bC29e0a5170c3Ac73E64c7fA539A867f0FE",
+        blindingFactor: "0xdfe75a3a6ed52db6",
+        // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+        walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+        // HASH160 of 02377a86cd3bd3f23b5b68bc4e0df6bc617cacc189f7ce16ddcaa52574127995c9.
+        refundPubKeyHash: "0x11d6c57c31ea78b48020dcbf42c34ccd60d92c8c",
+        refundLocktime: "0x28531862",
+        vault: "0x0000000000000000000000000000000000000000",
+      },
+    },
+    {
+      // https://live.blockcypher.com/btc-testnet/tx/8c535793b98f1dbd638773e7ee07ebbbc5f86a55b5ae31ba91f63a67682e95aa
+      fundingTx: {
+        hash: "0xaa952e68673af691ba31aeb5556af8c5bbeb07eee7738763bd1d8fb99357538c",
+        version: "0x01000000",
+        inputVector:
+          "0x01424a065ba76a455aa14d6dbed205d8742a5b5a9ff05fcd314a4eadea878a" +
+          "31720000000000ffffffff",
+        outputVector:
+          "0x02d06c040000000000220020af802a76c10b6a646fff8d358241c121c9be1c" +
+          "53628adb26bd6554631bfc7d8b56a21200000000001600147ac2d9378a1c47e5" +
+          "89dfb8095ca95ed2140d2726",
+        locktime: "0x00000000",
+      },
+      reveal: {
+        fundingOutputIndex: 0,
+        depositor: "0x462418b7495561bF2872A0786109A11f5d494aA2",
+        blindingFactor: "0xeca429ef209bf500",
+        // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+        walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+        // HASH160 of 02f61c699f77650c5296efe5b9d82844855a2d81ee0b4f70e558ae179425694755.
+        refundPubKeyHash: "0x46c5760250ab89b3d4b956cee325561fa7effff8",
+        refundLocktime: "0x6c4b1862",
+        vault: "0x0000000000000000000000000000000000000000",
+      },
+    },
+  ],
+
+  // https://live.blockcypher.com/btc-testnet/tx/2a5d5f472e376dc28964e1b597b1ca5ee5ac042101b5199a3ca8dae2deec3538
+  previousSweep: {
+    txHash:
+      "0x3835ecdee2daa83c9a19b5012104ace55ecab197b5e16489c26d372e475f5d2a",
+    txOutputValue: 1058000,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/4459881f4964ee08dd298a12dfc1f461bf35cca8a105974d8baf0955c830d836/
+  sweepTx: {
+    hash: "0x36d830c85509af8b4d9705a1a8cc35bf61f4c1df128a29dd08ee64491f885944",
+    version: "0x01000000",
+    inputVector:
+      "0x063835ecdee2daa83c9a19b5012104ace55ecab197b5e16489c26d372e475f5d2a" +
+      "0000000000ffffffff302fa3a7790d351d256d82784bd635cddcbb72dbcc32c869f8" +
+      "68291e7b3cb1710000000000ffffffffd32586237f6a832c3aa324bb83151e43e6cc" +
+      "a2e4312d676f14dbbd6b1f04f46800000000c9483045022100afeb157db4284ab218" +
+      "a3d27b6962aabe1905eb205c6c6216dfad7e76615c0bb702205ffd88f2d2dea7509b" +
+      "7ea3b01910002544a785efa93c7ecd1cabafbdec508d3f012103989d253b17a6a0f4" +
+      "1838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d94c5c1435d54bc29e0a51" +
+      "70c3ac73e64c7fa539a867f0fe7508dfe75a3a6ed52db67576a9148db50eb52063ea" +
+      "9d98b3eac91489a90f738986f68763ac6776a91411d6c57c31ea78b48020dcbf42c3" +
+      "4ccd60d92c8c880428531862b175ac68ffffffffc60e560812188c6a32546a1b4f7a" +
+      "149ab26f00d8492cf229a5b2f54ce40b8e4600000000c847304402200abefbc8d4d6" +
+      "bbe668c97ee305fde12f3c6c796ab6fbf84f00289ad5910ed8ac02200b81dcd12d45" +
+      "a83237569d53bcc629db559ce8c2cfd62d11fe5c58d501f785e0012103989d253b17" +
+      "a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d94c5c142219eac9" +
+      "66fbc0454c4a2e122717e4429dd7608f7508251c7239917eae297576a9148db50eb5" +
+      "2063ea9d98b3eac91489a90f738986f68763ac6776a914032a5188c34f2fb56a4228" +
+      "b2bb2b7165a797eb95880488c61762b175ac68ffffffffaa952e68673af691ba31ae" +
+      "b5556af8c5bbeb07eee7738763bd1d8fb99357538c0000000000ffffffff857a996b" +
+      "3609a466c8582577cc48745ea08fa6ed0c8664a76e9105d66e46eb850000000000ff" +
+      "ffffff",
+    outputVector:
+      "0x01693f3f00000000001600148db50eb52063ea9d98b3eac91489a90f738986f6",
+    locktime: "0x00000000",
+  },
+
+  sweepProof: {
+    merkleProof:
+      "0x891ee0728e1813119bd1819c07dd1873812fe0593ef595a4e72e5bc13a03d1c018" +
+      "7b8368d83a7ad1cf6e16c0f494c64741c8388535184b56033985e3a9975c5e79e1ec" +
+      "3d9c3dd21ed0906c956cc8dda3b16fea011052899016c768bb4aed5c37a11bb23f70" +
+      "5acd8778cd99bcdabb4ba94be1c38efa19cc943ba22a53c49647eb8a94b314a5f5f9" +
+      "e3a74dff2634e85576c7dfa39832ac5fe8867717b609be985c8e05f1d113d44d985d" +
+      "8e21f7375dc6b5707c84939f54df46a46e55e26f2548a37d29d3e3d9e99b6f3f48c5" +
+      "92742379c8f5df3d40c4619d56ced461ba1d606d59",
+    txIndexInBlock: 25,
+    bitcoinHeaders:
+      "0x000020204bc3de8c4177bb2e58338b4cbbcc3ec0ea09911f1742618f9600000000" +
+      "000000758fd5eb5a6c441f133f43419eeb1501d4f1f366edd196f6791aef9dbd91a9" +
+      "d7a7c3f361ffff001d6d7c8cc704e0ff2f31b46af53b2d960711c3e4deaac3f60377" +
+      "1d34d405a7087e2ad80800000000003e6e73d828c282e7a4488978a2bd9eebe9940c" +
+      "3336afca54f8537fa931ded5e065c8f361ffff001d79f96c5604e0ff2f0a5afa1eb9" +
+      "49db8eece69ffeb17fe8d9afcc0ed7be34cd3dc6700000000000000b602522c91666" +
+      "be715334699389470c0532f6de5acf4987ff67157a4c2b767119cdf361ffff001de5" +
+      "b27822d49820008d4bdd0a66c2232d5c95ed31cd0cfbd1716fa17de7d2c76fbd1f00" +
+      "0000000000a98c7af6d25b725937c33588522f79c74042dbe258bc46ba5e2332f778" +
+      "111c607ad1f361cbcd001af30153f1040000202b2d25b77060ec4de71a962685ec71" +
+      "4cf7703f1c5a569b748000000000000000104e1a758c12069336d732c268603b62d2" +
+      "1bcf79d47a1f558d5d5148f048350939d6f361ffff001d8feacc6e04e0ff3ff1f373" +
+      "1c82930f615eabe81e3200b6fee728972cadbb56d47342010000000000c676579dd3" +
+      "933e14fef681ed72f59e5047b1088d99fd18340290b11f1e760f13ebdaf361ffff00" +
+      "1db7fa1d4b",
+  },
+
+  chainDifficulty: 1,
 }

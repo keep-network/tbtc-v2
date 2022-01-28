@@ -620,6 +620,15 @@ contract Bridge is Ownable {
 
             if (deposit.revealedAt != 0) {
                 require(deposit.sweptAt == 0, "Deposit already swept");
+
+                if (processedDepositsCount == depositors.length) {
+                    // If this condition is true, that means a deposit input
+                    // took place of an expected previous sweep input.
+                    // In that case, we should ignore that input and let the
+                    // transaction fail at `require(previousSweepFlag)`.
+                    continue;
+                }
+
                 /* solhint-disable-next-line not-rely-on-time */
                 deposit.sweptAt = uint32(block.timestamp);
 
@@ -644,7 +653,7 @@ contract Bridge is Ownable {
 
         // Assert the previous sweep flag is true which means previous sweep
         // output was used as current sweep input or previous sweep has not
-        // occurred at all.
+        // occurred at all for given wallet.
         require(
             previousSweepFlag,
             "Previous sweep output not present in sweep transaction inputs"
