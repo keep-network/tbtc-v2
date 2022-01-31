@@ -459,7 +459,7 @@ contract Bridge is Ownable {
     ///         Reverts in case the validation or proof verification fail.
     /// @param sweepTx Bitcoin sweep transaction data.
     /// @param sweepProof Bitcoin sweep proof data.
-    /// @return Proven 32-byte sweep transaction hash.
+    /// @return sweepTxHash Proven 32-byte sweep transaction hash.
     function validateSweepTxProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof
