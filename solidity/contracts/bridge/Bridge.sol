@@ -121,10 +121,11 @@ contract Bridge is Ownable {
     ///         evaluate an SPV proof.
     uint256 public immutable txProofDifficultyFactor;
 
+    // TODO: Revisit whether it should be updatable or not.
     /// @notice Address of the Bank this Bridge belongs to.
     Bank public immutable bank;
 
-    /// TODO: Make it updatable
+    /// TODO: Make it updatable.
     /// @notice Handle to the Bitcoin relay.
     IRelay public immutable relay;
 
