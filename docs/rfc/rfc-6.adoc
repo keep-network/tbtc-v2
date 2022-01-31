@@ -33,13 +33,14 @@ operating a node.
 On-chain transactions can be divided into three types:
 
 - Transactions that can only be submitted by group members, given that only the
-  group members have the knowledge about input parameters. For example, submit
-  DKG result transaction for ECDSA wallet or submit relay entry transaction for
-  the random beacon.
+  group members have the knowledge about input parameters. For example,
+  submitting DKG result transaction for ECDSA wallet or submitting relay entry
+  transaction for the random beacon.
   
 - Transactions that can be submitted by anyone, usually submitted often and
-  mostly belonging to a happy path. Never leading to slashing For example,
-  submit sweep proof or submit redemption proof transaction for tBTC v2. 
+  mostly belonging to a happy path. This type of transaction should never lead
+  to slashing. For example, submit sweep proof or submit redemption proof
+  transaction for tBTC v2. 
 
 - Transactions that can be submitted by anyone, submitted rarely or never, and
   usually leading to slashing. For example, challenge DKG result for ECDSA
@@ -77,9 +78,11 @@ and free from misbehavior than to optimize costs.
 
 No submission order will be enforced on-chain and the transaction submitter will
 have ETH cost reimbursed. To disincentivize front-running, no additional reward
-will be released by this transaction. Off-chain clients should have a handshake
-agreement to follow the submission order based on
+will be released by this transaction. Off-chain clients should have a
+gentleman's agreement to follow the submission order based on
 `hash(new_group_pubkey) % group_size`.
+The submission order will be unenforceable but everyone will defaultly
+configured to follow the order anyway.
 
 The first member responsible for submitting the DKG result is a member with
 index `hash(new_group_pubkey) % group_size`. If that member did not submit the
@@ -94,11 +97,11 @@ and member `9` submitted DKG result, members with indexes
 rewards. Inactive group members are determined once the result is submitted and
 accepted by the chain.
 
-Given that the DKG result submission actually consists of two transactions:
-submit the result and approve the result after the challenge period, the DKG
-result submitter to be considered as active must submit both transactions. That
-is, if the operator submitted the first transaction but did not submit the
-second one, they are considered inactive.
+Given that the DKG result submission process consists of two transactions:
+submitting the result and approving the result after the challenge period ends,
+in order for the operator to be considered active, they must submit both
+transactions. That is, if the operator submitted the first transaction but did
+not submit the second one, they are considered inactive.
 
 ===== Report heartbeat failed
 
