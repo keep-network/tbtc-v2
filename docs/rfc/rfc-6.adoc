@@ -34,17 +34,18 @@ On-chain transactions can be divided into three types:
 
 - Transactions that can only be submitted by group members, given that only the
   group members have the knowledge about input parameters. For example,
-  submitting DKG result transaction for ECDSA wallet or submitting relay entry
-  transaction for the random beacon.
+  <<submit-dkg-result,submitting DKG result transaction>> for ECDSA wallet or
+  submitting relay entry transaction for the random beacon.
   
 - Transactions that can be submitted by anyone, usually submitted often and
   mostly belonging to a happy path. This type of transaction should never lead
-  to slashing. For example, submit sweep proof or submit redemption proof
-  transaction for tBTC v2. 
+  to slashing. For example, <<maintainer-incentives,submit sweep proof or submit
+  redemption proof transaction>> for tBTC v2. 
 
 - Transactions that can be submitted by anyone, submitted rarely or never, and
-  usually leading to slashing. For example, challenge DKG result for ECDSA
-  wallet or report fraud proof transaction for tBTC v2.
+  usually leading to slashing. For example, <<challenge-dkg-result, challenge
+  DKG result>> for ECDSA wallet or <<report-fraud, report fraud>> transaction for
+  tBTC v2.
 
 For the first group of transactions, we will not enforce the order on-chain and
 we will expect off-chain clients to respect the submission order. If some client
@@ -74,6 +75,7 @@ and free from misbehavior than to optimize costs.
 
 ==== Group member incentives
 
+[[submit-dkg-result]]
 ===== Submit + approve DKG result
 
 No submission order will be enforced on-chain and the transaction submitter will
@@ -131,6 +133,7 @@ operators marked as ineligible should return back to the DAO. The DAO should do
 something else with those extra tokens other than increase rewards. We do not
 want to incentivize voting for your own salary.
 
+[[maintainer-incentives]]
 ==== Maintainer incentives
 
 For the first release, the role of maintainers will belong to the willing
@@ -187,6 +190,7 @@ are not concerned about front-running. Front-running may happen and it is even
 desirable to some extent because these transactions protect the health of the
 network.
 
+[[challenge-dkg-result]]
 ===== Challenge DKG result
 
 No ETH cost reimbursed. Called exceptionally, ideally never. Incentivized by T
@@ -198,6 +202,7 @@ from slashed stakes.
 No ETH cost reimbursed. Called exceptionally, ideally never. Incentivized by T
 from slashed stakes.
 
+[[report-fraud]]
 ===== Report fraud
 
 No ETH cost reimbursed. Called exceptionally, ideally never. Incentivized by T
