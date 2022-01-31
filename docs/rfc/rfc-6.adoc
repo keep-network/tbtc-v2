@@ -99,9 +99,8 @@ accepted by the chain.
 
 Given that the DKG result submission process consists of two transactions:
 submitting the result and approving the result after the challenge period ends,
-in order for the operator to be considered active, they must submit both
-transactions. That is, if the operator submitted the first transaction but did
-not submit the second one, they are considered inactive.
+in order for the operator to be considered active, they must submit **both**
+transactions.
 
 ===== Report heartbeat failed
 
