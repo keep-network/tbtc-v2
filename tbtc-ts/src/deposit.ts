@@ -24,7 +24,7 @@ export interface DepositData {
   ethereumAddress: string
 
   /**
-   * Deposit amount in sathoshis.
+   * Deposit amount in satoshis.
    */
   amount: BigNumber
 

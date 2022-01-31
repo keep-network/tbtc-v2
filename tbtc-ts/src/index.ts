@@ -98,10 +98,11 @@ export interface TBTC {
    * @param fee - the value that should be subtracted from the sum of the UTXOs
    *              values and used as the transaction fee.
    * @param walletPrivateKey - Bitcoin private key of the wallet.
-   * @param utxos - UTXOs from new deposit transactions.
+   * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
    * @param depositData - data on deposits. Each elements corresponds to UTXO. The
    *                      number of UTXOs and deposit data elements must equal.
-   * @param previousSweepUtxo - UTXO from the previous sweep transaction (optional).
+   * @param previousUtxo - UTXO from the previous sweep transaction (optional).
+   *                       Must be P2WPKH.
    * @returns Bitcoin sweep transaction in raw format.
    */
   createSweepTransaction(
@@ -122,11 +123,11 @@ export interface TBTC {
    * @param fee - the value that should be subtracted from the sum of the UTXOs
    *              values and used as the transaction fee.
    * @param walletPrivateKey - Bitcoin private key of the wallet.
-   * @param utxos - UTXOs to be combined into one output.
+   * @param utxos - P2(W)SH UTXOs to be combined into one output.
    * @param depositData - data on deposits. Each elements corresponds to UTXO.
    *                      The number of UTXOs and deposit data elements must
    *                      equal.
-   * @param previousSweepUtxo - UTXO from the previous sweep transaction
+   * @param previousSweepUtxo - P2WKH UTXO from the previous sweep transaction
    *                            (optional).
    * @returns Empty promise.
    */

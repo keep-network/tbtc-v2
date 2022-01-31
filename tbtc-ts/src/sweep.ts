@@ -84,6 +84,15 @@ export async function sweepDeposits(
         depositData
       )
 
+  // TODO: `broadcast` may fail silently (i.e. no error will be returned, even
+  // if the transaction is rejected by other nodes and does not enter the
+  // mempool, for example due to an UTXO being already spent).
+  // We could call `verify` on the transaction before broadcasting which would
+  // ensure it is correctly constructed, but this check alone does not ensure
+  // it's correct from the network point of view (for example the UTXOs must all
+  // be spendable).
+  // One solution could be checking the mempool after broadcast or simply do
+  // nothing and assume the caller used correct UTXOs.
   await bitcoinClient.broadcast(transaction)
 }
 
@@ -92,10 +101,11 @@ export async function sweepDeposits(
  * @param fee - the value that should be subtracted from the sum of the UTXOs
  *              values and used as the transaction fee.
  * @param walletPrivateKey - Bitcoin private key of the wallet.
- * @param utxos - UTXOs from new deposit transactions.
+ * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
  * @param depositData - data on deposits. Each elements corresponds to UTXO. The
  *                      number of UTXOs and deposit data elements must equal.
  * @param previousUtxo - UTXO from the previous sweep transaction (optional).
+ *                       Must be P2WPKH.
  * @returns Bitcoin sweep transaction in raw format.
  */
 export async function createSweepTransaction(
@@ -268,8 +278,8 @@ async function resolveDepositScriptHash(
 }
 
 /**
- * Creates and sets `scriptSig` for the transaction input at the given index by
- * combining signature, signing group public key and deposit script.
+ * Creates and sets witness script for the transaction input at the given index
+ * by combining signature, signing group public key and deposit script.
  * @param transaction - Mutable transaction containing the input to be signed.
  * @param inputIndex - Index that points to the input to be signed.
  * @param depositData - Array of deposit data.
