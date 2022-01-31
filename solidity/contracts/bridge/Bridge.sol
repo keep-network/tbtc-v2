@@ -150,6 +150,8 @@ contract Bridge is Ownable {
     ///         to the latest sweep computed as keccak256(txHash | txOutputValue).
     mapping(bytes20 => bytes32) public sweeps;
 
+    event VaultStatusUpdated(address indexed vault, bool isTrusted);
+
     event DepositRevealed(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
@@ -161,7 +163,7 @@ contract Bridge is Ownable {
         address vault
     );
 
-    event VaultStatusUpdated(address indexed vault, bool isTrusted);
+    event SweepPerformed(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
     constructor(
         address _bank,
@@ -430,9 +432,9 @@ contract Bridge is Ownable {
         // Update depositors balances in the Bank.
         bank.increaseBalances(depositors, depositedAmounts);
 
+        emit SweepPerformed(walletPubKeyHash, sweepTxHash);
+
         // TODO: Handle deposits having `vault` set.
-        // TODO: Emit an event.
-        // TODO: Check for all possible edge cases and whether existing checks cover them.
     }
 
     // TODO: Documentation.

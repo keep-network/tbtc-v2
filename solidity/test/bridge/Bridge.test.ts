@@ -511,6 +511,10 @@ describe("Bridge", () => {
                 () => {
                   let tx: ContractTransaction
                   const data: SweepTestData = SingleP2SHDeposit
+                  // Take wallet public key hash from first deposit. All
+                  // deposits in same sweep batch should have the same value
+                  // of that field.
+                  const { walletPubKeyHash } = data.deposits[0].reveal
 
                   before(async () => {
                     await createSnapshot()
@@ -539,10 +543,6 @@ describe("Bridge", () => {
                   })
 
                   it("should save sweep hash for given wallet", async () => {
-                    // Take wallet public key hash from first deposit. All deposits
-                    // in same sweep batch should have the same value of that field.
-                    const { walletPubKeyHash } = data.deposits[0].reveal
-
                     const sweepHash = await bridge.sweeps(walletPubKeyHash)
 
                     // Amount can be checked by opening the sweep tx in a Bitcoin
@@ -565,6 +565,12 @@ describe("Bridge", () => {
                       await bank.balanceOf(data.deposits[0].reveal.depositor)
                     ).to.be.equal(18500)
                   })
+
+                  it("should emit SweepPerformed event", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "SweepPerformed")
+                      .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                  })
                 }
               )
 
@@ -573,6 +579,10 @@ describe("Bridge", () => {
                 () => {
                   let tx: ContractTransaction
                   const data: SweepTestData = SingleP2WSHDeposit
+                  // Take wallet public key hash from first deposit. All
+                  // deposits in same sweep batch should have the same value
+                  // of that field.
+                  const { walletPubKeyHash } = data.deposits[0].reveal
 
                   before(async () => {
                     await createSnapshot()
@@ -601,10 +611,6 @@ describe("Bridge", () => {
                   })
 
                   it("should save sweep hash for given wallet", async () => {
-                    // Take wallet public key hash from first deposit. All deposits
-                    // in same sweep batch should have the same value of that field.
-                    const { walletPubKeyHash } = data.deposits[0].reveal
-
                     const sweepHash = await bridge.sweeps(walletPubKeyHash)
 
                     // Amount can be checked by opening the sweep tx in a Bitcoin
@@ -627,6 +633,12 @@ describe("Bridge", () => {
                       await bank.balanceOf(data.deposits[0].reveal.depositor)
                     ).to.be.equal(78000)
                   })
+
+                  it("should emit SweepPerformed event", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "SweepPerformed")
+                      .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                  })
                 }
               )
 
@@ -636,6 +648,11 @@ describe("Bridge", () => {
                   let tx: ContractTransaction
                   const previousData: SweepTestData = SingleP2SHDeposit
                   const data: SweepTestData = SinglePreviousSweep
+                  // There is no deposits we could use to extract the wallet
+                  // public key hash but we can also take it straight from
+                  // sweep tx output.
+                  const walletPubKeyHash =
+                    "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
 
                   before(async () => {
                     await createSnapshot()
@@ -652,12 +669,6 @@ describe("Bridge", () => {
                   })
 
                   it("should save sweep hash for given wallet", async () => {
-                    // There is no deposits we could use to extract the wallet
-                    // public key hash but we can also take it straight from
-                    // sweep tx output.
-                    const walletPubKeyHash =
-                      "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
-
                     const sweepHash = await bridge.sweeps(walletPubKeyHash)
 
                     // Amount can be checked by opening the sweep tx in a Bitcoin
@@ -674,6 +685,12 @@ describe("Bridge", () => {
 
                   it("should not increase any balances", async () => {
                     await expect(tx).to.not.emit(bank, "BalanceIncreased")
+                  })
+
+                  it("should emit SweepPerformed event", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "SweepPerformed")
+                      .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }
               )
@@ -752,6 +769,10 @@ describe("Bridge", () => {
                   const previousData: SweepTestData =
                     MultipleDepositsNoPreviousSweep
                   const data: SweepTestData = MultipleDepositsWithPreviousSweep
+                  // Take wallet public key hash from first deposit. All
+                  // deposits in same sweep batch should have the same value
+                  // of that field.
+                  const { walletPubKeyHash } = data.deposits[0].reveal
 
                   before(async () => {
                     await createSnapshot()
@@ -791,10 +812,6 @@ describe("Bridge", () => {
                   })
 
                   it("should save sweep hash for given wallet", async () => {
-                    // Take wallet public key hash from first deposit. All deposits
-                    // in same sweep batch should have the same value of that field.
-                    const { walletPubKeyHash } = data.deposits[0].reveal
-
                     const sweepHash = await bridge.sweeps(walletPubKeyHash)
 
                     // Amount can be checked by opening the sweep tx in a Bitcoin
@@ -829,6 +846,12 @@ describe("Bridge", () => {
                       await bank.balanceOf(data.deposits[4].reveal.depositor)
                     ).to.be.equal(289401)
                   })
+
+                  it("should emit SweepPerformed event", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "SweepPerformed")
+                      .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                  })
                 }
               )
 
@@ -838,6 +861,10 @@ describe("Bridge", () => {
                 () => {
                   let tx: ContractTransaction
                   const data: SweepTestData = MultipleDepositsNoPreviousSweep
+                  // Take wallet public key hash from first deposit. All
+                  // deposits in same sweep batch should have the same value
+                  // of that field.
+                  const { walletPubKeyHash } = data.deposits[0].reveal
 
                   before(async () => {
                     await createSnapshot()
@@ -873,10 +900,6 @@ describe("Bridge", () => {
                   })
 
                   it("should save sweep hash for given wallet", async () => {
-                    // Take wallet public key hash from first deposit. All deposits
-                    // in same sweep batch should have the same value of that field.
-                    const { walletPubKeyHash } = data.deposits[0].reveal
-
                     const sweepHash = await bridge.sweeps(walletPubKeyHash)
 
                     // Amount can be checked by opening the sweep tx in a Bitcoin
@@ -910,6 +933,12 @@ describe("Bridge", () => {
                     expect(
                       await bank.balanceOf(data.deposits[4].reveal.depositor)
                     ).to.be.equal(439600)
+                  })
+
+                  it("should emit SweepPerformed event", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "SweepPerformed")
+                      .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }
               )
