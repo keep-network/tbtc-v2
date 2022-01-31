@@ -447,10 +447,10 @@ contract Bridge is Ownable {
             abi.encodePacked(sweepTxHash, sweepTxOutputValue)
         );
 
+        emit SweepPerformed(walletPubKeyHash, sweepTxHash);
+
         // Update depositors balances in the Bank.
         bank.increaseBalances(depositors, depositedAmounts);
-
-        emit SweepPerformed(walletPubKeyHash, sweepTxHash);
 
         // TODO: Handle deposits having `vault` set.
     }
