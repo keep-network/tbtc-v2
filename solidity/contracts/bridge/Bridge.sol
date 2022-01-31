@@ -367,7 +367,25 @@ contract Bridge is Ownable {
     ///         It is possible to prove the given sweep only one time.
     /// @param sweepTx Bitcoin sweep transaction data.
     /// @param sweepProof Bitcoin sweep proof data.
-    /// TODO: List requirements in @dev section.
+    /// @param previousSweep Data of the previous sweep. If no prior sweep
+    ///        occurred for given wallet, this parameter is ignored.
+    /// @dev Requirements:
+    ///      - `sweepTx` components must match the expected structure. See
+    ///        `BitcoinTx.Info` docs for reference. Their values must exactly
+    ///        correspond to appropriate Bitcoin transaction fields to produce
+    ///        a provable transaction hash.
+    ///      - The `sweepTx` should represent a Bitcoin transaction with 1..n
+    ///        inputs referring to 0..n P2(W)SH revealed unswept deposits UTXOs
+    ///        and 0..1 previous sweep P2(W)PKH UTXO. That transaction must
+    ///        have only one P2(W)PKH output containing a 20-byte wallet public
+    ///        key hash.
+    ///      - `sweepProof` components must match the expected structure. See
+    ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
+    ///        field must contain a valid number of block headers, not less
+    ///        than the `txProofDifficultyFactor` contract constant.
+    ///      - `previousSweep` components must point to the previous sweep
+    ///        performed by the given wallet. If there is no previous sweep,
+    ///        this parameter is ignored.
     function sweep(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
@@ -437,7 +455,11 @@ contract Bridge is Ownable {
         // TODO: Handle deposits having `vault` set.
     }
 
-    // TODO: Documentation.
+    /// @notice Validates the SPV proof of the Bitcoin sweep transaction.
+    ///         Reverts in case the validation or proof verification fail.
+    /// @param sweepTx Bitcoin sweep transaction data.
+    /// @param sweepProof Bitcoin sweep proof data.
+    /// @return Proven 32-byte sweep transaction hash.
     function validateSweepTxProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof
@@ -469,7 +491,10 @@ contract Bridge is Ownable {
         return sweepTxHash;
     }
 
-    // TODO: Documentation.
+    /// @notice Checks the given Bitcoin transaction hash against the SPV proof.
+    ///         Reverts in case the check fails.
+    /// @param txHash 32-byte hash of the checked Bitcoin transaction.
+    /// @param proof Bitcoin proof data.
     function checkProofFromTxHash(
         bytes32 txHash,
         BitcoinTx.Proof calldata proof
@@ -486,7 +511,11 @@ contract Bridge is Ownable {
         evaluateProofDifficulty(proof.bitcoinHeaders);
     }
 
-    // TODO: Documentation.
+    /// @notice Evaluates the given Bitcoin proof difficulty against the actual
+    ///         Bitcoin chain difficulty provided by the relay oracle.
+    ///         Reverts in case the evaluation fails.
+    /// @param bitcoinHeaders Bitcoin headers chain being part of the SPV
+    ///        proof. Used to extract the observed proof difficulty.
     function evaluateProofDifficulty(bytes memory bitcoinHeaders)
         internal
         view
@@ -526,7 +555,16 @@ contract Bridge is Ownable {
         );
     }
 
-    // TODO: Documentation.
+    /// @notice Processes the Bitcoin sweep transaction output vector by
+    ///         extracting the single output and using it to gain additional
+    ///         information required for further processing (e.g. value and
+    ///         wallet public key hash).
+    /// @param sweepTxOutputVector Bitcoin sweep transaction output vector.
+    ///        This function assumes vector's structure is valid so it must be
+    ///        validated using e.g. `BTCUtils.validateVout` function before
+    ///        it is passed here.
+    /// @return walletPubKeyHash 20-byte wallet public key hash.
+    /// @return value 8-byte sweep transaction output value.
     function processSweepTxOutput(bytes memory sweepTxOutputVector)
         internal
         pure
@@ -562,7 +600,31 @@ contract Bridge is Ownable {
         return (walletPubKeyHash, value);
     }
 
-    // TODO: Documentation.
+    /// @notice Processes the Bitcoin sweep transaction input vector. It
+    ///         extracts each input and try to obtain associated deposit or
+    ///         previous sweep data, depending on the input type. Reverts
+    ///         if one of the input cannot be recognized as pointer to a
+    ///         revealed unswept deposit or expected previous sweep.
+    ///         This function also marks each processed deposit as swept.
+    /// @param sweepTxInputVector Bitcoin sweep transaction input vector.
+    ///        This function assumes vector's structure is valid so it must be
+    ///        validated using e.g. `BTCUtils.validateVin` function before
+    ///        it is passed here.
+    /// @param previousSweep Data of the previous sweep. If no prior sweep
+    ///        occurred for given wallet, this parameter's fields should be
+    ///        zeroed to bypass the previous sweep validation.
+    /// @return inputsValue Sum of all inputs values i.e. all deposits and
+    ///         previous sweep value, if present.
+    /// @return depositors Addresses of depositors who performed processed
+    ///         deposits. Ordered in the same order as deposits inputs in the
+    ///         input vector. Size of this array is either equal to the
+    ///         number of inputs (previous sweep doesn't exist) or less by one
+    ///         (previous sweep exists and is pointed by one of the inputs).
+    /// @return depositedAmounts Amounts of deposits corresponding to processed
+    ///         deposits. Ordered in the same order as deposits inputs in the
+    ///         input vector. Size of this array is either equal to the
+    ///         number of inputs (previous sweep doesn't exist) or less by one
+    ///         (previous sweep exists and is pointed by one of the inputs).
     function processSweepTxInputs(
         bytes memory sweepTxInputVector,
         SweepInfo memory previousSweep
@@ -664,7 +726,17 @@ contract Bridge is Ownable {
         return (inputsValue, depositors, depositedAmounts);
     }
 
-    // TODO: Documentation. Mention that `txInfo` data should be validated outside.
+    /// @notice Parses a Bitcoin transaction input starting at given index.
+    /// @param inputVector Bitcoin transaction input vector. This function
+    ///        assumes vector's structure is valid so it must be validated
+    ///        using e.g. `BTCUtils.validateVin` function before it is passed
+    ///        here.
+    /// @param inputStartingIndex Index the given input starts at.
+    /// @return inputTxHash 32-byte hash of the Bitcoin transaction which is
+    ///         pointed in the given input's outpoint.
+    /// @return inputTxIndex 4-byte index of the Bitcoin transaction output
+    ///         which is pointed in the given input's outpoint.
+    /// @return inputLength Byte length of the given input.
     function parseTxInputAt(
         bytes memory inputVector,
         uint256 inputStartingIndex

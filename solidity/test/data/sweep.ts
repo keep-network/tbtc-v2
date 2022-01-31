@@ -1,8 +1,16 @@
 import { BytesLike } from "@ethersproject/bytes"
 import { BigNumberish } from "ethers"
 
-// TODO: Documentation
+/**
+ * Represents a set of data used for given sweep scenario.
+ */
 export interface SweepTestData {
+  /**
+   * Deposits swept within given sweep. Those fields correspond to the ones
+   * which must be passed during deposit reveal. They are actually used to
+   * call `revealDeposit` function for each deposit before calling `sweep`
+   * during each test scenario.
+   */
   deposits: {
     fundingTx: {
       hash: BytesLike
@@ -22,11 +30,20 @@ export interface SweepTestData {
     }
   }[]
 
+  /**
+   * Previous sweep data which are used as `previousSweep` parameter during
+   * `sweep` function call. If no prior sweeps occured on given wallet,
+   * `NO_PREVIOUS_SWEEP` constant should be used as value.
+   */
   previousSweep: {
     txHash: BytesLike
     txOutputValue: BigNumberish
   }
 
+  /**
+   * Sweep transaction data passed as `sweepTx` parameter during `sweep`
+   * function call.
+   */
   sweepTx: {
     hash: BytesLike
     version: BytesLike
@@ -35,12 +52,21 @@ export interface SweepTestData {
     locktime: BytesLike
   }
 
+  /**
+   * Sweep proof data passed as `sweepProof` parameter during `sweep`
+   * function call.
+   */
   sweepProof: {
     merkleProof: BytesLike
     txIndexInBlock: BigNumberish
     bitcoinHeaders: BytesLike
   }
 
+  /**
+   * Chain difficulty which was in force at the moment of Bitcoin transaction
+   * execution. It is used to mock the difficulty provided by `Relay` contract
+   * with a correct value thus making proof validation possible.
+   */
   chainDifficulty: number
 }
 
@@ -49,11 +75,13 @@ export const NO_PREVIOUS_SWEEP = {
   txOutputValue: 0,
 }
 
-// `SingleP2SHDeposit` test data represents a sweep with following properties:
-// - 1 P2SH deposit input
-// - 1 P2WPKH sweep output
-// - No prior sweeps made by this wallet
-// - 6+ on-chain confirmations of the sweep transaction
+/**
+ * `SingleP2SHDeposit` test data represents a sweep with following properties:
+ * - 1 P2SH deposit input
+ * - 1 P2WPKH sweep output
+ * - No prior sweeps made by this wallet
+ * - 6+ on-chain confirmations of the sweep transaction
+ */
 export const SingleP2SHDeposit: SweepTestData = {
   deposits: [
     {
@@ -140,11 +168,13 @@ export const SingleP2SHDeposit: SweepTestData = {
   chainDifficulty: 22350181,
 }
 
-// `SingleP2WSHDeposit` test data represents a sweep with following properties:
-// - 1 P2WSH deposit input
-// - 1 P2WPKH sweep output
-// - No prior sweeps made by this wallet
-// - 6+ on-chain confirmations of the sweep transaction
+/**
+ * `SingleP2WSHDeposit` test data represents a sweep with following properties:
+ * - 1 P2WSH deposit input
+ * - 1 P2WPKH sweep output
+ * - No prior sweeps made by this wallet
+ * - 6+ on-chain confirmations of the sweep transaction
+ */
 export const SingleP2WSHDeposit: SweepTestData = {
   deposits: [
     {
@@ -220,11 +250,13 @@ export const SingleP2WSHDeposit: SweepTestData = {
   chainDifficulty: 20870012,
 }
 
-// `SinglePreviousSweep` test data represents a sweep with following properties:
-// - 1 P2WPKH previous sweep input
-// - 1 P2WPKH sweep output
-// - One prior sweeps made by this wallet
-// - 6+ on-chain confirmations of the sweep transaction
+/**
+ * `SinglePreviousSweep` test data represents a sweep with following properties:
+ * - 1 P2WPKH previous sweep input
+ * - 1 P2WPKH sweep output
+ * - One prior sweeps made by this wallet
+ * - 6+ on-chain confirmations of the sweep transaction
+ */
 export const SinglePreviousSweep: SweepTestData = {
   deposits: [],
 
@@ -280,11 +312,13 @@ export const SinglePreviousSweep: SweepTestData = {
   chainDifficulty: 1,
 }
 
-// `MultipleDepositsNoPreviousSweep` test data represents a sweep with following properties:
-// - 3 P2WSH and 2 P2SH deposit inputs
-// - 1 P2WPKH sweep output
-// - No prior sweeps made by this wallet
-// - 6+ on-chain confirmations of the sweep transaction
+/**
+ * `MultipleDepositsNoPreviousSweep` test data represents a sweep with following properties:
+ * - 3 P2WSH and 2 P2SH deposit inputs
+ * - 1 P2WPKH sweep output
+ * - No prior sweeps made by this wallet
+ * - 6+ on-chain confirmations of the sweep transaction
+ */
 export const MultipleDepositsNoPreviousSweep: SweepTestData = {
   deposits: [
     {
@@ -479,11 +513,13 @@ export const MultipleDepositsNoPreviousSweep: SweepTestData = {
   chainDifficulty: 20870012,
 }
 
-// `MultipleDepositsWithPreviousSweep` test data represents a sweep with following properties:
-// - 3 P2WSH, 2 P2SH, and 1 P2WPKH previous sweep inputs
-// - 1 P2WPKH sweep output
-// - One prior sweep made by this wallet
-// - 6+ on-chain confirmations of the sweep transaction
+/**
+ * `MultipleDepositsWithPreviousSweep` test data represents a sweep with following properties:
+ * - 3 P2WSH, 2 P2SH, and 1 P2WPKH previous sweep inputs
+ * - 1 P2WPKH sweep output
+ * - One prior sweep made by this wallet
+ * - 6+ on-chain confirmations of the sweep transaction
+ */
 export const MultipleDepositsWithPreviousSweep: SweepTestData = {
   deposits: [
     {
