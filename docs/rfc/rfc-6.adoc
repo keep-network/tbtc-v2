@@ -128,7 +128,9 @@ the group. The only incentive should be their goodwill to save some rewards by
 DAO. Moreover, in the case of off-chain heartbeat failure, clients are trying to
 avoid slashing in the future. Marking operators as ineligible for rewards should
 not increase the rewards of other group members! Rewards saved on inactive
-operators marked as ineligible should return back to the DAO. 
+operators marked as ineligible should return back to the DAO. The DAO should do
+something else with those extra tokens other than increase rewards. We do not
+want to incentivize voting for your own salary.
 
 ==== Maintainer incentives
 
