@@ -1263,28 +1263,139 @@ describe("Bridge", () => {
       })
 
       context("when headers chain length is not valid", () => {
-        it("should revert", () => {
-          // TODO: Implementation.
+        const data: SweepTestData = JSON.parse(
+          JSON.stringify(SingleP2SHDeposit)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the bitcoin headers length in the sweep proof. The proper
+          // value is length divisible by 80 so any length violating this
+          // rule will cause failure. In this case, we just remove the last
+          // byte from proper headers chain.
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )
+
+          await expect(runSweepScenario(data)).to.be.revertedWith(
+            "Invalid length of the headers chain"
+          )
         })
       })
 
       context("when headers chain is not valid", () => {
-        it("should revert", () => {
-          // TODO: Implementation.
+        const data: SweepTestData = JSON.parse(
+          JSON.stringify(SingleP2SHDeposit)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Bitcoin headers must form a chain to pass the proof validation.
+          // That means the `previous block hash` encoded in given block
+          // header must match the actual previous header's hash. To test
+          // that scenario, we corrupt the `previous block hash` of the
+          // second header. Each header is 80 bytes length. First 4 bytes
+          // of each header is `version` and 32 subsequent bytes is
+          // `previous block hash`. Changing byte 85 of the whole chain will
+          // do the work.
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            170
+          )}ff${properHeaders.substring(172)}`
+
+          await expect(runSweepScenario(data)).to.be.revertedWith(
+            "Invalid headers chain"
+          )
         })
       })
 
       context("when the work in the header is insufficient", () => {
-        it("should revert", () => {
-          // TODO: Implementation.
+        const data: SweepTestData = JSON.parse(
+          JSON.stringify(SingleP2SHDeposit)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Each header encodes a `diffuculty target` field in bytes 72-76.
+          // The given header's hash (interpreted as uint) must be bigger than
+          // the `difficulty target`. To test this scenario, we change the
+          // last byte of the last header in such a way their hash becomes
+          // lower than their `difficulty target`.
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )}ff`
+
+          await expect(runSweepScenario(data)).to.be.revertedWith(
+            "Insufficient work in a header"
+          )
         })
       })
 
       context(
         "when accumulated difficulty in headers chain is insufficient",
         () => {
-          it("should revert", () => {
-            // TODO: Implementation.
+          let otherBridge: Bridge
+          const data: SweepTestData = JSON.parse(
+            JSON.stringify(SingleP2SHDeposit)
+          )
+
+          before(async () => {
+            await createSnapshot()
+
+            // Necessary to pass the first part of proof validation.
+            await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+            await relay.setPrevEpochDifficulty(data.chainDifficulty)
+
+            // Deploy another bridge which has higher `txProofDifficultyFactor`
+            // than the original bridge. That means it will need 12 confirmations
+            // to deem transaction proof validity. This scenario uses test
+            // data which has only 6 confirmations. That should force the
+            // failure we expect within this scenario.
+            const Bridge = await ethers.getContractFactory("Bridge")
+            otherBridge = await Bridge.deploy(bank.address, relay.address, 12)
+            await otherBridge.deployed()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              otherBridge.sweep(
+                data.sweepTx,
+                data.sweepProof,
+                data.previousSweep
+              )
+            ).to.be.revertedWith(
+              "Insufficient accumulated difficulty in header chain"
+            )
           })
         }
       )
