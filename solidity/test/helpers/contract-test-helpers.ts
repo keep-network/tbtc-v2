@@ -1,4 +1,4 @@
-import { BigNumber } from "@ethersproject/units/node_modules/@ethersproject/bignumber"
+import { BigNumber } from "@ethersproject/bignumber"
 import { ethers } from "hardhat"
 
 export function to1ePrecision(n: number, precision: number): BigNumber {
