@@ -114,6 +114,21 @@ contract Bank is Ownable {
         _approveBalance(msg.sender, spender, amount);
     }
 
+    /// @notice Sets `amount` as the allowance of a smart contract `vault` over
+    ///         the caller's balance and calls the vault via
+    ///         `receiveBalanceApproval`.
+    /// @dev If the `amount` is set to `type(uint256).max` then the logic in
+    ///     `receiveBalanceApproval` or later call to `transferBalanceFrom` by
+    ///      the vault will not reduce an allowance. Beware that changing an
+    ///      allowance with this function brings the risk that vault may use
+    ///      both the old and the new allowance by unfortunate transaction
+    ///      ordering. Please use `increaseBalanceAllowance` and
+    ///      `decreaseBalanceAllowance` to eliminate the risk.
+    function approveBalanceAndCall(address vault, uint256 amount) external {
+        _approveBalance(msg.sender, vault, amount);
+        IVault(vault).receiveBalanceApproval(msg.sender, amount);
+    }
+
     /// @notice Atomically increases the balance allowance granted to `spender`
     ///         by the caller by the given `addedValue`.
     function increaseBalanceAllowance(address spender, uint256 addedValue)
@@ -286,7 +301,7 @@ contract Bank is Ownable {
             totalAmount += depositedAmounts[i];
         }
         _increaseBalance(vault, totalAmount);
-        IVault(vault).onBalanceIncreased(depositors, depositedAmounts);
+        IVault(vault).receiveBalanceIncrease(depositors, depositedAmounts);
     }
 
     /// @notice Decreases caller's balance by the provided `amount`. There is no
