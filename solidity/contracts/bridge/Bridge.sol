@@ -285,8 +285,7 @@ contract Bridge is Ownable {
             // P2PKH and P2WPKH, it will fail on the output hash comparison with
             // the expected locking script hash.
             require(
-                keccak256(fundingOutputHash) ==
-                    keccak256(expectedScript.hash160()),
+                fundingOutputHash.slice20(0) == expectedScript.hash160View(),
                 "Wrong 20-byte script hash"
             );
         } else if (fundingOutputHash.length == 32) {
@@ -313,7 +312,7 @@ contract Bridge is Ownable {
                 fundingTx
                     .locktime
             )
-                .hash256();
+                .hash256View();
 
         DepositInfo storage deposit =
             deposits[
@@ -486,7 +485,7 @@ contract Bridge is Ownable {
             sweepTx
                 .locktime
         )
-            .hash256();
+            .hash256View();
 
         checkProofFromTxHash(sweepTxHash, sweepProof);
 
