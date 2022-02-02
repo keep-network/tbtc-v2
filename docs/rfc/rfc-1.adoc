@@ -537,55 +537,50 @@ in order to prevent problems like operators front-running each other.
 
 [[bitcoin-sweeping-fee]]
 === Bitcoin Sweeping Fee
-
 Governable Parameters
-- `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
-- `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
+
+- `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
+  suggested BTC fee before the other operators give up and try the next
+  operator.
 
 Any time a bitcoin transaction needs to be posted and then mined on the bitcoin
 blockchain, the miners need to be paid a fee for their work. This fee
 fluctuates with market demand and is decently volatile.
 
-When the depositor posts their address reveal on ethereum, they include a
-bitcoin `max_fee` denominated in total BTC that they're willing to pay for
-three different fees:
+The operators need to all agree on a fee before they can construct the sweeping
+transaction, but communicating that fee is tricky. When the sortition pool
+selects the operators, it selects them in an ordered list. We can leverage this
+on-chain order to be the fee-proposal-order. Say that the sortition pool chose
+Operators: [#71, #109, #34..., #2]. When it comes time to sweep deposits,
+Operator#71 would be expected to query
+https://blockstream.info/api/fee-estimates for the 3-block fee and broadcast
+this fee to the rest of the operators. If the operators don't receive the fee
+from operator #71 before `btc_fee_broadcast_timeout`, has elapsed, the duty
+moves to #109, and then #34, and so on.
 
-- `bridge_deposit_percentage_fee` (say 0.2% or whatever governance decides)
-- `bridge_deposit_flat_fee` (say 0.001 mBTC or whatever governance decides) to
-  deter folks from depositing dust
-- the mining fee for getting the batch sweeping transaction to post
+*Note*: Each operator may only propose one BTC fee per sweep (that the other
+operators will listen to) or we enable them to spam the communications with fee
+proposals until they find one that passes validation.
 
-Next, we hash the most recent ethereum block to generate the seed for a random
-number generator to generate a modulus that selects a random unlucky operator
-that needs to check the blockstream api for the 25-block target fee:
-https://blockstream.info/api/fee-estimates and then post that information to
-the ethereum chain. The 25-block target fee from blockstream is per vByte, so
-we need to know how many vBytes will be in the transaction, which will depend
-on how many inputs will be in the transaction, which will depend on how many
-deposits we will sweep, which will depend on how many deposits find the target
-fee palatable.
+The operators then validate the fee they received against
+https://blockstream.info/api/fee-estimates to make sure that nothing fishy is
+going on - that the fee isn't too high or too low (TBD what that means). If it
+is, they can wait for `btc_fee_broadcast_timeout` to elapse and for a new fee
+to be proposed.
 
-In order to include a deposit in the transaction, we will end up needing to do
-some bin-packing. The more deposits we're able to include in a transaction the
-lower the per-depositor mining fee is (because we get batched cost savings).
-Thus, the more eligible depositors there are, the more eligible depositors
-there are (hence the bin-packing). For a more in-depth explanation of how
-deposits are chosen, check out <<sweeping,sweeping>>
-
-After a particular fee has been chosen and all of the deposits have been selected,
-that deposit might not mine within the timeout period. If this happens, the
-unlucky operator should submit a transaction on-chain to multiply the fee by a
-fixed amount (like 1.1x, 1.2x, etc up to some cap like 1.4x). With this in mind,
-we should only include deposits in the initial transaction whose `max_fee` is set
-high enough to withstand a fee increase up to whatever the maximum multiplier is.
+*Note*: We purposefully leave out on-chain incentives/punishments here. The
+attack vector is small and the overhead is high. We might need to revisit this
+in the future, but if someone maintained a client fork in order to take
+advantage of manipulating btc fee consensus I would be very surprised.
 
 == Governable Parameters
 Alphabetized list of Governable Parameters with additional notes.
 
 - `base_sweeping_fee_max`: The highest amount of BTC that operators can
   initially propose as a fee for miners in a sweeping transaction.
-- `bridge_deposit_flat_fee`: The flat fee for depositing bitcoin.
-- `bridge_deposit_percentage_fee`: The percentage fee for depositing bitcoin.
+- `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
+  suggested BTC fee before the other operators give up and try the next
+  operator.
 - `consecutive_failed_heartbeats`: The number of times a heartbeat can fail in
   a row that triggers a move to close the wallet.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
