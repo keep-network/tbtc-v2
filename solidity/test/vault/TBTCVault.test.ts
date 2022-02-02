@@ -113,7 +113,7 @@ describe("TBTCVault", () => {
       })
     })
 
-    context("when there is a single minter", async () => {
+    context("when there is a single minter", () => {
       const amount = to1e18(13) // 3 + 1 + 9 = 13
 
       const transactions: ContractTransaction[] = []
@@ -155,7 +155,7 @@ describe("TBTCVault", () => {
       })
     })
 
-    context("when there are multiple minters", async () => {
+    context("when there are multiple minters", () => {
       const amount1 = to1e18(13) // 3 + 1 + 9 = 13
       const amount2 = to1e18(3) // 1 + 2 = 3
 
@@ -440,7 +440,165 @@ describe("TBTCVault", () => {
     })
   })
 
-  describe("onBalanceIncreased", () => {
+  describe("receiveBalanceApproval", () => {
+    context("when called not by the bank", () => {
+      const amount = initialBalance
+
+      it("should revert", async () => {
+        await expect(
+          vault.connect(bridge).receiveBalanceApproval(account1.address, amount)
+        ).to.be.revertedWith("Caller is not the Bank")
+        await expect(
+          vault
+            .connect(account1)
+            .receiveBalanceApproval(account1.address, amount)
+        ).to.be.revertedWith("Caller is not the Bank")
+      })
+    })
+
+    context("when caller has not enough balance in the bank", () => {
+      const amount = initialBalance.add(1)
+
+      it("should revert", async () => {
+        await expect(
+          bank.connect(account1).approveBalanceAndCall(vault.address, amount)
+        ).to.be.revertedWith("Amount exceeds balance in the bank")
+      })
+    })
+
+    context("when there is a single caller", () => {
+      const amount = to1e18(19) // 4 + 10 + 5
+
+      const transactions: ContractTransaction[] = []
+
+      before(async () => {
+        await createSnapshot()
+
+        transactions.push(
+          await bank
+            .connect(account1)
+            .approveBalanceAndCall(vault.address, to1e18(4))
+        )
+        transactions.push(
+          await bank
+            .connect(account1)
+            .approveBalanceAndCall(vault.address, to1e18(10))
+        )
+        transactions.push(
+          await bank
+            .connect(account1)
+            .approveBalanceAndCall(vault.address, to1e18(5))
+        )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer balance to the vault", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(amount)
+        expect(await bank.balanceOf(account1.address)).to.equal(
+          initialBalance.sub(amount)
+        )
+      })
+
+      it("should mint TBTC", async () => {
+        expect(await tbtc.balanceOf(account1.address)).to.equal(amount)
+        expect(await tbtc.totalSupply()).to.equal(amount)
+      })
+
+      it("should emit Minted event", async () => {
+        await expect(transactions[0])
+          .to.emit(vault, "Minted")
+          .withArgs(account1.address, to1e18(4))
+        await expect(transactions[1])
+          .to.emit(vault, "Minted")
+          .withArgs(account1.address, to1e18(10))
+        await expect(transactions[2])
+          .to.emit(vault, "Minted")
+          .withArgs(account1.address, to1e18(5))
+      })
+    })
+
+    context("when there are multiple callers", () => {
+      const amount1 = to1e18(4) // 2 + 1 + 1 = 4
+      const amount2 = to1e18(5) // 4 + 1 = 5
+
+      const transactions: ContractTransaction[] = []
+
+      before(async () => {
+        await createSnapshot()
+
+        transactions.push(
+          await bank
+            .connect(account1)
+            .approveBalanceAndCall(vault.address, to1e18(2))
+        )
+        transactions.push(
+          await bank
+            .connect(account2)
+            .approveBalanceAndCall(vault.address, to1e18(4))
+        )
+        transactions.push(
+          await bank
+            .connect(account1)
+            .approveBalanceAndCall(vault.address, to1e18(1))
+        )
+        transactions.push(
+          await bank
+            .connect(account1)
+            .approveBalanceAndCall(vault.address, to1e18(1))
+        )
+        transactions.push(
+          await bank
+            .connect(account2)
+            .approveBalanceAndCall(vault.address, to1e18(1))
+        )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer balances to the vault", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(
+          amount1.add(amount2)
+        )
+        expect(await bank.balanceOf(account1.address)).to.equal(
+          initialBalance.sub(amount1)
+        )
+        expect(await bank.balanceOf(account2.address)).to.equal(
+          initialBalance.sub(amount2)
+        )
+      })
+
+      it("should mint TBTC", async () => {
+        expect(await tbtc.balanceOf(account1.address)).to.equal(amount1)
+        expect(await tbtc.balanceOf(account2.address)).to.equal(amount2)
+        expect(await tbtc.totalSupply()).to.equal(amount1.add(amount2))
+      })
+
+      it("should emit Minted event", async () => {
+        await expect(transactions[0])
+          .to.emit(vault, "Minted")
+          .withArgs(account1.address, to1e18(2))
+        await expect(transactions[1])
+          .to.emit(vault, "Minted")
+          .withArgs(account2.address, to1e18(4))
+        await expect(transactions[2])
+          .to.emit(vault, "Minted")
+          .withArgs(account1.address, to1e18(1))
+        await expect(transactions[3])
+          .to.emit(vault, "Minted")
+          .withArgs(account1.address, to1e18(1))
+        await expect(transactions[4])
+          .to.emit(vault, "Minted")
+          .withArgs(account2.address, to1e18(1))
+      })
+    })
+  })
+
+  describe("receiveBalanceIncrease", () => {
     const depositor1 = "0x30c371E0651B2Ff6062158ca1D95b07C7531c719"
     const depositor2 = "0xb3464806d680722dBc678996F1670D19A42eA3e9"
     const depositor3 = "0x6B9925e04bc46569d1F7362eD7f11539234f0aEc"
@@ -459,12 +617,12 @@ describe("TBTCVault", () => {
       await restoreSnapshot()
     })
 
-    context("when called not by the Bank", () => {
+    context("when called not by the bank", () => {
       it("should revert", async () => {
         await expect(
           vault
             .connect(bridge)
-            .onBalanceIncreased([depositor1], [depositedAmount1])
+            .receiveBalanceIncrease([depositor1], [depositedAmount1])
         ).to.be.revertedWith("Caller is not the Bank")
       })
     })
