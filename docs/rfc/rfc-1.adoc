@@ -503,37 +503,58 @@ this transaction.
 
 [[transaction-incentives]]
 === Transaction Incentives
+Transaction incentives are more deeply explored in link:rfc-6.adoc[RFC 6:
+Transaction Incentives]. Summarized:
 
-Governable Parameters:
+There are three different types of transactions: <<operator-only,Operator-Only>>,
+<<public-knowledge,Public-Knowledge>>, and <<punishment,Punishment>>.
 
-- `max_gas_refund_price`: The highest amount of gwei that the gas refund
-  contract will pay out per gas for a refund transaction.
+[[operator-only]]
+==== Operator-Only
+Operator-Only transactions are where only the operators have access to the
+information required to assemble the transaction with the right input
+parameters.
 
-There are 7 main transactions that require incentives:
+In order to avoid all operators racing to submit the
+transaction at the same time, we have an off-chain gentleman's agreement to
+submit based on the operator's position in the group (can use the hash of the
+group's pubkey).
 
-==== Transactions That Must Be Submitted By Operators
-- Submit distributed key generation results for new wallet creation (weekly).
-- Signal that funds need to be moved between wallets if a <<heartbeat,heartbeat>> fails.
-- Signal that a staker is not performing their duty and should be marked as
-ineligible for rewards (as in the case that they were inactive during
-heartbeats).
+If the designated operator does not submit their transaction before a timeout
+expires, the duty moves to the next operator and the group can sign a
+transaction to mark that operator as inactive. Such a transaction would be a
+<<punishment,Punishment>>.
 
-==== Transactions That Can Be Submitted By Anyone
-- Begin distributed key generation for new wallet creation (weekly).
-- Provide the proof for a <<sweeping,sweep>> transaction.
-- Provide the proof for a <<redemption,redemption>> transaction.
-- Provide the proof that funds have moved between wallets.
+In order to compensate the operator for posting the transaction, the gas spent
+will be reimbursed by a DAO-funded eth pool in the same transaction with
+governable limits on how much eth can be spent on gas.
 
-To make sure that these transactions get posted, we need the DAO to fund an ETH
-pool that provides gas refunds for anyone submitting these transactions. We
-know the amount of gas spent, and we know the gas price used, and so can
-reimburse the operator.
+[[public-knowledge]]
+==== Public-Knowledge
+Public-Knowledge transactions are where anyone has access to the information
+required to assemble the transaction.
 
-To prevent abuse, we need to let governance set caps (`max_gas_refund_price`)
-on how much eth can be reimbursed (so that a miner can't drain the pool).
+In order to prevent wasting gas on racing to submit, we can either use an
+off-chain gentleman's agreement for the operators like in
+<<operator-only,Operator-Only>> transactions, or we can delegate the
+transactions to a network like https://www.gelato.network/[Gelato]. We can't
+cost-effectively stop members of the public from trying to race to submit.
 
-Further ideas are to run bots like those provided by https://www.gelato.network/[Gelato]
-in order to prevent problems like operators front-running each other.
+To compensate these transactions, whoever posts them will have the gas spent
+reimbursed by a DAO-funded eth pool in the same transaction, with governable
+limits on how much eth can be spent on gas.
+
+[[punishment]]
+==== Punishment
+Punishment transactions are where anyone has access to the information required
+to assemble the transaction (like <<public-knowledge,Public-Knowledge>>) and
+the transaction leads to the potential for punishment (reward ineligibility or
+slashing).
+
+In these transactions, maintaining system health is more important than
+optimizing gas via preventing racing, so we offer up bounties in the form of
+potentially slashed tokens to whichever submitter submits first. We do not
+compensate gas.
 
 [[bitcoin-sweeping-fee]]
 === Bitcoin Sweeping Fee
