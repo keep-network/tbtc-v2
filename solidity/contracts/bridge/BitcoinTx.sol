@@ -112,4 +112,14 @@ library BitcoinTx {
         ///         lowest height first.
         bytes bitcoinHeaders;
     }
+
+    /// @notice Represents info about an unspent transaction output.
+    struct UTXO {
+        /// @notice Hash of the transaction the output belongs to.
+        bytes32 txHash;
+        /// @notice Index of the transaction output.
+        uint32 txOutputIndex;
+        /// @notice Value of the transaction output.
+        uint64 txOutputValue;
+    }
 }

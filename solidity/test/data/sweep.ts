@@ -31,12 +31,13 @@ export interface SweepTestData {
   }[]
 
   /**
-   * Previous sweep data which are used as `previousSweep` parameter during
-   * `sweep` function call. If no prior sweeps occured on given wallet,
-   * `NO_PREVIOUS_SWEEP` constant should be used as value.
+   * Main UTXO data which are used as `mainUtxo` parameter during
+   * `sweep` function call. If no main UTXO exists for given wallet,
+   * `NO_MAIN_UTXO` constant should be used as value.
    */
-  previousSweep: {
+  mainUtxo: {
     txHash: BytesLike
+    txOutputIndex: number
     txOutputValue: BigNumberish
   }
 
@@ -70,8 +71,9 @@ export interface SweepTestData {
   chainDifficulty: number
 }
 
-export const NO_PREVIOUS_SWEEP = {
+export const NO_MAIN_UTXO = {
   txHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+  txOutputIndex: 0,
   txOutputValue: 0,
 }
 
@@ -79,7 +81,7 @@ export const NO_PREVIOUS_SWEEP = {
  * `SingleP2SHDeposit` test data represents a sweep with following properties:
  * - 1 P2SH deposit input
  * - 1 P2WPKH sweep output
- * - No prior sweeps made by this wallet
+ * - No main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
 export const SingleP2SHDeposit: SweepTestData = {
@@ -115,7 +117,7 @@ export const SingleP2SHDeposit: SweepTestData = {
     },
   ],
 
-  previousSweep: NO_PREVIOUS_SWEEP,
+  mainUtxo: NO_MAIN_UTXO,
 
   // https://live.blockcypher.com/btc-testnet/tx/f5b9ad4e8cd5317925319ebc64dc923092bef3b56429c6b1bc2261bbdc73f351
   sweepTx: {
@@ -172,7 +174,7 @@ export const SingleP2SHDeposit: SweepTestData = {
  * `SingleP2WSHDeposit` test data represents a sweep with following properties:
  * - 1 P2WSH deposit input
  * - 1 P2WPKH sweep output
- * - No prior sweeps made by this wallet
+ * - No main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
 export const SingleP2WSHDeposit: SweepTestData = {
@@ -205,7 +207,7 @@ export const SingleP2WSHDeposit: SweepTestData = {
     },
   ],
 
-  previousSweep: NO_PREVIOUS_SWEEP,
+  mainUtxo: NO_MAIN_UTXO,
 
   // https://live.blockcypher.com/btc-testnet/tx/9efc9d555233e12e06378a35a7b988d54f7043b5c3156adc79c7af0a0fd6f1a0
   sweepTx: {
@@ -251,19 +253,20 @@ export const SingleP2WSHDeposit: SweepTestData = {
 }
 
 /**
- * `SinglePreviousSweep` test data represents a sweep with following properties:
- * - 1 P2WPKH previous sweep input
+ * `SingleMainUtxo` test data represents a sweep with following properties:
+ * - 1 P2WPKH main UTXO input
  * - 1 P2WPKH sweep output
- * - One prior sweeps made by this wallet
+ * - The main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const SinglePreviousSweep: SweepTestData = {
+export const SingleMainUtxo: SweepTestData = {
   deposits: [],
 
   // https://live.blockcypher.com/btc-testnet/tx/f5b9ad4e8cd5317925319ebc64dc923092bef3b56429c6b1bc2261bbdc73f351
-  previousSweep: {
+  mainUtxo: {
     txHash:
       "0x51f373dcbb6122bcb1c62964b5f3be923092dc64bc9e31257931d58c4eadb9f5",
+    txOutputIndex: 0,
     txOutputValue: 18500,
   },
 
@@ -313,13 +316,13 @@ export const SinglePreviousSweep: SweepTestData = {
 }
 
 /**
- * `MultipleDepositsNoPreviousSweep` test data represents a sweep with following properties:
+ * `MultipleDepositsNoMainUtxo` test data represents a sweep with following properties:
  * - 3 P2WSH and 2 P2SH deposit inputs
  * - 1 P2WPKH sweep output
- * - No prior sweeps made by this wallet
+ * - No main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const MultipleDepositsNoPreviousSweep: SweepTestData = {
+export const MultipleDepositsNoMainUtxo: SweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/d6a04c76aab203fe9cd8a2498bb4a8c50eb767fd95719c7790ac675ed5dec526
@@ -453,7 +456,7 @@ export const MultipleDepositsNoPreviousSweep: SweepTestData = {
     },
   ],
 
-  previousSweep: NO_PREVIOUS_SWEEP,
+  mainUtxo: NO_MAIN_UTXO,
 
   // https://live.blockcypher.com/btc-testnet/tx/2a5d5f472e376dc28964e1b597b1ca5ee5ac042101b5199a3ca8dae2deec3538
   sweepTx: {
@@ -514,13 +517,13 @@ export const MultipleDepositsNoPreviousSweep: SweepTestData = {
 }
 
 /**
- * `MultipleDepositsWithPreviousSweep` test data represents a sweep with following properties:
- * - 3 P2WSH, 2 P2SH, and 1 P2WPKH previous sweep inputs
+ * `MultipleDepositsWithMainUtxo` test data represents a sweep with following properties:
+ * - 3 P2WSH, 2 P2SH, and 1 P2WPKH main UTXO inputs
  * - 1 P2WPKH sweep output
- * - One prior sweep made by this wallet
+ * - The main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const MultipleDepositsWithPreviousSweep: SweepTestData = {
+export const MultipleDepositsWithMainUtxo: SweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/85eb466ed605916ea764860ceda68fa05e7448cc772558c866a409366b997a85
@@ -657,9 +660,10 @@ export const MultipleDepositsWithPreviousSweep: SweepTestData = {
   ],
 
   // https://live.blockcypher.com/btc-testnet/tx/2a5d5f472e376dc28964e1b597b1ca5ee5ac042101b5199a3ca8dae2deec3538
-  previousSweep: {
+  mainUtxo: {
     txHash:
       "0x3835ecdee2daa83c9a19b5012104ace55ecab197b5e16489c26d372e475f5d2a",
+    txOutputIndex: 0,
     txOutputValue: 1058000,
   },
 
