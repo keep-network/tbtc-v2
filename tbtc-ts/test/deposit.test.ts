@@ -7,7 +7,7 @@ import {
   testnetTransaction,
   testnetTransactionHash,
   testnetUTXO,
-} from "./data/bitcoin"
+} from "./data/deposit"
 import { RawTransaction, UnspentTransactionOutput } from "../src/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 // @ts-ignore

@@ -2,102 +2,36 @@ import { RawTransaction, UnspentTransactionOutput } from "../../src/bitcoin"
 import { DepositData } from "../deposit"
 import { BigNumber } from "ethers"
 
-/**
- * An example address taken from the BTC testnet and having a non-zero balance.
- * This address and its transaction data can be used to make deposits during tests.
- */
-export const testnetAddress = "tb1q0tpdjdu2r3r7tzwlhqy4e2276g2q6fexsz4j0m"
-
-/**
- * Private key corresponding to the testnetAddress.
- */
-export const testnetPrivateKey =
-  "cRJvyxtoggjAm9A94cB86hZ7Y62z2ei5VNJHLksFi2xdnz1GJ6xt"
-
-/**
- * Hash of one of the transactions originating from testnetAddress.
- */
-export const testnetTransactionHash =
-  "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
-
-/**
- * Transaction corresponding to testnetTransactionHash and originating
- * from testnetAddress. It can be decoded, for example, with:
- * https://live.blockcypher.com/btc-testnet/decodetx
- */
-export const testnetTransaction: RawTransaction = {
-  transactionHex:
-    "0100000000010162cae24e74ad64f9f0493b09f3964908b3b3038f4924882d3dbd853b" +
-    "4c9bc7390100000000ffffffff02102700000000000017a914867120d5480a9cc0c11c" +
-    "1193fa59b3a92e852da78710043c00000000001600147ac2d9378a1c47e589dfb8095c" +
-    "a95ed2140d272602483045022100b70bd9b7f5d230444a542c7971bea79786b4ebde67" +
-    "03cee7b6ee8cd16e115ebf02204d50ea9d1ee08de9741498c2cc64266e40d52c4adb9e" +
-    "f68e65aa2727cd4208b5012102ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94" +
-    "117a9c65be3911c5c04e00000000",
-}
-
-/**
- * An UTXO from the testnetTransaction.
- */
-export const testnetUTXO: UnspentTransactionOutput & RawTransaction = {
-  transactionHash: testnetTransactionHash,
-  outputIndex: 1,
-  value: 3933200,
-  ...testnetTransaction,
-}
-
-/**
- * Private key of the wallet on testnet.
- */
-export const testnetWalletPrivateKey =
-  "cRk1zdau3jp2X3XsrRKDdviYLuC32fHfyU186wLBEbZWx4uQWW3v"
-
-/**
- * Address corresponding to testnetWalletPrivateKey.
- */
-export const testnetWalletAddress = "tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"
-
-/**
- * Address generated from deposit script hash during deposit creation
- */
-export const testnetDepositScripthashAddress =
-  "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C"
-
-/**
- * Address generated from deposit witness script hash during deposit creation
- */
-export const testnetDepositWitnessScripthashAddress =
-  "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y"
-
 export const NO_MAIN_UTXO = {
   transactionHash: "",
   outputIndex: 0,
   value: 0,
+  transactionHex: "",
 }
 
 /**
  * Represents data for tests of assembling sweep transactions.
  */
 export interface SweepTestData {
-  utxoData: {
-    hash: string
-    rawTx: RawTransaction
-    utxo: UnspentTransactionOutput
-    depositData: DepositData
+  deposits: {
+    utxo: UnspentTransactionOutput & RawTransaction
+    data: DepositData
   }[]
-  mainUtxo: UnspentTransactionOutput
-  sweepResult: {
+  mainUtxo: UnspentTransactionOutput & RawTransaction
+  expectedSweep: {
     transactionHash: string
     transaction: RawTransaction
   }
 }
 
-export const sweepWithNoPreviousSweep: SweepTestData = {
-  utxoData: [
+export const sweepWithNoMainUtxo: SweepTestData = {
+  deposits: [
     {
-      // P2SH deposit
-      hash: "74d0e353cdba99a6c17ce2cfeab62a26c09b5eb756eccdcfb83dbc12e67b18bc",
-      rawTx: {
+      utxo: {
+        transactionHash:
+          "74d0e353cdba99a6c17ce2cfeab62a26c09b5eb756eccdcfb83dbc12e67b18bc",
+        outputIndex: 0,
+        value: 25000,
         transactionHex:
           "01000000000101d9fdf44eb0874a31a462dc0aedce55c0b5be6d20956b4cdfbe1c16" +
           "761f7c4aa60100000000ffffffff02a86100000000000017a9143ec459d0f3c29286" +
@@ -107,13 +41,7 @@ export const sweepWithNoPreviousSweep: SweepTestData = {
           "7ebc6dc12fc31cd94e3e9b4220bb0121039d61d62dcd048d3f8550d22eb90b4af908" +
           "db60231d117aeede04e7bc11907bfa00000000",
       },
-      utxo: {
-        transactionHash:
-          "74d0e353cdba99a6c17ce2cfeab62a26c09b5eb756eccdcfb83dbc12e67b18bc",
-        outputIndex: 0,
-        value: 25000,
-      },
-      depositData: {
+      data: {
         ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
         amount: BigNumber.from(25000),
         refundPublicKey:
@@ -123,9 +51,11 @@ export const sweepWithNoPreviousSweep: SweepTestData = {
       },
     },
     {
-      // P2WSH deposit
-      hash: "5c54ecdf946382fab2236f78423ddc22a757776fb8492671c588667b737e55dc",
-      rawTx: {
+      utxo: {
+        transactionHash:
+          "5c54ecdf946382fab2236f78423ddc22a757776fb8492671c588667b737e55dc",
+        outputIndex: 0,
+        value: 12000,
         transactionHex:
           "01000000000101a0367a0790e3dfc199df34ca9ce5c35591510b6525d2d586916672" +
           "8a5ed554be0100000000ffffffff02e02e00000000000022002086a303cdd2e2eab1" +
@@ -135,13 +65,7 @@ export const sweepWithNoPreviousSweep: SweepTestData = {
           "796addef4b9595aad23b2e9363ac2d64f75c21beb0e2ade5df0121039d61d62dcd04" +
           "8d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
-      utxo: {
-        transactionHash:
-          "5c54ecdf946382fab2236f78423ddc22a757776fb8492671c588667b737e55dc",
-        outputIndex: 0,
-        value: 12000,
-      },
-      depositData: {
+      data: {
         ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
         amount: BigNumber.from(12000),
         refundPublicKey:
@@ -152,7 +76,7 @@ export const sweepWithNoPreviousSweep: SweepTestData = {
     },
   ],
   mainUtxo: NO_MAIN_UTXO,
-  sweepResult: {
+  expectedSweep: {
     transactionHash:
       "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
     transaction: {
@@ -177,12 +101,15 @@ export const sweepWithNoPreviousSweep: SweepTestData = {
   },
 }
 
-export const sweepWithPreviousSweep: SweepTestData = {
-  utxoData: [
+export const sweepWithMainUtxo: SweepTestData = {
+  deposits: [
     {
       // P2SH deposit
-      hash: "d4fe2ef9068d039eae2210e893db518280d4757696fe9db8f3c696a94de90aed",
-      rawTx: {
+      utxo: {
+        transactionHash:
+          "d4fe2ef9068d039eae2210e893db518280d4757696fe9db8f3c696a94de90aed",
+        outputIndex: 0,
+        value: 17000,
         transactionHex:
           "01000000000101e37f552fc23fa0032bfd00c8eef5f5c22bf85fe4c6e735857719ff" +
           "8a4ff66eb80100000000ffffffff02684200000000000017a9143ec459d0f3c29286" +
@@ -192,13 +119,7 @@ export const sweepWithPreviousSweep: SweepTestData = {
           "e89e37fa90d1cc2b3f05207599fef00121039d61d62dcd048d3f8550d22eb90b4af9" +
           "08db60231d117aeede04e7bc11907bfa00000000",
       },
-      utxo: {
-        transactionHash:
-          "d4fe2ef9068d039eae2210e893db518280d4757696fe9db8f3c696a94de90aed",
-        outputIndex: 0,
-        value: 17000,
-      },
-      depositData: {
+      data: {
         ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
         amount: BigNumber.from(17000),
         refundPublicKey:
@@ -209,8 +130,11 @@ export const sweepWithPreviousSweep: SweepTestData = {
     },
     {
       // P2WSH deposit
-      hash: "b86ef64f8aff19778535e7c6e45ff82bc2f5f5eec800fd2b03a03fc22f557fe3",
-      rawTx: {
+      utxo: {
+        transactionHash:
+          "b86ef64f8aff19778535e7c6e45ff82bc2f5f5eec800fd2b03a03fc22f557fe3",
+        outputIndex: 0,
+        value: 10000,
         transactionHex:
           "01000000000101dc557e737b6688c5712649b86f7757a722dc3d42786f23b2fa8263" +
           "94dfec545c0100000000ffffffff02102700000000000022002086a303cdd2e2eab1" +
@@ -220,13 +144,7 @@ export const sweepWithPreviousSweep: SweepTestData = {
           "780042138a9110418b3f589d8d09a900f20ee28cfcdb14d2970121039d61d62dcd04" +
           "8d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
-      utxo: {
-        transactionHash:
-          "b86ef64f8aff19778535e7c6e45ff82bc2f5f5eec800fd2b03a03fc22f557fe3",
-        outputIndex: 0,
-        value: 10000,
-      },
-      depositData: {
+      data: {
         ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
         amount: BigNumber.from(10000),
         refundPublicKey:
@@ -242,8 +160,25 @@ export const sweepWithPreviousSweep: SweepTestData = {
       "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
     outputIndex: 0,
     value: 35400,
+    transactionHex:
+      "01000000000102bc187be612bc3db8cfcdec56b75e9bc0262ab6eacfe27cc1a699" +
+      "bacd53e3d07400000000c948304502210089a89aaf3fec97ac9ffa91cdff59829f" +
+      "0cb3ef852a468153e2c0e2b473466d2e022072902bb923ef016ac52e941ced78f8" +
+      "16bf27991c2b73211e227db27ec200bc0a012103989d253b17a6a0f41838b84ff0" +
+      "d20e8898f9d7b1a98f2564da4cc29dcf8581d94c5c14934b98637ca318a4d6e7ca" +
+      "6ffd1690b8e77df6377508f9f0c90d000395237576a9148db50eb52063ea9d98b3" +
+      "eac91489a90f738986f68763ac6776a914e257eccafbc07c381642ce6e7e55120f" +
+      "b077fbed8804e0250162b175ac68ffffffffdc557e737b6688c5712649b86f7757" +
+      "a722dc3d42786f23b2fa826394dfec545c0000000000ffffffff01488a00000000" +
+      "00001600148db50eb52063ea9d98b3eac91489a90f738986f60003473044022037" +
+      "47f5ee31334b11ebac6a2a156b1584605de8d91a654cd703f9c843863499740220" +
+      "2059d680211776f93c25636266b02e059ed9fcc6209f7d3d9926c49a0d8750ed01" +
+      "2103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581" +
+      "d95c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d00039523" +
+      "7576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776a914e257" +
+      "eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac6800000000",
   },
-  sweepResult: {
+  expectedSweep: {
     transactionHash:
       "435d4aff6d4bc34134877bd3213c17970142fdd04d4113d534120033b9eecb2e",
     transaction: {

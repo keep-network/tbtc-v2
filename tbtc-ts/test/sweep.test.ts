@@ -2,13 +2,12 @@ import TBTC from "./../src"
 import { BigNumber } from "ethers"
 import { RawTransaction, UnspentTransactionOutput } from "../src/bitcoin"
 import {
-  sweepWithPreviousSweep,
-  sweepWithNoPreviousSweep,
   testnetDepositScripthashAddress,
   testnetDepositWitnessScripthashAddress,
   testnetWalletAddress,
   testnetWalletPrivateKey,
-} from "./data/bitcoin"
+} from "./data/deposit"
+import { sweepWithMainUtxo, sweepWithNoMainUtxo } from "./data/sweep"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 // @ts-ignore
 import bcoin from "bcoin"
@@ -19,8 +18,6 @@ import { expect } from "chai"
 
 describe("Sweep", () => {
   const fee = BigNumber.from(1600)
-  const firstSweepData = sweepWithNoPreviousSweep
-  const secondSweepData = sweepWithPreviousSweep
 
   describe("sweepDeposits", () => {
     let bitcoinClient: MockBitcoinClient
@@ -29,31 +26,35 @@ describe("Sweep", () => {
       bcoin.set("testnet")
       bitcoinClient = new MockBitcoinClient()
 
+      // Map transaction hashes for UTXOs to transactions in hexadecimal and
+      // set the mapping in the mock Bitcoin client
       const rawTransactions = new Map<string, RawTransaction>()
-      for (const utxoData of firstSweepData.utxoData) {
-        rawTransactions.set(utxoData.hash, utxoData.rawTx)
+      for (const deposit of sweepWithNoMainUtxo.deposits) {
+        rawTransactions.set(deposit.utxo.transactionHash, {
+          transactionHex: deposit.utxo.transactionHex,
+        })
       }
-      for (const utxoData of secondSweepData.utxoData) {
-        rawTransactions.set(utxoData.hash, utxoData.rawTx)
+      for (const deposit of sweepWithMainUtxo.deposits) {
+        rawTransactions.set(deposit.utxo.transactionHash, {
+          transactionHex: deposit.utxo.transactionHex,
+        })
       }
       rawTransactions.set(
-        firstSweepData.sweepResult.transactionHash,
-        firstSweepData.sweepResult.transaction
+        sweepWithNoMainUtxo.expectedSweep.transactionHash,
+        sweepWithNoMainUtxo.expectedSweep.transaction
       )
-
       bitcoinClient.rawTransactions = rawTransactions
     })
 
-    context("when there was no previous sweep", () => {
+    context("when there is no main UTXO", () => {
       beforeEach(async () => {
-        const utxos: UnspentTransactionOutput[] = firstSweepData.utxoData.map(
-          (data) => {
+        const utxos: UnspentTransactionOutput[] =
+          sweepWithNoMainUtxo.deposits.map((data) => {
             return data.utxo
-          }
-        )
+          })
 
-        const depositData = firstSweepData.utxoData.map((data) => {
-          return data.depositData
+        const depositData = sweepWithNoMainUtxo.deposits.map((deposit) => {
+          return deposit.data
         })
 
         await TBTC.sweepDeposits(
@@ -68,21 +69,20 @@ describe("Sweep", () => {
       it("should broadcast sweep transaction with proper structure", async () => {
         expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
         expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-          firstSweepData.sweepResult.transaction
+          sweepWithNoMainUtxo.expectedSweep.transaction
         )
       })
     })
 
-    context("when there was previous sweep", () => {
+    context("when there is main UTXO", () => {
       beforeEach(async () => {
-        const utxos: UnspentTransactionOutput[] = secondSweepData.utxoData.map(
-          (data) => {
-            return data.utxo
-          }
-        )
+        const utxos: UnspentTransactionOutput[] =
+          sweepWithMainUtxo.deposits.map((deposit) => {
+            return deposit.utxo
+          })
 
-        const depositData = secondSweepData.utxoData.map((data) => {
-          return data.depositData
+        const depositData = sweepWithMainUtxo.deposits.map((deposit) => {
+          return deposit.data
         })
 
         await TBTC.sweepDeposits(
@@ -91,32 +91,29 @@ describe("Sweep", () => {
           testnetWalletPrivateKey,
           utxos,
           depositData,
-          secondSweepData.mainUtxo
+          sweepWithMainUtxo.mainUtxo
         )
       })
 
       it("should broadcast sweep transaction with proper structure", async () => {
         expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
         expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-          secondSweepData.sweepResult.transaction
+          sweepWithMainUtxo.expectedSweep.transaction
         )
       })
     })
   })
 
   describe("createSweepTransaction", () => {
-    context("when there was no previous sweep transaction", () => {
+    context("when there is no main UTXO", () => {
       let transaction: RawTransaction
 
-      const utxosWithRaw = firstSweepData.utxoData.map((data) => {
-        return {
-          ...data.utxo,
-          ...data.rawTx,
-        }
+      const utxosWithRaw = sweepWithNoMainUtxo.deposits.map((data) => {
+        return data.utxo
       })
 
-      const depositData = firstSweepData.utxoData.map((data) => {
-        return data.depositData
+      const depositData = sweepWithNoMainUtxo.deposits.map((deposit) => {
+        return deposit.data
       })
 
       beforeEach(async () => {
@@ -130,14 +127,16 @@ describe("Sweep", () => {
 
       it("should return sweep transaction with proper structure", () => {
         // Compare HEXes.
-        expect(transaction).to.be.eql(firstSweepData.sweepResult.transaction)
+        expect(transaction).to.be.eql(
+          sweepWithNoMainUtxo.expectedSweep.transaction
+        )
 
         // Convert raw transaction to JSON to make detailed comparison.
         const buffer = Buffer.from(transaction.transactionHex, "hex")
         const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
         expect(txJSON.hash).to.be.equal(
-          firstSweepData.sweepResult.transactionHash
+          sweepWithNoMainUtxo.expectedSweep.transactionHash
         )
         expect(txJSON.version).to.be.equal(1)
 
@@ -146,10 +145,10 @@ describe("Sweep", () => {
 
         const p2shInput = txJSON.inputs[0]
         expect(p2shInput.prevout.hash).to.be.equal(
-          firstSweepData.utxoData[0].hash
+          sweepWithNoMainUtxo.deposits[0].utxo.transactionHash
         )
         expect(p2shInput.prevout.index).to.be.equal(
-          firstSweepData.utxoData[0].utxo.outputIndex
+          sweepWithNoMainUtxo.deposits[0].utxo.outputIndex
         )
         // Transaction should be signed. As it's not SegWit input, the `witness`
         // field should be empty, while the `script` field should be filled.
@@ -161,10 +160,10 @@ describe("Sweep", () => {
 
         const p2wshInput = txJSON.inputs[1]
         expect(p2wshInput.prevout.hash).to.be.equal(
-          firstSweepData.utxoData[1].hash
+          sweepWithNoMainUtxo.deposits[1].utxo.transactionHash
         )
         expect(p2wshInput.prevout.index).to.be.equal(
-          firstSweepData.utxoData[1].utxo.outputIndex
+          sweepWithNoMainUtxo.deposits[1].utxo.outputIndex
         )
         // Transaction should be signed. As it's a SegWit input, the `witness`
         // field should be filled, while the `script` field should be empty.
@@ -193,25 +192,19 @@ describe("Sweep", () => {
       })
     })
 
-    context("when there was previous sweep transaction", () => {
+    context("when there is main UTXO", () => {
       let transaction: RawTransaction
 
-      const utxosWithRaw = secondSweepData.utxoData.map((data) => {
-        return {
-          ...data.utxo,
-          ...data.rawTx,
-        }
+      const utxosWithRaw = sweepWithMainUtxo.deposits.map((deposit) => {
+        return deposit.utxo
       })
 
-      const depositData = secondSweepData.utxoData.map((data) => {
-        return data.depositData
+      const depositData = sweepWithMainUtxo.deposits.map((deposit) => {
+        return deposit.data
       })
 
       // P2WKH
-      const mainUtxoWithRaw = {
-        ...secondSweepData.mainUtxo,
-        ...firstSweepData.sweepResult.transaction,
-      }
+      const mainUtxoWithRaw = sweepWithMainUtxo.mainUtxo
 
       beforeEach(async () => {
         transaction = await TBTC.createSweepTransaction(
@@ -225,14 +218,16 @@ describe("Sweep", () => {
 
       it("should return sweep transaction with proper structure", () => {
         // Compare HEXes.
-        expect(transaction).to.be.eql(secondSweepData.sweepResult.transaction)
+        expect(transaction).to.be.eql(
+          sweepWithMainUtxo.expectedSweep.transaction
+        )
 
         // Convert raw transaction to JSON to make detailed comparison.
         const buffer = Buffer.from(transaction.transactionHex, "hex")
         const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
         expect(txJSON.hash).to.be.equal(
-          secondSweepData.sweepResult.transactionHash
+          sweepWithMainUtxo.expectedSweep.transactionHash
         )
         expect(txJSON.version).to.be.equal(1)
 
@@ -241,25 +236,25 @@ describe("Sweep", () => {
 
         const p2wkhInput = txJSON.inputs[0]
         expect(p2wkhInput.prevout.hash).to.be.equal(
-          secondSweepData.mainUtxo.transactionHash
+          sweepWithMainUtxo.mainUtxo.transactionHash
         )
         expect(p2wkhInput.prevout.index).to.be.equal(
-          secondSweepData.mainUtxo.outputIndex
+          sweepWithMainUtxo.mainUtxo.outputIndex
         )
         // Transaction should be signed. As it's a SegWit input, the `witness`
         // field should be filled, while the `script` field should be empty.
         expect(p2wkhInput.witness.length).to.be.greaterThan(0)
         expect(p2wkhInput.script.length).to.be.equal(0)
-        // The input is the result of the previous sweep so the input should be
-        // the wallet's address
+        // The input comes from the main UTXO so the input should be the
+        // wallet's address
         expect(p2wkhInput.address).to.be.equal(testnetWalletAddress)
 
         const p2shInput = txJSON.inputs[1]
         expect(p2shInput.prevout.hash).to.be.equal(
-          secondSweepData.utxoData[0].hash
+          sweepWithMainUtxo.deposits[0].utxo.transactionHash
         )
         expect(p2shInput.prevout.index).to.be.equal(
-          secondSweepData.utxoData[0].utxo.outputIndex
+          sweepWithMainUtxo.deposits[0].utxo.outputIndex
         )
         // Transaction should be signed. As it's not SegWit input, the `witness`
         // field should be empty, while the `script` field should be filled.
@@ -271,10 +266,10 @@ describe("Sweep", () => {
 
         const p2wshInput = txJSON.inputs[2]
         expect(p2wshInput.prevout.hash).to.be.equal(
-          secondSweepData.utxoData[1].hash
+          sweepWithMainUtxo.deposits[1].utxo.transactionHash
         )
         expect(p2wshInput.prevout.index).to.be.equal(
-          secondSweepData.utxoData[1].utxo.outputIndex
+          sweepWithMainUtxo.deposits[1].utxo.outputIndex
         )
         // Transaction should be signed. As it's a SegWit input, the `witness`
         // field should be filled, while the `script` field should be empty.
@@ -314,15 +309,12 @@ describe("Sweep", () => {
     context(
       "when the numbers of UTXOs and deposit data elements are not equal",
       () => {
-        const utxosWithRaw = firstSweepData.utxoData.map((data) => {
-          return {
-            ...data.utxo,
-            ...data.rawTx,
-          }
+        const utxosWithRaw = sweepWithNoMainUtxo.deposits.map((data) => {
+          return data.utxo
         })
 
         // Add only one element to deposit data
-        const depositData = [firstSweepData.utxoData[0].depositData]
+        const depositData = [sweepWithNoMainUtxo.deposits[0].data]
 
         it("should revert", async () => {
           await expect(
@@ -342,13 +334,9 @@ describe("Sweep", () => {
     context(
       "when there is a mismatch between the UTXO's value and amount in deposit data",
       () => {
-        const utxoWithRaw = {
-          ...firstSweepData.utxoData[0].utxo,
-          ...firstSweepData.utxoData[0].rawTx,
-        }
-
+        const utxoWithRaw = sweepWithNoMainUtxo.deposits[0].utxo
         // Use a deposit data that does not match the UTXO
-        const depositData = firstSweepData.utxoData[1].depositData
+        const depositData = sweepWithNoMainUtxo.deposits[1].data
 
         it("should revert", async () => {
           await expect(
@@ -365,53 +353,44 @@ describe("Sweep", () => {
       }
     )
 
-    context(
-      "when the previous sweep output does not belong to the wallet",
-      () => {
-        const utxoWithRaw = {
-          ...firstSweepData.utxoData[0].utxo,
-          ...firstSweepData.utxoData[0].rawTx,
-        }
-        const depositData = firstSweepData.utxoData[0].depositData
+    context("when the main UTXO does not belong to the wallet", () => {
+      const utxoWithRaw = sweepWithNoMainUtxo.deposits[0].utxo
+      const depositData = sweepWithNoMainUtxo.deposits[0].data
 
-        // The UTXO below does not belong to the wallet
-        const mainUtxoWithRaw = {
-          transactionHash:
-            "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883",
-          outputIndex: 1,
-          value: 3933200,
-          transactionHex:
-            "0100000000010162cae24e74ad64f9f0493b09f3964908b3b3038f4924882d3d" +
-            "bd853b4c9bc7390100000000ffffffff02102700000000000017a914867120d5" +
-            "480a9cc0c11c1193fa59b3a92e852da78710043c00000000001600147ac2d937" +
-            "8a1c47e589dfb8095ca95ed2140d272602483045022100b70bd9b7f5d230444a" +
-            "542c7971bea79786b4ebde6703cee7b6ee8cd16e115ebf02204d50ea9d1ee08d" +
-            "e9741498c2cc64266e40d52c4adb9ef68e65aa2727cd4208b5012102ee067a02" +
-            "73f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04e00000000",
-        }
-
-        it("should revert", async () => {
-          await expect(
-            TBTC.createSweepTransaction(
-              fee,
-              testnetWalletPrivateKey,
-              [utxoWithRaw],
-              [depositData],
-              mainUtxoWithRaw
-            )
-          ).to.be.rejectedWith("UTXO does not belong to the wallet")
-        })
+      // The UTXO below does not belong to the wallet
+      const mainUtxoWithRaw = {
+        transactionHash:
+          "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883",
+        outputIndex: 1,
+        value: 3933200,
+        transactionHex:
+          "0100000000010162cae24e74ad64f9f0493b09f3964908b3b3038f4924882d3d" +
+          "bd853b4c9bc7390100000000ffffffff02102700000000000017a914867120d5" +
+          "480a9cc0c11c1193fa59b3a92e852da78710043c00000000001600147ac2d937" +
+          "8a1c47e589dfb8095ca95ed2140d272602483045022100b70bd9b7f5d230444a" +
+          "542c7971bea79786b4ebde6703cee7b6ee8cd16e115ebf02204d50ea9d1ee08d" +
+          "e9741498c2cc64266e40d52c4adb9ef68e65aa2727cd4208b5012102ee067a02" +
+          "73f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04e00000000",
       }
-    )
+
+      it("should revert", async () => {
+        await expect(
+          TBTC.createSweepTransaction(
+            fee,
+            testnetWalletPrivateKey,
+            [utxoWithRaw],
+            [depositData],
+            mainUtxoWithRaw
+          )
+        ).to.be.rejectedWith("UTXO does not belong to the wallet")
+      })
+    })
 
     context(
       "when the wallet private does not correspond to the signing group public key",
       () => {
-        const utxoWithRaw = {
-          ...firstSweepData.utxoData[0].utxo,
-          ...firstSweepData.utxoData[0].rawTx,
-        }
-        const depositData = firstSweepData.utxoData[0].depositData
+        const utxoWithRaw = sweepWithNoMainUtxo.deposits[0].utxo
+        const depositData = sweepWithNoMainUtxo.deposits[0].data
         const anotherPrivateKey =
           "cRJvyxtoggjAm9A94cB86hZ7Y62z2ei5VNJHLksFi2xdnz1GJ6xt"
 
@@ -443,7 +422,7 @@ describe("Sweep", () => {
           "000000232102db6a0f2ef2e970eb1d2a84eabb5337f9cac0d85b49f209bffc4ec6" +
           "805802e6a5ac00000000",
       }
-      const depositData = firstSweepData.utxoData[0].depositData
+      const depositData = sweepWithNoMainUtxo.deposits[0].data
 
       it("should revert", async () => {
         await expect(
