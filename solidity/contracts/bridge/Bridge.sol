@@ -388,7 +388,7 @@ contract Bridge is Ownable {
     ///      - `previousSweep` components must point to the previous sweep
     ///        performed by the given wallet. If there is no previous sweep,
     ///        this parameter is ignored.
-    function sweep(
+    function submitSweepProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
         SweepInfo calldata previousSweep

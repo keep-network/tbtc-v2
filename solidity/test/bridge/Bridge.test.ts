@@ -500,7 +500,7 @@ describe("Bridge", () => {
     })
   })
 
-  describe("sweep", () => {
+  describe("submitSweepProof", () => {
     context("when transaction proof is valid", () => {
       context("when there is only one output", () => {
         context("when wallet public key hash length is 20 bytes", () => {
@@ -722,7 +722,11 @@ describe("Bridge", () => {
 
                     // Try replaying the already done sweep.
                     await expect(
-                      bridge.sweep(data.sweepTx, data.sweepProof, previousSweep)
+                      bridge.submitSweepProof(
+                        data.sweepTx,
+                        data.sweepProof,
+                        previousSweep
+                      )
                     ).to.be.revertedWith("Deposit already swept")
                   })
                 }
@@ -747,7 +751,7 @@ describe("Bridge", () => {
                   // Try to sweep a deposit which was not revealed before and
                   // is unknown from system's point of view.
                   await expect(
-                    bridge.sweep(
+                    bridge.submitSweepProof(
                       data.sweepTx,
                       data.sweepProof,
                       NO_PREVIOUS_SWEEP
@@ -1008,7 +1012,11 @@ describe("Bridge", () => {
 
                     // Try replaying the already done sweep.
                     await expect(
-                      bridge.sweep(data.sweepTx, data.sweepProof, previousSweep)
+                      bridge.submitSweepProof(
+                        data.sweepTx,
+                        data.sweepProof,
+                        previousSweep
+                      )
                     ).to.be.revertedWith("Deposit already swept")
                   })
                 }
@@ -1115,7 +1123,7 @@ describe("Bridge", () => {
               }
 
               await expect(
-                bridge.sweep(sweepTx, sweepProof, NO_PREVIOUS_SWEEP)
+                bridge.submitSweepProof(sweepTx, sweepProof, NO_PREVIOUS_SWEEP)
               ).to.be.revertedWith(
                 "Wallet public key hash should have 20 bytes"
               )
@@ -1176,7 +1184,7 @@ describe("Bridge", () => {
           }
 
           await expect(
-            bridge.sweep(sweepTx, sweepProof, NO_PREVIOUS_SWEEP)
+            bridge.submitSweepProof(sweepTx, sweepProof, NO_PREVIOUS_SWEEP)
           ).to.be.revertedWith("Sweep transaction must have a single output")
         })
       })
@@ -1417,7 +1425,7 @@ describe("Bridge", () => {
 
           it("should revert", async () => {
             await expect(
-              otherBridge.sweep(
+              otherBridge.submitSweepProof(
                 data.sweepTx,
                 data.sweepProof,
                 data.previousSweep
@@ -1443,6 +1451,10 @@ describe("Bridge", () => {
       await bridge.revealDeposit(fundingTx, reveal)
     }
 
-    return bridge.sweep(data.sweepTx, data.sweepProof, data.previousSweep)
+    return bridge.submitSweepProof(
+      data.sweepTx,
+      data.sweepProof,
+      data.previousSweep
+    )
   }
 })
