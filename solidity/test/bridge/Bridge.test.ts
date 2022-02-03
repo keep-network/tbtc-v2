@@ -985,7 +985,7 @@ describe("Bridge", () => {
                     }
 
                     await expect(runSweepScenario(data)).to.be.revertedWith(
-                      "Main UTXO not present in sweep transaction inputs"
+                      "Expected main UTXO not present in sweep transaction inputs"
                     )
                   })
                 }

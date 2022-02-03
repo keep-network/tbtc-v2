@@ -634,10 +634,11 @@ contract Bridge is Ownable {
             uint256[] memory depositedAmounts
         )
     {
-        // Flag indicating whether the main UTXO is included as an input.
-        // If no main UTXO currently exists for given wallet, we use a shortcut
-        // and initialize it with `true` to bypass main UTXO validation.
-        bool mainUtxoFlag = mainUtxo.txHash == bytes32(0);
+        // If passed `mainUtxo` parameter's value are zeroed, the main UTXO
+        // for given wallet doesn't exist and it is not expected to be included
+        // in sweep transaction input vector.
+        bool mainUtxoExpected = mainUtxo.txHash != bytes32(0);
+        bool mainUtxoFound = false;
 
         // Determining the total number of sweep transaction inputs in the same
         // way as for number of outputs.
@@ -650,13 +651,11 @@ contract Bridge is Ownable {
         // compactSize uint. Refer `BTCUtils` library for more details.
         uint256 inputStartingIndex = 1 + inputsCompactSizeUintLength;
 
-        // Determine the swept deposits count. If the `mainUtxoFlag` is
-        // already `true` that means the main UTXO doesn't currently exist
-        // for given wallet and we shouldn't expect an additional input. If
-        // so, all inputs should be deposits. Otherwise, we need to subtract
-        // one input since it represents the main UTXO.
+        // Determine the swept deposits count. If main UTXO is NOT expected,
+        // all inputs should be deposits. If main UTXO is expected, one input
+        // should point to that main UTXO.
         depositors = new address[](
-            mainUtxoFlag ? inputsCount : inputsCount - 1
+            !mainUtxoExpected ? inputsCount : inputsCount - 1
         );
         depositedAmounts = new uint256[](depositors.length);
 
@@ -699,9 +698,12 @@ contract Bridge is Ownable {
                 inputsValue += depositedAmounts[processedDepositsCount];
 
                 processedDepositsCount++;
-            } else if (!mainUtxoFlag && mainUtxo.txHash == inputTxHash) {
+            } else if (
+                mainUtxoExpected != mainUtxoFound &&
+                mainUtxo.txHash == inputTxHash
+            ) {
                 inputsValue += mainUtxo.txOutputValue;
-                mainUtxoFlag = true;
+                mainUtxoFound = true;
             } else {
                 revert("Unknown input type");
             }
@@ -711,12 +713,11 @@ contract Bridge is Ownable {
             inputStartingIndex += inputLength;
         }
 
-        // Assert the main UTXO flag is true which means main UTXO was used as
-        // one of current sweep's inputs or main UTXO does not exists at all for
-        // given wallet.
+        // Assert the main UTXO was used as one of current sweep's inputs if
+        // it was actually expected.
         require(
-            mainUtxoFlag,
-            "Main UTXO not present in sweep transaction inputs"
+            mainUtxoExpected == mainUtxoFound,
+            "Expected main UTXO not present in sweep transaction inputs"
         );
 
         return (inputsValue, depositors, depositedAmounts);
