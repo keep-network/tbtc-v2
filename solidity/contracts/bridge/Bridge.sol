@@ -686,7 +686,8 @@ contract Bridge is Ownable {
                     // If this condition is true, that means a deposit input
                     // took place of an expected main UTXO input.
                     // In that case, we should ignore that input and let the
-                    // transaction fail at `require(mainUtxoFlag)`.
+                    // transaction fail at `require` checking whether expected
+                    // main UTXO was found.
                     continue;
                 }
 
@@ -712,6 +713,15 @@ contract Bridge is Ownable {
             // increasing it by current input's length.
             inputStartingIndex += inputLength;
         }
+
+        // Construction of the input processing loop guarantees that:
+        // `processedDepositsCount == depositors.length == depositedAmounts.length`
+        // is always true at this point. If so, we just use the first variable
+        // to assert the total count of swept deposit is bigger than zero.
+        require(
+            processedDepositsCount > 0,
+            "Sweep transaction must process at least one deposit"
+        );
 
         // Assert the main UTXO was used as one of current sweep's inputs if
         // it was actually expected.

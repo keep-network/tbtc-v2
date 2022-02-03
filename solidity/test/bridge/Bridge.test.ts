@@ -647,14 +647,8 @@ describe("Bridge", () => {
               )
 
               context("when the single input is the expected main UTXO", () => {
-                let tx: ContractTransaction
                 const previousData: SweepTestData = SingleP2SHDeposit
                 const data: SweepTestData = SingleMainUtxo
-                // There is no deposits we could use to extract the wallet
-                // public key hash but we can also take it straight from
-                // sweep tx output.
-                const walletPubKeyHash =
-                  "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
 
                 before(async () => {
                   await createSnapshot()
@@ -662,37 +656,16 @@ describe("Bridge", () => {
                   // Make the first sweep which is actually the predecessor
                   // of the sweep tested within this scenario.
                   await runSweepScenario(previousData)
-
-                  tx = await runSweepScenario(data)
                 })
 
                 after(async () => {
                   await restoreSnapshot()
                 })
 
-                it("should update main UTXO for given wallet", async () => {
-                  const mainUtxoHash = await bridge.mainUtxos(walletPubKeyHash)
-
-                  // Amount can be checked by opening the sweep tx in a Bitcoin
-                  // testnet explorer. In this case, the sum of inputs is
-                  // 18500 satoshi (from the single deposit) and there is a
-                  // fee of 2000 so the output value is 16500.
-                  const expectedMainUtxo = ethers.utils.solidityKeccak256(
-                    ["bytes32", "uint32", "uint64"],
-                    [data.sweepTx.hash, 0, 16500]
+                it("should revert", async () => {
+                  await expect(runSweepScenario(data)).to.be.revertedWith(
+                    "Sweep transaction must process at least one deposit"
                   )
-
-                  expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
-                })
-
-                it("should not increase any balances", async () => {
-                  await expect(tx).to.not.emit(bank, "BalanceIncreased")
-                })
-
-                it("should emit SweepPerformed event", async () => {
-                  await expect(tx)
-                    .to.emit(bridge, "SweepPerformed")
-                    .withArgs(walletPubKeyHash, data.sweepTx.hash)
                 })
               })
 
