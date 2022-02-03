@@ -159,6 +159,8 @@ contract Bridge is Ownable {
 
     event SweepPerformed(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
+    event RedemptionPerformed(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
+
     constructor(
         address _bank,
         address _relay,
@@ -389,7 +391,7 @@ contract Bridge is Ownable {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 sweepTxHash = validateSweepTxProof(sweepTx, sweepProof);
+        bytes32 sweepTxHash = validateTxProof(sweepTx, sweepProof);
 
         // Process sweep transaction output and extract its target wallet
         // public key hash and value.
@@ -453,40 +455,40 @@ contract Bridge is Ownable {
         // TODO: Handle deposits having `vault` set.
     }
 
-    /// @notice Validates the SPV proof of the Bitcoin sweep transaction.
+    /// @notice Validates the SPV proof of the Bitcoin transaction.
     ///         Reverts in case the validation or proof verification fail.
-    /// @param sweepTx Bitcoin sweep transaction data.
-    /// @param sweepProof Bitcoin sweep proof data.
-    /// @return sweepTxHash Proven 32-byte sweep transaction hash.
-    function validateSweepTxProof(
-        BitcoinTx.Info calldata sweepTx,
-        BitcoinTx.Proof calldata sweepProof
-    ) internal view returns (bytes32 sweepTxHash) {
+    /// @param txInfo Bitcoin transaction data.
+    /// @param proof Bitcoin proof data.
+    /// @return txHash Proven 32-byte transaction hash.
+    function validateTxProof(
+        BitcoinTx.Info calldata txInfo,
+        BitcoinTx.Proof calldata proof
+    ) internal view returns (bytes32 txHash) {
         require(
-            sweepTx.inputVector.validateVin(),
+            txInfo.inputVector.validateVin(),
             "Invalid input vector provided"
         );
         require(
-            sweepTx.outputVector.validateVout(),
+            txInfo.outputVector.validateVout(),
             "Invalid output vector provided"
         );
 
-        sweepTxHash = abi
+        txHash = abi
             .encodePacked(
-            sweepTx
+            txInfo
                 .version,
-            sweepTx
+            txInfo
                 .inputVector,
-            sweepTx
+            txInfo
                 .outputVector,
-            sweepTx
+            txInfo
                 .locktime
         )
             .hash256();
 
-        checkProofFromTxHash(sweepTxHash, sweepProof);
+        checkProofFromTxHash(txHash, proof);
 
-        return sweepTxHash;
+        return txHash;
     }
 
     /// @notice Checks the given Bitcoin transaction hash against the SPV proof.
@@ -773,4 +775,114 @@ contract Bridge is Ownable {
     //      depositors, next to sweep, to prove their swept balances on Ethereum
     //      selectively, based on deposits they have earlier received.
     //      (UPDATE PR #90: Is it still the case since amounts are inferred?)
+
+    // TODO: Documentation.
+    function submitRedemptionProof(
+        BitcoinTx.Info calldata redemptionTx,
+        BitcoinTx.Proof calldata redemptionProof,
+        BitcoinTx.UTXO calldata mainUtxo,
+        bytes20 walletPubKeyHash
+    ) external {
+        // The actual transaction proof is performed here. After that point, we
+        // can assume the transaction happened on Bitcoin chain and has
+        // a sufficient number of confirmations as determined by
+        // `txProofDifficultyFactor` constant.
+        bytes32 redemptionTxHash =
+            validateTxProof(redemptionTx, redemptionProof);
+
+        // Assert that main UTXO for passed wallet exists in storage.
+        bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
+        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
+
+        // Assert that passed main UTXO parameter is the same as in storage and
+        // can be used for further processing.
+        require(
+            keccak256(
+                abi.encodePacked(
+                    mainUtxo.txHash,
+                    mainUtxo.txOutputIndex,
+                    mainUtxo.txOutputValue
+                )
+            ) == mainUtxoHash,
+            "Invalid main UTXO data"
+        );
+
+        // Assert that the single redemption transaction input actually
+        // refers to the wallet's main UTXO.
+        (bytes32 redemptionTxInputTxHash, uint32 redemptionTxInputTxIndex) =
+            processRedemptionTxInput(redemptionTx.inputVector);
+        require(
+            mainUtxo.txHash == redemptionTxInputTxHash &&
+                mainUtxo.txOutputIndex == redemptionTxInputTxIndex,
+            "Redemption transaction input must point to the wallet's main UTXO"
+        );
+
+        // Process redemption transaction outputs and extract the change output
+        // and all information needed to perform deposit bookkeeping.
+        (uint32 redemptionTxChangeIndex, uint64 redemptionTxChangeValue) =
+            processRedemptionTxOutputs(redemptionTx.outputVector);
+
+        // TODO: Fee processing.
+
+        if (redemptionTxChangeValue > 0) {
+            // If the change value is grater than zero, it means the change
+            // output exists and can be used as new wallet's main UTXO.
+            mainUtxos[walletPubKeyHash] = keccak256(
+                abi.encodePacked(
+                    redemptionTxHash,
+                    redemptionTxChangeIndex,
+                    redemptionTxChangeValue
+                )
+            );
+        } else {
+            // If the change value is zero, it means the change output doesn't
+            // exists and no funds left on the wallet. Delete the main UTXO
+            // for that wallet to represent that state in a proper way.
+            delete mainUtxo[walletPubKeyHash];
+        }
+
+        emit RedemptionPerformed(walletPubKeyHash, redemptionTxHash);
+
+        // TODO: Bank bookkeeping.
+    }
+
+    // TODO: Documentation.
+    function processRedemptionTxInput(bytes memory redemptionTxInputVector)
+        internal
+        pure
+        returns (bytes32 inputTxHash, uint32 inputTxIndex)
+    {
+        // To determine the total number of redemption transaction inputs, we need to
+        // parse the compactSize uint (VarInt) the input vector is prepended by.
+        // That compactSize uint encodes the number of vector elements using the
+        // format presented in:
+        // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
+        // We don't need asserting the compactSize uint is parseable since it
+        // was already checked during `validateVin` validation.
+        (, uint256 inputsCount) = redemptionTxInputVector.parseVarInt();
+        require(
+            inputsCount == 1,
+            "Redemption transaction must have a single input"
+        );
+
+        bytes memory input = redemptionTxInputVector.extractInputAtIndex(0);
+
+        inputTxHash = input.extractInputTxIdLE();
+
+        inputTxIndex = BTCUtils.reverseUint32(uint32(input.extractTxIndexLE()));
+
+        return (inputTxHash, inputTxIndex);
+    }
+
+    // TODO: Documentation.
+    function processRedemptionTxOutputs(bytes memory redemptionTxOutputVector)
+        internal
+        view
+        returns (uint32 changeIndex, uint64 changeValue)
+    {
+        // TODO: Implementation.
+        (, uint256 outputsCount) = redemptionTxOutputVector.parseVarInt();
+
+        return (changeIndex, changeValue);
+    }
 }
