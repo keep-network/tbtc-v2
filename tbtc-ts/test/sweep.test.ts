@@ -91,7 +91,7 @@ describe("Sweep", () => {
           testnetWalletPrivateKey,
           utxos,
           depositData,
-          secondSweepData.previousSweepUtxo
+          secondSweepData.mainUtxo
         )
       })
 
@@ -208,8 +208,8 @@ describe("Sweep", () => {
       })
 
       // P2WKH
-      const previousUtxoWithRaw = {
-        ...secondSweepData.previousSweepUtxo,
+      const mainUtxoWithRaw = {
+        ...secondSweepData.mainUtxo,
         ...firstSweepData.sweepResult.transaction,
       }
 
@@ -219,7 +219,7 @@ describe("Sweep", () => {
           testnetWalletPrivateKey,
           utxosWithRaw,
           depositData,
-          previousUtxoWithRaw
+          mainUtxoWithRaw
         )
       })
 
@@ -241,10 +241,10 @@ describe("Sweep", () => {
 
         const p2wkhInput = txJSON.inputs[0]
         expect(p2wkhInput.prevout.hash).to.be.equal(
-          secondSweepData.previousSweepUtxo.transactionHash
+          secondSweepData.mainUtxo.transactionHash
         )
         expect(p2wkhInput.prevout.index).to.be.equal(
-          secondSweepData.previousSweepUtxo.outputIndex
+          secondSweepData.mainUtxo.outputIndex
         )
         // Transaction should be signed. As it's a SegWit input, the `witness`
         // field should be filled, while the `script` field should be empty.
@@ -375,7 +375,7 @@ describe("Sweep", () => {
         const depositData = firstSweepData.utxoData[0].depositData
 
         // The UTXO below does not belong to the wallet
-        const previousSweepUtxoWithRaw = {
+        const mainUtxoWithRaw = {
           transactionHash:
             "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883",
           outputIndex: 1,
@@ -397,7 +397,7 @@ describe("Sweep", () => {
               testnetWalletPrivateKey,
               [utxoWithRaw],
               [depositData],
-              previousSweepUtxoWithRaw
+              mainUtxoWithRaw
             )
           ).to.be.rejectedWith("UTXO does not belong to the wallet")
         })

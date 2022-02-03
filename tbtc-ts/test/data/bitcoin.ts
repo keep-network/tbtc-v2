@@ -69,7 +69,7 @@ export const testnetDepositScripthashAddress =
 export const testnetDepositWitnessScripthashAddress =
   "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y"
 
-export const NO_PREVIOUS_SWEEP = {
+export const NO_MAIN_UTXO = {
   transactionHash: "",
   outputIndex: 0,
   value: 0,
@@ -78,21 +78,21 @@ export const NO_PREVIOUS_SWEEP = {
 /**
  * Represents data for tests of assembling sweep transactions.
  */
-export interface SweepDepositsTestData {
+export interface SweepTestData {
   utxoData: {
     hash: string
     rawTx: RawTransaction
     utxo: UnspentTransactionOutput
     depositData: DepositData
   }[]
-  previousSweepUtxo: UnspentTransactionOutput
+  mainUtxo: UnspentTransactionOutput
   sweepResult: {
     transactionHash: string
     transaction: RawTransaction
   }
 }
 
-export const sweepWithNoPreviousSweep: SweepDepositsTestData = {
+export const sweepWithNoPreviousSweep: SweepTestData = {
   utxoData: [
     {
       // P2SH deposit
@@ -151,7 +151,7 @@ export const sweepWithNoPreviousSweep: SweepDepositsTestData = {
       },
     },
   ],
-  previousSweepUtxo: NO_PREVIOUS_SWEEP,
+  mainUtxo: NO_MAIN_UTXO,
   sweepResult: {
     transactionHash:
       "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
@@ -177,7 +177,7 @@ export const sweepWithNoPreviousSweep: SweepDepositsTestData = {
   },
 }
 
-export const sweepWithPreviousSweep: SweepDepositsTestData = {
+export const sweepWithPreviousSweep: SweepTestData = {
   utxoData: [
     {
       // P2SH deposit
@@ -236,7 +236,7 @@ export const sweepWithPreviousSweep: SweepDepositsTestData = {
       },
     },
   ],
-  previousSweepUtxo: {
+  mainUtxo: {
     // P2WKH
     transactionHash:
       "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",

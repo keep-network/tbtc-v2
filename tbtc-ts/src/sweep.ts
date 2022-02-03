@@ -16,21 +16,22 @@ import {
 } from "./deposit"
 
 /**
- * Sweeps UTXOs by combining all the provided UTXOs and broadcasting a Bitcoin
- * P2WPKH sweep transaction.
+ * Sweeps P2(W)SH UTXOs by combining all the provided UTXOs and broadcasting
+ * a Bitcoin P2WPKH sweep transaction.
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
- *      then the fee.
+ *      then the fee. Note that broadcasting transaction may fail silently (e.g.
+ *      when the provided UTXOs are not spendable) and no error will be returned.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param fee - the value that should be subtracted from the sum of the UTXOs
  *              values and used as the transaction fee.
- * @param walletPrivateKey - Bitcoin private key of the wallet.
+ * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
  * @param utxos - P2(W)SH UTXOs to be combined into one output.
- * @param depositData - data on deposits. Each elements corresponds to UTXO.
+ * @param depositData - data on deposits. Each element corresponds to UTXO.
  *                      The number of UTXOs and deposit data elements must
  *                      equal.
- * @param previousSweepUtxo - P2WKH UTXO from the previous sweep transaction
- *                            (optional).
+ * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
+ *                   from the previous sweep transaction (optional).
  * @returns Empty promise.
  */
 export async function sweepDeposits(
@@ -39,7 +40,7 @@ export async function sweepDeposits(
   walletPrivateKey: string,
   utxos: UnspentTransactionOutput[],
   depositData: DepositData[],
-  previousSweepUtxo?: UnspentTransactionOutput
+  mainUtxo?: UnspentTransactionOutput
 ): Promise<void> {
   const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
   for (const utxo of utxos) {
@@ -53,13 +54,13 @@ export async function sweepDeposits(
     })
   }
 
-  const rawTransaction = previousSweepUtxo
-    ? await bitcoinClient.getRawTransaction(previousSweepUtxo.transactionHash)
+  const rawTransaction = mainUtxo
+    ? await bitcoinClient.getRawTransaction(mainUtxo.transactionHash)
     : { transactionHex: "" }
 
-  const previousUtxoWithRaw = previousSweepUtxo
+  const mainUtxoWithRaw = mainUtxo
     ? {
-        ...previousSweepUtxo,
+        ...mainUtxo,
         transactionHex: rawTransaction.transactionHex,
       }
     : {
@@ -69,13 +70,13 @@ export async function sweepDeposits(
         transactionHex: "",
       }
 
-  const transaction = previousSweepUtxo
+  const transaction = mainUtxo
     ? await createSweepTransaction(
         fee,
         walletPrivateKey,
         utxosWithRaw,
         depositData,
-        previousUtxoWithRaw
+        mainUtxoWithRaw
       )
     : await createSweepTransaction(
         fee,
@@ -84,28 +85,25 @@ export async function sweepDeposits(
         depositData
       )
 
-  // TODO: `broadcast` may fail silently (i.e. no error will be returned, even
-  // if the transaction is rejected by other nodes and does not enter the
+  // Note that `broadcast` may fail silently (i.e. no error will be returned,
+  // even if the transaction is rejected by other nodes and does not enter the
   // mempool, for example due to an UTXO being already spent).
-  // We could call `verify` on the transaction before broadcasting which would
-  // ensure it is correctly constructed, but this check alone does not ensure
-  // it's correct from the network point of view (for example the UTXOs must all
-  // be spendable).
-  // One solution could be checking the mempool after broadcast or simply do
-  // nothing and assume the caller used correct UTXOs.
   await bitcoinClient.broadcast(transaction)
 }
 
 /**
  * Creates a Bitcoin P2WPKH sweep transaction.
+ * @dev The caller is responsible for ensuring the provided UTXOs are correctly
+ *      formed, can be spent by the wallet and their combined value is greater
+ *      then the fee.
  * @param fee - the value that should be subtracted from the sum of the UTXOs
  *              values and used as the transaction fee.
- * @param walletPrivateKey - Bitcoin private key of the wallet.
+ * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
  * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
- * @param depositData - data on deposits. Each elements corresponds to UTXO. The
- *                      number of UTXOs and deposit data elements must equal.
- * @param previousUtxo - UTXO from the previous sweep transaction (optional).
- *                       Must be P2WPKH.
+ * @param depositData - data on deposits. Each element corresponds to UTXO.
+ *                      The number of UTXOs and deposit data elements must equal.
+ * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
+ *                   from the previous sweep transaction (optional).
  * @returns Bitcoin sweep transaction in raw format.
  */
 export async function createSweepTransaction(
@@ -113,7 +111,7 @@ export async function createSweepTransaction(
   walletPrivateKey: string,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   depositData: DepositData[],
-  previousUtxo?: UnspentTransactionOutput & RawTransaction
+  mainUtxo?: UnspentTransactionOutput & RawTransaction
 ): Promise<RawTransaction> {
   if (utxos.length < 1) {
     throw new Error("There must be at least one deposit UTXO to sweep")
@@ -131,15 +129,15 @@ export async function createSweepTransaction(
   const inputCoins = []
   let totalInputValue = 0
 
-  if (previousUtxo) {
+  if (mainUtxo) {
     inputCoins.push(
       bcoin.Coin.fromTX(
-        bcoin.MTX.fromRaw(previousUtxo.transactionHex, "hex"),
-        previousUtxo.outputIndex,
+        bcoin.MTX.fromRaw(mainUtxo.transactionHex, "hex"),
+        mainUtxo.outputIndex,
         -1
       )
     )
-    totalInputValue += previousUtxo.value
+    totalInputValue += mainUtxo.value
   }
 
   for (const utxo of utxos) {
@@ -176,20 +174,20 @@ export async function createSweepTransaction(
     const previousScript = previousOutput.script
 
     if (previousScript.isWitnessPubkeyhash()) {
-      // P2WKH (previous sweep UTXO)
-      await resolvePreviousSweepScript(transaction, i, walletKeyRing)
+      // P2WKH (main UTXO)
+      await signMainUtxoInput(transaction, i, walletKeyRing)
     } else if (previousScript.isScripthash()) {
       // P2SH (deposit UTXO)
       const key = buildKey(transaction.inputs[i])
       const data = utxosToDepositData.get(key)!
 
-      await resolveDepositScriptHash(transaction, i, data, walletKeyRing)
+      await signP2SHDepositInput(transaction, i, data, walletKeyRing)
     } else if (previousScript.isWitnessScripthash()) {
       // P2WSH (deposit UTXO)
       const key = buildKey(transaction.inputs[i])
       const data = utxosToDepositData.get(key)!
 
-      await resolveDepositWitnessScriptHash(transaction, i, data, walletKeyRing)
+      await signP2WSHDepositInput(transaction, i, data, walletKeyRing)
     } else {
       throw new Error("Unsupported UTXO script type")
     }
@@ -208,7 +206,7 @@ export async function createSweepTransaction(
  * @param walletKeyRing - Key ring created using the wallet's private key.
  * @returns Empty promise.
  */
-async function resolvePreviousSweepScript(
+async function signMainUtxoInput(
   transaction: bcoin.MTX,
   inputIndex: number,
   walletKeyRing: bcoin.KeyRing
@@ -218,7 +216,9 @@ async function resolvePreviousSweepScript(
   if (!walletKeyRing.ownOutput(previousOutput)) {
     throw new Error("UTXO does not belong to the wallet")
   }
+  // Build script and set it as input's witness
   transaction.scriptInput(inputIndex, previousOutput, walletKeyRing)
+  // Build signature and add it in front of script in input's witness
   transaction.signInput(inputIndex, previousOutput, walletKeyRing)
 }
 
@@ -231,7 +231,7 @@ async function resolvePreviousSweepScript(
  * @param walletKeyRing - Key ring created using the wallet's private key.
  * @returns Empty promise.
  */
-async function resolveDepositScriptHash(
+async function signP2SHDepositInput(
   transaction: bcoin.MTX,
   inputIndex: number,
   depositData: DepositData,
@@ -265,7 +265,7 @@ async function resolveDepositScriptHash(
     previousOutput.value,
     walletKeyRing.privateKey,
     bcoin.Script.hashType.ALL,
-    0
+    0 // legacy sighash version
   )
   const scriptSig = new bcoin.Script()
   scriptSig.clear()
@@ -286,7 +286,7 @@ async function resolveDepositScriptHash(
  * @param walletKeyRing - Key ring created using the wallet's private key.
  * @returns Empty promise.
  */
-async function resolveDepositWitnessScriptHash(
+async function signP2WSHDepositInput(
   transaction: bcoin.MTX,
   inputIndex: number,
   depositData: DepositData,
@@ -320,7 +320,7 @@ async function resolveDepositWitnessScriptHash(
     previousOutput.value,
     walletKeyRing.privateKey,
     bcoin.Script.hashType.ALL,
-    1
+    1 // segwit sighash version
   )
 
   const witness = new bcoin.Witness()
