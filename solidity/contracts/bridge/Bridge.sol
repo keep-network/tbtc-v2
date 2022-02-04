@@ -913,10 +913,10 @@ contract Bridge is Ownable {
         pure
         returns (bytes32 inputTxHash, uint32 inputTxIndex)
     {
-        // To determine the total number of redemption transaction inputs, we need to
-        // parse the compactSize uint (VarInt) the input vector is prepended by.
-        // That compactSize uint encodes the number of vector elements using the
-        // format presented in:
+        // To determine the total number of redemption transaction inputs,
+        // we need to parse the compactSize uint (VarInt) the input vector is
+        // prepended by. That compactSize uint encodes the number of vector
+        // elements using the format presented in:
         // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
         // We don't need asserting the compactSize uint is parseable since it
         // was already checked during `validateVin` validation.
@@ -941,8 +941,45 @@ contract Bridge is Ownable {
         view
         returns (uint32 changeIndex, uint64 changeValue)
     {
-        // TODO: Implementation.
-        (, uint256 outputsCount) = redemptionTxOutputVector.parseVarInt();
+        // Determining the total number of redemption transaction outputs in
+        // the same way as for number of inputs.
+        (uint256 outputsCompactSizeUintLength, uint256 outputsCount) =
+            redemptionTxOutputVector.parseVarInt();
+
+        // To determine the first output starting index, we must jump over
+        // the compactSize uint which prepends the output vector. One byte must
+        // be added because of how `parseVarInt` returns the length of the
+        // compactSize uint. Refer `BTCUtils` library for more details.
+        uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
+
+        for (uint256 i = 0; i < outputsCount; i++) {
+            // Check if we are at the end of the output vector.
+            if (outputStartingIndex >= redemptionTxOutputVector.length) {
+                break;
+            }
+
+            // TODO: Check if we can optimize gas costs by adding
+            //       `extractValueAt` and `extractHashAt` in `bitcoin-spv-sol`
+            //       in order to avoid allocating bytes in memory.
+            uint256 outputLength =
+                redemptionTxOutputVector.determineOutputLengthAt(
+                    outputStartingIndex
+                );
+            bytes memory output =
+                redemptionTxOutputVector.slice(
+                    outputStartingIndex,
+                    outputLength
+                );
+            uint64 outputValue = output.extractValue();
+            bytes memory outputHash = output.extractHash();
+
+            // TODO: Validate `outputValue` and `outputHash` against the right
+            //       redemption request.
+
+            // Make the `outputStartingIndex` pointing to the next output by
+            // increasing it by current output's length.
+            outputStartingIndex += outputLength;
+        }
 
         return (changeIndex, changeValue);
     }
