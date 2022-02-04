@@ -109,6 +109,14 @@ contract Bridge is Ownable {
         uint32 sweptAt;
     }
 
+    // TODO: Documentation.
+    struct RedemptionRequest {
+        address redeemer;
+        bytes redeemerOutputHash;
+        bytes20 walletPubKeyHash;
+        uint64 amount;
+    }
+
     /// @notice Confirmations on the Bitcoin chain required to successfully
     ///         evaluate an SPV proof.
     uint256 public immutable txProofDifficultyFactor;
@@ -144,6 +152,9 @@ contract Bridge is Ownable {
     ///         keccak256(txHash | txOutputIndex | txOutputValue).
     mapping(bytes20 => bytes32) public mainUtxos;
 
+    // TODO: Documentation.
+    mapping(uint256 => uint32) public redemptionRequests;
+
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
     event DepositRevealed(
@@ -159,7 +170,17 @@ contract Bridge is Ownable {
 
     event SweepPerformed(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
-    event RedemptionPerformed(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
+    event RedemptionRequested(
+        address redeemer,
+        bytes redeemerOutputHash,
+        bytes20 walletPubKeyHash,
+        uint64 amount
+    );
+
+    event RedemptionPerformed(
+        bytes20 walletPubKeyHash,
+        bytes32 redemptionTxHash
+    );
 
     constructor(
         address _bank,
@@ -775,6 +796,46 @@ contract Bridge is Ownable {
     //      depositors, next to sweep, to prove their swept balances on Ethereum
     //      selectively, based on deposits they have earlier received.
     //      (UPDATE PR #90: Is it still the case since amounts are inferred?)
+
+    // TODO: Documentation.
+    function requestRedemption(RedemptionRequest calldata request) external {
+        require(request.redeemer == msg.sender, "Redeemer is not the caller");
+
+        // TODO: Validate wallet choice, specifically whether it contains a
+        //       sufficient BTC balance.
+
+        uint256 redemptionRequestKey =
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        request.redeemer,
+                        request.redeemerOutputHash,
+                        redeemer.walletPubKeyHash,
+                        redeemer.amount
+                    )
+                )
+            );
+
+        require(
+            redemptionRequests[redemptionRequestKey] == uint32(0),
+            "Redemption request already registered"
+        );
+        /* solhint-disable-next-line not-rely-on-time */
+        redemptionRequests[redemptionRequestKey] = uint32(block.timestamp);
+
+        emit RedemptionRequested(
+            request.redeemer,
+            request.redeemerOutputHash,
+            redeemer.walletPubKeyHash,
+            redeemer.amount
+        );
+
+        bank.transferBalanceFrom(
+            request.redeemer,
+            address(this),
+            request.amount
+        );
+    }
 
     // TODO: Documentation.
     function submitRedemptionProof(
