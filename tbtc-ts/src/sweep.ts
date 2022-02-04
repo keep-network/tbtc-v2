@@ -159,6 +159,10 @@ export async function createSweepTransaction(
     subtractFee: true,
   })
 
+  if (transaction.outputs.length != 1) {
+    throw new Error("Sweep transaction must have one output")
+  }
+
   // UTXOs must be mapped to deposit data, as `fund` may arrange inputs in any
   // order
   const utxosWithDepositData: (UnspentTransactionOutput &
