@@ -515,10 +515,9 @@ Operator-Only transactions are where only the operators have access to the
 information required to assemble the transaction with the right input
 parameters.
 
-In order to avoid all operators racing to submit the
-transaction at the same time, we have an off-chain gentleman's agreement to
-submit based on the operator's position in the group (can use the hash of the
-group's pubkey).
+In order to avoid all operators racing to submit the transaction at the same
+time, we have an off-chain informal agreement to submit based on the operator's
+position in the group (can use the hash of the group's pubkey).
 
 If the designated operator does not submit their transaction before a timeout
 expires, the duty moves to the next operator and the group can sign a
@@ -535,7 +534,7 @@ Public-Knowledge transactions are where anyone has access to the information
 required to assemble the transaction.
 
 In order to prevent wasting gas on racing to submit, we can either use an
-off-chain gentleman's agreement for the operators like in
+off-chain informal agreement for the operators like in
 <<operator-only,Operator-Only>> transactions, or we can delegate the
 transactions to a network like https://www.gelato.network/[Gelato]. We can't
 cost-effectively stop members of the public from trying to race to submit.
