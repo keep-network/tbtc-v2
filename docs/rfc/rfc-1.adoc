@@ -521,8 +521,9 @@ position in the group (can use the hash of the group's pubkey).
 
 If the designated operator does not submit their transaction before a timeout
 expires, the duty moves to the next operator and the group can sign a
-transaction to mark that operator as inactive. Such a transaction would be a
-<<punishment,Punishment>>.
+transaction to mark that operator as inactive. Since there is no slashing
+reward, and since this transaction can only be submitted by an operator, this
+transaction is also Operator-Only.
 
 In order to compensate the operator for posting the transaction, the gas spent
 will be reimbursed by a DAO-funded eth pool in the same transaction with
