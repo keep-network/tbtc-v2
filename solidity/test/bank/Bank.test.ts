@@ -1,4 +1,4 @@
-import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
+import { artifacts, ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 
@@ -7,6 +7,8 @@ import type { Bank } from "../../typechain"
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
+
+const IVaultJSON = artifacts.readArtifactSync("IVault")
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 const MAX_UINT256 = ethers.constants.MaxUint256
@@ -264,6 +266,91 @@ describe("Bank", () => {
     })
   })
 
+  describe("approveBalanceAndCall", () => {
+    const amount = to1e18(11)
+
+    let owner: SignerWithAddress
+
+    let mockVault
+
+    before(async () => {
+      const accounts = await getUnnamedAccounts()
+      owner = await ethers.getSigner(accounts[0])
+      mockVault = await waffle.deployMockContract(deployer, IVaultJSON.abi)
+    })
+
+    context("when the vault is the zero address", () => {
+      it("should revert", async () => {
+        await expect(
+          bank.connect(owner).approveBalanceAndCall(ZERO_ADDRESS, amount)
+        ).to.be.revertedWith("Can not approve to the zero address")
+      })
+    })
+
+    context("when the vault callback reverted", () => {
+      it("should revert", async () => {
+        await mockVault.mock.receiveBalanceApproval.revertsWithReason("brrrr")
+        await expect(
+          bank.connect(owner).approveBalanceAndCall(mockVault.address, amount)
+        ).to.be.revertedWith("brrrr")
+      })
+    })
+
+    context("when the vault had no approved balance before", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        await mockVault.mock.receiveBalanceApproval.returns()
+        tx = await bank
+          .connect(owner)
+          .approveBalanceAndCall(mockVault.address, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should approve the requested amount", async () => {
+        expect(await bank.allowance(owner.address, mockVault.address)).to.equal(
+          amount
+        )
+      })
+
+      it("should emit the BalanceApproved event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceApproved")
+          .withArgs(owner.address, mockVault.address, amount)
+      })
+    })
+
+    context("when the vault had an approved balance before", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await mockVault.mock.receiveBalanceApproval.returns()
+
+        await bank
+          .connect(owner)
+          .approveBalance(mockVault.address, to1e18(1337))
+        await bank
+          .connect(owner)
+          .approveBalanceAndCall(mockVault.address, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should replace the previous allowance", async () => {
+        expect(await bank.allowance(owner.address, mockVault.address)).to.equal(
+          amount
+        )
+      })
+    })
+  })
+
   describe("approveBalance", () => {
     const amount = to1e18(10)
 
@@ -271,16 +358,10 @@ describe("Bank", () => {
     let spender: string
 
     before(async () => {
-      await createSnapshot()
-
       const accounts = await getUnnamedAccounts()
       owner = await ethers.getSigner(accounts[0])
       // eslint-disable-next-line prefer-destructuring
       spender = accounts[1]
-    })
-
-    after(async () => {
-      await restoreSnapshot()
     })
 
     context("when the spender is the zero address", () => {
