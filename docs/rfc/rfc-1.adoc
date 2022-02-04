@@ -503,6 +503,11 @@ this transaction.
 
 [[transaction-incentives]]
 === Transaction Incentives
+
+Governable Parameters
+- `max_gas_refund_price`: The highest amount of gwei that the gas refund
+  contract will pay out per gas for a refund transaction.
+
 Transaction incentives are more deeply explored in link:rfc-6.adoc[RFC 6:
 Transaction Incentives]. Summarized:
 
@@ -526,8 +531,8 @@ reward, and since this transaction can only be submitted by an operator, this
 transaction is also Operator-Only.
 
 In order to compensate the operator for posting the transaction, the gas spent
-will be reimbursed by a DAO-funded eth pool in the same transaction with
-governable limits on how much eth can be spent on gas.
+will be reimbursed by a DAO-funded eth pool in the same transaction, limited by
+`max_gas_refund_price`.
 
 [[public-knowledge]]
 ==== Public-Knowledge
@@ -541,8 +546,8 @@ transactions to a network like https://www.gelato.network/[Gelato]. We can't
 cost-effectively stop members of the public from trying to race to submit.
 
 To compensate these transactions, whoever posts them will have the gas spent
-reimbursed by a DAO-funded eth pool in the same transaction, with governable
-limits on how much eth can be spent on gas.
+reimbursed by a DAO-funded eth pool in the same transaction, limited by
+`max_gas_refund_price`.
 
 [[punishment]]
 ==== Punishment
