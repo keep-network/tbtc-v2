@@ -117,6 +117,15 @@ contract Bridge is Ownable {
         uint64 amount;
     }
 
+    // TODO: Documentation.
+    enum RedemptionOutputType {REQUEST, CHANGE}
+
+    // TODO: Documentation.
+    struct RedemptionOutputDescriptor {
+        RedemptionOutputType outputType;
+        RedemptionRequest request;
+    }
+
     /// @notice Confirmations on the Bitcoin chain required to successfully
     ///         evaluate an SPV proof.
     uint256 public immutable txProofDifficultyFactor;
@@ -128,6 +137,12 @@ contract Bridge is Ownable {
     /// TODO: Make it updatable.
     /// @notice Handle to the Bitcoin relay.
     IRelay public immutable relay;
+
+    // TODO: Documentation.
+    uint256 public redemptionTimeout;
+
+    // TODO: Documentation.
+    uint256 public maxRedemptionAmountSlippage;
 
     /// @notice Indicates if the vault with the given address is trusted or not.
     ///         Depositors can route their revealed deposits only to trusted
@@ -711,6 +726,7 @@ contract Bridge is Ownable {
                     // In that case, we should ignore that input and let the
                     // transaction fail at `require` checking whether expected
                     // main UTXO was found.
+                    // TODO: Update input starting index.
                     continue;
                 }
 
@@ -804,14 +820,16 @@ contract Bridge is Ownable {
         // TODO: Validate wallet choice, specifically whether it contains a
         //       sufficient BTC balance.
 
+        // TODO: Calculate and store redemption fee.
+
         uint256 redemptionRequestKey =
             uint256(
                 keccak256(
                     abi.encodePacked(
                         request.redeemer,
                         request.redeemerOutputHash,
-                        redeemer.walletPubKeyHash,
-                        redeemer.amount
+                        request.walletPubKeyHash,
+                        request.amount
                     )
                 )
             );
@@ -826,8 +844,8 @@ contract Bridge is Ownable {
         emit RedemptionRequested(
             request.redeemer,
             request.redeemerOutputHash,
-            redeemer.walletPubKeyHash,
-            redeemer.amount
+            request.walletPubKeyHash,
+            request.amount
         );
 
         bank.transferBalanceFrom(
@@ -842,7 +860,8 @@ contract Bridge is Ownable {
         BitcoinTx.Info calldata redemptionTx,
         BitcoinTx.Proof calldata redemptionProof,
         BitcoinTx.UTXO calldata mainUtxo,
-        bytes20 walletPubKeyHash
+        bytes20 walletPubKeyHash,
+        RedemptionOutputDescriptor[] calldata outputDescriptors
     ) external {
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
@@ -851,6 +870,54 @@ contract Bridge is Ownable {
         bytes32 redemptionTxHash =
             validateTxProof(redemptionTx, redemptionProof);
 
+        // Perform validation of the redemption transaction input. Specifically,
+        // check if it refers to the expected wallet's main UTXO.
+        validateRedemptionTxInput(
+            redemptionTx.inputVector,
+            mainUtxo,
+            walletPubKeyHash
+        );
+
+        // Process redemption transaction outputs and cross-check them with
+        // provided output descriptors to extract some info required for
+        // further processing.
+        (uint32 redemptionTxChangeIndex, uint64 redemptionTxChangeValue) =
+            processRedemptionTxOutputs(
+                redemptionTx.outputVector,
+                walletPubKeyHash,
+                outputDescriptors
+            );
+
+        // TODO: Fee processing.
+
+        if (redemptionTxChangeValue > 0) {
+            // If the change value is grater than zero, it means the change
+            // output exists and can be used as new wallet's main UTXO.
+            mainUtxos[walletPubKeyHash] = keccak256(
+                abi.encodePacked(
+                    redemptionTxHash,
+                    redemptionTxChangeIndex,
+                    redemptionTxChangeValue
+                )
+            );
+        } else {
+            // If the change value is zero, it means the change output doesn't
+            // exists and no funds left on the wallet. Delete the main UTXO
+            // for that wallet to represent that state in a proper way.
+            delete mainUtxos[walletPubKeyHash];
+        }
+
+        emit RedemptionPerformed(walletPubKeyHash, redemptionTxHash);
+
+        // TODO: Bank bookkeeping.
+    }
+
+    // TODO: Documentation.
+    function validateRedemptionTxInput(
+        bytes memory redemptionTxInputVector,
+        BitcoinTx.UTXO calldata mainUtxo,
+        bytes20 walletPubKeyHash
+    ) internal {
         // Assert that main UTXO for passed wallet exists in storage.
         bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
         require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
@@ -871,40 +938,12 @@ contract Bridge is Ownable {
         // Assert that the single redemption transaction input actually
         // refers to the wallet's main UTXO.
         (bytes32 redemptionTxInputTxHash, uint32 redemptionTxInputTxIndex) =
-            processRedemptionTxInput(redemptionTx.inputVector);
+            processRedemptionTxInput(redemptionTxInputVector);
         require(
             mainUtxo.txHash == redemptionTxInputTxHash &&
                 mainUtxo.txOutputIndex == redemptionTxInputTxIndex,
             "Redemption transaction input must point to the wallet's main UTXO"
         );
-
-        // Process redemption transaction outputs and extract the change output
-        // and all information needed to perform deposit bookkeeping.
-        (uint32 redemptionTxChangeIndex, uint64 redemptionTxChangeValue) =
-            processRedemptionTxOutputs(redemptionTx.outputVector);
-
-        // TODO: Fee processing.
-
-        if (redemptionTxChangeValue > 0) {
-            // If the change value is grater than zero, it means the change
-            // output exists and can be used as new wallet's main UTXO.
-            mainUtxos[walletPubKeyHash] = keccak256(
-                abi.encodePacked(
-                    redemptionTxHash,
-                    redemptionTxChangeIndex,
-                    redemptionTxChangeValue
-                )
-            );
-        } else {
-            // If the change value is zero, it means the change output doesn't
-            // exists and no funds left on the wallet. Delete the main UTXO
-            // for that wallet to represent that state in a proper way.
-            delete mainUtxo[walletPubKeyHash];
-        }
-
-        emit RedemptionPerformed(walletPubKeyHash, redemptionTxHash);
-
-        // TODO: Bank bookkeeping.
     }
 
     // TODO: Documentation.
@@ -936,11 +975,11 @@ contract Bridge is Ownable {
     }
 
     // TODO: Documentation.
-    function processRedemptionTxOutputs(bytes memory redemptionTxOutputVector)
-        internal
-        view
-        returns (uint32 changeIndex, uint64 changeValue)
-    {
+    function processRedemptionTxOutputs(
+        bytes memory redemptionTxOutputVector,
+        bytes20 walletPubKeyHash,
+        RedemptionOutputDescriptor[] calldata outputDescriptors
+    ) internal view returns (uint32 changeIndex, uint64 changeValue) {
         // Determining the total number of redemption transaction outputs in
         // the same way as for number of inputs.
         (uint256 outputsCompactSizeUintLength, uint256 outputsCount) =
@@ -952,6 +991,13 @@ contract Bridge is Ownable {
         // compactSize uint. Refer `BTCUtils` library for more details.
         uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
 
+        // Ensure there is a descriptor for each output.
+        require(
+            outputDescriptors.length == outputsCount,
+            "Wrong output descriptors count"
+        );
+
+        // Outputs processing loop.
         for (uint256 i = 0; i < outputsCount; i++) {
             // Check if we are at the end of the output vector.
             if (outputStartingIndex >= redemptionTxOutputVector.length) {
@@ -971,10 +1017,65 @@ contract Bridge is Ownable {
                     outputLength
                 );
             uint64 outputValue = output.extractValue();
-            bytes memory outputHash = output.extractHash();
 
-            // TODO: Validate `outputValue` and `outputHash` against the right
-            //       redemption request.
+            if (
+                outputDescriptors[i].outputType == RedemptionOutputType.REQUEST
+            ) {
+                RedemptionRequest calldata request =
+                    outputDescriptors[i].request;
+
+                uint256 redemptionRequestKey =
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                request.redeemer,
+                                request.redeemerOutputHash,
+                                request.walletPubKeyHash,
+                                request.amount
+                            )
+                        )
+                    );
+
+                uint256 requestedAt = redemptionRequests[redemptionRequestKey];
+
+                require(requestedAt != 0, "Unknown redemption request");
+                require(
+                    /* solhint-disable-next-line not-rely-on-time */
+                    requestedAt + redemptionTimeout < block.timestamp,
+                    "Redemption request timed out"
+                );
+                require(
+                    request.walletPubKeyHash == walletPubKeyHash,
+                    "Wrong request wallet public key hash"
+                );
+                require(
+                    keccak256(request.redeemerOutputHash) ==
+                        keccak256(output.extractHash()),
+                    "Wrong output hash"
+                );
+                require(
+                    request.amount >= outputValue &&
+                        outputValue >=
+                        request.amount - maxRedemptionAmountSlippage,
+                    "Wrong output value"
+                );
+
+                // TODO: How to mark as redeemed?
+            } else if (
+                outputDescriptors[i].outputType ==
+                RedemptionOutputType.CHANGE &&
+                changeValue == 0
+            ) {
+                require(
+                    keccak256(abi.encodePacked(walletPubKeyHash)) ==
+                        keccak256(output.extractHash()),
+                    "Wrong change output hash"
+                );
+                changeIndex = uint32(i);
+                changeValue = outputValue;
+            } else {
+                revert("Unknown output type");
+            }
 
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.
