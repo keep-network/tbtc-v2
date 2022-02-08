@@ -680,6 +680,8 @@ contract Bridge is Ownable {
                 ];
 
             if (deposit.revealedAt != 0) {
+                // If we entered here, that means the input was identified as
+                // a revealed deposit.
                 require(deposit.sweptAt == 0, "Deposit already swept");
 
                 if (processedDepositsCount == depositors.length) {
@@ -703,6 +705,8 @@ contract Bridge is Ownable {
                 mainUtxoExpected != mainUtxoFound &&
                 mainUtxo.txHash == inputTxHash
             ) {
+                // If we entered here, that means the input was identified as
+                // the expected main UTXO.
                 inputsValue += mainUtxo.txOutputValue;
                 mainUtxoFound = true;
             } else {
