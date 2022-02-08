@@ -19,8 +19,24 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
+import {
+    ValidateSPV
+} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
 
+import "../bank/Bank.sol";
 import "./BitcoinTx.sol";
+
+/// @title Interface for the Bitcoin relay
+/// @notice Contains only the methods needed by tBTC v2. The Bitcoin relay
+///         provides the difficulty of the previous and current epoch. One
+///         difficulty epoch spans 2016 blocks.
+interface IRelay {
+    /// @notice Returns the difficulty of the current epoch.
+    function getCurrentEpochDifficulty() external view returns (uint256);
+
+    /// @notice Returns the difficulty of the previous epoch.
+    function getPrevEpochDifficulty() external view returns (uint256);
+}
 
 /// @title Bitcoin Bridge
 /// @notice Bridge manages BTC deposit and redemption flow and is increasing and
@@ -43,13 +59,16 @@ import "./BitcoinTx.sol";
 /// @dev Bridge is an upgradeable component of the Bank.
 contract Bridge is Ownable {
     using BTCUtils for bytes;
+    using BTCUtils for uint256;
     using BytesLib for bytes;
+    using ValidateSPV for bytes;
+    using ValidateSPV for bytes32;
 
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
     struct RevealInfo {
         // Index of the funding output belonging to the funding transaction.
-        uint8 fundingOutputIndex;
+        uint32 fundingOutputIndex;
         // Ethereum depositor address.
         address depositor;
         // The blinding factor as 8 bytes. Byte endianness doesn't matter
@@ -77,15 +96,30 @@ contract Bridge is Ownable {
     struct DepositInfo {
         // Ethereum depositor address.
         address depositor;
-        // Deposit amount in satoshi (8-byte LE). For example:
-        // 0.0001 BTC = 10000 satoshi = 0x1027000000000000
-        bytes8 amount;
+        // Deposit amount in satoshi.
+        uint64 amount;
         // UNIX timestamp the deposit was revealed at.
         uint32 revealedAt;
         // Address of the Bank vault the deposit is routed to.
         // Optional, can be 0x0.
         address vault;
+        // UNIX timestamp the deposit was swept at. Note this is not the
+        // time when the deposit was swept on the Bitcoin chain but actually
+        // the time when the sweep proof was delivered to the Ethereum chain.
+        uint32 sweptAt;
     }
+
+    /// @notice The number of confirmations on the Bitcoin chain required to
+    ///         successfully evaluate an SPV proof.
+    uint256 public immutable txProofDifficultyFactor;
+
+    // TODO: Revisit whether it should be updatable or not.
+    /// @notice Address of the Bank this Bridge belongs to.
+    Bank public immutable bank;
+
+    /// TODO: Make it updatable.
+    /// @notice Handle to the Bitcoin relay.
+    IRelay public immutable relay;
 
     /// @notice Indicates if the vault with the given address is trusted or not.
     ///         Depositors can route their revealed deposits only to trusted
@@ -96,20 +130,27 @@ contract Bridge is Ownable {
     ///         address.
     mapping(address => bool) public isVaultTrusted;
 
-    /// @notice Collection of all unswept deposits indexed by
+    /// @notice Collection of all revealed deposits indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex).
-    ///         The fundingTxHash is LE bytes32 and fundingOutputIndex an uint8.
+    ///         The fundingTxHash is LE bytes32 and fundingOutputIndex an uint32.
     ///         This mapping may contain valid and invalid deposits and the
     ///         wallet is responsible for validating them before attempting to
     ///         execute a sweep.
-    ///
-    /// TODO: Explore the possibility of storing just a hash of DepositInfo.
-    mapping(uint256 => DepositInfo) public unswept;
+    mapping(uint256 => DepositInfo) public deposits;
+
+    /// @notice Maps the wallet public key hash (computed using HASH160 opcode)
+    ///         to the latest wallet's main UTXO computed as
+    ///         keccak256(txHash | txOutputIndex | txOutputValue). The `tx`
+    ///         prefix refers to the transaction which created that main UTXO.
+    mapping(bytes20 => bytes32) public mainUtxos;
+
+    event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
     event DepositRevealed(
         bytes32 fundingTxHash,
-        uint8 fundingOutputIndex,
+        uint32 fundingOutputIndex,
         address depositor,
+        uint64 amount,
         bytes8 blindingFactor,
         bytes20 walletPubKeyHash,
         bytes20 refundPubKeyHash,
@@ -117,7 +158,21 @@ contract Bridge is Ownable {
         address vault
     );
 
-    event VaultStatusUpdated(address indexed vault, bool isTrusted);
+    event DepositsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
+
+    constructor(
+        address _bank,
+        address _relay,
+        uint256 _txProofDifficultyFactor
+    ) {
+        require(_bank != address(0), "Bank address cannot be zero");
+        bank = Bank(_bank);
+
+        require(_relay != address(0), "Relay address cannot be zero");
+        relay = IRelay(_relay);
+
+        txProofDifficultyFactor = _txProofDifficultyFactor;
+    }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
     ///         or no longer trusted. Vaults are not trusted by default.
@@ -255,7 +310,7 @@ contract Bridge is Ownable {
                 .hash256();
 
         DepositInfo storage deposit =
-            unswept[
+            deposits[
                 uint256(
                     keccak256(
                         abi.encodePacked(
@@ -267,15 +322,9 @@ contract Bridge is Ownable {
             ];
         require(deposit.revealedAt == 0, "Deposit already revealed");
 
-        bytes8 fundingOutputAmount;
-        /* solhint-disable-next-line no-inline-assembly */
-        assembly {
-            // First 8 bytes (little-endian) of the funding output represents
-            // its value. To take the value, we need to jump over the first
-            // word determining the array length, load the array, and trim it
-            // by putting it to a bytes8.
-            fundingOutputAmount := mload(add(fundingOutput, 32))
-        }
+        uint64 fundingOutputAmount = fundingOutput.extractValue();
+
+        // TODO: Check the amount against the dust threshold.
 
         deposit.amount = fundingOutputAmount;
         deposit.depositor = reveal.depositor;
@@ -287,6 +336,7 @@ contract Bridge is Ownable {
             fundingTxHash,
             reveal.fundingOutputIndex,
             reveal.depositor,
+            fundingOutputAmount,
             reveal.blindingFactor,
             reveal.walletPubKeyHash,
             reveal.refundPubKeyHash,
@@ -306,35 +356,443 @@ contract Bridge is Ownable {
     ///         during the reveal transaction, minus their fee share.
     ///
     ///         It is possible to prove the given sweep only one time.
-    /// @param sweepTx Bitcoin sweep transaction data.
-    /// @param merkleProof The merkle proof of transaction inclusion in a block.
-    /// @param txIndexInBlock Transaction index in the block (0-indexed).
-    /// @param bitcoinHeaders Single bytestring of 80-byte bitcoin headers,
-    ///                       lowest height first.
-    function sweep(
+    /// @param sweepTx Bitcoin sweep transaction data
+    /// @param sweepProof Bitcoin sweep proof data
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain. If no main UTXO exists for the given wallet,
+    ///        this parameter is ignored
+    /// @dev Requirements:
+    ///      - `sweepTx` components must match the expected structure. See
+    ///        `BitcoinTx.Info` docs for reference. Their values must exactly
+    ///        correspond to appropriate Bitcoin transaction fields to produce
+    ///        a provable transaction hash.
+    ///      - The `sweepTx` should represent a Bitcoin transaction with 1..n
+    ///        inputs. If the wallet has no main UTXO, all n inputs should
+    ///        correspond to P2(W)SH revealed deposits UTXOs. If the wallet has
+    ///        an existing main UTXO, one of the n inputs must point to that
+    ///        main UTXO and remaining n-1 inputs should correspond to P2(W)SH
+    ///        revealed deposits UTXOs. That transaction must have only
+    ///        one P2(W)PKH output locking funds on the 20-byte wallet public
+    ///        key hash.
+    ///      - `sweepProof` components must match the expected structure. See
+    ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
+    ///        field must contain a valid number of block headers, not less
+    ///        than the `txProofDifficultyFactor` contract constant.
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///        If there is no main UTXO, this parameter is ignored.
+    function submitSweepProof(
         BitcoinTx.Info calldata sweepTx,
-        bytes memory merkleProof,
-        uint256 txIndexInBlock,
-        bytes memory bitcoinHeaders
+        BitcoinTx.Proof calldata sweepProof,
+        BitcoinTx.UTXO calldata mainUtxo
     ) external {
-        // TODO We need to read `fundingTxHash`, `fundingOutputIndex` from
-        //      `sweepTx.inputVector`. We then hash them to obtain deposit
-        //      identifier and read DepositInfo. From DepositInfo we know what
-        //      amount was inferred during deposit reveal transaction and we
-        //      use that amount to update their Bank balance, minus fee.
+        // TODO: Fail early if the function call gets frontrunned. See discussion:
+        //       https://github.com/keep-network/tbtc-v2/pull/106#discussion_r801745204
+
+        // The actual transaction proof is performed here. After that point, we
+        // can assume the transaction happened on Bitcoin chain and has
+        // a sufficient number of confirmations as determined by
+        // `txProofDifficultyFactor` constant.
+        bytes32 sweepTxHash = validateSweepTxProof(sweepTx, sweepProof);
+
+        // Process sweep transaction output and extract its target wallet
+        // public key hash and value.
+        (bytes20 walletPubKeyHash, uint64 sweepTxOutputValue) =
+            processSweepTxOutput(sweepTx.outputVector);
+
+        // TODO: Validate if `walletPubKeyHash` is a known and active wallet.
+
+        // Check if the main UTXO for given wallet exists. If so, validate
+        // passed main UTXO data against the stored hash and use them for
+        // further processing. If no main UTXO exists, use empty data.
+        BitcoinTx.UTXO memory resolvedMainUtxo =
+            BitcoinTx.UTXO(bytes32(0), 0, 0);
+        bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
+        if (mainUtxoHash != bytes32(0)) {
+            require(
+                keccak256(
+                    abi.encodePacked(
+                        mainUtxo.txHash,
+                        mainUtxo.txOutputIndex,
+                        mainUtxo.txOutputValue
+                    )
+                ) == mainUtxoHash,
+                "Invalid main UTXO data"
+            );
+            resolvedMainUtxo = mainUtxo;
+        }
+
+        // Process sweep transaction inputs and extract their value sum and
+        // all information needed to perform deposit bookkeeping.
+        (
+            uint256 sweepTxInputsValue,
+            address[] memory depositors,
+            uint256[] memory depositedAmounts
+        ) = processSweepTxInputs(sweepTx.inputVector, resolvedMainUtxo);
+
+        // Compute the sweep transaction fee which is a difference between
+        // inputs amounts sum and the output amount.
+        // TODO: Check fee against max fee.
+        uint256 fee = sweepTxInputsValue - sweepTxOutputValue;
+        // Calculate fee share by dividing the total fee by deposits count.
+        // TODO: Deal with precision loss by having the last depositor pay
+        //       the higher fee than others if there is a change, just like it has
+        //       been proposed for the redemption flow. See:
+        //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r800555359.
+        uint256 feeShare = fee / depositedAmounts.length;
+        // Reduce each deposit amount by fee share value.
+        for (uint256 i = 0; i < depositedAmounts.length; i++) {
+            // We don't have to check if `feeShare` is bigger than the amount
+            // since we have the dust threshold preventing against too small
+            // deposits amounts.
+            depositedAmounts[i] -= feeShare;
+        }
+
+        // Record this sweep data and assign them to the wallet public key hash
+        // as new main UTXO. Transaction output index is always 0 as sweep
+        // transaction always contains only one output.
+        mainUtxos[walletPubKeyHash] = keccak256(
+            abi.encodePacked(sweepTxHash, uint32(0), sweepTxOutputValue)
+        );
+
+        emit DepositsSwept(walletPubKeyHash, sweepTxHash);
+
+        // Update depositors balances in the Bank.
+        bank.increaseBalances(depositors, depositedAmounts);
+
+        // TODO: Handle deposits having `vault` set.
+    }
+
+    /// @notice Validates the SPV proof of the Bitcoin sweep transaction.
+    ///         Reverts in case the validation or proof verification fail.
+    /// @param sweepTx Bitcoin sweep transaction data
+    /// @param sweepProof Bitcoin sweep proof data
+    /// @return sweepTxHash Proven 32-byte sweep transaction hash.
+    function validateSweepTxProof(
+        BitcoinTx.Info calldata sweepTx,
+        BitcoinTx.Proof calldata sweepProof
+    ) internal view returns (bytes32 sweepTxHash) {
+        require(
+            sweepTx.inputVector.validateVin(),
+            "Invalid input vector provided"
+        );
+        require(
+            sweepTx.outputVector.validateVout(),
+            "Invalid output vector provided"
+        );
+
+        sweepTxHash = abi
+            .encodePacked(
+            sweepTx
+                .version,
+            sweepTx
+                .inputVector,
+            sweepTx
+                .outputVector,
+            sweepTx
+                .locktime
+        )
+            .hash256();
+
+        checkProofFromTxHash(sweepTxHash, sweepProof);
+
+        return sweepTxHash;
+    }
+
+    /// @notice Checks the given Bitcoin transaction hash against the SPV proof.
+    ///         Reverts in case the check fails.
+    /// @param txHash 32-byte hash of the checked Bitcoin transaction
+    /// @param proof Bitcoin proof data
+    function checkProofFromTxHash(
+        bytes32 txHash,
+        BitcoinTx.Proof calldata proof
+    ) internal view {
+        require(
+            txHash.prove(
+                proof.bitcoinHeaders.extractMerkleRootLE(),
+                proof.merkleProof,
+                proof.txIndexInBlock
+            ),
+            "Tx merkle proof is not valid for provided header and tx hash"
+        );
+
+        evaluateProofDifficulty(proof.bitcoinHeaders);
+    }
+
+    /// @notice Evaluates the given Bitcoin proof difficulty against the actual
+    ///         Bitcoin chain difficulty provided by the relay oracle.
+    ///         Reverts in case the evaluation fails.
+    /// @param bitcoinHeaders Bitcoin headers chain being part of the SPV
+    ///        proof. Used to extract the observed proof difficulty
+    function evaluateProofDifficulty(bytes memory bitcoinHeaders)
+        internal
+        view
+    {
+        uint256 requestedDiff = 0;
+        uint256 currentDiff = relay.getCurrentEpochDifficulty();
+        uint256 previousDiff = relay.getPrevEpochDifficulty();
+        uint256 firstHeaderDiff =
+            bitcoinHeaders.extractTarget().calculateDifficulty();
+
+        if (firstHeaderDiff == currentDiff) {
+            requestedDiff = currentDiff;
+        } else if (firstHeaderDiff == previousDiff) {
+            requestedDiff = previousDiff;
+        } else {
+            revert("Not at current or previous difficulty");
+        }
+
+        uint256 observedDiff = bitcoinHeaders.validateHeaderChain();
+
+        require(
+            observedDiff != ValidateSPV.getErrBadLength(),
+            "Invalid length of the headers chain"
+        );
+        require(
+            observedDiff != ValidateSPV.getErrInvalidChain(),
+            "Invalid headers chain"
+        );
+        require(
+            observedDiff != ValidateSPV.getErrLowWork(),
+            "Insufficient work in a header"
+        );
+
+        require(
+            observedDiff >= requestedDiff * txProofDifficultyFactor,
+            "Insufficient accumulated difficulty in header chain"
+        );
+    }
+
+    /// @notice Processes the Bitcoin sweep transaction output vector by
+    ///         extracting the single output and using it to gain additional
+    ///         information required for further processing (e.g. value and
+    ///         wallet public key hash).
+    /// @param sweepTxOutputVector Bitcoin sweep transaction output vector.
+    ///        This function assumes vector's structure is valid so it must be
+    ///        validated using e.g. `BTCUtils.validateVout` function before
+    ///        it is passed here
+    /// @return walletPubKeyHash 20-byte wallet public key hash.
+    /// @return value 8-byte sweep transaction output value.
+    function processSweepTxOutput(bytes memory sweepTxOutputVector)
+        internal
+        pure
+        returns (bytes20 walletPubKeyHash, uint64 value)
+    {
+        // To determine the total number of sweep transaction outputs, we need to
+        // parse the compactSize uint (VarInt) the output vector is prepended by.
+        // That compactSize uint encodes the number of vector elements using the
+        // format presented in:
+        // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
+        // We don't need asserting the compactSize uint is parseable since it
+        // was already checked during `validateVout` validation.
+        // See `BitcoinTx.outputVector` docs for more details.
+        (, uint256 outputsCount) = sweepTxOutputVector.parseVarInt();
+        require(
+            outputsCount == 1,
+            "Sweep transaction must have a single output"
+        );
+
+        bytes memory output = sweepTxOutputVector.extractOutputAtIndex(0);
+        value = output.extractValue();
+        bytes memory walletPubKeyHashBytes = output.extractHash();
+        // The sweep transaction output should always be P2PKH or P2WPKH.
+        // In both cases, the wallet public key hash should be 20 bytes length.
+        require(
+            walletPubKeyHashBytes.length == 20,
+            "Wallet public key hash should have 20 bytes"
+        );
+        /* solhint-disable-next-line no-inline-assembly */
+        assembly {
+            walletPubKeyHash := mload(add(walletPubKeyHashBytes, 32))
+        }
+
+        return (walletPubKeyHash, value);
+    }
+
+    /// @notice Processes the Bitcoin sweep transaction input vector. It
+    ///         extracts each input and tries to obtain associated deposit or
+    ///         main UTXO data, depending on the input type. Reverts
+    ///         if one of the inputs cannot be recognized as a pointer to a
+    ///         revealed deposit or expected main UTXO.
+    ///         This function also marks each processed deposit as swept.
+    /// @param sweepTxInputVector Bitcoin sweep transaction input vector.
+    ///        This function assumes vector's structure is valid so it must be
+    ///        validated using e.g. `BTCUtils.validateVin` function before
+    ///        it is passed here
+    /// @param mainUtxo Data of the wallet's main UTXO. If no main UTXO
+    ///        exists for the given the wallet, this parameter's fields should
+    ///        be zeroed to bypass the main UTXO validation
+    /// @return inputsTotalValue Sum of all inputs values i.e. all deposits and
+    ///         main UTXO value, if present.
+    /// @return depositors Addresses of depositors who performed processed
+    ///         deposits. Ordered in the same order as deposits inputs in the
+    ///         input vector. Size of this array is either equal to the
+    ///         number of inputs (main UTXO doesn't exist) or less by one
+    ///         (main UTXO exists and is pointed by one of the inputs).
+    /// @return depositedAmounts Amounts of deposits corresponding to processed
+    ///         deposits. Ordered in the same order as deposits inputs in the
+    ///         input vector. Size of this array is either equal to the
+    ///         number of inputs (main UTXO doesn't exist) or less by one
+    ///         (main UTXO exists and is pointed by one of the inputs).
+    function processSweepTxInputs(
+        bytes memory sweepTxInputVector,
+        BitcoinTx.UTXO memory mainUtxo
+    )
+        internal
+        returns (
+            uint256 inputsTotalValue,
+            address[] memory depositors,
+            uint256[] memory depositedAmounts
+        )
+    {
+        // If the passed `mainUtxo` parameter's values are zeroed, the main UTXO
+        // for the given wallet doesn't exist and it is not expected to be
+        // included in the sweep transaction input vector.
+        bool mainUtxoExpected = mainUtxo.txHash != bytes32(0);
+        bool mainUtxoFound = false;
+
+        // Determining the total number of sweep transaction inputs in the same
+        // way as for number of outputs. See `BitcoinTx.inputVector` docs for
+        // more details.
+        (uint256 inputsCompactSizeUintLength, uint256 inputsCount) =
+            sweepTxInputVector.parseVarInt();
+
+        // To determine the first input starting index, we must jump over
+        // the compactSize uint which prepends the input vector. One byte
+        // must be added because `BtcUtils.parseVarInt` does not include
+        // compactSize uint tag in the returned length.
         //
-        // TODO We need to validate if the sum in the output minus the
-        //      amount from the previous wallet balance input minus fees is
-        //      equal to the amount by which Bank balances were increased.
+        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
+        // returns `0`, so we jump over one byte of compactSize uint.
         //
-        // TODO We need to validate `sweepTx.outputVector` to see if the balance
-        //      was not transferred away from the wallet before increasing
-        //      balances in the bank.
+        // For >= 253 && <= 0xffff there is `0xfd` tag,
+        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
+        // tag byte included) so we need to jump over 1+2 bytes of
+        // compactSize uint.
         //
-        // TODO Delete deposit from unswept mapping or mark it as swept
-        //      depending on the gas costs. Alternatively, do not allow to
-        //      use the same TX input vector twice. Sweep should be provable
-        //      only one time.
+        // Please refer `BTCUtils` library and compactSize uint
+        // docs in `BitcoinTx` library for more details.
+        uint256 inputStartingIndex = 1 + inputsCompactSizeUintLength;
+
+        // Determine the swept deposits count. If main UTXO is NOT expected,
+        // all inputs should be deposits. If main UTXO is expected, one input
+        // should point to that main UTXO.
+        depositors = new address[](
+            !mainUtxoExpected ? inputsCount : inputsCount - 1
+        );
+        depositedAmounts = new uint256[](depositors.length);
+
+        // Initialize helper variables.
+        uint256 processedDepositsCount = 0;
+
+        // Inputs processing loop.
+        for (uint256 i = 0; i < inputsCount; i++) {
+            // Check if we are at the end of the input vector.
+            if (inputStartingIndex >= sweepTxInputVector.length) {
+                break;
+            }
+
+            (bytes32 inputTxHash, uint32 inputTxIndex, uint256 inputLength) =
+                parseTxInputAt(sweepTxInputVector, inputStartingIndex);
+
+            DepositInfo storage deposit =
+                deposits[
+                    uint256(
+                        keccak256(abi.encodePacked(inputTxHash, inputTxIndex))
+                    )
+                ];
+
+            if (deposit.revealedAt != 0) {
+                // If we entered here, that means the input was identified as
+                // a revealed deposit.
+                require(deposit.sweptAt == 0, "Deposit already swept");
+
+                if (processedDepositsCount == depositors.length) {
+                    // If this condition is true, that means a deposit input
+                    // took place of an expected main UTXO input.
+                    // In other words, there is no expected main UTXO
+                    // input and all inputs come from valid, revealed deposits.
+                    revert(
+                        "Expected main UTXO not present in sweep transaction inputs"
+                    );
+                }
+
+                /* solhint-disable-next-line not-rely-on-time */
+                deposit.sweptAt = uint32(block.timestamp);
+
+                depositors[processedDepositsCount] = deposit.depositor;
+                depositedAmounts[processedDepositsCount] = deposit.amount;
+                inputsTotalValue += depositedAmounts[processedDepositsCount];
+
+                processedDepositsCount++;
+            } else if (
+                mainUtxoExpected != mainUtxoFound &&
+                mainUtxo.txHash == inputTxHash
+            ) {
+                // If we entered here, that means the input was identified as
+                // the expected main UTXO.
+                inputsTotalValue += mainUtxo.txOutputValue;
+                mainUtxoFound = true;
+            } else {
+                revert("Unknown input type");
+            }
+
+            // Make the `inputStartingIndex` pointing to the next input by
+            // increasing it by current input's length.
+            inputStartingIndex += inputLength;
+        }
+
+        // Construction of the input processing loop guarantees that:
+        // `processedDepositsCount == depositors.length == depositedAmounts.length`
+        // is always true at this point. We just use the first variable
+        // to assert the total count of swept deposit is bigger than zero.
+        require(
+            processedDepositsCount > 0,
+            "Sweep transaction must process at least one deposit"
+        );
+
+        // Assert the main UTXO was used as one of current sweep's inputs if
+        // it was actually expected.
+        require(
+            mainUtxoExpected == mainUtxoFound,
+            "Expected main UTXO not present in sweep transaction inputs"
+        );
+
+        return (inputsTotalValue, depositors, depositedAmounts);
+    }
+
+    /// @notice Parses a Bitcoin transaction input starting at the given index.
+    /// @param inputVector Bitcoin transaction input vector
+    /// @param inputStartingIndex Index the given input starts at
+    /// @return inputTxHash 32-byte hash of the Bitcoin transaction which is
+    ///         pointed in the given input's outpoint.
+    /// @return inputTxIndex 4-byte index of the Bitcoin transaction output
+    ///         which is pointed in the given input's outpoint.
+    /// @return inputLength Byte length of the given input.
+    /// @dev This function assumes vector's structure is valid so it must be
+    ///      validated using e.g. `BTCUtils.validateVin` function before it
+    ///      is passed here.
+    function parseTxInputAt(
+        bytes memory inputVector,
+        uint256 inputStartingIndex
+    )
+        internal
+        pure
+        returns (
+            bytes32 inputTxHash,
+            uint32 inputTxIndex,
+            uint256 inputLength
+        )
+    {
+        inputTxHash = inputVector.extractInputTxIdLeAt(inputStartingIndex);
+
+        inputTxIndex = BTCUtils.reverseUint32(
+            uint32(inputVector.extractTxIndexLeAt(inputStartingIndex))
+        );
+
+        inputLength = inputVector.determineInputLengthAt(inputStartingIndex);
+
+        return (inputTxHash, inputTxIndex, inputLength);
     }
 
     // TODO It is possible a malicious wallet can sweep deposits that can not
