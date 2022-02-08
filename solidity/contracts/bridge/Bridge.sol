@@ -424,6 +424,9 @@ contract Bridge is Ownable {
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
+        // TODO: Fail early if the function call gets frontrunned. See discussion:
+        //       https://github.com/keep-network/tbtc-v2/pull/106#discussion_r801745204
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -747,11 +750,9 @@ contract Bridge is Ownable {
                     // took place of an expected main UTXO input.
                     // In other words, there is no expected main UTXO
                     // input and all inputs come from valid, revealed deposits.
-                    // In that case, we should ignore that input and let the
-                    // transaction fail at `require` checking whether expected
-                    // main UTXO was found.
-                    inputStartingIndex += inputLength;
-                    continue;
+                    revert(
+                        "Expected main UTXO not present in sweep transaction inputs"
+                    );
                 }
 
                 /* solhint-disable-next-line not-rely-on-time */
