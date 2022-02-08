@@ -568,9 +568,9 @@ describe("Bridge", () => {
                     ).to.be.equal(18500)
                   })
 
-                  it("should emit SweepPerformed event", async () => {
+                  it("should emit DepositsSwept event", async () => {
                     await expect(tx)
-                      .to.emit(bridge, "SweepPerformed")
+                      .to.emit(bridge, "DepositsSwept")
                       .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }
@@ -638,9 +638,9 @@ describe("Bridge", () => {
                     ).to.be.equal(78000)
                   })
 
-                  it("should emit SweepPerformed event", async () => {
+                  it("should emit DepositsSwept event", async () => {
                     await expect(tx)
-                      .to.emit(bridge, "SweepPerformed")
+                      .to.emit(bridge, "DepositsSwept")
                       .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }
@@ -827,9 +827,9 @@ describe("Bridge", () => {
                     ).to.be.equal(289401)
                   })
 
-                  it("should emit SweepPerformed event", async () => {
+                  it("should emit DepositsSwept event", async () => {
                     await expect(tx)
-                      .to.emit(bridge, "SweepPerformed")
+                      .to.emit(bridge, "DepositsSwept")
                       .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }
@@ -917,9 +917,9 @@ describe("Bridge", () => {
                     ).to.be.equal(439600)
                   })
 
-                  it("should emit SweepPerformed event", async () => {
+                  it("should emit DepositsSwept event", async () => {
                     await expect(tx)
-                      .to.emit(bridge, "SweepPerformed")
+                      .to.emit(bridge, "DepositsSwept")
                       .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }

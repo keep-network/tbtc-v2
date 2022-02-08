@@ -157,7 +157,7 @@ contract Bridge is Ownable {
         address vault
     );
 
-    event SweepPerformed(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
+    event DepositsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
     constructor(
         address _bank,
@@ -444,7 +444,7 @@ contract Bridge is Ownable {
             abi.encodePacked(sweepTxHash, uint32(0), sweepTxOutputValue)
         );
 
-        emit SweepPerformed(walletPubKeyHash, sweepTxHash);
+        emit DepositsSwept(walletPubKeyHash, sweepTxHash);
 
         // Update depositors balances in the Bank.
         bank.increaseBalances(depositors, depositedAmounts);
