@@ -395,6 +395,8 @@ contract Bridge is Ownable {
         (bytes20 walletPubKeyHash, uint64 sweepTxOutputValue) =
             processSweepTxOutput(sweepTx.outputVector);
 
+        // TODO: Validate if `walletPubKeyHash` is a known and active wallet.
+
         // Check if the main UTXO for given wallet exists. If so, validate
         // passed main UTXO data against the stored hash and use them for
         // further processing. If no main UTXO exists, use empty data.
