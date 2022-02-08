@@ -324,6 +324,8 @@ contract Bridge is Ownable {
 
         uint64 fundingOutputAmount = fundingOutput.extractValue();
 
+        // TODO: Check the amount against the dust threshold.
+
         deposit.amount = fundingOutputAmount;
         deposit.depositor = reveal.depositor;
         /* solhint-disable-next-line not-rely-on-time */
@@ -434,7 +436,9 @@ contract Bridge is Ownable {
         uint256 feeShare = fee / depositedAmounts.length;
         // Reduce each deposit amount by fee share value.
         for (uint256 i = 0; i < depositedAmounts.length; i++) {
-            // TODO: The feeShare can be bigger than the amount.
+            // We don't have to check if `feeShare` is bigger than the amount
+            // since we have the dust threshold preventing against too small
+            // deposits amounts.
             depositedAmounts[i] -= feeShare;
         }
 
