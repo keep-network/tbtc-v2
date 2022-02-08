@@ -24,7 +24,7 @@ export interface DepositData {
   ethereumAddress: string
 
   /**
-   * Deposit amount in sathoshis.
+   * Deposit amount in satoshis.
    */
   amount: BigNumber
 
@@ -250,7 +250,8 @@ export async function createDepositAddress(
   return address.toString(network)
 }
 
-// TODO: Implementation and documentation. Dummy key is returned for now.
+// TODO: Dummy key is returned for now. Remove this function and add
+// `walletPublicKey` to `DepositData`.
 export async function getActiveWalletPublicKey(): Promise<string> {
   return "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
 }

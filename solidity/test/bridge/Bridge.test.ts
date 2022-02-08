@@ -235,6 +235,7 @@ describe("Bridge", () => {
                   "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
                   reveal.fundingOutputIndex,
                   "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                  10000,
                   "0xf9f0c90d00039523",
                   "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
                   "0x28e081f285138ccbe389c1eb8985716230129f89",
@@ -267,6 +268,7 @@ describe("Bridge", () => {
                   "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
                   reveal.fundingOutputIndex,
                   "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                  10000,
                   "0xf9f0c90d00039523",
                   "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
                   "0x28e081f285138ccbe389c1eb8985716230129f89",
@@ -387,6 +389,7 @@ describe("Bridge", () => {
                   "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                   reveal.fundingOutputIndex,
                   "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                  10000,
                   "0xf9f0c90d00039523",
                   "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
                   "0x28e081f285138ccbe389c1eb8985716230129f89",
@@ -419,6 +422,7 @@ describe("Bridge", () => {
                   "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                   reveal.fundingOutputIndex,
                   "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                  10000,
                   "0xf9f0c90d00039523",
                   "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
                   "0x28e081f285138ccbe389c1eb8985716230129f89",
@@ -568,9 +572,9 @@ describe("Bridge", () => {
                     ).to.be.equal(18500)
                   })
 
-                  it("should emit SweepPerformed event", async () => {
+                  it("should emit DepositsSwept event", async () => {
                     await expect(tx)
-                      .to.emit(bridge, "SweepPerformed")
+                      .to.emit(bridge, "DepositsSwept")
                       .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }
@@ -638,9 +642,9 @@ describe("Bridge", () => {
                     ).to.be.equal(78000)
                   })
 
-                  it("should emit SweepPerformed event", async () => {
+                  it("should emit DepositsSwept event", async () => {
                     await expect(tx)
-                      .to.emit(bridge, "SweepPerformed")
+                      .to.emit(bridge, "DepositsSwept")
                       .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }
@@ -827,9 +831,9 @@ describe("Bridge", () => {
                     ).to.be.equal(289401)
                   })
 
-                  it("should emit SweepPerformed event", async () => {
+                  it("should emit DepositsSwept event", async () => {
                     await expect(tx)
-                      .to.emit(bridge, "SweepPerformed")
+                      .to.emit(bridge, "DepositsSwept")
                       .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }
@@ -917,9 +921,9 @@ describe("Bridge", () => {
                     ).to.be.equal(439600)
                   })
 
-                  it("should emit SweepPerformed event", async () => {
+                  it("should emit DepositsSwept event", async () => {
                     await expect(tx)
-                      .to.emit(bridge, "SweepPerformed")
+                      .to.emit(bridge, "DepositsSwept")
                       .withArgs(walletPubKeyHash, data.sweepTx.hash)
                   })
                 }
