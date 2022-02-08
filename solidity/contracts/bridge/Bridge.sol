@@ -141,7 +141,8 @@ contract Bridge is Ownable {
 
     /// @notice Maps the wallet public key hash (computed using HASH160 opcode)
     ///         to the latest wallet's main UTXO computed as
-    ///         keccak256(txHash | txOutputIndex | txOutputValue).
+    ///         keccak256(txHash | txOutputIndex | txOutputValue). The `tx`
+    ///         prefix refers to the transaction which created that main UTXO.
     mapping(bytes20 => bytes32) public mainUtxos;
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
@@ -360,26 +361,31 @@ contract Bridge is Ownable {
     ///         during the reveal transaction, minus their fee share.
     ///
     ///         It is possible to prove the given sweep only one time.
-    /// @param sweepTx Bitcoin sweep transaction data.
-    /// @param sweepProof Bitcoin sweep proof data.
-    /// @param mainUtxo Data of the wallet's main UTXO. If no main UTXO
-    ///        exists for given wallet, this parameter is ignored.
+    /// @param sweepTx Bitcoin sweep transaction data
+    /// @param sweepProof Bitcoin sweep proof data
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain. If no main UTXO exists for the given wallet,
+    ///        this parameter is ignored
     /// @dev Requirements:
     ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
     ///        a provable transaction hash.
     ///      - The `sweepTx` should represent a Bitcoin transaction with 1..n
-    ///        inputs referring to 0..n P2(W)SH revealed unswept deposits UTXOs
-    ///        and 0..1 main P2(W)PKH UTXO. That transaction must have only
-    ///        one P2(W)PKH output containing a 20-byte wallet public key hash.
+    ///        inputs. If the wallet has no main UTXO, all inputs should
+    ///        correspond to P2(W)SH revealed deposits UTXOs. If the wallet has
+    ///        an existing main UTXO, one of the inputs must point to that
+    ///        main UTXO and remaining inputs should correspond to P2(W)SH
+    ///        revealed deposits UTXOs. That transaction must have only
+    ///        one P2(W)PKH output locking funds on the 20-byte wallet public
+    ///        key hash.
     ///      - `sweepProof` components must match the expected structure. See
     ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
     ///        than the `txProofDifficultyFactor` contract constant.
     ///      - `mainUtxo` components must point to the recent main UTXO
-    ///        of the given wallet. If there is no main UTXO, this parameter
-    ///        is ignored.
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///        If there is no main UTXO, this parameter is ignored.
     function submitSweepProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
@@ -454,8 +460,8 @@ contract Bridge is Ownable {
 
     /// @notice Validates the SPV proof of the Bitcoin sweep transaction.
     ///         Reverts in case the validation or proof verification fail.
-    /// @param sweepTx Bitcoin sweep transaction data.
-    /// @param sweepProof Bitcoin sweep proof data.
+    /// @param sweepTx Bitcoin sweep transaction data
+    /// @param sweepProof Bitcoin sweep proof data
     /// @return sweepTxHash Proven 32-byte sweep transaction hash.
     function validateSweepTxProof(
         BitcoinTx.Info calldata sweepTx,
@@ -490,8 +496,8 @@ contract Bridge is Ownable {
 
     /// @notice Checks the given Bitcoin transaction hash against the SPV proof.
     ///         Reverts in case the check fails.
-    /// @param txHash 32-byte hash of the checked Bitcoin transaction.
-    /// @param proof Bitcoin proof data.
+    /// @param txHash 32-byte hash of the checked Bitcoin transaction
+    /// @param proof Bitcoin proof data
     function checkProofFromTxHash(
         bytes32 txHash,
         BitcoinTx.Proof calldata proof
@@ -512,7 +518,7 @@ contract Bridge is Ownable {
     ///         Bitcoin chain difficulty provided by the relay oracle.
     ///         Reverts in case the evaluation fails.
     /// @param bitcoinHeaders Bitcoin headers chain being part of the SPV
-    ///        proof. Used to extract the observed proof difficulty.
+    ///        proof. Used to extract the observed proof difficulty
     function evaluateProofDifficulty(bytes memory bitcoinHeaders)
         internal
         view
@@ -559,7 +565,7 @@ contract Bridge is Ownable {
     /// @param sweepTxOutputVector Bitcoin sweep transaction output vector.
     ///        This function assumes vector's structure is valid so it must be
     ///        validated using e.g. `BTCUtils.validateVout` function before
-    ///        it is passed here.
+    ///        it is passed here
     /// @return walletPubKeyHash 20-byte wallet public key hash.
     /// @return value 8-byte sweep transaction output value.
     function processSweepTxOutput(bytes memory sweepTxOutputVector)
@@ -598,18 +604,18 @@ contract Bridge is Ownable {
     }
 
     /// @notice Processes the Bitcoin sweep transaction input vector. It
-    ///         extracts each input and try to obtain associated deposit or
+    ///         extracts each input and tries to obtain associated deposit or
     ///         main UTXO data, depending on the input type. Reverts
-    ///         if one of the input cannot be recognized as pointer to a
-    ///         revealed unswept deposit or expected main UTXO.
+    ///         if one of the inputs cannot be recognized as a pointer to a
+    ///         revealed deposit or expected main UTXO.
     ///         This function also marks each processed deposit as swept.
     /// @param sweepTxInputVector Bitcoin sweep transaction input vector.
     ///        This function assumes vector's structure is valid so it must be
     ///        validated using e.g. `BTCUtils.validateVin` function before
-    ///        it is passed here.
+    ///        it is passed here
     /// @param mainUtxo Data of the wallet's main UTXO. If no main UTXO
     ///        exists for given wallet, this parameter's fields should be
-    ///        zeroed to bypass the main UTXO validation.
+    ///        zeroed to bypass the main UTXO validation
     /// @return inputsValue Sum of all inputs values i.e. all deposits and
     ///         main UTXO value, if present.
     /// @return depositors Addresses of depositors who performed processed
@@ -640,14 +646,26 @@ contract Bridge is Ownable {
         bool mainUtxoFound = false;
 
         // Determining the total number of sweep transaction inputs in the same
-        // way as for number of outputs.
+        // way as for number of outputs. See `BitcoinTx.outputVector` docs for
+        // more details.
         (uint256 inputsCompactSizeUintLength, uint256 inputsCount) =
             sweepTxInputVector.parseVarInt();
 
         // To determine the first input starting index, we must jump over
-        // the compactSize uint which prepends the input vector. One byte must
-        // be added because of how `parseVarInt` returns the length of the
-        // compactSize uint. Refer `BTCUtils` library for more details.
+        // the compactSize uint which prepends the input vector. One byte
+        // must be added because `BtcUtils.parseVarInt` does not include
+        // compactSize uint tag in the returned length.
+        //
+        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
+        // returns `0`, so we jump over one byte of compactSize uint.
+        //
+        // For >= 253 && <= 0xffff there is `0xfd` tag,
+        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
+        // tag byte included) so we need to jump over 1+2 bytes of
+        // compactSize uint.
+        //
+        // Please refer `BTCUtils` library and compactSize uint
+        // docs in `BitcoinTx` library for more details.
         uint256 inputStartingIndex = 1 + inputsCompactSizeUintLength;
 
         // Determine the swept deposits count. If main UTXO is NOT expected,
@@ -736,17 +754,17 @@ contract Bridge is Ownable {
         return (inputsValue, depositors, depositedAmounts);
     }
 
-    /// @notice Parses a Bitcoin transaction input starting at given index.
-    /// @param inputVector Bitcoin transaction input vector. This function
-    ///        assumes vector's structure is valid so it must be validated
-    ///        using e.g. `BTCUtils.validateVin` function before it is passed
-    ///        here.
-    /// @param inputStartingIndex Index the given input starts at.
+    /// @notice Parses a Bitcoin transaction input starting at the given index.
+    /// @param inputVector Bitcoin transaction input vector
+    /// @param inputStartingIndex Index the given input starts at
     /// @return inputTxHash 32-byte hash of the Bitcoin transaction which is
     ///         pointed in the given input's outpoint.
     /// @return inputTxIndex 4-byte index of the Bitcoin transaction output
     ///         which is pointed in the given input's outpoint.
     /// @return inputLength Byte length of the given input.
+    /// @dev This function assumes vector's structure is valid so it must be
+    ///      validated using e.g. `BTCUtils.validateVin` function before it
+    ///      is passed here.
     function parseTxInputAt(
         bytes memory inputVector,
         uint256 inputStartingIndex
