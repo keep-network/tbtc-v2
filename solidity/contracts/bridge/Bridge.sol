@@ -573,6 +573,7 @@ contract Bridge is Ownable {
         // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
         // We don't need asserting the compactSize uint is parseable since it
         // was already checked during `validateVout` validation.
+        // See `BitcoinTx.outputVector` docs for more details.
         (, uint256 outputsCount) = sweepTxOutputVector.parseVarInt();
         require(
             outputsCount == 1,
@@ -607,9 +608,9 @@ contract Bridge is Ownable {
     ///        validated using e.g. `BTCUtils.validateVin` function before
     ///        it is passed here
     /// @param mainUtxo Data of the wallet's main UTXO. If no main UTXO
-    ///        exists for given wallet, this parameter's fields should be
+    ///        exists for given the wallet, this parameter's fields should be
     ///        zeroed to bypass the main UTXO validation
-    /// @return inputsValue Sum of all inputs values i.e. all deposits and
+    /// @return inputsTotalValue Sum of all inputs values i.e. all deposits and
     ///         main UTXO value, if present.
     /// @return depositors Addresses of depositors who performed processed
     ///         deposits. Ordered in the same order as deposits inputs in the
@@ -627,19 +628,19 @@ contract Bridge is Ownable {
     )
         internal
         returns (
-            uint256 inputsValue,
+            uint256 inputsTotalValue,
             address[] memory depositors,
             uint256[] memory depositedAmounts
         )
     {
-        // If passed `mainUtxo` parameter's value are zeroed, the main UTXO
-        // for given wallet doesn't exist and it is not expected to be included
-        // in sweep transaction input vector.
+        // If the passed `mainUtxo` parameter's values are zeroed, the main UTXO
+        // for the given wallet doesn't exist and it is not expected to be
+        // included in the sweep transaction input vector.
         bool mainUtxoExpected = mainUtxo.txHash != bytes32(0);
         bool mainUtxoFound = false;
 
         // Determining the total number of sweep transaction inputs in the same
-        // way as for number of outputs. See `BitcoinTx.outputVector` docs for
+        // way as for number of outputs. See `BitcoinTx.inputVector` docs for
         // more details.
         (uint256 inputsCompactSizeUintLength, uint256 inputsCount) =
             sweepTxInputVector.parseVarInt();
@@ -697,6 +698,8 @@ contract Bridge is Ownable {
                 if (processedDepositsCount == depositors.length) {
                     // If this condition is true, that means a deposit input
                     // took place of an expected main UTXO input.
+                    // In other words, there is no expected main UTXO
+                    // input and all inputs come from valid, revealed deposits.
                     // In that case, we should ignore that input and let the
                     // transaction fail at `require` checking whether expected
                     // main UTXO was found.
@@ -708,7 +711,7 @@ contract Bridge is Ownable {
 
                 depositors[processedDepositsCount] = deposit.depositor;
                 depositedAmounts[processedDepositsCount] = deposit.amount;
-                inputsValue += depositedAmounts[processedDepositsCount];
+                inputsTotalValue += depositedAmounts[processedDepositsCount];
 
                 processedDepositsCount++;
             } else if (
@@ -717,7 +720,7 @@ contract Bridge is Ownable {
             ) {
                 // If we entered here, that means the input was identified as
                 // the expected main UTXO.
-                inputsValue += mainUtxo.txOutputValue;
+                inputsTotalValue += mainUtxo.txOutputValue;
                 mainUtxoFound = true;
             } else {
                 revert("Unknown input type");
@@ -744,7 +747,7 @@ contract Bridge is Ownable {
             "Expected main UTXO not present in sweep transaction inputs"
         );
 
-        return (inputsValue, depositors, depositedAmounts);
+        return (inputsTotalValue, depositors, depositedAmounts);
     }
 
     /// @notice Parses a Bitcoin transaction input starting at the given index.
