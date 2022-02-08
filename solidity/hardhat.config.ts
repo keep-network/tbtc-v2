@@ -8,12 +8,18 @@ import "hardhat-gas-reporter"
 import "hardhat-deploy"
 import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
+import "hardhat-contract-sizer"
 
 const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
         version: "0.8.4", // TODO: Revisit solidity version before deploying on mainnet!
+        settings: {
+          optimizer: {
+            enabled: true,
+          },
+        },
       },
     ],
   },
@@ -86,6 +92,13 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: true,
   },
 }
 
