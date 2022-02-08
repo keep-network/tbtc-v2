@@ -1046,18 +1046,18 @@ contract Bridge is Ownable {
                 );
                 require(
                     request.walletPubKeyHash == walletPubKeyHash,
-                    "Wrong request wallet public key hash"
+                    "Wrong redemption request wallet public key hash"
                 );
                 require(
                     keccak256(request.redeemerOutputHash) ==
                         keccak256(output.extractHash()),
-                    "Wrong output hash"
+                    "Wrong redemption request output hash"
                 );
                 require(
                     request.amount >= outputValue &&
                         outputValue >=
                         request.amount - maxRedemptionAmountSlippage,
-                    "Wrong output value"
+                    "Wrong redemption request output value"
                 );
 
                 // TODO: How to mark as redeemed?
