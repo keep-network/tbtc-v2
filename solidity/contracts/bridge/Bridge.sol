@@ -985,6 +985,7 @@ contract Bridge is Ownable {
         // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
         // We don't need asserting the compactSize uint is parseable since it
         // was already checked during `validateVin` validation.
+        // See `BitcoinTx.inputVector` docs for more details.
         (, uint256 inputsCount) = redemptionTxInputVector.parseVarInt();
         require(
             inputsCount == 1,
@@ -1007,14 +1008,26 @@ contract Bridge is Ownable {
         RedemptionOutputDescriptor[] calldata outputDescriptors
     ) internal view returns (uint32 changeIndex, uint64 changeValue) {
         // Determining the total number of redemption transaction outputs in
-        // the same way as for number of inputs.
+        // the same way as for number of inputs. See `BitcoinTx.outputVector`
+        // docs for more details.
         (uint256 outputsCompactSizeUintLength, uint256 outputsCount) =
             redemptionTxOutputVector.parseVarInt();
 
         // To determine the first output starting index, we must jump over
-        // the compactSize uint which prepends the output vector. One byte must
-        // be added because of how `parseVarInt` returns the length of the
-        // compactSize uint. Refer `BTCUtils` library for more details.
+        // the compactSize uint which prepends the output vector. One byte
+        // must be added because `BtcUtils.parseVarInt` does not include
+        // compactSize uint tag in the returned length.
+        //
+        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
+        // returns `0`, so we jump over one byte of compactSize uint.
+        //
+        // For >= 253 && <= 0xffff there is `0xfd` tag,
+        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
+        // tag byte included) so we need to jump over 1+2 bytes of
+        // compactSize uint.
+        //
+        // Please refer `BTCUtils` library and compactSize uint
+        // docs in `BitcoinTx` library for more details.
         uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
 
         // Ensure there is a descriptor for each output.
