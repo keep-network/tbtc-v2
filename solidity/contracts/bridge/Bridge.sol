@@ -712,6 +712,7 @@ contract Bridge is Ownable {
                     // In that case, we should ignore that input and let the
                     // transaction fail at `require` checking whether expected
                     // main UTXO was found.
+                    inputStartingIndex += inputLength;
                     continue;
                 }
 
