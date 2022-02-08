@@ -136,7 +136,6 @@ contract Bridge is Ownable {
     ///         This mapping may contain valid and invalid deposits and the
     ///         wallet is responsible for validating them before attempting to
     ///         execute a sweep.
-    ///
     mapping(uint256 => DepositInfo) public deposits;
 
     /// @notice Maps the wallet public key hash (computed using HASH160 opcode)
@@ -151,6 +150,7 @@ contract Bridge is Ownable {
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
         address depositor,
+        uint64 amount,
         bytes8 blindingFactor,
         bytes20 walletPubKeyHash,
         bytes20 refundPubKeyHash,
@@ -322,17 +322,9 @@ contract Bridge is Ownable {
             ];
         require(deposit.revealedAt == 0, "Deposit already revealed");
 
-        bytes8 fundingOutputAmount;
-        /* solhint-disable-next-line no-inline-assembly */
-        assembly {
-            // First 8 bytes (little-endian) of the funding output represents
-            // its value. To take the value, we need to jump over the first
-            // word determining the array length, load the array, and trim it
-            // by putting it to a bytes8.
-            fundingOutputAmount := mload(add(fundingOutput, 32))
-        }
+        uint64 fundingOutputAmount = fundingOutput.extractValue();
 
-        deposit.amount = BTCUtils.reverseUint64(uint64(fundingOutputAmount));
+        deposit.amount = fundingOutputAmount;
         deposit.depositor = reveal.depositor;
         /* solhint-disable-next-line not-rely-on-time */
         deposit.revealedAt = uint32(block.timestamp);
@@ -342,6 +334,7 @@ contract Bridge is Ownable {
             fundingTxHash,
             reveal.fundingOutputIndex,
             reveal.depositor,
+            fundingOutputAmount,
             reveal.blindingFactor,
             reveal.walletPubKeyHash,
             reveal.refundPubKeyHash,
