@@ -470,7 +470,10 @@ contract Bridge is Ownable {
         // TODO: Check fee against max fee.
         uint256 fee = sweepTxInputsValue - sweepTxOutputValue;
         // Calculate fee share by dividing the total fee by deposits count.
-        // TODO: Deal with precision loss.
+        // TODO: Deal with precision loss by having the last depositor pay
+        //       the higher fee than others if there is a change, just like it has
+        //       been proposed for the redemption flow. See:
+        //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r800555359.
         uint256 feeShare = fee / depositedAmounts.length;
         // Reduce each deposit amount by fee share value.
         for (uint256 i = 0; i < depositedAmounts.length; i++) {
@@ -652,8 +655,8 @@ contract Bridge is Ownable {
     ///        validated using e.g. `BTCUtils.validateVin` function before
     ///        it is passed here
     /// @param mainUtxo Data of the wallet's main UTXO. If no main UTXO
-    ///        exists for given the wallet, this parameter's fields should be
-    ///        zeroed to bypass the main UTXO validation
+    ///        exists for the given the wallet, this parameter's fields should
+    ///        be zeroed to bypass the main UTXO validation
     /// @return inputsTotalValue Sum of all inputs values i.e. all deposits and
     ///         main UTXO value, if present.
     /// @return depositors Addresses of depositors who performed processed
@@ -747,7 +750,7 @@ contract Bridge is Ownable {
                     // In that case, we should ignore that input and let the
                     // transaction fail at `require` checking whether expected
                     // main UTXO was found.
-                    // TODO: Update input starting index.
+                    inputStartingIndex += inputLength;
                     continue;
                 }
 
