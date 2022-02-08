@@ -367,10 +367,10 @@ contract Bridge is Ownable {
     ///        correspond to appropriate Bitcoin transaction fields to produce
     ///        a provable transaction hash.
     ///      - The `sweepTx` should represent a Bitcoin transaction with 1..n
-    ///        inputs. If the wallet has no main UTXO, all inputs should
+    ///        inputs. If the wallet has no main UTXO, all n inputs should
     ///        correspond to P2(W)SH revealed deposits UTXOs. If the wallet has
-    ///        an existing main UTXO, one of the inputs must point to that
-    ///        main UTXO and remaining inputs should correspond to P2(W)SH
+    ///        an existing main UTXO, one of the n inputs must point to that
+    ///        main UTXO and remaining n-1 inputs should correspond to P2(W)SH
     ///        revealed deposits UTXOs. That transaction must have only
     ///        one P2(W)PKH output locking funds on the 20-byte wallet public
     ///        key hash.
