@@ -733,7 +733,7 @@ contract Bridge is Ownable {
 
         // Construction of the input processing loop guarantees that:
         // `processedDepositsCount == depositors.length == depositedAmounts.length`
-        // is always true at this point. If so, we just use the first variable
+        // is always true at this point. We just use the first variable
         // to assert the total count of swept deposit is bigger than zero.
         require(
             processedDepositsCount > 0,
