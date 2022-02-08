@@ -712,11 +712,9 @@ contract Bridge is Ownable {
                     // took place of an expected main UTXO input.
                     // In other words, there is no expected main UTXO
                     // input and all inputs come from valid, revealed deposits.
-                    // In that case, we should ignore that input and let the
-                    // transaction fail at `require` checking whether expected
-                    // main UTXO was found.
-                    inputStartingIndex += inputLength;
-                    continue;
+                    revert(
+                        "Expected main UTXO not present in sweep transaction inputs"
+                    );
                 }
 
                 /* solhint-disable-next-line not-rely-on-time */
