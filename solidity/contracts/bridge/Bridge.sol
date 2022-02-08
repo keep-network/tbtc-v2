@@ -104,13 +104,13 @@ contract Bridge is Ownable {
         // Optional, can be 0x0.
         address vault;
         // UNIX timestamp the deposit was swept at. Note this is not the
-        // time when the deposit was swept on Bitcoin chain but actually
-        // the time when the sweep proof was delivered on Ethereum chain.
+        // time when the deposit was swept on the Bitcoin chain but actually
+        // the time when the sweep proof was delivered to the Ethereum chain.
         uint32 sweptAt;
     }
 
-    /// @notice Confirmations on the Bitcoin chain required to successfully
-    ///         evaluate an SPV proof.
+    /// @notice The number of confirmations on the Bitcoin chain required to
+    ///         successfully evaluate an SPV proof.
     uint256 public immutable txProofDifficultyFactor;
 
     // TODO: Revisit whether it should be updatable or not.
