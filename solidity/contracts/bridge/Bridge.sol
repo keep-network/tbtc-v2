@@ -26,6 +26,8 @@ import {
 import "../bank/Bank.sol";
 import "./BitcoinTx.sol";
 
+/* solhint-disable no-unused-vars */
+
 /// @title Interface for the Bitcoin relay
 /// @notice Contains only the methods needed by tBTC v2. The Bitcoin relay
 ///         provides the difficulty of the previous and current epoch. One
@@ -158,6 +160,11 @@ contract Bridge is Ownable {
     );
 
     event SweepPerformed(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
+    event SingleDepositProven(
+        bytes20 walletPubKeyHash,
+        bytes32 sweepTxHash,
+        uint256 inputIndex
+    );
 
     constructor(
         address _bank,
@@ -773,4 +780,201 @@ contract Bridge is Ownable {
     //      depositors, next to sweep, to prove their swept balances on Ethereum
     //      selectively, based on deposits they have earlier received.
     //      (UPDATE PR #90: Is it still the case since amounts are inferred?)
+
+    function submitSingleDepositProof(
+        BitcoinTx.Info calldata sweepTx,
+        BitcoinTx.Proof calldata sweepProof,
+        BitcoinTx.UTXO calldata mainUtxo,
+        uint32 inputIndex
+    ) external {
+        // TODO: Validate transaction only for the first single deposit sweep
+        // TODO: Make sure the `inputIndex` does not point ot the main
+
+        // The actual transaction proof is performed here. After that point, we
+        // can assume the transaction happened on Bitcoin chain and has
+        // a sufficient number of confirmations as determined by
+        // `txProofDifficultyFactor` constant.
+        bytes32 sweepTxHash = validateSweepTxProof(sweepTx, sweepProof);
+
+        // Process sweep transaction output and extract its target wallet
+        // public key hash and value.
+        (bytes20 walletPubKeyHash, uint64 sweepTxOutputValue) =
+            processSweepTxOutput(sweepTx.outputVector);
+
+        // Check if the main UTXO for given wallet exists. If so, validate
+        // passed main UTXO data against the stored hash and use them for
+        // further processing. If no main UTXO exists, use empty data.
+        BitcoinTx.UTXO memory resolvedMainUtxo =
+            BitcoinTx.UTXO(bytes32(0), 0, 0);
+        bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
+        if (mainUtxoHash != bytes32(0)) {
+            require(
+                keccak256(
+                    abi.encodePacked(
+                        mainUtxo.txHash,
+                        mainUtxo.txOutputIndex,
+                        mainUtxo.txOutputValue
+                    )
+                ) == mainUtxoHash,
+                "Invalid main UTXO data"
+            );
+            resolvedMainUtxo = mainUtxo;
+        }
+
+        // Process sweep transaction inputs and extract their value sum and
+        // all information needed to perform deposit bookkeeping.
+        // (
+        //     uint256 sweepTxInputsValue,
+        //     address[] memory depositors,
+        //     uint256[] memory depositedAmounts
+        // ) = checkTxInputs(sweepTx.inputVector, resolvedMainUtxo);
+        (uint256 sweepTxInputsValue, uint256 depositCount) =
+            checkTxInputs(sweepTx.inputVector, resolvedMainUtxo);
+
+        // Compute the sweep transaction fee which is a difference between
+        // inputs amounts sum and the output amount.
+        // TODO: Check fee against max fee.
+        uint256 fee = sweepTxInputsValue - sweepTxOutputValue;
+        // Calculate fee share by dividing the total fee by deposits count.
+        // TODO: Deal with precision loss.
+        uint256 feeShare = fee / depositCount;
+
+        //TODO: Iterate again and find the requested deposit
+        (address depositor, uint256 depositedAmount) =
+            getDepositorInfo(sweepTx.inputVector, resolvedMainUtxo, inputIndex);
+
+        depositedAmount -= feeShare;
+
+        // TODO: Should the wallet be unlocked why all the deposit have been swept individually?
+        // If so, set the wallet's mainUtxo
+        // mainUtxos[walletPubKeyHash] = keccak256(
+        //     abi.encodePacked(sweepTxHash, uint32(0), sweepTxOutputValue)
+        // );
+
+        emit SingleDepositProven(walletPubKeyHash, sweepTxHash, inputIndex);
+
+        // Update depositors balances in the Bank.
+        bank.increaseBalance(depositor, depositedAmount);
+
+        // TODO: Handle deposits having `vault` set.
+    }
+
+    function checkTxInputs(
+        bytes memory sweepTxInputVector,
+        BitcoinTx.UTXO memory mainUtxo
+    ) internal returns (uint256 inputsValue, uint256 totalDepositCount) {
+        // If passed `mainUtxo` parameter's value are zeroed, the main UTXO
+        // for given wallet doesn't exist and it is not expected to be included
+        // in sweep transaction input vector.
+        bool mainUtxoExpected = mainUtxo.txHash != bytes32(0);
+        bool mainUtxoFound = false;
+
+        // Determining the total number of sweep transaction inputs in the same
+        // way as for number of outputs.
+        (uint256 inputsCompactSizeUintLength, uint256 inputsCount) =
+            sweepTxInputVector.parseVarInt();
+
+        // To determine the first input starting index, we must jump over
+        // the compactSize uint which prepends the input vector. One byte must
+        // be added because of how `parseVarInt` returns the length of the
+        // compactSize uint. Refer `BTCUtils` library for more details.
+        uint256 inputStartingIndex = 1 + inputsCompactSizeUintLength;
+
+        // Determine the swept deposits count. If main UTXO is NOT expected,
+        // all inputs should be deposits. If main UTXO is expected, one input
+        // should point to that main UTXO.
+        // depositors = new address[](
+        //     !mainUtxoExpected ? inputsCount : inputsCount - 1
+        // );
+        // depositedAmounts = new uint256[](depositors.length);
+
+        // Initialize helper variables.
+        totalDepositCount = !mainUtxoExpected ? inputsCount : inputsCount - 1;
+        uint256 processedDepositsCount = 0;
+
+        // Inputs processing loop.
+        for (uint256 i = 0; i < inputsCount; i++) {
+            // Check if we are at the end of the input vector.
+            if (inputStartingIndex >= sweepTxInputVector.length) {
+                break;
+            }
+
+            (bytes32 inputTxHash, uint32 inputTxIndex, uint256 inputLength) =
+                parseTxInputAt(sweepTxInputVector, inputStartingIndex);
+
+            DepositInfo storage deposit =
+                deposits[
+                    uint256(
+                        keccak256(abi.encodePacked(inputTxHash, inputTxIndex))
+                    )
+                ];
+
+            if (deposit.revealedAt != 0) {
+                require(deposit.sweptAt == 0, "Deposit already swept");
+
+                if (
+                    processedDepositsCount ==
+                    /*depositors.length*/
+                    totalDepositCount
+                ) {
+                    // If this condition is true, that means a deposit input
+                    // took place of an expected main UTXO input.
+                    // In that case, we should ignore that input and let the
+                    // transaction fail at `require` checking whether expected
+                    // main UTXO was found.
+                    continue;
+                }
+
+                //TODO: Mark swept outside this function
+                // deposit.sweptAt = uint32(block.timestamp);
+
+                // depositors[processedDepositsCount] = deposit.depositor;
+                // depositedAmounts[processedDepositsCount] = deposit.amount;
+                // inputsValue += depositedAmounts[processedDepositsCount];
+                inputsValue += deposit.amount;
+
+                processedDepositsCount++;
+            } else if (
+                mainUtxoExpected != mainUtxoFound &&
+                mainUtxo.txHash == inputTxHash
+            ) {
+                inputsValue += mainUtxo.txOutputValue;
+                mainUtxoFound = true;
+            } else {
+                revert("Unknown input type");
+            }
+
+            // Make the `inputStartingIndex` pointing to the next input by
+            // increasing it by current input's length.
+            inputStartingIndex += inputLength;
+        }
+
+        // Construction of the input processing loop guarantees that:
+        // `processedDepositsCount == depositors.length == depositedAmounts.length`
+        // is always true at this point. If so, we just use the first variable
+        // to assert the total count of swept deposit is bigger than zero.
+        require(
+            processedDepositsCount > 0,
+            "Sweep transaction must process at least one deposit"
+        );
+
+        // Assert the main UTXO was used as one of current sweep's inputs if
+        // it was actually expected.
+        require(
+            mainUtxoExpected == mainUtxoFound,
+            "Expected main UTXO not present in sweep transaction inputs"
+        );
+
+        return (inputsValue, totalDepositCount);
+    }
+
+    function getDepositorInfo(
+        bytes memory sweepTxInputVector,
+        BitcoinTx.UTXO memory mainUtxo,
+        uint256 inputIndex
+    ) internal returns (address depositor, uint256 depositedAmount) {
+        // TODO: Implement
+        depositor = address(0);
+        depositedAmount = 0;
+    }
 }
