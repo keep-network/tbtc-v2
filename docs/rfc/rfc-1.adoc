@@ -412,6 +412,51 @@ to submit multiple redemptions. After a redemption, if the wallet has under
 `wallet_min_btc` remaining, it transfers that BTC to a randomly selected wallet
 and closes.
 
+Each redemption request is identified by a concatenation of the wallet's pubkey
+hash and redeemer's output hash (redeemer's BTC address). Such an identifier
+allows retrieving pending redemption requests in a gas-efficient way based on
+information provided in the redemption proof. A consequence of this approach is
+that the redeemer can not use the same redemption BTC address when there is
+already one redemption request pending from the given wallet. User experience
+can be improved by the dApp by selecting the previous-oldest wallet without a
+pending redemption request to the given BTC address in case a new redemption is
+requested before the pending one gets cleared out.
+
+At a minimum, pending redemption request needs to capture the following
+information:
+- Expected range of value for redemption UTXO: needed to validate the amount
+  released by the system when processing the redemption proof. Fees are
+  governable and the expected amount redeemed needs to be captured at the moment
+  of the redemption request.
+- Ethereum address of the redeemer: in case anything goes wrong with the
+  redemption, this address will be used to return the unprocessed balance.
+- UNIX timestamp at which the redemption was requested: needed to validate
+  redemption timeout.
+
+There is a governable redemption request timeout value,
+`redemption_request_timeout`. If redemption request proof was not submitted and
+timeout is exceeded, the wallet is slashed and balances are returned back to the
+redeemer, no matter if Bitcoin was released or not. The system is as
+decentralized as the least decentralized element of it. Redeemers need to have
+certain guarantees provided by the smart contract and no external body should
+judge if the Bitcoin was spent or not. It is the wallet's responsibility to
+process redemption requests in time.
+
+Just like in the case of sweeps, off-chain clients should wait for enough
+redemption requests from the given wallet to accumulate and process them in
+batches in order to minimize gas expenditure of redemption proofs. At the same
+time, the redeemer does not care about the underlying mechanism and they want to
+have their particular redemption request processed in time. Given that it is the
+individual redemption request that is timing out and not the entire batch of
+redemption requests, the wallet takes a certain risk on itself by waiting and
+not processing individual redemption requests immediately. At the same time, in
+case of a high number of redemption requests, the wallet is incentivized to
+process them in batches to minimize the wait time for Bitcoin and Ethereum chain
+confirmations between redemptions. To minimize the risk for the wallet and to do
+not disincentivize it for waiting for enough redemption requests to accumulate,
+the redemption timeout should be long enough, for example, 72 hours and ideally
+even longer in the early days of the system.
+
 ==== Fraud Proof
 
 When a redemption is requested, the redeeming bitcoin public key and amount are
