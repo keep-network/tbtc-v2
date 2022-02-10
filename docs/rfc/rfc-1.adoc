@@ -517,6 +517,36 @@ unblocking the wallet for future redemptions.
 The transaction must revert if the given redemption request was already reported
 as timed out.
 
+===== Redemption fraud
+
+Redemption proof containing UTXO identified as fraud is reverting the redemption
+proof submit transaction. Such a fraud must first be reported by calling a
+dedicated function.
+
+There are two possible fraudulent scenarios.
+
+First, there is no redemption requested for the given UTXO. In this scenario,
+each wallet member is slashed for `redemption_fraud_slashing_amount` and the
+notifier receives a reward as specified by
+`redempton_fraud_notifier_reward_multiplier`. The fraudulent output information
+is stored on-chain.
+
+Second, there was a redemption request for the given UTXO but the UTXO value is
+not within the expected range. In this case, the value difference is returned to
+the redemeer as their balance. Each wallet member is slashed for
+`redemption_fraud_slashing_amount` and the notifier receives a reward as
+specified by `redempton_fraud_notifier_reward_multiplier`. The fraudulent output
+information is stored on-chain.
+
+The transaction must revert if the given fraud was already reported. 
+
+If the wallet has still some BTC or if there is a redemption transaction with
+some part of outputs fraudulent and some part of outputs valid, it should be
+possible to submit redemption proof. Because information about fraudulent
+outputs is stored on-chain, these outputs can be skipped by the Bridge and the
+main wallet UTXO can be updated. This mechanism allows proving whatever can
+still be proved and unblocking the wallet for future redemptions.
+
 === Wallet Lifecycle
 
 Governable Parameters:
