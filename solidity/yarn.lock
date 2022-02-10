@@ -1416,10 +1416,10 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@keep-network/bitcoin-spv-sol@3.1.0-solc-0.8":
-  version "3.1.0-solc-0.8"
-  resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.1.0-solc-0.8.tgz#b8b990d4d0492199b1048b05d842ccc0f7507b69"
-  integrity sha512-SgmPYBj2LE8ARz4OnEeF9jMav3JWEh3jhmQxUlfIt1cucF0lOxE8XaUIaAzXuP8PVLjvZNlAjJy6+/ka96E3Cg==
+"@keep-network/bitcoin-spv-sol@3.2.0-solc-0.8":
+  version "3.2.0-solc-0.8"
+  resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.2.0-solc-0.8.tgz#3a4696f5941854224d665b7a12da991a3e1a1862"
+  integrity sha512-I/Y760SZfFPE3fvbSTyF37McqwIi96wvl5O8VAIYPEduyuCy1GFqgZR//lX+fOrgnVMe7q0PPFt6kOhL0wBJAA==
 
 "@keep-network/hardhat-helpers@0.4.1-pre.1":
   version "0.4.1-pre.1"
