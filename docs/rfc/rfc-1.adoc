@@ -494,7 +494,28 @@ in the bridge are cleared out for successfully processed redemption requests.
 When a redemption is requested, the redeeming bitcoin public key and amount are
 known on the ethereum chain. Any bitcoin transactions with the main wallet
 wallet UTXO as the input must have outputs that match those known redemption
-requests, otherwise the transaction was fraudulent.
+requests, otherwise the transaction was fraudulent. Redemption request timeout
+is also considered a fraud.
+
+===== Redemption timeout
+
+Redemption proof for the given timed-out redemption request is accepted and
+processed unless that redemption request was reported as timed out. Anyone can
+report redemption timeout but there is no reward or gas cost reimbursement for
+doing it so only the redeemer is incentivized to report the timeout.
+
+When redemption request timeout is reported, the redeemer receives their balance
+back, no matter if the underlying Bitcoin was redeemed or not. Each wallet
+member is slashed for `redemption_request_timeout_slashing_amount` and redeemer
+receives a percentage of a misbehavior notifier reward, as specified in
+`redemption_request_timeout_redemeer_bonus`. Redemption request is removed from
+the list of pending redemption requests and it is marked as timed-out. This way,
+when redemption proof gets submitted, the timed-out redemption request will be
+skipped. This mechanism allows proving whatever can still be proved and
+unblocking the wallet for future redemptions.
+
+The transaction must revert if the given redemption request was already reported
+as timed out.
 
 === Wallet Lifecycle
 
