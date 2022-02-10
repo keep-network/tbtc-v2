@@ -1178,9 +1178,11 @@ contract Bridge is Ownable {
     //       3. Use the redemption key and take the request from
     //          `redemptionRequests` mapping.
     //       4. If request doesn't exist in mapping - revert.
-    //       5. If request exits, is timed out, and redemption key is not
-    //          in the `redemptionFaults` mapping - put the key to
+    //       5. If request exits, and is timed out - put the key to
     //          `redemptionFaults` and remove it from `redemptionRequests`.
+    //          There is probably no need to check if `redemptionFaults`
+    //          already contains the key since `requestRedemption` prevents
+    //          using a faulty key.
     //       6. Return the `requestedAmount` to the `redeemer`.
     //       7. Punish the wallet, probably by slashing its operators.
 
@@ -1198,7 +1200,12 @@ contract Bridge is Ownable {
     //          remove their redemption key from
     //          `redemptionRequests` and put it to `redemptionFaults`.
     //          If there are outputs not corresponding to any request, just
-    //          put them to the `redemptionFaults` mapping.
+    //          put them to the `redemptionFaults` mapping. There is an
+    //          open question what to do if `redemptionFaults` already
+    //          contains the given key. While deciding about it, replay
+    //          protection should be taken into account. Worth noting that
+    //          fraudulent transactions may use multiple outputs with same
+    //          script hash.
     //       5. If at least one key was put to `redemptionFaults`, that means
     //          the transaction is fraudulent. If not fraudulent - revert.
     //       6. Reimburse `redeemer` of each underfunded request by covering
