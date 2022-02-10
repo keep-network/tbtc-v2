@@ -116,7 +116,6 @@ contract Bridge is Ownable {
         uint64 redeemableAmount;
         uint64 minimalAmount;
         uint32 requestedAt;
-        uint32 cancelledAt;
     }
 
     /// @notice The number of confirmations on the Bitcoin chain required to
@@ -172,7 +171,7 @@ contract Bridge is Ownable {
 
     // TODO: Documentation.
     // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
-    mapping(uint256 => bool) public redemptionFrauds;
+    mapping(uint256 => bool) public redemptionFaults;
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
@@ -870,8 +869,8 @@ contract Bridge is Ownable {
 
         // The redemption key is built on top of wallet public key hash
         // and redeemer output hash pair. That means there can be only one
-        // pending request asking for redemption from specific wallet to
-        // the given BTC hash in the same time.
+        // request asking for redemption from specific wallet to the given
+        // BTC hash in the same time.
         uint256 redemptionKey =
             uint256(
                 keccak256(
@@ -881,7 +880,11 @@ contract Bridge is Ownable {
 
         require(
             redemptionRequests[redemptionKey].requestedAt == uint32(0),
-            "Pending request with same redemption key already exists"
+            "Request with same redemption key already exists"
+        );
+        require(
+            !redemptionFaults[redemptionKey],
+            "Redemption key marked as faulty"
         );
 
         address redeemer = msg.sender;
@@ -904,8 +907,7 @@ contract Bridge is Ownable {
             redeemableAmount,
             minimalAmount,
             /* solhint-disable-next-line not-rely-on-time */
-            uint32(block.timestamp),
-            uint32(0)
+            uint32(block.timestamp)
         );
 
         emit RedemptionRequested(
@@ -1133,30 +1135,32 @@ contract Bridge is Ownable {
                     // as a redemption request.
                     RedemptionRequest storage request =
                         redemptionRequests[redemptionKey];
-
-                    if (request.cancelledAt == uint32(0)) {
-                        // If the request was not cancelled due to a timeout
-                        // or fraudulent amount, process the output normally.
-                        // Cancelled requests are just omitted because that
-                        // means the wallet was already punished for causing
-                        // a cancellation.
-                        require(
-                            request.redeemableAmount >= outputValue &&
-                                outputValue >= request.minimalAmount,
-                            "Output value is not acceptable for redemption request"
-                        );
-                        redeemedTotalValue += request.redeemableAmount;
-                    }
-
+                    // Output value must fit between the request's redeemable
+                    // and minimal amounts to be deemed valid.
+                    require(
+                        request.redeemableAmount >= outputValue &&
+                            outputValue >= request.minimalAmount,
+                        "Output value is not acceptable for redemption request"
+                    );
+                    // Add the redeemable amount to the total redeemed value
+                    // the bridge will use to decrease its balance in the bank.
+                    redeemedTotalValue += request.redeemableAmount;
+                    // Request was properly handled so remove its redemption
+                    // key from the mapping to make it reusable for further
+                    // requests.
                     delete redemptionRequests[redemptionKey];
-                } else if (redemptionFrauds[redemptionKey]) {
-                    // If we entered here, that means the output was identified
-                    // as a redemption fraud. That means the wallet
-                    // was already punished for committing the fraud.
-                    delete redemptionFrauds[redemptionKey];
                 } else {
-                    // If the output was not recognized at all, revert.
-                    revert("Unknown output type");
+                    // If we entered here, the output is not a redemption
+                    // request but there is still a chance the given output is
+                    // related to a reported redemption fault. If so, ignore it
+                    // as the wallet was already punished for causing the fault
+                    // and allow processing other potentially correct
+                    // outputs. If not, revert because the output
+                    // cannot be recognized properly.
+                    require(
+                        redemptionFaults[redemptionKey],
+                        "Unknown output type"
+                    );
                 }
             }
 
@@ -1173,32 +1177,31 @@ contract Bridge is Ownable {
     //       2. Build the redemption key using those params.
     //       3. Use the redemption key and take the request from
     //          `redemptionRequests` mapping.
-    //       4. If request doesn't exist in mapping or exists but is already
-    //          cancelled - revert.
-    //       5. If request exits, is timed out, and is not cancelled yet -
-    //          mark it as cancelled.
+    //       4. If request doesn't exist in mapping - revert.
+    //       5. If request exits, is timed out, and redemption key is not
+    //          in the `redemptionFaults` mapping - put the key to
+    //          `redemptionFaults` and remove it from `redemptionRequests`.
     //       6. Return the `requestedAmount` to the `redeemer`.
     //       7. Punish the wallet, probably by slashing its operators.
 
     // TODO: Function `submitRedemptionFraudProof`. That function must:
     //       1. Take a `BitcoinTx.Info` and `BitcoinTx.Proof` of the
     //          fraudulent transaction. It should also accept `walletPubKeyHash`.
-    //       2. Perform SPV proof to make sure it occured on Bitcoin chain.
+    //       2. Perform SPV proof to make sure it occurred on Bitcoin chain.
+    //          If not - revert.
     //       3. Validate the input vector contains the main UTXO (fraudulent
     //          transaction can use multiple inputs deliberately!) for given
-    //          `walletPubKeyHash`.
+    //          `walletPubKeyHash`. If invalid - revert.
     //       4. Process outputs. If there are outputs corresponding to proper
     //          redemption requests - ignore them. If there are outputs
-    //          corresponding to existing non-cancelled requests with but
-    //          output value is wrong - mark those requests as cancelled.
+    //          corresponding to existing but misfunded requests -
+    //          remove their redemption key from
+    //          `redemptionRequests` and put it to `redemptionFaults`.
     //          If there are outputs not corresponding to any request, just
-    //          put them to the `fraudulentRedemptions` mapping.
-    //       5. If at least one request was cancelled or output put in the
-    //          `fraudulentRedemptions` mapping, that means the transaction
-    //          is fraudulent.
-    //       6. Reimburse `redeemer` of each cancelled request by covering
-    //          the difference if it received an amount below `minimalAmount`.
-    //          This is a damage control for cases when the fraud is about
-    //          sending to little BTC amount comparing to the request.
+    //          put them to the `redemptionFaults` mapping.
+    //       5. If at least one key was put to `redemptionFaults`, that means
+    //          the transaction is fraudulent. If not fraudulent - revert.
+    //       6. Reimburse `redeemer` of each underfunded request by covering
+    //          the difference to at least the request's `minimalAmount`.
     //       7. Punish the wallet, probably by slashing its operators.
 }
