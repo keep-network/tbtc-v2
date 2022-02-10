@@ -47,6 +47,9 @@ On-chain transactions can be divided into three types:
   DKG result>> for ECDSA wallet or <<report-fraud, report fraud>> transaction for
   tBTC v2.
 
+[[submission-order]]
+==== Submission Order
+
 For the first group of transactions, we will not enforce the order on-chain and
 we will expect off-chain clients to respect the submission order. If some client
 skipped their round, other clients can vote to mark the inactive client as
@@ -151,7 +154,6 @@ functionality should be supported by the Maintainer contract.
 Eventually, the role of maintainers can be delegated to another network such as
 Gelato.
 
-
 ```
 ┌────────────────────────────────────────┐   calls  ┌─────────────────────────┐
 |               Maintainer               |─────────▶|          Bridge         |
@@ -184,7 +186,6 @@ maintainers.
 
 ==== Third party incentives
 
-
 All transactions in this section must be supported by the off-chain client. We
 are not concerned about front-running. Front-running may happen and it is even
 desirable to some extent because these transactions protect the health of the
@@ -197,7 +198,6 @@ No ETH cost reimbursed. Called exceptionally, ideally never. Incentivized by T
 from slashed stakes.
 
 ===== Notify redemption timeout
-
 
 No ETH cost reimbursed. Called exceptionally, ideally never. Incentivized by T
 from slashed stakes.
