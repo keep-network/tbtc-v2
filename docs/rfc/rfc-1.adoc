@@ -640,6 +640,18 @@ disabled (after the active operators sign this). See
 <<transaction-incentives,transaction incentives>> for more on how to encourage
 this transaction.
 
+=== Bridge donate
+
+If a wallet committed fraud, there has to be a function allowing to "donate" BTC
+to the Bridge without increasing anyone's balances. This function needs to
+validate SPV proof of the donate transaction and update the main wallet UTXO.
+This function should also be used to donate the Bridge to compensate for Bitcoin
+fees burned on moving funds between wallets that failed a heartbeat.
+
+The BTC to donate needs to come from the coverage pool funds. The DAO - or some
+delegate of the DAO - should be able to claim the coverage from the pool and
+manually liquidate tokens to acquire BTC and donate it to the Bridge.
+
 [[transaction-incentives]]
 === Transaction Incentives
 
