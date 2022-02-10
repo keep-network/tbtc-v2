@@ -457,6 +457,38 @@ not disincentivize it for waiting for enough redemption requests to accumulate,
 the redemption timeout should be long enough, for example, 72 hours and ideally
 even longer in the early days of the system.
 
+==== Redemption proof
+
+Based on the information provided in the submitted redemption proof, pending
+redemption requests possibly satisfied by the proof should be retrieved and each
+of them should be validated separately. 
+
+If a pending redemption request exists for every UTXO of the redemption
+transaction but the main wallet UTXO, and BTC value of each UTXO is within the
+expected range, redemption proof is accepted and redeemed Bitcoin balances in
+the Bridge are cleared out. It is important to note that timeout is not
+validated in this function. That is, if the timeout was not reported, the wallet
+can process the entire redemption proof successfully even though the timeout for
+the oldest redemption request already passed.
+
+If a pending redemption request for the given UTXO does not exist, and that
+redemption request was not earlier reported as timed-out or fraudulent because
+of the UTXO value not being within the expected range, the entire redemption
+proof transaction should revert.
+
+If the value of the given UTXO matching pending redemption request is not in the
+expected range, this is a fraud, and the entire redemption proof transactions
+should revert unless that fraud was already reported. 
+
+If a pending redemption request for the given UTXO does not exist but that
+redemption request was earlier reported as timed-out or fraudulent because of
+the UTXO value not being within the expected range, that UTXO is skipped, and
+the redemption proof transaction gets accepted, assuming there are more UTXOs in
+the redemption transaction.
+
+Submit redemption proof function updates the main wallet UTXO. Bitcoin balances
+in the bridge are cleared out for successfully processed redemption requests.
+
 ==== Fraud Proof
 
 When a redemption is requested, the redeeming bitcoin public key and amount are
