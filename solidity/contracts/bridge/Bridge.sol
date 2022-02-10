@@ -116,6 +116,7 @@ contract Bridge is Ownable {
         uint64 redeemableAmount;
         uint64 minimalAmount;
         uint32 requestedAt;
+        uint32 cancelledAt;
     }
 
     /// @notice The number of confirmations on the Bitcoin chain required to
@@ -167,15 +168,11 @@ contract Bridge is Ownable {
 
     // TODO: Documentation.
     // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
-    mapping(uint256 => RedemptionRequest) public pendingRedemptionRequests;
+    mapping(uint256 => RedemptionRequest) public redemptionRequests;
 
     // TODO: Documentation.
     // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
-    mapping(uint256 => bool) public timedOutRedemptionRequests;
-
-    // TODO: Documentation.
-    // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
-    mapping(uint256 => bool) public fraudulentRedemptions;
+    mapping(uint256 => bool) public redemptionFrauds;
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
@@ -883,8 +880,8 @@ contract Bridge is Ownable {
             );
 
         require(
-            pendingRedemptionRequests[redemptionKey].requestedAt == uint32(0),
-            "Pending redemption already exists"
+            redemptionRequests[redemptionKey].requestedAt == uint32(0),
+            "Pending request with same redemption key already exists"
         );
 
         address redeemer = msg.sender;
@@ -901,13 +898,14 @@ contract Bridge is Ownable {
         // by each redemption request.
         uint64 minimalAmount = redeemableAmount - redemptionTxMaximumFeeShare;
 
-        pendingRedemptionRequests[redemptionKey] = RedemptionRequest(
+        redemptionRequests[redemptionKey] = RedemptionRequest(
             redeemer,
             requestedAmount,
             redeemableAmount,
             minimalAmount,
             /* solhint-disable-next-line not-rely-on-time */
-            uint32(block.timestamp)
+            uint32(block.timestamp),
+            uint32(0)
         );
 
         emit RedemptionRequested(
@@ -1129,42 +1127,33 @@ contract Bridge is Ownable {
                     );
 
                 if (
-                    pendingRedemptionRequests[redemptionKey].requestedAt !=
-                    uint32(0)
+                    redemptionRequests[redemptionKey].requestedAt != uint32(0)
                 ) {
                     // If we entered here, that means the output was identified
-                    // as a pending redemption request.
+                    // as a redemption request.
                     RedemptionRequest storage request =
-                        pendingRedemptionRequests[redemptionKey];
+                        redemptionRequests[redemptionKey];
 
-                    // Check if output value
-                    // is between request's redeemable and minimal amounts.
-                    require(
-                        request.redeemableAmount >= outputValue &&
-                            outputValue >= request.minimalAmount,
-                        "Output value is not acceptable for redemption request"
-                    );
+                    if (request.cancelledAt == uint32(0)) {
+                        // If the request was not cancelled due to a timeout
+                        // or fraudulent amount, process the output normally.
+                        // Cancelled requests are just omitted because that
+                        // means the wallet was already punished for causing
+                        // a cancellation.
+                        require(
+                            request.redeemableAmount >= outputValue &&
+                                outputValue >= request.minimalAmount,
+                            "Output value is not acceptable for redemption request"
+                        );
+                        redeemedTotalValue += request.redeemableAmount;
+                    }
 
-                    redeemedTotalValue += request.redeemableAmount;
-                    delete pendingRedemptionRequests[redemptionKey];
-                } else if (timedOutRedemptionRequests[redemptionKey] == true) {
+                    delete redemptionRequests[redemptionKey];
+                } else if (redemptionFrauds[redemptionKey]) {
                     // If we entered here, that means the output was identified
-                    // as a timed out redemption request. That means the wallet
-                    // was already punished for hitting the timeout. In that
-                    // case, just ack this fact by removing the redemption key
-                    // from `timedOutRedemptionRequests` mapping in order to
-                    // make the key reusable in future.
-                    delete timedOutRedemptionRequests[redemptionKey];
-                } else if (fraudulentRedemptions[redemptionKey] == true) {
-                    // If we entered here, that means the output was identified
-                    // as a fraudulent redemption. That means the wallet
+                    // as a redemption fraud. That means the wallet
                     // was already punished for committing the fraud.
-                    //
-                    // TODO: We cannot just remove as in timeout case since
-                    //       it will make possible to report the fraud
-                    //       multiple times with same tx data. What should
-                    //       we do instead? Maybe encode the tx hash in
-                    //       redemption key?
+                    delete redemptionFrauds[redemptionKey];
                 } else {
                     // If the output was not recognized at all, revert.
                     revert("Unknown output type");
@@ -1178,4 +1167,38 @@ contract Bridge is Ownable {
 
         return (redeemedTotalValue, changeIndex, changeValue);
     }
+
+    // TODO: Function `notifyRedemptionTimeout. That function must:
+    //       1. Take a the `walletPubKey` and `redeemerOutputHash` as params.
+    //       2. Build the redemption key using those params.
+    //       3. Use the redemption key and take the request from
+    //          `redemptionRequests` mapping.
+    //       4. If request doesn't exist in mapping or exists but is already
+    //          cancelled - revert.
+    //       5. If request exits, is timed out, and is not cancelled yet -
+    //          mark it as cancelled.
+    //       6. Return the `requestedAmount` to the `redeemer`.
+    //       7. Punish the wallet, probably by slashing its operators.
+
+    // TODO: Function `submitRedemptionFraudProof`. That function must:
+    //       1. Take a `BitcoinTx.Info` and `BitcoinTx.Proof` of the
+    //          fraudulent transaction. It should also accept `walletPubKeyHash`.
+    //       2. Perform SPV proof to make sure it occured on Bitcoin chain.
+    //       3. Validate the input vector contains the main UTXO (fraudulent
+    //          transaction can use multiple inputs deliberately!) for given
+    //          `walletPubKeyHash`.
+    //       4. Process outputs. If there are outputs corresponding to proper
+    //          redemption requests - ignore them. If there are outputs
+    //          corresponding to existing non-cancelled requests with but
+    //          output value is wrong - mark those requests as cancelled.
+    //          If there are outputs not corresponding to any request, just
+    //          put them to the `fraudulentRedemptions` mapping.
+    //       5. If at least one request was cancelled or output put in the
+    //          `fraudulentRedemptions` mapping, that means the transaction
+    //          is fraudulent.
+    //       6. Reimburse `redeemer` of each cancelled request by covering
+    //          the difference if it received an amount below `minimalAmount`.
+    //          This is a damage control for cases when the fraud is about
+    //          sending to little BTC amount comparing to the request.
+    //       7. Punish the wallet, probably by slashing its operators.
 }
