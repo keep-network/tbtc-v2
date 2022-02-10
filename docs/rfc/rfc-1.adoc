@@ -382,6 +382,17 @@ key than the same `signingGroupPubkey` is fraud.
 
 Governable Parameters:
 
+- `redemption_request_timeout`: The amount of time the wallet has to provide
+  redemption proof.
+- `redemption_request_timeout_slashing_amount`: The amount of stake slashed from
+  each member of a wallet for a timed-out redemption request.
+- `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
+  notifier reward from the staking contract the redeemer receives in case of a
+  redemption timeout.
+- `redemption_fraud_slashing_amount`: The amount or stake slashed from each
+  member of a wallet for a redemption fraud.
+- `redempton_fraud_notifier_reward_multiplier`: The percentage of the notifier
+  reward from the staking contract the notifier of redemption fraud receives.
 - `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
