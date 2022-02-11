@@ -496,15 +496,7 @@ the redemption transaction.
 Submit redemption proof function updates the main wallet UTXO. Bitcoin balances
 in the bridge are cleared out for successfully processed redemption requests.
 
-==== Fraud Proof
-
-When a redemption is requested, the redeeming bitcoin public key and amount are
-known on the ethereum chain. Any bitcoin transactions with the main wallet
-wallet UTXO as the input must have outputs that match those known redemption
-requests, otherwise the transaction was fraudulent. Redemption request timeout
-is also considered a fraud.
-
-===== Redemption timeout
+==== Redemption timeout
 
 Redemption proof for the given timed-out redemption request is accepted and
 processed unless that redemption request was reported as timed out. Anyone can
@@ -527,7 +519,12 @@ as timed out.
 The wallet is ordered to move the BTC to another random wallet and is no longer
 accepting redemption requests.
 
-===== Redemption fraud
+==== Fraud Proof
+
+When a redemption is requested, the redeeming bitcoin public key and amount are
+known on the ethereum chain. Any bitcoin transactions with the main wallet
+wallet UTXO as the input must have outputs that match those known redemption
+requests, otherwise the transaction was fraudulent.
 
 Redemption proof containing UTXO identified as fraud is reverting the redemption
 proof submit transaction. Such a fraud must first be reported by calling a
