@@ -173,6 +173,9 @@ contract Bridge is Ownable {
     // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
     mapping(uint256 => bool) public redemptionFaults;
 
+    // TODO: Documentation.
+    mapping(bytes20 => bool) public faultyWallets;
+
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
     event DepositRevealed(
@@ -853,6 +856,7 @@ contract Bridge is Ownable {
     ) external {
         // TODO: Validate wallet choice, specifically whether it contains a
         //       sufficient BTC balance.
+        require(!faultyWallets[walletPubKeyHash], "Wallet marked as faulty");
 
         // Validate if redeemer output hash has a correct length corresponding
         // to a valid Bitcoin hash. P2PKH, P2WPKH and P2SH outputs will
@@ -881,10 +885,6 @@ contract Bridge is Ownable {
         require(
             redemptionRequests[redemptionKey].requestedAt == uint32(0),
             "Request with same redemption key already exists"
-        );
-        require(
-            !redemptionFaults[redemptionKey],
-            "Redemption key marked as faulty"
         );
 
         address redeemer = msg.sender;
@@ -1164,6 +1164,12 @@ contract Bridge is Ownable {
                 }
             }
 
+            // TODO: Should we do something if all transactions outputs
+            //       (or single output) point back to the wallet PKH without
+            //       doing anything else and the transaction just burns the fee?
+            //       This behavior should be punishable from within
+            //       `submitRedemptionFraud` function.
+
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.
             outputStartingIndex += outputLength;
@@ -1178,37 +1184,81 @@ contract Bridge is Ownable {
     //       3. Use the redemption key and take the request from
     //          `redemptionRequests` mapping.
     //       4. If request doesn't exist in mapping - revert.
-    //       5. If request exits, and is timed out - put the key to
-    //          `redemptionFaults` and remove it from `redemptionRequests`.
-    //          There is probably no need to check if `redemptionFaults`
-    //          already contains the key since `requestRedemption` prevents
-    //          using a faulty key.
+    //       5. If request exits, and is timed out - remove the redemption
+    //          key from `redemptionRequests` and put it to `redemptionFaults`.
+    //          No need to check if `redemptionFaults` mapping already contains
+    //          that key because `requestRedemption` blocks requests targeting
+    //          faulty wallets so there is no possibility that the given
+    //          redemption key could be reported as timed out multiple times.
+    //          On the other hand, if given redemption key was already
+    //          marked as faulty due to an amount-related fraud, it will not
+    //          be possible to report a time out on it since it won't be
+    //          present in `redemptionRequests` mapping.
     //       6. Return the `requestedAmount` to the `redeemer`.
     //       7. Punish the wallet, probably by slashing its operators.
+    //       8. Put the wallet public key hash to `faultyWallets` to
+    //          prevent against new redemption requests hitting that wallet.
+    //       9. Expect the wallet to transfer its funds to another healthy
+    //          wallet (just as in case of failed heartbeat).
 
     // TODO: Function `submitRedemptionFraudProof`. That function must:
     //       1. Take a `BitcoinTx.Info` and `BitcoinTx.Proof` of the
     //          fraudulent transaction. It should also accept `walletPubKeyHash`.
     //       2. Perform SPV proof to make sure it occurred on Bitcoin chain.
     //          If not - revert.
-    //       3. Validate the input vector contains the main UTXO (fraudulent
-    //          transaction can use multiple inputs deliberately!) for given
-    //          `walletPubKeyHash`. If invalid - revert.
-    //       4. Process outputs. If there are outputs corresponding to proper
-    //          redemption requests - ignore them. If there are outputs
-    //          corresponding to existing but misfunded requests -
-    //          remove their redemption key from
-    //          `redemptionRequests` and put it to `redemptionFaults`.
-    //          If there are outputs not corresponding to any request, just
-    //          put them to the `redemptionFaults` mapping. There is an
-    //          open question what to do if `redemptionFaults` already
-    //          contains the given key. While deciding about it, replay
-    //          protection should be taken into account. Worth noting that
-    //          fraudulent transactions may use multiple outputs with same
-    //          script hash.
-    //       5. If at least one key was put to `redemptionFaults`, that means
-    //          the transaction is fraudulent. If not fraudulent - revert.
-    //       6. Reimburse `redeemer` of each underfunded request by covering
-    //          the difference to at least the request's `minimalAmount`.
+    //       3. Check if transaction hash is present in `fraudulentTransactions`
+    //          mapping. If present - revert.
+    //       4. Validate the input vector contains the main UTXO (fraudulent
+    //          transaction can use multiple inputs deliberately) for given
+    //          `walletPubKeyHash`. If invalid - revert. An open question is
+    //          what to do if transaction has proper outputs but wrong number
+    //          of inputs and it can't be processed by `submitRedemptionProof`.
+    //       5. Process outputs. Multiple paths are possible:
+    //          - If there are outputs corresponding to proper redemption
+    //            requests - ignore them
+    //          - If there are outputs corresponding to existing requests
+    //            but output amounts are wrong - remove their redemption key
+    //            from `redemptionRequests` and put it to `redemptionFaults`
+    //            mapping. Reimburse the `redeemer` of each underfunded request
+    //            by covering the difference to at least the request's
+    //            `minimalAmount` in TBTC.
+    //          - If there are outputs not corresponding to any request - put
+    //            them to the `redemptionFaults` mapping.
+    //          - If the given output is a change it should be treated
+    //            differently, depending on how other outputs looks like.
+    //            All transactions transferring funds back to wallet PKH
+    //            without doing anything else, burns the main UTXO for fees.
+    //            Wallet should be punished for that but in the same time,
+    //            the main UTXO output should not be put to `redemptionFaults`
+    //            in order to allow `submitRedemptionProof` to update the
+    //            main UTXO in a correct way and make further transactions
+    //            possible.
+    //
+    //          There is no need to revert if given redemption key is already
+    //          in `redemptionFaults` mapping. However, one must count the
+    //          number of unique non-overwriting inserts under `faultsCount`.
+    //          This is because there are some edge cases here:
+    //          - A redemption key looking as fraudulent due to being non-expected,
+    //            can be already present in `redemptionFaults` due to being a
+    //            timeout. Normally we should not deem it as a new fault and
+    //            count it to `redemptionFaults` in order to avoid punishing the
+    //            wallet twice for the same timeout. In the same time, it
+    //            can be an actual fraud leveraging the fact the given redemption
+    //            key was already punished for timeout. To detect such a case
+    //            we can store the timed out request amount as `redemptionFaults`
+    //            mapping value, and punish for fraud in case the transferred
+    //            value exceed the redeemable amount from the timed out request.
+    //          - A fraudulent transaction can deliberately use multiple
+    //            outputs with same script hash. This will produce the same
+    //            redemption key which must be put to `redemptionFaults`
+    //            multiple times so it should not cause a revert and it is
+    //            enough to count it once in `redemptionFaults`.
+    //       6. If `faultsCount > 0` transaction is fraudulent. If not - revert.
     //       7. Punish the wallet, probably by slashing its operators.
+    //       8. Put the wallet public key hash to `faultyWallets` to
+    //          prevent against new redemption requests hitting that wallet.
+    //       9. Expect the wallet to transfer its funds to another healthy
+    //          wallet (just as in case of failed heartbeat).
+    //      10. Put the transaction hash to `fraudulentTransactions` mapping to
+    //          prevent against replays.
 }
