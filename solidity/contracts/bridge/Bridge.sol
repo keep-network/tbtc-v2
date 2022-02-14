@@ -109,20 +109,32 @@ contract Bridge is Ownable {
         uint32 sweptAt;
     }
 
-    // TODO: Documentation.
+    /// @notice Represents a redemption request.
     struct RedemptionRequest {
+        // ETH address of the redeemer who created the request.
         address redeemer;
+        // Requested TBTC amount in satoshi.
         uint64 requestedAmount;
+        // Treasury TBTC fee in satoshi at the moment of request creation.
         uint64 treasuryFee;
+        // Transaction maximum BTC fee in satoshi at the moment of request
+        // creation.
         uint64 txMaxFee;
+        // UNIX timestamp the request was created at.
         uint32 requestedAt;
     }
 
-    // TODO: Documentation.
+    /// @notice Represents an outcome of the redemption Bitcoin transaction
+    ///         outputs processing.
     struct RedemptionTxOutputsReport {
+        // Total TBTC value in satoshi that should be burned by the Bridge.
         uint256 totalBurnableValue;
+        // Total TBTC value in satoshi that should be transferred to
+        // the treasury.
         uint256 totalTreasuryFee;
+        // Index of the change output.
         uint32 changeIndex;
+        // Value in satoshi of the change output.
         uint64 changeValue;
     }
 
@@ -130,28 +142,42 @@ contract Bridge is Ownable {
     ///         successfully evaluate an SPV proof.
     uint256 public immutable txProofDifficultyFactor;
 
-    // TODO: Revisit whether it should be updatable or not.
+    /// TODO: Revisit whether it should be governable or not.
     /// @notice Address of the Bank this Bridge belongs to.
     Bank public immutable bank;
 
-    /// TODO: Make it updatable.
+    /// TODO: Make it governable.
     /// @notice Handle to the Bitcoin relay.
     IRelay public immutable relay;
 
-    // TODO: Revisit whether it should be updatable or not.
+    /// TODO: Revisit whether it should be governable or not.
     /// @notice Address where the redemptions treasury fees will be sent to.
     address public immutable treasury;
 
-    // TODO: Documentation and initialization.
+    /// TODO: Make it governable.
+    /// @notice The minimal amount that can be requested for redemption.
+    ///         Value of this parameter should be always bigger than the sum
+    ///         of `redemptionTreasuryFee` and `redemptionTxMaxFee` to make
+    ///         redemptions possible.
     uint64 public redemptionDustThreshold;
 
-    // TODO: Documentation and initialization.
+    /// TODO: Make it governable.
+    /// @notice Amount of TBTC that is taken from each redemption request and
+    ///         transferred to the treasury upon successful request finalization.
     uint64 public redemptionTreasuryFee;
 
-    // TODO: Documentation and initialization.
+    /// TODO: Make it governable.
+    /// @notice Maximum amount of BTC transaction fee that can be incurred by
+    ///         each redemption request being part of given redemption
+    ///         transaction.
     uint64 public redemptionTxMaxFee;
 
-    // TODO: Documentation and initialization.
+    /// TODO: Make it governable.
+    /// @notice Time after which the redemption request can be reported as
+    ///         timed out. It is counted from the moment when the redemption
+    ///         request was created via `requestRedemption` call. Reported
+    ///         timed out requests are cancelled and locked TBTC is returned
+    ///         to the redeemer in full amount.
     uint256 public redemptionTimeout;
 
     /// @notice Indicates if the vault with the given address is trusted or not.
@@ -171,26 +197,67 @@ contract Bridge is Ownable {
     ///         execute a sweep.
     mapping(uint256 => DepositInfo) public deposits;
 
-    /// @notice Maps the wallet public key hash (computed using HASH160 opcode)
-    ///         to the latest wallet's main UTXO computed as
+    /// @notice Maps the 20-byte wallet public key hash (computed using HASH160
+    ///         opcode) to the latest wallet's main UTXO computed as
     ///         keccak256(txHash | txOutputIndex | txOutputValue). The `tx`
     ///         prefix refers to the transaction which created that main UTXO.
+    ///         The txHash is LE bytes32, txOutputIndex an uint32, and
+    ///         txOutputValue an uint64 value.
     mapping(bytes20 => bytes32) public mainUtxos;
 
-    // TODO: Documentation.
-    // Key: walletPubKeyHash
+    /// @notice Maps the 20-byte wallet public key hash (computed using HASH160
+    ///         opcode) to the total redeemable value of pending redemption
+    ///         requests targeting that wallet. Redeemable value of each request
+    ///         is its requested amount reduced by the treasury fee at the
+    ///         moment of request creation.
     mapping(bytes20 => uint256) public pendingRedemptionRequestsValue;
 
-    // TODO: Documentation.
-    // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
+    /// @notice Collection of all pending redemption requests indexed by
+    ///         redemption key built as
+    ///         keccak256(walletPubKeyHash | redeemerOutputHash). The
+    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         (computed using HASH160 opcode) and redeemerOutputHash is the
+    ///         20-byte (P2PKH, P2WPKH or P2SH) or 32-byte (P2WSH) output
+    ///         hash that will be used to lock redeemed BTC as requested by
+    ///         the redeemer. Requests are added to this mapping by the
+    ///         `requestRedemption` method (duplicates not allowed) and are
+    ///         removed by one of the following methods:
+    ///         - `submitRedemptionProof` in case the request was handled
+    ///           successfully
+    ///         - `notifyRedemptionTimeout` in case the request was reported
+    ///           to be timed out
+    ///         - `submitRedemptionFraudProof` in case the request was handled
+    ///           in an incorrect way amount-wise.
     mapping(uint256 => RedemptionRequest) public pendingRedemptionRequests;
 
-    // TODO: Documentation.
-    // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
+    /// @notice Collection of all redemption faults indexed by redemption key
+    ///         built as keccak256(walletPubKeyHash | redeemerOutputHash). The
+    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         (computed using HASH160 opcode) and redeemerOutputHash is the
+    ///         20-byte (P2PKH, P2WPKH or P2SH) or 32-byte (P2WSH) output
+    ///         hash that is involved in the fault. Two methods can add
+    ///         to this mapping:
+    ///         - `notifyRedemptionTimeout` which puts the redemption key
+    ///           to this mapping basing on a timed out request stored
+    ///           previously in `pendingRedemptionRequests` mapping.
+    ///         - `submitRedemptionFraudProof` which puts the redemption key
+    ///           to this mapping basing on a misfunded request stored
+    ///           previously in `pendingRedemptionRequests` mapping or
+    ///           basing on a non-requested arbitrary redemption performed
+    ///           by the wallet.
+    // TODO: Remove that Slither disable once this variable is used.
+    // slither-disable-next-line uninitialized-state
     mapping(uint256 => bool) public redemptionFaults;
 
-    // TODO: Documentation.
-    // Key: walletPubKeyHash
+    /// @notice Collection of all wallets that ever committed an intentional
+    ///         or non-intentional fault such as not handling a redemption
+    ///         request on time, misfunding a request, making a non-requested
+    ///         redemption or violating the protocol in any other way that
+    ///         can be reported to the Bridge contract. The key is the 20-byte
+    ///         wallet public key hash (computed using HASH160 opcode).
+    ///
+    // TODO: Remove that Slither disable once this variable is used.
+    // slither-disable-next-line uninitialized-state
     mapping(bytes20 => bool) public faultyWallets;
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
@@ -239,6 +306,12 @@ contract Bridge is Ownable {
         treasury = _treasury;
 
         txProofDifficultyFactor = _txProofDifficultyFactor;
+
+        // TODO: Revisit initial values.
+        redemptionDustThreshold = 200000; // 200000 satoshi
+        redemptionTreasuryFee = 100000; // 100000 satoshi
+        redemptionTxMaxFee = 1000; // 1000 satoshi
+        redemptionTimeout = 172800; // 48 hours
     }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
@@ -924,7 +997,8 @@ contract Bridge is Ownable {
             );
 
         require(
-            pendingRedemptionRequests[redemptionKey].requestedAt == uint32(0),
+            // slither-disable-next-line incorrect-equality
+            pendingRedemptionRequests[redemptionKey].requestedAt == 0,
             "Pending request with same redemption key already exists"
         );
 
