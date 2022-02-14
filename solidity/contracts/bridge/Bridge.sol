@@ -178,6 +178,10 @@ contract Bridge is Ownable {
     mapping(bytes20 => bytes32) public mainUtxos;
 
     // TODO: Documentation.
+    // Key: walletPubKeyHash
+    mapping(bytes20 => uint256) public pendingRedemptionRequestsValue;
+
+    // TODO: Documentation.
     // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
     mapping(uint256 => RedemptionRequest) public pendingRedemptionRequests;
 
@@ -186,6 +190,7 @@ contract Bridge is Ownable {
     mapping(uint256 => bool) public redemptionFaults;
 
     // TODO: Documentation.
+    // Key: walletPubKeyHash
     mapping(bytes20 => bool) public faultyWallets;
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
@@ -867,12 +872,26 @@ contract Bridge is Ownable {
     // TODO: Documentation.
     function requestRedemption(
         bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata mainUtxo,
         bytes calldata redeemerOutputHash,
         uint64 amount
     ) external {
-        // TODO: Validate wallet choice, specifically whether it contains a
-        //       sufficient BTC balance.
         require(!faultyWallets[walletPubKeyHash], "Wallet marked as faulty");
+
+        bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
+        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
+        require(
+            keccak256(
+                abi.encodePacked(
+                    mainUtxo.txHash,
+                    mainUtxo.txOutputIndex,
+                    mainUtxo.txOutputValue
+                )
+            ) == mainUtxoHash,
+            "Invalid main UTXO data"
+        );
+
+        // TODO: Check if `walletPubKeyHash` should be validated in some other ways.
 
         // Validate if redeemer output hash has a correct length corresponding
         // to a valid Bitcoin hash. P2PKH, P2WPKH and P2SH outputs will
@@ -909,11 +928,31 @@ contract Bridge is Ownable {
             "Pending request with same redemption key already exists"
         );
 
+        uint256 treasuryFee = redemptionTreasuryFee;
+        uint256 txMaxFee = redemptionTxMaxFee;
+
+        // The wallet's BTC balance should allow to cover the actual BTC amount
+        // transferred to the redeemer along with its share of the transaction
+        // fee. Those two components always sum up to the request's maximum
+        // redeemable amount which is computed as the difference between the
+        // requested amount and the treasury fee. This is why one should
+        // add the redeemable amount to the total requested value for the given
+        // wallet and assert this total value doesn't exceed the current main
+        // UTXO value  which is actually the same as the current wallet balance.
+        pendingRedemptionRequestsValue[walletPubKeyHash] +=
+            amount -
+            treasuryFee;
+        require(
+            mainUtxo.txOutputValue >=
+                pendingRedemptionRequestsValue[walletPubKeyHash],
+            "Insufficient wallet funds"
+        );
+
         pendingRedemptionRequests[redemptionKey] = RedemptionRequest(
             msg.sender,
             amount,
-            redemptionTreasuryFee,
-            redemptionTxMaxFee,
+            treasuryFee,
+            txMaxFee,
             /* solhint-disable-next-line not-rely-on-time */
             uint32(block.timestamp)
         );
@@ -923,8 +962,8 @@ contract Bridge is Ownable {
             redeemerOutputHash,
             msg.sender,
             amount,
-            redemptionTreasuryFee,
-            redemptionTxMaxFee
+            treasuryFee,
+            txMaxFee
         );
 
         bank.transferBalanceFrom(msg.sender, address(this), amount);
@@ -980,6 +1019,9 @@ contract Bridge is Ownable {
             // for that wallet to represent that state in a proper way.
             delete mainUtxos[walletPubKeyHash];
         }
+
+        pendingRedemptionRequestsValue[walletPubKeyHash] -= outputsReport
+            .totalBurnableValue;
 
         emit RedemptionsPerformed(walletPubKeyHash, redemptionTxHash);
 
@@ -1222,10 +1264,12 @@ contract Bridge is Ownable {
     //          be possible to report a time out on it since it won't be
     //          present in `pendingRedemptionRequests` mapping.
     //       6. Return the `requestedAmount` to the `redeemer`.
-    //       7. Punish the wallet, probably by slashing its operators.
-    //       8. Put the wallet public key hash to `faultyWallets` to
+    //       7. Reduce the `pendingRedemptionRequestsValue` for given wallet by
+    //          request's redeemable amount (`requestedAmount` - `treasuryFee`).
+    //       8. Punish the wallet, probably by slashing its operators.
+    //       9. Put the wallet public key hash to `faultyWallets` to
     //          prevent against new redemption requests hitting that wallet.
-    //       9. Expect the wallet to transfer its funds to another healthy
+    //      10. Expect the wallet to transfer its funds to another healthy
     //          wallet (just as in case of failed heartbeat).
 
     // TODO: Function `submitRedemptionFraudProof`. That function must:
@@ -1248,7 +1292,8 @@ contract Bridge is Ownable {
     //            `pendingRedemptionRequests` and put it to `redemptionFaults`
     //            mapping. Reimburse the `redeemer` of each underfunded request
     //            by covering the difference to at least the request's
-    //            `minimalAmount` in TBTC.
+    //            `minimalAmount` in TBTC. Reduce the `pendingRedemptionRequestsValue`
+    //            for given wallet accordingly.
     //          - If there are outputs not corresponding to any request - put
     //            them to the `redemptionFaults` mapping.
     //          - If the given output is a change it should be treated
