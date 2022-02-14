@@ -883,6 +883,12 @@ contract Bridge is Ownable {
         );
 
         require(
+            keccak256(abi.encodePacked(walletPubKeyHash)) !=
+                keccak256(redeemerOutputHash),
+            "Redeemer output hash must not be equal to the wallet PKH"
+        );
+
+        require(
             amount >= redemptionDustThreshold,
             "Redemption amount too small"
         );
