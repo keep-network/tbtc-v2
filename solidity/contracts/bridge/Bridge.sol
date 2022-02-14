@@ -1064,7 +1064,41 @@ contract Bridge is Ownable {
         bank.transferBalanceFrom(msg.sender, address(this), amount);
     }
 
-    // TODO: Documentation.
+    /// @notice Used by the wallet to prove the BTC redemption transaction
+    ///         and to make the necessary bookkeeping. Redemption is only
+    ///         accepted if it satisfies SPV proof.
+    ///
+    ///         The function is performing Bank balance updates by burning
+    ///         the total redeemed amount from Bridge balance and transferring
+    ///         the treasury fee sum to the treasury address.
+    ///
+    ///         It is possible to prove the given redemption only one time.
+    /// @param redemptionTx Bitcoin redemption transaction data
+    /// @param redemptionProof Bitcoin redemption proof data
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain.
+    /// @dev Requirements:
+    ///      - `redemptionTx` components must match the expected structure. See
+    ///        `BitcoinTx.Info` docs for reference. Their values must exactly
+    ///        correspond to appropriate Bitcoin transaction fields to produce
+    ///        a provable transaction hash.
+    ///      - The `redemptionTx` should represent a Bitcoin transaction with
+    ///        exactly 1 input that refers to the wallet's main UTXO. That
+    ///        transaction should have 1..n outputs handling existing pending
+    ///        redemption requests or pointing to reported redemption faults.
+    ///        There can be also 1 optional output representing the
+    ///        change and pointing back to the 20-byt wallet public key hash.
+    ///        The change should be always present if the redeemed value sum
+    ///        is lower than the total wallet's BTC balance.
+    ///      - `redemptionProof` components must match the expected structure. See
+    ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
+    ///        field must contain a valid number of block headers, not less
+    ///        than the `txProofDifficultyFactor` contract constant.
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///        Additionally, the recent main UTXO on Ethereum must be set.
+    ///      - `walletPubKeyHash` must be connected with the main UTXO used
+    ///        as transaction single input.
     function submitRedemptionProof(
         BitcoinTx.Info calldata redemptionTx,
         BitcoinTx.Proof calldata redemptionProof,
