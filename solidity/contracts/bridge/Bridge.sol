@@ -928,8 +928,8 @@ contract Bridge is Ownable {
             "Pending request with same redemption key already exists"
         );
 
-        uint256 treasuryFee = redemptionTreasuryFee;
-        uint256 txMaxFee = redemptionTxMaxFee;
+        uint64 treasuryFee = redemptionTreasuryFee;
+        uint64 txMaxFee = redemptionTxMaxFee;
 
         // The wallet's BTC balance should allow to cover the actual BTC amount
         // transferred to the redeemer along with its share of the transaction
