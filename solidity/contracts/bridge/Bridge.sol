@@ -1112,9 +1112,11 @@ contract Bridge is Ownable {
 
             if (
                 changeValue == 0 &&
-                keccak256(outputHash) == walletPubKeyHashKeccak
+                keccak256(outputHash) == walletPubKeyHashKeccak &&
+                outputValue > 0
             ) {
-                // If we entered here, that means the change output was found.
+                // If we entered here, that means the change output with a
+                // proper non-zero value was found.
                 changeIndex = uint32(i);
                 changeValue = outputValue;
             } else {
@@ -1164,15 +1166,32 @@ contract Bridge is Ownable {
                 }
             }
 
-            // TODO: Should we do something if all transactions outputs
-            //       (or single output) point back to the wallet PKH without
-            //       doing anything else and the transaction just burns the fee?
-            //       This behavior should be punishable from within
-            //       `submitRedemptionFraud` function.
-
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.
             outputStartingIndex += outputLength;
+        }
+
+        if (outputsCount == 1 && changeValue > 0) {
+            // This is an edge case when there is a single output and that
+            // output refers back to the wallet PKH. Such a transaction just
+            // burns fees thus should be considered fraudulent and their proof
+            // should be rejected. However, if that transaction was already
+            // reported as fraud and wallet was punished, let it pass to update
+            // the main UTXO and allow the wallet redeem their faults by
+            // transferring their outstanding funds to another healthy wallet.
+            // Note the redemption key in that case is:
+            // keccak256(walletPubKeyHash | walletPubKeyHash) since the
+            // `walletPubKeyHash` takes place of the usual `redeemerOutputHash`.
+            require(
+                redemptionFaults[
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(walletPubKeyHash, walletPubKeyHash)
+                        )
+                    )
+                ],
+                "Redemption transaction contains single change output"
+            );
         }
 
         return (redeemedTotalValue, changeIndex, changeValue);
@@ -1228,11 +1247,14 @@ contract Bridge is Ownable {
     //            differently, depending on how other outputs looks like.
     //            All transactions transferring funds back to wallet PKH
     //            without doing anything else, burns the main UTXO for fees.
-    //            Wallet should be punished for that but in the same time,
-    //            the main UTXO output should not be put to `redemptionFaults`
-    //            in order to allow `submitRedemptionProof` to update the
-    //            main UTXO in a correct way and make further transactions
-    //            possible.
+    //            Wallet should be punished for that and the main UTXO key
+    //            should be put to `redemptionFaults` as usual.
+    //          - If there are outputs with zero value - put them to the
+    //            `redemptionFaults` mapping. It doesn't matter if they
+    //            are provably unspendable zero-value false return (OP_RETURN)
+    //            or non-false return outputs, they can be used to burn main
+    //            UTXO value via fees so transaction that uses them should be
+    //            considered fraudulent.
     //
     //          There is no need to revert if given redemption key is already
     //          in `redemptionFaults` mapping. However, one must count the
