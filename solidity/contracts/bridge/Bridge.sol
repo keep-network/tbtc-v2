@@ -113,9 +113,17 @@ contract Bridge is Ownable {
     struct RedemptionRequest {
         address redeemer;
         uint64 requestedAmount;
-        uint64 redeemableAmount;
-        uint64 minimalAmount;
+        uint64 treasuryFee;
+        uint64 txMaxFee;
         uint32 requestedAt;
+    }
+
+    // TODO: Documentation.
+    struct RedemptionTxOutputsReport {
+        uint256 totalBurnableValue;
+        uint256 totalTreasuryFee;
+        uint32 changeIndex;
+        uint64 changeValue;
     }
 
     /// @notice The number of confirmations on the Bitcoin chain required to
@@ -130,6 +138,10 @@ contract Bridge is Ownable {
     /// @notice Handle to the Bitcoin relay.
     IRelay public immutable relay;
 
+    // TODO: Revisit whether it should be updatable or not.
+    /// @notice Address where the redemptions treasury fees will be sent to.
+    address public immutable treasury;
+
     // TODO: Documentation and initialization.
     uint64 public redemptionDustThreshold;
 
@@ -137,7 +149,7 @@ contract Bridge is Ownable {
     uint64 public redemptionTreasuryFee;
 
     // TODO: Documentation and initialization.
-    uint64 public redemptionTxMaximumFeeShare;
+    uint64 public redemptionTxMaxFee;
 
     // TODO: Documentation and initialization.
     uint256 public redemptionTimeout;
@@ -197,8 +209,8 @@ contract Bridge is Ownable {
         bytes redeemerOutputHash,
         address redeemer,
         uint64 requestedAmount,
-        uint64 redeemableAmount,
-        uint64 minimalAmount
+        uint64 treasuryFee,
+        uint64 txMaxFee
     );
 
     event RedemptionsPerformed(
@@ -209,6 +221,7 @@ contract Bridge is Ownable {
     constructor(
         address _bank,
         address _relay,
+        address _treasury,
         uint256 _txProofDifficultyFactor
     ) {
         require(_bank != address(0), "Bank address cannot be zero");
@@ -216,6 +229,9 @@ contract Bridge is Ownable {
 
         require(_relay != address(0), "Relay address cannot be zero");
         relay = IRelay(_relay);
+
+        require(_treasury != address(0), "Treasury address cannot be zero");
+        treasury = _treasury;
 
         txProofDifficultyFactor = _txProofDifficultyFactor;
     }
@@ -887,25 +903,11 @@ contract Bridge is Ownable {
             "Pending request with same redemption key already exists"
         );
 
-        address redeemer = msg.sender;
-        // Requested amount is just the amount passed by the redeemer. This
-        // amount is taken from its balance and returned in case of redemption
-        // request timeout.
-        uint64 requestedAmount = amount;
-        // Redeemable amount is always smaller than the requested amount.
-        // It accounts the redemption fee passed to the treasury that pays
-        // the wallet operators.
-        uint64 redeemableAmount = requestedAmount - redemptionTreasuryFee;
-        // The minimal amount satisfying the request is the redeemable amount
-        // minus the maximum acceptable Bitcoin transaction fee share incurred
-        // by each redemption request.
-        uint64 minimalAmount = redeemableAmount - redemptionTxMaximumFeeShare;
-
         pendingRedemptionRequests[redemptionKey] = RedemptionRequest(
-            redeemer,
-            requestedAmount,
-            redeemableAmount,
-            minimalAmount,
+            msg.sender,
+            amount,
+            redemptionTreasuryFee,
+            redemptionTxMaxFee,
             /* solhint-disable-next-line not-rely-on-time */
             uint32(block.timestamp)
         );
@@ -913,13 +915,13 @@ contract Bridge is Ownable {
         emit RedemptionRequested(
             walletPubKeyHash,
             redeemerOutputHash,
-            redeemer,
-            requestedAmount,
-            redeemableAmount,
-            minimalAmount
+            msg.sender,
+            amount,
+            redemptionTreasuryFee,
+            redemptionTxMaxFee
         );
 
-        bank.transferBalanceFrom(redeemer, address(this), requestedAmount);
+        bank.transferBalanceFrom(msg.sender, address(this), amount);
     }
 
     // TODO: Documentation.
@@ -950,24 +952,20 @@ contract Bridge is Ownable {
 
         // Process redemption transaction outputs to extract some info required
         // for further processing.
-        (
-            uint256 redeemedTotalValue,
-            uint32 redemptionTxChangeIndex,
-            uint64 redemptionTxChangeValue
-        ) =
+        RedemptionTxOutputsReport memory outputsReport =
             processRedemptionTxOutputs(
                 redemptionTx.outputVector,
                 walletPubKeyHash
             );
 
-        if (redemptionTxChangeValue > 0) {
+        if (outputsReport.changeValue > 0) {
             // If the change value is grater than zero, it means the change
             // output exists and can be used as new wallet's main UTXO.
             mainUtxos[walletPubKeyHash] = keccak256(
                 abi.encodePacked(
                     redemptionTxHash,
-                    redemptionTxChangeIndex,
-                    redemptionTxChangeValue
+                    outputsReport.changeIndex,
+                    outputsReport.changeValue
                 )
             );
         } else {
@@ -979,11 +977,8 @@ contract Bridge is Ownable {
 
         emit RedemptionsPerformed(walletPubKeyHash, redemptionTxHash);
 
-        bank.decreaseBalance(redeemedTotalValue);
-
-        // TODO: Transfer the remaining balance to the treasury. Actually,
-        //       that balance represents the sum of redemption fees from all
-        //       redemptions made by this Bitcoin transaction.
+        bank.decreaseBalance(outputsReport.totalBurnableValue);
+        bank.transferBalance(treasury, outputsReport.totalTreasuryFee);
     }
 
     // TODO: Documentation.
@@ -1053,14 +1048,7 @@ contract Bridge is Ownable {
     function processRedemptionTxOutputs(
         bytes memory redemptionTxOutputVector,
         bytes20 walletPubKeyHash
-    )
-        internal
-        returns (
-            uint256 redeemedTotalValue,
-            uint32 changeIndex,
-            uint64 changeValue
-        )
-    {
+    ) internal returns (RedemptionTxOutputsReport memory report) {
         // Determining the total number of redemption transaction outputs in
         // the same way as for number of inputs. See `BitcoinTx.outputVector`
         // docs for more details.
@@ -1115,14 +1103,14 @@ contract Bridge is Ownable {
             bytes memory outputHash = output.extractHash();
 
             if (
-                changeValue == 0 &&
+                report.changeValue == 0 &&
                 keccak256(outputHash) == walletPubKeyHashKeccak &&
                 outputValue > 0
             ) {
                 // If we entered here, that means the change output with a
                 // proper non-zero value was found.
-                changeIndex = uint32(i);
-                changeValue = outputValue;
+                report.changeIndex = uint32(i);
+                report.changeValue = outputValue;
             } else {
                 // If we entered here, that the means the given output is
                 // supposed to represent a redemption. Build the redemption key
@@ -1142,16 +1130,25 @@ contract Bridge is Ownable {
                     // as a pending redemption request.
                     RedemptionRequest storage request =
                         pendingRedemptionRequests[redemptionKey];
+                    // Compute the request's redeemable amount as the requested
+                    // amount reduced by the treasury fee. The request's
+                    // minimal amount is then the redeemable amount reduced by
+                    // the maximum transaction fee.
+                    uint64 redeemableAmount =
+                        request.requestedAmount - request.treasuryFee;
                     // Output value must fit between the request's redeemable
                     // and minimal amounts to be deemed valid.
                     require(
-                        request.redeemableAmount >= outputValue &&
-                            outputValue >= request.minimalAmount,
+                        redeemableAmount >= outputValue &&
+                            outputValue >= redeemableAmount - request.txMaxFee,
                         "Output value is not acceptable for redemption request"
                     );
-                    // Add the redeemable amount to the total redeemed value
-                    // the bridge will use to decrease its balance in the bank.
-                    redeemedTotalValue += request.redeemableAmount;
+                    // Add the redeemable amount to the total burnable value
+                    // the Bridge will use to decrease its balance in the Bank.
+                    report.totalBurnableValue += redeemableAmount;
+                    // Add the request's treasury fee to the total treasury fee
+                    // value the Bridge will transfer to the treasury.
+                    report.totalTreasuryFee += request.treasuryFee;
                     // Request was properly handled so remove its redemption
                     // key from the mapping to make it reusable for further
                     // requests.
@@ -1176,7 +1173,7 @@ contract Bridge is Ownable {
             outputStartingIndex += outputLength;
         }
 
-        if (outputsCount == 1 && changeValue > 0) {
+        if (outputsCount == 1 && report.changeValue > 0) {
             // This is an edge case when there is a single output and that
             // output refers back to the wallet PKH. Such a transaction just
             // burns fees thus should be considered fraudulent and their proof
@@ -1199,7 +1196,7 @@ contract Bridge is Ownable {
             );
         }
 
-        return (redeemedTotalValue, changeIndex, changeValue);
+        return report;
     }
 
     // TODO: Function `notifyRedemptionTimeout. That function must:
