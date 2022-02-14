@@ -1077,6 +1077,9 @@ contract Bridge is Ownable {
     /// @param redemptionProof Bitcoin redemption proof data
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain.
+    /// @param walletPubKeyHash 20-byte public key hash (computed using
+    ///        HASH160 opcode) of the wallet which performed the redemption
+    ///        transaction.
     /// @dev Requirements:
     ///      - `redemptionTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
@@ -1090,8 +1093,8 @@ contract Bridge is Ownable {
     ///        change and pointing back to the 20-byt wallet public key hash.
     ///        The change should be always present if the redeemed value sum
     ///        is lower than the total wallet's BTC balance.
-    ///      - `redemptionProof` components must match the expected structure. See
-    ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
+    ///      - `redemptionProof` components must match the expected structure.
+    ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
     ///        than the `txProofDifficultyFactor` contract constant.
     ///      - `mainUtxo` components must point to the recent main UTXO
@@ -1158,7 +1161,18 @@ contract Bridge is Ownable {
         bank.transferBalance(treasury, outputsReport.totalTreasuryFee);
     }
 
-    // TODO: Documentation.
+    /// @notice Validates whether the redemption Bitcoin transaction input
+    ///         vector contains a single input referring to the wallet's main
+    ///         UTXO. Reverts in case the validation fail.
+    /// @param redemptionTxInputVector Bitcoin redemption transaction input
+    ///        vector. This function assumes vector's structure is valid so it
+    ///        must be validated using e.g. `BTCUtils.validateVin` function
+    ///        before it is passed here
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain.
+    /// @param walletPubKeyHash 20-byte public key hash (computed using
+    ///        HASH160 opcode) of the wallet which performed the redemption
+    ///        transaction.
     function validateRedemptionTxInput(
         bytes memory redemptionTxInputVector,
         BitcoinTx.UTXO calldata mainUtxo,
@@ -1192,7 +1206,17 @@ contract Bridge is Ownable {
         );
     }
 
-    // TODO: Documentation.
+    /// @notice Processes the Bitcoin redemption transaction input vector. It
+    ///         extracts the single input then the transaction hash and output
+    ///         index from its outpoint.
+    /// @param redemptionTxInputVector Bitcoin redemption transaction input
+    ///        vector. This function assumes vector's structure is valid so it
+    ///        must be validated using e.g. `BTCUtils.validateVin` function
+    ///        before it is passed here
+    /// @return inputTxHash 32-byte hash of the Bitcoin transaction which is
+    ///         pointed in the input's outpoint.
+    /// @return inputTxIndex 4-byte index of the Bitcoin transaction output
+    ///         which is pointed in the input's outpoint.
     function processRedemptionTxInput(bytes memory redemptionTxInputVector)
         internal
         pure
@@ -1221,7 +1245,20 @@ contract Bridge is Ownable {
         return (inputTxHash, inputTxIndex);
     }
 
-    // TODO: Documentation.
+    /// @notice Processes the Bitcoin redemption transaction output vector.
+    ///         It extracts each output and tries to identify it as a pending
+    ///         redemption request, reported invalid redemption, or change.
+    ///         Reverts if one of the outputs cannot be recognized properly.
+    ///         This function also marks each request as processed by removing
+    ///         them from `pendingRedemptionRequests` mapping.
+    /// @param redemptionTxOutputVector Bitcoin redemption transaction output
+    ///        vector. This function assumes vector's structure is valid so it
+    ///        must be validated using e.g. `BTCUtils.validateVout` function
+    ///        before it is passed here
+    /// @param walletPubKeyHash 20-byte public key hash (computed using
+    ///        HASH160 opcode) of the wallet which performed the redemption
+    ///        transaction.
+    /// @return report Outcomes of the processing.
     function processRedemptionTxOutputs(
         bytes memory redemptionTxOutputVector,
         bytes20 walletPubKeyHash
