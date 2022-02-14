@@ -935,13 +935,6 @@ contract Bridge is Ownable {
         return (inputTxHash, inputTxIndex, inputLength);
     }
 
-    // TODO It is possible a malicious wallet can sweep deposits that can not
-    //      be later proved on Ethereum. For example, a deposit with
-    //      an incorrect amount revealed. We need to provide a function for honest
-    //      depositors, next to sweep, to prove their swept balances on Ethereum
-    //      selectively, based on deposits they have earlier received.
-    //      (UPDATE PR #90: Is it still the case since amounts are inferred?)
-
     // TODO: Documentation.
     function requestRedemption(
         bytes20 walletPubKeyHash,
