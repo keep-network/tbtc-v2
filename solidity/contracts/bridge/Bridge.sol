@@ -455,7 +455,7 @@ contract Bridge is Ownable {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 sweepTxHash = validateTxProof(sweepTx, sweepProof);
+        bytes32 sweepTxHash = validateBitcoinTxProof(sweepTx, sweepProof);
 
         // Process sweep transaction output and extract its target wallet
         // public key hash and value.
@@ -530,7 +530,7 @@ contract Bridge is Ownable {
     /// @param txInfo Bitcoin transaction data
     /// @param proof Bitcoin proof data
     /// @return txHash Proven 32-byte transaction hash.
-    function validateTxProof(
+    function validateBitcoinTxProof(
         BitcoinTx.Info calldata txInfo,
         BitcoinTx.Proof calldata proof
     ) internal view returns (bytes32 txHash) {
@@ -940,7 +940,7 @@ contract Bridge is Ownable {
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
         bytes32 redemptionTxHash =
-            validateTxProof(redemptionTx, redemptionProof);
+            validateBitcoinTxProof(redemptionTx, redemptionProof);
 
         // Perform validation of the redemption transaction input. Specifically,
         // check if it refers to the expected wallet's main UTXO.
