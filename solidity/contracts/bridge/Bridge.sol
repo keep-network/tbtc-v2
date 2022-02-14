@@ -167,7 +167,7 @@ contract Bridge is Ownable {
 
     // TODO: Documentation.
     // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
-    mapping(uint256 => RedemptionRequest) public redemptionRequests;
+    mapping(uint256 => RedemptionRequest) public pendingRedemptionRequests;
 
     // TODO: Documentation.
     // Key: keccak256(walletPubKeyHash | redeemerOutputHash)
@@ -883,8 +883,8 @@ contract Bridge is Ownable {
             );
 
         require(
-            redemptionRequests[redemptionKey].requestedAt == uint32(0),
-            "Request with same redemption key already exists"
+            pendingRedemptionRequests[redemptionKey].requestedAt == uint32(0),
+            "Pending request with same redemption key already exists"
         );
 
         address redeemer = msg.sender;
@@ -901,7 +901,7 @@ contract Bridge is Ownable {
         // by each redemption request.
         uint64 minimalAmount = redeemableAmount - redemptionTxMaximumFeeShare;
 
-        redemptionRequests[redemptionKey] = RedemptionRequest(
+        pendingRedemptionRequests[redemptionKey] = RedemptionRequest(
             redeemer,
             requestedAmount,
             redeemableAmount,
@@ -1131,12 +1131,13 @@ contract Bridge is Ownable {
                     );
 
                 if (
-                    redemptionRequests[redemptionKey].requestedAt != uint32(0)
+                    pendingRedemptionRequests[redemptionKey].requestedAt !=
+                    uint32(0)
                 ) {
                     // If we entered here, that means the output was identified
-                    // as a redemption request.
+                    // as a pending redemption request.
                     RedemptionRequest storage request =
-                        redemptionRequests[redemptionKey];
+                        pendingRedemptionRequests[redemptionKey];
                     // Output value must fit between the request's redeemable
                     // and minimal amounts to be deemed valid.
                     require(
@@ -1150,7 +1151,7 @@ contract Bridge is Ownable {
                     // Request was properly handled so remove its redemption
                     // key from the mapping to make it reusable for further
                     // requests.
-                    delete redemptionRequests[redemptionKey];
+                    delete pendingRedemptionRequests[redemptionKey];
                 } else {
                     // If we entered here, the output is not a redemption
                     // request but there is still a chance the given output is
@@ -1201,10 +1202,10 @@ contract Bridge is Ownable {
     //       1. Take a the `walletPubKey` and `redeemerOutputHash` as params.
     //       2. Build the redemption key using those params.
     //       3. Use the redemption key and take the request from
-    //          `redemptionRequests` mapping.
+    //          `pendingRedemptionRequests` mapping.
     //       4. If request doesn't exist in mapping - revert.
-    //       5. If request exits, and is timed out - remove the redemption
-    //          key from `redemptionRequests` and put it to `redemptionFaults`.
+    //       5. If request exits, and is timed out - remove the redemption key
+    //          from `pendingRedemptionRequests` and put it to `redemptionFaults`.
     //          No need to check if `redemptionFaults` mapping already contains
     //          that key because `requestRedemption` blocks requests targeting
     //          faulty wallets so there is no possibility that the given
@@ -1212,7 +1213,7 @@ contract Bridge is Ownable {
     //          On the other hand, if given redemption key was already
     //          marked as faulty due to an amount-related fraud, it will not
     //          be possible to report a time out on it since it won't be
-    //          present in `redemptionRequests` mapping.
+    //          present in `pendingRedemptionRequests` mapping.
     //       6. Return the `requestedAmount` to the `redeemer`.
     //       7. Punish the wallet, probably by slashing its operators.
     //       8. Put the wallet public key hash to `faultyWallets` to
@@ -1236,8 +1237,8 @@ contract Bridge is Ownable {
     //          - If there are outputs corresponding to proper redemption
     //            requests - ignore them
     //          - If there are outputs corresponding to existing requests
-    //            but output amounts are wrong - remove their redemption key
-    //            from `redemptionRequests` and put it to `redemptionFaults`
+    //            but output amounts are wrong - remove their redemption key from
+    //            `pendingRedemptionRequests` and put it to `redemptionFaults`
     //            mapping. Reimburse the `redeemer` of each underfunded request
     //            by covering the difference to at least the request's
     //            `minimalAmount` in TBTC.
