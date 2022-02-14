@@ -935,7 +935,35 @@ contract Bridge is Ownable {
         return (inputTxHash, inputTxIndex, inputLength);
     }
 
-    // TODO: Documentation.
+    /// @notice Requests redemption of the given amount from the specified
+    ///         wallet to the redeemer Bitcoin output script hash.
+    /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
+    ///        using HASH160 opcode)
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain
+    /// @param redeemerOutputHash The 20-byte (P2PKH, P2WPKH, or P2SH) or
+    ///        32-byte (P2WSH) output hash that will be used to lock
+    ///        redeemed BTC
+    /// @param amount Requested amount in satoshi. This is also the TBTC amount
+    ///        that is taken from redeemer's balance in the Bank upon request.
+    ///        Once the request is handled, the actual amount of BTC locked
+    ///        on the redeemer output hash will be always lower than this value
+    ///        since the treasury and Bitcoin transaction fees must be incurred.
+    ///        The minimal amount satisfying the request can be computed as:
+    ///        `amount - redemptionTreasuryFee - redemptionTxMaxFee`.
+    ///        Fees values are taken at the moment of request creation.
+    /// @dev Requirements:
+    ///      - Wallet behind `walletPubKeyHash` cannot be marked as faulty
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///      - `redeemerOutputHash` must be proper 20-byte or 32-byte BTC hash
+    ///      - `redeemerOutputHash` cannot be the same as `walletPubKeyHash`
+    ///      - `amount` must be above or equal the `redemptionDustThreshold`
+    ///      - Given `walletPubKeyHash` and `redeemerOutputHash` pair can be
+    ///        used for only one pending request at the same time
+    ///      - Wallet must have enough Bitcoin balance to proceed the request
+    ///      - Redeemer must make an allowance in the Bank that the Bridge
+    ///        contract can spend the given `amount`.
     function requestRedemption(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo,
