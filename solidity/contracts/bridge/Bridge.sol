@@ -929,6 +929,10 @@ contract Bridge is Ownable {
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) external {
+        // TODO: Just as for `submitSweepProof`, fail early if the function
+        //       call gets frontrunned. See discussion:
+        //       https://github.com/keep-network/tbtc-v2/pull/106#discussion_r801745204
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
