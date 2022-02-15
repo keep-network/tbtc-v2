@@ -115,8 +115,9 @@ library BitcoinTx {
 
     /// @notice Represents info about an unspent transaction output.
     struct UTXO {
-        /// @notice Hash of the transaction (little-endian) the output
-        ///         belongs to.
+        /// @notice Hash of the transaction the output belongs to. Bear in mind
+        ///         the bytes order must correspond to the order used internally
+        ///         by the Bitcoin protocol.
         bytes32 txHash;
         /// @notice Index of the transaction output (0-indexed).
         uint32 txOutputIndex;

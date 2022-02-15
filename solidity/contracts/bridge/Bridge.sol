@@ -128,7 +128,7 @@ contract Bridge is Ownable {
     ///         outputs processing.
     struct RedemptionTxOutputsInfo {
         // Total TBTC value in satoshi that should be burned by the Bridge.
-        // It includes the total amount of all BTC redeemed in the transaction 
+        // It includes the total amount of all BTC redeemed in the transaction
         // and the fee paid to BTC miners for the redemption transaction.
         uint64 totalBurnableValue;
         // Total TBTC value in satoshi that should be transferred to
@@ -175,6 +175,7 @@ contract Bridge is Ownable {
 
     /// TODO: Revisit whether it should be governable or not.
     /// @notice Address where the redemptions treasury fees will be sent to.
+    ///         Treasury takes part in the operators rewarding process.
     address public immutable treasury;
 
     /// TODO: Make it governable.
@@ -215,30 +216,32 @@ contract Bridge is Ownable {
 
     /// @notice Collection of all revealed deposits indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex).
-    ///         The fundingTxHash is LE bytes32 and fundingOutputIndex an uint32.
-    ///         This mapping may contain valid and invalid deposits and the
-    ///         wallet is responsible for validating them before attempting to
-    ///         execute a sweep.
+    ///         The fundingTxHash is bytes32 (ordered as in Bitcoin internally)
+    ///         and fundingOutputIndex an uint32. This mapping may contain valid
+    ///         and invalid deposits and the wallet is responsible for
+    ///         validating them before attempting to execute a sweep.
     mapping(uint256 => DepositRequest) public deposits;
 
-    /// @notice Maps the 20-byte wallet public key hash (computed using HASH160
-    ///         opcode) to the latest wallet's main UTXO computed as
+    /// @notice Maps the 20-byte wallet public key hash (computed using
+    ///         Bitcoin HASH160 over the compressed ECDSA public key) to
+    ///         the latest wallet's main UTXO computed as
     ///         keccak256(txHash | txOutputIndex | txOutputValue). The `tx`
     ///         prefix refers to the transaction which created that main UTXO.
-    ///         The txHash is LE bytes32, txOutputIndex an uint32, and
-    ///         txOutputValue an uint64 value.
+    ///         The txHash is bytes32 (ordered as in Bitcoin internally),
+    ///         txOutputIndex an uint32, and txOutputValue an uint64 value.
     mapping(bytes20 => bytes32) public mainUtxos;
 
     /// @notice Collection of all pending redemption requests indexed by
     ///         redemption key built as
     ///         keccak256(walletPubKeyHash | redeemerOutputHash). The
     ///         walletPubKeyHash is the 20-byte wallet's public key hash
-    ///         (computed using HASH160 opcode) and redeemerOutputHash is the
-    ///         20-byte (P2PKH, P2WPKH or P2SH) or 32-byte (P2WSH) output
-    ///         hash that will be used to lock redeemed BTC as requested by
-    ///         the redeemer. Requests are added to this mapping by the
-    ///         `requestRedemption` method (duplicates not allowed) and are
-    ///         removed by one of the following methods:
+    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
+    ///         public key) and redeemerOutputHash is the 20-byte (P2PKH,
+    ///         P2WPKH or P2SH) or 32-byte (P2WSH) output hash that will be
+    ///         used to lock redeemed BTC as requested by the redeemer.
+    ///         Requests are added to this mapping by the `requestRedemption`
+    ///         method (duplicates not allowed) and are removed by one of the
+    ///         following methods:
     ///         - `submitRedemptionProof` in case the request was handled
     ///           successfully
     ///         - `notifyRedemptionTimeout` in case the request was reported
@@ -250,10 +253,12 @@ contract Bridge is Ownable {
     /// @notice Collection of all invalid redemptions indexed by redemption key
     ///         built as keccak256(walletPubKeyHash | redeemerOutputHash). The
     ///         walletPubKeyHash is the 20-byte wallet's public key hash
-    ///         (computed using HASH160 opcode) and redeemerOutputHash is the
-    ///         20-byte (P2PKH, P2WPKH or P2SH) or 32-byte (P2WSH) output
-    ///         hash that is involved in the invalid redemption. Two methods
-    ///         can add to this mapping:
+    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
+    ///         public key) and redeemerOutputHash is the 20-byte (P2PKH,
+    ///         P2WPKH or P2SH) or 32-byte (P2WSH) output hash that is involved
+    ///         in the invalid redemption. Invalid redemptions are stored in
+    ///         this mapping to avoid slashing the wallets multiple times for
+    ///         the same fault. Two methods can add to this mapping:
     ///         - `notifyRedemptionTimeout` which puts the redemption key
     ///           to this mapping basing on a timed out request stored
     ///           previously in `pendingRedemptions` mapping.
@@ -267,9 +272,10 @@ contract Bridge is Ownable {
     // slither-disable-next-line uninitialized-state
     mapping(uint256 => bool) public invalidRedemptions;
 
-    /// @notice Maps the 20-byte wallet public key hash (computed using HASH160
-    ///         opcode) to the basic wallet information like state and
-    ///         pending redemptions value.
+    /// @notice Maps the 20-byte wallet public key hash (computed using
+    ///         Bitcoin HASH160 over the compressed ECDSA public key) to the
+    ///         basic wallet information like state and pending
+    ///         redemptions value.
     ///
     // TODO: Remove that Slither disable once this variable is used.
     // slither-disable-next-line uninitialized-state
@@ -952,7 +958,7 @@ contract Bridge is Ownable {
     /// @notice Requests redemption of the given amount from the specified
     ///         wallet to the redeemer Bitcoin output script hash.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
-    ///        using HASH160 opcode)
+    //         using Bitcoin HASH160 over the compressed ECDSA public key)
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain
     /// @param redeemerOutputHash The 20-byte (P2PKH, P2WPKH, or P2SH) or
@@ -990,7 +996,10 @@ contract Bridge is Ownable {
         );
 
         bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
-        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
+        require(
+            mainUtxoHash != bytes32(0),
+            "No main UTXO for the given wallet"
+        );
         require(
             keccak256(
                 abi.encodePacked(
@@ -1043,7 +1052,7 @@ contract Bridge is Ownable {
         uint64 treasuryFee = redemptionTreasuryFee;
         uint64 txMaxFee = redemptionTxMaxFee;
 
-        // The main wallet UTXO's value does include all pending redemptions.
+        // The main wallet UTXO's value doesn't include all pending redemptions.
         // To determine if the requested redemption can be performed by the
         // wallet we need to subtract the total value of all pending redemptions
         // from that wallet's main UTXO value. Given that the treasury fee is
@@ -1083,17 +1092,17 @@ contract Bridge is Ownable {
     ///         accepted if it satisfies SPV proof.
     ///
     ///         The function is performing Bank balance updates by burning
-    ///         the total redeemed Bitcoin amount from Bridge balance and 
+    ///         the total redeemed Bitcoin amount from Bridge balance and
     ///         transferring the treasury fee sum to the treasury address.
     ///
     ///         It is possible to prove the given redemption only one time.
     /// @param redemptionTx Bitcoin redemption transaction data
     /// @param redemptionProof Bitcoin redemption proof data
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
-    ///        the Ethereum chain.
-    /// @param walletPubKeyHash 20-byte public key hash (computed using
-    ///        HASH160 opcode) of the wallet which performed the redemption
-    ///        transaction.
+    ///        the Ethereum chain
+    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
+    ///        HASH160 over the compressed ECDSA public key) of the wallet which
+    ///        performed the redemption transaction
     /// @dev Requirements:
     ///      - `redemptionTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
@@ -1177,16 +1186,16 @@ contract Bridge is Ownable {
 
     /// @notice Validates whether the redemption Bitcoin transaction input
     ///         vector contains a single input referring to the wallet's main
-    ///         UTXO. Reverts in case the validation fail.
+    ///         UTXO. Reverts in case the validation fails.
     /// @param redemptionTxInputVector Bitcoin redemption transaction input
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVin` function
     ///        before it is passed here
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain.
-    /// @param walletPubKeyHash 20-byte public key hash (computed using
-    ///        HASH160 opcode) of the wallet which performed the redemption
-    ///        transaction.
+    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
+    //         HASH160 over the compressed ECDSA public key) of the wallet which
+    ///        performed the redemption transaction.
     function validateRedemptionTxInput(
         bytes memory redemptionTxInputVector,
         BitcoinTx.UTXO calldata mainUtxo,
@@ -1269,9 +1278,9 @@ contract Bridge is Ownable {
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVout` function
     ///        before it is passed here
-    /// @param walletPubKeyHash 20-byte public key hash (computed using
-    ///        HASH160 opcode) of the wallet which performed the redemption
-    ///        transaction.
+    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
+    //         HASH160 over the compressed ECDSA public key) of the wallet which
+    ///        performed the redemption transaction.
     /// @return info Outcomes of the processing.
     function processRedemptionTxOutputs(
         bytes memory redemptionTxOutputVector,
