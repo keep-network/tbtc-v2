@@ -318,7 +318,7 @@ contract Bridge is Ownable {
         txProofDifficultyFactor = _txProofDifficultyFactor;
 
         // TODO: Revisit initial values.
-        redemptionDustThreshold = 200000; // 200000 satoshi
+        redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         redemptionTreasuryFee = 100000; // 100000 satoshi
         redemptionTxMaxFee = 1000; // 1000 satoshi
         redemptionTimeout = 172800; // 48 hours
