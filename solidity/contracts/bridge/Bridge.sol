@@ -1367,7 +1367,7 @@ contract Bridge is Ownable {
                     require(
                         redeemableAmount >= outputValue &&
                             outputValue >= redeemableAmount - request.txMaxFee,
-                        "Output value is not acceptable for redemption request"
+                        "Output value is not within the acceptable range"
                     );
                     // Add the redeemable amount to the total burnable value
                     // the Bridge will use to decrease its balance in the Bank.
