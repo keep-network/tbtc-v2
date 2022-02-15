@@ -306,7 +306,7 @@ contract Bridge is Ownable {
         uint64 txMaxFee
     );
 
-    event RedemptionsPerformed(
+    event RedemptionsCompleted(
         bytes20 walletPubKeyHash,
         bytes32 redemptionTxHash
     );
@@ -1178,7 +1178,7 @@ contract Bridge is Ownable {
         wallets[walletPubKeyHash].pendingRedemptionsValue -= outputsInfo
             .totalBurnableValue;
 
-        emit RedemptionsPerformed(walletPubKeyHash, redemptionTxHash);
+        emit RedemptionsCompleted(walletPubKeyHash, redemptionTxHash);
 
         bank.decreaseBalance(outputsInfo.totalBurnableValue);
         bank.transferBalance(treasury, outputsInfo.totalTreasuryFee);
