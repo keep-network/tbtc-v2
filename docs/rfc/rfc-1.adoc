@@ -68,18 +68,18 @@ Governable Parameters:
 
 - `heartbeat`: The number of group members required for a
   <<heartbeat,heartbeat>> to be successful.
-- `dkg`: The minimum number of members we're allowed to drop down to during the
-  DKG group formation re-try period.
 
 Non-Governable Parameters:
 
 - `threshold`: The number of signers that can be controlled by the adversary
   before the key is in danger.
+- `dkg`: The minimum number of members we're allowed to drop down to during the
+  DKG group formation re-try period.
 - `group_size`: The total size of the signing group.
 
 `threshold < heartbeat < dkg < group_size`
 
-*Note*: `threshold` and `group_size` are mission-critial, cornerstone
+*Note*: `threshold`, `dkg` and `group_size` are mission-critial, cornerstone
 parameters for the system, and will be hardcoded into the bridge contract. If
 we want to change these parameters, we will need to upgrade the bridge
 contract.
@@ -609,8 +609,6 @@ Alphabetized list of Governable Parameters with additional notes.
   operator.
 - `consecutive_failed_heartbeats`: The number of times a heartbeat can fail in
   a row that triggers a move to close the wallet.
-- `dkg`: The minimum number of members we're allowed to drop down to during the
-  DKG group formation re-try period.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
   be considered for a sweep.
 - `failed_heartbeat_reward_removal_period`: The amount of time an operator is

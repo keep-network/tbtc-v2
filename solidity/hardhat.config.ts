@@ -14,6 +14,12 @@ const config: HardhatUserConfig = {
     compilers: [
       {
         version: "0.8.4", // TODO: Revisit solidity version before deploying on mainnet!
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1000,
+          },
+        },
       },
     ],
   },
