@@ -504,7 +504,7 @@ this transaction.
 [[transaction-incentives]]
 === Transaction Incentives
 
-Governable Parameters
+Governable Parameters:
 - `max_gas_refund_price`: The highest amount of gwei that the gas refund
   contract will pay out per gas for a refund transaction.
 
