@@ -1386,10 +1386,10 @@ contract Bridge is Ownable {
                     // it as the wallet was already punished for causing the
                     // invalid redemption and allow processing other potentially
                     // correct outputs. If not, revert because the output
-                    // cannot be recognized properly.
+                    // is a non-reported redemption fraud.
                     require(
                         invalidRedemptions[redemptionKey],
-                        "Unknown output type"
+                        "Output is a non-reported redemption fraud"
                     );
                 }
             }
