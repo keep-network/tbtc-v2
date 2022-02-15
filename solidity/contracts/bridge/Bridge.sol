@@ -1029,8 +1029,8 @@ contract Bridge is Ownable {
                 )
             );
 
+        // slither-disable-next-line incorrect-equality
         require(
-            // slither-disable-next-line incorrect-equality
             pendingRedemptions[redemptionKey].requestedAt == 0,
             "Pending request with same redemption key already exists"
         );
@@ -1189,7 +1189,7 @@ contract Bridge is Ownable {
         bytes memory redemptionTxInputVector,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
-    ) internal {
+    ) internal view {
         // Assert that main UTXO for passed wallet exists in storage.
         bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
         require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
