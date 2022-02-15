@@ -847,11 +847,6 @@ contract Bridge is Ownable {
 
         // Inputs processing loop.
         for (uint256 i = 0; i < inputsCount; i++) {
-            // Check if we are at the end of the input vector.
-            if (inputStartingIndex >= sweepTxInputVector.length) {
-                break;
-            }
-
             (bytes32 inputTxHash, uint32 inputTxIndex, uint256 inputLength) =
                 parseTxInputAt(sweepTxInputVector, inputStartingIndex);
 
@@ -1317,11 +1312,6 @@ contract Bridge is Ownable {
 
         // Outputs processing loop.
         for (uint256 i = 0; i < outputsCount; i++) {
-            // Check if we are at the end of the output vector.
-            if (outputStartingIndex >= redemptionTxOutputVector.length) {
-                break;
-            }
-
             // TODO: Check if we can optimize gas costs by adding
             //       `extractValueAt` and `extractHashAt` in `bitcoin-spv-sol`
             //       in order to avoid allocating bytes in memory.
