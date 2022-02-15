@@ -1365,8 +1365,8 @@ contract Bridge is Ownable {
                     // Output value must fit between the request's redeemable
                     // and minimal amounts to be deemed valid.
                     require(
-                        redeemableAmount >= outputValue &&
-                            outputValue >= redeemableAmount - request.txMaxFee,
+                        redeemableAmount - request.txMaxFee <= outputValue &&
+                            outputValue <= redeemableAmount,
                         "Output value is not within the acceptable range"
                     );
                     // Add the redeemable amount to the total burnable value
