@@ -128,11 +128,15 @@ contract Bridge is Ownable {
     ///         outputs processing.
     struct RedemptionTxOutputsInfo {
         // Total TBTC value in satoshi that should be burned by the Bridge.
+        // It includes the total amount of all BTC redeemed in the transaction 
+        // and the fee paid to BTC miners for the redemption transaction.
         uint64 totalBurnableValue;
         // Total TBTC value in satoshi that should be transferred to
-        // the treasury.
+        // the treasury. It is a sum of all treasury fees paid by all
+        // redeemers included in the redemption transaction.
         uint64 totalTreasuryFee;
-        // Index of the change output.
+        // Index of the change output. The change output becomes
+        // the new main wallet's UTXO.
         uint32 changeIndex;
         // Value in satoshi of the change output.
         uint64 changeValue;
@@ -187,8 +191,9 @@ contract Bridge is Ownable {
 
     /// TODO: Make it governable.
     /// @notice Maximum amount of BTC transaction fee that can be incurred by
-    ///         each redemption request being part of given redemption
-    ///         transaction.
+    ///         each redemption request being part of the given redemption
+    ///         transaction. If the maximum BTC transaction fee is exceeded, such
+    ///         transaction is considered a fraud.
     uint64 public redemptionTxMaxFee;
 
     /// TODO: Make it governable.
@@ -1018,10 +1023,10 @@ contract Bridge is Ownable {
             "Redemption amount too small"
         );
 
-        // The redemption key is built on top of wallet public key hash
+        // The redemption key is built on top of the wallet public key hash
         // and redeemer output hash pair. That means there can be only one
-        // request asking for redemption from specific wallet to the given
-        // BTC hash in the same time.
+        // request asking for redemption from the given wallet to the given
+        // BTC hash at the same time.
         uint256 redemptionKey =
             uint256(
                 keccak256(
@@ -1032,20 +1037,17 @@ contract Bridge is Ownable {
         // slither-disable-next-line incorrect-equality
         require(
             pendingRedemptions[redemptionKey].requestedAt == 0,
-            "Pending request with same redemption key already exists"
+            "There is a pending redemption request from this wallet to the same address"
         );
 
         uint64 treasuryFee = redemptionTreasuryFee;
         uint64 txMaxFee = redemptionTxMaxFee;
 
-        // The wallet's BTC balance should allow to cover the actual BTC amount
-        // transferred to the redeemer along with its share of the transaction
-        // fee. Those two components always sum up to the request's maximum
-        // redeemable amount which is computed as the difference between the
-        // requested amount and the treasury fee. This is why one should
-        // add the redeemable amount to the total requested value for the given
-        // wallet and assert this total value doesn't exceed the current main
-        // UTXO value  which is actually the same as the current wallet balance.
+        // The main wallet UTXO's value does include all pending redemptions.
+        // To determine if the requested redemption can be performed by the
+        // wallet we need to subtract the total value of all pending redemptions
+        // from that wallet's main UTXO value. Given that the treasury fee is
+        // not redeemed from the wallet, we are subtracting it.
         wallets[walletPubKeyHash].pendingRedemptionsValue +=
             amount -
             treasuryFee;
@@ -1081,8 +1083,8 @@ contract Bridge is Ownable {
     ///         accepted if it satisfies SPV proof.
     ///
     ///         The function is performing Bank balance updates by burning
-    ///         the total redeemed amount from Bridge balance and transferring
-    ///         the treasury fee sum to the treasury address.
+    ///         the total redeemed Bitcoin amount from Bridge balance and 
+    ///         transferring the treasury fee sum to the treasury address.
     ///
     ///         It is possible to prove the given redemption only one time.
     /// @param redemptionTx Bitcoin redemption transaction data
@@ -1102,7 +1104,7 @@ contract Bridge is Ownable {
     ///        transaction should have 1..n outputs handling existing pending
     ///        redemption requests or pointing to reported invalid redemptions.
     ///        There can be also 1 optional output representing the
-    ///        change and pointing back to the 20-byt wallet public key hash.
+    ///        change and pointing back to the 20-byte wallet public key hash.
     ///        The change should be always present if the redeemed value sum
     ///        is lower than the total wallet's BTC balance.
     ///      - `redemptionProof` components must match the expected structure.
