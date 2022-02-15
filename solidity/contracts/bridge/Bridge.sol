@@ -93,7 +93,7 @@ contract Bridge is Ownable {
     }
 
     /// @notice Represents tBTC deposit data.
-    struct DepositInfo {
+    struct DepositRequest {
         // Ethereum depositor address.
         address depositor;
         // Deposit amount in satoshi.
@@ -195,7 +195,7 @@ contract Bridge is Ownable {
     ///         This mapping may contain valid and invalid deposits and the
     ///         wallet is responsible for validating them before attempting to
     ///         execute a sweep.
-    mapping(uint256 => DepositInfo) public deposits;
+    mapping(uint256 => DepositRequest) public deposits;
 
     /// @notice Maps the 20-byte wallet public key hash (computed using HASH160
     ///         opcode) to the latest wallet's main UTXO computed as
@@ -448,7 +448,7 @@ contract Bridge is Ownable {
             )
                 .hash256View();
 
-        DepositInfo storage deposit =
+        DepositRequest storage deposit =
             deposits[
                 uint256(
                     keccak256(
@@ -834,7 +834,7 @@ contract Bridge is Ownable {
             (bytes32 inputTxHash, uint32 inputTxIndex, uint256 inputLength) =
                 parseTxInputAt(sweepTxInputVector, inputStartingIndex);
 
-            DepositInfo storage deposit =
+            DepositRequest storage deposit =
                 deposits[
                     uint256(
                         keccak256(abi.encodePacked(inputTxHash, inputTxIndex))
