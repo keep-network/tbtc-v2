@@ -128,14 +128,33 @@ contract Bridge is Ownable {
     ///         outputs processing.
     struct RedemptionTxOutputsInfo {
         // Total TBTC value in satoshi that should be burned by the Bridge.
-        uint256 totalBurnableValue;
+        uint64 totalBurnableValue;
         // Total TBTC value in satoshi that should be transferred to
         // the treasury.
-        uint256 totalTreasuryFee;
+        uint64 totalTreasuryFee;
         // Index of the change output.
         uint32 changeIndex;
         // Value in satoshi of the change output.
         uint64 changeValue;
+    }
+
+    /// @notice Represents wallet state:
+    ///         - Unknown: the wallet is unknown to the Bridge
+    ///         - Active: the wallet can sweep deposits and accept redemption
+    ///           requests
+    ///         - MovingFunds: the wallet was deemed unhealthy and is only
+    ///           expected to move their outstanding funds to another wallet.
+    ///           No other actions are possible.
+    ///         - Closed: the wallet cannot perform any action
+    enum WalletState {Unknown, Active, MovingFunds, Closed}
+
+    /// @notice Holds information about a wallet.
+    struct Wallet {
+        // Current state of the wallet.
+        WalletState state;
+        // The total redeemable value of pending redemption requests targeting
+        // that wallet.
+        uint64 pendingRedemptionsValue;
     }
 
     /// @notice The number of confirmations on the Bitcoin chain required to
@@ -205,13 +224,6 @@ contract Bridge is Ownable {
     ///         txOutputValue an uint64 value.
     mapping(bytes20 => bytes32) public mainUtxos;
 
-    /// @notice Maps the 20-byte wallet public key hash (computed using HASH160
-    ///         opcode) to the total redeemable value of pending redemption
-    ///         requests targeting that wallet. Redeemable value of each request
-    ///         is its requested amount reduced by the treasury fee at the
-    ///         moment of request creation.
-    mapping(bytes20 => uint256) public pendingRedemptionRequestsValue;
-
     /// @notice Collection of all pending redemption requests indexed by
     ///         redemption key built as
     ///         keccak256(walletPubKeyHash | redeemerOutputHash). The
@@ -245,20 +257,18 @@ contract Bridge is Ownable {
     ///           previously in `pendingRedemptionRequests` mapping or
     ///           basing on a non-requested arbitrary redemption performed
     ///           by the wallet.
+    ///
     // TODO: Remove that Slither disable once this variable is used.
     // slither-disable-next-line uninitialized-state
     mapping(uint256 => bool) public redemptionFaults;
 
-    /// @notice Collection of all wallets that ever committed an intentional
-    ///         or non-intentional fault such as not handling a redemption
-    ///         request on time, misfunding a request, making a non-requested
-    ///         redemption or violating the protocol in any other way that
-    ///         can be reported to the Bridge contract. The key is the 20-byte
-    ///         wallet public key hash (computed using HASH160 opcode).
+    /// @notice Maps the 20-byte wallet public key hash (computed using HASH160
+    ///         opcode) to the basic wallet information like state and
+    ///         pending redemptions value.
     ///
     // TODO: Remove that Slither disable once this variable is used.
     // slither-disable-next-line uninitialized-state
-    mapping(bytes20 => bool) public faultyWallets;
+    mapping(bytes20 => Wallet) public wallets;
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
@@ -952,7 +962,7 @@ contract Bridge is Ownable {
     ///        `amount - redemptionTreasuryFee - redemptionTxMaxFee`.
     ///        Fees values are taken at the moment of request creation.
     /// @dev Requirements:
-    ///      - Wallet behind `walletPubKeyHash` cannot be marked as faulty
+    ///      - Wallet behind `walletPubKeyHash` must be active
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
     ///      - `redeemerOutputHash` must be proper 20-byte or 32-byte BTC hash
@@ -969,7 +979,10 @@ contract Bridge is Ownable {
         bytes calldata redeemerOutputHash,
         uint64 amount
     ) external {
-        require(!faultyWallets[walletPubKeyHash], "Wallet marked as faulty");
+        require(
+            wallets[walletPubKeyHash].state == WalletState.Active,
+            "Wallet must be active"
+        );
 
         bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
         require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
@@ -1033,12 +1046,12 @@ contract Bridge is Ownable {
         // add the redeemable amount to the total requested value for the given
         // wallet and assert this total value doesn't exceed the current main
         // UTXO value  which is actually the same as the current wallet balance.
-        pendingRedemptionRequestsValue[walletPubKeyHash] +=
+        wallets[walletPubKeyHash].pendingRedemptionsValue +=
             amount -
             treasuryFee;
         require(
             mainUtxo.txOutputValue >=
-                pendingRedemptionRequestsValue[walletPubKeyHash],
+                wallets[walletPubKeyHash].pendingRedemptionsValue,
             "Insufficient wallet funds"
         );
 
@@ -1151,7 +1164,7 @@ contract Bridge is Ownable {
             delete mainUtxos[walletPubKeyHash];
         }
 
-        pendingRedemptionRequestsValue[walletPubKeyHash] -= outputsInfo
+        wallets[walletPubKeyHash].pendingRedemptionsValue -= outputsInfo
             .totalBurnableValue;
 
         emit RedemptionsPerformed(walletPubKeyHash, redemptionTxHash);
@@ -1429,11 +1442,13 @@ contract Bridge is Ownable {
     //          be possible to report a time out on it since it won't be
     //          present in `pendingRedemptionRequests` mapping.
     //       6. Return the `requestedAmount` to the `redeemer`.
-    //       7. Reduce the `pendingRedemptionRequestsValue` for given wallet by
-    //          request's redeemable amount (`requestedAmount` - `treasuryFee`).
+    //       7. Reduce the `pendingRedemptionsValue` (`wallets` mapping) for
+    //          given wallet by request's redeemable amount computed as
+    //          `requestedAmount - treasuryFee`.
     //       8. Punish the wallet, probably by slashing its operators.
-    //       9. Put the wallet public key hash to `faultyWallets` to
-    //          prevent against new redemption requests hitting that wallet.
+    //       9. Change wallet's state in `wallets` mapping to `MovingFunds` in
+    //          order to prevent against new redemption requests hitting
+    //          that wallet.
     //      10. Expect the wallet to transfer its funds to another healthy
     //          wallet (just as in case of failed heartbeat).
 
@@ -1457,8 +1472,8 @@ contract Bridge is Ownable {
     //            `pendingRedemptionRequests` and put it to `redemptionFaults`
     //            mapping. Reimburse the `redeemer` of each underfunded request
     //            by covering the difference to at least the request's
-    //            `minimalAmount` in TBTC. Reduce the `pendingRedemptionRequestsValue`
-    //            for given wallet accordingly.
+    //            `minimalAmount` in TBTC. Reduce the `pendingRedemptionsValue`
+    //            (`wallets` mapping) for given wallet accordingly.
     //          - If there are outputs not corresponding to any request - put
     //            them to the `redemptionFaults` mapping.
     //          - If the given output is a change it should be treated
@@ -1495,8 +1510,9 @@ contract Bridge is Ownable {
     //            enough to count it once in `redemptionFaults`.
     //       6. If `faultsCount > 0` transaction is fraudulent. If not - revert.
     //       7. Punish the wallet, probably by slashing its operators.
-    //       8. Put the wallet public key hash to `faultyWallets` to
-    //          prevent against new redemption requests hitting that wallet.
+    //       8. Change wallet's state in `wallets` mapping to `MovingFunds` in
+    //          order to prevent against new redemption requests hitting
+    //          that wallet.
     //       9. Expect the wallet to transfer its funds to another healthy
     //          wallet (just as in case of failed heartbeat).
     //      10. Put the transaction hash to `fraudulentTransactions` mapping to
