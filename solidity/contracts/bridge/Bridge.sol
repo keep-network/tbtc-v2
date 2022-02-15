@@ -126,7 +126,7 @@ contract Bridge is Ownable {
 
     /// @notice Represents an outcome of the redemption Bitcoin transaction
     ///         outputs processing.
-    struct RedemptionTxOutputsReport {
+    struct RedemptionTxOutputsInfo {
         // Total TBTC value in satoshi that should be burned by the Bridge.
         uint256 totalBurnableValue;
         // Total TBTC value in satoshi that should be transferred to
@@ -1128,20 +1128,20 @@ contract Bridge is Ownable {
 
         // Process redemption transaction outputs to extract some info required
         // for further processing.
-        RedemptionTxOutputsReport memory outputsReport =
+        RedemptionTxOutputsInfo memory outputsInfo =
             processRedemptionTxOutputs(
                 redemptionTx.outputVector,
                 walletPubKeyHash
             );
 
-        if (outputsReport.changeValue > 0) {
+        if (outputsInfo.changeValue > 0) {
             // If the change value is grater than zero, it means the change
             // output exists and can be used as new wallet's main UTXO.
             mainUtxos[walletPubKeyHash] = keccak256(
                 abi.encodePacked(
                     redemptionTxHash,
-                    outputsReport.changeIndex,
-                    outputsReport.changeValue
+                    outputsInfo.changeIndex,
+                    outputsInfo.changeValue
                 )
             );
         } else {
@@ -1151,13 +1151,13 @@ contract Bridge is Ownable {
             delete mainUtxos[walletPubKeyHash];
         }
 
-        pendingRedemptionRequestsValue[walletPubKeyHash] -= outputsReport
+        pendingRedemptionRequestsValue[walletPubKeyHash] -= outputsInfo
             .totalBurnableValue;
 
         emit RedemptionsPerformed(walletPubKeyHash, redemptionTxHash);
 
-        bank.decreaseBalance(outputsReport.totalBurnableValue);
-        bank.transferBalance(treasury, outputsReport.totalTreasuryFee);
+        bank.decreaseBalance(outputsInfo.totalBurnableValue);
+        bank.transferBalance(treasury, outputsInfo.totalTreasuryFee);
     }
 
     /// @notice Validates whether the redemption Bitcoin transaction input
@@ -1257,11 +1257,11 @@ contract Bridge is Ownable {
     /// @param walletPubKeyHash 20-byte public key hash (computed using
     ///        HASH160 opcode) of the wallet which performed the redemption
     ///        transaction.
-    /// @return report Outcomes of the processing.
+    /// @return info Outcomes of the processing.
     function processRedemptionTxOutputs(
         bytes memory redemptionTxOutputVector,
         bytes20 walletPubKeyHash
-    ) internal returns (RedemptionTxOutputsReport memory report) {
+    ) internal returns (RedemptionTxOutputsInfo memory info) {
         // Determining the total number of redemption transaction outputs in
         // the same way as for number of inputs. See `BitcoinTx.outputVector`
         // docs for more details.
@@ -1316,14 +1316,14 @@ contract Bridge is Ownable {
             bytes memory outputHash = output.extractHash();
 
             if (
-                report.changeValue == 0 &&
+                info.changeValue == 0 &&
                 keccak256(outputHash) == walletPubKeyHashKeccak &&
                 outputValue > 0
             ) {
                 // If we entered here, that means the change output with a
                 // proper non-zero value was found.
-                report.changeIndex = uint32(i);
-                report.changeValue = outputValue;
+                info.changeIndex = uint32(i);
+                info.changeValue = outputValue;
             } else {
                 // If we entered here, that the means the given output is
                 // supposed to represent a redemption. Build the redemption key
@@ -1358,10 +1358,10 @@ contract Bridge is Ownable {
                     );
                     // Add the redeemable amount to the total burnable value
                     // the Bridge will use to decrease its balance in the Bank.
-                    report.totalBurnableValue += redeemableAmount;
+                    info.totalBurnableValue += redeemableAmount;
                     // Add the request's treasury fee to the total treasury fee
                     // value the Bridge will transfer to the treasury.
-                    report.totalTreasuryFee += request.treasuryFee;
+                    info.totalTreasuryFee += request.treasuryFee;
                     // Request was properly handled so remove its redemption
                     // key from the mapping to make it reusable for further
                     // requests.
@@ -1386,7 +1386,7 @@ contract Bridge is Ownable {
             outputStartingIndex += outputLength;
         }
 
-        if (outputsCount == 1 && report.changeValue > 0) {
+        if (outputsCount == 1 && info.changeValue > 0) {
             // This is an edge case when there is a single output and that
             // output refers back to the wallet PKH. Such a transaction just
             // burns fees thus should be considered fraudulent and their proof
@@ -1409,7 +1409,7 @@ contract Bridge is Ownable {
             );
         }
 
-        return report;
+        return info;
     }
 
     // TODO: Function `notifyRedemptionTimeout. That function must:
