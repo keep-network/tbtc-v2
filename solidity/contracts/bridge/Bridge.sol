@@ -1120,6 +1120,12 @@ contract Bridge is Ownable {
     ///        Additionally, the recent main UTXO on Ethereum must be set.
     ///      - `walletPubKeyHash` must be connected with the main UTXO used
     ///        as transaction single input.
+    ///      Other remarks:
+    ///      - Putting the change output as the first transaction output can
+    ///        save some gas because the output processing loop begins each
+    ///        iteration by checking whether the given output is the change
+    ///        thus uses some gas for making the comparison. Once the change
+    ///        is identified, that check is omitted in further iterations.
     function submitRedemptionProof(
         BitcoinTx.Info calldata redemptionTx,
         BitcoinTx.Proof calldata redemptionProof,
