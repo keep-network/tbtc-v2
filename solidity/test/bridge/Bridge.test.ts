@@ -1423,6 +1423,120 @@ describe("Bridge", () => {
     })
   })
 
+  describe("requestRedemption", () => {
+    context("when wallet state is active", () => {
+      context("when there is a main UTXO for given wallet", () => {
+        context("when main UTXO data are valid", () => {
+          context("when redeemer output hash has correct length", () => {
+            context(
+              "when redeemer output hash is not equal to wallet public key hash",
+              () => {
+                context("when amount is not below the dust threshold", () => {
+                  context(
+                    "when there is no pending request for given redemption key",
+                    () => {
+                      context("when wallet has sufficient funds", () => {
+                        context(
+                          "when redeemer made a sufficient allowance in Bank",
+                          () => {
+                            before(async () => {
+                              await createSnapshot()
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should store the redemption request", async () => {
+                              // TODO: Implementation.
+                            })
+
+                            it("should emit RedemptionRequested event", async () => {
+                              // TODO: Implementation.
+                            })
+
+                            it("should take the right TBTC balance from Bank", async () => {
+                              // TODO: Implementation.
+                            })
+                          }
+                        )
+
+                        context(
+                          "when redeemer has not made a sufficiant allowance in Bank",
+                          () => {
+                            it("should revert", async () => {
+                              // TODO: Implementation.
+                            })
+                          }
+                        )
+                      })
+
+                      context("when wallet has insufficient funds", () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      })
+                    }
+                  )
+
+                  context(
+                    "when there is a pending request for given redemption key",
+                    () => {
+                      it("should revert", async () => {
+                        // TODO: Implementation.
+                      })
+                    }
+                  )
+                })
+
+                context("when amount is below the dust threshold", () => {
+                  it("should revert", async () => {
+                    // TODO: Implementation.
+                  })
+                })
+              }
+            )
+
+            context(
+              "when redeemer output hash is equal to wallet public key hash",
+              () => {
+                it("should revert", async () => {
+                  // TODO: Implementation.
+                })
+              }
+            )
+          })
+
+          context("when redeemer output hash has incorrect length", () => {
+            it("should revert", async () => {
+              // TODO: Implementation.
+            })
+          })
+        })
+
+        context("when main UTXO data are invalid", () => {
+          it("should revert", async () => {
+            // TODO: Implementation.
+          })
+        })
+      })
+
+      context("when there is no main UTXO for given wallet", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+    })
+
+    context("when wallet state is other than active", () => {
+      it("should revert", async () => {
+        // TODO: Implementation.
+      })
+    })
+  })
+
+  describe("submitRedemptionProof", () => {})
+
   async function runSweepScenario(
     data: SweepTestData
   ): Promise<ContractTransaction> {
