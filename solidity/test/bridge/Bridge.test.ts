@@ -1535,7 +1535,264 @@ describe("Bridge", () => {
     })
   })
 
-  describe("submitRedemptionProof", () => {})
+  describe("submitRedemptionProof", () => {
+    context("when transaction proof is valid", () => {
+      context("when there is a main UTXO for given wallet", () => {
+        context("when main UTXO data are valid", () => {
+          context("when there is only one input", () => {
+            context(
+              "when the single input points to the wallet's main UTXO",
+              () => {
+                context("when there is only one output", () => {
+                  context(
+                    "when the single output is a change non-reported as invalid redemption",
+                    () => {
+                      it("should revert", async () => {
+                        // TODO: Implementation.
+                      })
+                    }
+                  )
+
+                  context(
+                    "when the single output is a change reported as invalid redemption",
+                    () => {
+                      // TODO: Implementation.
+                    }
+                  )
+
+                  context(
+                    "when the single output is a requested redemption",
+                    () => {
+                      // TODO: Implementation.
+                    }
+                  )
+
+                  context(
+                    "when the single output is a misfunded requested redemption",
+                    () => {
+                      it("should revert", async () => {
+                        // TODO: Implementation.
+                      })
+                    }
+                  )
+
+                  context(
+                    "when the single output is a reported invalid redemption",
+                    () => {
+                      // TODO: Implementation.
+                    }
+                  )
+
+                  context(
+                    "when the single output is a non-reported invalid redemption",
+                    () => {
+                      context(
+                        "when output targets an arbitrary non-requested script hash",
+                        () => {
+                          it("should revert", async () => {
+                            // TODO: Implementation.
+                          })
+                        }
+                      )
+
+                      context(
+                        "when output is a change but has zero as value",
+                        () => {
+                          it("should revert", async () => {
+                            // TODO: Implementation.
+                          })
+                        }
+                      )
+
+                      context(
+                        "when output is provably unspendable OP_RETURN",
+                        () => {
+                          it("should revert", async () => {
+                            // TODO: Implementation.
+                          })
+                        }
+                      )
+                    }
+                  )
+                })
+
+                context("when there are multiple outputs", () => {
+                  context(
+                    "when output vector consists only of requested redemptions",
+                    () => {
+                      // TODO: Implementation.
+                    }
+                  )
+
+                  context(
+                    "when output vector consists of requested redemptions and a single change",
+                    () => {
+                      // TODO: Implementation.
+                    }
+                  )
+
+                  context(
+                    "when output vector consists only of reported invalid redemptions",
+                    () => {
+                      // TODO: Implementation.
+                    }
+                  )
+
+                  context(
+                    "when output vector consists of reported invalid redemptions and a single change",
+                    () => {
+                      // TODO: Implementation.
+                    }
+                  )
+
+                  context(
+                    "when output vector consists of requested redemptions and reported invalid redemptions",
+                    () => {
+                      // TODO: Implementation.
+                    }
+                  )
+
+                  context(
+                    "when output vector consists of requested redemptions, reported invalid redemptions, and a single change",
+                    () => {
+                      // TODO: Implementation.
+                    }
+                  )
+
+                  context(
+                    "when output vector contains a misfunded requested redemption",
+                    () => {
+                      it("should revert", async () => {
+                        // TODO: Implementation.
+                      })
+                    }
+                  )
+
+                  context(
+                    "when output vector contains a non-reported invalid redemption",
+                    () => {
+                      context(
+                        "when output targets an arbitrary non-requested script hash",
+                        () => {
+                          it("should revert", async () => {
+                            // TODO: Implementation.
+                          })
+                        }
+                      )
+
+                      context(
+                        "when output is a change but has zero as value",
+                        () => {
+                          it("should revert", async () => {
+                            // TODO: Implementation.
+                          })
+                        }
+                      )
+
+                      context("when output is a redundant change", () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      })
+
+                      context(
+                        "when output is provably unspendable OP_RETURN",
+                        () => {
+                          it("should revert", async () => {
+                            // TODO: Implementation.
+                          })
+                        }
+                      )
+                    }
+                  )
+                })
+              }
+            )
+
+            context(
+              "when the single input doesn't point to the wallet's main UTXO",
+              () => {
+                it("should revert", async () => {
+                  // TODO: Implementation.
+                })
+              }
+            )
+          })
+
+          context("when input count is other than one", () => {
+            it("should revert", async () => {
+              // TODO: Implementation.
+            })
+          })
+        })
+
+        context("when main UTXO data are invalid", () => {
+          it("should revert", async () => {
+            // TODO: Implementation.
+          })
+        })
+      })
+
+      context("when there is no main UTXO for given wallet", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+    })
+
+    context("when transaction proof is not valid", () => {
+      context("when input vector is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when output vector is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when merkle proof is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when proof difficulty is not current nor previous", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when headers chain length is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when headers chain is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when the work in the header is insufficient", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context(
+        "when accumulated difficulty in headers chain is insufficient",
+        () => {
+          it("should revert", async () => {
+            // TODO: Implementation.
+          })
+        }
+      )
+    })
+  })
 
   async function runSweepScenario(
     data: SweepTestData
