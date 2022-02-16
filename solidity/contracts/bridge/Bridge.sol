@@ -146,11 +146,14 @@ contract Bridge is Ownable {
     ///         - Unknown: the wallet is unknown to the Bridge
     ///         - Active: the wallet can sweep deposits and accept redemption
     ///           requests
-    ///         - MovingFunds: the wallet was deemed unhealthy and is only
+    ///         - MovingFunds: the wallet was deemed unhealthy and is
     ///           expected to move their outstanding funds to another wallet.
-    ///           No other actions are possible.
-    ///         - Closed: the wallet cannot perform any action
-    enum WalletState {Unknown, Active, MovingFunds, Closed}
+    ///           The wallet can still fulfill their pending redemption
+    ///           requests although new requests are not accepted.
+    ///         - Closed: the wallet moved their funds and cannot perform any
+    ///           action
+    ///         - Terminated: the wallet committed a fraud that was reported
+    enum WalletState {Unknown, Active, MovingFunds, Closed, Terminated}
 
     /// @notice Holds information about a wallet.
     struct Wallet {
@@ -247,30 +250,26 @@ contract Bridge is Ownable {
     ///         - `notifyRedemptionTimeout` in case the request was reported
     ///           to be timed out
     ///         - `submitRedemptionFraudProof` in case the request was handled
-    ///           in an incorrect way amount-wise.
+    ///           in an fraudulent way amount-wise.
     mapping(uint256 => RedemptionRequest) public pendingRedemptions;
 
-    /// @notice Collection of all invalid redemptions indexed by redemption key
-    ///         built as keccak256(walletPubKeyHash | redeemerOutputHash). The
+    /// @notice Collection of all timed out redemptions requests indexed by
+    ///         redemption key built as
+    ///         keccak256(walletPubKeyHash | redeemerOutputHash). The
     ///         walletPubKeyHash is the 20-byte wallet's public key hash
     ///         (computed using Bitcoin HASH160 over the compressed ECDSA
     ///         public key) and redeemerOutputHash is the 20-byte (P2PKH,
     ///         P2WPKH or P2SH) or 32-byte (P2WSH) output hash that is involved
-    ///         in the invalid redemption. Invalid redemptions are stored in
+    ///         in the timed out request. Timed out requests are stored in
     ///         this mapping to avoid slashing the wallets multiple times for
-    ///         the same fault. Two methods can add to this mapping:
+    ///         the same timeout. Only one method can add to this mapping:
     ///         - `notifyRedemptionTimeout` which puts the redemption key
     ///           to this mapping basing on a timed out request stored
     ///           previously in `pendingRedemptions` mapping.
-    ///         - `submitRedemptionFraudProof` which puts the redemption key
-    ///           to this mapping basing on a misfunded request stored
-    ///           previously in `pendingRedemptions` mapping or
-    ///           basing on a non-requested arbitrary redemption performed
-    ///           by the wallet.
     ///
     // TODO: Remove that Slither disable once this variable is used.
     // slither-disable-next-line uninitialized-state
-    mapping(uint256 => bool) public invalidRedemptions;
+    mapping(uint256 => RedemptionRequest) public timedOutRedemptions;
 
     /// @notice Maps the 20-byte wallet public key hash (computed using
     ///         Bitcoin HASH160 over the compressed ECDSA public key) to the
@@ -394,6 +393,8 @@ contract Bridge is Ownable {
             reveal.vault == address(0) || isVaultTrusted[reveal.vault],
             "Vault is not trusted"
         );
+
+        // TODO: Validate if `walletPubKeyHash` is a known and active wallet.
 
         bytes memory expectedScript =
             abi.encodePacked(
@@ -1038,6 +1039,10 @@ contract Bridge is Ownable {
                 )
             );
 
+        // Check if given redemption key is not used by a pending redemption.
+        // There is no need to check for existence in `timedOutRedemptions`
+        // since the wallet's state is changed to other than Active after
+        // first time out is reported so making new requests is not possible.
         // slither-disable-next-line incorrect-equality
         require(
             pendingRedemptions[redemptionKey].requestedAt == 0,
@@ -1106,7 +1111,7 @@ contract Bridge is Ownable {
     ///      - The `redemptionTx` should represent a Bitcoin transaction with
     ///        exactly 1 input that refers to the wallet's main UTXO. That
     ///        transaction should have 1..n outputs handling existing pending
-    ///        redemption requests or pointing to reported invalid redemptions.
+    ///        redemption requests or pointing to reported timed out requests.
     ///        There can be also 1 optional output representing the
     ///        change and pointing back to the 20-byte wallet public key hash.
     ///        The change should be always present if the redeemed value sum
@@ -1149,6 +1154,13 @@ contract Bridge is Ownable {
             redemptionTx.inputVector,
             mainUtxo,
             walletPubKeyHash
+        );
+
+        WalletState walletState = wallets[walletPubKeyHash].state;
+        require(
+            walletState == WalletState.Active ||
+                walletState == WalletState.MovingFunds,
+            "Wallet must be in Active or MovingFuds state"
         );
 
         // Process redemption transaction outputs to extract some info required
@@ -1271,7 +1283,7 @@ contract Bridge is Ownable {
 
     /// @notice Processes the Bitcoin redemption transaction output vector.
     ///         It extracts each output and tries to identify it as a pending
-    ///         redemption request, reported invalid redemption, or change.
+    ///         redemption request, reported timed out request, or change.
     ///         Reverts if one of the outputs cannot be recognized properly.
     ///         This function also marks each request as processed by removing
     ///         them from `pendingRedemptions` mapping.
@@ -1316,6 +1328,10 @@ contract Bridge is Ownable {
         bytes32 walletPubKeyHashKeccak =
             keccak256(abi.encodePacked(walletPubKeyHash));
 
+        // Helper variable that counts the number of processed redemption
+        // outputs. Redemptions can be either pending or reported as timed out.
+        uint256 processedRedemptionsCount = 0;
+
         // Outputs processing loop.
         for (uint256 i = 0; i < outputsCount; i++) {
             // TODO: Check if we can optimize gas costs by adding
@@ -1355,9 +1371,7 @@ contract Bridge is Ownable {
                         )
                     );
 
-                if (
-                    pendingRedemptions[redemptionKey].requestedAt != uint32(0)
-                ) {
+                if (pendingRedemptions[redemptionKey].requestedAt != 0) {
                     // If we entered here, that means the output was identified
                     // as a pending redemption request.
                     RedemptionRequest storage request =
@@ -1373,7 +1387,7 @@ contract Bridge is Ownable {
                     require(
                         redeemableAmount - request.txMaxFee <= outputValue &&
                             outputValue <= redeemableAmount,
-                        "Output value is not within the acceptable range"
+                        "Output value is not within the acceptable range of the pending request"
                     );
                     // Add the redeemable amount to the total burnable value
                     // the Bridge will use to decrease its balance in the Bank.
@@ -1385,18 +1399,35 @@ contract Bridge is Ownable {
                     // key from the mapping to make it reusable for further
                     // requests.
                     delete pendingRedemptions[redemptionKey];
+
+                    processedRedemptionsCount++;
                 } else {
                     // If we entered here, the output is not a redemption
                     // request but there is still a chance the given output is
-                    // related to a reported invalid redemption. If so, ignore
-                    // it as the wallet was already punished for causing the
-                    // invalid redemption and allow processing other potentially
-                    // correct outputs. If not, revert because the output
-                    // is a non-reported redemption fraud.
+                    // related to a reported timed out redemption request.
+                    // If so, check if the output value matches the request
+                    // amount to confirm this is an overdue request fulfillment
+                    // then bypass this output and process the subsequent
+                    // ones. That also means the wallet was already punished
+                    // for the inactivity. Otherwise, just revert.
+                    RedemptionRequest storage request =
+                        timedOutRedemptions[redemptionKey];
+
                     require(
-                        invalidRedemptions[redemptionKey],
-                        "Output is a non-reported redemption fraud"
+                        request.requestedAt != 0,
+                        "Output is a non-requested redemption"
                     );
+
+                    uint64 redeemableAmount =
+                        request.requestedAmount - request.treasuryFee;
+
+                    require(
+                        redeemableAmount - request.txMaxFee <= outputValue &&
+                            outputValue <= redeemableAmount,
+                        "Output value is not within the acceptable range of the timed out request"
+                    );
+
+                    processedRedemptionsCount++;
                 }
             }
 
@@ -1405,28 +1436,13 @@ contract Bridge is Ownable {
             outputStartingIndex += outputLength;
         }
 
-        if (outputsCount == 1 && info.changeValue > 0) {
-            // This is an edge case when there is a single output and that
-            // output refers back to the wallet PKH. Such a transaction just
-            // burns fees thus should be considered fraudulent and their proof
-            // should be rejected. However, if that transaction was already
-            // reported as fraud and wallet was punished, let it pass to update
-            // the main UTXO and allow the wallet redeem their faults by
-            // transferring their outstanding funds to another healthy wallet.
-            // Note the redemption key in that case is:
-            // keccak256(walletPubKeyHash | walletPubKeyHash) since the
-            // `walletPubKeyHash` takes place of the usual `redeemerOutputHash`.
-            require(
-                invalidRedemptions[
-                    uint256(
-                        keccak256(
-                            abi.encodePacked(walletPubKeyHash, walletPubKeyHash)
-                        )
-                    )
-                ],
-                "Redemption transaction contains single change output"
-            );
-        }
+        // Protect against the cases when there is only a single change output
+        // referring back to the wallet PKH and just burning main UTXO value
+        // for transaction fees.
+        require(
+            processedRedemptionsCount > 0,
+            "Redemption transaction must process at least one redemption"
+        );
 
         return info;
     }
@@ -1438,15 +1454,13 @@ contract Bridge is Ownable {
     //          `pendingRedemptions` mapping.
     //       4. If request doesn't exist in mapping - revert.
     //       5. If request exits, and is timed out - remove the redemption key
-    //          from `pendingRedemptions` and put it to `invalidRedemptions`.
-    //          No need to check if `invalidRedemptions` mapping already contains
+    //          from `pendingRedemptions` and put it to `timedOutRedemptions`.
+    //          No need to check if `timedOutRedemptions` mapping already contains
     //          that key because `requestRedemption` blocks requests targeting
-    //          non-active wallets so there is no possibility that the given
-    //          redemption key could be reported as timed out multiple times.
-    //          On the other hand, if given redemption key was already
-    //          marked as invalid due to an amount-related fraud, it will not
-    //          be possible to report a time out on it since it won't be
-    //          present in `pendingRedemptions` mapping.
+    //          non-active wallets. Because `notifyRedemptionTimeout` changes
+    //          wallet state after first call (point 9), there is no possibility
+    //          that the given redemption key could be reported as timed out
+    //          multiple times.
     //       6. Return the `requestedAmount` to the `redeemer`.
     //       7. Reduce the `pendingRedemptionsValue` (`wallets` mapping) for
     //          given wallet by request's redeemable amount computed as
@@ -1460,68 +1474,38 @@ contract Bridge is Ownable {
 
     // TODO: Function `submitRedemptionFraudProof`. That function must:
     //       1. Take a `BitcoinTx.Info` and `BitcoinTx.Proof` of the
-    //          fraudulent transaction. It should also accept `walletPubKeyHash`.
+    //          fraudulent transaction. It should also accept `walletPubKeyHash`
+    //          and index of fraudulent output.
     //       2. Perform SPV proof to make sure it occurred on Bitcoin chain.
     //          If not - revert.
-    //       3. Check if transaction hash is present in `fraudulentTransactions`
-    //          mapping. If present - revert.
-    //       4. Validate the input vector contains the main UTXO (fraudulent
-    //          transaction can use multiple inputs deliberately) for given
-    //          `walletPubKeyHash`. If invalid - revert. An open question is
-    //          what to do if transaction has proper outputs but wrong number
-    //          of inputs and it can't be processed by `submitRedemptionProof`.
-    //       5. Process outputs. Multiple paths are possible:
-    //          - If there are outputs corresponding to proper redemption
-    //            requests - ignore them
-    //          - If there are outputs corresponding to existing requests
-    //            but output amounts are wrong - remove their redemption key from
-    //            `pendingRedemptions` and put it to `invalidRedemptions`
-    //            mapping. Reimburse the `redeemer` of each underfunded request
-    //            by covering the difference to at least the request's
-    //            `minimalAmount` in TBTC. Reduce the `pendingRedemptionsValue`
-    //            (`wallets` mapping) for given wallet accordingly.
-    //          - If there are outputs not corresponding to any request - put
-    //            them to the `invalidRedemptions` mapping.
-    //          - If the given output is a change it should be treated
-    //            differently, depending on how other outputs looks like.
-    //            All transactions transferring funds back to wallet PKH
-    //            without doing anything else, burns the main UTXO for fees.
-    //            Wallet should be punished for that and the main UTXO key
-    //            should be put to `invalidRedemptions` as usual.
-    //          - If there are outputs with zero value - put them to the
-    //            `invalidRedemptions` mapping. It doesn't matter if they
-    //            are provably unspendable zero-value false return (OP_RETURN)
-    //            or non-false return outputs, they can be used to burn main
-    //            UTXO value via fees so transaction that uses them should be
-    //            considered fraudulent.
-    //
-    //          There is no need to revert if given redemption key is already
-    //          in `invalidRedemptions` mapping. However, one must count the
-    //          number of unique non-overwriting inserts under `invalidCount`.
-    //          This is because there are some edge cases here:
-    //          - A redemption key looking as fraudulent due to being non-expected,
-    //            can be already present in `invalidRedemptions` due to being a
-    //            timeout. Normally we should not deem it as a new invalid
-    //            redemption and count it to `invalidCount` in order to avoid
-    //            punishing the wallet twice for the same timeout. In the same
-    //            time, it can be an actual fraud leveraging the fact the given
-    //            redemption key was already punished for timeout. To detect
-    //            such a case we can store the timed out request amount as
-    //            `invalidRedemptions` mapping value, and punish for fraud in
-    //            case the transferred value exceed the redeemable amount from
-    //            the timed out request.
-    //          - A fraudulent transaction can deliberately use multiple
-    //            outputs with same script hash. This will produce the same
-    //            redemption key which must be put to `invalidRedemptions`
-    //            multiple times so it should not cause a revert and it is
-    //            enough to count it once in `invalidRedemptions`.
-    //       6. If `invalidCount > 0` transaction is fraudulent. If not - revert.
-    //       7. Punish the wallet, probably by slashing its operators.
-    //       8. Change wallet's state in `wallets` mapping to `MovingFunds` in
+    //       3. Check if wallet state is Active or MovingFunds
+    //       4. Validate the number of inputs. If there is one input and it
+    //          points to the wallet's main UTXO - move to point 5. If there
+    //          are multiple inputs and there is wallet's main UTXO in the set,
+    //          check if this is  a sweep transaction. If it's not a sweep,
+    //          consider it as fraudulent and move to point 6.
+    //          In all other cases revert the call.
+    //       5. Extract the output and analyze its type. The output is not
+    //          a fraud and the call should be reverted ONLY IF one of the
+    //          following conditions is true:
+    //          - Output is a requested redemption held by `pendingRedemptions`
+    //            and output value fulfills the request range. There is an
+    //            open question if a misfunded request should be removed
+    //            from `pendingRedemptions` (probably yes) and whether the
+    //            redeemer should be reimbursed in case of an underfund.
+    //          - Output is a timed out redemption held by `timedOutRedemptions`
+    //            and output value fulfills the request range.
+    //          - Output is a proper change i.e. a single output targeting
+    //            the wallet PKH back and having a non-zero value.
+    //          - Wallet is in MovingFunds state, the output points to the
+    //            expected target wallet, have non-zero value, and is a single
+    //            output in the vector.
+    //          In all other cases consider the transaction as fraud and
+    //          proceed to point 6.
+    //       6. Punish the wallet, probably by severely slashing its operators.
+    //       7. Change wallet's state in `wallets` mapping to `Terminated` in
     //          order to prevent against new redemption requests hitting
-    //          that wallet.
-    //       9. Expect the wallet to transfer its funds to another healthy
-    //          wallet (just as in case of failed heartbeat).
-    //      10. Put the transaction hash to `fraudulentTransactions` mapping to
-    //          prevent against replays.
+    //          that wallet. This also prevents against reporting a fraud
+    //          multiple times for one transaction (see point 3) and blocks
+    //          submission of sweep and redemption proofs.
 }
