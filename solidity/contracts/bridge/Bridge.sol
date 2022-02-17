@@ -848,13 +848,18 @@ contract Bridge is Ownable {
 
         // Inputs processing loop.
         for (uint256 i = 0; i < inputsCount; i++) {
-            (bytes32 inputTxHash, uint32 inputTxIndex, uint256 inputLength) =
-                parseTxInputAt(sweepTxInputVector, inputStartingIndex);
+            (
+                bytes32 outpointTxHash,
+                uint32 outpointIndex,
+                uint256 inputLength
+            ) = parseTxInputAt(sweepTxInputVector, inputStartingIndex);
 
             DepositRequest storage deposit =
                 deposits[
                     uint256(
-                        keccak256(abi.encodePacked(inputTxHash, inputTxIndex))
+                        keccak256(
+                            abi.encodePacked(outpointTxHash, outpointIndex)
+                        )
                     )
                 ];
 
@@ -883,7 +888,7 @@ contract Bridge is Ownable {
                 processedDepositsCount++;
             } else if (
                 mainUtxoExpected != mainUtxoFound &&
-                mainUtxo.txHash == inputTxHash
+                mainUtxo.txHash == outpointTxHash
             ) {
                 // If we entered here, that means the input was identified as
                 // the expected main UTXO.
@@ -920,9 +925,9 @@ contract Bridge is Ownable {
     /// @notice Parses a Bitcoin transaction input starting at the given index.
     /// @param inputVector Bitcoin transaction input vector
     /// @param inputStartingIndex Index the given input starts at
-    /// @return inputTxHash 32-byte hash of the Bitcoin transaction which is
+    /// @return outpointTxHash 32-byte hash of the Bitcoin transaction which is
     ///         pointed in the given input's outpoint.
-    /// @return inputTxIndex 4-byte index of the Bitcoin transaction output
+    /// @return outpointIndex 4-byte index of the Bitcoin transaction output
     ///         which is pointed in the given input's outpoint.
     /// @return inputLength Byte length of the given input.
     /// @dev This function assumes vector's structure is valid so it must be
@@ -935,20 +940,20 @@ contract Bridge is Ownable {
         internal
         pure
         returns (
-            bytes32 inputTxHash,
-            uint32 inputTxIndex,
+            bytes32 outpointTxHash,
+            uint32 outpointIndex,
             uint256 inputLength
         )
     {
-        inputTxHash = inputVector.extractInputTxIdLeAt(inputStartingIndex);
+        outpointTxHash = inputVector.extractInputTxIdLeAt(inputStartingIndex);
 
-        inputTxIndex = BTCUtils.reverseUint32(
+        outpointIndex = BTCUtils.reverseUint32(
             uint32(inputVector.extractTxIndexLeAt(inputStartingIndex))
         );
 
         inputLength = inputVector.determineInputLengthAt(inputStartingIndex);
 
-        return (inputTxHash, inputTxIndex, inputLength);
+        return (outpointTxHash, outpointIndex, inputLength);
     }
 
     /// @notice Requests redemption of the given amount from the specified
@@ -1233,11 +1238,11 @@ contract Bridge is Ownable {
 
         // Assert that the single redemption transaction input actually
         // refers to the wallet's main UTXO.
-        (bytes32 redemptionTxInputTxHash, uint32 redemptionTxInputTxIndex) =
+        (bytes32 redemptionTxOutpointTxHash, uint32 redemptionTxOutpointIndex) =
             processRedemptionTxInput(redemptionTxInputVector);
         require(
-            mainUtxo.txHash == redemptionTxInputTxHash &&
-                mainUtxo.txOutputIndex == redemptionTxInputTxIndex,
+            mainUtxo.txHash == redemptionTxOutpointTxHash &&
+                mainUtxo.txOutputIndex == redemptionTxOutpointIndex,
             "Redemption transaction input must point to the wallet's main UTXO"
         );
     }
@@ -1249,14 +1254,14 @@ contract Bridge is Ownable {
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVin` function
     ///        before it is passed here
-    /// @return inputTxHash 32-byte hash of the Bitcoin transaction which is
+    /// @return outpointTxHash 32-byte hash of the Bitcoin transaction which is
     ///         pointed in the input's outpoint.
-    /// @return inputTxIndex 4-byte index of the Bitcoin transaction output
+    /// @return outpointIndex 4-byte index of the Bitcoin transaction output
     ///         which is pointed in the input's outpoint.
     function processRedemptionTxInput(bytes memory redemptionTxInputVector)
         internal
         pure
-        returns (bytes32 inputTxHash, uint32 inputTxIndex)
+        returns (bytes32 outpointTxHash, uint32 outpointIndex)
     {
         // To determine the total number of redemption transaction inputs,
         // we need to parse the compactSize uint (VarInt) the input vector is
@@ -1274,11 +1279,18 @@ contract Bridge is Ownable {
 
         bytes memory input = redemptionTxInputVector.extractInputAtIndex(0);
 
-        inputTxHash = input.extractInputTxIdLE();
+        outpointTxHash = input.extractInputTxIdLE();
 
-        inputTxIndex = BTCUtils.reverseUint32(uint32(input.extractTxIndexLE()));
+        outpointIndex = BTCUtils.reverseUint32(
+            uint32(input.extractTxIndexLE())
+        );
 
-        return (inputTxHash, inputTxIndex);
+        // There is only one input in the transaction. Input has an outpoint
+        // field that is a reference to the transaction being spent (see
+        // `BitcoinTx` docs). The outpoint contains the hash of the transaction
+        // to spend (`outpointTxHash`) and the index of the specific output
+        // from that transaction (`outpointIndex`).
+        return (outpointTxHash, outpointIndex);
     }
 
     /// @notice Processes the Bitcoin redemption transaction output vector.
