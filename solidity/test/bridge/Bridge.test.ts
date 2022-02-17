@@ -19,7 +19,7 @@ const { lastBlockTime } = helpers.time
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
 const fixture = async () => {
-  const [deployer, governance, thirdParty] = await ethers.getSigners()
+  const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
 
   const Bank = await ethers.getContractFactory("Bank")
   const bank: Bank = await Bank.deploy()
@@ -30,7 +30,12 @@ const fixture = async () => {
   await relay.deployed()
 
   const Bridge = await ethers.getContractFactory("Bridge")
-  const bridge: Bridge = await Bridge.deploy(bank.address, relay.address, 1)
+  const bridge: Bridge = await Bridge.deploy(
+    bank.address,
+    relay.address,
+    treasury.address,
+    1
+  )
   await bridge.deployed()
 
   await bank.updateBridge(bridge.address)
@@ -39,6 +44,7 @@ const fixture = async () => {
   return {
     governance,
     thirdParty,
+    treasury,
     bank,
     relay,
     bridge,
@@ -48,6 +54,7 @@ const fixture = async () => {
 describe("Bridge", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
+  let treasury: SignerWithAddress
 
   let bank: Bank
   let relay: TestRelay
@@ -55,7 +62,7 @@ describe("Bridge", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, thirdParty, bank, relay, bridge } =
+    ;({ governance, thirdParty, treasury, bank, relay, bridge } =
       await waffle.loadFixture(fixture))
   })
 
@@ -1399,7 +1406,12 @@ describe("Bridge", () => {
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
             const Bridge = await ethers.getContractFactory("Bridge")
-            otherBridge = await Bridge.deploy(bank.address, relay.address, 12)
+            otherBridge = await Bridge.deploy(
+              bank.address,
+              relay.address,
+              treasury.address,
+              12
+            )
             await otherBridge.deployed()
           })
 
