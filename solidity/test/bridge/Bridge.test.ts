@@ -1,8 +1,15 @@
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
-import { ContractTransaction } from "ethers"
-import type { Bank, Bridge, TestRelay } from "../../typechain"
+import { BigNumberish, ContractTransaction } from "ethers"
+import { BigNumber } from "@ethersproject/bignumber"
+import type {
+  Bank,
+  BankStub,
+  Bridge,
+  BridgeStub,
+  TestRelay,
+} from "../../typechain"
 import {
   MultipleDepositsNoMainUtxo,
   MultipleDepositsWithMainUtxo,
@@ -21,16 +28,16 @@ const ZERO_ADDRESS = ethers.constants.AddressZero
 const fixture = async () => {
   const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
 
-  const Bank = await ethers.getContractFactory("Bank")
-  const bank: Bank = await Bank.deploy()
+  const Bank = await ethers.getContractFactory("BankStub")
+  const bank: Bank & BankStub = await Bank.deploy()
   await bank.deployed()
 
   const TestRelay = await ethers.getContractFactory("TestRelay")
   const relay: TestRelay = await TestRelay.deploy()
   await relay.deployed()
 
-  const Bridge = await ethers.getContractFactory("Bridge")
-  const bridge: Bridge = await Bridge.deploy(
+  const Bridge = await ethers.getContractFactory("BridgeStub")
+  const bridge: Bridge & BridgeStub = await Bridge.deploy(
     bank.address,
     relay.address,
     treasury.address,
@@ -56,9 +63,9 @@ describe("Bridge", () => {
   let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
 
-  let bank: Bank
+  let bank: Bank & BankStub
   let relay: TestRelay
-  let bridge: Bridge
+  let bridge: Bridge & BridgeStub
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -1435,9 +1442,45 @@ describe("Bridge", () => {
     })
   })
 
-  describe("requestRedemption", () => {
+  describe.only("requestRedemption", () => {
     context("when wallet state is active", () => {
+      const walletPubKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
+
+      before(async () => {
+        await createSnapshot()
+
+        // Simulate the wallet is an active one and is known in the system.
+        await bridge.setWallet(walletPubKeyHash, {
+          state: 1,
+          pendingRedemptionsValue: 0,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
       context("when there is a main UTXO for given wallet", () => {
+        // Prepare a dumb main UTXO with 10M satoshi as value. This will
+        // be the wallet BTC balance.
+        const mainUtxo = {
+          txHash:
+            "0x3835ecdee2daa83c9a19b5012104ace55ecab197b5e16489c26d372e475f5d2a",
+          txOutputIndex: 0,
+          txOutputValue: 10000000,
+        }
+
+        before(async () => {
+          await createSnapshot()
+
+          // Simulate the prepared main UTXO belongs to the wallet.
+          await bridge.setMainUtxo(walletPubKeyHash, mainUtxo)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         context("when main UTXO data are valid", () => {
           context("when redeemer output hash has correct length", () => {
             context(
@@ -1451,8 +1494,53 @@ describe("Bridge", () => {
                         context(
                           "when redeemer made a sufficient allowance in Bank",
                           () => {
+                            // Use an arbitrary 20-byte public key hash as
+                            // redemption output.
+                            const redeemerOutputHash =
+                              "0xf4eedc8f40d4b8e30771f792b065ebec0abaddef"
+                            // Requested amount is 3M satoshi.
+                            const requestedAmount = BigNumber.from(3000000)
+
+                            let redeemer: SignerWithAddress
+                            let initialBridgeBalance: BigNumber
+                            let initialRedeemerBalance: BigNumber
+                            let tx: ContractTransaction
+
                             before(async () => {
                               await createSnapshot()
+
+                              // Use an arbitrary ETH account as redeemer.
+                              redeemer = thirdParty
+
+                              // Simulate the redeemer has a TBTC balance of
+                              // 5M satoshi.
+                              await bank.setBalance(redeemer.address, 5000000)
+                              // Redeemer must allow the Bridge to spent the
+                              // requested 3M satoshi.
+                              await bank
+                                .connect(redeemer)
+                                .increaseBalanceAllowance(
+                                  bridge.address,
+                                  requestedAmount
+                                )
+
+                              // Capture initial TBTC balance of Bridge and redeemer.
+                              initialBridgeBalance = await bank.balanceOf(
+                                bridge.address
+                              )
+                              initialRedeemerBalance = await bank.balanceOf(
+                                redeemer.address
+                              )
+
+                              // Perform the redemption request.
+                              tx = await bridge
+                                .connect(redeemer)
+                                .requestRedemption(
+                                  walletPubKeyHash,
+                                  mainUtxo,
+                                  redeemerOutputHash,
+                                  requestedAmount
+                                )
                             })
 
                             after(async () => {
@@ -1460,15 +1548,59 @@ describe("Bridge", () => {
                             })
 
                             it("should store the redemption request", async () => {
-                              // TODO: Implementation.
+                              const redemptionKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes20", "bytes"],
+                                  [walletPubKeyHash, redeemerOutputHash]
+                                )
+
+                              const redemptionRequest =
+                                await bridge.pendingRedemptions(redemptionKey)
+
+                              expect(redemptionRequest.redeemer).to.be.equal(
+                                redeemer.address
+                              )
+                              expect(
+                                redemptionRequest.requestedAmount
+                              ).to.be.equal(requestedAmount)
+                              expect(redemptionRequest.treasuryFee).to.be.equal(
+                                await bridge.redemptionTreasuryFee()
+                              )
+                              expect(redemptionRequest.txMaxFee).to.be.equal(
+                                await bridge.redemptionTxMaxFee()
+                              )
+                              expect(redemptionRequest.requestedAt).to.be.equal(
+                                await lastBlockTime()
+                              )
                             })
 
                             it("should emit RedemptionRequested event", async () => {
-                              // TODO: Implementation.
+                              await expect(tx)
+                                .to.emit(bridge, "RedemptionRequested")
+                                .withArgs(
+                                  walletPubKeyHash,
+                                  redeemerOutputHash,
+                                  redeemer.address,
+                                  requestedAmount,
+                                  await bridge.redemptionTreasuryFee(),
+                                  await bridge.redemptionTxMaxFee()
+                                )
                             })
 
                             it("should take the right TBTC balance from Bank", async () => {
-                              // TODO: Implementation.
+                              const bridgeBalance = await bank.balanceOf(
+                                bridge.address
+                              )
+                              expect(
+                                bridgeBalance.sub(initialBridgeBalance)
+                              ).to.equal(requestedAmount)
+
+                              const redeemerBalance = await bank.balanceOf(
+                                redeemer.address
+                              )
+                              expect(
+                                redeemerBalance.sub(initialRedeemerBalance)
+                              ).to.equal(requestedAmount.mul(-1))
                             })
                           }
                         )
