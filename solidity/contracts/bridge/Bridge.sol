@@ -236,15 +236,14 @@ contract Bridge is Ownable {
 
     /// @notice Collection of all pending redemption requests indexed by
     ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputHash). The
+    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
     ///         walletPubKeyHash is the 20-byte wallet's public key hash
     ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputHash is the 20-byte (P2PKH,
-    ///         P2WPKH or P2SH) or 32-byte (P2WSH) output hash that will be
-    ///         used to lock redeemed BTC as requested by the redeemer.
-    ///         Requests are added to this mapping by the `requestRedemption`
-    ///         method (duplicates not allowed) and are removed by one of the
-    ///         following methods:
+    ///         public key) and redeemerOutputScript is a Bitcoin script
+    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
+    ///         redeemed BTC as requested by the redeemer. Requests are added
+    ///         to this mapping by the `requestRedemption` method (duplicates
+    ///         not allowed) and are removed by one of the following methods:
     ///         - `submitRedemptionProof` in case the request was handled
     ///           successfully
     ///         - `notifyRedemptionTimeout` in case the request was reported
@@ -255,14 +254,14 @@ contract Bridge is Ownable {
 
     /// @notice Collection of all timed out redemptions requests indexed by
     ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputHash). The
+    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
     ///         walletPubKeyHash is the 20-byte wallet's public key hash
     ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputHash is the 20-byte (P2PKH,
-    ///         P2WPKH or P2SH) or 32-byte (P2WSH) output hash that is involved
-    ///         in the timed out request. Timed out requests are stored in
-    ///         this mapping to avoid slashing the wallets multiple times for
-    ///         the same timeout. Only one method can add to this mapping:
+    ///         public key) and redeemerOutputScript is the Bitcoin script
+    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed
+    ///         out request. Timed out requests are stored in this mapping to
+    ///         avoid slashing the wallets multiple times for the same timeout.
+    ///         Only one method can add to this mapping:
     ///         - `notifyRedemptionTimeout` which puts the redemption key
     ///           to this mapping basing on a timed out request stored
     ///           previously in `pendingRedemptions` mapping.
@@ -298,7 +297,7 @@ contract Bridge is Ownable {
 
     event RedemptionRequested(
         bytes20 walletPubKeyHash,
-        bytes redeemerOutputHash,
+        bytes redeemerOutputScript,
         address redeemer,
         uint64 requestedAmount,
         uint64 treasuryFee,
@@ -962,13 +961,13 @@ contract Bridge is Ownable {
     //         using Bitcoin HASH160 over the compressed ECDSA public key)
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain
-    /// @param redeemerOutputHash The 20-byte (P2PKH, P2WPKH, or P2SH) or
-    ///        32-byte (P2WSH) output hash that will be used to lock
+    /// @param redeemerOutputScript The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
     ///        redeemed BTC
     /// @param amount Requested amount in satoshi. This is also the TBTC amount
     ///        that is taken from redeemer's balance in the Bank upon request.
     ///        Once the request is handled, the actual amount of BTC locked
-    ///        on the redeemer output hash will be always lower than this value
+    ///        on the redeemer output script will be always lower than this value
     ///        since the treasury and Bitcoin transaction fees must be incurred.
     ///        The minimal amount satisfying the request can be computed as:
     ///        `amount - redemptionTreasuryFee - redemptionTxMaxFee`.
@@ -977,10 +976,10 @@ contract Bridge is Ownable {
     ///      - Wallet behind `walletPubKeyHash` must be active
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
-    ///      - `redeemerOutputHash` must be proper 20-byte or 32-byte BTC hash
-    ///      - `redeemerOutputHash` cannot be the same as `walletPubKeyHash`
+    ///      - `redeemerOutputScript` must be a proper Bitcoin script
+    ///      - `redeemerOutputScript` cannot have wallet PKH as payload
     ///      - `amount` must be above or equal the `redemptionDustThreshold`
-    ///      - Given `walletPubKeyHash` and `redeemerOutputHash` pair can be
+    ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
     ///        used for only one pending request at the same time
     ///      - Wallet must have enough Bitcoin balance to proceed the request
     ///      - Redeemer must make an allowance in the Bank that the Bridge
@@ -988,7 +987,7 @@ contract Bridge is Ownable {
     function requestRedemption(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo,
-        bytes calldata redeemerOutputHash,
+        bytes calldata redeemerOutputScript,
         uint64 amount
     ) external {
         require(
@@ -1014,18 +1013,26 @@ contract Bridge is Ownable {
 
         // TODO: Check if `walletPubKeyHash` should be validated in some other ways.
 
-        // Validate if redeemer output hash has a correct length corresponding
-        // to a valid Bitcoin hash. P2PKH, P2WPKH and P2SH outputs will
-        // have 20-byte hashes. P2WSH outputs will have 32-byte hash.
+        // Validate if redeemer output script is a correct standard type
+        // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by building a stub
+        // output with 0 as value and using `BTCUtils.extractHash` on it. Such
+        // a function extracts the payload properly only from standard outputs
+        // so if it succeeds, we have a guarantee the redeemer output script
+        // is proper. Worth to note `extractHash` ignores the value at all
+        // so this is why we can use 0 safely. This way of validation is the
+        // same as in tBTC v1.
+        bytes memory redeemerOutputScriptPayload =
+            abi.encodePacked(bytes8(0), redeemerOutputScript).extractHash();
         require(
-            redeemerOutputHash.length == 20 || redeemerOutputHash.length == 32,
-            "Incorrect redeemer output hash length"
+            redeemerOutputScriptPayload.length > 0,
+            "Redeemer output script must be a standard type"
         );
-
+        // By the way, use the hash the redeemer output script points to
+        // and assert it does not point to the wallet public key hash.
         require(
             keccak256(abi.encodePacked(walletPubKeyHash)) !=
-                keccak256(redeemerOutputHash),
-            "Redeemer output hash must not be equal to the wallet PKH"
+                keccak256(redeemerOutputScriptPayload),
+            "Redeemer output script must not point to the wallet PKH"
         );
 
         require(
@@ -1034,13 +1041,13 @@ contract Bridge is Ownable {
         );
 
         // The redemption key is built on top of the wallet public key hash
-        // and redeemer output hash pair. That means there can be only one
+        // and redeemer output script pair. That means there can be only one
         // request asking for redemption from the given wallet to the given
         // BTC hash at the same time.
         uint256 redemptionKey =
             uint256(
                 keccak256(
-                    abi.encodePacked(walletPubKeyHash, redeemerOutputHash)
+                    abi.encodePacked(walletPubKeyHash, redeemerOutputScript)
                 )
             );
 
@@ -1082,7 +1089,7 @@ contract Bridge is Ownable {
 
         emit RedemptionRequested(
             walletPubKeyHash,
-            redeemerOutputHash,
+            redeemerOutputScript,
             msg.sender,
             amount,
             treasuryFee,
@@ -1334,11 +1341,18 @@ contract Bridge is Ownable {
         // docs in `BitcoinTx` library for more details.
         uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
 
-        // Calculate the keccak256 from `walletPubKeyHash` upfront to avoid
-        // computing it multiple times within the processing loop and save
-        // on gas costs in result.
-        bytes32 walletPubKeyHashKeccak =
-            keccak256(abi.encodePacked(walletPubKeyHash));
+        // Calculate the keccak256 for two possible wallet's P2PKH or P2WPKH
+        // scripts that can be used to lock the change. This is done upfront to
+        // save on gas. Both scripts have a strict format defined by Bitcoin.
+        //
+        // The P2PKH script has format <0x1976a914> <20-byte PKH> <0x88ac>.
+        bytes32 walletP2PKHScriptKeccak =
+            keccak256(
+                abi.encodePacked(hex"1976a914", walletPubKeyHash, hex"88ac")
+            );
+        // The P2WPKH script has format <0x160014> <20-byte PKH>.
+        bytes32 walletP2WPKHScriptKeccak =
+            keccak256(abi.encodePacked(hex"160014", walletPubKeyHash));
 
         // Helper variable that counts the number of processed redemption
         // outputs. Redemptions can be either pending or reported as timed out.
@@ -1359,13 +1373,17 @@ contract Bridge is Ownable {
                     outputLength
                 );
 
-            // Extract the value and hash from given output.
+            // Extract the value from given output.
             uint64 outputValue = output.extractValue();
-            bytes memory outputHash = output.extractHash();
+            // The output consists of an 8-byte value and a variable length
+            // script. To extract that script we slice the output staring from
+            // 9th byte until the end.
+            bytes memory outputScript = output.slice(8, output.length - 8);
 
             if (
                 info.changeValue == 0 &&
-                keccak256(outputHash) == walletPubKeyHashKeccak &&
+                (keccak256(outputScript) == walletP2PKHScriptKeccak ||
+                    keccak256(outputScript) == walletP2WPKHScriptKeccak) &&
                 outputValue > 0
             ) {
                 // If we entered here, that means the change output with a
@@ -1379,7 +1397,7 @@ contract Bridge is Ownable {
                 uint256 redemptionKey =
                     uint256(
                         keccak256(
-                            abi.encodePacked(walletPubKeyHash, outputHash)
+                            abi.encodePacked(walletPubKeyHash, outputScript)
                         )
                     );
 
@@ -1460,7 +1478,7 @@ contract Bridge is Ownable {
     }
 
     // TODO: Function `notifyRedemptionTimeout. That function must:
-    //       1. Take a the `walletPubKey` and `redeemerOutputHash` as params.
+    //       1. Take a the `walletPubKey` and `redeemerOutputScript` as params.
     //       2. Build the redemption key using those params.
     //       3. Use the redemption key and take the request from
     //          `pendingRedemptions` mapping.
