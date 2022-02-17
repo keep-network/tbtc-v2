@@ -1442,7 +1442,7 @@ describe("Bridge", () => {
     })
   })
 
-  describe.only("requestRedemption", () => {
+  describe("requestRedemption", () => {
     context("when wallet state is active", () => {
       const walletPubKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
 
