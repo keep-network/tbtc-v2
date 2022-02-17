@@ -1466,13 +1466,17 @@ contract Bridge is Ownable {
     //          `pendingRedemptions` mapping.
     //       4. If request doesn't exist in mapping - revert.
     //       5. If request exits, and is timed out - remove the redemption key
-    //          from `pendingRedemptions` and put it to `timedOutRedemptions`.
-    //          No need to check if `timedOutRedemptions` mapping already contains
+    //          from `pendingRedemptions` and put it to `timedOutRedemptions`
+    //          by copying the entire `RedemptionRequest` struct there. No need
+    //          to check if `timedOutRedemptions` mapping already contains
     //          that key because `requestRedemption` blocks requests targeting
     //          non-active wallets. Because `notifyRedemptionTimeout` changes
     //          wallet state after first call (point 9), there is no possibility
     //          that the given redemption key could be reported as timed out
-    //          multiple times.
+    //          multiple times. At the same time, if the given redemption key
+    //          was already marked as fraudulent due to an amount-related fraud,
+    //          it will not be possible to report a time out on it since it
+    //          won't be present in `pendingRedemptions` mapping.
     //       6. Return the `requestedAmount` to the `redeemer`.
     //       7. Reduce the `pendingRedemptionsValue` (`wallets` mapping) for
     //          given wallet by request's redeemable amount computed as
@@ -1482,15 +1486,19 @@ contract Bridge is Ownable {
     //          order to prevent against new redemption requests hitting
     //          that wallet.
     //      10. Expect the wallet to transfer its funds to another healthy
-    //          wallet (just as in case of failed heartbeat).
+    //          wallet (just as in case of failed heartbeat). The wallet is
+    //          expected to finish the already queued redemption requests
+    //          before moving funds but we are not going to enforce it on-chain.
 
     // TODO: Function `submitRedemptionFraudProof`. That function must:
     //       1. Take a `BitcoinTx.Info` and `BitcoinTx.Proof` of the
     //          fraudulent transaction. It should also accept `walletPubKeyHash`
-    //          and index of fraudulent output.
+    //          and index of fraudulent output. Probably index of fraudulent
+    //          input will be also required if the transaction is supposed
+    //          to have a bad input vector.
     //       2. Perform SPV proof to make sure it occurred on Bitcoin chain.
     //          If not - revert.
-    //       3. Check if wallet state is Active or MovingFunds
+    //       3. Check if wallet state is Active or MovingFunds. If not, revert.
     //       4. Validate the number of inputs. If there is one input and it
     //          points to the wallet's main UTXO - move to point 5. If there
     //          are multiple inputs and there is wallet's main UTXO in the set,
@@ -1519,5 +1527,12 @@ contract Bridge is Ownable {
     //          order to prevent against new redemption requests hitting
     //          that wallet. This also prevents against reporting a fraud
     //          multiple times for one transaction (see point 3) and blocks
-    //          submission of sweep and redemption proofs.
+    //          submission of sweep and redemption proofs. `Terminated` wallet
+    //          is blocked in the Bridge forever. If the fraud was a mistake
+    //          done by the wallet and the wallet is still honest deep in its
+    //          heart, the wallet can coordinate off-chain to recover the BTC
+    //          and donate it to another wallet. If they recover all of the
+    //          remaining BTC, DAO might decide to reward them with tokens so
+    //          that they can have at least some portion of their slashed
+    //          tokens back.
 }
