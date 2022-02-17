@@ -1,7 +1,7 @@
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
-import { BigNumberish, ContractTransaction } from "ethers"
+import { ContractTransaction } from "ethers"
 import { BigNumber } from "@ethersproject/bignumber"
 import type {
   Bank,
@@ -19,6 +19,10 @@ import {
   SingleMainUtxo,
   SweepTestData,
 } from "../data/sweep"
+import {
+  MultiplePendingRequestedRedemptionsWithChange,
+  RedemptionTestData,
+} from "../data/redemption"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime } = helpers.time
@@ -1771,7 +1775,31 @@ describe("Bridge", () => {
                       context(
                         "when output vector consists of pending requested redemptions and a non-zero change",
                         () => {
-                          // TODO: Implementation.
+                          let tx: ContractTransaction
+                          const data: RedemptionTestData =
+                            MultiplePendingRequestedRedemptionsWithChange
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            tx = await runRedemptionScenario(data)
+                          })
+
+                          after(async () => {
+                            await restoreSnapshot()
+                          })
+
+                          it("should close processed redemption requests", async () => {})
+
+                          it("should update the wallet's main UTXO", async () => {})
+
+                          it("should reduce the wallet's pending redemptions value", async () => {})
+
+                          it("should decrease Bridge's balance in Bank", async () => {})
+
+                          it("should transfer collected treasury fee", async () => {})
+
+                          it("should not change redeemers balances in any way", async () => {})
                         }
                       )
 
@@ -1969,5 +1997,50 @@ describe("Bridge", () => {
     }
 
     return bridge.submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
+  }
+
+  async function runRedemptionScenario(
+    data: RedemptionTestData
+  ): Promise<ContractTransaction> {
+    await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+    await relay.setPrevEpochDifficulty(data.chainDifficulty)
+
+    // Simulate the wallet is an active one and is known in the system.
+    await bridge.setWallet(data.wallet.pubKeyHash, {
+      state: data.wallet.state,
+      pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
+    })
+    // Simulate the prepared main UTXO belongs to the wallet.
+    await bridge.setMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+
+    for (let i = 0; i < data.redemptionRequests.length; i++) {
+      const { redeemer, redeemerOutputHash, amount } =
+        data.redemptionRequests[i]
+
+      /* eslint-disable no-await-in-loop */
+      // Simulate the redeemer has a TBTC balance allowing to make the request.
+      await bank.setBalance(redeemer, amount)
+      // Redeemer must allow the Bridge to spent the requested amount.
+      await bank
+        .connect(redeemer)
+        .increaseBalanceAllowance(bridge.address, amount)
+
+      await bridge
+        .connect(redeemer)
+        .requestRedemption(
+          data.wallet.pubKeyHash,
+          data.mainUtxo,
+          redeemerOutputHash,
+          amount
+        )
+      /* eslint-enable no-await-in-loop */
+    }
+
+    return bridge.submitRedemptionProof(
+      data.redemptionTx,
+      data.redemptionProof,
+      data.mainUtxo,
+      data.wallet.pubKeyHash
+    )
   }
 })

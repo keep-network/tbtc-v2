@@ -8,13 +8,17 @@ export interface RedemptionTestData {
   /**
    * Wallet that makes the redemption transaction.
    */
-  walletPubKeyHash: BytesLike
+  wallet: {
+    pubKeyHash: BytesLike
+    state: BigNumberish
+    pendingRedemptionsValue: BigNumberish
+  }
 
   /**
    * Redemption requests that are handled by the redemption transaction.
    */
   redemptionRequests: {
-    redeemer: BytesLike
+    redeemer: string
     redeemerOutputHash: BytesLike
     amount: BigNumberish
   }[]
@@ -59,3 +63,43 @@ export interface RedemptionTestData {
    */
   chainDifficulty: number
 }
+
+// TODO: Prepare data and docs.
+export const MultiplePendingRequestedRedemptionsWithChange: RedemptionTestData =
+  {
+    wallet: {
+      pubKeyHash: "0x",
+      state: 1,
+      pendingRedemptionsValue: 0,
+    },
+
+    redemptionRequests: [
+      {
+        redeemer: "0x",
+        redeemerOutputHash: "0x",
+        amount: 0,
+      },
+    ],
+
+    mainUtxo: {
+      txHash: "0x",
+      txOutputIndex: 0,
+      txOutputValue: 0,
+    },
+
+    redemptionTx: {
+      hash: "0x",
+      version: "0x",
+      inputVector: "0x",
+      outputVector: "0x",
+      locktime: "0x",
+    },
+
+    redemptionProof: {
+      merkleProof: "0x",
+      txIndexInBlock: 0,
+      bitcoinHeaders: "0x",
+    },
+
+    chainDifficulty: 0,
+  }
