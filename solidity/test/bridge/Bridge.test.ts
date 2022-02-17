@@ -1,8 +1,8 @@
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
-import { ContractTransaction } from "ethers"
-import { BigNumber } from "@ethersproject/bignumber"
+import { BigNumber, BigNumberish, ContractTransaction } from "ethers"
+import { BytesLike } from "@ethersproject/bytes"
 import type {
   Bank,
   BankStub,
@@ -21,11 +21,13 @@ import {
 } from "../data/sweep"
 import {
   MultiplePendingRequestedRedemptionsWithChange,
+  RedemptionBalanceChange,
   RedemptionTestData,
 } from "../data/redemption"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime } = helpers.time
+const { impersonateAccount } = helpers.account
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
@@ -1499,7 +1501,7 @@ describe("Bridge", () => {
                           "when redeemer made a sufficient allowance in Bank",
                           () => {
                             // Use an arbitrary P2WPKH as redemption output.
-                            // TODO: Assert it work for P2PKH, P2SH and P2WSH as well.
+                            // TODO: Assert it works for P2PKH, P2SH and P2WSH as well.
                             const redeemerOutputScript =
                               "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef"
                             // Requested amount is 3M satoshi.
@@ -1572,11 +1574,10 @@ describe("Bridge", () => {
                             })
 
                             it("should store the redemption request", async () => {
-                              const redemptionKey =
-                                ethers.utils.solidityKeccak256(
-                                  ["bytes20", "bytes"],
-                                  [walletPubKeyHash, redeemerOutputScript]
-                                )
+                              const redemptionKey = buildRedemptionKey(
+                                walletPubKeyHash,
+                                redeemerOutputScript
+                              )
 
                               const redemptionRequest =
                                 await bridge.pendingRedemptions(redemptionKey)
@@ -1824,31 +1825,129 @@ describe("Bridge", () => {
                       context(
                         "when output vector consists of pending requested redemptions and a non-zero change",
                         () => {
-                          let tx: ContractTransaction
                           const data: RedemptionTestData =
                             MultiplePendingRequestedRedemptionsWithChange
+
+                          let tx: ContractTransaction
+                          let bridgeBalance: RedemptionBalanceChange
+                          let walletPendingRedemptionsValue: RedemptionBalanceChange
+                          let treasuryBalance: RedemptionBalanceChange
+                          let redeemersBalances: RedemptionBalanceChange[]
 
                           before(async () => {
                             await createSnapshot()
 
-                            tx = await runRedemptionScenario(data)
+                            // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                            ;({
+                              tx,
+                              bridgeBalance,
+                              walletPendingRedemptionsValue,
+                              treasuryBalance,
+                              redeemersBalances,
+                            } = await runRedemptionScenario(data))
                           })
 
                           after(async () => {
                             await restoreSnapshot()
                           })
 
-                          it("should close processed redemption requests", async () => {})
+                          it("should close processed redemption requests", async () => {
+                            for (
+                              let i = 0;
+                              i < data.redemptionRequests.length;
+                              i++
+                            ) {
+                              const redemptionRequest =
+                                // eslint-disable-next-line no-await-in-loop
+                                await bridge.pendingRedemptions(
+                                  buildRedemptionKey(
+                                    data.wallet.pubKeyHash,
+                                    data.redemptionRequests[i]
+                                      .redeemerOutputScript
+                                  )
+                                )
 
-                          it("should update the wallet's main UTXO", async () => {})
+                              expect(redemptionRequest.requestedAt).to.be.equal(
+                                0,
+                                `Redemption request with index ${i} has been not closed`
+                              )
+                            }
+                          })
 
-                          it("should decrease the wallet's pending redemptions value", async () => {})
+                          it("should update the wallet's main UTXO", async () => {
+                            // Change index and value can be taken by exploring
+                            // the redemption transaction structure and getting
+                            // the output pointing back to wallet PKH.
+                            const expectedMainUtxoHash = buildMainUtxoHash(
+                              data.redemptionTx.hash,
+                              5,
+                              137130866
+                            )
 
-                          it("should decrease Bridge's balance in Bank", async () => {})
+                            expect(
+                              await bridge.mainUtxos(data.wallet.pubKeyHash)
+                            ).to.be.equal(expectedMainUtxoHash)
+                          })
 
-                          it("should transfer collected treasury fee", async () => {})
+                          it("should decrease the wallet's pending redemptions value", async () => {
+                            expect(
+                              walletPendingRedemptionsValue.afterProof.sub(
+                                walletPendingRedemptionsValue.beforeProof
+                              )
+                            ).to.equal(-6434567)
+                          })
 
-                          it("should not change redeemers balances in any way", async () => {})
+                          it("should decrease Bridge's balance in Bank", async () => {
+                            // Balance should be decreased by the total
+                            // redeemable amount. See docs of the used test
+                            // data for details.
+                            await expect(tx)
+                              .to.emit(bank, "BalanceDecreased")
+                              .withArgs(bridge.address, 6434567)
+                            // However, the total balance change of the
+                            // Bridge should also consider the treasury
+                            // fee collected upon requests and transferred
+                            // to the treasury at the end of the proof.
+                            // This is why the total Bridge's balance change
+                            // is equal to the total requested amount for
+                            // all requests. See docs of the used test data
+                            // for details.
+                            expect(
+                              bridgeBalance.afterProof.sub(
+                                bridgeBalance.beforeProof
+                              )
+                            ).to.equal(-6934567)
+                          })
+
+                          it("should transfer collected treasury fee", async () => {
+                            // Treasury balance should be increased by the total
+                            // treasury fee for all requests. See docs of the
+                            // used test data for details.
+                            expect(
+                              treasuryBalance.afterProof.sub(
+                                treasuryBalance.beforeProof
+                              )
+                            ).to.equal(500000)
+                          })
+
+                          it("should not change redeemers balances in any way", async () => {
+                            for (
+                              let i = 0;
+                              i < data.redemptionRequests.length;
+                              i++
+                            ) {
+                              const redeemerBalance = redeemersBalances[i]
+
+                              expect(
+                                redeemerBalance.afterProof.sub(
+                                  redeemerBalance.beforeProof
+                                )
+                              ).to.be.equal(
+                                0,
+                                `Balance of redeemer with index ${i} has changed`
+                              )
+                            }
+                          })
                         }
                       )
 
@@ -2062,9 +2161,13 @@ describe("Bridge", () => {
     return bridge.submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
   }
 
-  async function runRedemptionScenario(
-    data: RedemptionTestData
-  ): Promise<ContractTransaction> {
+  async function runRedemptionScenario(data: RedemptionTestData): Promise<{
+    tx: ContractTransaction
+    bridgeBalance: RedemptionBalanceChange
+    walletPendingRedemptionsValue: RedemptionBalanceChange
+    treasuryBalance: RedemptionBalanceChange
+    redeemersBalances: RedemptionBalanceChange[]
+  }> {
     await relay.setCurrentEpochDifficulty(data.chainDifficulty)
     await relay.setPrevEpochDifficulty(data.chainDifficulty)
 
@@ -2081,15 +2184,19 @@ describe("Bridge", () => {
         data.redemptionRequests[i]
 
       /* eslint-disable no-await-in-loop */
+      const redeemerSigner = await impersonateAccount(redeemer, {
+        from: governance,
+        value: null, // use default value
+      })
       // Simulate the redeemer has a TBTC balance allowing to make the request.
       await bank.setBalance(redeemer, amount)
       // Redeemer must allow the Bridge to spent the requested amount.
       await bank
-        .connect(redeemer)
+        .connect(redeemerSigner)
         .increaseBalanceAllowance(bridge.address, amount)
 
       await bridge
-        .connect(redeemer)
+        .connect(redeemerSigner)
         .requestRedemption(
           data.wallet.pubKeyHash,
           data.mainUtxo,
@@ -2099,11 +2206,78 @@ describe("Bridge", () => {
       /* eslint-enable no-await-in-loop */
     }
 
-    return bridge.submitRedemptionProof(
+    const bridgeBalanceBeforeProof = await bank.balanceOf(bridge.address)
+    const walletPendingRedemptionsValueBeforeProof = (
+      await bridge.wallets(data.wallet.pubKeyHash)
+    ).pendingRedemptionsValue
+    const treasuryBalanceBeforeProof = await bank.balanceOf(treasury.address)
+
+    const redeemersBalancesBeforeProof = []
+    for (let i = 0; i < data.redemptionRequests.length; i++) {
+      const { redeemer } = data.redemptionRequests[i]
+      // eslint-disable-next-line no-await-in-loop
+      redeemersBalancesBeforeProof.push(await bank.balanceOf(redeemer))
+    }
+
+    const tx = await bridge.submitRedemptionProof(
       data.redemptionTx,
       data.redemptionProof,
       data.mainUtxo,
       data.wallet.pubKeyHash
+    )
+
+    const bridgeBalanceAfterProof = await bank.balanceOf(bridge.address)
+    const walletPendingRedemptionsValueAfterProof = (
+      await bridge.wallets(data.wallet.pubKeyHash)
+    ).pendingRedemptionsValue
+    const treasuryBalanceAfterProof = await bank.balanceOf(treasury.address)
+
+    const redeemersBalances = []
+    for (let i = 0; i < data.redemptionRequests.length; i++) {
+      const { redeemer } = data.redemptionRequests[i]
+      redeemersBalances.push({
+        beforeProof: redeemersBalancesBeforeProof[i],
+        // eslint-disable-next-line no-await-in-loop
+        afterProof: await bank.balanceOf(redeemer),
+      })
+    }
+
+    return {
+      tx,
+      bridgeBalance: {
+        beforeProof: bridgeBalanceBeforeProof,
+        afterProof: bridgeBalanceAfterProof,
+      },
+      walletPendingRedemptionsValue: {
+        beforeProof: walletPendingRedemptionsValueBeforeProof,
+        afterProof: walletPendingRedemptionsValueAfterProof,
+      },
+      treasuryBalance: {
+        beforeProof: treasuryBalanceBeforeProof,
+        afterProof: treasuryBalanceAfterProof,
+      },
+      redeemersBalances,
+    }
+  }
+
+  function buildRedemptionKey(
+    walletPubKeyHash: BytesLike,
+    redeemerOutputScript: BytesLike
+  ): string {
+    return ethers.utils.solidityKeccak256(
+      ["bytes20", "bytes"],
+      [walletPubKeyHash, redeemerOutputScript]
+    )
+  }
+
+  function buildMainUtxoHash(
+    txHash: BytesLike,
+    txOutputIndex: BigNumberish,
+    txOutputValue: BigNumberish
+  ): string {
+    return ethers.utils.solidityKeccak256(
+      ["bytes32", "uint32", "uint64"],
+      [txHash, txOutputIndex, txOutputValue]
     )
   }
 })

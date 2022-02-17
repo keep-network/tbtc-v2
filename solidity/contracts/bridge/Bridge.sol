@@ -1027,8 +1027,8 @@ contract Bridge is Ownable {
             redeemerOutputScriptPayload.length > 0,
             "Redeemer output script must be a standard type"
         );
-        // By the way, use the hash the redeemer output script points to
-        // and assert it does not point to the wallet public key hash.
+        // By the way, check if the redeemer output script payload does not
+        // point to the wallet public key hash.
         require(
             keccak256(abi.encodePacked(walletPubKeyHash)) !=
                 keccak256(redeemerOutputScriptPayload),
