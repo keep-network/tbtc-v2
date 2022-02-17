@@ -1508,6 +1508,7 @@ describe("Bridge", () => {
                             let redeemer: SignerWithAddress
                             let initialBridgeBalance: BigNumber
                             let initialRedeemerBalance: BigNumber
+                            let initialWalletPendingRedemptionValue: BigNumber
                             let tx: ContractTransaction
 
                             before(async () => {
@@ -1536,6 +1537,12 @@ describe("Bridge", () => {
                                 redeemer.address
                               )
 
+                              // Capture the initial pending redemptions value
+                              // for given wallet.
+                              initialWalletPendingRedemptionValue = (
+                                await bridge.wallets(walletPubKeyHash)
+                              ).pendingRedemptionsValue
+
                               // Perform the redemption request.
                               tx = await bridge
                                 .connect(redeemer)
@@ -1549,6 +1556,19 @@ describe("Bridge", () => {
 
                             after(async () => {
                               await restoreSnapshot()
+                            })
+
+                            it("should increase the wallet's pending redemptions value", async () => {
+                              const walletPendingRedemptionValue = (
+                                await bridge.wallets(walletPubKeyHash)
+                              ).pendingRedemptionsValue
+                              const treasuryFee =
+                                await bridge.redemptionTreasuryFee()
+                              expect(
+                                walletPendingRedemptionValue.sub(
+                                  initialWalletPendingRedemptionValue
+                                )
+                              ).to.be.equal(requestedAmount.sub(treasuryFee))
                             })
 
                             it("should store the redemption request", async () => {
@@ -1793,7 +1813,7 @@ describe("Bridge", () => {
 
                           it("should update the wallet's main UTXO", async () => {})
 
-                          it("should reduce the wallet's pending redemptions value", async () => {})
+                          it("should decrease the wallet's pending redemptions value", async () => {})
 
                           it("should decrease Bridge's balance in Bank", async () => {})
 
