@@ -19,7 +19,7 @@ export interface RedemptionTestData {
    */
   redemptionRequests: {
     redeemer: string
-    redeemerOutputHash: BytesLike
+    redeemerOutputScript: BytesLike
     amount: BigNumberish
   }[]
 

@@ -956,7 +956,7 @@ contract Bridge is Ownable {
     }
 
     /// @notice Requests redemption of the given amount from the specified
-    ///         wallet to the redeemer Bitcoin output script hash.
+    ///         wallet to the redeemer Bitcoin output script.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
     //         using Bitcoin HASH160 over the compressed ECDSA public key)
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on

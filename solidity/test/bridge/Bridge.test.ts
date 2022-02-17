@@ -1486,9 +1486,9 @@ describe("Bridge", () => {
         })
 
         context("when main UTXO data are valid", () => {
-          context("when redeemer output hash has correct length", () => {
+          context("when redeemer output script is standard type", () => {
             context(
-              "when redeemer output hash is not equal to wallet public key hash",
+              "when redeemer output script does not point to the wallet public key hash",
               () => {
                 context("when amount is not below the dust threshold", () => {
                   context(
@@ -1498,10 +1498,10 @@ describe("Bridge", () => {
                         context(
                           "when redeemer made a sufficient allowance in Bank",
                           () => {
-                            // Use an arbitrary 20-byte public key hash as
-                            // redemption output.
-                            const redeemerOutputHash =
-                              "0xf4eedc8f40d4b8e30771f792b065ebec0abaddef"
+                            // Use an arbitrary P2WPKH as redemption output.
+                            // TODO: Assert it work for P2PKH, P2SH and P2WSH as well.
+                            const redeemerOutputScript =
+                              "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef"
                             // Requested amount is 3M satoshi.
                             const requestedAmount = BigNumber.from(3000000)
 
@@ -1549,7 +1549,7 @@ describe("Bridge", () => {
                                 .requestRedemption(
                                   walletPubKeyHash,
                                   mainUtxo,
-                                  redeemerOutputHash,
+                                  redeemerOutputScript,
                                   requestedAmount
                                 )
                             })
@@ -1575,7 +1575,7 @@ describe("Bridge", () => {
                               const redemptionKey =
                                 ethers.utils.solidityKeccak256(
                                   ["bytes20", "bytes"],
-                                  [walletPubKeyHash, redeemerOutputHash]
+                                  [walletPubKeyHash, redeemerOutputScript]
                                 )
 
                               const redemptionRequest =
@@ -1603,7 +1603,7 @@ describe("Bridge", () => {
                                 .to.emit(bridge, "RedemptionRequested")
                                 .withArgs(
                                   walletPubKeyHash,
-                                  redeemerOutputHash,
+                                  redeemerOutputScript,
                                   redeemer.address,
                                   requestedAmount,
                                   await bridge.redemptionTreasuryFee(),
@@ -1666,16 +1666,18 @@ describe("Bridge", () => {
             )
 
             context(
-              "when redeemer output hash is equal to wallet public key hash",
+              "when redeemer output script points to the wallet public key hash",
               () => {
                 it("should revert", async () => {
-                  // TODO: Implementation.
+                  // TODO: Implementation. Make sure there is not possibility
+                  //       to pass the 20-byte wallet PKH under P2PKH, P2WPKH
+                  //       and P2SH.
                 })
               }
             )
           })
 
-          context("when redeemer output hash has incorrect length", () => {
+          context("when redeemer output script is not standard type", () => {
             it("should revert", async () => {
               // TODO: Implementation.
             })
@@ -1748,8 +1750,35 @@ describe("Bridge", () => {
                       )
 
                       context(
-                        "when the single output is a change with a non-zero value",
+                        "when the single output is a legal P2PKH change with a non-zero value",
                         () => {
+                          // Should be deemed as valid change though rejected
+                          // because this change is a single output.
+                          it("should revert", async () => {
+                            // TODO: Implementation.
+                          })
+                        }
+                      )
+
+                      context(
+                        "when the single output is a legal P2WPKH change with a non-zero value",
+                        () => {
+                          // Should be deemed as valid change though rejected
+                          // because this change is a single output.
+                          it("should revert", async () => {
+                            // TODO: Implementation.
+                          })
+                        }
+                      )
+
+                      context(
+                        "when the single output is an illegal P2SH change with a non-zero value",
+                        () => {
+                          // We have this case because P2SH script has a 20-byte
+                          // payload which may match the 20-byte wallet public
+                          // key hash though it should be always rejected as
+                          // non-requested output. There is no need to check for
+                          // P2WSH since the payload is always 32-byte there.
                           it("should revert", async () => {
                             // TODO: Implementation.
                           })
@@ -1863,6 +1892,20 @@ describe("Bridge", () => {
                       context(
                         "when output vector contains a timed out requested redemption with wrong amount",
                         () => {
+                          it("should revert", async () => {
+                            // TODO: Implementation.
+                          })
+                        }
+                      )
+
+                      context(
+                        "when output vector contains a non-zero P2SH change output",
+                        () => {
+                          // We have this case because P2SH script has a 20-byte
+                          // payload which may match the 20-byte wallet public
+                          // key hash though it should be always rejected as
+                          // non-requested output. There is no need to check for
+                          // P2WSH since the payload is always 32-byte there.
                           it("should revert", async () => {
                             // TODO: Implementation.
                           })
@@ -2034,7 +2077,7 @@ describe("Bridge", () => {
     await bridge.setMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
 
     for (let i = 0; i < data.redemptionRequests.length; i++) {
-      const { redeemer, redeemerOutputHash, amount } =
+      const { redeemer, redeemerOutputScript, amount } =
         data.redemptionRequests[i]
 
       /* eslint-disable no-await-in-loop */
@@ -2050,7 +2093,7 @@ describe("Bridge", () => {
         .requestRedemption(
           data.wallet.pubKeyHash,
           data.mainUtxo,
-          redeemerOutputHash,
+          redeemerOutputScript,
           amount
         )
       /* eslint-enable no-await-in-loop */
