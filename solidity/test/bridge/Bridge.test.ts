@@ -1,8 +1,15 @@
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
-import { ContractTransaction } from "ethers"
-import type { Bank, Bridge, TestRelay } from "../../typechain"
+import { BigNumber, BigNumberish, ContractTransaction } from "ethers"
+import { BytesLike } from "@ethersproject/bytes"
+import type {
+  Bank,
+  BankStub,
+  Bridge,
+  BridgeStub,
+  TestRelay,
+} from "../../typechain"
 import {
   MultipleDepositsNoMainUtxo,
   MultipleDepositsWithMainUtxo,
@@ -12,25 +19,36 @@ import {
   SingleMainUtxo,
   SweepTestData,
 } from "../data/sweep"
+import {
+  MultiplePendingRequestedRedemptionsWithChange,
+  RedemptionBalanceChange,
+  RedemptionTestData,
+} from "../data/redemption"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime } = helpers.time
+const { impersonateAccount } = helpers.account
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
 const fixture = async () => {
-  const [deployer, governance, thirdParty] = await ethers.getSigners()
+  const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
 
-  const Bank = await ethers.getContractFactory("Bank")
-  const bank: Bank = await Bank.deploy()
+  const Bank = await ethers.getContractFactory("BankStub")
+  const bank: Bank & BankStub = await Bank.deploy()
   await bank.deployed()
 
   const TestRelay = await ethers.getContractFactory("TestRelay")
   const relay: TestRelay = await TestRelay.deploy()
   await relay.deployed()
 
-  const Bridge = await ethers.getContractFactory("Bridge")
-  const bridge: Bridge = await Bridge.deploy(bank.address, relay.address, 1)
+  const Bridge = await ethers.getContractFactory("BridgeStub")
+  const bridge: Bridge & BridgeStub = await Bridge.deploy(
+    bank.address,
+    relay.address,
+    treasury.address,
+    1
+  )
   await bridge.deployed()
 
   await bank.updateBridge(bridge.address)
@@ -39,6 +57,7 @@ const fixture = async () => {
   return {
     governance,
     thirdParty,
+    treasury,
     bank,
     relay,
     bridge,
@@ -48,14 +67,15 @@ const fixture = async () => {
 describe("Bridge", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
+  let treasury: SignerWithAddress
 
-  let bank: Bank
+  let bank: Bank & BankStub
   let relay: TestRelay
-  let bridge: Bridge
+  let bridge: Bridge & BridgeStub
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, thirdParty, bank, relay, bridge } =
+    ;({ governance, thirdParty, treasury, bank, relay, bridge } =
       await waffle.loadFixture(fixture))
   })
 
@@ -546,7 +566,7 @@ describe("Bridge", () => {
                     expect(deposit[4]).to.be.equal(await lastBlockTime())
                   })
 
-                  it("should update main UTXO for given wallet", async () => {
+                  it("should update main UTXO for the given wallet", async () => {
                     const mainUtxoHash = await bridge.mainUtxos(
                       walletPubKeyHash
                     )
@@ -616,7 +636,7 @@ describe("Bridge", () => {
                     expect(deposit[4]).to.be.equal(await lastBlockTime())
                   })
 
-                  it("should update main UTXO for given wallet", async () => {
+                  it("should update main UTXO for the given wallet", async () => {
                     const mainUtxoHash = await bridge.mainUtxos(
                       walletPubKeyHash
                     )
@@ -793,7 +813,7 @@ describe("Bridge", () => {
                     }
                   })
 
-                  it("should update main UTXO for given wallet", async () => {
+                  it("should update main UTXO for the given wallet", async () => {
                     const mainUtxoHash = await bridge.mainUtxos(
                       walletPubKeyHash
                     )
@@ -883,7 +903,7 @@ describe("Bridge", () => {
                     }
                   })
 
-                  it("should update main UTXO for given wallet", async () => {
+                  it("should update main UTXO for the given wallet", async () => {
                     const mainUtxoHash = await bridge.mainUtxos(
                       walletPubKeyHash
                     )
@@ -1328,7 +1348,7 @@ describe("Bridge", () => {
 
         it("should revert", async () => {
           // Bitcoin headers must form a chain to pass the proof validation.
-          // That means the `previous block hash` encoded in given block
+          // That means the `previous block hash` encoded in the given block
           // header must match the actual previous header's hash. To test
           // that scenario, we corrupt the `previous block hash` of the
           // second header. Each header is 80 bytes length. First 4 bytes
@@ -1399,7 +1419,12 @@ describe("Bridge", () => {
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
             const Bridge = await ethers.getContractFactory("Bridge")
-            otherBridge = await Bridge.deploy(bank.address, relay.address, 12)
+            otherBridge = await Bridge.deploy(
+              bank.address,
+              relay.address,
+              treasury.address,
+              12
+            )
             await otherBridge.deployed()
           })
 
@@ -1423,6 +1448,715 @@ describe("Bridge", () => {
     })
   })
 
+  describe("requestRedemption", () => {
+    context("when wallet state is active", () => {
+      const walletPubKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
+
+      before(async () => {
+        await createSnapshot()
+
+        // Simulate the wallet is an active one and is known in the system.
+        await bridge.setWallet(walletPubKeyHash, {
+          state: 1,
+          pendingRedemptionsValue: 0,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when there is a main UTXO for the given wallet", () => {
+        // Prepare a dumb main UTXO with 10M satoshi as value. This will
+        // be the wallet BTC balance.
+        const mainUtxo = {
+          txHash:
+            "0x3835ecdee2daa83c9a19b5012104ace55ecab197b5e16489c26d372e475f5d2a",
+          txOutputIndex: 0,
+          txOutputValue: 10000000,
+        }
+
+        before(async () => {
+          await createSnapshot()
+
+          // Simulate the prepared main UTXO belongs to the wallet.
+          await bridge.setMainUtxo(walletPubKeyHash, mainUtxo)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context("when main UTXO data are valid", () => {
+          context("when redeemer output script is standard type", () => {
+            context(
+              "when redeemer output script does not point to the wallet public key hash",
+              () => {
+                context("when amount is not below the dust threshold", () => {
+                  context(
+                    "when there is no pending request for the given redemption key",
+                    () => {
+                      context("when wallet has sufficient funds", () => {
+                        context(
+                          "when redeemer made a sufficient allowance in Bank",
+                          () => {
+                            // Use an arbitrary P2WPKH as redemption output.
+                            // TODO: Assert it works for P2PKH, P2SH and P2WSH as well.
+                            const redeemerOutputScript =
+                              "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef"
+                            // Requested amount is 3M satoshi.
+                            const requestedAmount = BigNumber.from(3000000)
+
+                            let redeemer: SignerWithAddress
+                            let initialBridgeBalance: BigNumber
+                            let initialRedeemerBalance: BigNumber
+                            let initialWalletPendingRedemptionValue: BigNumber
+                            let tx: ContractTransaction
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // Use an arbitrary ETH account as redeemer.
+                              redeemer = thirdParty
+
+                              // Simulate the redeemer has a TBTC balance of
+                              // 5M satoshi.
+                              await bank.setBalance(redeemer.address, 5000000)
+                              // Redeemer must allow the Bridge to spent the
+                              // requested 3M satoshi.
+                              await bank
+                                .connect(redeemer)
+                                .increaseBalanceAllowance(
+                                  bridge.address,
+                                  requestedAmount
+                                )
+
+                              // Capture initial TBTC balance of Bridge and redeemer.
+                              initialBridgeBalance = await bank.balanceOf(
+                                bridge.address
+                              )
+                              initialRedeemerBalance = await bank.balanceOf(
+                                redeemer.address
+                              )
+
+                              // Capture the initial pending redemptions value
+                              // for the given wallet.
+                              initialWalletPendingRedemptionValue = (
+                                await bridge.wallets(walletPubKeyHash)
+                              ).pendingRedemptionsValue
+
+                              // Perform the redemption request.
+                              tx = await bridge
+                                .connect(redeemer)
+                                .requestRedemption(
+                                  walletPubKeyHash,
+                                  mainUtxo,
+                                  redeemerOutputScript,
+                                  requestedAmount
+                                )
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should increase the wallet's pending redemptions value", async () => {
+                              const walletPendingRedemptionValue = (
+                                await bridge.wallets(walletPubKeyHash)
+                              ).pendingRedemptionsValue
+                              const treasuryFee =
+                                await bridge.redemptionTreasuryFee()
+                              expect(
+                                walletPendingRedemptionValue.sub(
+                                  initialWalletPendingRedemptionValue
+                                )
+                              ).to.be.equal(requestedAmount.sub(treasuryFee))
+                            })
+
+                            it("should store the redemption request", async () => {
+                              const redemptionKey = buildRedemptionKey(
+                                walletPubKeyHash,
+                                redeemerOutputScript
+                              )
+
+                              const redemptionRequest =
+                                await bridge.pendingRedemptions(redemptionKey)
+
+                              expect(redemptionRequest.redeemer).to.be.equal(
+                                redeemer.address
+                              )
+                              expect(
+                                redemptionRequest.requestedAmount
+                              ).to.be.equal(requestedAmount)
+                              expect(redemptionRequest.treasuryFee).to.be.equal(
+                                await bridge.redemptionTreasuryFee()
+                              )
+                              expect(redemptionRequest.txMaxFee).to.be.equal(
+                                await bridge.redemptionTxMaxFee()
+                              )
+                              expect(redemptionRequest.requestedAt).to.be.equal(
+                                await lastBlockTime()
+                              )
+                            })
+
+                            it("should emit RedemptionRequested event", async () => {
+                              await expect(tx)
+                                .to.emit(bridge, "RedemptionRequested")
+                                .withArgs(
+                                  walletPubKeyHash,
+                                  redeemerOutputScript,
+                                  redeemer.address,
+                                  requestedAmount,
+                                  await bridge.redemptionTreasuryFee(),
+                                  await bridge.redemptionTxMaxFee()
+                                )
+                            })
+
+                            it("should take the right TBTC balance from Bank", async () => {
+                              const bridgeBalance = await bank.balanceOf(
+                                bridge.address
+                              )
+                              expect(
+                                bridgeBalance.sub(initialBridgeBalance)
+                              ).to.equal(requestedAmount)
+
+                              const redeemerBalance = await bank.balanceOf(
+                                redeemer.address
+                              )
+                              expect(
+                                redeemerBalance.sub(initialRedeemerBalance)
+                              ).to.equal(requestedAmount.mul(-1))
+                            })
+                          }
+                        )
+
+                        context(
+                          "when redeemer has not made a sufficient allowance in Bank",
+                          () => {
+                            it("should revert", async () => {
+                              // TODO: Implementation.
+                            })
+                          }
+                        )
+                      })
+
+                      context("when wallet has insufficient funds", () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      })
+                    }
+                  )
+
+                  context(
+                    "when there is a pending request for the given redemption key",
+                    () => {
+                      it("should revert", async () => {
+                        // TODO: Implementation.
+                      })
+                    }
+                  )
+                })
+
+                context("when amount is below the dust threshold", () => {
+                  it("should revert", async () => {
+                    // TODO: Implementation.
+                  })
+                })
+              }
+            )
+
+            context(
+              "when redeemer output script points to the wallet public key hash",
+              () => {
+                it("should revert", async () => {
+                  // TODO: Implementation. Make sure there is not possibility
+                  //       to pass the 20-byte wallet PKH under P2PKH, P2WPKH
+                  //       and P2SH.
+                })
+              }
+            )
+          })
+
+          context("when redeemer output script is not standard type", () => {
+            it("should revert", async () => {
+              // TODO: Implementation.
+            })
+          })
+        })
+
+        context("when main UTXO data are invalid", () => {
+          it("should revert", async () => {
+            // TODO: Implementation.
+          })
+        })
+      })
+
+      context("when there is no main UTXO for the given wallet", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+    })
+
+    context("when wallet state is other than Active", () => {
+      it("should revert", async () => {
+        // TODO: Implementation. Make sure we check each other state in
+        //       separate sub-contexts.
+      })
+    })
+  })
+
+  describe("submitRedemptionProof", () => {
+    context("when transaction proof is valid", () => {
+      context("when there is a main UTXO for the given wallet", () => {
+        context("when main UTXO data are valid", () => {
+          context("when there is only one input", () => {
+            context(
+              "when the single input points to the wallet's main UTXO",
+              () => {
+                context("when wallet state is Active", () => {
+                  context("when there is only one output", () => {
+                    context(
+                      "when the single output is a pending requested redemption",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when the single output is a non-reported timed out requested redemption",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when the single output is a reported timed out requested redemption",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when the single output is a pending requested redemption but amount is wrong",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when the single output is a timed out requested redemption but amount is wrong",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when the single output is a legal P2PKH change with a non-zero value",
+                      () => {
+                        // Should be deemed as valid change though rejected
+                        // because this change is a single output.
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when the single output is a legal P2WPKH change with a non-zero value",
+                      () => {
+                        // Should be deemed as valid change though rejected
+                        // because this change is a single output.
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when the single output is an illegal P2SH change with a non-zero value",
+                      () => {
+                        // We have this case because P2SH script has a 20-byte
+                        // payload which may match the 20-byte wallet public
+                        // key hash though it should be always rejected as
+                        // non-requested output. There is no need to check for
+                        // P2WSH since the payload is always 32-byte there.
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when the single output is a change with a zero as value",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when the single output is a non-requested redemption to an arbitrary script hash",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when the single output is provably unspendable OP_RETURN",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+                  })
+
+                  context("when there are multiple outputs", () => {
+                    context(
+                      "when output vector consists only of pending requested redemptions",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when output vector consists of pending requested redemptions and a non-zero change",
+                      () => {
+                        const data: RedemptionTestData =
+                          MultiplePendingRequestedRedemptionsWithChange
+
+                        let tx: ContractTransaction
+                        let bridgeBalance: RedemptionBalanceChange
+                        let walletPendingRedemptionsValue: RedemptionBalanceChange
+                        let treasuryBalance: RedemptionBalanceChange
+                        let redeemersBalances: RedemptionBalanceChange[]
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                          ;({
+                            tx,
+                            bridgeBalance,
+                            walletPendingRedemptionsValue,
+                            treasuryBalance,
+                            redeemersBalances,
+                          } = await runRedemptionScenario(data))
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
+                        it("should close processed redemption requests", async () => {
+                          for (
+                            let i = 0;
+                            i < data.redemptionRequests.length;
+                            i++
+                          ) {
+                            const redemptionRequest =
+                              // eslint-disable-next-line no-await-in-loop
+                              await bridge.pendingRedemptions(
+                                buildRedemptionKey(
+                                  data.wallet.pubKeyHash,
+                                  data.redemptionRequests[i]
+                                    .redeemerOutputScript
+                                )
+                              )
+
+                            expect(redemptionRequest.requestedAt).to.be.equal(
+                              0,
+                              `Redemption request with index ${i} has not been closed`
+                            )
+                          }
+                        })
+
+                        it("should update the wallet's main UTXO", async () => {
+                          // Change index and value can be taken by exploring
+                          // the redemption transaction structure and getting
+                          // the output pointing back to wallet PKH.
+                          const expectedMainUtxoHash = buildMainUtxoHash(
+                            data.redemptionTx.hash,
+                            5,
+                            137130866
+                          )
+
+                          expect(
+                            await bridge.mainUtxos(data.wallet.pubKeyHash)
+                          ).to.be.equal(expectedMainUtxoHash)
+                        })
+
+                        it("should decrease the wallet's pending redemptions value", async () => {
+                          expect(
+                            walletPendingRedemptionsValue.afterProof.sub(
+                              walletPendingRedemptionsValue.beforeProof
+                            )
+                          ).to.equal(-6434567)
+                        })
+
+                        it("should decrease Bridge's balance in Bank", async () => {
+                          // Balance should be decreased by the total
+                          // redeemable amount. See docs of the used test
+                          // data for details.
+                          await expect(tx)
+                            .to.emit(bank, "BalanceDecreased")
+                            .withArgs(bridge.address, 6434567)
+                          // However, the total balance change of the
+                          // Bridge should also consider the treasury
+                          // fee collected upon requests and transferred
+                          // to the treasury at the end of the proof.
+                          // This is why the total Bridge's balance change
+                          // is equal to the total requested amount for
+                          // all requests. See docs of the used test data
+                          // for details.
+                          expect(
+                            bridgeBalance.afterProof.sub(
+                              bridgeBalance.beforeProof
+                            )
+                          ).to.equal(-6934567)
+                        })
+
+                        it("should transfer collected treasury fee", async () => {
+                          // Treasury balance should be increased by the total
+                          // treasury fee for all requests. See docs of the
+                          // used test data for details.
+                          expect(
+                            treasuryBalance.afterProof.sub(
+                              treasuryBalance.beforeProof
+                            )
+                          ).to.equal(500000)
+                        })
+
+                        it("should not change redeemers balances in any way", async () => {
+                          for (
+                            let i = 0;
+                            i < data.redemptionRequests.length;
+                            i++
+                          ) {
+                            const redeemerBalance = redeemersBalances[i]
+
+                            expect(
+                              redeemerBalance.afterProof.sub(
+                                redeemerBalance.beforeProof
+                              )
+                            ).to.be.equal(
+                              0,
+                              `Balance of redeemer with index ${i} has changed`
+                            )
+                          }
+                        })
+                      }
+                    )
+
+                    context(
+                      "when output vector consists only of timed out requested redemptions",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when output vector consists of timed out requested redemptions and a non-zero change",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when output vector consists of pending requested redemptions and timed out requested redemptions",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when output vector consists of pending requested redemptions, timed out requested redemptions and a non-zero change",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when output vector contains a pending requested redemption with wrong amount",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when output vector contains a timed out requested redemption with wrong amount",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when output vector contains a non-zero P2SH change output",
+                      () => {
+                        // We have this case because P2SH script has a 20-byte
+                        // payload which may match the 20-byte wallet public
+                        // key hash though it should be always rejected as
+                        // non-requested output. There is no need to check for
+                        // P2WSH since the payload is always 32-byte there.
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when output vector contains multiple non-zero change outputs",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when output vector contains one change but with zero as value",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when output vector contains a non-requested redemption to an arbitrary script hash",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+
+                    context(
+                      "when output vector contains a provably unspendable OP_RETURN output",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+                  })
+                })
+
+                context("when wallet state is MovingFunds", () => {
+                  // TODO: Just assert it passes without revert without
+                  //       repeating checks from Active state scenario.
+                })
+
+                context(
+                  "when wallet state is neither Active nor MovingFunds",
+                  () => {
+                    it("should revert", async () => {
+                      // TODO: Implementation. Make sure we check each other
+                      //       state in a separate sub-context.
+                    })
+                  }
+                )
+              }
+            )
+
+            context(
+              "when the single input doesn't point to the wallet's main UTXO",
+              () => {
+                it("should revert", async () => {
+                  // TODO: Implementation.
+                })
+              }
+            )
+          })
+
+          context("when input count is other than one", () => {
+            it("should revert", async () => {
+              // TODO: Implementation.
+            })
+          })
+        })
+
+        context("when main UTXO data are invalid", () => {
+          it("should revert", async () => {
+            // TODO: Implementation.
+          })
+        })
+      })
+
+      context("when there is no main UTXO for the given wallet", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+    })
+
+    context("when transaction proof is not valid", () => {
+      context("when input vector is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when output vector is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when merkle proof is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when proof difficulty is not current nor previous", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when headers chain length is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when headers chain is not valid", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context("when the work in the header is insufficient", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+
+      context(
+        "when accumulated difficulty in headers chain is insufficient",
+        () => {
+          it("should revert", async () => {
+            // TODO: Implementation.
+          })
+        }
+      )
+    })
+  })
+
   async function runSweepScenario(
     data: SweepTestData
   ): Promise<ContractTransaction> {
@@ -1436,5 +2170,125 @@ describe("Bridge", () => {
     }
 
     return bridge.submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
+  }
+
+  async function runRedemptionScenario(data: RedemptionTestData): Promise<{
+    tx: ContractTransaction
+    bridgeBalance: RedemptionBalanceChange
+    walletPendingRedemptionsValue: RedemptionBalanceChange
+    treasuryBalance: RedemptionBalanceChange
+    redeemersBalances: RedemptionBalanceChange[]
+  }> {
+    await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+    await relay.setPrevEpochDifficulty(data.chainDifficulty)
+
+    // Simulate the wallet is an active one and is known in the system.
+    await bridge.setWallet(data.wallet.pubKeyHash, {
+      state: data.wallet.state,
+      pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
+    })
+    // Simulate the prepared main UTXO belongs to the wallet.
+    await bridge.setMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+
+    for (let i = 0; i < data.redemptionRequests.length; i++) {
+      const { redeemer, redeemerOutputScript, amount } =
+        data.redemptionRequests[i]
+
+      /* eslint-disable no-await-in-loop */
+      const redeemerSigner = await impersonateAccount(redeemer, {
+        from: governance,
+        value: null, // use default value
+      })
+      // Simulate the redeemer has a TBTC balance allowing to make the request.
+      await bank.setBalance(redeemer, amount)
+      // Redeemer must allow the Bridge to spent the requested amount.
+      await bank
+        .connect(redeemerSigner)
+        .increaseBalanceAllowance(bridge.address, amount)
+
+      await bridge
+        .connect(redeemerSigner)
+        .requestRedemption(
+          data.wallet.pubKeyHash,
+          data.mainUtxo,
+          redeemerOutputScript,
+          amount
+        )
+      /* eslint-enable no-await-in-loop */
+    }
+
+    const bridgeBalanceBeforeProof = await bank.balanceOf(bridge.address)
+    const walletPendingRedemptionsValueBeforeProof = (
+      await bridge.wallets(data.wallet.pubKeyHash)
+    ).pendingRedemptionsValue
+    const treasuryBalanceBeforeProof = await bank.balanceOf(treasury.address)
+
+    const redeemersBalancesBeforeProof = []
+    for (let i = 0; i < data.redemptionRequests.length; i++) {
+      const { redeemer } = data.redemptionRequests[i]
+      // eslint-disable-next-line no-await-in-loop
+      redeemersBalancesBeforeProof.push(await bank.balanceOf(redeemer))
+    }
+
+    const tx = await bridge.submitRedemptionProof(
+      data.redemptionTx,
+      data.redemptionProof,
+      data.mainUtxo,
+      data.wallet.pubKeyHash
+    )
+
+    const bridgeBalanceAfterProof = await bank.balanceOf(bridge.address)
+    const walletPendingRedemptionsValueAfterProof = (
+      await bridge.wallets(data.wallet.pubKeyHash)
+    ).pendingRedemptionsValue
+    const treasuryBalanceAfterProof = await bank.balanceOf(treasury.address)
+
+    const redeemersBalances = []
+    for (let i = 0; i < data.redemptionRequests.length; i++) {
+      const { redeemer } = data.redemptionRequests[i]
+      redeemersBalances.push({
+        beforeProof: redeemersBalancesBeforeProof[i],
+        // eslint-disable-next-line no-await-in-loop
+        afterProof: await bank.balanceOf(redeemer),
+      })
+    }
+
+    return {
+      tx,
+      bridgeBalance: {
+        beforeProof: bridgeBalanceBeforeProof,
+        afterProof: bridgeBalanceAfterProof,
+      },
+      walletPendingRedemptionsValue: {
+        beforeProof: walletPendingRedemptionsValueBeforeProof,
+        afterProof: walletPendingRedemptionsValueAfterProof,
+      },
+      treasuryBalance: {
+        beforeProof: treasuryBalanceBeforeProof,
+        afterProof: treasuryBalanceAfterProof,
+      },
+      redeemersBalances,
+    }
+  }
+
+  function buildRedemptionKey(
+    walletPubKeyHash: BytesLike,
+    redeemerOutputScript: BytesLike
+  ): string {
+    return ethers.utils.solidityKeccak256(
+      ["bytes20", "bytes"],
+      [walletPubKeyHash, redeemerOutputScript]
+    )
+  }
+
+  function buildMainUtxoHash(
+    txHash: BytesLike,
+    txOutputIndex: BigNumberish,
+    txOutputValue: BigNumberish
+  ): string {
+    return ethers.utils.solidityKeccak256(
+      ["bytes32", "uint32", "uint64"],
+      [txHash, txOutputIndex, txOutputValue]
+    )
   }
 })

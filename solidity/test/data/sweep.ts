@@ -11,8 +11,8 @@ export interface SweepTestData {
   /**
    * Deposits swept within given sweep. Those fields correspond to the ones
    * which must be passed during deposit reveal. They are actually used to
-   * call `revealDeposit` function for each deposit before calling `sweep`
-   * during each test scenario.
+   * call `revealDeposit` function for each deposit before calling
+   * `submitSweepProof` during each test scenario.
    */
   deposits: {
     fundingTx: {
@@ -35,7 +35,7 @@ export interface SweepTestData {
 
   /**
    * Main UTXO data which are used as `mainUtxo` parameter during
-   * `sweep` function call. If no main UTXO exists for given wallet,
+   * `submitSweepProof` function call. If no main UTXO exists for given wallet,
    * `NO_MAIN_UTXO` constant should be used as value.
    */
   mainUtxo: {
@@ -45,8 +45,8 @@ export interface SweepTestData {
   }
 
   /**
-   * Sweep transaction data passed as `sweepTx` parameter during `sweep`
-   * function call.
+   * Sweep transaction data passed as `sweepTx` parameter during
+   * `submitSweepProof` function call.
    */
   sweepTx: {
     hash: BytesLike
@@ -57,7 +57,7 @@ export interface SweepTestData {
   }
 
   /**
-   * Sweep proof data passed as `sweepProof` parameter during `sweep`
+   * Sweep proof data passed as `sweepProof` parameter during `submitSweepProof`
    * function call.
    */
   sweepProof: {
