@@ -394,6 +394,7 @@ contract Bridge is Ownable {
         );
 
         // TODO: Validate if `walletPubKeyHash` is a known and active wallet.
+        // TODO: Should we enforce a specific locktime at contract level?
 
         bytes memory expectedScript =
             abi.encodePacked(
