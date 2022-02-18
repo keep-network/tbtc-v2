@@ -737,6 +737,13 @@ Alphabetized list of Governable Parameters with additional notes.
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
+- `redemption_request_timeout`: The amount of time the wallet has to provide
+  redemption proof.
+- `redemption_request_timeout_slashing_amount`: The amount of stake slashed from
+  each member of a wallet for a timed-out redemption request.
+- `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
+  notifier reward from the staking contract the redeemer receives in case of a
+  redemption timeout.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
