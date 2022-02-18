@@ -143,17 +143,25 @@ contract Bridge is Ownable {
     }
 
     /// @notice Represents wallet state:
-    ///         - Unknown: the wallet is unknown to the Bridge
-    ///         - Active: the wallet can sweep deposits and accept redemption
-    ///           requests
-    ///         - MovingFunds: the wallet was deemed unhealthy and is
-    ///           expected to move their outstanding funds to another wallet.
-    ///           The wallet can still fulfill their pending redemption
-    ///           requests although new requests are not accepted.
-    ///         - Closed: the wallet moved their funds and cannot perform any
-    ///           action
-    ///         - Terminated: the wallet committed a fraud that was reported
-    enum WalletState {Unknown, Active, MovingFunds, Closed, Terminated}
+    enum WalletState {
+        /// @dev The wallet is unknown to the Bridge.
+        Unknown,
+        /// @dev The wallet can sweep deposits and accept redemption requests.
+        Active,
+        /// @dev The wallet was deemed unhealthy and is expected to move their
+        ///      outstanding funds to another wallet. The wallet can still
+        ///      fulfill their pending redemption requests although new
+        ///      redemption requests and new deposit reveals are not accepted.
+        MovingFunds,
+        /// @dev The wallet moved or redeemed all their funds and cannot
+        ///      perform any action.
+        Closed,
+        /// @dev The wallet committed a fraud that was reported. The wallet is
+        ///      blocked and can not perform any actions in the Bridge.
+        ///      Off-chain coordination with the wallet operators is needed to
+        ///      recover funds.
+        Terminated
+    }
 
     /// @notice Holds information about a wallet.
     struct Wallet {
@@ -996,7 +1004,7 @@ contract Bridge is Ownable {
     ) external {
         require(
             wallets[walletPubKeyHash].state == WalletState.Active,
-            "Wallet must be active"
+            "Wallet must be in Active state"
         );
 
         bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
@@ -1015,7 +1023,13 @@ contract Bridge is Ownable {
             "Invalid main UTXO data"
         );
 
-        // TODO: Check if `walletPubKeyHash` should be validated in some other ways.
+        // TODO: Confirm if `walletPubKeyHash` should be validated by checking
+        //       if it is the oldest one who can handle the request. This will
+        //       be suggested by the dApp but may not be respected by users who
+        //       interact directly with the contract. Do we need to enforce it
+        //       here? One option is not to enforce it, to save on gas, but if
+        //       we see this rule is not respected, upgrade Bridge contract to
+        //       require it.
 
         // Validate if redeemer output script is a correct standard type
         // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by building a stub
@@ -1031,8 +1045,8 @@ contract Bridge is Ownable {
             redeemerOutputScriptPayload.length > 0,
             "Redeemer output script must be a standard type"
         );
-        // By the way, check if the redeemer output script payload does not
-        // point to the wallet public key hash.
+        // Check if the redeemer output script payload does not point to the
+        // wallet public key hash.
         require(
             keccak256(abi.encodePacked(walletPubKeyHash)) !=
                 keccak256(redeemerOutputScriptPayload),
@@ -1047,7 +1061,7 @@ contract Bridge is Ownable {
         // The redemption key is built on top of the wallet public key hash
         // and redeemer output script pair. That means there can be only one
         // request asking for redemption from the given wallet to the given
-        // BTC hash at the same time.
+        // BTC script at the same time.
         uint256 redemptionKey =
             uint256(
                 keccak256(
