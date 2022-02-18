@@ -1514,7 +1514,32 @@ contract Bridge is Ownable {
     //          expected to finish the already queued redemption requests
     //          before moving funds but we are not going to enforce it on-chain.
 
-    // TODO: Function `submitRedemptionFraudProof`. That function must:
+    // TODO: Function `submitRedemptionFraudProof`
+    //
+    //       Deposit and redemption fraud proofs are challenging to implement
+    //       and it may happen we will have to rely on the coverage pool
+    //       (https://github.com/keep-network/coverage-pools) and DAO to
+    //       reimburse unlucky depositors and bring back the balance to the
+    //       system in case  of a wallet fraud by liquidating a part of the
+    //       coverage pool manually.
+    //
+    //       The probability of 51-of-100 wallet being fraudulent is negligible:
+    //       https://github.com/keep-network/tbtc-v2/blob/main/docs/rfc/rfc-2.adoc#111-group-size-and-threshold
+    //       and the coverage pool would be there to bring the balance back in
+    //       case we are unlucky and malicious wallet emerges.
+    //
+    //       We do not want to slash for a misbehavior that is not provable
+    //       on-chain and it is possible to construct such a Bitcoin transaction
+    //       that is not provable on Ethereum, see
+    //       https://consensys.net/diligence/blog/2020/05/tbtc-navigating-the-cross-chain-conundrum
+    //
+    //       The algorithm described below assumes we will be able to prove the
+    //       TX on Ethereum which may not always be the case. Consider the steps
+    //       below as an idea, and not necessarily how this function will be
+    //       implemented because it may happen this function will never be
+    //       implemented, given the Bitcoin transaction size problems.
+    //
+    //       The algorithm:
     //       1. Take a `BitcoinTx.Info` and `BitcoinTx.Proof` of the
     //          fraudulent transaction. It should also accept `walletPubKeyHash`
     //          and index of fraudulent output. Probably index of fraudulent
