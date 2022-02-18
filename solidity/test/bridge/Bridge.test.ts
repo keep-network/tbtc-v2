@@ -1699,9 +1699,10 @@ describe("Bridge", () => {
       })
     })
 
-    context("when wallet state is other than active", () => {
+    context("when wallet state is other than Active", () => {
       it("should revert", async () => {
-        // TODO: Implementation.
+        // TODO: Implementation. Make sure we check each other state in
+        //       separate sub-contexts.
       })
     })
   })
@@ -1714,347 +1715,357 @@ describe("Bridge", () => {
             context(
               "when the single input points to the wallet's main UTXO",
               () => {
-                context(
-                  "when wallet state is either Active or MovingFunds",
-                  () => {
-                    context("when there is only one output", () => {
-                      context(
-                        "when the single output is a pending requested redemption",
-                        () => {
+                context("when wallet state is Active", () => {
+                  context("when there is only one output", () => {
+                    context(
+                      "when the single output is a pending requested redemption",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when the single output is a non-reported timed out requested redemption",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when the single output is a reported timed out requested redemption",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when the single output is a pending requested redemption but amount is wrong",
+                      () => {
+                        it("should revert", async () => {
                           // TODO: Implementation.
-                        }
-                      )
+                        })
+                      }
+                    )
 
-                      context(
-                        "when the single output is a timed out requested redemption",
-                        () => {
+                    context(
+                      "when the single output is a timed out requested redemption but amount is wrong",
+                      () => {
+                        it("should revert", async () => {
                           // TODO: Implementation.
-                        }
-                      )
+                        })
+                      }
+                    )
 
-                      context(
-                        "when the single output is a pending requested redemption but amount is wrong",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when the single output is a timed out requested redemption but amount is wrong",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when the single output is a legal P2PKH change with a non-zero value",
-                        () => {
-                          // Should be deemed as valid change though rejected
-                          // because this change is a single output.
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when the single output is a legal P2WPKH change with a non-zero value",
-                        () => {
-                          // Should be deemed as valid change though rejected
-                          // because this change is a single output.
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when the single output is an illegal P2SH change with a non-zero value",
-                        () => {
-                          // We have this case because P2SH script has a 20-byte
-                          // payload which may match the 20-byte wallet public
-                          // key hash though it should be always rejected as
-                          // non-requested output. There is no need to check for
-                          // P2WSH since the payload is always 32-byte there.
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when the single output is a change with a zero as value",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when the single output is a non-requested redemption to an arbitrary script hash",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when the single output is provably unspendable OP_RETURN",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-                    })
-
-                    context("when there are multiple outputs", () => {
-                      context(
-                        "when output vector consists only of pending requested redemptions",
-                        () => {
+                    context(
+                      "when the single output is a legal P2PKH change with a non-zero value",
+                      () => {
+                        // Should be deemed as valid change though rejected
+                        // because this change is a single output.
+                        it("should revert", async () => {
                           // TODO: Implementation.
-                        }
-                      )
+                        })
+                      }
+                    )
 
-                      context(
-                        "when output vector consists of pending requested redemptions and a non-zero change",
-                        () => {
-                          const data: RedemptionTestData =
-                            MultiplePendingRequestedRedemptionsWithChange
+                    context(
+                      "when the single output is a legal P2WPKH change with a non-zero value",
+                      () => {
+                        // Should be deemed as valid change though rejected
+                        // because this change is a single output.
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
 
-                          let tx: ContractTransaction
-                          let bridgeBalance: RedemptionBalanceChange
-                          let walletPendingRedemptionsValue: RedemptionBalanceChange
-                          let treasuryBalance: RedemptionBalanceChange
-                          let redeemersBalances: RedemptionBalanceChange[]
+                    context(
+                      "when the single output is an illegal P2SH change with a non-zero value",
+                      () => {
+                        // We have this case because P2SH script has a 20-byte
+                        // payload which may match the 20-byte wallet public
+                        // key hash though it should be always rejected as
+                        // non-requested output. There is no need to check for
+                        // P2WSH since the payload is always 32-byte there.
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
 
-                          before(async () => {
-                            await createSnapshot()
+                    context(
+                      "when the single output is a change with a zero as value",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
 
-                            // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                            ;({
-                              tx,
-                              bridgeBalance,
-                              walletPendingRedemptionsValue,
-                              treasuryBalance,
-                              redeemersBalances,
-                            } = await runRedemptionScenario(data))
-                          })
+                    context(
+                      "when the single output is a non-requested redemption to an arbitrary script hash",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
 
-                          after(async () => {
-                            await restoreSnapshot()
-                          })
+                    context(
+                      "when the single output is provably unspendable OP_RETURN",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+                  })
 
-                          it("should close processed redemption requests", async () => {
-                            for (
-                              let i = 0;
-                              i < data.redemptionRequests.length;
-                              i++
-                            ) {
-                              const redemptionRequest =
-                                // eslint-disable-next-line no-await-in-loop
-                                await bridge.pendingRedemptions(
-                                  buildRedemptionKey(
-                                    data.wallet.pubKeyHash,
-                                    data.redemptionRequests[i]
-                                      .redeemerOutputScript
-                                  )
+                  context("when there are multiple outputs", () => {
+                    context(
+                      "when output vector consists only of pending requested redemptions",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
+
+                    context(
+                      "when output vector consists of pending requested redemptions and a non-zero change",
+                      () => {
+                        const data: RedemptionTestData =
+                          MultiplePendingRequestedRedemptionsWithChange
+
+                        let tx: ContractTransaction
+                        let bridgeBalance: RedemptionBalanceChange
+                        let walletPendingRedemptionsValue: RedemptionBalanceChange
+                        let treasuryBalance: RedemptionBalanceChange
+                        let redeemersBalances: RedemptionBalanceChange[]
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                          ;({
+                            tx,
+                            bridgeBalance,
+                            walletPendingRedemptionsValue,
+                            treasuryBalance,
+                            redeemersBalances,
+                          } = await runRedemptionScenario(data))
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
+                        it("should close processed redemption requests", async () => {
+                          for (
+                            let i = 0;
+                            i < data.redemptionRequests.length;
+                            i++
+                          ) {
+                            const redemptionRequest =
+                              // eslint-disable-next-line no-await-in-loop
+                              await bridge.pendingRedemptions(
+                                buildRedemptionKey(
+                                  data.wallet.pubKeyHash,
+                                  data.redemptionRequests[i]
+                                    .redeemerOutputScript
                                 )
-
-                              expect(redemptionRequest.requestedAt).to.be.equal(
-                                0,
-                                `Redemption request with index ${i} has been not closed`
                               )
-                            }
-                          })
 
-                          it("should update the wallet's main UTXO", async () => {
-                            // Change index and value can be taken by exploring
-                            // the redemption transaction structure and getting
-                            // the output pointing back to wallet PKH.
-                            const expectedMainUtxoHash = buildMainUtxoHash(
-                              data.redemptionTx.hash,
-                              5,
-                              137130866
+                            expect(redemptionRequest.requestedAt).to.be.equal(
+                              0,
+                              `Redemption request with index ${i} has not been closed`
                             )
+                          }
+                        })
+
+                        it("should update the wallet's main UTXO", async () => {
+                          // Change index and value can be taken by exploring
+                          // the redemption transaction structure and getting
+                          // the output pointing back to wallet PKH.
+                          const expectedMainUtxoHash = buildMainUtxoHash(
+                            data.redemptionTx.hash,
+                            5,
+                            137130866
+                          )
+
+                          expect(
+                            await bridge.mainUtxos(data.wallet.pubKeyHash)
+                          ).to.be.equal(expectedMainUtxoHash)
+                        })
+
+                        it("should decrease the wallet's pending redemptions value", async () => {
+                          expect(
+                            walletPendingRedemptionsValue.afterProof.sub(
+                              walletPendingRedemptionsValue.beforeProof
+                            )
+                          ).to.equal(-6434567)
+                        })
+
+                        it("should decrease Bridge's balance in Bank", async () => {
+                          // Balance should be decreased by the total
+                          // redeemable amount. See docs of the used test
+                          // data for details.
+                          await expect(tx)
+                            .to.emit(bank, "BalanceDecreased")
+                            .withArgs(bridge.address, 6434567)
+                          // However, the total balance change of the
+                          // Bridge should also consider the treasury
+                          // fee collected upon requests and transferred
+                          // to the treasury at the end of the proof.
+                          // This is why the total Bridge's balance change
+                          // is equal to the total requested amount for
+                          // all requests. See docs of the used test data
+                          // for details.
+                          expect(
+                            bridgeBalance.afterProof.sub(
+                              bridgeBalance.beforeProof
+                            )
+                          ).to.equal(-6934567)
+                        })
+
+                        it("should transfer collected treasury fee", async () => {
+                          // Treasury balance should be increased by the total
+                          // treasury fee for all requests. See docs of the
+                          // used test data for details.
+                          expect(
+                            treasuryBalance.afterProof.sub(
+                              treasuryBalance.beforeProof
+                            )
+                          ).to.equal(500000)
+                        })
+
+                        it("should not change redeemers balances in any way", async () => {
+                          for (
+                            let i = 0;
+                            i < data.redemptionRequests.length;
+                            i++
+                          ) {
+                            const redeemerBalance = redeemersBalances[i]
 
                             expect(
-                              await bridge.mainUtxos(data.wallet.pubKeyHash)
-                            ).to.be.equal(expectedMainUtxoHash)
-                          })
-
-                          it("should decrease the wallet's pending redemptions value", async () => {
-                            expect(
-                              walletPendingRedemptionsValue.afterProof.sub(
-                                walletPendingRedemptionsValue.beforeProof
+                              redeemerBalance.afterProof.sub(
+                                redeemerBalance.beforeProof
                               )
-                            ).to.equal(-6434567)
-                          })
+                            ).to.be.equal(
+                              0,
+                              `Balance of redeemer with index ${i} has changed`
+                            )
+                          }
+                        })
+                      }
+                    )
 
-                          it("should decrease Bridge's balance in Bank", async () => {
-                            // Balance should be decreased by the total
-                            // redeemable amount. See docs of the used test
-                            // data for details.
-                            await expect(tx)
-                              .to.emit(bank, "BalanceDecreased")
-                              .withArgs(bridge.address, 6434567)
-                            // However, the total balance change of the
-                            // Bridge should also consider the treasury
-                            // fee collected upon requests and transferred
-                            // to the treasury at the end of the proof.
-                            // This is why the total Bridge's balance change
-                            // is equal to the total requested amount for
-                            // all requests. See docs of the used test data
-                            // for details.
-                            expect(
-                              bridgeBalance.afterProof.sub(
-                                bridgeBalance.beforeProof
-                              )
-                            ).to.equal(-6934567)
-                          })
+                    context(
+                      "when output vector consists only of timed out requested redemptions",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
 
-                          it("should transfer collected treasury fee", async () => {
-                            // Treasury balance should be increased by the total
-                            // treasury fee for all requests. See docs of the
-                            // used test data for details.
-                            expect(
-                              treasuryBalance.afterProof.sub(
-                                treasuryBalance.beforeProof
-                              )
-                            ).to.equal(500000)
-                          })
+                    context(
+                      "when output vector consists of timed out requested redemptions and a non-zero change",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
 
-                          it("should not change redeemers balances in any way", async () => {
-                            for (
-                              let i = 0;
-                              i < data.redemptionRequests.length;
-                              i++
-                            ) {
-                              const redeemerBalance = redeemersBalances[i]
+                    context(
+                      "when output vector consists of pending requested redemptions and timed out requested redemptions",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
 
-                              expect(
-                                redeemerBalance.afterProof.sub(
-                                  redeemerBalance.beforeProof
-                                )
-                              ).to.be.equal(
-                                0,
-                                `Balance of redeemer with index ${i} has changed`
-                              )
-                            }
-                          })
-                        }
-                      )
+                    context(
+                      "when output vector consists of pending requested redemptions, timed out requested redemptions and a non-zero change",
+                      () => {
+                        // TODO: Implementation.
+                      }
+                    )
 
-                      context(
-                        "when output vector consists only of timed out requested redemptions",
-                        () => {
+                    context(
+                      "when output vector contains a pending requested redemption with wrong amount",
+                      () => {
+                        it("should revert", async () => {
                           // TODO: Implementation.
-                        }
-                      )
+                        })
+                      }
+                    )
 
-                      context(
-                        "when output vector consists of timed out requested redemptions and a non-zero change",
-                        () => {
+                    context(
+                      "when output vector contains a timed out requested redemption with wrong amount",
+                      () => {
+                        it("should revert", async () => {
                           // TODO: Implementation.
-                        }
-                      )
+                        })
+                      }
+                    )
 
-                      context(
-                        "when output vector consists of pending requested redemptions and timed out requested redemptions",
-                        () => {
+                    context(
+                      "when output vector contains a non-zero P2SH change output",
+                      () => {
+                        // We have this case because P2SH script has a 20-byte
+                        // payload which may match the 20-byte wallet public
+                        // key hash though it should be always rejected as
+                        // non-requested output. There is no need to check for
+                        // P2WSH since the payload is always 32-byte there.
+                        it("should revert", async () => {
                           // TODO: Implementation.
-                        }
-                      )
+                        })
+                      }
+                    )
 
-                      context(
-                        "when output vector consists of pending requested redemptions, timed out requested redemptions and a non-zero change",
-                        () => {
+                    context(
+                      "when output vector contains multiple non-zero change outputs",
+                      () => {
+                        it("should revert", async () => {
                           // TODO: Implementation.
-                        }
-                      )
+                        })
+                      }
+                    )
 
-                      context(
-                        "when output vector contains a pending requested redemption with wrong amount",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
+                    context(
+                      "when output vector contains one change but with zero as value",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
 
-                      context(
-                        "when output vector contains a timed out requested redemption with wrong amount",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
+                    context(
+                      "when output vector contains a non-requested redemption to an arbitrary script hash",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
 
-                      context(
-                        "when output vector contains a non-zero P2SH change output",
-                        () => {
-                          // We have this case because P2SH script has a 20-byte
-                          // payload which may match the 20-byte wallet public
-                          // key hash though it should be always rejected as
-                          // non-requested output. There is no need to check for
-                          // P2WSH since the payload is always 32-byte there.
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
+                    context(
+                      "when output vector contains a provably unspendable OP_RETURN output",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+                  })
+                })
 
-                      context(
-                        "when output vector contains multiple non-zero change outputs",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when output vector contains one change but with zero as value",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when output vector contains a non-requested redemption to an arbitrary script hash",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-
-                      context(
-                        "when output vector contains a provably unspendable OP_RETURN output",
-                        () => {
-                          it("should revert", async () => {
-                            // TODO: Implementation.
-                          })
-                        }
-                      )
-                    })
-                  }
-                )
+                context("when wallet state is MovingFunds", () => {
+                  // TODO: Just assert it passes without revert without
+                  //       repeating checks from Active state scenario.
+                })
 
                 context(
                   "when wallet state is neither Active nor MovingFunds",
                   () => {
                     it("should revert", async () => {
-                      // TODO: Implementation.
+                      // TODO: Implementation. Make sure we check each other
+                      //       state in a separate sub-context.
                     })
                   }
                 )
