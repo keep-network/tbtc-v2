@@ -96,32 +96,37 @@ export const MultiplePendingRequestedRedemptionsWithChange: RedemptionTestData =
       {
         redeemer: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
         redeemerOutputScript:
-          "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac", // P2PKH
-        amount: 1000000, // Accepts outputs in range [900000, 899000]
+          // P2PKH with address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+          "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+        amount: 1000000, // Accepts outputs in range [899000, 900000]
       },
       {
         redeemer: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
         redeemerOutputScript:
-          "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0", // P2WPKH
-        amount: 1200000, // Accepts outputs in range [1100000, 1099000]
+          // P2WPKH with address tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx
+          "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+        amount: 1200000, // Accepts outputs in range [1099000, 1100000]
       },
       {
         redeemer: "0x35D54bC29e0a5170c3Ac73E64c7fA539A867f0FE",
         redeemerOutputScript:
-          "0x17a914011beb6fb8499e075a57027fb0a58384f2d3f78487", // P2SH
-        amount: 2000000, // Accepts outputs in range [1900000, 1899000]
+          // P2SH with address 2MsM67NLa71fHvTUBqNENW15P68nHB2vVXb
+          "0x17a914011beb6fb8499e075a57027fb0a58384f2d3f78487",
+        amount: 2000000, // Accepts outputs in range [1899000, 1900000]
       },
       {
         redeemer: "0x462418b7495561bF2872A0786109A11f5d494aA2",
         redeemerOutputScript:
-          "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c", // P2WSH
-        amount: 1500000, // Accepts outputs in range [1400000, 1399000]
+          // P2WSH with address tb1qau95mxzh2249aa3y8exx76ltc2sq0e7kw8hj04936rdcmnynhswqqz02vv
+          "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c",
+        amount: 1500000, // Accepts outputs in range [1399000, 1400000]
       },
       {
         redeemer: "0x2219eAC966FbC0454C4A2e122717e4429Dd7608F",
         redeemerOutputScript:
-          "0x160014409b57c89a53654775acd91c981b88079357b859", // P2PKH
-        amount: 1234567, // Accepts outputs in range [1134567, 1133567]
+          // P2PKH with address tb1qgzd40jy62dj5wadvmywfsxugq7f40wzek3p2g2
+          "0x160014409b57c89a53654775acd91c981b88079357b859",
+        amount: 1234567, // Accepts outputs in range [1133567, 1134567]
       },
     ],
 

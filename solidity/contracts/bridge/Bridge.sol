@@ -333,6 +333,9 @@ contract Bridge is Ownable {
         redemptionTimeout = 172800; // 48 hours
     }
 
+    // TODO: Add function `onNewWalletCreated` according to discussion:
+    //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r809885230
+
     /// @notice Allows the Governance to mark the given vault address as trusted
     ///         or no longer trusted. Vaults are not trusted by default.
     ///         Trusted vault must meet the following criteria:
@@ -1357,6 +1360,8 @@ contract Bridge is Ownable {
 
         // Helper variable that counts the number of processed redemption
         // outputs. Redemptions can be either pending or reported as timed out.
+        // TODO: Revisit the approach with redemptions count according to
+        //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r808237765
         uint256 processedRedemptionsCount = 0;
 
         // Outputs processing loop.

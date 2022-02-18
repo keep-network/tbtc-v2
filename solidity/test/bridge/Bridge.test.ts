@@ -566,7 +566,7 @@ describe("Bridge", () => {
                     expect(deposit[4]).to.be.equal(await lastBlockTime())
                   })
 
-                  it("should update main UTXO for given wallet", async () => {
+                  it("should update main UTXO for the given wallet", async () => {
                     const mainUtxoHash = await bridge.mainUtxos(
                       walletPubKeyHash
                     )
@@ -636,7 +636,7 @@ describe("Bridge", () => {
                     expect(deposit[4]).to.be.equal(await lastBlockTime())
                   })
 
-                  it("should update main UTXO for given wallet", async () => {
+                  it("should update main UTXO for the given wallet", async () => {
                     const mainUtxoHash = await bridge.mainUtxos(
                       walletPubKeyHash
                     )
@@ -813,7 +813,7 @@ describe("Bridge", () => {
                     }
                   })
 
-                  it("should update main UTXO for given wallet", async () => {
+                  it("should update main UTXO for the given wallet", async () => {
                     const mainUtxoHash = await bridge.mainUtxos(
                       walletPubKeyHash
                     )
@@ -903,7 +903,7 @@ describe("Bridge", () => {
                     }
                   })
 
-                  it("should update main UTXO for given wallet", async () => {
+                  it("should update main UTXO for the given wallet", async () => {
                     const mainUtxoHash = await bridge.mainUtxos(
                       walletPubKeyHash
                     )
@@ -1348,7 +1348,7 @@ describe("Bridge", () => {
 
         it("should revert", async () => {
           // Bitcoin headers must form a chain to pass the proof validation.
-          // That means the `previous block hash` encoded in given block
+          // That means the `previous block hash` encoded in the given block
           // header must match the actual previous header's hash. To test
           // that scenario, we corrupt the `previous block hash` of the
           // second header. Each header is 80 bytes length. First 4 bytes
@@ -1466,7 +1466,7 @@ describe("Bridge", () => {
         await restoreSnapshot()
       })
 
-      context("when there is a main UTXO for given wallet", () => {
+      context("when there is a main UTXO for the given wallet", () => {
         // Prepare a dumb main UTXO with 10M satoshi as value. This will
         // be the wallet BTC balance.
         const mainUtxo = {
@@ -1494,7 +1494,7 @@ describe("Bridge", () => {
               () => {
                 context("when amount is not below the dust threshold", () => {
                   context(
-                    "when there is no pending request for given redemption key",
+                    "when there is no pending request for the given redemption key",
                     () => {
                       context("when wallet has sufficient funds", () => {
                         context(
@@ -1540,7 +1540,7 @@ describe("Bridge", () => {
                               )
 
                               // Capture the initial pending redemptions value
-                              // for given wallet.
+                              // for the given wallet.
                               initialWalletPendingRedemptionValue = (
                                 await bridge.wallets(walletPubKeyHash)
                               ).pendingRedemptionsValue
@@ -1631,7 +1631,7 @@ describe("Bridge", () => {
                         )
 
                         context(
-                          "when redeemer has not made a sufficiant allowance in Bank",
+                          "when redeemer has not made a sufficient allowance in Bank",
                           () => {
                             it("should revert", async () => {
                               // TODO: Implementation.
@@ -1649,7 +1649,7 @@ describe("Bridge", () => {
                   )
 
                   context(
-                    "when there is a pending request for given redemption key",
+                    "when there is a pending request for the given redemption key",
                     () => {
                       it("should revert", async () => {
                         // TODO: Implementation.
@@ -1692,7 +1692,7 @@ describe("Bridge", () => {
         })
       })
 
-      context("when there is no main UTXO for given wallet", () => {
+      context("when there is no main UTXO for the given wallet", () => {
         it("should revert", async () => {
           // TODO: Implementation.
         })
@@ -1708,7 +1708,7 @@ describe("Bridge", () => {
 
   describe("submitRedemptionProof", () => {
     context("when transaction proof is valid", () => {
-      context("when there is a main UTXO for given wallet", () => {
+      context("when there is a main UTXO for the given wallet", () => {
         context("when main UTXO data are valid", () => {
           context("when there is only one input", () => {
             context(
@@ -2085,7 +2085,7 @@ describe("Bridge", () => {
         })
       })
 
-      context("when there is no main UTXO for given wallet", () => {
+      context("when there is no main UTXO for the given wallet", () => {
         it("should revert", async () => {
           // TODO: Implementation.
         })
