@@ -389,10 +389,6 @@ Governable Parameters:
 - `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
   notifier reward from the staking contract the redeemer receives in case of a
   redemption timeout.
-- `redemption_fraud_slashing_amount`: The amount or stake slashed from each
-  member of a wallet for a redemption fraud.
-- `redempton_fraud_notifier_reward_multiplier`: The percentage of the notifier
-  reward from the staking contract the notifier of redemption fraud receives.
 - `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
@@ -485,11 +481,10 @@ proof transaction should revert.
 
 If the value of the given UTXO matching pending redemption request is not in the
 expected range, this is a fraud, and the entire redemption proof transactions
-should revert unless that fraud was already reported. 
+should revert.
 
 If a pending redemption request for the given UTXO does not exist but that
-redemption request was earlier reported as timed-out or fraudulent because of
-the UTXO value not being within the expected range, that UTXO is skipped, and
+redemption request was earlier reported as timed-out, that UTXO is skipped, and
 the redemption proof transaction gets accepted, assuming there are more UTXOs in
 the redemption transaction.
 
@@ -525,37 +520,6 @@ When a redemption is requested, the redeeming bitcoin public key and amount are
 known on the ethereum chain. Any bitcoin transactions with the main wallet
 wallet UTXO as the input must have outputs that match those known redemption
 requests, otherwise the transaction was fraudulent.
-
-Redemption proof containing UTXO identified as fraud is reverting the redemption
-proof submit transaction. Such a fraud must first be reported by calling a
-dedicated function.
-
-There are two possible fraudulent scenarios.
-
-First, there is no redemption requested for the given UTXO. In this scenario,
-each wallet member is slashed for `redemption_fraud_slashing_amount` and the
-notifier receives a reward as specified by
-`redempton_fraud_notifier_reward_multiplier`. The fraudulent output information
-is stored on-chain.
-
-Second, there was a redemption request for the given UTXO but the UTXO value is
-not within the expected range. In this case, the value difference is returned to
-the redemeer as their balance. Each wallet member is slashed for
-`redemption_fraud_slashing_amount` and the notifier receives a reward as
-specified by `redempton_fraud_notifier_reward_multiplier`. The fraudulent output
-information is stored on-chain.
-
-The transaction must revert if the given fraud was already reported. 
-
-If the wallet has still some BTC or if there is a redemption transaction with
-some part of outputs fraudulent and some part of outputs valid, it should be
-possible to submit redemption proof. Because information about fraudulent
-outputs is stored on-chain, these outputs can be skipped by the Bridge and the
-main wallet UTXO can be updated. This mechanism allows proving whatever can
-still be proved and unblocking the wallet by updating its main UTXO.
-
-The wallet is ordered to move the BTC to another random wallet and is no longer
-accepting redemption requests.
 
 === Wallet Lifecycle
 
