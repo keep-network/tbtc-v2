@@ -387,6 +387,17 @@ and closes.
 
 === Fraud Proofs
 
+Governable Parameters:
+
+- `fraud_slashing_amount`: The amount or stake slashed from each member of a
+  wallet for a fraud.
+- `fraud_notifier_reward_multiplier`: The percentage of the notifier reward from
+  the staking contract the notifier of a fraud receives.
+- `fraud_challenge_defeat_timeout`: The amount of the the wallet has to defend
+  against a fraud challenge.
+- `fraud_challenge_deposit_amount`: The amount of ETH the party challenging the
+  wallet for fraud needs to deposit.
+
 For every UTXO spent by the wallet in an incorrect way, anyone should be able
 to provide a fraud proof. Given that a Bitcoin transaction could be so large
 that proving it on Ethereum would be impossible, fraud proofs need to be
@@ -702,3 +713,11 @@ Alphabetized list of Governable Parameters with additional notes.
 - `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
+- `fraud_slashing_amount`: The amount or stake slashed from each member of a
+  wallet for a fraud.
+- `fraud_notifier_reward_multiplier`: The percentage of the notifier reward from
+  the staking contract the notifier of a fraud receives.
+- `fraud_challenge_defeat_timeout`: The amount of the the wallet has to defend
+  against a fraud challenge.
+- `fraud_challenge_deposit_amount`: The amount of ETH the party challenging the
+  wallet for fraud needs to deposit.
