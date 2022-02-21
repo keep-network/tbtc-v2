@@ -361,22 +361,6 @@ If the depositor does not pay to unlock their account balance within the
 `skip_sweep_timeout`, then the system siezes the balance, mints TBTC, uses it
 to buy back T tokens, and then uses those to reimburse the operator.
 
-==== Fraud Proof
-
-There are only two valid types of transactions for an unswept deposit UTXO:
-
-1) A collection of deposit UTXO's plus the main UTXO for the wallet are the
-inputs are unlocked using the `signingGroupPubkey` and locked under a single
-UTXO using the same `signingGroupPubkey`. This is a normal non-fraudulent sweep.
-
-2) After the 30-day refund time has passed, a particular UTXO is unlocked using
-the `refundPubkey` and then locked with whatever script the refunder wants. This
-is a normal refund.
-
-Any transaction that unlocks a UTXO using the `signingGroupPubkey` and then
-locks it using any other script other than to a single UTXO to any other public
-key than the same `signingGroupPubkey` is fraud.
-
 [[redemption]]
 === Redemption
 
@@ -401,12 +385,88 @@ to submit multiple redemptions. After a redemption, if the wallet has under
 `wallet_min_btc` remaining, it transfers that BTC to a randomly selected wallet
 and closes.
 
-==== Fraud Proof
+=== Fraud Proofs
 
-When a redemption is requested, the redeeming bitcoin public key and amount are
-known on the ethereum chain. Any bitcoin transactions with the main wallet
-wallet UTXO as the input must have outputs that match those known redemption
-requests, otherwise the transaction was fraudulent.
+For every UTXO spent by the wallet in an incorrect way, anyone should be able
+to provide a fraud proof. Given that a Bitcoin transaction could be so large
+that proving it on Ethereum would be impossible, fraud proofs need to be
+processed with a challenge-response approach. 
+
+When a wallet unlocks a UTXO it needs to calculate a sighash and provide
+a signature over that sighash, one for each unlocked UTXO. Fraud is reported
+for a UTXO by providing a sighash along with the wallet's signature over that
+sighash. From that moment, the wallet has a certain time to defend itself
+against the challenge and prove that the UTXO was spent in an honest way.
+
+UTXO unlocked by the wallet is spent in a fraudulent way if:
+- that unlocked UTXO is a revealed deposit that was not proved as swept and
+  can not be proved as swept, or
+- that unlocked UTXO was not and is not the main wallet's UTXO.
+
+The wallet is allowed to execute only transactions that are accepted by the
+submit sweep proof, submit redemption proof, or submit funds migrated functions.
+All other transactions are considered fraud. In other words, if the wallet signed
+some UTXO, it needs to use that UTXO, and prove to the Bridge this is a valid
+usage. If none of it happens within the timeout the wallet has to defeat against
+the challenge, this is considered a fraud.
+
+The consequence of this approach is that we need to track all UTXOs spent by the
+wallet next to the main wallet's UTXO:
+
+```
+// wallet pubkey hash to the current main's UTXO hash computed
+// as keccak256(txHash | txOutputIndex | txOutputValue)
+mapping(bytes20 => bytes32) public mainUtxos;
+
+// wallet pubkey hash to the spent main UTXO hash computed
+// as keccak256(txHash | txOutputIndex)
+mapping(bytes20 => mapping(bytes32 => bool)) spentMainUTXOs
+
+```
+
+Note that this approach is stricter than just validating the public key in the
+UTXO. For example, if we were considering that a collection of deposit UTXO’s
+plus the main UTXO for the wallet unlocked using the wallet public key and
+locked under a single UTXO using the same wallet public key is not a fraud but
+a normal sweep, the Bridge would be susceptible to attacks when the malicious
+wallet steals revealed deposits by sweeping them to another UTXO but not the main
+UTXO known by the Bridge.
+
+
+==== Submitting Fraud Challenge
+
+Anyone should be able to submit a fraud challenge. At a minimum, the function
+should accept the wallet's signature and the sighash uniquely identifying UTXO
+unlocked by the wallet. The function should validate the wallet state to make
+sure it's neither closed nor terminated. It should also validate if the signature
+over the sighash is valid and if it belongs to the wallet.
+
+The function should require the challenger to provide a deposit in ETH that is
+returned to the challenger once the fraud is confirmed. If the wallet defeats the
+challenge, the deposit is sent to the treasury.
+
+==== Defeating Against Fraud Challenge
+
+Anyone can defeat the wallet against the fraud challenge by submitting a transaction
+preimage matching the challenged sighash and proving that transaction was valid to
+the protocol.
+
+The function allowing to defend against the challenge, should first validate the
+submitted preimage against challenged sighash, and try to locate the revealed deposit
+for the input corresponding to the sighash.
+
+If there is a revealed deposit matching the sighash and that deposit was swept by the
+Bridge, everything is fine and the wallet defeated the challenge.
+
+If there is a revealed deposit matching the sighash and it was not yet swept by the
+Bridge, the defeat function should revert. The wallet should first submit the sweep
+proof for that deposit and then call the defeat function again.
+
+If the revealed deposit does not exist, the defeat function should check if the sighash
+belongs to one of the wallet's spent UTXOs from `spentMainUTXOs` mapping. If it does,
+everything is fine and the wallet defeated the challenge. If it does not, the defeat
+function reverts. The wallet should submit the redemption proof and then, call the
+defeat function again.
 
 === Wallet Lifecycle
 
