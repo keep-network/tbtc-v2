@@ -215,7 +215,7 @@ Governable Parameters
   will trigger an early sweep on a wallet.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
   be considered for a sweep.
-- `base_sweeping_fee_max`: The highest amount of BTC that operators can
+- `base_btc_fee_max`: The highest amount of BTC that operators can
   initially propose as a fee for miners in a sweeping transaction.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
   tranaction is mined before increasing the fee.
@@ -267,7 +267,7 @@ base_fee * fee_multiplier`. We repeat until either the transaction posts or
 *Note*: We do not allow users to specify a max btc fee. When users deposit,
 they're agreeing to be swept at whatever fee the operators decide is
 appropriate (based on https://blockstream.info/api/fee-estimates). Operators
-cannot pick a starting fee higher than `base_sweeping_fee_max`.
+cannot pick a starting fee higher than `base_btc_fee_max`.
 
 When the transaction clears, and the information has made its way
 over the relay maintainer, then another transaction needs to be created to on
@@ -389,6 +389,8 @@ Governable Parameters:
 - `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
   notifier reward from the staking contract the redeemer receives in case of a
   redemption timeout.
+- `redemption_treasury_fee`: The percentage of redeemed amount put aside as a
+  treasury fee.
 - `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
@@ -701,11 +703,13 @@ advantage of manipulating btc fee consensus I would be very surprised.
 == Governable Parameters
 Alphabetized list of Governable Parameters with additional notes.
 
-- `base_sweeping_fee_max`: The highest amount of BTC that operators can
-  initially propose as a fee for miners in a sweeping transaction.
+- `base_btc_fee_max`: The highest amount of BTC that operators can
+  initially propose as a fee for miners for Bitcoin transaction.
 - `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
   suggested BTC fee before the other operators give up and try the next
   operator.
+- `btc_fee_max`: The highest amount of BTC that operators can eventually
+  propose as a fee for miners for Bitcoin transaction.
 - `consecutive_failed_heartbeats`: The number of times a heartbeat can fail in
   a row that triggers a move to close the wallet.
 - `dkg`: The minimum number of members we're allowed to drop down to during the
@@ -744,6 +748,8 @@ Alphabetized list of Governable Parameters with additional notes.
 - `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
   notifier reward from the staking contract the redeemer receives in case of a
   redemption timeout.
+- `redemption_treasury_fee`: The percentage of redeemed amount put aside as a
+  treasury fee.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
