@@ -419,8 +419,8 @@ The wallet is allowed to execute only transactions that are accepted by the
 submit sweep proof, submit redemption proof, or submit funds migrated functions.
 All other transactions are considered fraud. In other words, if the wallet signed
 some UTXO, it needs to use that UTXO, and prove to the Bridge this is a valid
-usage. If none of it happens within the timeout the wallet has to defend against
-the challenge, this is considered a fraud.
+usage. If none of it happens within the `fraud_challenge_defeat_timeout` the
+wallet has to defend against the challenge, this is considered a fraud.
 
 The consequence of this approach is that we need to track all UTXOs spent by the
 wallet next to the main wallet's UTXO:
@@ -453,9 +453,10 @@ unlocked by the wallet. The function should validate the wallet state to make
 sure it's neither closed nor terminated. It should also validate if the signature
 over the sighash is valid and if it belongs to the wallet.
 
-The function should require the challenger to provide a deposit in ETH that is
-returned to the challenger once the fraud is confirmed. If the wallet defends the
-challenge, the deposit is sent to the treasury.
+The function should require the challenger to provide a deposit in ETH equal to 
+`fraud_challenge_deposit_amount` that is returned to the challenger once the fraud
+is confirmed. If the wallet defends the challenge, the deposit is sent to the
+treasury.
 
 ==== Defending Against Fraud Challenge
 
