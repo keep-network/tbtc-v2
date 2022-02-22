@@ -191,15 +191,21 @@ contract Bridge is Ownable {
 
     /// TODO: Make it governable.
     /// @notice The minimal amount that can be requested for redemption.
-    ///         Value of this parameter should be always bigger than the sum
-    ///         of `redemptionTreasuryFee` and `redemptionTxMaxFee` to make
-    ///         redemptions possible.
+    ///         Value of this parameter must take into account the value of
+    ///         `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
+    ///         parameters in order to make requests that can incur the
+    ///         treasury and transaction fee and still satisfy the redeemer.
     uint64 public redemptionDustThreshold;
 
     /// TODO: Make it governable.
-    /// @notice Amount of TBTC that is taken from each redemption request and
-    ///         transferred to the treasury upon successful request finalization.
-    uint64 public redemptionTreasuryFee;
+    /// @notice Divisor used to compute the treasury fee taken from each
+    ///         redemption request and transferred to the treasury upon
+    ///         successful request finalization. That fee is computed as follows:
+    ///         `treasuryFee = requestedAmount / redemptionTreasuryFeeDivisor`
+    ///         For example, if the treasury fee needs to be 2% of each
+    ///         redemption request, the `redemptionTreasuryFeeDivisor` should
+    ///         be set to `50` because `1/50 = 0.02 = 2%`.
+    uint64 public redemptionTreasuryFeeDivisor;
 
     /// TODO: Make it governable.
     /// @notice Maximum amount of BTC transaction fee that can be incurred by
@@ -336,7 +342,7 @@ contract Bridge is Ownable {
 
         // TODO: Revisit initial values.
         redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
-        redemptionTreasuryFee = 100000; // 100000 satoshi
+        redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionTxMaxFee = 1000; // 1000 satoshi
         redemptionTimeout = 172800; // 48 hours
     }
@@ -982,7 +988,7 @@ contract Bridge is Ownable {
     ///        on the redeemer output script will be always lower than this value
     ///        since the treasury and Bitcoin transaction fees must be incurred.
     ///        The minimal amount satisfying the request can be computed as:
-    ///        `amount - redemptionTreasuryFee - redemptionTxMaxFee`.
+    ///        `amount - (amount / redemptionTreasuryFeeDivisor) - redemptionTxMaxFee`.
     ///        Fees values are taken at the moment of request creation.
     /// @dev Requirements:
     ///      - Wallet behind `walletPubKeyHash` must be active
@@ -1079,7 +1085,11 @@ contract Bridge is Ownable {
             "There is a pending redemption request from this wallet to the same address"
         );
 
-        uint64 treasuryFee = redemptionTreasuryFee;
+        // No need to check whether `amount - treasuryFee - txMaxFee > 0`
+        // since the `redemptionDustThreshold` should force that condition
+        // to be always true.
+        // TODO: Is it okay to lose the precision here?
+        uint64 treasuryFee = amount / redemptionTreasuryFeeDivisor;
         uint64 txMaxFee = redemptionTxMaxFee;
 
         // The main wallet UTXO's value doesn't include all pending redemptions.

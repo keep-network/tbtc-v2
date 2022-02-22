@@ -30,4 +30,10 @@ contract BridgeStub is Bridge {
     {
         wallets[walletPubKeyHash] = wallet;
     }
+
+    function setRedemptionDustThreshold(uint64 _redemptionDustThreshold)
+        external
+    {
+        redemptionDustThreshold = _redemptionDustThreshold;
+    }
 }

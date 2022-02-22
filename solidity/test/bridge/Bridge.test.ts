@@ -54,6 +54,10 @@ const fixture = async () => {
   await bank.updateBridge(bridge.address)
   await bridge.connect(deployer).transferOwnership(governance.address)
 
+  // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
+  // the initial value in the Bridge in order to save test Bitcoins.
+  await bridge.setRedemptionDustThreshold(100000)
+
   return {
     governance,
     thirdParty,
@@ -1504,8 +1508,13 @@ describe("Bridge", () => {
                             // TODO: Assert it works for P2PKH, P2SH and P2WSH as well.
                             const redeemerOutputScript =
                               "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef"
-                            // Requested amount is 3M satoshi.
-                            const requestedAmount = BigNumber.from(3000000)
+                            // Requested amount is 1901000 satoshi.
+                            const requestedAmount = BigNumber.from(1901000)
+                            // Treasury fee is `requestedAmount / redemptionTreasuryFeeDivisor`
+                            // where the divisor is `2000` initially. So, we
+                            // have 1901000 / 2000 = 950.5 though Solidity
+                            // loses the decimal part.
+                            const treasuryFee = 950
 
                             let redeemer: SignerWithAddress
                             let initialBridgeBalance: BigNumber
@@ -1564,8 +1573,7 @@ describe("Bridge", () => {
                               const walletPendingRedemptionValue = (
                                 await bridge.wallets(walletPubKeyHash)
                               ).pendingRedemptionsValue
-                              const treasuryFee =
-                                await bridge.redemptionTreasuryFee()
+
                               expect(
                                 walletPendingRedemptionValue.sub(
                                   initialWalletPendingRedemptionValue
@@ -1589,7 +1597,7 @@ describe("Bridge", () => {
                                 redemptionRequest.requestedAmount
                               ).to.be.equal(requestedAmount)
                               expect(redemptionRequest.treasuryFee).to.be.equal(
-                                await bridge.redemptionTreasuryFee()
+                                treasuryFee
                               )
                               expect(redemptionRequest.txMaxFee).to.be.equal(
                                 await bridge.redemptionTxMaxFee()
@@ -1607,7 +1615,7 @@ describe("Bridge", () => {
                                   redeemerOutputScript,
                                   redeemer.address,
                                   requestedAmount,
-                                  await bridge.redemptionTreasuryFee(),
+                                  treasuryFee,
                                   await bridge.redemptionTxMaxFee()
                                 )
                             })
@@ -1900,7 +1908,7 @@ describe("Bridge", () => {
                             walletPendingRedemptionsValue.afterProof.sub(
                               walletPendingRedemptionsValue.beforeProof
                             )
-                          ).to.equal(-6434567)
+                          ).to.equal(-6432350)
                         })
 
                         it("should decrease Bridge's balance in Bank", async () => {
@@ -1909,7 +1917,7 @@ describe("Bridge", () => {
                           // data for details.
                           await expect(tx)
                             .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 6434567)
+                            .withArgs(bridge.address, 6432350)
                           // However, the total balance change of the
                           // Bridge should also consider the treasury
                           // fee collected upon requests and transferred
@@ -1922,7 +1930,7 @@ describe("Bridge", () => {
                             bridgeBalance.afterProof.sub(
                               bridgeBalance.beforeProof
                             )
-                          ).to.equal(-6934567)
+                          ).to.equal(-6435567)
                         })
 
                         it("should transfer collected treasury fee", async () => {
@@ -1933,7 +1941,7 @@ describe("Bridge", () => {
                             treasuryBalance.afterProof.sub(
                               treasuryBalance.beforeProof
                             )
-                          ).to.equal(500000)
+                          ).to.equal(3217)
                         })
 
                         it("should not change redeemers balances in any way", async () => {
