@@ -389,11 +389,11 @@ and closes.
 
 Governable Parameters:
 
-- `fraud_slashing_amount`: The amount or stake slashed from each member of a
+- `fraud_slashing_amount`: The amount of stake slashed from each member of a
   wallet for a fraud.
 - `fraud_notifier_reward_multiplier`: The percentage of the notifier reward from
   the staking contract the notifier of a fraud receives.
-- `fraud_challenge_defeat_timeout`: The amount of the the wallet has to defend
+- `fraud_challenge_defend_timeout`: The amount of time the wallet has to defend
   against a fraud challenge.
 - `fraud_challenge_deposit_amount`: The amount of ETH the party challenging the
   wallet for fraud needs to deposit.
@@ -410,6 +410,7 @@ sighash. From that moment, the wallet has a certain time to defend itself
 against the challenge and prove that the UTXO was spent in an honest way.
 
 UTXO unlocked by the wallet is spent in a fraudulent way if:
+
 - that unlocked UTXO is a revealed deposit that was not proved as swept and
   can not be proved as swept, or
 - that unlocked UTXO was not and is not the main wallet's UTXO.
@@ -418,7 +419,7 @@ The wallet is allowed to execute only transactions that are accepted by the
 submit sweep proof, submit redemption proof, or submit funds migrated functions.
 All other transactions are considered fraud. In other words, if the wallet signed
 some UTXO, it needs to use that UTXO, and prove to the Bridge this is a valid
-usage. If none of it happens within the timeout the wallet has to defeat against
+usage. If none of it happens within the timeout the wallet has to defend against
 the challenge, this is considered a fraud.
 
 The consequence of this approach is that we need to track all UTXOs spent by the
@@ -453,31 +454,31 @@ sure it's neither closed nor terminated. It should also validate if the signatur
 over the sighash is valid and if it belongs to the wallet.
 
 The function should require the challenger to provide a deposit in ETH that is
-returned to the challenger once the fraud is confirmed. If the wallet defeats the
+returned to the challenger once the fraud is confirmed. If the wallet defends the
 challenge, the deposit is sent to the treasury.
 
-==== Defeating Against Fraud Challenge
+==== Defending Against Fraud Challenge
 
-Anyone can defeat the wallet against the fraud challenge by submitting a transaction
+Anyone can defend the wallet against the fraud challenge by submitting a transaction
 preimage matching the challenged sighash and proving that transaction was valid to
 the protocol.
 
-The function allowing to defend against the challenge, should first validate the
-submitted preimage against challenged sighash, and try to locate the revealed deposit
+The function allowing to defend against the challenge should first validate the
+submitted preimage against challenged sighash and try to locate the revealed deposit
 for the input corresponding to the sighash.
 
 If there is a revealed deposit matching the sighash and that deposit was swept by the
-Bridge, everything is fine and the wallet defeated the challenge.
+Bridge, everything is fine and the wallet defended the challenge.
 
 If there is a revealed deposit matching the sighash and it was not yet swept by the
-Bridge, the defeat function should revert. The wallet should first submit the sweep
-proof for that deposit and then call the defeat function again.
+Bridge, the defend function should revert. The wallet should first submit the sweep
+proof for that deposit and then call the defend function again.
 
-If the revealed deposit does not exist, the defeat function should check if the sighash
+If the revealed deposit does not exist, the defend function should check if the sighash
 belongs to one of the wallet's spent UTXOs from `spentMainUTXOs` mapping. If it does,
-everything is fine and the wallet defeated the challenge. If it does not, the defeat
+everything is fine and the wallet defended the challenge. If it does not, the defend
 function reverts. The wallet should submit the redemption proof and then, call the
-defeat function again.
+defend function again.
 
 === Wallet Lifecycle
 
@@ -713,11 +714,11 @@ Alphabetized list of Governable Parameters with additional notes.
 - `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
-- `fraud_slashing_amount`: The amount or stake slashed from each member of a
+- `fraud_slashing_amount`: The amount of stake slashed from each member of a
   wallet for a fraud.
 - `fraud_notifier_reward_multiplier`: The percentage of the notifier reward from
   the staking contract the notifier of a fraud receives.
-- `fraud_challenge_defeat_timeout`: The amount of the the wallet has to defend
+- `fraud_challenge_defend_timeout`: The amount of time the wallet has to defend
   against a fraud challenge.
 - `fraud_challenge_deposit_amount`: The amount of ETH the party challenging the
   wallet for fraud needs to deposit.
