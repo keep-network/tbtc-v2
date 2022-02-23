@@ -226,7 +226,8 @@ Governable Parameters
 - `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
   multiplier to before giving up and picking a new base fee and different
   deposits to sweep.
-
+- `btc_fee_max`: The highest amount of BTC that operators can eventually
+  propose as a fee for miners for sweeping transaction.
 
 The operators sign a transaction that unlocks all of the revealed deposits
 above the `dust_threshold`, combines them into a single UTXO with the existing
@@ -267,7 +268,8 @@ base_fee * fee_multiplier`. We repeat until either the transaction posts or
 *Note*: We do not allow users to specify a max btc fee. When users deposit,
 they're agreeing to be swept at whatever fee the operators decide is
 appropriate (based on https://blockstream.info/api/fee-estimates). Operators
-cannot pick a starting fee higher than `base_btc_fee_max`.
+cannot pick a starting fee higher than `base_btc_fee_max` and they can never
+choose a fee higher than `btc_fee_max`.
 
 When the transaction clears, and the information has made its way
 over the relay maintainer, then another transaction needs to be created to on
