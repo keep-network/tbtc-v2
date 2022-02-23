@@ -443,6 +443,11 @@ a normal sweep, the Bridge would be susceptible to attacks when the malicious
 wallet steals revealed deposits by sweeping them to another UTXO but not the main
 UTXO known by the Bridge.
 
+To protect against chain reorgs capable of causing good-faith transactions to be
+indefensible against fraud proofs, the wallet needs to wait for enough block
+confirmations before undertaking any action. There has to be a reasonable
+compromise between finality and responsivity and suggested values are 6
+confirmations on Bitcoin and 40 confirmations on Ethereum.
 
 ==== Submitting Fraud Challenge
 
