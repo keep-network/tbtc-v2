@@ -398,9 +398,10 @@ Governable Parameters:
   wallet.
 
 To initiate a redemption, a user with a swept balance > `x` supplies a bitcoin
-address. Then, the system calculates the redemption fee `fee`, and releases an
-amount of bitcoin `y` such that `x = y + fee` to the supplied bitcoin address.
-The remaining `fee` is sold by the system to buy back `T` tokens (more about this
+address. Then, the system calculates the redemption fee `redemption_treasury_fee`,
+and releases an amount of bitcoin `y` such that `x = y + redemption_treasury_fee`
+to the supplied bitcoin address. The remaining `redemption_treasury_fee` is sold
+by the system to buy back `T` tokens (more about this
 process in the <<continuous-fees,fee section>>) to pay to the operators.
 
 In the MVP version of the system, a redemption is capped at the amount of
