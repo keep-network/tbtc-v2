@@ -430,9 +430,8 @@ wallet next to the main wallet's UTXO:
 // as keccak256(txHash | txOutputIndex | txOutputValue)
 mapping(bytes20 => bytes32) public mainUtxos;
 
-// wallet pubkey hash to the spent main UTXO hash computed
-// as keccak256(txHash | txOutputIndex)
-mapping(bytes20 => mapping(bytes32 => bool)) spentMainUTXOs
+// spent main UTXO hash computed as keccak256(txHash | txOutputIndex)
+mapping(bytes32 => bool) spentMainUTXOs
 
 ```
 
