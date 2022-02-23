@@ -455,8 +455,11 @@ over the sighash is valid and if it belongs to the wallet.
 
 The function should require the challenger to provide a deposit in ETH equal to 
 `fraud_challenge_deposit_amount` that is returned to the challenger once the fraud
-is confirmed. If the wallet defends the challenge, the deposit is sent to the
-treasury.
+is confirmed. If the wallet defends against the challenge, the deposit is sent
+to the treasury. If the wallet does not defend against the challenge, the
+challenger receives misbehavior notifier reward based on
+`fraud_notifier_reward_multiplier` and the wallet gets slashed based on
+`fraud_slashing_amount`.
 
 ==== Defending Against Fraud Challenge
 
@@ -469,7 +472,7 @@ submitted preimage against challenged sighash and try to locate the revealed dep
 for the input corresponding to the sighash.
 
 If there is a revealed deposit matching the sighash and that deposit was swept by the
-Bridge, everything is fine and the wallet defended the challenge.
+Bridge, everything is fine and the wallet defended itself against the challenge.
 
 If there is a revealed deposit matching the sighash and it was not yet swept by the
 Bridge, the defend function should revert. The wallet should first submit the sweep
@@ -477,9 +480,9 @@ proof for that deposit and then call the defend function again.
 
 If the revealed deposit does not exist, the defend function should check if the sighash
 belongs to one of the wallet's spent UTXOs from `spentMainUTXOs` mapping. If it does,
-everything is fine and the wallet defended the challenge. If it does not, the defend
-function reverts. The wallet should submit the redemption proof and then, call the
-defend function again.
+everything is fine and the wallet defended itself against the challenge. If it
+does not, the defend function reverts. The wallet should submit the redemption
+proof and then, call the defend function again.
 
 === Wallet Lifecycle
 
