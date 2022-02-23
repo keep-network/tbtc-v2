@@ -733,12 +733,12 @@ advantage of manipulating btc fee consensus I would be very surprised.
 Alphabetized list of Governable Parameters with additional notes.
 
 - `base_btc_fee_max`: The highest amount of BTC that operators can
-  initially propose as a fee for miners for Bitcoin transaction.
+  initially propose as a fee for miners of Bitcoin transaction.
 - `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
   suggested BTC fee before the other operators give up and try the next
   operator.
 - `btc_fee_max`: The highest amount of BTC that operators can eventually
-  propose as a fee for miners for Bitcoin transaction.
+  propose as a fee for miners of Bitcoin transaction.
 - `consecutive_failed_heartbeats`: The number of times a heartbeat can fail in
   a row that triggers a move to close the wallet.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
