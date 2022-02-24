@@ -36,4 +36,40 @@ contract BridgeStub is Bridge {
     {
         redemptionDustThreshold = _redemptionDustThreshold;
     }
+
+    function setRedemptionTreasuryFeeDivisor(
+        uint64 _redemptionTreasuryFeeDivisor
+    ) external {
+        redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
+    }
+
+    // TODO: Temporary function used for test purposes. Should be removed
+    //       once real `notifyRedemptionTimeout` is implemented.
+    function notifyRedemptionTimeout(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript
+    ) external {
+        uint256 redemptionKey =
+            uint256(
+                keccak256(
+                    abi.encodePacked(walletPubKeyHash, redeemerOutputScript)
+                )
+            );
+        RedemptionRequest storage request = pendingRedemptions[redemptionKey];
+
+        require(request.requestedAt != 0, "Request does not exist");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            request.requestedAt + redemptionTimeout < block.timestamp,
+            "Request not timed out"
+        );
+
+        timedOutRedemptions[redemptionKey] = request;
+        delete pendingRedemptions[redemptionKey];
+
+        wallets[walletPubKeyHash].state = WalletState.MovingFunds;
+        wallets[walletPubKeyHash].pendingRedemptionsValue -=
+            request.requestedAmount -
+            request.treasuryFee;
+    }
 }
