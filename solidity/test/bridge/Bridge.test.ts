@@ -13,6 +13,7 @@ import type {
   BankStub,
   Bridge,
   BridgeStub,
+  FraudVerification,
   TestRelay,
 } from "../../typechain"
 import {
@@ -47,7 +48,15 @@ const fixture = async () => {
   const relay: TestRelay = await TestRelay.deploy()
   await relay.deployed()
 
-  const Bridge = await ethers.getContractFactory("BridgeStub")
+  const FraudVerification = await ethers.getContractFactory("FraudVerification")
+  const fraudVerification: FraudVerification = await FraudVerification.deploy()
+  await fraudVerification.deployed()
+
+  const Bridge = await ethers.getContractFactory("BridgeStub", {
+    libraries: {
+      FraudVerification: fraudVerification.address,
+    },
+  })
   const bridge: Bridge & BridgeStub = await Bridge.deploy(
     bank.address,
     relay.address,
@@ -1474,7 +1483,17 @@ describe("Bridge", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            const Bridge = await ethers.getContractFactory("Bridge")
+            const FraudVerification = await ethers.getContractFactory(
+              "FraudVerification"
+            )
+            const fraudVerification: FraudVerification =
+              await FraudVerification.deploy()
+            await fraudVerification.deployed()
+            const Bridge = await ethers.getContractFactory("BridgeStub", {
+              libraries: {
+                FraudVerification: fraudVerification.address,
+              },
+            })
             otherBridge = await Bridge.deploy(
               bank.address,
               relay.address,
@@ -2226,16 +2245,6 @@ describe("Bridge", () => {
       "0x041e65394627554cf832d073c47760e96ca5f3a554c01cf7b1d96d79c200202a"
     const v = 27
 
-    const preimage =
-      "01000000bb7f55b88160c46023b4f2f5356df30e6032f0cc4ebb896462a11be4a0" +
-      "1b9a523bb13029ce7b1f559ef5e747fcac439f1455a2ec7c5f09b72290795e7066" +
-      "5044cbb4ac0f93b0ad4a8c387e9942a9b65ba54a01692dd1a6edc7c3b70f0355cc" +
-      "ec000000005c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d" +
-      "000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776" +
-      "a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac68f0" +
-      "55000000000000fffffffff5ef547c0c70b4a4747f180b1cc244b99a3d2c12e71d" +
-      "73d68ca9da53591139f10000000001000000"
-
     const sighash =
       "0xb8994753efd78cc66075991d3a21beef96d4e8a5e9ff06bc692401203df02610"
 
@@ -2244,6 +2253,10 @@ describe("Bridge", () => {
     const walletPublicKey =
       "0x989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9" +
       "d218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af"
+
+    // Hash 160 of the public key:
+    // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
+    const walletPubKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
 
     context("when the amount of sent ether is too small", () => {
       before(async () => {
@@ -2261,7 +2274,7 @@ describe("Bridge", () => {
         await expect(
           bridge
             .connect(thirdParty)
-            .submitFraudChallenge(walletPublicKey, sighash, v, r, s, {
+            .submitFraudChallenge(walletPublicKey, walletPubKeyHash, sighash, v, r, s, {
               value: fraudChallengeDepositAmount.sub(1),
             })
         ).to.be.revertedWith("The amount of ETH deposited is too low")
@@ -2288,7 +2301,7 @@ describe("Bridge", () => {
         await expect(
           bridge
             .connect(thirdParty)
-            .submitFraudChallenge(incorrectWalletPublicKey, sighash, v, r, s, {
+            .submitFraudChallenge(incorrectWalletPublicKey, walletPubKeyHash, sighash, v, r, s, {
               value: fraudChallengeDepositAmount,
             })
         ).to.be.revertedWith("Signature verification failure")
@@ -2314,7 +2327,7 @@ describe("Bridge", () => {
         await expect(
           bridge
             .connect(thirdParty)
-            .submitFraudChallenge(walletPublicKey, incorrectSighash, v, r, s, {
+            .submitFraudChallenge(walletPublicKey, walletPubKeyHash, incorrectSighash, v, r, s, {
               value: fraudChallengeDepositAmount,
             })
         ).to.be.revertedWith("Signature verification failure")
@@ -2339,7 +2352,7 @@ describe("Bridge", () => {
         await expect(
           bridge
             .connect(thirdParty)
-            .submitFraudChallenge(walletPublicKey, sighash, incorrectV, r, s, {
+            .submitFraudChallenge(walletPublicKey, walletPubKeyHash, sighash, incorrectV, r, s, {
               value: fraudChallengeDepositAmount,
             })
         ).to.be.revertedWith("Signature verification failure")
@@ -2368,6 +2381,7 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               walletPublicKey,
+              walletPubKeyHash,
               sighash,
               v,
               incorrectR,
@@ -2388,7 +2402,7 @@ describe("Bridge", () => {
           .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
         await bridge
           .connect(thirdParty)
-          .submitFraudChallenge(walletPublicKey, sighash, v, r, s, {
+          .submitFraudChallenge(walletPublicKey, walletPubKeyHash, sighash, v, r, s, {
             value: fraudChallengeDepositAmount,
           })
       })
@@ -2401,7 +2415,7 @@ describe("Bridge", () => {
         await expect(
           bridge
             .connect(thirdParty)
-            .submitFraudChallenge(walletPublicKey, sighash, v, r, s, {
+            .submitFraudChallenge(walletPublicKey, walletPubKeyHash, sighash, v, r, s, {
               value: fraudChallengeDepositAmount,
             })
         ).to.be.revertedWith("Fraud already challenged")
@@ -2420,7 +2434,7 @@ describe("Bridge", () => {
             .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
           tx = await bridge
             .connect(thirdParty)
-            .submitFraudChallenge(walletPublicKey, sighash, v, r, s, {
+            .submitFraudChallenge(walletPublicKey, walletPubKeyHash, sighash, v, r, s, {
               value: fraudChallengeDepositAmount,
             })
         })
@@ -2462,10 +2476,149 @@ describe("Bridge", () => {
         it("should emit FraudChallengeSubmitted event", async () => {
           await expect(tx)
             .to.emit(bridge, "FraudChallengeSubmitted")
-            .withArgs(walletPublicKey, sighash, v, r, s)
+            .withArgs(walletPublicKey, walletPubKeyHash, sighash, v, r, s)
         })
       }
     )
+  })
+
+  describe("submitFraudChallengeResponse", () => {
+    const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
+    // Uncompressed and unprefixed version of the public key:
+    // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
+    const walletPublicKey =
+      "0x989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9" +
+      "d218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af"
+
+    // Hash 160 of the public key:
+    // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
+    const walletPubKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
+
+    context("when the transaction has only one input", () => {
+      context("when the transaction input comes from P2WSH", () => {
+        context(
+          "when there was a challenge and the response data is correct",
+          () => {
+            // r and s values were extracted from signature with DER format:
+            // 3045022100be367625b075362d13a46a71e91e99b633ab476d6e76870c6daaa078
+            // 991e41b50220041e65394627554cf832d073c47760e96ca5f3a554c01cf7b1d96d
+            // 79c200202a01
+            const r =
+              "0xbe367625b075362d13a46a71e91e99b633ab476d6e76870c6daaa078991e41b5"
+            const s =
+              "0x041e65394627554cf832d073c47760e96ca5f3a554c01cf7b1d96d79c200202a"
+            const v = 27
+
+            // From tx eccc55030fb7c3c7eda6d12d69014aa55bb6a942997e388c4aadb0930facb4cb
+            const preimage =
+              "0x01000000bb7f55b88160c46023b4f2f5356df30e6032f0cc4ebb896462a11be4a0" +
+              "1b9a523bb13029ce7b1f559ef5e747fcac439f1455a2ec7c5f09b72290795e7066" +
+              "5044cbb4ac0f93b0ad4a8c387e9942a9b65ba54a01692dd1a6edc7c3b70f0355cc" +
+              "ec000000005c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d" +
+              "000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776" +
+              "a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac68f0" +
+              "55000000000000fffffffff5ef547c0c70b4a4747f180b1cc244b99a3d2c12e71d" +
+              "73d68ca9da53591139f10000000001000000"
+
+            const sighash =
+              "0xb8994753efd78cc66075991d3a21beef96d4e8a5e9ff06bc692401203df02610"
+
+            let tx: Transaction
+
+            before(async () => {
+              await createSnapshot()
+              await bridge
+                .connect(governance)
+                .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
+              await bridge
+                .connect(thirdParty)
+                .submitFraudChallenge(walletPublicKey, walletPubKeyHash, sighash, v, r, s, {
+                  value: fraudChallengeDepositAmount,
+                })
+              tx = await bridge
+                .connect(thirdParty)
+                .submitFraudChallengeResponse(
+                  walletPublicKey,
+                  preimage,
+                  v,
+                  r,
+                  s,
+                  true
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit FraudChallengeDefended event", async () => {
+              await expect(tx)
+                .to.emit(bridge, "FraudChallengeDefended")
+                .withArgs(walletPublicKey, sighash, v, r, s)
+            })
+          }
+        )
+      })
+
+      context("when the transaction input comes from P2SH", () => {
+        context(
+          "when there was a challenge and the response data is correct",
+          () => {
+            const r =
+              "0x918157d51c1c74858b577d039f0a936aea6236c2510cf31828d1025e4dfd803d"
+            const s =
+              "0x27905b4bd56fa9a2ee15c2bc4478bccb83dd8340db272ec5fad5b3b4faf32fcd"
+            const v = 28
+
+            // From tx 25725b6110fdd095282e61f714e72ec14ebdba7d2c29e93a89a9fb11504a5f10
+            const preimage =
+              "0x0100000001fb26e52365437fc4fce01864d1303e0e1ed2824ef83345ea6e8517" +
+              "4060778acb000000005c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508" +
+              "f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f687" +
+              "63ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b1" +
+              "75ac68ffffffff01b8240000000000001600148db50eb52063ea9d98b3eac91489" +
+              "a90f738986f60000000001000000"
+
+            const sighash =
+              "0x5d09cd07392c7163335b67eacc999491a3794c15b88e2b59094be5c5b157064b"
+
+            let tx: Transaction
+
+            before(async () => {
+              await createSnapshot()
+              await bridge
+                .connect(governance)
+                .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
+              await bridge
+                .connect(thirdParty)
+                .submitFraudChallenge(walletPublicKey, walletPubKeyHash, sighash, v, r, s, {
+                  value: fraudChallengeDepositAmount,
+                })
+              tx = await bridge
+                .connect(thirdParty)
+                .submitFraudChallengeResponse(
+                  walletPublicKey,
+                  preimage,
+                  v,
+                  r,
+                  s,
+                  false
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it.only("should emit FraudChallengeDefended event", async () => {
+              await expect(tx)
+                .to.emit(bridge, "FraudChallengeDefended")
+                .withArgs(walletPublicKey, sighash, v, r, s)
+            })
+          }
+        )
+      })
+    })
   })
 
   async function runSweepScenario(

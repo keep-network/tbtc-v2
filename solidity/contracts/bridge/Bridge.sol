@@ -22,9 +22,7 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {
     ValidateSPV
 } from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
-import {
-    CheckBitcoinSigs
-} from "@keep-network/bitcoin-spv-sol/contracts/CheckBitcoinSigs.sol";
+import "./library/FraudVerification.sol";
 import "../bank/Bank.sol";
 import "./BitcoinTx.sol";
 
@@ -65,6 +63,7 @@ contract Bridge is Ownable {
     using BytesLib for bytes;
     using ValidateSPV for bytes;
     using ValidateSPV for bytes32;
+    using FraudVerification for FraudVerification.Data;
 
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
@@ -144,13 +143,6 @@ contract Bridge is Ownable {
         uint64 changeValue;
     }
 
-    struct FraudChallenge {
-        address challenger;
-        uint256 ethDepositAmount;
-        uint32 reportedAt;
-        bool defended;
-    }
-
     /// @notice Represents wallet state:
     enum WalletState {
         /// @dev The wallet is unknown to the Bridge.
@@ -225,10 +217,7 @@ contract Bridge is Ownable {
     ///         to the redeemer in full amount.
     uint256 public redemptionTimeout;
 
-    /// TODO: Make it governable;
-    /// @notice The amount of ETH the party challenging the wallet for fraud
-    ///         needs to deposit.
-    uint256 public fraudChallengeDepositAmount;
+    FraudVerification.Data public fraudVerificationData;
 
     /// @notice Indicates if the vault with the given address is trusted or not.
     ///         Depositors can route their revealed deposits only to trusted
@@ -255,6 +244,9 @@ contract Bridge is Ownable {
     ///         The txHash is bytes32 (ordered as in Bitcoin internally),
     ///         txOutputIndex an uint32, and txOutputValue an uint64 value.
     mapping(bytes20 => bytes32) public mainUtxos;
+
+    // Spent main UTXO hash computed as keccak256(txHash | txOutputIndex)
+    mapping(uint256 => bool) public spentMainUTXOs;
 
     /// @notice Collection of all pending redemption requests indexed by
     ///         redemption key built as
@@ -301,10 +293,6 @@ contract Bridge is Ownable {
     // slither-disable-next-line uninitialized-state
     mapping(bytes20 => Wallet) public wallets;
 
-    /// Collection of all submitted fraud challenges indexed by challenge key
-    /// built as keccak256(walletPublicKey|sighash|v|r|s).
-    mapping(uint256 => FraudChallenge) public fraudChallenges;
-
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
     event FraudChallengeDepositAmountUpdated(
@@ -347,6 +335,14 @@ contract Bridge is Ownable {
         bytes32 s
     );
 
+    event FraudChallengeDefended(
+        bytes walletPublicKey,
+        bytes32 sighash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    );
+
     constructor(
         address _bank,
         address _relay,
@@ -369,7 +365,6 @@ contract Bridge is Ownable {
         redemptionTreasuryFee = 100000; // 100000 satoshi
         redemptionTxMaxFee = 1000; // 1000 satoshi
         redemptionTimeout = 172800; // 48 hours
-        fraudChallengeDepositAmount = 5e17; // 0.5 ETH
     }
 
     // TODO: Add function `onNewWalletCreated` according to discussion:
@@ -401,12 +396,7 @@ contract Bridge is Ownable {
     function setFraudChallengeDepositAmount(
         uint256 _newFraudChallengeDepositAmount
     ) external onlyOwner {
-        require(
-            _newFraudChallengeDepositAmount > 0,
-            "Fraud challenge deposit amount must be > 0"
-        );
-        fraudChallengeDepositAmount = _newFraudChallengeDepositAmount;
-        emit FraudChallengeDepositAmountUpdated(
+        fraudVerificationData.setFraudChallengeDepositAmount(
             _newFraudChallengeDepositAmount
         );
     }
@@ -668,6 +658,15 @@ contract Bridge is Ownable {
             // deposits amounts.
             depositedAmounts[i] -= feeShare;
         }
+
+        // Save the hash of the previously processed main UTXO in the map
+        spentMainUTXOs[
+            uint256(
+                keccak256(
+                    abi.encodePacked(mainUtxo.txHash, mainUtxo.txOutputIndex)
+                )
+            )
+        ] = true;
 
         // Record this sweep data and assign them to the wallet public key hash
         // as new main UTXO. Transaction output index is always 0 as sweep
@@ -1250,6 +1249,15 @@ contract Bridge is Ownable {
                 walletPubKeyHash
             );
 
+        // Save the hash of the previously processed main UTXO in the map
+        spentMainUTXOs[
+            uint256(
+                keccak256(
+                    abi.encodePacked(mainUtxo.txHash, mainUtxo.txOutputIndex)
+                )
+            )
+        ] = true;
+
         if (outputsInfo.changeValue > 0) {
             // If the change value is grater than zero, it means the change
             // output exists and can be used as new wallet's main UTXO.
@@ -1279,6 +1287,9 @@ contract Bridge is Ownable {
     /// @notice Submits a wallet fraud challenge.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///                        and unprefixed format (64 bytes).
+    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
+    ///        HASH160 over the compressed ECDSA public key) of the wallet which
+    ///        performed the redemption transaction.
     /// @param sighash Hash of the data (preimage) used for generating signature
     ///                for the given input.
     /// @param v Signature recovery value.
@@ -1286,37 +1297,47 @@ contract Bridge is Ownable {
     /// @param s Signature s value.
     function submitFraudChallenge(
         bytes memory walletPublicKey,
+        bytes20 walletPubKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) external payable {
+        // TODO: Consider calculating wallet public key hash instead of passing
+        // it as a parameter.
         require(
-            msg.value >= fraudChallengeDepositAmount,
-            "The amount of ETH deposited is too low"
+            wallets[walletPubKeyHash].state != WalletState.Closed &&
+                wallets[walletPubKeyHash].state != WalletState.Terminated,
+            "Wallet is closed or terminated"
         );
+        fraudVerificationData.submitFraudChallenge(
+            walletPublicKey,
+            sighash,
+            v,
+            r,
+            s
+        );
+    }
 
-        bool verificationResult =
-            CheckBitcoinSigs.checkSig(walletPublicKey, sighash, v, r, s);
-        require(verificationResult, "Signature verification failure");
-
-        uint256 challengeKey =
-            uint256(
-                keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
-            );
-
-        FraudChallenge storage fraudChallenge = fraudChallenges[challengeKey];
-        require(fraudChallenge.reportedAt == 0, "Fraud already challenged");
-
-        fraudChallenge.challenger = msg.sender;
-        fraudChallenge.ethDepositAmount = msg.value;
-        /* solhint-disable-next-line not-rely-on-time */
-        fraudChallenge.reportedAt = uint32(block.timestamp);
-        fraudChallenge.defended = false;
-
-        // TODO: Consider emitting the event with walletPublicKey in the
-        //       compressed format as it's how we identify wallets in the Bridge.
-        emit FraudChallengeSubmitted(walletPublicKey, sighash, v, r, s);
+    // TODO: description
+    function submitFraudChallengeResponse(
+        bytes memory walletPublicKey,
+        bytes memory preimage,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        bool witness
+    ) external {
+        fraudVerificationData.submitFraudChallengeResponse(
+            walletPublicKey,
+            preimage,
+            v,
+            r,
+            s,
+            witness,
+            deposits,
+            spentMainUTXOs
+        );
     }
 
     /// @notice Validates whether the redemption Bitcoin transaction input
@@ -1587,6 +1608,18 @@ contract Bridge is Ownable {
         );
 
         return info;
+    }
+
+    function fraudChallengeDepositAmount() public view returns (uint256) {
+        return fraudVerificationData.parameters.fraudChallengeDepositAmount;
+    }
+
+    function fraudChallenges(uint256 challengeKey)
+        public
+        view
+        returns (FraudVerification.FraudChallenge memory)
+    {
+        return fraudVerificationData.fraudChallenges[challengeKey];
     }
 
     // TODO: Function `notifyRedemptionTimeout. That function must:
