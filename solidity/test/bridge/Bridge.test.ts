@@ -2400,6 +2400,12 @@ describe("Bridge", () => {
             s
           )
           const fraudChallenge = await bridge.fraudChallenges(challengeKey)
+          expect(fraudChallenge.challenger).to.equal(
+            await thirdParty.getAddress()
+          )
+          expect(fraudChallenge.ethDepositAmount).to.equal(
+            fraudChallengeDepositAmount
+          )
           expect(fraudChallenge.reportedAt).to.equal(await lastBlockTime())
           expect(fraudChallenge.defended).to.equal(false)
         })

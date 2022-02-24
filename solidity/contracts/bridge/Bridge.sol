@@ -145,6 +145,8 @@ contract Bridge is Ownable {
     }
 
     struct FraudChallenge {
+        address challenger;
+        uint256 ethDepositAmount;
         uint32 reportedAt;
         bool defended;
     }
@@ -1303,14 +1305,14 @@ contract Bridge is Ownable {
                 keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
             );
 
-        require(
-            fraudChallenges[challengeKey].reportedAt == 0,
-            "Fraud already challenged"
-        );
+        FraudChallenge storage fraudChallenge = fraudChallenges[challengeKey];
+        require(fraudChallenge.reportedAt == 0, "Fraud already challenged");
 
+        fraudChallenge.challenger = msg.sender;
+        fraudChallenge.ethDepositAmount = msg.value;
         /* solhint-disable-next-line not-rely-on-time */
-        fraudChallenges[challengeKey].reportedAt = uint32(block.timestamp);
-        fraudChallenges[challengeKey].defended = false;
+        fraudChallenge.reportedAt = uint32(block.timestamp);
+        fraudChallenge.defended = false;
 
         // TODO: Consider emitting the event with walletPublicKey in the
         //       compressed format as it's how we identify wallets in the Bridge.
