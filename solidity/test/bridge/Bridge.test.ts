@@ -2480,8 +2480,36 @@ describe("Bridge", () => {
                     context(
                       "when the single output is a pending requested redemption but amount is wrong",
                       () => {
+                        const data: RedemptionTestData = JSON.parse(
+                          JSON.stringify(SinglePendingRequestedRedemption)
+                        )
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Alter the single redemption request in the test
+                          // data and set such an amount that will cause
+                          // the Bitcoin redemption transaction to be deemed
+                          // as invalid due to a wrong amount. The transaction
+                          // output has the value of 1176924 so to make this
+                          // test scenario happen, the request amount must be
+                          // way different (lesser or greater) than the output
+                          // value.
+                          data.redemptionRequests[0].amount = 300000
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output value is not within the acceptable range of the pending request"
+                          )
                         })
                       }
                     )
@@ -2489,8 +2517,50 @@ describe("Bridge", () => {
                     context(
                       "when the single output is a timed out requested redemption but amount is wrong",
                       () => {
+                        const data: RedemptionTestData = JSON.parse(
+                          JSON.stringify(SinglePendingRequestedRedemption)
+                        )
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Alter the single redemption request in the test
+                          // data and set such an amount that will cause
+                          // the Bitcoin redemption transaction to be deemed
+                          // as invalid due to a wrong amount. The transaction
+                          // output has the value of 1176924 so to make this
+                          // test scenario happen, the request amount must be
+                          // way different (lesser or greater) than the output
+                          // value.
+                          data.redemptionRequests[0].amount = 300000
+
+                          // Before submitting the redemption proof, wait
+                          // an amount of time that will make the request
+                          // timed out and then report the timeout.
+                          const beforeProofActions = async () => {
+                            await increaseTime(await bridge.redemptionTimeout())
+                            await bridge.notifyRedemptionTimeout(
+                              data.wallet.pubKeyHash,
+                              data.redemptionRequests[0].redeemerOutputScript
+                            )
+                          }
+
+                          outcome = runRedemptionScenario(
+                            data,
+                            beforeProofActions
+                          )
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output value is not within the acceptable range of the timed out request"
+                          )
                         })
                       }
                     )
@@ -2916,16 +2986,18 @@ describe("Bridge", () => {
     return bridge.submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
   }
 
-  async function runRedemptionScenario(
-    data: RedemptionTestData,
-    beforeProofActions?: () => Promise<void>
-  ): Promise<{
+  interface RedemptionScenarioOutcome {
     tx: ContractTransaction
     bridgeBalance: RedemptionBalanceChange
     walletPendingRedemptionsValue: RedemptionBalanceChange
     treasuryBalance: RedemptionBalanceChange
     redeemersBalances: RedemptionBalanceChange[]
-  }> {
+  }
+
+  async function runRedemptionScenario(
+    data: RedemptionTestData,
+    beforeProofActions?: () => Promise<void>
+  ): Promise<RedemptionScenarioOutcome> {
     await relay.setCurrentEpochDifficulty(data.chainDifficulty)
     await relay.setPrevEpochDifficulty(data.chainDifficulty)
 
