@@ -127,13 +127,13 @@ export interface Proof {
  * blockchain.
  */
 export interface SweepProof {
-  txVersion: Buffer
-  txInputVector: Buffer
-  txOutput: Buffer
-  txLocktime: Buffer
-  merkleProof: Buffer
+  txVersion: string
+  txInputVector: string
+  txOutput: string
+  txLocktime: string
+  merkleProof: string
   txIndexInBlock: number
-  bitcoinHeaders: Buffer
+  bitcoinHeaders: string
 }
 
 /**

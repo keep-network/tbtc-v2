@@ -14,9 +14,15 @@ export class MockBitcoinClient implements Client {
     string,
     UnspentTransactionOutput[]
   >()
-
   private _rawTransactions = new Map<string, RawTransaction>()
-
+  private _transactions = new Map<string, Transaction>()
+  private _latestHeight: number = 0
+  private _headersChain: string = ""
+  private _transactionMerkle: TransactionMerkleBranch = {
+    blockHeight: 0,
+    merkle: [],
+    position: 0,
+  }
   private _broadcastLog: RawTransaction[] = []
 
   set unspentTransactionOutputs(
@@ -27,6 +33,22 @@ export class MockBitcoinClient implements Client {
 
   set rawTransactions(value: Map<string, RawTransaction>) {
     this._rawTransactions = value
+  }
+
+  set transactions(value: Map<string, Transaction>) {
+    this._transactions = value
+  }
+
+  set latestHeight(value: number) {
+    this._latestHeight = value
+  }
+
+  set headersChain(value: string) {
+    this._headersChain = value
+  }
+
+  set transactionMerkle(value: TransactionMerkleBranch) {
+    this._transactionMerkle = value
   }
 
   get broadcastLog(): RawTransaction[] {
@@ -46,8 +68,9 @@ export class MockBitcoinClient implements Client {
   }
 
   getTransaction(transactionHash: string): Promise<Transaction> {
-    // Not implemented.
-    return new Promise<Transaction>((resolve, _) => {})
+    return new Promise<Transaction>((resolve, _) => {
+      resolve(this._transactions.get(transactionHash) as Transaction)
+    })
   }
 
   getRawTransaction(transactionHash: string): Promise<RawTransaction> {
@@ -58,13 +81,13 @@ export class MockBitcoinClient implements Client {
 
   latestBlockHeight(): Promise<number> {
     return new Promise<number>((resolve, _) => {
-      resolve(0)
+      resolve(this._latestHeight)
     })
   }
 
   getHeadersChain(blockHeight: number, confirmations: number): Promise<string> {
     return new Promise<string>((resolve, _) => {
-      resolve("")
+      resolve(this._headersChain)
     })
   }
 
@@ -73,11 +96,7 @@ export class MockBitcoinClient implements Client {
     blockHeight: number
   ): Promise<TransactionMerkleBranch> {
     return new Promise<TransactionMerkleBranch>((resolve, _) => {
-      resolve({
-        blockHeight: 0,
-        merkle: [],
-        position: 0,
-      })
+      resolve(this._transactionMerkle)
     })
   }
 

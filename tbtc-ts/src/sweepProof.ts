@@ -183,12 +183,12 @@ export async function constructSweepProof(
   const parsedTransaction = parseRawTransaction(proof.rawTransaction)
 
   return {
-    txVersion: Buffer.from(parsedTransaction.version, "hex"),
-    txInputVector: Buffer.from(parsedTransaction.txInVector, "hex"),
-    txOutput: Buffer.from(parsedTransaction.txOutVector, "hex"),
-    txLocktime: Buffer.from(parsedTransaction.locktime, "hex"),
-    merkleProof: Buffer.from(proof.merkleProof, "hex"),
+    txVersion: parsedTransaction.version,
+    txInputVector: parsedTransaction.txInVector,
+    txOutput: parsedTransaction.txOutVector,
+    txLocktime: parsedTransaction.locktime,
+    merkleProof: proof.merkleProof,
     txIndexInBlock: proof.txInBlockIndex,
-    bitcoinHeaders: Buffer.from(proof.chainHeaders, "hex"),
+    bitcoinHeaders: proof.chainHeaders,
   }
 }
