@@ -23,6 +23,9 @@ import {
   MultiplePendingRequestedRedemptionsWithChange,
   RedemptionBalanceChange,
   RedemptionTestData,
+  SingleChangeP2PKH,
+  SingleChangeP2SH,
+  SingleChangeP2WPKH,
   SinglePendingRequestedRedemption,
 } from "../data/redemption"
 
@@ -2568,10 +2571,26 @@ describe("Bridge", () => {
                     context(
                       "when the single output is a legal P2PKH change with a non-zero value",
                       () => {
+                        const data: RedemptionTestData = SingleChangeP2PKH
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         // Should be deemed as valid change though rejected
                         // because this change is a single output.
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Redemption transaction must process at least one redemption"
+                          )
                         })
                       }
                     )
@@ -2579,10 +2598,26 @@ describe("Bridge", () => {
                     context(
                       "when the single output is a legal P2WPKH change with a non-zero value",
                       () => {
+                        const data: RedemptionTestData = SingleChangeP2WPKH
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         // Should be deemed as valid change though rejected
                         // because this change is a single output.
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Redemption transaction must process at least one redemption"
+                          )
                         })
                       }
                     )
@@ -2590,13 +2625,29 @@ describe("Bridge", () => {
                     context(
                       "when the single output is an illegal P2SH change with a non-zero value",
                       () => {
+                        const data: RedemptionTestData = SingleChangeP2SH
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         // We have this case because P2SH script has a 20-byte
                         // payload which may match the 20-byte wallet public
                         // key hash though it should be always rejected as
                         // non-requested output. There is no need to check for
                         // P2WSH since the payload is always 32-byte there.
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output is a non-requested redemption"
+                          )
                         })
                       }
                     )
