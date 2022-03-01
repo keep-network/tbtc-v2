@@ -5,75 +5,27 @@ import bufio from "bufio"
 // @ts-ignore
 import { StaticWriter, BufferWriter } from "bufio"
 import {
-  Proof,
-  TransactionData,
+  SweepData,
+  TxProof,
+  TxInfo,
+  TransactionMerkleBranch,
   Client as BitcoinClient,
-  SweepProof,
 } from "./bitcoin"
 
 /**
- * Gets SPV transaction proof.
- * @param txHash - Transaction hash.
- * @param confirmations - Required number of confirmations for the transaction.
- * @param bitcoinClient - Bitcoin client used to interact with the network.
- * @returns Transaction's SPV proof.
- */
-export async function getTransactionProof(
-  txHash: string,
-  confirmations: number,
-  bitcoinClient: BitcoinClient
-): Promise<Proof> {
-  const transaction = await bitcoinClient.getTransaction(txHash)
-  if (transaction.confirmations < confirmations) {
-    throw new Error(
-      `transaction confirmations number [${transaction.confirmations}] is not enough, required [${confirmations}]`
-    )
-  }
-
-  const latestBlockHeight = await bitcoinClient.latestBlockHeight()
-  const txBlockHeight = latestBlockHeight - transaction.confirmations + 1
-
-  const headersChain = await bitcoinClient.getHeadersChain(
-    txBlockHeight,
-    confirmations
-  )
-
-  const merkleProofInfo = await getMerkleProofInfo(
-    txHash,
-    txBlockHeight,
-    bitcoinClient
-  )
-
-  return {
-    rawTransaction: transaction.hex,
-    merkleProof: merkleProofInfo.proof,
-    txInBlockIndex: merkleProofInfo.position,
-    chainHeaders: headersChain,
-  }
-}
-
-/**
- * Get proof of transaction inclusion in the block. It produces proof as a
- * concatenation of 32-byte values in a hexadecimal form. It converts the
- * values to little endian form.
- * @param txHash - Transaction hash.
- * @param blockHeight - Height of the block where transaction was
- *                       confirmed.
- * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * Create a proof of transaction inclusion in the block by concatenating
+ * 32-byte-long hash values. The values are converted to little endian form.
+ * @param txMerkleBranch - Branch of a merkle tree leading to a transaction.
  * @returns Transaction inclusion proof in hexadecimal form.
  */
-export async function getMerkleProofInfo(
-  txHash: string,
-  blockHeight: number,
-  bitcoinClient: BitcoinClient
-) {
-  const merkle = await bitcoinClient.getTransactionMerkle(txHash, blockHeight)
+export function createMerkleProof(
+  txMerkleBranch: TransactionMerkleBranch
+): string {
   let proof = Buffer.from("")
-  // Merkle tree
-  merkle.merkle.forEach(function (item) {
+  txMerkleBranch.merkle.forEach(function (item) {
     proof = Buffer.concat([proof, Buffer.from(item, "hex").reverse()])
   })
-  return { proof: proof.toString("hex"), position: merkle.position }
+  return proof.toString("hex")
 }
 
 /**
@@ -147,13 +99,13 @@ function getTxOutputVector(tx: TX): string {
  * @param rawTransaction - Hex string representation of a transaction
  * @returns Transaction data with fields represented as strings
  */
-export function parseRawTransaction(rawTransaction: string): TransactionData {
+function extractTxInfo(rawTransaction: string): TxInfo {
   const tx = TX.fromRaw(Buffer.from(rawTransaction, "hex"), null)
   return {
-    version: getTxVersion(tx),
-    txInVector: getTxInputVector(tx),
-    txOutVector: getTxOutputVector(tx),
-    locktime: getTxLocktime(tx),
+    txVersion: getTxVersion(tx),
+    txInputVector: getTxInputVector(tx),
+    txOutputVector: getTxOutputVector(tx),
+    txLocktime: getTxLocktime(tx),
   }
 }
 
@@ -161,34 +113,53 @@ export function parseRawTransaction(rawTransaction: string): TransactionData {
  * Constructs a sweep transaction proof that proves the given transaction is
  * included in the Bitcoin blockchain and has the required number of
  * confirmations.
- * @param transactionHash - Hash of the sweep transaction.
+ * @param txId - Id of the sweep transaction.
  * @param confirmations - Required number of confirmations for the transaction.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Sweep transaction proof that can be passed to on-chain proof
  *          verification functions
  */
 export async function constructSweepProof(
-  transactionHash: string,
+  txId: string,
   confirmations: number,
   bitcoinClient: BitcoinClient
-): Promise<SweepProof> {
-  // TODO: Consider adding a retrier, as in `tbtc.js`:
-  // https://github.com/keep-network/tbtc.js/blob/d49c4dbabe063fea49489776389009b5b31c3350/src/BitcoinHelpers.js#L525
-  const proof = await getTransactionProof(
-    transactionHash,
-    confirmations,
-    bitcoinClient
+): Promise<SweepData> {
+  const transaction = await bitcoinClient.getTransaction(txId)
+  if (transaction.confirmations < confirmations) {
+    throw new Error(
+      "Transaction confirmations number[" +
+        transaction.confirmations +
+        "] is not enough, required [" +
+        confirmations +
+        "]"
+    )
+  }
+
+  const latestBlockHeight = await bitcoinClient.latestBlockHeight()
+  const txBlockHeight = latestBlockHeight - transaction.confirmations + 1
+
+  const headersChain = await bitcoinClient.getHeadersChain(
+    txBlockHeight,
+    confirmations
   )
 
-  const parsedTransaction = parseRawTransaction(proof.rawTransaction)
+  const merkleBranch = await bitcoinClient.getTransactionMerkle(
+    txId,
+    txBlockHeight
+  )
+
+  const merkleProof = createMerkleProof(merkleBranch)
+
+  const txInfo: TxInfo = extractTxInfo(transaction.hex)
+
+  const txProof: TxProof = {
+    merkleProof: merkleProof,
+    txIndexInBlock: merkleBranch.position,
+    bitcoinHeaders: headersChain,
+  }
 
   return {
-    txVersion: parsedTransaction.version,
-    txInputVector: parsedTransaction.txInVector,
-    txOutput: parsedTransaction.txOutVector,
-    txLocktime: parsedTransaction.locktime,
-    merkleProof: proof.merkleProof,
-    txIndexInBlock: proof.txInBlockIndex,
-    bitcoinHeaders: proof.chainHeaders,
+    txInfo,
+    txProof,
   }
 }

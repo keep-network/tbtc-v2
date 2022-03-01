@@ -14,7 +14,7 @@ import {
   Client as BitcoinClient,
   RawTransaction,
   UnspentTransactionOutput,
-  SweepProof,
+  SweepData,
 } from "./bitcoin"
 import { BigNumber } from "ethers"
 
@@ -160,7 +160,7 @@ export interface TBTC {
     transactionHash: string,
     confirmations: number,
     bitcoinClient: BitcoinClient
-  ): Promise<SweepProof>
+  ): Promise<SweepData>
 }
 
 const tbtc: TBTC = {

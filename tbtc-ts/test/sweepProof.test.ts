@@ -1,5 +1,5 @@
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
-import { Transaction, SweepProof } from "./bitcoin"
+import { Transaction, SweepData } from "./bitcoin"
 import TBTC from "./../src"
 import { expect } from "chai"
 // @ts-ignore
@@ -54,7 +54,7 @@ describe("Sweep Proof", () => {
         "d225028aa08ab6139eee31f4f67a010000000000004cda79bc48b970de2fb29c3f" +
         "38626eb9d70d8bae7b92aad09f2a0ad2d2f334d35bca1c62ffff001d048fc217"
 
-      let proof: SweepProof
+      let proof: SweepData
 
       beforeEach(async () => {
         const transactions = new Map<string, Transaction>()
@@ -154,13 +154,13 @@ describe("Sweep Proof", () => {
       })
 
       it("should return the correct value of the sweep proof", async () => {
-        expect(proof.txVersion).to.equal(expectedTxVersion)
-        expect(proof.txInputVector).to.equal(expectedTxInputVector)
-        expect(proof.txOutput).to.equal(expectedTxOutput)
-        expect(proof.txLocktime).to.equal(expectedLocktime)
-        expect(proof.merkleProof).to.equal(expectedMerkleProof)
-        expect(proof.txIndexInBlock).to.equal(expectedTxIndexInBlock)
-        expect(proof.bitcoinHeaders).to.equal(expectedBitcoinHeaders)
+        expect(proof.txInfo.txVersion).to.equal(expectedTxVersion)
+        expect(proof.txInfo.txInputVector).to.equal(expectedTxInputVector)
+        expect(proof.txInfo.txOutputVector).to.equal(expectedTxOutput)
+        expect(proof.txInfo.txLocktime).to.equal(expectedLocktime)
+        expect(proof.txProof.merkleProof).to.equal(expectedMerkleProof)
+        expect(proof.txProof.txIndexInBlock).to.equal(expectedTxIndexInBlock)
+        expect(proof.txProof.bitcoinHeaders).to.equal(expectedBitcoinHeaders)
       })
     })
 
@@ -211,7 +211,7 @@ describe("Sweep Proof", () => {
         "99b8e9db517e36f000000000000a494b8034039e7855b75563ab83c9410dd67e89b" +
         "b58e6cd93b85290a885dd749f4d61c62ed3e031ad9a83746"
 
-      let proof: SweepProof
+      let proof: SweepData
 
       beforeEach(async () => {
         const transactions = new Map<string, Transaction>()
@@ -345,13 +345,13 @@ describe("Sweep Proof", () => {
       })
 
       it("should return the correct value of the sweep proof", async () => {
-        expect(proof.txVersion).to.equal(expectedTxVersion)
-        expect(proof.txInputVector).to.equal(expectedTxInputVector)
-        expect(proof.txOutput).to.equal(expectedTxOutput)
-        expect(proof.txLocktime).to.equal(expectedLocktime)
-        expect(proof.merkleProof).to.equal(expectedMerkleProof)
-        expect(proof.txIndexInBlock).to.equal(expectedTxIndexInBlock)
-        expect(proof.bitcoinHeaders).to.equal(expectedBitcoinHeaders)
+        expect(proof.txInfo.txVersion).to.equal(expectedTxVersion)
+        expect(proof.txInfo.txInputVector).to.equal(expectedTxInputVector)
+        expect(proof.txInfo.txOutputVector).to.equal(expectedTxOutput)
+        expect(proof.txInfo.txLocktime).to.equal(expectedLocktime)
+        expect(proof.txProof.merkleProof).to.equal(expectedMerkleProof)
+        expect(proof.txProof.txIndexInBlock).to.equal(expectedTxIndexInBlock)
+        expect(proof.txProof.bitcoinHeaders).to.equal(expectedBitcoinHeaders)
       })
     })
   })

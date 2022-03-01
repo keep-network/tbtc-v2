@@ -100,45 +100,36 @@ export type UnspentTransactionOutput = TransactionOutpoint & {
   value: number
 }
 
-export interface Proof {
-  /**
-   * Raw transaction in hexadecimal format.
-   */
-  rawTransaction: string
-
-  /**
-   * Transaction merkle proof.
-   */
-  merkleProof: string
-
-  /**
-   * Transaction index in a block.
-   */
-  txInBlockIndex: number
-
-  /**
-   * Chain of blocks headers.
-   */
-  chainHeaders: string
+/**
+ * Information about important parts of a Bitcoin transaction, including
+ * inputs and outputs.
+ */
+export interface TxInfo {
+  txVersion: string
+  txInputVector: string
+  txOutputVector: string
+  txLocktime: string
 }
 
 /**
- * Proof of that proves a given transaction is included in the Bitcoin
- * blockchain.
+ * Proof that a given transaction is included in the Bitcoin blockchain.
  */
-export interface SweepProof {
-  txVersion: string
-  txInputVector: string
-  txOutput: string
-  txLocktime: string
+export interface TxProof {
   merkleProof: string
   txIndexInBlock: number
   bitcoinHeaders: string
 }
+/**
+ * Sweep transaction data for checking the inclusion of the transaction in the
+ * blockchain and processing inputs and outputs.
+ */
+export interface SweepData {
+  txProof: TxProof
+  txInfo: TxInfo
+}
 
 /**
  * Information about the merkle branch to a confirmed transaction.
- *
  */
 export interface TransactionMerkleBranch {
   /**
@@ -157,31 +148,6 @@ export interface TransactionMerkleBranch {
    * The 0-based index of the transaction's position in the block.
    */
   position: number
-}
-
-/**
- * String representation of important transaction fields
- */
-export interface TransactionData {
-  /**
-   * The transaction's version field as an unprefixed hexadecimal string.
-   */
-  version: string
-
-  /**
-   * The transaction's input vector as an unprefixed hexadecimal string.
-   */
-  txInVector: string
-
-  /**
-   * The transaction's output vector as an unprefixed hexadecimal string.
-   */
-  txOutVector: string
-
-  /**
-   * The transaction's locktime field as an unprefixed hexadecimal string.
-   */
-  locktime: string
 }
 
 /**
