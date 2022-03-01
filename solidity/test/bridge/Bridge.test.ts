@@ -26,7 +26,10 @@ import {
   SingleChangeP2PKH,
   SingleChangeP2SH,
   SingleChangeP2WPKH,
+  SingleChangeZeroValue,
+  SingleNonRequestedRedemption,
   SinglePendingRequestedRedemption,
+  SingleProvablyUnspendable,
 } from "../data/redemption"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
@@ -2655,17 +2658,50 @@ describe("Bridge", () => {
                     context(
                       "when the single output is a change with a zero as value",
                       () => {
+                        const data: RedemptionTestData = SingleChangeZeroValue
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output is a non-requested redemption"
+                          )
                         })
                       }
                     )
 
                     context(
-                      "when the single output is a non-requested redemption to an arbitrary script hash",
+                      "when the single output is a non-requested redemption to an arbitrary script",
                       () => {
+                        const data: RedemptionTestData =
+                          SingleNonRequestedRedemption
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output is a non-requested redemption"
+                          )
                         })
                       }
                     )
@@ -2673,8 +2709,25 @@ describe("Bridge", () => {
                     context(
                       "when the single output is provably unspendable OP_RETURN",
                       () => {
+                        const data: RedemptionTestData =
+                          SingleProvablyUnspendable
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output is a non-requested redemption"
+                          )
                         })
                       }
                     )

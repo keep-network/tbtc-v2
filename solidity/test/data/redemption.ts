@@ -144,6 +144,22 @@ export const SinglePendingRequestedRedemption: RedemptionTestData = {
 }
 
 /**
+ * `SingleNonRequestedRedemption` test data represents a redemption with
+ *  the following properties:
+ * - 0 redemption requests
+ * - 1 P2SH output with value 1176924 satoshi and index 0, pointing to a
+ *   non-requested output script.
+ *
+ * Basically, this is the `SinglePendingRequestedRedemption` data set with
+ * empty `redemptionRequests` array to simulate the situation where the
+ * redemption transaction output is non-requested.
+ */
+export const SingleNonRequestedRedemption: RedemptionTestData = {
+  ...SinglePendingRequestedRedemption,
+  redemptionRequests: [],
+}
+
+/**
  * `SingleChangeP2PKH` test data represents a redemption with
  *  the following properties:
  * - 0 redemption requests
@@ -342,6 +358,139 @@ export const SingleChangeP2SH: RedemptionTestData = {
   },
 
   chainDifficulty: 1,
+}
+
+/**
+ * `SingleChangeZeroValue` test data represents a redemption with
+ *  the following properties:
+ * - 0 redemption requests
+ * - 1 P2WPKH change output with value 0 satoshi and index 0.
+ */
+export const SingleChangeZeroValue: RedemptionTestData = {
+  wallet: {
+    pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    state: 1,
+    pendingRedemptionsValue: 0,
+  },
+
+  redemptionRequests: [],
+
+  mainUtxo: {
+    txHash:
+      "0x110287e803db207b764a41ac01c98448ed34512eeafce15435c4667775af9ac5",
+    txOutputIndex: 1,
+    txOutputValue: 1616808,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/b8cdeb9f25bac990f233f0c10ccfb4335ca867996a9a7e43d69fa2f730a5b10f
+  redemptionTx: {
+    hash: "0x0fb1a530f7a29fd6437e9a6a9967a85c33b4cf0cc1f033f290c9ba259febcdb8",
+    version: "0x01000000",
+    inputVector:
+      "0x01110287e803db207b764a41ac01c98448ed34512eeafce15435c4667775af9ac5" +
+      "0100000000ffffffff",
+    outputVector:
+      "0x0100000000000000001600147ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    locktime: "0x00000000",
+  },
+
+  redemptionProof: {
+    merkleProof:
+      "0x5e7abe1d2ffbeb05646d6af26119f9123142e3bddef55f019dc040a49434abf0f0" +
+      "c416f0a505a0b45b138d1ebe22b1864399fd7a79bb8564024a88e3d75ec9a438556b" +
+      "409052d83bbea2e19ae9134ddf709c030006524e474bc5ff8ee0d48198e86c92f167" +
+      "0878ff5e7bd6c50d8685dfc99775e1addea552e0d0c7d507e6168f77815fd2a8616c" +
+      "a48da4c0c82f9b7d6d8523ec31172366536ee4f6fb476409cc2c103aa580e8e304ba" +
+      "7888e4d571088d801701c932dbfdb7aa5147089ca042992c69c7a840dfc2830b8f05" +
+      "3ed5add244d4a03e995fe3875dbaee5350e03d30f2",
+    txIndexInBlock: 1,
+    bitcoinHeaders:
+      "0x0400002040f4c65610f26f06c4365305b956934501713e01c2fc08b919e0bc1b0000" +
+      "0000e401a6a884ba015e83c6fe2cd363e877ef03982e81eaff4e2c95af1e23a670f4" +
+      "07d41c62ffff001d58c64d180400002038854bd62f802e1de14653eceeb7a80290f5" +
+      "e99b8e9db517e36f000000000000a494b8034039e7855b75563ab83c9410dd67e89b" +
+      "b58e6cd93b85290a885dd749f4d61c62ed3e031ad9a8374604000020ace542174988" +
+      "4ead62a4c1ab007a064027fa2bfe4772f95f5f010000000000004cc59275b1fafab7" +
+      "6df130064ea7b4f5e3fd1975bccac22395de1de47e105ec4abd91c62ed3e031aadb3" +
+      "548c04e000209fd2f97b6a59c0ad71482b5f47cf9a2fab73d2335ba76eb48d020000" +
+      "000000007c0e5aa9a87938e8466a8f1e662b246ce77784d4d7d9e9786bb7e5586fb3" +
+      "d55445da1c62ed3e031a9c24b2d104e000205f34585d5251ffe2fd6590493a12bda6" +
+      "1edf72a80256c71d1d010000000000002d61efa332cacb6c46e462907c85bad78b7d" +
+      "a1218093061cbc1040d1c1e4db44aedc1c62ed3e031ad3ccc6d404e000209ff4c7e5" +
+      "2245adb02a374dc04fa6346f5414057eb34a31f5770100000000000054640481f7e6" +
+      "7a6abd11f41447de82c9ab4cfc36c1b08a69eec70c531af406d260dd1c62ed3e031a" +
+      "d1cead8e04e000205eb6c71da390799a93d726debb7d2d24234fd10698ea6ac9fd00" +
+      "000000000000326f7b757f161a464819a058635a5419d15f7fea715a3520f1cb546a" +
+      "f661d3f85ade1c62ed3e031aa446a827",
+  },
+
+  chainDifficulty: 1,
+}
+
+/**
+ * `SingleProvablyUnspendable` test data represents a redemption with
+ *  the following properties:
+ * - 0 redemption requests
+ * - 1 provably unspendable change output with value 0 satoshi and index 0.
+ */
+export const SingleProvablyUnspendable: RedemptionTestData = {
+  wallet: {
+    pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    state: 1,
+    pendingRedemptionsValue: 0,
+  },
+
+  redemptionRequests: [],
+
+  mainUtxo: {
+    txHash:
+      "0xc83c538a70028dd9fd40d7e8be0d05dc414a95927eb52df895e9d0c424786c53",
+    txOutputIndex: 0,
+    txOutputValue: 1914700,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/58a7d94d019aa658d00dfa2b5d5bb6b5d627b71afefff2bda5db501a75981fd3
+  redemptionTx: {
+    hash: "0xd31f98751a50dba5bdf2fffe1ab727d6b5b65b5d2bfa0dd058a69a014dd9a758",
+    version: "0x01000000",
+    inputVector:
+      "0x01c83c538a70028dd9fd40d7e8be0d05dc414a95927eb52df895e9d0c424786c53" +
+      "0000000000ffffffff",
+    outputVector:
+      "0x010000000000000000176a0f6d6f6e6579627574746f6e2e636f6d0568656c6c6f",
+    locktime: "0x00000000",
+  },
+
+  redemptionProof: {
+    merkleProof:
+      "0x905ff7ee49bf6e4290d4045f19317130044e77241b4b38fb3c8c1f1413b8a89574" +
+      "ebfb6efeabf05d65f5ad9cc1f8355d2a00a4ca22d7c7a0e0cabc0d6a4c6c00db10e3" +
+      "b9f542c6eeb6ec38df9acba0726e452cf50d19b285b5ebb60e2faafb24ea8a2604cc" +
+      "8f08c7ab494f4619e240bcc91e91174432a07809ffbfa579e931c16ccbdff6587298" +
+      "eb5a02da3f1afc3d5f0ccc06ddad31690cae99d9261218fa4f76e3bd2c3157089f5f" +
+      "4586201fccd2ebcc75db72b46fc7a026de0ac5dd7a8245",
+    txIndexInBlock: 1,
+    bitcoinHeaders:
+      "0x040000201d7a507f86c714fd747e45078096087c65bcabb8e6defa98b433000000" +
+      "000000d27279d16f4ef9b10ab2fd0b20be00cf380f9e1d4409d1577822cffbd65989" +
+      "d9cb081e62ed3e031ab61e9f5600000020b811a75ec03812f7a0b8580b73282afd59" +
+      "6ed9d2b0a9b1c79700000000000000538ba47e9eade7963da25fa640d87a2234489f" +
+      "a60741fb2ba89efab52e442b77810d1e62ffff001de0c4afc504e00020342898739f" +
+      "1e6ac6e8fe86dc3584fe8f21e5bef01dc714033a20ad3300000000910830b662c217" +
+      "5c9a41b3377d072a2b0290d5e44e8a40e038acae63171d216b140f1e62ed3e031a32" +
+      "b4b5e000000020345c4a1f645e26da4ec35cbc52543c6871e526b0a6c52070a30200" +
+      "00000000002160037975ec5f355cba38f4e9e2a98d8271bba7844a313fb5cb91709a" +
+      "4b4c0ee6131e62ffff001da0bddd2404000020667e4f0e217d2f2dd4d5fdcfb27857" +
+      "bdd3ae0c643a036897e762a99600000000f189c5237d6d5e15214a7f4d0ad6b82ac1" +
+      "522a1b1ee93bc4c76ab169462f26c308161e62ed3e031af4b78af704e00020968648" +
+      "2db903e6880604162d4ecedb113e5e0895131dcb608900000000000000d3d4eeb630" +
+      "cc71bb0ebf76822c95e19b3d0046ad01b74b6941507b5beaa1cf67db191e62ed3e03" +
+      "1a0040a522040000208d370c6f9d47eaf0c1ab779a5b811838a61403def157972e35" +
+      "0300000000000080b93554feec4b0c497738f604526bf990bb8924c538f58f030f3a" +
+      "ff72bc0347e91b1e62ed3e031a07543bdf",
+  },
+
+  chainDifficulty: 5168815,
 }
 
 /**
