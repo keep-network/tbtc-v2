@@ -494,6 +494,119 @@ export const SingleProvablyUnspendable: RedemptionTestData = {
 }
 
 /**
+ * `MultiplePendingRequestedRedemptions` test data represents a
+ * redemption with the following properties:
+ * - 5 redemption requests
+ * - Redemption dust threshold is 100000 satoshi
+ * - Treasury fee for each request is 0% of the requested amount
+ * - Maximum transaction fee for each request is 1000 satoshi
+ * - Total requested amount for all requests is 959845 satoshi
+ * - Total treasury fee for all requests is 0 satoshi
+ * - Total redeemable amount for all requests is 959845 satoshi
+ * - Maximum total transaction fee is 5000 satoshi
+ * - No change output
+ */
+export const MultiplePendingRequestedRedemptions: RedemptionTestData = {
+  wallet: {
+    pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    state: 1,
+    pendingRedemptionsValue: 0,
+  },
+
+  redemptionRequests: [
+    {
+      redeemer: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
+      redeemerOutputScript:
+        // P2PKH with address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+        "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+      amount: 191969, // Accepts outputs in range [190969, 191969]
+    },
+    {
+      redeemer: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
+      redeemerOutputScript:
+        // P2WPKH with address tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx
+        "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+      amount: 191969, // Accepts outputs in range [190969, 191969]
+    },
+    {
+      redeemer: "0x35D54bC29e0a5170c3Ac73E64c7fA539A867f0FE",
+      redeemerOutputScript:
+        // P2SH with address 2MsM67NLa71fHvTUBqNENW15P68nHB2vVXb
+        "0x17a914011beb6fb8499e075a57027fb0a58384f2d3f78487",
+      amount: 191969, // Accepts outputs in range [190969, 191969]
+    },
+    {
+      redeemer: "0x462418b7495561bF2872A0786109A11f5d494aA2",
+      redeemerOutputScript:
+        // P2WSH with address tb1qau95mxzh2249aa3y8exx76ltc2sq0e7kw8hj04936rdcmnynhswqqz02vv
+        "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c",
+      amount: 191969, // Accepts outputs in range [190969, 191969]
+    },
+    {
+      redeemer: "0x2219eAC966FbC0454C4A2e122717e4429Dd7608F",
+      redeemerOutputScript:
+        // P2PKH with address tb1qgzd40jy62dj5wadvmywfsxugq7f40wzek3p2g2
+        "0x160014409b57c89a53654775acd91c981b88079357b859",
+      amount: 191969, // Accepts outputs in range [190969, 191969]
+    },
+  ],
+
+  mainUtxo: {
+    txHash:
+      "0x293fa48ff644e009d77edbab49c42ec0bfb3d5dbc1a63be4a8200a442f3dd910",
+    txOutputIndex: 1,
+    txOutputValue: 959845,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/2724545276df61f43f1e92c4b9f1dd3c9109595c022dbd9dc003efbad8ded38b
+  redemptionTx: {
+    hash: "0x8bd3ded8baef03c09dbd2d025c5909913cddf1b9c4921e3ff461df7652542427",
+    version: "0x01000000",
+    inputVector:
+      "0x01293fa48ff644e009d77edbab49c42ec0bfb3d5dbc1a63be4a8200a442f3dd910" +
+      "0100000000ffffffff",
+    outputVector:
+      "0x05c1ea0200000000001976a9142cd680318747b720d67bf4246eb7403b476adb34" +
+      "88acc1ea020000000000160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0c1" +
+      "ea02000000000017a914011beb6fb8499e075a57027fb0a58384f2d3f78487c1ea02" +
+      "0000000000220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0" +
+      "db8dcc93bc1cc1ea020000000000160014409b57c89a53654775acd91c981b880793" +
+      "57b859",
+    locktime: "0x00000000",
+  },
+
+  redemptionProof: {
+    merkleProof:
+      "0x2428f139454babb4dd0ade40cda91396939ab1829667366dd4846c038fbbdc75d8" +
+      "4a8cd89502647f735744073451608ca65b9c06892bdf5e0c43661c27d65a0ef81d91" +
+      "1bd0f872a981db7bb275462c9833ef38947bc3d4e7de5ace761a0b41b5378e1cbb2d" +
+      "736a46edf5a1ad468aa43d78ef54a29520f00cdf28055ac6c2d244722c6ce263a149" +
+      "11cb822af4f47df841ffd49ad0a71386aa77ee8cf928b1c4eac58c250144d521714f" +
+      "1912234352f6b3d2cdb9aa0eb15906e654e614e41f27949890c4dad981a4059b49ae" +
+      "453c3a86f3ea4dc4b9cae9448f22dfab86f2c4d8d6",
+    txIndexInBlock: 10,
+    bitcoinHeaders:
+      "0x00e000208e5be9fe4ed15e6c6a7a8cc08097cd0640ffd7366400b5ac9102000000" +
+      "0000004e68ad19a9e51e7765e90e2c5294b13815f68cfb5d229da27db5e32ee17811" +
+      "81e53e1f62ed3e031a503805b900e0ff3fa13b993888d9b00afe2920b3082b3ee32f" +
+      "d3c9129015d2be8e00000000000000734a268c3bf100e3dea62dae18539b95d66979" +
+      "03d11f11cc179ac81fcc28eef83e401f62ed3e031aef1334c704000020d1af2de20c" +
+      "23ab97a2004d2eee5392e4e5f347b076a5c0e28d010000000000005e9ef6c94f4a36" +
+      "d51f3a3fcf5f224ec146ccb62b3d682911b293595f7d933c00f4431f62ed3e031a00" +
+      "0623c004e000207128bbf2522463e26b2fc2381e392a5ec4f38e4745803bdd240100" +
+      "00000000008a55f861ddfaeafabdc92a2247f42d4f5092ea518ce538c1ddf3d3126d" +
+      "bcea0feb481f62ffff001d9024592704e0002092512fbed5e628e84b71a9a2218c3c" +
+      "7cb4e4078d2acac285721a0000000000002f3c27c1e3ff97634d16309bdbd8afd33d" +
+      "e0bb5a8847d4fcb8c3b8ecde48f60af14c1f62ed3e031acfa38bf804000020edfc36" +
+      "9559440cd684a29979886a04b2f6916752ccdd03d62a010000000000006e4051acfe" +
+      "63b73a0b7900c2da41f0b92f694f5a0e2982b279fc5ca734070b13d6511f62ffff00" +
+      "1ddaf20d1e",
+  },
+
+  chainDifficulty: 5168815,
+}
+
+/**
  * `MultiplePendingRequestedRedemptionsWithChange` test data represents a
  * redemption with the following properties:
  * - 5 redemption requests
