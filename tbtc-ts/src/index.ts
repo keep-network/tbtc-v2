@@ -147,17 +147,18 @@ export interface TBTC {
   ): Promise<void>
 
   /**
-   * Constructs a sweep transaction proof that proves the given transaction is
-   * included in the Bitcoin blockchain and has the required number of
-   * confirmations.
-   * @param transactionHash - Hash of the sweep transaction.
+   * Constructs data with the proof that a given sweep transaction is included
+   * in the Bitcoin blockchain and has the required number of confirmations as
+   * well as information on the transaction that is needed for processing
+   * on-chain.
+   * @param txId - ID of the sweep transaction.
    * @param confirmations - Required number of confirmations for the transaction.
    * @param bitcoinClient - Bitcoin client used to interact with the network.
-   * @returns Sweep transaction proof that can be passed to on-chain proof
-   *          verification functions
+   * @returns Data on a sweep transaction with the inclusion proof and
+   *          information needed for processing on-chain.
    */
   constructSweepProof(
-    transactionHash: string,
+    txId: string,
     confirmations: number,
     bitcoinClient: BitcoinClient
   ): Promise<SweepData>

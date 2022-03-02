@@ -1,7 +1,7 @@
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import { Transaction, SweepData } from "./bitcoin"
 import {
-  oneInputSweepProofTestData,
+  singleInputSweepProofTestData,
   multipleInputSweepProofTestData,
   SweepProofTestData,
 } from "./data/sweepProof"
@@ -23,11 +23,11 @@ describe("Sweep Proof", () => {
       let proof: SweepData
 
       beforeEach(async () => {
-        proof = await runSweepProofScenario(oneInputSweepProofTestData)
+        proof = await runSweepProofScenario(singleInputSweepProofTestData)
       })
 
       it("should return the correct value of the sweep proof", async () => {
-        const expectedData = oneInputSweepProofTestData.expectedSweepData
+        const expectedData = singleInputSweepProofTestData.expectedSweepData
         expect(proof.txInfo.txVersion).to.equal(expectedData.txInfo.txVersion)
         expect(proof.txInfo.txInputVector).to.equal(
           expectedData.txInfo.txInputVector
@@ -83,7 +83,8 @@ describe("Sweep Proof", () => {
         let notEnoughConfirmationsSweepProofTestData: SweepProofTestData
 
         beforeEach(async () => {
-          notEnoughConfirmationsSweepProofTestData = oneInputSweepProofTestData
+          notEnoughConfirmationsSweepProofTestData =
+            singleInputSweepProofTestData
           notEnoughConfirmationsSweepProofTestData.clientData.transaction.confirmations = 5
         })
 
@@ -109,7 +110,7 @@ describe("Sweep Proof", () => {
 
       const sweepData = await TBTC.constructSweepProof(
         data.txId,
-        data.confirmations,
+        data.requiredConfirmations,
         bitcoinClient
       )
 

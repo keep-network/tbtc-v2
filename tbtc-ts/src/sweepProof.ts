@@ -18,9 +18,7 @@ import {
  * @param txMerkleBranch - Branch of a merkle tree leading to a transaction.
  * @returns Transaction inclusion proof in hexadecimal form.
  */
-export function createMerkleProof(
-  txMerkleBranch: TransactionMerkleBranch
-): string {
+function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
   let proof = Buffer.from("")
   txMerkleBranch.merkle.forEach(function (item) {
     proof = Buffer.concat([proof, Buffer.from(item, "hex").reverse()])
@@ -110,14 +108,15 @@ function extractTxInfo(rawTransaction: string): TxInfo {
 }
 
 /**
- * Constructs a sweep transaction proof that proves the given transaction is
- * included in the Bitcoin blockchain and has the required number of
- * confirmations.
- * @param txId - Id of the sweep transaction.
+ * Constructs data with the proof that a given sweep transaction is included
+ * in the Bitcoin blockchain and has the required number of confirmations as
+ * well as information on the transaction that is needed for processing
+ * on-chain.
+ * @param txId - ID of the sweep transaction.
  * @param confirmations - Required number of confirmations for the transaction.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
- * @returns Sweep transaction proof that can be passed to on-chain proof
- *          verification functions
+ * @returns Data on a sweep transaction with the inclusion proof and
+ *          information needed for processing on-chain.
  */
 export async function constructSweepProof(
   txId: string,

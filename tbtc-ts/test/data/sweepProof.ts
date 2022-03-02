@@ -1,8 +1,11 @@
 import { SweepData, Transaction, TransactionMerkleBranch } from "../bitcoin"
 
+/**
+ * Represents a set of data used for given sweep proof scenario.
+ */
 export interface SweepProofTestData {
   txId: string
-  confirmations: number
+  requiredConfirmations: number
   clientData: {
     transaction: Transaction
     latestBlockHeight: number
@@ -12,9 +15,13 @@ export interface SweepProofTestData {
   expectedSweepData: SweepData
 }
 
-export const oneInputSweepProofTestData: SweepProofTestData = {
+/**
+ * Test data that is based on a Bitcoin testnet transaction with a single input
+ * https://live.blockcypher.com/btc-testnet/tx/44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473/
+ */
+export const singleInputSweepProofTestData: SweepProofTestData = {
   txId: "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473",
-  confirmations: 6,
+  requiredConfirmations: 6,
   clientData: {
     transaction: {
       transactionHash:
@@ -133,9 +140,13 @@ export const oneInputSweepProofTestData: SweepProofTestData = {
   },
 }
 
+/**
+ * Test data that is based on a Bitcoin testnet transaction with multiple inputs
+ * https://live.blockcypher.com/btc-testnet/tx/5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753/
+ */
 export const multipleInputSweepProofTestData: SweepProofTestData = {
   txId: "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753",
-  confirmations: 6,
+  requiredConfirmations: 6,
   clientData: {
     transaction: {
       transactionHash:

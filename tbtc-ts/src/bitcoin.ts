@@ -101,13 +101,28 @@ export type UnspentTransactionOutput = TransactionOutpoint & {
 }
 
 /**
- * Information about important parts of a Bitcoin transaction, including
- * inputs and outputs.
+ * Information about important parts of a transaction, including inputs and
+ * outputs.
  */
 export interface TxInfo {
+  /**
+   * Transaction's version.
+   */
   txVersion: string
+
+  /**
+   * All transaction's inputs, prepended by the number of transaction inputs.
+   */
   txInputVector: string
+
+  /**
+   * All transaction's outputs prepended by the number of transaction outputs.
+   */
   txOutputVector: string
+
+  /**
+   * Transaction's locktime.
+   */
   txLocktime: string
 }
 
@@ -115,16 +130,35 @@ export interface TxInfo {
  * Proof that a given transaction is included in the Bitcoin blockchain.
  */
 export interface TxProof {
+  /**
+   * The merkle proof of transaction inclusion in a block.
+   */
   merkleProof: string
+
+  /**
+   * Transaction index in the block (0-indexed).
+   */
   txIndexInBlock: number
+
+  /**
+   * Single byte-string of 80-byte block headers, lowest height first.
+   */
   bitcoinHeaders: string
 }
+
 /**
- * Sweep transaction data for checking the inclusion of the transaction in the
+ * Sweep transaction data for verifying the inclusion of a transaction in the
  * blockchain and processing inputs and outputs.
  */
 export interface SweepData {
+  /**
+   * Proof of inclusion of a transaction in the blockchain.
+   */
   txProof: TxProof
+
+  /**
+   * Information about a transaction needed to process it on-chain.
+   */
   txInfo: TxInfo
 }
 
