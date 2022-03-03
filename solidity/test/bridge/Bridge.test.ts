@@ -21,16 +21,21 @@ import {
 } from "../data/sweep"
 import {
   MultiplePendingRequestedRedemptions,
-  MultiplePendingRequestedRedemptionsWithChange,
+  MultiplePendingRequestedRedemptionsWithP2WPKHChange,
   RedemptionBalanceChange,
   RedemptionTestData,
-  SingleChangeP2PKH,
-  SingleChangeP2SH,
-  SingleChangeP2WPKH,
-  SingleChangeZeroValue,
+  SingleP2PKHChange,
+  SingleP2SHChange,
+  SingleP2WPKHChange,
+  SingleP2WPKHChangeZeroValue,
   SingleNonRequestedRedemption,
   SinglePendingRequestedRedemption,
   SingleProvablyUnspendable,
+  MultiplePendingRequestedRedemptionsWithP2SHChange,
+  MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges,
+  MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue,
+  MultiplePendingRequestedRedemptionsWithNonRequestedRedemption,
+  MultiplePendingRequestedRedemptionsWithProvablyUnspendable,
 } from "../data/redemption"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
@@ -968,9 +973,9 @@ describe("Bridge", () => {
                   "deposits but there is no main UTXO despite it is expected",
                 () => {
                   const previousData: SweepTestData = SingleP2WSHDeposit
-                  const data: SweepTestData = {
-                    ...MultipleDepositsNoMainUtxo,
-                  }
+                  const data: SweepTestData = JSON.parse(
+                    JSON.stringify(MultipleDepositsNoMainUtxo)
+                  )
 
                   before(async () => {
                     await createSnapshot()
@@ -2575,7 +2580,7 @@ describe("Bridge", () => {
                     context(
                       "when the single output is a legal P2PKH change with a non-zero value",
                       () => {
-                        const data: RedemptionTestData = SingleChangeP2PKH
+                        const data: RedemptionTestData = SingleP2PKHChange
 
                         let outcome: Promise<RedemptionScenarioOutcome>
 
@@ -2602,7 +2607,7 @@ describe("Bridge", () => {
                     context(
                       "when the single output is a legal P2WPKH change with a non-zero value",
                       () => {
-                        const data: RedemptionTestData = SingleChangeP2WPKH
+                        const data: RedemptionTestData = SingleP2WPKHChange
 
                         let outcome: Promise<RedemptionScenarioOutcome>
 
@@ -2629,7 +2634,7 @@ describe("Bridge", () => {
                     context(
                       "when the single output is an illegal P2SH change with a non-zero value",
                       () => {
-                        const data: RedemptionTestData = SingleChangeP2SH
+                        const data: RedemptionTestData = SingleP2SHChange
 
                         let outcome: Promise<RedemptionScenarioOutcome>
 
@@ -2659,7 +2664,8 @@ describe("Bridge", () => {
                     context(
                       "when the single output is a change with a zero as value",
                       () => {
-                        const data: RedemptionTestData = SingleChangeZeroValue
+                        const data: RedemptionTestData =
+                          SingleP2WPKHChangeZeroValue
 
                         let outcome: Promise<RedemptionScenarioOutcome>
 
@@ -2870,7 +2876,7 @@ describe("Bridge", () => {
                       "when output vector consists of pending requested redemptions and a non-zero change",
                       () => {
                         const data: RedemptionTestData =
-                          MultiplePendingRequestedRedemptionsWithChange
+                          MultiplePendingRequestedRedemptionsWithP2WPKHChange
 
                         let tx: ContractTransaction
                         let bridgeBalance: RedemptionBalanceChange
@@ -3158,7 +3164,7 @@ describe("Bridge", () => {
                       "when output vector consists of reported timed out requested redemptions and a non-zero change",
                       () => {
                         const data: RedemptionTestData =
-                          MultiplePendingRequestedRedemptionsWithChange
+                          MultiplePendingRequestedRedemptionsWithP2WPKHChange
 
                         let tx: ContractTransaction
                         let bridgeBalance: RedemptionBalanceChange
@@ -3496,7 +3502,7 @@ describe("Bridge", () => {
                       "when output vector consists of pending requested redemptions, reported timed out requested redemptions and a non-zero change",
                       () => {
                         const data: RedemptionTestData =
-                          MultiplePendingRequestedRedemptionsWithChange
+                          MultiplePendingRequestedRedemptionsWithP2WPKHChange
 
                         let tx: ContractTransaction
                         let bridgeBalance: RedemptionBalanceChange
@@ -3688,8 +3694,36 @@ describe("Bridge", () => {
                     context(
                       "when output vector contains a pending requested redemption with wrong amount",
                       () => {
+                        const data: RedemptionTestData = JSON.parse(
+                          JSON.stringify(MultiplePendingRequestedRedemptions)
+                        )
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Alter the last redemption requests in the test
+                          // data and set such an amount that will cause
+                          // the Bitcoin redemption transaction to be deemed
+                          // as invalid due to a wrong amount. The corresponding
+                          // transaction output has the value of 191169 so to
+                          // make this test scenario happen, the request amount
+                          // must be way different (lesser or greater) than the
+                          // output value.
+                          data.redemptionRequests[4].amount = 100000
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output value is not within the acceptable range of the pending request"
+                          )
                         })
                       }
                     )
@@ -3697,8 +3731,50 @@ describe("Bridge", () => {
                     context(
                       "when output vector contains a reported timed out requested redemption with wrong amount",
                       () => {
+                        const data: RedemptionTestData = JSON.parse(
+                          JSON.stringify(MultiplePendingRequestedRedemptions)
+                        )
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Alter the last redemption requests in the test
+                          // data and set such an amount that will cause
+                          // the Bitcoin redemption transaction to be deemed
+                          // as invalid due to a wrong amount. The corresponding
+                          // transaction output has the value of 191169 so to
+                          // make this test scenario happen, the request amount
+                          // must be way different (lesser or greater) than the
+                          // output value.
+                          data.redemptionRequests[4].amount = 100000
+
+                          // Before submitting the redemption proof, wait
+                          // an amount of time that will make the last request
+                          // timed out and then report the timeout.
+                          const beforeProofActions = async () => {
+                            await increaseTime(await bridge.redemptionTimeout())
+                            await bridge.notifyRedemptionTimeout(
+                              data.wallet.pubKeyHash,
+                              data.redemptionRequests[4].redeemerOutputScript
+                            )
+                          }
+
+                          outcome = runRedemptionScenario(
+                            data,
+                            beforeProofActions
+                          )
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output value is not within the acceptable range of the timed out request"
+                          )
                         })
                       }
                     )
@@ -3706,13 +3782,33 @@ describe("Bridge", () => {
                     context(
                       "when output vector contains a non-zero P2SH change output",
                       () => {
+                        const data: RedemptionTestData = JSON.parse(
+                          JSON.stringify(
+                            MultiplePendingRequestedRedemptionsWithP2SHChange
+                          )
+                        )
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         // We have this case because P2SH script has a 20-byte
                         // payload which may match the 20-byte wallet public
                         // key hash though it should be always rejected as
                         // non-requested output. There is no need to check for
                         // P2WSH since the payload is always 32-byte there.
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output is a non-requested redemption"
+                          )
                         })
                       }
                     )
@@ -3720,8 +3816,28 @@ describe("Bridge", () => {
                     context(
                       "when output vector contains multiple non-zero change outputs",
                       () => {
+                        const data: RedemptionTestData = JSON.parse(
+                          JSON.stringify(
+                            MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges
+                          )
+                        )
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output is a non-requested redemption"
+                          )
                         })
                       }
                     )
@@ -3729,8 +3845,28 @@ describe("Bridge", () => {
                     context(
                       "when output vector contains one change but with zero as value",
                       () => {
+                        const data: RedemptionTestData = JSON.parse(
+                          JSON.stringify(
+                            MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue
+                          )
+                        )
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output is a non-requested redemption"
+                          )
                         })
                       }
                     )
@@ -3738,8 +3874,28 @@ describe("Bridge", () => {
                     context(
                       "when output vector contains a non-requested redemption to an arbitrary script hash",
                       () => {
+                        const data: RedemptionTestData = JSON.parse(
+                          JSON.stringify(
+                            MultiplePendingRequestedRedemptionsWithNonRequestedRedemption
+                          )
+                        )
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output is a non-requested redemption"
+                          )
                         })
                       }
                     )
@@ -3747,8 +3903,28 @@ describe("Bridge", () => {
                     context(
                       "when output vector contains a provably unspendable OP_RETURN output",
                       () => {
+                        const data: RedemptionTestData = JSON.parse(
+                          JSON.stringify(
+                            MultiplePendingRequestedRedemptionsWithProvablyUnspendable
+                          )
+                        )
+
+                        let outcome: Promise<RedemptionScenarioOutcome>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          outcome = runRedemptionScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(outcome).to.be.revertedWith(
+                            "Output is a non-requested redemption"
+                          )
                         })
                       }
                     )
@@ -3756,16 +3932,159 @@ describe("Bridge", () => {
                 })
 
                 context("when wallet state is MovingFunds", () => {
-                  // TODO: Just assert it passes without revert without
-                  //       repeating checks from Active state scenario.
+                  const data: RedemptionTestData =
+                    MultiplePendingRequestedRedemptionsWithP2WPKHChange
+
+                  let outcome: Promise<RedemptionScenarioOutcome>
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    // Set wallet state to MovingFunds. That must be done
+                    // just before proof submission since requests should
+                    // be made against an Active wallet.
+                    const beforeProofActions = async () => {
+                      const wallet = await bridge.wallets(
+                        data.wallet.pubKeyHash
+                      )
+                      await bridge.setWallet(data.wallet.pubKeyHash, {
+                        ...wallet,
+                        state: 2,
+                      })
+                    }
+
+                    outcome = runRedemptionScenario(data, beforeProofActions)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  // Just assert it passes without revert without repeating
+                  // checks from Active state scenario.
+                  it("should succeed", async () => {
+                    await expect(outcome).to.not.be.reverted
+                  })
                 })
 
                 context(
                   "when wallet state is neither Active nor MovingFunds",
                   () => {
-                    it("should revert", async () => {
-                      // TODO: Implementation. Make sure we check each other
-                      //       state in a separate sub-context.
+                    context("when wallet state is Unknown", () => {
+                      const data: RedemptionTestData =
+                        MultiplePendingRequestedRedemptionsWithP2WPKHChange
+
+                      let outcome: Promise<RedemptionScenarioOutcome>
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Set wallet state to Unknown. That must be done
+                        // just before proof submission since requests should
+                        // be made against an Active wallet.
+                        const beforeProofActions = async () => {
+                          const wallet = await bridge.wallets(
+                            data.wallet.pubKeyHash
+                          )
+                          await bridge.setWallet(data.wallet.pubKeyHash, {
+                            ...wallet,
+                            state: 0,
+                          })
+                        }
+
+                        outcome = runRedemptionScenario(
+                          data,
+                          beforeProofActions
+                        )
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should revert", async () => {
+                        await expect(outcome).to.be.revertedWith(
+                          "'Wallet must be in Active or MovingFuds state"
+                        )
+                      })
+                    })
+
+                    context("when wallet state is Closed", () => {
+                      const data: RedemptionTestData =
+                        MultiplePendingRequestedRedemptionsWithP2WPKHChange
+
+                      let outcome: Promise<RedemptionScenarioOutcome>
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Set wallet state to Closed. That must be done
+                        // just before proof submission since requests should
+                        // be made against an Active wallet.
+                        const beforeProofActions = async () => {
+                          const wallet = await bridge.wallets(
+                            data.wallet.pubKeyHash
+                          )
+                          await bridge.setWallet(data.wallet.pubKeyHash, {
+                            ...wallet,
+                            state: 3,
+                          })
+                        }
+
+                        outcome = runRedemptionScenario(
+                          data,
+                          beforeProofActions
+                        )
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should revert", async () => {
+                        await expect(outcome).to.be.revertedWith(
+                          "'Wallet must be in Active or MovingFuds state"
+                        )
+                      })
+                    })
+
+                    context("when wallet state is Terminated", () => {
+                      const data: RedemptionTestData =
+                        MultiplePendingRequestedRedemptionsWithP2WPKHChange
+
+                      let outcome: Promise<RedemptionScenarioOutcome>
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Set wallet state to Terminated. That must be done
+                        // just before proof submission since requests should
+                        // be made against an Active wallet.
+                        const beforeProofActions = async () => {
+                          const wallet = await bridge.wallets(
+                            data.wallet.pubKeyHash
+                          )
+                          await bridge.setWallet(data.wallet.pubKeyHash, {
+                            ...wallet,
+                            state: 4,
+                          })
+                        }
+
+                        outcome = runRedemptionScenario(
+                          data,
+                          beforeProofActions
+                        )
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should revert", async () => {
+                        await expect(outcome).to.be.revertedWith(
+                          "'Wallet must be in Active or MovingFuds state"
+                        )
+                      })
                     })
                   }
                 )

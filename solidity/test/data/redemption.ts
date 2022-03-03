@@ -160,12 +160,12 @@ export const SingleNonRequestedRedemption: RedemptionTestData = {
 }
 
 /**
- * `SingleChangeP2PKH` test data represents a redemption with
+ * `SingleP2PKHChange` test data represents a redemption with
  *  the following properties:
  * - 0 redemption requests
  * - 1 P2PKH change output with value 1860981 satoshi and index 0.
  */
-export const SingleChangeP2PKH: RedemptionTestData = {
+export const SingleP2PKHChange: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
     state: 1,
@@ -228,12 +228,12 @@ export const SingleChangeP2PKH: RedemptionTestData = {
 }
 
 /**
- * `SingleChangeP2WPKH` test data represents a redemption with
+ * `SingleP2WPKHChange` test data represents a redemption with
  *  the following properties:
  * - 0 redemption requests
  * - 1 P2WPKH change output with value 1669207 satoshi and index 0.
  */
-export const SingleChangeP2WPKH: RedemptionTestData = {
+export const SingleP2WPKHChange: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
     state: 1,
@@ -293,12 +293,12 @@ export const SingleChangeP2WPKH: RedemptionTestData = {
 }
 
 /**
- * `SingleChangeP2SH` test data represents a redemption with
+ * `SingleP2SHChange` test data represents a redemption with
  *  the following properties:
  * - 0 redemption requests
- * - 1 P2SH change output with value 1664207 satoshi and index 0.
+ * - 1 illegal P2SH change output with value 1664207 satoshi and index 0.
  */
-export const SingleChangeP2SH: RedemptionTestData = {
+export const SingleP2SHChange: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
     state: 1,
@@ -361,12 +361,12 @@ export const SingleChangeP2SH: RedemptionTestData = {
 }
 
 /**
- * `SingleChangeZeroValue` test data represents a redemption with
+ * `SingleP2WPKHChangeZeroValue` test data represents a redemption with
  *  the following properties:
  * - 0 redemption requests
  * - 1 P2WPKH change output with value 0 satoshi and index 0.
  */
-export const SingleChangeZeroValue: RedemptionTestData = {
+export const SingleP2WPKHChangeZeroValue: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
     state: 1,
@@ -431,7 +431,7 @@ export const SingleChangeZeroValue: RedemptionTestData = {
  * `SingleProvablyUnspendable` test data represents a redemption with
  *  the following properties:
  * - 0 redemption requests
- * - 1 provably unspendable change output with value 0 satoshi and index 0.
+ * - 1 provably unspendable output with value 0 satoshi and index 0.
  */
 export const SingleProvablyUnspendable: RedemptionTestData = {
   wallet: {
@@ -607,7 +607,7 @@ export const MultiplePendingRequestedRedemptions: RedemptionTestData = {
 }
 
 /**
- * `MultiplePendingRequestedRedemptionsWithChange` test data represents a
+ * `MultiplePendingRequestedRedemptionsWithP2WPKHChange` test data represents a
  * redemption with the following properties:
  * - 5 redemption requests
  * - Redemption dust threshold is 100000 satoshi
@@ -619,7 +619,7 @@ export const MultiplePendingRequestedRedemptions: RedemptionTestData = {
  * - Maximum total transaction fee is 5000 satoshi
  * - 1 P2WPKH change output with value 137130866 satoshi and index 5.
  */
-export const MultiplePendingRequestedRedemptionsWithChange: RedemptionTestData =
+export const MultiplePendingRequestedRedemptionsWithP2WPKHChange: RedemptionTestData =
   {
     wallet: {
       pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
@@ -716,4 +716,390 @@ export const MultiplePendingRequestedRedemptionsWithChange: RedemptionTestData =
     },
 
     chainDifficulty: 330930,
+  }
+
+/**
+ * `MultiplePendingRequestedRedemptionsWithP2SHChange` test data represents a
+ * redemption with the following properties:
+ * - 2 redemption requests
+ * - Redemption dust threshold is 100000 satoshi
+ * - Treasury fee for each request is 0.05% of the requested amount
+ * - Maximum transaction fee for each request is 1000 satoshi
+ * - Total requested amount for all requests is 600000 satoshi
+ * - Total treasury fee for all requests is 600 satoshi
+ * - Total redeemable amount for all requests is 599400 satoshi
+ * - Maximum total transaction fee is 2000 satoshi
+ * - 1 illegal P2SH change output with value 488167 satoshi and index 2.
+ */
+export const MultiplePendingRequestedRedemptionsWithP2SHChange: RedemptionTestData =
+  {
+    wallet: {
+      pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+      state: 1,
+      pendingRedemptionsValue: 0,
+    },
+
+    redemptionRequests: [
+      {
+        redeemer: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
+        redeemerOutputScript:
+          // P2PKH with address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+          "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+      {
+        redeemer: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
+        redeemerOutputScript:
+          // P2WPKH with address tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx
+          "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+    ],
+
+    mainUtxo: {
+      txHash:
+        "0xaa485c8a2fd30844d085cedb3a1b48d791a85bd7e8b5891f9c9f5c0f232ca1e9",
+      txOutputIndex: 1,
+      txOutputValue: 1088167,
+    },
+
+    // https://live.blockcypher.com/btc-testnet/tx/3ca4ae3f8ee3b48949192bc7a146c8d9862267816258c85e02a44678364551e1
+    redemptionTx: {
+      hash: "0xe15145367846a4025ec8586281672286d9c846a1c72b194989b4e38e3faea43c",
+      version: "0x01000000",
+      inputVector:
+        "0x01aa485c8a2fd30844d085cedb3a1b48d791a85bd7e8b5891f9c9f5c0f232ca1" +
+        "e90100000000ffffffff",
+      outputVector:
+        "0x03c0900400000000001976a9142cd680318747b720d67bf4246eb7403b476adb" +
+        "3488acc090040000000000160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1" +
+        "d0e77207000000000017a9147ac2d9378a1c47e589dfb8095ca95ed2140d272687",
+      locktime: "0x00000000",
+    },
+
+    redemptionProof: {
+      merkleProof:
+        "0x4f3cb23dd5254f97e8d634146e446929f7cd89cedbcfec1fb906e90043aea6bc" +
+        "000b7c2c56a5aedc7d541fdbf771b6dacfecc23357b3eacf76503aaf27e96d0353" +
+        "99f1760cd275a63df367eafc927822ef116bdbd2f5e01787a4241cf18f7f04aab5" +
+        "9ea8af82dc69574dac8d4f6c55209ac374c7b17812fd75612e700cbb7a75f85274" +
+        "f74cfb0b29d02a0a6f155adb30e837094c0c021e2031ca95ee508b8c9e3a933e70" +
+        "3aeb35688f95e34b287b456d1b43ed243b4c3ae6343b5a17bce32c4d096fe2344d" +
+        "c132b77ab0471010fb0e232aa9e324bee36148cc2dfc3ef9f2afd5",
+      txIndexInBlock: 17,
+      bitcoinHeaders:
+        "0x00e00020973b21115e240ddc4138fd00fa30894983153ac106693b1715030000" +
+        "000000001b677579054db7fc5086f5bbc055b689ad6475e8f6923a412635295f4b" +
+        "1a9b5a35761f62ed3e031ae418bc6800e00020941598b8dbf959e6c5fb3ee30543" +
+        "cfff7a3f870ea021adb67b0200000000000057f7ba3f0d362977746400c45c2b04" +
+        "25c7db588928bc46495f39c6f0ba491ad3a4761f62ed3e031ad4c7bfc800e0ff3f" +
+        "5cefed259ada69e60f9c5f7a8aeb74ca26b570aff2fb482f1c02000000000000a0" +
+        "2922da07092fa5a2f3ef5bd5b03367c905be9396cf259ce48e9a41dff93baa4c78" +
+        "1f62ed3e031a598fbd350400002090febb1f07960f6517e7547161d7e0ebf74409" +
+        "631fab24ebed00000000000000fd08091a8de63380d16e74756431bb6b466108cb" +
+        "ba97844c2a590f7875736f800a791f62ed3e031a1001d4b900e0ff3fc44608aefb" +
+        "c90c494c24fa862f108c59bc73fe7b0ff2ea4e1403000000000000fa363d54c518" +
+        "f0db80091e5f740ef2041a85f6634450ae0b1c782fd0bb99181254791f62ed3e03" +
+        "1ac954134f00e00020e19cce4a22e8484655acea24f356d45043f6b9c3187b5e65" +
+        "a10200000000000015627b4873fd393c2c024fde047ba72fc7df5b46f1302711b9" +
+        "824fff63b36326f87a1f62ed3e031a500be2d500e0002083eaf4ee8ba45a1f502c" +
+        "2e8bbcab9df7abec22a98fe656e8ca01000000000000ab3c1fe5dfca9175141d9e" +
+        "7df11dc92c34388a8941eb0097ceff08d7e25b71e2db7b1f62ed3e031af711fffd",
+    },
+
+    chainDifficulty: 5168815,
+  }
+
+/**
+ * `MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges` test data
+ * represents a redemption with the following properties:
+ * - 2 redemption requests
+ * - Redemption dust threshold is 100000 satoshi
+ * - Treasury fee for each request is 0.05% of the requested amount
+ * - Maximum transaction fee for each request is 1000 satoshi
+ * - Total requested amount for all requests is 600000 satoshi
+ * - Total treasury fee for all requests is 600 satoshi
+ * - Total redeemable amount for all requests is 599400 satoshi
+ * - Maximum total transaction fee is 2000 satoshi
+ * - 2 P2WPKH change outputs with values 100000 and 136385266 satoshi and
+ *   indexes 2 and 3 respectively.
+ */
+export const MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges: RedemptionTestData =
+  {
+    wallet: {
+      pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+      state: 1,
+      pendingRedemptionsValue: 0,
+    },
+
+    redemptionRequests: [
+      {
+        redeemer: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
+        redeemerOutputScript:
+          // P2PKH with address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+          "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+      {
+        redeemer: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
+        redeemerOutputScript:
+          // P2WPKH with address tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx
+          "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+    ],
+
+    mainUtxo: {
+      txHash:
+        "0x5a019e75ab13d8e7296ad0365cc0e58585c5420e374d1248a29798db1ada7340",
+      txOutputIndex: 1,
+      txOutputValue: 137085266,
+    },
+
+    // https://live.blockcypher.com/btc-testnet/tx/44863a79ce2b8fec9792403d5048506e50ffa7338191db0e6c30d3d3358ea2f6
+    redemptionTx: {
+      hash: "0xf6a28e35d3d3306c0edb918133a7ff506e5048503d409297ec8f2bce793a8644",
+      version: "0x01000000",
+      inputVector:
+        "0x015a019e75ab13d8e7296ad0365cc0e58585c5420e374d1248a29798db1ada73" +
+        "400100000000ffffffff",
+      outputVector:
+        "0x04c0900400000000001976a9142cd680318747b720d67bf4246eb7403b476adb" +
+        "3488acc090040000000000160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1" +
+        "d0a0860100000000001600147ac2d9378a1c47e589dfb8095ca95ed2140d2726f2" +
+        "122108000000001600147ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+      locktime: "0x00000000",
+    },
+
+    redemptionProof: {
+      merkleProof:
+        "0xf213cf97732f3757927d80cc878a928c4b78c7fcf3ff766e7996c3cecb463ae9" +
+        "94714b7071100f2832a42eb5da51cbab90dee45bc99843c64a3949c6c90ca9df81" +
+        "43b6a9f1efc7f6fe31c30c922f4324a8f70b94855a23bbbcdf46793cd0d8661df0" +
+        "53867a0982d052818910bcfffb9c89673c190f3d98be4e28d1bb1b641d6f436a46" +
+        "0fce14461646563281322379ac74955b34e9e2ac01720949530a99177b92f31b7d" +
+        "78aef1f8102e8a5d7926421adfd3fd7b99a3c5bcb3dd67665a0d13b40c2bfcdabc" +
+        "9c3937a1ada199558e318bb489f538204b6e1abbe2d7bfe3a765f5",
+      txIndexInBlock: 13,
+      bitcoinHeaders:
+        "0x04e0002065dff02fc7c8c63f89ade8cbb2eaa1143842c1415cb16a5d0a010000" +
+        "000000005111c20aba08cc79bc7c9e92ec23de18b4cc4409e5faf0f8d50dc71dd2" +
+        "aa340d48821f62ed3e031ac3fc531f04e00020b5a04030b5fb433b7f60f16d88cb" +
+        "e4ed31b79623ae8cd59cf001000000000000447655822fda0037f47fd846e85935" +
+        "4083b92c4e37ae49837fb22f1fe4949201e0831f62ed3e031aa10a5e8404e00020" +
+        "497d88dd624b7c2a7b34c3b57c2a097b2903fa75d1dd4b254b0000000000000006" +
+        "eb2c533acddbcd7183c6cfb9b597bd4cea48e786d2412dde2673d9b16262c2d184" +
+        "1f62ed3e031a386fe74904e00020dfa80c9d6a1f0e0ad607b988fc2b1a74383009" +
+        "144676e9db01030000000000007699362c9b6d275b2c9d0a30edf4a1477bd3eafe" +
+        "3943612a4914f7973c3503b086891f62ffff001ddbc7877c04000020417a4020c5" +
+        "8042e79f7f20f7df4f5139f38bd32eae2aba2633350000000000002dbe017f7a33" +
+        "c4fe18d35f2c967eeea66a27c0287cb3e88944e846f2481cec09f18c1f62ed3e03" +
+        "1a34a24c6f04e0002023067b14f24b718e3bcb8c5acf90b8889b2b5f64f9cb86b8" +
+        "5c010000000000009ba6f78f391103d1492ffacb7c8b50374e9ee0ead9831b701c" +
+        "95de967533985c2f901f62ed3e031ab148c5180000002098f1603b50832f9007c9" +
+        "5e46c415d566228a9cb08374dc5b5c0000000000000016a7cdf53f077b555abd09" +
+        "9efae3e48dc6a147e58bb8ca107396aefcdbcc5b62e8941f62ffff001d81f351c4",
+    },
+
+    chainDifficulty: 5168815,
+  }
+
+/**
+ * `MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue` test data
+ * represents a redemption with the following properties:
+ * - 2 redemption requests
+ * - Redemption dust threshold is 100000 satoshi
+ * - Treasury fee for each request is 0.05% of the requested amount
+ * - Maximum transaction fee for each request is 1000 satoshi
+ * - Total requested amount for all requests is 600000 satoshi
+ * - Total treasury fee for all requests is 600 satoshi
+ * - Total redeemable amount for all requests is 599400 satoshi
+ * - Maximum total transaction fee is 2000 satoshi
+ * - 1 P2WPKH change output with value 0 satoshi and index 2.
+ */
+export const MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue: RedemptionTestData =
+  {
+    wallet: {
+      pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+      state: 1,
+      pendingRedemptionsValue: 0,
+    },
+
+    redemptionRequests: [
+      {
+        redeemer: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
+        redeemerOutputScript:
+          // P2PKH with address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+          "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+      {
+        redeemer: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
+        redeemerOutputScript:
+          // P2WPKH with address tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx
+          "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+    ],
+
+    mainUtxo: {
+      txHash:
+        "0x5a18b556ae4aab57197fa064a67d33c059efe9fd47c7fe71e18806b9aef6cdf8",
+      txOutputIndex: 1,
+      txOutputValue: 988586,
+    },
+
+    // https://live.blockcypher.com/btc-testnet/tx/f65bc5029251f0042aedb37f90dbb2bfb63a2e81694beef9cae5ec62e954c22e
+    redemptionTx: {
+      hash: "0x",
+      version: "0x01000000",
+      inputVector:
+        "0x015a18b556ae4aab57197fa064a67d33c059efe9fd47c7fe71e18806b9aef6cd" +
+        "f80100000000ffffffff",
+      outputVector:
+        "0x03c0900400000000001976a9142cd680318747b720d67bf4246eb7403b476adb" +
+        "3488acc090040000000000160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1" +
+        "d000000000000000001600147ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+      locktime: "0x00000000",
+    },
+
+    redemptionProof: {
+      merkleProof:
+        "0xb2eebf6c06a227d25c04000fdc8f123f21206357bef6b0c0476cd1a3e6e87ab5" +
+        "201dd0591f6c6f3f879b0042f2219adbdab2c2707deaac242cd9e1b3d9814068af" +
+        "04632884589ca993df61381ed20f57c3a24b4355067bf844d0d79929d6c3ed409a" +
+        "a4ac50b6fe587b62e8df74f73bfa8fcfa1c18110002ff70d6e048adcc7c7436a46" +
+        "0fce14461646563281322379ac74955b34e9e2ac01720949530a99177b92f31b7d" +
+        "78aef1f8102e8a5d7926421adfd3fd7b99a3c5bcb3dd67665a0d13b40c2bfcdabc" +
+        "9c3937a1ada199558e318bb489f538204b6e1abbe2d7bfe3a765f5",
+      txIndexInBlock: 1,
+      bitcoinHeaders:
+        "0x04e0002065dff02fc7c8c63f89ade8cbb2eaa1143842c1415cb16a5d0a010000" +
+        "000000005111c20aba08cc79bc7c9e92ec23de18b4cc4409e5faf0f8d50dc71dd2" +
+        "aa340d48821f62ed3e031ac3fc531f04e00020b5a04030b5fb433b7f60f16d88cb" +
+        "e4ed31b79623ae8cd59cf001000000000000447655822fda0037f47fd846e85935" +
+        "4083b92c4e37ae49837fb22f1fe4949201e0831f62ed3e031aa10a5e8404e00020" +
+        "497d88dd624b7c2a7b34c3b57c2a097b2903fa75d1dd4b254b0000000000000006" +
+        "eb2c533acddbcd7183c6cfb9b597bd4cea48e786d2412dde2673d9b16262c2d184" +
+        "1f62ed3e031a386fe74904e00020dfa80c9d6a1f0e0ad607b988fc2b1a74383009" +
+        "144676e9db01030000000000007699362c9b6d275b2c9d0a30edf4a1477bd3eafe" +
+        "3943612a4914f7973c3503b086891f62ffff001ddbc7877c04000020417a4020c5" +
+        "8042e79f7f20f7df4f5139f38bd32eae2aba2633350000000000002dbe017f7a33" +
+        "c4fe18d35f2c967eeea66a27c0287cb3e88944e846f2481cec09f18c1f62ed3e03" +
+        "1a34a24c6f04e0002023067b14f24b718e3bcb8c5acf90b8889b2b5f64f9cb86b8" +
+        "5c010000000000009ba6f78f391103d1492ffacb7c8b50374e9ee0ead9831b701c" +
+        "95de967533985c2f901f62ed3e031ab148c5180000002098f1603b50832f9007c9" +
+        "5e46c415d566228a9cb08374dc5b5c0000000000000016a7cdf53f077b555abd09" +
+        "9efae3e48dc6a147e58bb8ca107396aefcdbcc5b62e8941f62ffff001d81f351c4",
+    },
+
+    chainDifficulty: 5168815,
+  }
+
+/**
+ * `MultiplePendingRequestedRedemptionsWithNonRequestedRedemption` test data
+ * represents a redemption with the same properties as in
+ * `MultiplePendingRequestedRedemptionsWithP2WPKHChange` data but with modified
+ *  `redemptionRequests` array that doesn't contain the last request. This
+ *  makes the corresponding transaction output a non-requested redemption.
+ */
+export const MultiplePendingRequestedRedemptionsWithNonRequestedRedemption: RedemptionTestData =
+  {
+    ...MultiplePendingRequestedRedemptionsWithP2WPKHChange,
+    redemptionRequests:
+      MultiplePendingRequestedRedemptionsWithP2WPKHChange.redemptionRequests.slice(
+        0,
+        4
+      ),
+  }
+
+/**
+ * `MultiplePendingRequestedRedemptionsWithProvablyUnspendable` test data
+ * represents a redemption with the following properties:
+ * - 2 redemption requests
+ * - Redemption dust threshold is 100000 satoshi
+ * - Treasury fee for each request is 0.05% of the requested amount
+ * - Maximum transaction fee for each request is 1000 satoshi
+ * - Total requested amount for all requests is 600000 satoshi
+ * - Total treasury fee for all requests is 600 satoshi
+ * - Total redeemable amount for all requests is 599400 satoshi
+ * - Maximum total transaction fee is 2000 satoshi
+ * - 1 provably unspendable output at index 2.
+ * - 1 P2WPKH change output with value 275636 satoshi and index 3.
+ */
+export const MultiplePendingRequestedRedemptionsWithProvablyUnspendable: RedemptionTestData =
+  {
+    wallet: {
+      pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+      state: 1,
+      pendingRedemptionsValue: 0,
+    },
+
+    redemptionRequests: [
+      {
+        redeemer: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
+        redeemerOutputScript:
+          // P2PKH with address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+          "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+      {
+        redeemer: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
+        redeemerOutputScript:
+          // P2WPKH with address tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx
+          "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+    ],
+
+    mainUtxo: {
+      txHash:
+        "0x1c2d4f9383d2607e4e369753d086f2b02d65c272b70856c8110c5d6a8c3e1a92",
+      txOutputIndex: 1,
+      txOutputValue: 875636,
+    },
+
+    // https://live.blockcypher.com/btc-testnet/tx/4c6b33b7c0550e0e536a5d119ac7189d71e1296fcb0c258e0c115356895bc0e6
+    redemptionTx: {
+      hash: "0xe6c05b895653110c8e250ccb6f29e1719d18c79a115d6a530e0e55c0b7336b4c",
+      version: "0x01000000",
+      inputVector:
+        "0x011c2d4f9383d2607e4e369753d086f2b02d65c272b70856c8110c5d6a8c3e1a" +
+        "920100000000ffffffff",
+      outputVector:
+        "0x04c0900400000000001976a9142cd680318747b720d67bf4246eb7403b476adb" +
+        "3488acc090040000000000160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1" +
+        "d00000000000000000176a0f6d6f6e6579627574746f6e2e636f6d0568656c6c6f" +
+        "b4340400000000001600147ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+      locktime: "0x00000000",
+    },
+
+    redemptionProof: {
+      merkleProof:
+        "0xc4047d89948706a725d5b7ec92d44fec13797d023bc78199c5500063cfd9b393" +
+        "61a6fbac91f9eb8c67d0e9067c158a35bd3ef5b44f46d92550565344b130f0927f" +
+        "6673ddef0074cd576465dc4e25252967754f88e1ff8157e2358bea717e983ab71b" +
+        "951ee2a0eaa2e6bfa61bed4cddef48c02bba8f8f8035252aa97df9394880eb84c9" +
+        "5941be3ea2f667b5b9223bcf7dd09aff1711c090aac450f20746a315eeb29ae5bf" +
+        "6a01f97bf8bd4ffb9e3efca33e6e5ec3d8fe82eda7924438f192f834",
+      txIndexInBlock: 7,
+      bitcoinHeaders:
+        "0x00e00020516933fc2a5d8f2dc0c93e84614643e44877d1053e97aac186000000" +
+        "00000000094411d177621edf4c06402e7f493a06cf84841d5713d2556859cd5228" +
+        "ecd2498a862062ed3e031a38d7169300e0ff3fd742d7788ab7e35c27753eb3689a" +
+        "059766b314d39af155fc4a00000000000000e4fb461c8e130d30d44e4c1bb487bd" +
+        "cb6818694ba6415752d090859ee5d05c50cc892062ed3e031a06ced8a400e00020" +
+        "34247069e603ba4902ffef5789625ebd377838afd331928eef000000000000001b" +
+        "98647dde95fa07d85ba91ac16d392bbec9d2440bc1764b6bc99dd76d8d5e86b18a" +
+        "2062ed3e031ab67bfd2f00e0ff3fb47ec27d405d0cd9fa745a3ff9dee8b9b2f589" +
+        "1edbf8ef10820000000000000042829163fafa65aaccd5afbe2b04f4ae93a585ea" +
+        "1c631f3ea2c5cefba791292d058b2062ed3e031af9941d6f00000020f41d5cf0c4" +
+        "611f29fe4fb1508d7dc7acad9215ea39d459071e00000000000000fe89f4c7f25d" +
+        "54f0047199507ff1bd0d15e4c0955f1f2230d147200836ce52b7138b2062ed3e03" +
+        "1aa0f949c0040000207fe7f95bef4018c800f0f0c3d774a5dcde3a102779b648f9" +
+        "2b02000000000000f4b7a63190dbe4a149fffed694612e7b35d0310cb4e870e282" +
+        "d013b494a83d4def8d2062ed3e031a3f6aea04",
+    },
+
+    chainDifficulty: 5168815,
   }
