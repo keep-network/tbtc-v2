@@ -1401,7 +1401,7 @@ describe("Bridge", () => {
         })
 
         it("should revert", async () => {
-          // Each header encodes a `diffuculty target` field in bytes 72-76.
+          // Each header encodes a `difficulty target` field in bytes 72-76.
           // The given header's hash (interpreted as uint) must be bigger than
           // the `difficulty target`. To test this scenario, we change the
           // last byte of the last header in such a way their hash becomes
@@ -4164,6 +4164,10 @@ describe("Bridge", () => {
             // Required for a successful SPV proof.
             await relay.setPrevEpochDifficulty(data.chainDifficulty)
             await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+
+            // Wallet main UTXO must be set on the Bridge side to make
+            // that scenario happen.
+            await bridge.setMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
           })
 
           after(async () => {
@@ -4225,52 +4229,246 @@ describe("Bridge", () => {
 
     context("when transaction proof is not valid", () => {
       context("when input vector is not valid", () => {
+        const data: RedemptionTestData = JSON.parse(
+          JSON.stringify(SinglePendingRequestedRedemption)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          // Corrupt the input vector by setting a compactSize uint claiming
+          // there is no inputs at all.
+          data.redemptionTx.inputVector =
+            "0x00b69a2869840aa6fdfd143136ff4514ca46ea2d876855040892ad74ab" +
+            "8c5274220100000000ffffffff"
+
+          await expect(runRedemptionScenario(data)).to.be.revertedWith(
+            "Invalid input vector provided"
+          )
         })
       })
 
       context("when output vector is not valid", () => {
+        const data: RedemptionTestData = JSON.parse(
+          JSON.stringify(SinglePendingRequestedRedemption)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          // Corrupt the output vector by setting a compactSize uint claiming
+          // there is no outputs at all.
+          data.redemptionTx.outputVector =
+            "0x005cf511000000000017a91486884e6be1525dab5ae0b451bd2c72cee6" +
+            "7dcf4187"
+
+          await expect(runRedemptionScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
         })
       })
 
       context("when merkle proof is not valid", () => {
+        const data: RedemptionTestData = JSON.parse(
+          JSON.stringify(SinglePendingRequestedRedemption)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          // Corrupt the merkle proof by changing tx index in block to an
+          // invalid one. The proper one is 33 so any other will do the trick.
+          data.redemptionProof.txIndexInBlock = 30
+
+          await expect(runRedemptionScenario(data)).to.be.revertedWith(
+            "Tx merkle proof is not valid for provided header and tx hash"
+          )
         })
       })
 
       context("when proof difficulty is not current nor previous", () => {
+        const data: RedemptionTestData = JSON.parse(
+          JSON.stringify(SinglePendingRequestedRedemption)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          // To pass the proof validation, the difficulty returned by the relay
+          // must be 1 for test data used in this scenario. Setting
+          // a different value will cause difficulty comparison failure.
+          data.chainDifficulty = 2
+
+          await expect(runRedemptionScenario(data)).to.be.revertedWith(
+            "Not at current or previous difficulty"
+          )
         })
       })
 
       context("when headers chain length is not valid", () => {
+        const data: RedemptionTestData = JSON.parse(
+          JSON.stringify(SinglePendingRequestedRedemption)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          // Corrupt the bitcoin headers length in the redemption proof. The
+          // proper value is length divisible by 80 so any length violating
+          // this rule will cause failure. In this case, we just remove the
+          // last byte from proper headers chain.
+          const properHeaders = data.redemptionProof.bitcoinHeaders.toString()
+          data.redemptionProof.bitcoinHeaders = properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )
+
+          await expect(runRedemptionScenario(data)).to.be.revertedWith(
+            "Invalid length of the headers chain"
+          )
         })
       })
 
       context("when headers chain is not valid", () => {
+        const data: RedemptionTestData = JSON.parse(
+          JSON.stringify(SinglePendingRequestedRedemption)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          // Bitcoin headers must form a chain to pass the proof validation.
+          // That means the `previous block hash` encoded in the given block
+          // header must match the actual previous header's hash. To test
+          // that scenario, we corrupt the `previous block hash` of the
+          // second header. Each header is 80 bytes length. First 4 bytes
+          // of each header is `version` and 32 subsequent bytes is
+          // `previous block hash`. Changing byte 85 of the whole chain will
+          // do the work.
+          const properHeaders = data.redemptionProof.bitcoinHeaders.toString()
+          data.redemptionProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            170
+          )}ff${properHeaders.substring(172)}`
+
+          await expect(runRedemptionScenario(data)).to.be.revertedWith(
+            "Invalid headers chain"
+          )
         })
       })
 
       context("when the work in the header is insufficient", () => {
+        const data: RedemptionTestData = JSON.parse(
+          JSON.stringify(SinglePendingRequestedRedemption)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          // Each header encodes a `difficulty target` field in bytes 72-76.
+          // The given header's hash (interpreted as uint) must be bigger than
+          // the `difficulty target`. To test this scenario, we change the
+          // last byte of the last header in such a way their hash becomes
+          // lower than their `difficulty target`.
+          const properHeaders = data.redemptionProof.bitcoinHeaders.toString()
+          data.redemptionProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )}ff`
+
+          await expect(runRedemptionScenario(data)).to.be.revertedWith(
+            "Insufficient work in a header"
+          )
         })
       })
 
       context(
         "when accumulated difficulty in headers chain is insufficient",
         () => {
+          let otherBridge: Bridge
+          const data: RedemptionTestData = JSON.parse(
+            JSON.stringify(SinglePendingRequestedRedemption)
+          )
+
+          before(async () => {
+            await createSnapshot()
+
+            // Necessary to pass the first part of proof validation.
+            await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+            await relay.setPrevEpochDifficulty(data.chainDifficulty)
+
+            // Deploy another bridge which has higher `txProofDifficultyFactor`
+            // than the original bridge. That means it will need 12 confirmations
+            // to deem transaction proof validity. This scenario uses test
+            // data which has only 6 confirmations. That should force the
+            // failure we expect within this scenario.
+            const Bridge = await ethers.getContractFactory("Bridge")
+            otherBridge = await Bridge.deploy(
+              bank.address,
+              relay.address,
+              treasury.address,
+              12
+            )
+            await otherBridge.deployed()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
           it("should revert", async () => {
-            // TODO: Implementation.
+            await expect(
+              otherBridge.submitRedemptionProof(
+                data.redemptionTx,
+                data.redemptionProof,
+                data.mainUtxo,
+                data.wallet.pubKeyHash
+              )
+            ).to.be.revertedWith(
+              "Insufficient accumulated difficulty in header chain"
+            )
           })
         }
       )
