@@ -36,6 +36,7 @@ import {
   MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue,
   MultiplePendingRequestedRedemptionsWithNonRequestedRedemption,
   MultiplePendingRequestedRedemptionsWithProvablyUnspendable,
+  MultiplePendingRequestedRedemptionsWithMultipleInputs,
 } from "../data/redemption"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
@@ -4094,30 +4095,130 @@ describe("Bridge", () => {
             context(
               "when the single input doesn't point to the wallet's main UTXO",
               () => {
+                const data: RedemptionTestData = JSON.parse(
+                  JSON.stringify(
+                    MultiplePendingRequestedRedemptionsWithP2WPKHChange
+                  )
+                )
+
+                let outcome: Promise<RedemptionScenarioOutcome>
+
+                before(async () => {
+                  await createSnapshot()
+
+                  // Corrupt the wallet's main UTXO that is injected to
+                  // the Bridge state by the test runner in order to make it
+                  // different than the input used by the actual Bitcoin
+                  // transaction thus make the tested scenario happen. The
+                  // proper value of `txOutputIndex` is `5` so any other value
+                  // will do the trick.
+                  data.mainUtxo.txOutputIndex = 10
+
+                  outcome = runRedemptionScenario(data)
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
                 it("should revert", async () => {
-                  // TODO: Implementation.
+                  await expect(outcome).to.be.revertedWith(
+                    "Redemption transaction input must point to the wallet's main UTXO"
+                  )
                 })
               }
             )
           })
 
           context("when input count is other than one", () => {
+            const data: RedemptionTestData =
+              MultiplePendingRequestedRedemptionsWithMultipleInputs
+
+            let outcome: Promise<RedemptionScenarioOutcome>
+
+            before(async () => {
+              await createSnapshot()
+
+              outcome = runRedemptionScenario(data)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
             it("should revert", async () => {
-              // TODO: Implementation.
+              await expect(outcome).to.be.revertedWith(
+                "Redemption transaction must have a single input"
+              )
             })
           })
         })
 
         context("when main UTXO data are invalid", () => {
+          const data: RedemptionTestData =
+            MultiplePendingRequestedRedemptionsWithP2WPKHChange
+
+          before(async () => {
+            await createSnapshot()
+
+            // Required for a successful SPV proof.
+            await relay.setPrevEpochDifficulty(data.chainDifficulty)
+            await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
           it("should revert", async () => {
-            // TODO: Implementation.
+            // Corrupt the main UTXO parameter passed during
+            // `submitRedemptionProof` call. The proper value of
+            // `txOutputIndex` for this test data set is `5` so any other
+            // value will make this test scenario happen.
+            const corruptedMainUtxo = {
+              ...data.mainUtxo,
+              txOutputIndex: 10,
+            }
+
+            await expect(
+              bridge.submitRedemptionProof(
+                data.redemptionTx,
+                data.redemptionProof,
+                corruptedMainUtxo,
+                data.wallet.pubKeyHash
+              )
+            ).to.be.revertedWith("Invalid main UTXO data")
           })
         })
       })
 
       context("when there is no main UTXO for the given wallet", () => {
+        const data: RedemptionTestData =
+          MultiplePendingRequestedRedemptionsWithP2WPKHChange
+
+        before(async () => {
+          await createSnapshot()
+
+          // Required for a successful SPV proof.
+          await relay.setPrevEpochDifficulty(data.chainDifficulty)
+          await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          // There was no preparations before `submitRedemptionProof` call
+          // so no main UTXO is set for the given wallet.
+          await expect(
+            bridge.submitRedemptionProof(
+              data.redemptionTx,
+              data.redemptionProof,
+              data.mainUtxo,
+              data.wallet.pubKeyHash
+            )
+          ).to.be.revertedWith("No main UTXO for given wallet")
         })
       })
     })

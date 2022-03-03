@@ -75,15 +75,16 @@ export interface RedemptionBalanceChange {
 /**
  * `SinglePendingRequestedRedemption` test data represents a redemption with
  *  the following properties:
- * - 1 redemption request
+ * - 1 input pointing to the wallet main UTXO
+ * - 1 redemption request handled by 1 output
  * - Redemption dust threshold is 100000 satoshi
  * - Treasury fee for each request is 0% of the requested amount
  * - Maximum transaction fee for each request is 1000 satoshi
  * - Total requested amount for all requests is 1177424 satoshi
  * - Total treasury fee for all requests is 0 satoshi
  * - Total redeemable amount for all requests is 1177424 satoshi
- * - Maximum total transaction fee is 1000 satoshi
  * - No change output
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const SinglePendingRequestedRedemption: RedemptionTestData = {
   wallet: {
@@ -146,9 +147,11 @@ export const SinglePendingRequestedRedemption: RedemptionTestData = {
 /**
  * `SingleNonRequestedRedemption` test data represents a redemption with
  *  the following properties:
+ * - 1 input pointing to the wallet main UTXO
  * - 0 redemption requests
  * - 1 P2SH output with value 1176924 satoshi and index 0, pointing to a
  *   non-requested output script.
+ * - 6+ on-chain confirmations of the redemption transaction
  *
  * Basically, this is the `SinglePendingRequestedRedemption` data set with
  * empty `redemptionRequests` array to simulate the situation where the
@@ -162,8 +165,10 @@ export const SingleNonRequestedRedemption: RedemptionTestData = {
 /**
  * `SingleP2PKHChange` test data represents a redemption with
  *  the following properties:
+ * - 1 input pointing to the wallet main UTXO
  * - 0 redemption requests
  * - 1 P2PKH change output with value 1860981 satoshi and index 0.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const SingleP2PKHChange: RedemptionTestData = {
   wallet: {
@@ -230,8 +235,10 @@ export const SingleP2PKHChange: RedemptionTestData = {
 /**
  * `SingleP2WPKHChange` test data represents a redemption with
  *  the following properties:
+ * - 1 input pointing to the wallet main UTXO
  * - 0 redemption requests
  * - 1 P2WPKH change output with value 1669207 satoshi and index 0.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const SingleP2WPKHChange: RedemptionTestData = {
   wallet: {
@@ -295,8 +302,10 @@ export const SingleP2WPKHChange: RedemptionTestData = {
 /**
  * `SingleP2SHChange` test data represents a redemption with
  *  the following properties:
+ * - 1 input pointing to the wallet main UTXO
  * - 0 redemption requests
  * - 1 illegal P2SH change output with value 1664207 satoshi and index 0.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const SingleP2SHChange: RedemptionTestData = {
   wallet: {
@@ -363,8 +372,10 @@ export const SingleP2SHChange: RedemptionTestData = {
 /**
  * `SingleP2WPKHChangeZeroValue` test data represents a redemption with
  *  the following properties:
+ * - 1 input pointing to the wallet main UTXO
  * - 0 redemption requests
  * - 1 P2WPKH change output with value 0 satoshi and index 0.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const SingleP2WPKHChangeZeroValue: RedemptionTestData = {
   wallet: {
@@ -430,8 +441,10 @@ export const SingleP2WPKHChangeZeroValue: RedemptionTestData = {
 /**
  * `SingleProvablyUnspendable` test data represents a redemption with
  *  the following properties:
+ * - 1 input pointing to the wallet main UTXO
  * - 0 redemption requests
  * - 1 provably unspendable output with value 0 satoshi and index 0.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const SingleProvablyUnspendable: RedemptionTestData = {
   wallet: {
@@ -496,15 +509,16 @@ export const SingleProvablyUnspendable: RedemptionTestData = {
 /**
  * `MultiplePendingRequestedRedemptions` test data represents a
  * redemption with the following properties:
- * - 5 redemption requests
+ * - 1 input pointing to the wallet main UTXO
+ * - 5 redemption requests handled by 5 outputs
  * - Redemption dust threshold is 100000 satoshi
  * - Treasury fee for each request is 0% of the requested amount
  * - Maximum transaction fee for each request is 1000 satoshi
  * - Total requested amount for all requests is 959845 satoshi
  * - Total treasury fee for all requests is 0 satoshi
  * - Total redeemable amount for all requests is 959845 satoshi
- * - Maximum total transaction fee is 5000 satoshi
  * - No change output
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const MultiplePendingRequestedRedemptions: RedemptionTestData = {
   wallet: {
@@ -609,15 +623,16 @@ export const MultiplePendingRequestedRedemptions: RedemptionTestData = {
 /**
  * `MultiplePendingRequestedRedemptionsWithP2WPKHChange` test data represents a
  * redemption with the following properties:
- * - 5 redemption requests
+ * - 1 input pointing to the wallet main UTXO
+ * - 5 redemption requests handled by 5 outputs
  * - Redemption dust threshold is 100000 satoshi
  * - Treasury fee for each request is 0.05% of the requested amount
  * - Maximum transaction fee for each request is 1000 satoshi
  * - Total requested amount for all requests is 6435567 satoshi
  * - Total treasury fee for all requests is 3217 satoshi
  * - Total redeemable amount for all requests is 6432350 satoshi
- * - Maximum total transaction fee is 5000 satoshi
  * - 1 P2WPKH change output with value 137130866 satoshi and index 5.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const MultiplePendingRequestedRedemptionsWithP2WPKHChange: RedemptionTestData =
   {
@@ -721,15 +736,16 @@ export const MultiplePendingRequestedRedemptionsWithP2WPKHChange: RedemptionTest
 /**
  * `MultiplePendingRequestedRedemptionsWithP2SHChange` test data represents a
  * redemption with the following properties:
- * - 2 redemption requests
+ * - 1 input pointing to the wallet main UTXO
+ * - 2 redemption requests handled by 2 outputs
  * - Redemption dust threshold is 100000 satoshi
  * - Treasury fee for each request is 0.05% of the requested amount
  * - Maximum transaction fee for each request is 1000 satoshi
  * - Total requested amount for all requests is 600000 satoshi
  * - Total treasury fee for all requests is 600 satoshi
  * - Total redeemable amount for all requests is 599400 satoshi
- * - Maximum total transaction fee is 2000 satoshi
  * - 1 illegal P2SH change output with value 488167 satoshi and index 2.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const MultiplePendingRequestedRedemptionsWithP2SHChange: RedemptionTestData =
   {
@@ -813,16 +829,17 @@ export const MultiplePendingRequestedRedemptionsWithP2SHChange: RedemptionTestDa
 /**
  * `MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges` test data
  * represents a redemption with the following properties:
- * - 2 redemption requests
+ * - 1 input pointing to the wallet main UTXO
+ * - 2 redemption requests handled by 2 outputs
  * - Redemption dust threshold is 100000 satoshi
  * - Treasury fee for each request is 0.05% of the requested amount
  * - Maximum transaction fee for each request is 1000 satoshi
  * - Total requested amount for all requests is 600000 satoshi
  * - Total treasury fee for all requests is 600 satoshi
  * - Total redeemable amount for all requests is 599400 satoshi
- * - Maximum total transaction fee is 2000 satoshi
  * - 2 P2WPKH change outputs with values 100000 and 136385266 satoshi and
  *   indexes 2 and 3 respectively.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges: RedemptionTestData =
   {
@@ -907,15 +924,16 @@ export const MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges: Redem
 /**
  * `MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue` test data
  * represents a redemption with the following properties:
- * - 2 redemption requests
+ * - 1 input pointing to the wallet main UTXO
+ * - 2 redemption requests handled by 2 outputs
  * - Redemption dust threshold is 100000 satoshi
  * - Treasury fee for each request is 0.05% of the requested amount
  * - Maximum transaction fee for each request is 1000 satoshi
  * - Total requested amount for all requests is 600000 satoshi
  * - Total treasury fee for all requests is 600 satoshi
  * - Total redeemable amount for all requests is 599400 satoshi
- * - Maximum total transaction fee is 2000 satoshi
  * - 1 P2WPKH change output with value 0 satoshi and index 2.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue: RedemptionTestData =
   {
@@ -1016,16 +1034,17 @@ export const MultiplePendingRequestedRedemptionsWithNonRequestedRedemption: Rede
 /**
  * `MultiplePendingRequestedRedemptionsWithProvablyUnspendable` test data
  * represents a redemption with the following properties:
- * - 2 redemption requests
+ * - 1 input pointing to the wallet main UTXO
+ * - 2 redemption requests handled by 2 outputs
  * - Redemption dust threshold is 100000 satoshi
  * - Treasury fee for each request is 0.05% of the requested amount
  * - Maximum transaction fee for each request is 1000 satoshi
  * - Total requested amount for all requests is 600000 satoshi
  * - Total treasury fee for all requests is 600 satoshi
  * - Total redeemable amount for all requests is 599400 satoshi
- * - Maximum total transaction fee is 2000 satoshi
  * - 1 provably unspendable output at index 2.
  * - 1 P2WPKH change output with value 275636 satoshi and index 3.
+ * - 6+ on-chain confirmations of the redemption transaction
  */
 export const MultiplePendingRequestedRedemptionsWithProvablyUnspendable: RedemptionTestData =
   {
@@ -1099,6 +1118,99 @@ export const MultiplePendingRequestedRedemptionsWithProvablyUnspendable: Redempt
         "1aa0f949c0040000207fe7f95bef4018c800f0f0c3d774a5dcde3a102779b648f9" +
         "2b02000000000000f4b7a63190dbe4a149fffed694612e7b35d0310cb4e870e282" +
         "d013b494a83d4def8d2062ed3e031a3f6aea04",
+    },
+
+    chainDifficulty: 5168815,
+  }
+
+/**
+ * `MultiplePendingRequestedRedemptionsWithMultipleInputs` test data
+ * represents a redemption with the following properties:
+ * - 2 inputs where 1 of them points to the main UTXO
+ * - 2 redemption requests handled by 2 outputs
+ * - Redemption dust threshold is 100000 satoshi
+ * - Treasury fee for each request is 0.05% of the requested amount
+ * - Maximum transaction fee for each request is 1000 satoshi
+ * - Total requested amount for all requests is 600000 satoshi
+ * - Total treasury fee for all requests is 600 satoshi
+ * - Total redeemable amount for all requests is 599400 satoshi
+ * - 1 P2WPKH change output with value 531716 satoshi and index 2.
+ * - 6+ on-chain confirmations of the redemption transaction
+ */
+export const MultiplePendingRequestedRedemptionsWithMultipleInputs: RedemptionTestData =
+  {
+    wallet: {
+      pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+      state: 1,
+      pendingRedemptionsValue: 0,
+    },
+
+    redemptionRequests: [
+      {
+        redeemer: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
+        redeemerOutputScript:
+          // P2PKH with address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+          "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+      {
+        redeemer: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
+        redeemerOutputScript:
+          // P2WPKH with address tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx
+          "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+        amount: 300000, // Accepts outputs in range [298850, 299850]
+      },
+    ],
+
+    mainUtxo: {
+      txHash:
+        "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+      txOutputIndex: 1,
+      txOutputValue: 718510,
+    },
+
+    // https://live.blockcypher.com/btc-testnet/tx/605edd75ae0b4fa7cfc7aae8f1399119e9d7ecc212e6253156b60d60f4925d44
+    redemptionTx: {
+      hash: "0x445d92f4600db6563125e612c2ecd7e9199139f1e8aac7cfa74f0bae75dd5e60",
+      version: "0x01000000",
+      inputVector:
+        "0x0225a666beb7380a3fa2a0a8f64a562c7f1749a131bfee26ff61e4cee07cb3dd" +
+        "030100000000ffffffffc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f" +
+        "2a1868ddd917458bdf0100000000ffffffff",
+      outputVector:
+        "0x03c0900400000000001976a9142cd680318747b720d67bf4246eb7403b476adb" +
+        "3488acc090040000000000160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1" +
+        "d0041d0800000000001600147ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+      locktime: "0x00000000",
+    },
+
+    redemptionProof: {
+      merkleProof:
+        "0x88269e1c322be70bfbefb31c21880716592b5c50cc05daed725278d574c3e472" +
+        "6347cd0825a64a705f72133c93a181547d0a27919605ef110aeafc30a88fefdfc1" +
+        "c9d3e01fbb6e628ed67c41b5ea533a112883d5a8672d669fe3739ca7b274b3c1f5" +
+        "4765886f2444ef13d4c90d72594920df006793362ec6169ae4840be26af17fb255" +
+        "5399b14643436ba75f862e4aac9b5e53c68dddc706720ab18f2f46be59a00211d8" +
+        "cf4f8e311f49f2a52177c7a21d421e52748d01114e83e13c21ad4131",
+      txIndexInBlock: 1,
+      bitcoinHeaders:
+        "0x000000208ec76388aa580d8fa32ce9becbfd8f140dc33fc5a91fbc00f9020000" +
+        "00000000959305797e5c97c81fe38629d01271d3f583f4cebe878ddb3e93547004" +
+        "b29f7961952062ed3e031a6bd3f8050000ff3f42a37a9f0d546b1752e712abf607" +
+        "ee0d4f63d65e2590ccef4202000000000000ce9a58c9a6f39c18225afd7a7e5591" +
+        "423d77620595d4dd264167d889c4ddb7fa28972062ed3e031a75397f0104e00020" +
+        "d9cb8a5f9c012c43e9e0ccb4eb2ef134f3deb03a71ec005c8c0000000000000058" +
+        "fd6736c2d43ef0e414e31333f08fda58be1046967f412be7033421e4ca87e03997" +
+        "2062ed3e031acd8c3dcb04000020bbcf82f0e7a70b2070f7c32e8ac686fa2bef3c" +
+        "f735ea7778030200000000000049926ec1e65124db0045942e5e98a323e8c15a9e" +
+        "1c6a43139b79618fc7efcece37972062ed3e031ab38bf0fc00e0002055daa8e180" +
+        "320777a0b8d9b27f574513720caa0bd4c6f7ae34030000000000009935ad26c911" +
+        "4f4b21781b3509a8d106b2b597af2fa41e19469cca843a1c650b49972062ed3e03" +
+        "1a6a3ca59100e0002012ea5dafd8e9e4c149da2e3a896281b68b375eb2ea38cdef" +
+        "1403000000000000c9e61160c8367db22bbf0f3a0c07acb29ea15ca44cbc92a2dc" +
+        "9ea17a971c2e63ad982062ed3e031a3cfc880f00e00020fc72ae375a8cd436d959" +
+        "c96b73323c81e2ef11e31d7c98e72e02000000000000711a4b0d4fadef376c37da" +
+        "044aa896ea0e7c64008c2d6c3e3eb2d6f1b58e78b5339a2062ed3e031a9b77f2eb",
     },
 
     chainDifficulty: 5168815,
