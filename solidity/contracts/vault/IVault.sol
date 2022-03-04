@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity 0.8.4;
+pragma solidity ^0.8.9;
 
 /// @title Bank Vault interface
 /// @notice `IVault` is an interface for a smart contract consuming Bank
