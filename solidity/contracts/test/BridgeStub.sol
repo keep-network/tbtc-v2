@@ -10,8 +10,9 @@ contract BridgeStub is Bridge {
         address _bank,
         address _relay,
         address _treasury,
+        address _walletRegistry,
         uint256 _txProofDifficultyFactor
-    ) Bridge(_bank, _relay, _treasury, _txProofDifficultyFactor) {}
+    ) Bridge(_bank, _relay, _treasury, _walletRegistry, _txProofDifficultyFactor) {}
 
     function setMainUtxo(bytes20 walletPubKeyHash, BitcoinTx.UTXO calldata utxo)
         external
