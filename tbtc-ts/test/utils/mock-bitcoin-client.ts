@@ -16,8 +16,9 @@ export class MockBitcoinClient implements Client {
   >()
   private _rawTransactions = new Map<string, RawTransaction>()
   private _transactions = new Map<string, Transaction>()
-  private _latestHeight: number = 0
-  private _headersChain: string = ""
+  private _confirmations = new Map<string, number>()
+  private _latestHeight = 0
+  private _headersChain = ""
   private _transactionMerkle: TransactionMerkleBranch = {
     blockHeight: 0,
     merkle: [],
@@ -37,6 +38,10 @@ export class MockBitcoinClient implements Client {
 
   set transactions(value: Map<string, Transaction>) {
     this._transactions = value
+  }
+
+  set confirmations(value: Map<string, number>) {
+    this._confirmations = value
   }
 
   set latestHeight(value: number) {
@@ -76,6 +81,12 @@ export class MockBitcoinClient implements Client {
   getRawTransaction(transactionHash: string): Promise<RawTransaction> {
     return new Promise<RawTransaction>((resolve, _) => {
       resolve(this._rawTransactions.get(transactionHash) as RawTransaction)
+    })
+  }
+
+  getTransactionConfirmations(transactionHash: string): Promise<number> {
+    return new Promise<number>((resolve, _) => {
+      resolve(this._confirmations.get(transactionHash) as number)
     })
   }
 

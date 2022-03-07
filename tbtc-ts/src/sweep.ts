@@ -7,6 +7,7 @@ import {
   RawTransaction,
   UnspentTransactionOutput,
   Client as BitcoinClient,
+  decomposeRawTransaction,
   isCompressedPublicKey,
 } from "./bitcoin"
 import {
@@ -14,6 +15,8 @@ import {
   getActiveWalletPublicKey,
   DepositData,
 } from "./deposit"
+import { Bridge } from "./bridge"
+import { createTransactionProof } from "./proof"
 
 /**
  * Sweeps P2(W)SH UTXOs by combining all the provided UTXOs and broadcasting
@@ -370,4 +373,30 @@ async function prepareInputSignData(
     depositScript: depositScript,
     previousOutputValue: previousOutput.value,
   }
+}
+
+/**
+ * Prepares the proof of a sweep transaction and submits it to the Bridge
+ * on-chain contract.
+ * @param transactionHash - Hash of the transaction being proven.
+ * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
+ * @param bridge - Interface to the Bridge on-chain contract.
+ * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * @returns Empty promise.
+ */
+export async function proveSweep(
+  transactionHash: string,
+  mainUtxo: UnspentTransactionOutput,
+  bridge: Bridge,
+  bitcoinClient: BitcoinClient
+): Promise<void> {
+  const confirmations = await bridge.txProofDifficultyFactor()
+  const proof = await createTransactionProof(
+    transactionHash,
+    confirmations,
+    bitcoinClient
+  )
+  const rawTransaction = await bitcoinClient.getRawTransaction(transactionHash)
+  const info = decomposeRawTransaction(rawTransaction)
+  await bridge.submitSweepProof(info, proof, mainUtxo)
 }

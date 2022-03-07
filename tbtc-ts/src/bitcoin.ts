@@ -1,3 +1,10 @@
+// @ts-ignore
+import { TX } from "bcoin"
+// @ts-ignore
+import bufio from "bufio"
+// @ts-ignore
+import { StaticWriter, BufferWriter } from "bufio"
+
 /**
  * Represents a raw transaction.
  */
@@ -16,23 +23,6 @@ export interface Transaction {
    * The transaction hash (or transaction ID) as an un-prefixed hex string.
    */
   transactionHash: string
-
-  /**
-   * The block hash of the transaction's containing block as an un-prefixed
-   * hex string.
-   */
-  blockHash: string
-
-  /**
-   * The number of confirmations the transaction has received, including the
-   * containing block hash.
-   */
-  confirmations: number
-
-  /**
-   * The full transaction payload as an un-prefixed hex string.
-   */
-  hex: string
 
   /**
    * The vector of transaction inputs.
@@ -101,35 +91,34 @@ export type UnspentTransactionOutput = TransactionOutpoint & {
 }
 
 /**
- * Information about important parts of a transaction, including inputs and
- * outputs.
+ * Represents data of a decomposed transaction.
  */
-export interface TxInfo {
+export interface DecomposedRawTransaction {
   /**
    * Transaction's version.
    */
-  txVersion: string
+  version: string
 
   /**
    * All transaction's inputs, prepended by the number of transaction inputs.
    */
-  txInputVector: string
+  inputs: string
 
   /**
    * All transaction's outputs prepended by the number of transaction outputs.
    */
-  txOutputVector: string
+  outputs: string
 
   /**
    * Transaction's locktime.
    */
-  txLocktime: string
+  locktime: string
 }
 
 /**
  * Proof that a given transaction is included in the Bitcoin blockchain.
  */
-export interface TxProof {
+export interface Proof {
   /**
    * The merkle proof of transaction inclusion in a block.
    */
@@ -144,22 +133,6 @@ export interface TxProof {
    * Single byte-string of 80-byte block headers, lowest height first.
    */
   bitcoinHeaders: string
-}
-
-/**
- * Sweep transaction data for verifying the inclusion of a transaction in the
- * blockchain and processing inputs and outputs.
- */
-export interface SweepData {
-  /**
-   * Proof of inclusion of a transaction in the blockchain.
-   */
-  txProof: TxProof
-
-  /**
-   * Information about a transaction needed to process it on-chain.
-   */
-  txInfo: TxInfo
 }
 
 /**
@@ -212,6 +185,14 @@ export interface Client {
   getRawTransaction(transactionHash: string): Promise<RawTransaction>
 
   /**
+   * Gets the number of confirmations that a given transaction has accumulated
+   * so far.
+   * @param transactionHash - Hash of the transaction.
+   * @returns The number of confirmations.
+   */
+  getTransactionConfirmations(transactionHash: string): Promise<number>
+
+  /**
    * Gets height of the latest mined block.
    * @return Height of the last mined block.
    */
@@ -242,6 +223,58 @@ export interface Client {
    * @param transaction - Transaction to broadcast.
    */
   broadcast(transaction: RawTransaction): Promise<void>
+}
+
+/**
+ * Decomposes a transaction in the raw representation into version, vector of
+ * inputs, vector of outputs and locktime.
+ * @param rawTransaction - Transaction in the raw format.
+ * @returns Transaction data with fields represented as strings.
+ */
+export function decomposeRawTransaction(
+  rawTransaction: RawTransaction
+): DecomposedRawTransaction {
+  const toHex = (bufferWriter: StaticWriter | BufferWriter) => {
+    return bufferWriter.render().toString("hex")
+  }
+
+  const vectorToRaw = (elements: any[]) => {
+    const buffer = bufio.write()
+    buffer.writeVarint(elements.length)
+    for (const element of elements) {
+      element.toWriter(buffer)
+    }
+    return toHex(buffer)
+  }
+
+  const getTxInputVector = (tx: TX) => {
+    return vectorToRaw(tx.inputs)
+  }
+
+  const getTxOutputVector = (tx: TX) => {
+    return vectorToRaw(tx.outputs)
+  }
+
+  const getTxVersion = (tx: TX) => {
+    const buffer = bufio.write()
+    buffer.writeU32(tx.version)
+    return toHex(buffer)
+  }
+
+  const getTxLocktime = (tx: TX) => {
+    const buffer = bufio.write()
+    buffer.writeU32(tx.locktime)
+    return toHex(buffer)
+  }
+
+  const tx = TX.fromRaw(Buffer.from(rawTransaction.transactionHex, "hex"), null)
+
+  return {
+    version: getTxVersion(tx),
+    inputs: getTxInputVector(tx),
+    outputs: getTxOutputVector(tx),
+    locktime: getTxLocktime(tx),
+  }
 }
 
 /**
