@@ -222,22 +222,23 @@ contract Bank is Ownable {
         );
         require(v == 27 || v == 28, "Invalid signature 'v' value");
 
-        bytes32 digest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                DOMAIN_SEPARATOR(),
-                keccak256(
-                    abi.encode(
-                        PERMIT_TYPEHASH,
-                        owner,
-                        spender,
-                        amount,
-                        nonce[owner]++,
-                        deadline
+        bytes32 digest =
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    DOMAIN_SEPARATOR(),
+                    keccak256(
+                        abi.encode(
+                            PERMIT_TYPEHASH,
+                            owner,
+                            spender,
+                            amount,
+                            nonce[owner]++,
+                            deadline
+                        )
                     )
                 )
-            )
-        );
+            );
         address recoveredAddress = ecrecover(digest, v, r, s);
         require(
             recoveredAddress != address(0) && recoveredAddress == owner,
@@ -356,9 +357,7 @@ contract Bank is Ownable {
 
         uint256 spenderBalance = balanceOf[spender];
         require(spenderBalance >= amount, "Transfer amount exceeds balance");
-        unchecked {
-            balanceOf[spender] = spenderBalance - amount;
-        }
+        unchecked {balanceOf[spender] = spenderBalance - amount;}
         balanceOf[recipient] += amount;
         emit BalanceTransferred(spender, recipient, amount);
     }
