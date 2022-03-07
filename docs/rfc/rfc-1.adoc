@@ -370,8 +370,8 @@ Governable Parameters:
 
 - `redemption_request_timeout`: The amount of time the wallet has to provide
   redemption proof.
-- `redemption_request_timeout_slashing_amount`: The amount of stake slashed from
-  each member of a wallet for a timed-out redemption request.
+- `redemption_request_timeout_slashing_amount`: The amount of stake slashed
+  from each member of a wallet for a timed-out redemption request.
 - `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
   notifier reward from the staking contract the redeemer receives in case of a
   redemption timeout.
@@ -443,11 +443,10 @@ not disincentivize it for waiting for enough redemption requests to accumulate,
 the redemption timeout should be long enough, for example, 72 hours and ideally
 even longer in the early days of the system.
 
-A timed-out redemption request is considered a <<heartbeat,heartbeat>> failure
-and the wallet is ordered to move the BTC to another random wallet. The wallet
-that timed out on processing redemption request can not be requested for another
-redemption. Operators are slashed for a timeout but they continue to earn
-rewards.
+In the case of a timed-out redemption request the wallet is ordered to move the
+BTC to another random wallet. The wallet that timed out on processing
+redemption request can not be requested for another redemption. Operators are
+slashed for a timeout but they continue to earn rewards.
 
 ==== Redemption proof
 
@@ -851,8 +850,8 @@ Alphabetized list of Governable Parameters with additional notes.
   transaction.
 - `redemption_request_timeout`: The amount of time the wallet has to provide
   redemption proof.
-- `redemption_request_timeout_slashing_amount`: The amount of stake slashed from
-  each member of a wallet for a timed-out redemption request.
+- `redemption_request_timeout_slashing_amount`: The amount of stake slashed
+  from each member of a wallet for a timed-out redemption request.
 - `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
   notifier reward from the staking contract the redeemer receives in case of a
   redemption timeout.

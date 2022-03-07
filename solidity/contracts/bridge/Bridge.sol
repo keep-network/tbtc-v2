@@ -13,15 +13,13 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity 0.8.4;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
-import {
-    ValidateSPV
-} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
+import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
 
 import "../bank/Bank.sol";
 import "./BitcoinTx.sol";
@@ -413,39 +411,37 @@ contract Bridge is Ownable {
         // TODO: Validate if `walletPubKeyHash` is a known and active wallet.
         // TODO: Should we enforce a specific locktime at contract level?
 
-        bytes memory expectedScript =
-            abi.encodePacked(
-                hex"14", // Byte length of depositor Ethereum address.
-                reveal.depositor,
-                hex"75", // OP_DROP
-                hex"08", // Byte length of blinding factor value.
-                reveal.blindingFactor,
-                hex"75", // OP_DROP
-                hex"76", // OP_DUP
-                hex"a9", // OP_HASH160
-                hex"14", // Byte length of a compressed Bitcoin public key hash.
-                reveal.walletPubKeyHash,
-                hex"87", // OP_EQUAL
-                hex"63", // OP_IF
-                hex"ac", // OP_CHECKSIG
-                hex"67", // OP_ELSE
-                hex"76", // OP_DUP
-                hex"a9", // OP_HASH160
-                hex"14", // Byte length of a compressed Bitcoin public key hash.
-                reveal.refundPubKeyHash,
-                hex"88", // OP_EQUALVERIFY
-                hex"04", // Byte length of refund locktime value.
-                reveal.refundLocktime,
-                hex"b1", // OP_CHECKLOCKTIMEVERIFY
-                hex"75", // OP_DROP
-                hex"ac", // OP_CHECKSIG
-                hex"68" // OP_ENDIF
-            );
+        bytes memory expectedScript = abi.encodePacked(
+            hex"14", // Byte length of depositor Ethereum address.
+            reveal.depositor,
+            hex"75", // OP_DROP
+            hex"08", // Byte length of blinding factor value.
+            reveal.blindingFactor,
+            hex"75", // OP_DROP
+            hex"76", // OP_DUP
+            hex"a9", // OP_HASH160
+            hex"14", // Byte length of a compressed Bitcoin public key hash.
+            reveal.walletPubKeyHash,
+            hex"87", // OP_EQUAL
+            hex"63", // OP_IF
+            hex"ac", // OP_CHECKSIG
+            hex"67", // OP_ELSE
+            hex"76", // OP_DUP
+            hex"a9", // OP_HASH160
+            hex"14", // Byte length of a compressed Bitcoin public key hash.
+            reveal.refundPubKeyHash,
+            hex"88", // OP_EQUALVERIFY
+            hex"04", // Byte length of refund locktime value.
+            reveal.refundLocktime,
+            hex"b1", // OP_CHECKLOCKTIMEVERIFY
+            hex"75", // OP_DROP
+            hex"ac", // OP_CHECKSIG
+            hex"68" // OP_ENDIF
+        );
 
-        bytes memory fundingOutput =
-            fundingTx.outputVector.extractOutputAtIndex(
-                reveal.fundingOutputIndex
-            );
+        bytes memory fundingOutput = fundingTx
+            .outputVector
+            .extractOutputAtIndex(reveal.fundingOutputIndex);
         bytes memory fundingOutputHash = fundingOutput.extractHash();
 
         if (fundingOutputHash.length == 20) {
@@ -473,31 +469,22 @@ contract Bridge is Ownable {
         }
 
         // Resulting TX hash is in native Bitcoin little-endian format.
-        bytes32 fundingTxHash =
-            abi
-                .encodePacked(
-                fundingTx
-                    .version,
-                fundingTx
-                    .inputVector,
-                fundingTx
-                    .outputVector,
-                fundingTx
-                    .locktime
+        bytes32 fundingTxHash = abi
+            .encodePacked(
+                fundingTx.version,
+                fundingTx.inputVector,
+                fundingTx.outputVector,
+                fundingTx.locktime
             )
-                .hash256View();
+            .hash256View();
 
-        DepositRequest storage deposit =
-            deposits[
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            fundingTxHash,
-                            reveal.fundingOutputIndex
-                        )
-                    )
+        DepositRequest storage deposit = deposits[
+            uint256(
+                keccak256(
+                    abi.encodePacked(fundingTxHash, reveal.fundingOutputIndex)
                 )
-            ];
+            )
+        ];
         require(deposit.revealedAt == 0, "Deposit already revealed");
 
         uint64 fundingOutputAmount = fundingOutput.extractValue();
@@ -575,16 +562,21 @@ contract Bridge is Ownable {
 
         // Process sweep transaction output and extract its target wallet
         // public key hash and value.
-        (bytes20 walletPubKeyHash, uint64 sweepTxOutputValue) =
-            processSweepTxOutput(sweepTx.outputVector);
+        (
+            bytes20 walletPubKeyHash,
+            uint64 sweepTxOutputValue
+        ) = processSweepTxOutput(sweepTx.outputVector);
 
         // TODO: Validate if `walletPubKeyHash` is a known and active wallet.
 
         // Check if the main UTXO for given wallet exists. If so, validate
         // passed main UTXO data against the stored hash and use them for
         // further processing. If no main UTXO exists, use empty data.
-        BitcoinTx.UTXO memory resolvedMainUtxo =
-            BitcoinTx.UTXO(bytes32(0), 0, 0);
+        BitcoinTx.UTXO memory resolvedMainUtxo = BitcoinTx.UTXO(
+            bytes32(0),
+            0,
+            0
+        );
         bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
         if (mainUtxoHash != bytes32(0)) {
             require(
@@ -661,15 +653,11 @@ contract Bridge is Ownable {
 
         txHash = abi
             .encodePacked(
-            txInfo
-                .version,
-            txInfo
-                .inputVector,
-            txInfo
-                .outputVector,
-            txInfo
-                .locktime
-        )
+                txInfo.version,
+                txInfo.inputVector,
+                txInfo.outputVector,
+                txInfo.locktime
+            )
             .hash256View();
 
         checkProofFromTxHash(txHash, proof);
@@ -709,8 +697,9 @@ contract Bridge is Ownable {
         uint256 requestedDiff = 0;
         uint256 currentDiff = relay.getCurrentEpochDifficulty();
         uint256 previousDiff = relay.getPrevEpochDifficulty();
-        uint256 firstHeaderDiff =
-            bitcoinHeaders.extractTarget().calculateDifficulty();
+        uint256 firstHeaderDiff = bitcoinHeaders
+            .extractTarget()
+            .calculateDifficulty();
 
         if (firstHeaderDiff == currentDiff) {
             requestedDiff = currentDiff;
@@ -832,8 +821,10 @@ contract Bridge is Ownable {
         // Determining the total number of sweep transaction inputs in the same
         // way as for number of outputs. See `BitcoinTx.inputVector` docs for
         // more details.
-        (uint256 inputsCompactSizeUintLength, uint256 inputsCount) =
-            sweepTxInputVector.parseVarInt();
+        (
+            uint256 inputsCompactSizeUintLength,
+            uint256 inputsCount
+        ) = sweepTxInputVector.parseVarInt();
 
         // To determine the first input starting index, we must jump over
         // the compactSize uint which prepends the input vector. One byte
@@ -871,14 +862,11 @@ contract Bridge is Ownable {
                 uint256 inputLength
             ) = parseTxInputAt(sweepTxInputVector, inputStartingIndex);
 
-            DepositRequest storage deposit =
-                deposits[
-                    uint256(
-                        keccak256(
-                            abi.encodePacked(outpointTxHash, outpointIndex)
-                        )
-                    )
-                ];
+            DepositRequest storage deposit = deposits[
+                uint256(
+                    keccak256(abi.encodePacked(outpointTxHash, outpointIndex))
+                )
+            ];
 
             if (deposit.revealedAt != 0) {
                 // If we entered here, that means the input was identified as
@@ -1045,8 +1033,9 @@ contract Bridge is Ownable {
         // is proper. Worth to note `extractHash` ignores the value at all
         // so this is why we can use 0 safely. This way of validation is the
         // same as in tBTC v1.
-        bytes memory redeemerOutputScriptPayload =
-            abi.encodePacked(bytes8(0), redeemerOutputScript).extractHash();
+        bytes memory redeemerOutputScriptPayload = abi
+            .encodePacked(bytes8(0), redeemerOutputScript)
+            .extractHash();
         require(
             redeemerOutputScriptPayload.length > 0,
             "Redeemer output script must be a standard type"
@@ -1068,12 +1057,9 @@ contract Bridge is Ownable {
         // and redeemer output script pair. That means there can be only one
         // request asking for redemption from the given wallet to the given
         // BTC script at the same time.
-        uint256 redemptionKey =
-            uint256(
-                keccak256(
-                    abi.encodePacked(walletPubKeyHash, redeemerOutputScript)
-                )
-            );
+        uint256 redemptionKey = uint256(
+            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
+        );
 
         // Check if given redemption key is not used by a pending redemption.
         // There is no need to check for existence in `timedOutRedemptions`
@@ -1188,8 +1174,10 @@ contract Bridge is Ownable {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 redemptionTxHash =
-            validateBitcoinTxProof(redemptionTx, redemptionProof);
+        bytes32 redemptionTxHash = validateBitcoinTxProof(
+            redemptionTx,
+            redemptionProof
+        );
 
         // Perform validation of the redemption transaction input. Specifically,
         // check if it refers to the expected wallet's main UTXO.
@@ -1208,11 +1196,10 @@ contract Bridge is Ownable {
 
         // Process redemption transaction outputs to extract some info required
         // for further processing.
-        RedemptionTxOutputsInfo memory outputsInfo =
-            processRedemptionTxOutputs(
-                redemptionTx.outputVector,
-                walletPubKeyHash
-            );
+        RedemptionTxOutputsInfo memory outputsInfo = processRedemptionTxOutputs(
+            redemptionTx.outputVector,
+            walletPubKeyHash
+        );
 
         if (outputsInfo.changeValue > 0) {
             // If the change value is grater than zero, it means the change
@@ -1276,8 +1263,10 @@ contract Bridge is Ownable {
 
         // Assert that the single redemption transaction input actually
         // refers to the wallet's main UTXO.
-        (bytes32 redemptionTxOutpointTxHash, uint32 redemptionTxOutpointIndex) =
-            processRedemptionTxInput(redemptionTxInputVector);
+        (
+            bytes32 redemptionTxOutpointTxHash,
+            uint32 redemptionTxOutpointIndex
+        ) = processRedemptionTxInput(redemptionTxInputVector);
         require(
             mainUtxo.txHash == redemptionTxOutpointTxHash &&
                 mainUtxo.txOutputIndex == redemptionTxOutpointIndex,
@@ -1352,8 +1341,10 @@ contract Bridge is Ownable {
         // Determining the total number of redemption transaction outputs in
         // the same way as for number of inputs. See `BitcoinTx.outputVector`
         // docs for more details.
-        (uint256 outputsCompactSizeUintLength, uint256 outputsCount) =
-            redemptionTxOutputVector.parseVarInt();
+        (
+            uint256 outputsCompactSizeUintLength,
+            uint256 outputsCount
+        ) = redemptionTxOutputVector.parseVarInt();
 
         // To determine the first output starting index, we must jump over
         // the compactSize uint which prepends the output vector. One byte
@@ -1377,13 +1368,13 @@ contract Bridge is Ownable {
         // save on gas. Both scripts have a strict format defined by Bitcoin.
         //
         // The P2PKH script has format <0x1976a914> <20-byte PKH> <0x88ac>.
-        bytes32 walletP2PKHScriptKeccak =
-            keccak256(
-                abi.encodePacked(hex"1976a914", walletPubKeyHash, hex"88ac")
-            );
+        bytes32 walletP2PKHScriptKeccak = keccak256(
+            abi.encodePacked(hex"1976a914", walletPubKeyHash, hex"88ac")
+        );
         // The P2WPKH script has format <0x160014> <20-byte PKH>.
-        bytes32 walletP2WPKHScriptKeccak =
-            keccak256(abi.encodePacked(hex"160014", walletPubKeyHash));
+        bytes32 walletP2WPKHScriptKeccak = keccak256(
+            abi.encodePacked(hex"160014", walletPubKeyHash)
+        );
 
         // Helper variable that counts the number of processed redemption
         // outputs. Redemptions can be either pending or reported as timed out.
@@ -1396,15 +1387,12 @@ contract Bridge is Ownable {
             // TODO: Check if we can optimize gas costs by adding
             //       `extractValueAt` and `extractHashAt` in `bitcoin-spv-sol`
             //       in order to avoid allocating bytes in memory.
-            uint256 outputLength =
-                redemptionTxOutputVector.determineOutputLengthAt(
-                    outputStartingIndex
-                );
-            bytes memory output =
-                redemptionTxOutputVector.slice(
-                    outputStartingIndex,
-                    outputLength
-                );
+            uint256 outputLength = redemptionTxOutputVector
+                .determineOutputLengthAt(outputStartingIndex);
+            bytes memory output = redemptionTxOutputVector.slice(
+                outputStartingIndex,
+                outputLength
+            );
 
             // Extract the value from given output.
             uint64 outputValue = output.extractValue();
@@ -1427,24 +1415,22 @@ contract Bridge is Ownable {
                 // If we entered here, that the means the given output is
                 // supposed to represent a redemption. Build the redemption key
                 // to perform that check.
-                uint256 redemptionKey =
-                    uint256(
-                        keccak256(
-                            abi.encodePacked(walletPubKeyHash, outputScript)
-                        )
-                    );
+                uint256 redemptionKey = uint256(
+                    keccak256(abi.encodePacked(walletPubKeyHash, outputScript))
+                );
 
                 if (pendingRedemptions[redemptionKey].requestedAt != 0) {
                     // If we entered here, that means the output was identified
                     // as a pending redemption request.
-                    RedemptionRequest storage request =
-                        pendingRedemptions[redemptionKey];
+                    RedemptionRequest storage request = pendingRedemptions[
+                        redemptionKey
+                    ];
                     // Compute the request's redeemable amount as the requested
                     // amount reduced by the treasury fee. The request's
                     // minimal amount is then the redeemable amount reduced by
                     // the maximum transaction fee.
-                    uint64 redeemableAmount =
-                        request.requestedAmount - request.treasuryFee;
+                    uint64 redeemableAmount = request.requestedAmount -
+                        request.treasuryFee;
                     // Output value must fit between the request's redeemable
                     // and minimal amounts to be deemed valid.
                     require(
@@ -1473,16 +1459,17 @@ contract Bridge is Ownable {
                     // then bypass this output and process the subsequent
                     // ones. That also means the wallet was already punished
                     // for the inactivity. Otherwise, just revert.
-                    RedemptionRequest storage request =
-                        timedOutRedemptions[redemptionKey];
+                    RedemptionRequest storage request = timedOutRedemptions[
+                        redemptionKey
+                    ];
 
                     require(
                         request.requestedAt != 0,
                         "Output is a non-requested redemption"
                     );
 
-                    uint64 redeemableAmount =
-                        request.requestedAmount - request.treasuryFee;
+                    uint64 redeemableAmount = request.requestedAmount -
+                        request.treasuryFee;
 
                     require(
                         redeemableAmount - request.txMaxFee <= outputValue &&
