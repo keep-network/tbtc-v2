@@ -1074,7 +1074,6 @@ contract Bridge is Ownable {
         // No need to check whether `amount - treasuryFee - txMaxFee > 0`
         // since the `redemptionDustThreshold` should force that condition
         // to be always true.
-        // TODO: Is it okay to lose the precision here?
         uint64 treasuryFee = redemptionTreasuryFeeDivisor > 0
             ? amount / redemptionTreasuryFeeDivisor
             : 0;
