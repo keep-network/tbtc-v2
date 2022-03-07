@@ -76,12 +76,12 @@ export interface RedemptionBalanceChange {
  * `MultiplePendingRequestedRedemptionsWithChange` test data represents a
  * redemption with the following properties:
  * - 5 redemption requests
- * - Redemption dust threshold is 1000000 satoshi
- * - Treasury fee for each request is 100000 satoshi
+ * - Redemption dust threshold is 100000 satoshi
+ * - Treasury fee for each request is 0.05% of the requested amount
  * - Maximum transaction fee for each request is 1000 satoshi
- * - Total requested amount for all requests is 6934567 satoshi
- * - Total treasury fee for all requests is 500000 satoshi
- * - Total redeemable amount for all requests is 6434567 satoshi
+ * - Total requested amount for all requests is 6435567 satoshi
+ * - Total treasury fee for all requests is 3217 satoshi
+ * - Total redeemable amount for all requests is 6432350 satoshi
  * - Maximum total transaction fee is 5000 satoshi
  */
 export const MultiplePendingRequestedRedemptionsWithChange: RedemptionTestData =
@@ -98,35 +98,35 @@ export const MultiplePendingRequestedRedemptionsWithChange: RedemptionTestData =
         redeemerOutputScript:
           // P2PKH with address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
           "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
-        amount: 1000000, // Accepts outputs in range [899000, 900000]
+        amount: 900000, // Accepts outputs in range [898550, 899550]
       },
       {
         redeemer: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
         redeemerOutputScript:
           // P2WPKH with address tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx
           "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
-        amount: 1200000, // Accepts outputs in range [1099000, 1100000]
+        amount: 1100000, // Accepts outputs in range [1098450, 1099450]
       },
       {
         redeemer: "0x35D54bC29e0a5170c3Ac73E64c7fA539A867f0FE",
         redeemerOutputScript:
           // P2SH with address 2MsM67NLa71fHvTUBqNENW15P68nHB2vVXb
           "0x17a914011beb6fb8499e075a57027fb0a58384f2d3f78487",
-        amount: 2000000, // Accepts outputs in range [1899000, 1900000]
+        amount: 1901000, // Accepts outputs in range [1899050, 1900050]
       },
       {
         redeemer: "0x462418b7495561bF2872A0786109A11f5d494aA2",
         redeemerOutputScript:
           // P2WSH with address tb1qau95mxzh2249aa3y8exx76ltc2sq0e7kw8hj04936rdcmnynhswqqz02vv
           "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c",
-        amount: 1500000, // Accepts outputs in range [1399000, 1400000]
+        amount: 1400000, // Accepts outputs in range [1398300, 1399300]
       },
       {
         redeemer: "0x2219eAC966FbC0454C4A2e122717e4429Dd7608F",
         redeemerOutputScript:
           // P2PKH with address tb1qgzd40jy62dj5wadvmywfsxugq7f40wzek3p2g2
           "0x160014409b57c89a53654775acd91c981b88079357b859",
-        amount: 1234567, // Accepts outputs in range [1133567, 1134567]
+        amount: 1134567, // Accepts outputs in range [1133000, 1134000]
       },
     ],
 
