@@ -1075,10 +1075,9 @@ contract Bridge is Ownable {
         // since the `redemptionDustThreshold` should force that condition
         // to be always true.
         // TODO: Is it okay to lose the precision here?
-        uint64 treasuryFee =
-            redemptionTreasuryFeeDivisor > 0
-                ? amount / redemptionTreasuryFeeDivisor
-                : 0;
+        uint64 treasuryFee = redemptionTreasuryFeeDivisor > 0
+            ? amount / redemptionTreasuryFeeDivisor
+            : 0;
         uint64 txMaxFee = redemptionTxMaxFee;
 
         // The main wallet UTXO's value doesn't include all pending redemptions.
