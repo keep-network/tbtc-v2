@@ -150,7 +150,7 @@ export const SinglePendingRequestedRedemption: RedemptionTestData = {
  * - 1 input pointing to the wallet main UTXO
  * - 0 redemption requests
  * - 1 P2SH output with value 1176924 satoshi and index 0, pointing to a
- *   non-requested output script.
+ *   non-requested output script. This output is not a change output.
  * - 6+ on-chain confirmations of the redemption transaction
  *
  * Basically, this is the `SinglePendingRequestedRedemption` data set with
