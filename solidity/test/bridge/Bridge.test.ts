@@ -2509,7 +2509,12 @@ describe("Bridge", () => {
                           // output has the value of 1176924 so to make this
                           // test scenario happen, the request amount must be
                           // way different (lesser or greater) than the output
-                          // value.
+                          // value. Worth noting that this test scenario tests
+                          // the amount condition in a general and simplified
+                          // way without stressing all specific edge cases.
+                          // Doing a detailed check would require more dedicated
+                          // test data sets which would make it far more
+                          // complicated without giving much value in return.
                           data.redemptionRequests[0].amount = 300000
 
                           outcome = runRedemptionScenario(data)
@@ -2546,7 +2551,12 @@ describe("Bridge", () => {
                           // output has the value of 1176924 so to make this
                           // test scenario happen, the request amount must be
                           // way different (lesser or greater) than the output
-                          // value.
+                          // value. Worth noting that this test scenario tests
+                          // the amount condition in a general and simplified
+                          // way without stressing all specific edge cases.
+                          // Doing a detailed check would require more dedicated
+                          // test data sets which would make it far more
+                          // complicated without giving much value in return.
                           data.redemptionRequests[0].amount = 300000
 
                           // Before submitting the redemption proof, wait
@@ -3720,7 +3730,12 @@ describe("Bridge", () => {
                           // transaction output has the value of 191169 so to
                           // make this test scenario happen, the request amount
                           // must be way different (lesser or greater) than the
-                          // output value.
+                          // output value. Worth noting that this test scenario
+                          // tests the amount condition in a general and simplified
+                          // way without stressing all specific edge cases.
+                          // Doing a detailed check would require more dedicated
+                          // test data sets which would make it far more
+                          // complicated without giving much value in return.
                           data.redemptionRequests[4].amount = 100000
 
                           outcome = runRedemptionScenario(data)
@@ -3757,7 +3772,12 @@ describe("Bridge", () => {
                           // transaction output has the value of 191169 so to
                           // make this test scenario happen, the request amount
                           // must be way different (lesser or greater) than the
-                          // output value.
+                          // output value. Worth noting that this test scenario
+                          // tests the amount condition in a general and simplified
+                          // way without stressing all specific edge cases.
+                          // Doing a detailed check would require more dedicated
+                          // test data sets which would make it far more
+                          // complicated without giving much value in return.
                           data.redemptionRequests[4].amount = 100000
 
                           // Before submitting the redemption proof, wait
