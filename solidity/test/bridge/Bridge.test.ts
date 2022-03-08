@@ -248,24 +248,25 @@ describe("Bridge", () => {
 
               const deposit = await bridge.deposits(depositKey)
 
-              // Should contain: depositor, amount, revealedAt, vault, sweptAt.
-              expect(deposit.length).to.be.equal(5)
               // Depositor address, same as in `reveal.depositor`.
-              expect(deposit[0]).to.be.equal(
+              expect(deposit.depositor).to.be.equal(
                 "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
               )
               // Deposit amount in satoshi. In this case it's 10000 satoshi
               // because the P2SH deposit transaction set this value for the
               // funding output.
-              expect(deposit[1]).to.be.equal(10000)
+              expect(deposit.amount).to.be.equal(10000)
               // Revealed time should be set.
-              expect(deposit[2]).to.be.equal(await lastBlockTime())
+              expect(deposit.revealedAt).to.be.equal(await lastBlockTime())
               // Deposit vault, same as in `reveal.vault`.
-              expect(deposit[3]).to.be.equal(
+              expect(deposit.vault).to.be.equal(
                 "0x594cfd89700040163727828AE20B52099C58F02C"
               )
+              // Treasury fee should be computed according to the current
+              // value of the `depositTreasuryFeeDivisor`.
+              expect(deposit.treasuryFee).to.be.equal(5)
               // Swept time should be unset.
-              expect(deposit[4]).to.be.equal(0)
+              expect(deposit.sweptAt).to.be.equal(0)
             })
 
             it("should emit DepositRevealed event", async () => {
@@ -402,24 +403,25 @@ describe("Bridge", () => {
 
               const deposit = await bridge.deposits(depositKey)
 
-              // Should contain: depositor, amount, revealedAt and vault.
-              expect(deposit.length).to.be.equal(5)
               // Depositor address, same as in `reveal.depositor`.
-              expect(deposit[0]).to.be.equal(
+              expect(deposit.depositor).to.be.equal(
                 "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
               )
               // Deposit amount in satoshi. In this case it's 10000 satoshi
-              // because the P2WSH deposit transaction set this value for the
+              // because the P2SH deposit transaction set this value for the
               // funding output.
-              expect(deposit[1]).to.be.equal(10000)
+              expect(deposit.amount).to.be.equal(10000)
               // Revealed time should be set.
-              expect(deposit[2]).to.be.equal(await lastBlockTime())
+              expect(deposit.revealedAt).to.be.equal(await lastBlockTime())
               // Deposit vault, same as in `reveal.vault`.
-              expect(deposit[3]).to.be.equal(
+              expect(deposit.vault).to.be.equal(
                 "0x594cfd89700040163727828AE20B52099C58F02C"
               )
+              // Treasury fee should be computed according to the current
+              // value of the `depositTreasuryFeeDivisor`.
+              expect(deposit.treasuryFee).to.be.equal(5)
               // Swept time should be unset.
-              expect(deposit[4]).to.be.equal(0)
+              expect(deposit.sweptAt).to.be.equal(0)
             })
 
             it("should emit DepositRevealed event", async () => {
@@ -582,8 +584,7 @@ describe("Bridge", () => {
 
                     const deposit = await bridge.deposits(depositKey)
 
-                    // Swept time is the last item.
-                    expect(deposit[4]).to.be.equal(await lastBlockTime())
+                    expect(deposit.sweptAt).to.be.equal(await lastBlockTime())
                   })
 
                   it("should update main UTXO for the given wallet", async () => {
@@ -605,11 +606,20 @@ describe("Bridge", () => {
 
                   it("should update the depositor's balance", async () => {
                     // The sum of sweep tx inputs is 20000 satoshi. The output
-                    // value is 18500 so the fee is 1500. There is only one
-                    // deposit so it incurs the entire fee.
+                    // value is 18500 so the transaction fee is 1500. There is
+                    // only one deposit so it incurs the entire transaction fee.
+                    // The deposit should also incur the treasury fee whose
+                    // initial value is 0.05% of the deposited amount so the
+                    // final depositor balance should be cut by 10 satoshi.
                     expect(
                       await bank.balanceOf(data.deposits[0].reveal.depositor)
-                    ).to.be.equal(18500)
+                    ).to.be.equal(18490)
+                  })
+
+                  it("should transfer collected treasury fee", async () => {
+                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
+                      10
+                    )
                   })
 
                   it("should emit DepositsSwept event", async () => {
@@ -652,8 +662,7 @@ describe("Bridge", () => {
 
                     const deposit = await bridge.deposits(depositKey)
 
-                    // Swept time is the last item.
-                    expect(deposit[4]).to.be.equal(await lastBlockTime())
+                    expect(deposit.sweptAt).to.be.equal(await lastBlockTime())
                   })
 
                   it("should update main UTXO for the given wallet", async () => {
@@ -676,10 +685,19 @@ describe("Bridge", () => {
                   it("should update the depositor's balance", async () => {
                     // The sum of sweep tx inputs is 80000 satoshi. The output
                     // value is 78000 so the fee is 2000. There is only one
-                    // deposit so it incurs the entire fee.
+                    // deposit so it incurs the entire fee. The deposit should
+                    // also incur the treasury fee whose initial value is 0.05%
+                    // of the deposited amount so the final depositor balance
+                    // should be cut by 40 satoshi.
                     expect(
                       await bank.balanceOf(data.deposits[0].reveal.depositor)
-                    ).to.be.equal(78000)
+                    ).to.be.equal(77960)
+                  })
+
+                  it("should transfer collected treasury fee", async () => {
+                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
+                      40
+                    )
                   })
 
                   it("should emit DepositsSwept event", async () => {
@@ -824,8 +842,7 @@ describe("Bridge", () => {
                       // eslint-disable-next-line no-await-in-loop
                       const deposit = await bridge.deposits(depositKey)
 
-                      // Swept time is the last item.
-                      expect(deposit[4]).to.be.equal(
+                      expect(deposit.sweptAt).to.be.equal(
                         // eslint-disable-next-line no-await-in-loop
                         await lastBlockTime(),
                         `Deposit with index ${i} has an unexpected swept time`
@@ -854,21 +871,29 @@ describe("Bridge", () => {
                     // The sum of sweep tx inputs is 4148000 satoshi. The output
                     // value is 4145001 so the fee is 2999. There is 5 deposits
                     // so 599 satoshi fee should be incurred per deposit.
+                    // Each deposit should also incur the treasury fee whose
+                    // initial value is 0.05% of the deposited amount.
                     expect(
                       await bank.balanceOf(data.deposits[0].reveal.depositor)
-                    ).to.be.equal(219401)
+                    ).to.be.equal(219291)
                     expect(
                       await bank.balanceOf(data.deposits[1].reveal.depositor)
-                    ).to.be.equal(759401)
+                    ).to.be.equal(759021)
                     expect(
                       await bank.balanceOf(data.deposits[2].reveal.depositor)
-                    ).to.be.equal(939401)
+                    ).to.be.equal(938931)
                     expect(
                       await bank.balanceOf(data.deposits[3].reveal.depositor)
-                    ).to.be.equal(879401)
+                    ).to.be.equal(878961)
                     expect(
                       await bank.balanceOf(data.deposits[4].reveal.depositor)
-                    ).to.be.equal(289401)
+                    ).to.be.equal(289256)
+                  })
+
+                  it("should transfer collected treasury fee", async () => {
+                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
+                      2075
+                    )
                   })
 
                   it("should emit DepositsSwept event", async () => {
@@ -914,8 +939,7 @@ describe("Bridge", () => {
                       // eslint-disable-next-line no-await-in-loop
                       const deposit = await bridge.deposits(depositKey)
 
-                      // Swept time is the last item.
-                      expect(deposit[4]).to.be.equal(
+                      expect(deposit.sweptAt).to.be.equal(
                         // eslint-disable-next-line no-await-in-loop
                         await lastBlockTime(),
                         `Deposit with index ${i} has an unexpected swept time`
@@ -944,21 +968,29 @@ describe("Bridge", () => {
                     // The sum of sweep tx inputs is 1060000 satoshi. The output
                     // value is 1058000 so the fee is 2000. There is 5 deposits
                     // so 400 satoshi fee should be incurred per deposit.
+                    // Each deposit should also incur the treasury fee whose
+                    // initial value is 0.05% of the deposited amount.
                     expect(
                       await bank.balanceOf(data.deposits[0].reveal.depositor)
-                    ).to.be.equal(29600)
+                    ).to.be.equal(29585)
                     expect(
                       await bank.balanceOf(data.deposits[1].reveal.depositor)
-                    ).to.be.equal(9600)
+                    ).to.be.equal(9595)
                     expect(
                       await bank.balanceOf(data.deposits[2].reveal.depositor)
-                    ).to.be.equal(209600)
+                    ).to.be.equal(209495)
                     expect(
                       await bank.balanceOf(data.deposits[3].reveal.depositor)
-                    ).to.be.equal(369600)
+                    ).to.be.equal(369415)
                     expect(
                       await bank.balanceOf(data.deposits[4].reveal.depositor)
-                    ).to.be.equal(439600)
+                    ).to.be.equal(439380)
+                  })
+
+                  it("should transfer collected treasury fee", async () => {
+                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
+                      530
+                    )
                   })
 
                   it("should emit DepositsSwept event", async () => {
