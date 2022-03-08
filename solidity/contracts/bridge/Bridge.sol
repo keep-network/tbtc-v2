@@ -391,7 +391,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @notice Initiates a new wallet creation.
     /// @dev ECDSA wallet creation is asynchronous process. Once a wallet is
     ///      created the ECDSA Wallet Registry will notify this contract by
-    ///      calling a `notifyEcdsaWalletCreated` function.
+    ///      calling a `__ecdsaWalletCreatedCallback` function.
     function createNewWallet() external {
         // TODO: Implement wallet creation rules
 
@@ -405,19 +405,19 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      to identify wallets by Bitcoin's hash160, hence we map the wallets
     ///      between those two.
     /// @param ecdsaWalletID Wallet's unique identifier.
-    function notifyEcdsaWalletCreated(bytes32 ecdsaWalletID) external override {
+    /// @param ecdsaUncompressedPublicKey Wallet's uncompressed public key.
+    function __ecdsaWalletCreatedCallback(
+        bytes32 ecdsaWalletID,
+        bytes memory ecdsaUncompressedPublicKey
+    ) external override {
         require(
             msg.sender == address(ecdsaWalletRegistry),
             "Caller is not the ECDSA Wallet Registry"
         );
 
-        // Get wallet's uncompressed public key, compress it and calculate
-        // Bitcoin's hash160 of it.
+        // Compress wallet's public key and calculate Bitcoin's hash160 of it.
         bytes20 walletPubKeyHash160 = bytes20(
-            ecdsaWalletRegistry
-                .getWalletPublicKey(ecdsaWalletID)
-                .compressPublicKey()
-                .hash160()
+            ecdsaUncompressedPublicKey.compressPublicKey().hash160()
         );
 
         require(
