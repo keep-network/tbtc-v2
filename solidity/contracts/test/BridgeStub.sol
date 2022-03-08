@@ -49,12 +49,9 @@ contract BridgeStub is Bridge {
         bytes20 walletPubKeyHash,
         bytes calldata redeemerOutputScript
     ) external {
-        uint256 redemptionKey =
-            uint256(
-                keccak256(
-                    abi.encodePacked(walletPubKeyHash, redeemerOutputScript)
-                )
-            );
+        uint256 redemptionKey = uint256(
+            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
+        );
         RedemptionRequest storage request = pendingRedemptions[redemptionKey];
 
         require(request.requestedAt != 0, "Request does not exist");
