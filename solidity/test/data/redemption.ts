@@ -1,5 +1,5 @@
-import { BytesLike } from "@ethersproject/bytes"
-import { BigNumber, BigNumberish } from "ethers"
+import type { BigNumber, BigNumberish, BytesLike } from "ethers"
+import { ecdsaWalletTestData } from "./ecdsa"
 
 /**
  * Represents a set of data used for given redemption scenario.
@@ -12,6 +12,7 @@ export interface RedemptionTestData {
     pubKeyHash: BytesLike
     state: BigNumberish
     pendingRedemptionsValue: BigNumberish
+    ecdsaWalletID: BytesLike
   }
 
   /**
@@ -640,6 +641,7 @@ export const MultiplePendingRequestedRedemptionsWithP2WPKHChange: RedemptionTest
       pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
       state: 1,
       pendingRedemptionsValue: 0,
+      ecdsaWalletID: ecdsaWalletTestData.walletID, // TODO: Provide a valid value calculated for the pubKeyHash
     },
 
     redemptionRequests: [
