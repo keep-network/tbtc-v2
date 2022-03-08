@@ -2491,7 +2491,7 @@ describe("Bridge", () => {
                     )
 
                     context(
-                      "when the single output is a pending requested redemption but amount is wrong",
+                      "when the single output is a pending requested redemption but redeemed amount is wrong",
                       () => {
                         const data: RedemptionTestData = JSON.parse(
                           JSON.stringify(SinglePendingRequestedRedemption)
@@ -2596,7 +2596,8 @@ describe("Bridge", () => {
                         })
 
                         // Should be deemed as valid change though rejected
-                        // because this change is a single output.
+                        // because this change is a single output and at least
+                        // one requested redemption is expected.
                         it("should revert", async () => {
                           await expect(outcome).to.be.revertedWith(
                             "Redemption transaction must process at least one redemption"
@@ -2623,7 +2624,8 @@ describe("Bridge", () => {
                         })
 
                         // Should be deemed as valid change though rejected
-                        // because this change is a single output.
+                        // because this change is a single output and at least
+                        // one requested redemption is expected.
                         it("should revert", async () => {
                           await expect(outcome).to.be.revertedWith(
                             "Redemption transaction must process at least one redemption"
@@ -2654,6 +2656,13 @@ describe("Bridge", () => {
                         // key hash though it should be always rejected as
                         // non-requested output. There is no need to check for
                         // P2WSH since the payload is always 32-byte there.
+                        // The main reason we need to bother about 20-byte
+                        // hashes is because the wallet public key hash has
+                        // always 20-bytes and we must make sure no redemption
+                        // request uses it as a redeemer script to not confuse
+                        // an output that will try to handle that request with
+                        // a proper change output also referencing the wallet
+                        // public key hash.
                         it("should revert", async () => {
                           await expect(outcome).to.be.revertedWith(
                             "Output is a non-requested redemption"
@@ -3693,7 +3702,7 @@ describe("Bridge", () => {
                     )
 
                     context(
-                      "when output vector contains a pending requested redemption with wrong amount",
+                      "when output vector contains a pending requested redemption with wrong amount redeemed",
                       () => {
                         const data: RedemptionTestData = JSON.parse(
                           JSON.stringify(MultiplePendingRequestedRedemptions)
@@ -3730,7 +3739,7 @@ describe("Bridge", () => {
                     )
 
                     context(
-                      "when output vector contains a reported timed out requested redemption with wrong amount",
+                      "when output vector contains a reported timed out requested redemption with wrong amount redeemed",
                       () => {
                         const data: RedemptionTestData = JSON.parse(
                           JSON.stringify(MultiplePendingRequestedRedemptions)
