@@ -600,6 +600,12 @@ describe("Bridge", () => {
                     ).to.be.equal(18490)
                   })
 
+                  it("should transfer collected treasury fee", async () => {
+                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
+                      10
+                    )
+                  })
+
                   it("should emit DepositsSwept event", async () => {
                     await expect(tx)
                       .to.emit(bridge, "DepositsSwept")
@@ -670,6 +676,12 @@ describe("Bridge", () => {
                     expect(
                       await bank.balanceOf(data.deposits[0].reveal.depositor)
                     ).to.be.equal(77960)
+                  })
+
+                  it("should transfer collected treasury fee", async () => {
+                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
+                      40
+                    )
                   })
 
                   it("should emit DepositsSwept event", async () => {
@@ -862,6 +874,12 @@ describe("Bridge", () => {
                     ).to.be.equal(289256)
                   })
 
+                  it("should transfer collected treasury fee", async () => {
+                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
+                      2075
+                    )
+                  })
+
                   it("should emit DepositsSwept event", async () => {
                     await expect(tx)
                       .to.emit(bridge, "DepositsSwept")
@@ -951,6 +969,12 @@ describe("Bridge", () => {
                     expect(
                       await bank.balanceOf(data.deposits[4].reveal.depositor)
                     ).to.be.equal(439380)
+                  })
+
+                  it("should transfer collected treasury fee", async () => {
+                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
+                      530
+                    )
                   })
 
                   it("should emit DepositsSwept event", async () => {
