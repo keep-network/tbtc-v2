@@ -105,10 +105,38 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // Address of the Bank vault the deposit is routed to.
         // Optional, can be 0x0.
         address vault;
+        // Treasury TBTC fee in satoshi at the moment of deposit reveal.
+        uint64 treasuryFee;
         // UNIX timestamp the deposit was swept at. Note this is not the
         // time when the deposit was swept on the Bitcoin chain but actually
         // the time when the sweep proof was delivered to the Ethereum chain.
         uint32 sweptAt;
+    }
+
+    /// @notice Represents an outcome of the sweep Bitcoin transaction
+    ///         inputs processing.
+    struct SweepTxInputsInfo {
+        // Sum of all inputs values i.e. all deposits and main UTXO value,
+        // if present.
+        uint256 inputsTotalValue;
+        // Addresses of depositors who performed processed deposits. Ordered in
+        // the same order as deposits inputs in the input vector. Size of this
+        // array is either equal to the number of inputs (main UTXO doesn't
+        // exist) or less by one (main UTXO exists and is pointed by one of
+        // the inputs).
+        address[] depositors;
+        // Amounts of deposits corresponding to processed deposits. Ordered in
+        // the same order as deposits inputs in the input vector. Size of this
+        // array is either equal to the number of inputs (main UTXO doesn't
+        // exist) or less by one (main UTXO exists and is pointed by one of
+        // the inputs).
+        uint256[] depositedAmounts;
+        // Values of the treasury fee corresponding to processed deposits.
+        // Ordered in the same order as deposits inputs in the input vector.
+        // Size of this array is either equal to the number of inputs (main
+        // UTXO doesn't exist) or less by one (main UTXO exists and is pointed
+        // by one of the inputs).
+        uint256[] treasuryFees;
     }
 
     /// @notice Represents a redemption request.
@@ -196,6 +224,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// TODO: Revisit whether it should be governable or not.
     /// @notice ECDSA Wallet Registry contract handle.
     EcdsaWalletRegistry public immutable ecdsaWalletRegistry;
+
+    /// TODO: Make it governable.
+    /// @notice Divisor used to compute the treasury fee taken from each
+    ///         deposit and transferred to the treasury upon sweep proof
+    ///         submission. That fee is computed as follows:
+    ///         `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
+    ///         For example, if the treasury fee needs to be 2% of each deposit,
+    ///         the `redemptionTreasuryFeeDivisor` should be set to `50`
+    ///         because `1/50 = 0.02 = 2%`.
+    uint64 public depositTreasuryFeeDivisor;
 
     /// TODO: Make it governable.
     /// @notice The minimal amount that can be requested for redemption.
@@ -361,6 +399,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         txProofDifficultyFactor = _txProofDifficultyFactor;
 
         // TODO: Revisit initial values.
+        depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionTxMaxFee = 1000; // 1000 satoshi
@@ -560,6 +599,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         /* solhint-disable-next-line not-rely-on-time */
         deposit.revealedAt = uint32(block.timestamp);
         deposit.vault = reveal.vault;
+        deposit.treasuryFee = depositTreasuryFeeDivisor > 0
+            ? fundingOutputAmount / depositTreasuryFeeDivisor
+            : 0;
 
         emit DepositRevealed(
             fundingTxHash,
@@ -656,30 +698,39 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             resolvedMainUtxo = mainUtxo;
         }
 
-        // Process sweep transaction inputs and extract their value sum and
-        // all information needed to perform deposit bookkeeping.
-        (
-            uint256 sweepTxInputsValue,
-            address[] memory depositors,
-            uint256[] memory depositedAmounts
-        ) = processSweepTxInputs(sweepTx.inputVector, resolvedMainUtxo);
+        // Process sweep transaction inputs and extract all information needed
+        // to perform deposit bookkeeping.
+        SweepTxInputsInfo memory inputsInfo = processSweepTxInputs(
+            sweepTx.inputVector,
+            resolvedMainUtxo
+        );
 
-        // Compute the sweep transaction fee which is a difference between
-        // inputs amounts sum and the output amount.
-        // TODO: Check fee against max fee.
-        uint256 fee = sweepTxInputsValue - sweepTxOutputValue;
-        // Calculate fee share by dividing the total fee by deposits count.
+        // Helper variable that will hold the sum of treasury fees paid by
+        // all deposits.
+        uint256 totalTreasuryFee = 0;
+
+        // Calculate the transaction fee per deposit by dividing the total
+        // transaction fee by deposits count. The total fee is just the
+        // difference between inputs amounts sum and the output amount.
         // TODO: Deal with precision loss by having the last depositor pay
-        //       the higher fee than others if there is a change, just like it has
-        //       been proposed for the redemption flow. See:
+        //       the higher transaction fee than others if there is a change,
+        //       just like it has been proposed in discussion:
         //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r800555359.
-        uint256 feeShare = fee / depositedAmounts.length;
-        // Reduce each deposit amount by fee share value.
-        for (uint256 i = 0; i < depositedAmounts.length; i++) {
-            // We don't have to check if `feeShare` is bigger than the amount
-            // since we have the dust threshold preventing against too small
-            // deposits amounts.
-            depositedAmounts[i] -= feeShare;
+        // TODO: Check txFee against max fee.
+        uint256 txFee = (inputsInfo.inputsTotalValue - sweepTxOutputValue) /
+            inputsInfo.depositedAmounts.length;
+
+        // Reduce each deposit amount by treasury fee and transaction fee.
+        for (uint256 i = 0; i < inputsInfo.depositedAmounts.length; i++) {
+            // There is no need to check whether
+            // `inputsInfo.depositedAmounts[i] - inputsInfo.treasuryFees[i] - txFee > 0`
+            // since the `depositDustThreshold` should force that condition
+            // to be always true.
+            inputsInfo.depositedAmounts[i] =
+                inputsInfo.depositedAmounts[i] -
+                inputsInfo.treasuryFees[i] -
+                txFee;
+            totalTreasuryFee += inputsInfo.treasuryFees[i];
         }
 
         // Record this sweep data and assign them to the wallet public key hash
@@ -692,7 +743,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         emit DepositsSwept(walletPubKeyHash, sweepTxHash);
 
         // Update depositors balances in the Bank.
-        bank.increaseBalances(depositors, depositedAmounts);
+        bank.increaseBalances(
+            inputsInfo.depositors,
+            inputsInfo.depositedAmounts
+        );
+        // Pass the treasury fee to the treasury address.
+        bank.increaseBalance(treasury, totalTreasuryFee);
 
         // TODO: Handle deposits having `vault` set.
     }
@@ -853,29 +909,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param mainUtxo Data of the wallet's main UTXO. If no main UTXO
     ///        exists for the given the wallet, this parameter's fields should
     ///        be zeroed to bypass the main UTXO validation
-    /// @return inputsTotalValue Sum of all inputs values i.e. all deposits and
-    ///         main UTXO value, if present.
-    /// @return depositors Addresses of depositors who performed processed
-    ///         deposits. Ordered in the same order as deposits inputs in the
-    ///         input vector. Size of this array is either equal to the
-    ///         number of inputs (main UTXO doesn't exist) or less by one
-    ///         (main UTXO exists and is pointed by one of the inputs).
-    /// @return depositedAmounts Amounts of deposits corresponding to processed
-    ///         deposits. Ordered in the same order as deposits inputs in the
-    ///         input vector. Size of this array is either equal to the
-    ///         number of inputs (main UTXO doesn't exist) or less by one
-    ///         (main UTXO exists and is pointed by one of the inputs).
+    /// @return info Outcomes of the processing.
     function processSweepTxInputs(
         bytes memory sweepTxInputVector,
         BitcoinTx.UTXO memory mainUtxo
-    )
-        internal
-        returns (
-            uint256 inputsTotalValue,
-            address[] memory depositors,
-            uint256[] memory depositedAmounts
-        )
-    {
+    ) internal returns (SweepTxInputsInfo memory info) {
         // If the passed `mainUtxo` parameter's values are zeroed, the main UTXO
         // for the given wallet doesn't exist and it is not expected to be
         // included in the sweep transaction input vector.
@@ -910,10 +948,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // Determine the swept deposits count. If main UTXO is NOT expected,
         // all inputs should be deposits. If main UTXO is expected, one input
         // should point to that main UTXO.
-        depositors = new address[](
+        info.depositors = new address[](
             !mainUtxoExpected ? inputsCount : inputsCount - 1
         );
-        depositedAmounts = new uint256[](depositors.length);
+        info.depositedAmounts = new uint256[](info.depositors.length);
+        info.treasuryFees = new uint256[](info.depositors.length);
 
         // Initialize helper variables.
         uint256 processedDepositsCount = 0;
@@ -937,7 +976,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                 // a revealed deposit.
                 require(deposit.sweptAt == 0, "Deposit already swept");
 
-                if (processedDepositsCount == depositors.length) {
+                if (processedDepositsCount == info.depositors.length) {
                     // If this condition is true, that means a deposit input
                     // took place of an expected main UTXO input.
                     // In other words, there is no expected main UTXO
@@ -950,9 +989,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                 /* solhint-disable-next-line not-rely-on-time */
                 deposit.sweptAt = uint32(block.timestamp);
 
-                depositors[processedDepositsCount] = deposit.depositor;
-                depositedAmounts[processedDepositsCount] = deposit.amount;
-                inputsTotalValue += depositedAmounts[processedDepositsCount];
+                info.depositors[processedDepositsCount] = deposit.depositor;
+                info.depositedAmounts[processedDepositsCount] = deposit.amount;
+                info.inputsTotalValue += info.depositedAmounts[
+                    processedDepositsCount
+                ];
+                info.treasuryFees[processedDepositsCount] = deposit.treasuryFee;
 
                 processedDepositsCount++;
             } else if (
@@ -961,7 +1003,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             ) {
                 // If we entered here, that means the input was identified as
                 // the expected main UTXO.
-                inputsTotalValue += mainUtxo.txOutputValue;
+                info.inputsTotalValue += mainUtxo.txOutputValue;
                 mainUtxoFound = true;
             } else {
                 revert("Unknown input type");
@@ -973,7 +1015,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         }
 
         // Construction of the input processing loop guarantees that:
-        // `processedDepositsCount == depositors.length == depositedAmounts.length`
+        // `processedDepositsCount == info.depositors.length == info.depositedAmounts.length`
         // is always true at this point. We just use the first variable
         // to assert the total count of swept deposit is bigger than zero.
         require(
@@ -988,7 +1030,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "Expected main UTXO not present in sweep transaction inputs"
         );
 
-        return (inputsTotalValue, depositors, depositedAmounts);
+        return info;
     }
 
     /// @notice Parses a Bitcoin transaction input starting at the given index.
