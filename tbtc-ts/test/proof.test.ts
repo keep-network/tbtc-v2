@@ -61,7 +61,7 @@ describe("Proof", () => {
 
       beforeEach(async () => {
         notEnoughConfirmationsSweepProofTestData = singleInputProofTestData
-        notEnoughConfirmationsSweepProofTestData.clientData.accumulatedTxConfirmations = 5
+        notEnoughConfirmationsSweepProofTestData.bitcoinChainData.accumulatedTxConfirmations = 5
       })
 
       it("should revert", async () => {
@@ -77,16 +77,17 @@ describe("Proof", () => {
       data: ProofTestData
     ): Promise<Transaction & Proof> {
       const transactions = new Map<string, Transaction>()
-      const transactionHash = data.clientData.transaction.transactionHash
-      transactions.set(transactionHash, data.clientData.transaction)
+      const transactionHash = data.bitcoinChainData.transaction.transactionHash
+      transactions.set(transactionHash, data.bitcoinChainData.transaction)
       bitcoinClient.transactions = transactions
-      bitcoinClient.latestHeight = data.clientData.latestBlockHeight
-      bitcoinClient.headersChain = data.clientData.headersChain
-      bitcoinClient.transactionMerkle = data.clientData.transactionMerkleBranch
+      bitcoinClient.latestHeight = data.bitcoinChainData.latestBlockHeight
+      bitcoinClient.headersChain = data.bitcoinChainData.headersChain
+      bitcoinClient.transactionMerkle =
+        data.bitcoinChainData.transactionMerkleBranch
       const confirmations = new Map<string, number>()
       confirmations.set(
         transactionHash,
-        data.clientData.accumulatedTxConfirmations
+        data.bitcoinChainData.accumulatedTxConfirmations
       )
       bitcoinClient.confirmations = confirmations
 

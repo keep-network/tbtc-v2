@@ -216,10 +216,10 @@ export const sweepWithMainUtxo: SweepTestData = {
 }
 
 /**
- * Represents data for tests of assembling sweep transactions.
+ * Represents data for tests of assembling sweep proofs.
  */
 export interface SweepProofTestData {
-  clientData: {
+  bitcoinChainData: {
     transaction: Transaction
     rawTransaction: RawTransaction
     accumulatedTxConfirmations: number
@@ -239,7 +239,7 @@ export interface SweepProofTestData {
  * https://live.blockcypher.com/btc-testnet/tx/5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753/
  */
 export const sweepProof: SweepProofTestData = {
-  clientData: {
+  bitcoinChainData: {
     transaction: {
       transactionHash:
         "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753",

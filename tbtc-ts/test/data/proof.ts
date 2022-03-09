@@ -10,7 +10,7 @@ import {
  */
 export interface ProofTestData {
   requiredConfirmations: number
-  clientData: {
+  bitcoinChainData: {
     transaction: Transaction
     rawTransaction: RawTransaction
     accumulatedTxConfirmations: number
@@ -27,7 +27,7 @@ export interface ProofTestData {
  */
 export const singleInputProofTestData: ProofTestData = {
   requiredConfirmations: 6,
-  clientData: {
+  bitcoinChainData: {
     transaction: {
       transactionHash:
         "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473",
@@ -167,7 +167,7 @@ export const singleInputProofTestData: ProofTestData = {
 export const multipleInputsProofTestData: ProofTestData = {
   requiredConfirmations: 6,
 
-  clientData: {
+  bitcoinChainData: {
     transaction: {
       transactionHash:
         "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753",

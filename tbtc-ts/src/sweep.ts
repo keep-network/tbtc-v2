@@ -396,7 +396,9 @@ export async function proveSweep(
     confirmations,
     bitcoinClient
   )
+  // TODO: instead of getting rawTransaction, use transaction part of proof and
+  // convert it to raw transaction.
   const rawTransaction = await bitcoinClient.getRawTransaction(transactionHash)
-  const info = decomposeRawTransaction(rawTransaction)
-  await bridge.submitSweepProof(info, proof, mainUtxo)
+  const decomposedRawTransaction = decomposeRawTransaction(rawTransaction)
+  await bridge.submitSweepProof(decomposedRawTransaction, proof, mainUtxo)
 }

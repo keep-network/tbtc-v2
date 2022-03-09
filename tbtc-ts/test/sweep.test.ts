@@ -454,23 +454,27 @@ describe("Sweep", () => {
       bitcoinClient = new MockBitcoinClient()
       bridge = new MockBridge()
 
-      const transactionHash = sweepProof.clientData.transaction.transactionHash
+      const transactionHash =
+        sweepProof.bitcoinChainData.transaction.transactionHash
       const transactions = new Map<string, Transaction>()
-      transactions.set(transactionHash, sweepProof.clientData.transaction)
+      transactions.set(transactionHash, sweepProof.bitcoinChainData.transaction)
       bitcoinClient.transactions = transactions
 
       const rawTransactions = new Map<string, RawTransaction>()
-      rawTransactions.set(transactionHash, sweepProof.clientData.rawTransaction)
+      rawTransactions.set(
+        transactionHash,
+        sweepProof.bitcoinChainData.rawTransaction
+      )
       bitcoinClient.rawTransactions = rawTransactions
 
-      bitcoinClient.latestHeight = sweepProof.clientData.latestBlockHeight
-      bitcoinClient.headersChain = sweepProof.clientData.headersChain
+      bitcoinClient.latestHeight = sweepProof.bitcoinChainData.latestBlockHeight
+      bitcoinClient.headersChain = sweepProof.bitcoinChainData.headersChain
       bitcoinClient.transactionMerkle =
-        sweepProof.clientData.transactionMerkleBranch
+        sweepProof.bitcoinChainData.transactionMerkleBranch
       const confirmations = new Map<string, number>()
       confirmations.set(
         transactionHash,
-        sweepProof.clientData.accumulatedTxConfirmations
+        sweepProof.bitcoinChainData.accumulatedTxConfirmations
       )
       bitcoinClient.confirmations = confirmations
       await TBTC.proveSweep(

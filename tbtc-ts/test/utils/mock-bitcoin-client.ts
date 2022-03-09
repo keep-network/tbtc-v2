@@ -96,14 +96,14 @@ export class MockBitcoinClient implements Client {
     })
   }
 
-  getHeadersChain(blockHeight: number, confirmations: number): Promise<string> {
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<string> {
     return new Promise<string>((resolve, _) => {
       resolve(this._headersChain)
     })
   }
 
   getTransactionMerkle(
-    txHash: string,
+    transactionHash: string,
     blockHeight: number
   ): Promise<TransactionMerkleBranch> {
     return new Promise<TransactionMerkleBranch>((resolve, _) => {

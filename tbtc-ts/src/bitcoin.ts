@@ -91,36 +91,40 @@ export type UnspentTransactionOutput = TransactionOutpoint & {
 }
 
 /**
- * Represents data of a decomposed transaction.
+ * Represents data of decomposed raw transaction.
  */
 export interface DecomposedRawTransaction {
   /**
-   * Transaction's version.
+   * Transaction version as an un-prefixed hex string.
    */
   version: string
 
   /**
-   * All transaction's inputs, prepended by the number of transaction inputs.
+   * All transaction's inputs prepended by the number of transaction inputs,
+   * as an un-prefixed hex string.
    */
   inputs: string
 
   /**
-   * All transaction's outputs prepended by the number of transaction outputs.
+   * All transaction's outputs prepended by the number of transaction outputs,
+   * as an un-prefixed hex string.
    */
   outputs: string
 
   /**
-   * Transaction's locktime.
+   * Transaction locktime as an un-prefixed hex string.
    */
   locktime: string
 }
 
 /**
- * Proof that a given transaction is included in the Bitcoin blockchain.
+ * Data required to perform a proof that a given transaction was included in
+ * the Bitcoin blockchain.
  */
 export interface Proof {
   /**
-   * The merkle proof of transaction inclusion in a block.
+   * The merkle proof of transaction inclusion in a block, as an un-prefixed
+   * hex string.
    */
   merkleProof: string
 
@@ -130,7 +134,8 @@ export interface Proof {
   txIndexInBlock: number
 
   /**
-   * Single byte-string of 80-byte block headers, lowest height first.
+   * Single byte-string of 80-byte block headers, lowest height first, as an
+   * un-prefixed hex string.
    */
   bitcoinHeaders: string
 }
@@ -201,20 +206,20 @@ export interface Client {
   /**
    * Gets concatenated chunk of block headers built on a starting block.
    * @param blockHeight - Starting block height.
-   * @param confirmations -  Number of confirmations (subsequent blocks) built
-   *                         on the starting block.
+   * @param chainLength - Number of subsequent blocks built on the starting
+   *                      block.
    * @return Concatenation of block headers in a hexadecimal format.
    */
-  getHeadersChain(blockHeight: number, confirmations: number): Promise<string>
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<string>
 
   /**
-   * Get proof of transaction inclusion in the block.
-   * @param txHash - Hash of a transaction.
+   * Get Merkle branch for a given transaction.
+   * @param transactionHash - Hash of a transaction.
    * @param blockHeight - Height of the block where transaction was confirmed.
-   * @return Transaction inclusion proof in hexadecimal form.
+   * @return Merkle branch.
    */
   getTransactionMerkle(
-    txHash: string,
+    transactionHash: string,
     blockHeight: number
   ): Promise<TransactionMerkleBranch>
 
@@ -229,7 +234,7 @@ export interface Client {
  * Decomposes a transaction in the raw representation into version, vector of
  * inputs, vector of outputs and locktime.
  * @param rawTransaction - Transaction in the raw format.
- * @returns Transaction data with fields represented as strings.
+ * @returns Transaction data with fields represented as un-prefixed hex strings.
  */
 export function decomposeRawTransaction(
   rawTransaction: RawTransaction
