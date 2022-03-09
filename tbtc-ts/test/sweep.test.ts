@@ -7,8 +7,15 @@ import {
   testnetWalletAddress,
   testnetWalletPrivateKey,
 } from "./data/deposit"
-import { sweepWithMainUtxo, sweepWithNoMainUtxo } from "./data/sweep"
+import {
+  sweepWithMainUtxo,
+  sweepWithNoMainUtxo,
+  sweepProof,
+  NO_MAIN_UTXO,
+} from "./data/sweep"
+import { Transaction } from "../src/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
+import { MockBridge } from "./utils/mock-bridge"
 // @ts-ignore
 import bcoin from "bcoin"
 import * as chai from "chai"
@@ -434,6 +441,66 @@ describe("Sweep", () => {
           )
         ).to.be.rejectedWith("Unsupported UTXO script type")
       })
+    })
+  })
+
+  describe("proveSweep", () => {
+    let bitcoinClient: MockBitcoinClient
+    let bridge: MockBridge
+
+    beforeEach(async () => {
+      bcoin.set("testnet")
+
+      bitcoinClient = new MockBitcoinClient()
+      bridge = new MockBridge()
+
+      const transactionHash =
+        sweepProof.bitcoinChainData.transaction.transactionHash
+      const transactions = new Map<string, Transaction>()
+      transactions.set(transactionHash, sweepProof.bitcoinChainData.transaction)
+      bitcoinClient.transactions = transactions
+
+      const rawTransactions = new Map<string, RawTransaction>()
+      rawTransactions.set(
+        transactionHash,
+        sweepProof.bitcoinChainData.rawTransaction
+      )
+      bitcoinClient.rawTransactions = rawTransactions
+
+      bitcoinClient.latestHeight = sweepProof.bitcoinChainData.latestBlockHeight
+      bitcoinClient.headersChain = sweepProof.bitcoinChainData.headersChain
+      bitcoinClient.transactionMerkle =
+        sweepProof.bitcoinChainData.transactionMerkleBranch
+      const confirmations = new Map<string, number>()
+      confirmations.set(
+        transactionHash,
+        sweepProof.bitcoinChainData.accumulatedTxConfirmations
+      )
+      bitcoinClient.confirmations = confirmations
+      await TBTC.proveSweep(
+        transactionHash,
+        NO_MAIN_UTXO,
+        bridge,
+        bitcoinClient
+      )
+    })
+
+    it("should submit sweep proof with correct arguments", () => {
+      const bridgeLog = bridge.sweepProofLog
+      expect(bridgeLog.length).to.equal(1)
+      expect(bridgeLog[0].mainUtxo).to.equal(NO_MAIN_UTXO)
+      expect(bridgeLog[0].sweepTx).to.deep.equal(
+        sweepProof.expectedSweepProof.sweepTx
+      )
+      expect(bridgeLog[0].sweepProof.txIndexInBlock).to.deep.equal(
+        sweepProof.expectedSweepProof.sweepProof.txIndexInBlock
+      )
+      expect(bridgeLog[0].sweepProof.merkleProof).to.deep.equal(
+        sweepProof.expectedSweepProof.sweepProof.merkleProof
+      )
+      expect(bridgeLog[0].sweepProof.bitcoinHeaders).to.deep.equal(
+        sweepProof.expectedSweepProof.sweepProof.bitcoinHeaders
+      )
     })
   })
 })
