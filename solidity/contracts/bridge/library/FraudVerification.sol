@@ -13,13 +13,11 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity 0.8.4;
+pragma solidity ^0.8.9;
 
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
-import {
-    CheckBitcoinSigs
-} from "@keep-network/bitcoin-spv-sol/contracts/CheckBitcoinSigs.sol";
+import {CheckBitcoinSigs} from "@keep-network/bitcoin-spv-sol/contracts/CheckBitcoinSigs.sol";
 import "../Bridge.sol";
 
 library FraudVerification {
@@ -92,17 +90,22 @@ library FraudVerification {
             "The amount of ETH deposited is too low"
         );
 
-        bool verificationResult =
-            CheckBitcoinSigs.checkSig(walletPublicKey, sighash, v, r, s);
+        bool verificationResult = CheckBitcoinSigs.checkSig(
+            walletPublicKey,
+            sighash,
+            v,
+            r,
+            s
+        );
         require(verificationResult, "Signature verification failure");
 
-        uint256 challengeKey =
-            uint256(
-                keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
-            );
+        uint256 challengeKey = uint256(
+            keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
+        );
 
-        FraudChallenge storage fraudChallenge =
-            data.fraudChallenges[challengeKey];
+        FraudChallenge storage fraudChallenge = data.fraudChallenges[
+            challengeKey
+        ];
         require(fraudChallenge.reportedAt == 0, "Fraud already challenged");
 
         fraudChallenge.challenger = msg.sender;
@@ -133,14 +136,18 @@ library FraudVerification {
         // logic, like UTXO frauds.
         bytes32 sighash = preimage.hash256();
 
-        bool verificationResult =
-            CheckBitcoinSigs.checkSig(walletPublicKey, sighash, v, r, s);
+        bool verificationResult = CheckBitcoinSigs.checkSig(
+            walletPublicKey,
+            sighash,
+            v,
+            r,
+            s
+        );
         require(verificationResult, "Signature verification failure");
 
-        uint256 challengeKey =
-            uint256(
-                keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
-            );
+        uint256 challengeKey = uint256(
+            keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
+        );
 
         require(
             data.fraudChallenges[challengeKey].reportedAt > 0,
@@ -181,18 +188,15 @@ library FraudVerification {
         // A preimage created for a witness input contains the outpoint located
         // at a constant offset of 68.
         bytes32 previousOutpointTxIdLe = preimage.extractInputTxIdLeAt(68);
-        uint32 previousOutpointIndex =
-            BTCUtils.reverseUint32(uint32(preimage.extractTxIndexLeAt(68)));
+        uint32 previousOutpointIndex = BTCUtils.reverseUint32(
+            uint32(preimage.extractTxIndexLeAt(68))
+        );
 
-        uint256 utxoKey =
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        previousOutpointTxIdLe,
-                        previousOutpointIndex
-                    )
-                )
-            );
+        uint256 utxoKey = uint256(
+            keccak256(
+                abi.encodePacked(previousOutpointTxIdLe, previousOutpointIndex)
+            )
+        );
 
         // Check that the UTXO is among the correctly spent UTXOs.
         require(
@@ -212,28 +216,27 @@ library FraudVerification {
         // generated for can be distinguished from other inputs by looking at
         // unlocking scripts. The unlocking script of such input is non-null
         // while unlocking scripts of other inputs are null.
-        (uint256 inputsCompactSizeUintLength, uint256 inputsCount) =
-            preimage.parseVarIntAt(4);
+        (uint256 inputsCompactSizeUintLength, uint256 inputsCount) = preimage
+            .parseVarIntAt(4);
 
         uint256 inputStartingIndex = 4 + 1 + inputsCompactSizeUintLength;
         for (uint256 i = 0; i < inputsCount; i++) {
-            bytes32 previousOutpointTxIdLe =
-                preimage.extractInputTxIdLeAt(inputStartingIndex);
+            bytes32 previousOutpointTxIdLe = preimage.extractInputTxIdLeAt(
+                inputStartingIndex
+            );
 
-            uint32 previousOutpointIndex =
-                BTCUtils.reverseUint32(
-                    uint32(preimage.extractTxIndexLeAt(inputStartingIndex))
-                );
+            uint32 previousOutpointIndex = BTCUtils.reverseUint32(
+                uint32(preimage.extractTxIndexLeAt(inputStartingIndex))
+            );
 
-            uint256 utxoKey =
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            previousOutpointTxIdLe,
-                            previousOutpointIndex
-                        )
+            uint256 utxoKey = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        previousOutpointTxIdLe,
+                        previousOutpointIndex
                     )
-                );
+                )
+            );
 
             // Check that the UTXO is among the correctly spent UTXOs.
             require(

@@ -8,7 +8,8 @@ import {
   makeDeposit,
   revealDeposit,
 } from "./deposit"
-import { createSweepTransaction, sweepDeposits } from "./sweep"
+import { createSweepTransaction, sweepDeposits, proveSweep } from "./sweep"
+import { Bridge } from "./bridge"
 import {
   Client as BitcoinClient,
   RawTransaction,
@@ -143,6 +144,22 @@ export interface TBTC {
     depositData: DepositData[],
     mainUtxo?: UnspentTransactionOutput
   ): Promise<void>
+
+  /**
+   * Prepares the proof of a sweep transaction and submits it to the Bridge
+   * on-chain contract.
+   * @param transactionHash - Hash of the transaction being proven.
+   * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
+   * @param bridge - Interface to the Bridge on-chain contract.
+   * @param bitcoinClient - Bitcoin client used to interact with the network.
+   * @returns Empty promise.
+   */
+  proveSweep(
+    transactionHash: string,
+    mainUtxo: UnspentTransactionOutput,
+    bridge: Bridge,
+    bitcoinClient: BitcoinClient
+  ): Promise<void>
 }
 
 const tbtc: TBTC = {
@@ -155,6 +172,7 @@ const tbtc: TBTC = {
   revealDeposit,
   createSweepTransaction,
   sweepDeposits,
+  proveSweep,
 }
 
 export default tbtc
