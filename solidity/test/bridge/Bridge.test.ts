@@ -73,6 +73,12 @@ const fixture = async () => {
   // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
   // the initial value in the Bridge in order to save test Bitcoins.
   await bridge.setRedemptionDustThreshold(100000)
+  // Set the deposit transaction max fee to 10000 satoshi, i.e. 10x bigger than
+  // the initial value in the Bridge. This is required because `depositTxMaxFee`
+  // was introduced after BTC testnet transactions used in sweep tests were
+  // created and many of them used a high fee to speed up mining. A bigger
+  // value of this parameter gives more flexibility in general.
+  await bridge.setDepositTxMaxFee(10000)
 
   return {
     governance,
@@ -551,233 +557,605 @@ describe("Bridge", () => {
       context("when there is only one output", () => {
         context("when wallet public key hash length is 20 bytes", () => {
           context("when main UTXO data are valid", () => {
-            context("when there is only one input", () => {
-              context(
-                "when the single input is a revealed unswept P2SH deposit",
-                () => {
-                  let tx: ContractTransaction
-                  const data: SweepTestData = SingleP2SHDeposit
-                  // Take wallet public key hash from first deposit. All
-                  // deposits in same sweep batch should have the same value
-                  // of that field.
-                  const { walletPubKeyHash } = data.deposits[0].reveal
+            context(
+              "when transaction fee does not exceed the deposit transaction maximum fee",
+              () => {
+                context("when there is only one input", () => {
+                  context(
+                    "when the single input is a revealed unswept P2SH deposit",
+                    () => {
+                      let tx: ContractTransaction
+                      const data: SweepTestData = SingleP2SHDeposit
+                      // Take wallet public key hash from first deposit. All
+                      // deposits in same sweep batch should have the same value
+                      // of that field.
+                      const { walletPubKeyHash } = data.deposits[0].reveal
 
-                  before(async () => {
-                    await createSnapshot()
+                      before(async () => {
+                        await createSnapshot()
 
-                    tx = await runSweepScenario(data)
-                  })
+                        tx = await runSweepScenario(data)
+                      })
 
-                  after(async () => {
-                    await restoreSnapshot()
-                  })
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
 
-                  it("should mark deposit as swept", async () => {
-                    // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
-                    const depositKey = ethers.utils.solidityKeccak256(
-                      ["bytes32", "uint32"],
-                      [
-                        data.deposits[0].fundingTx.hash,
-                        data.deposits[0].reveal.fundingOutputIndex,
-                      ]
-                    )
+                      it("should mark deposit as swept", async () => {
+                        // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                        const depositKey = ethers.utils.solidityKeccak256(
+                          ["bytes32", "uint32"],
+                          [
+                            data.deposits[0].fundingTx.hash,
+                            data.deposits[0].reveal.fundingOutputIndex,
+                          ]
+                        )
 
-                    const deposit = await bridge.deposits(depositKey)
+                        const deposit = await bridge.deposits(depositKey)
 
-                    expect(deposit.sweptAt).to.be.equal(await lastBlockTime())
-                  })
+                        expect(deposit.sweptAt).to.be.equal(
+                          await lastBlockTime()
+                        )
+                      })
 
-                  it("should update main UTXO for the given wallet", async () => {
-                    const mainUtxoHash = await bridge.mainUtxos(
-                      walletPubKeyHash
-                    )
+                      it("should update main UTXO for the given wallet", async () => {
+                        const mainUtxoHash = await bridge.mainUtxos(
+                          walletPubKeyHash
+                        )
 
-                    // Amount can be checked by opening the sweep tx in a Bitcoin
-                    // testnet explorer. In this case, the sum of inputs is
-                    // 20000 satoshi (from the single deposit) and there is a
-                    // fee of 1500 so the output value is 18500.
-                    const expectedMainUtxo = ethers.utils.solidityKeccak256(
-                      ["bytes32", "uint32", "uint64"],
-                      [data.sweepTx.hash, 0, 18500]
-                    )
+                        // Amount can be checked by opening the sweep tx in a Bitcoin
+                        // testnet explorer. In this case, the sum of inputs is
+                        // 20000 satoshi (from the single deposit) and there is a
+                        // fee of 1500 so the output value is 18500.
+                        const expectedMainUtxo = ethers.utils.solidityKeccak256(
+                          ["bytes32", "uint32", "uint64"],
+                          [data.sweepTx.hash, 0, 18500]
+                        )
 
-                    expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
-                  })
+                        expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
+                      })
 
-                  it("should update the depositor's balance", async () => {
-                    // The sum of sweep tx inputs is 20000 satoshi. The output
-                    // value is 18500 so the transaction fee is 1500. There is
-                    // only one deposit so it incurs the entire transaction fee.
-                    // The deposit should also incur the treasury fee whose
-                    // initial value is 0.05% of the deposited amount so the
-                    // final depositor balance should be cut by 10 satoshi.
-                    expect(
-                      await bank.balanceOf(data.deposits[0].reveal.depositor)
-                    ).to.be.equal(18490)
-                  })
+                      it("should update the depositor's balance", async () => {
+                        // The sum of sweep tx inputs is 20000 satoshi. The output
+                        // value is 18500 so the transaction fee is 1500. There is
+                        // only one deposit so it incurs the entire transaction fee.
+                        // The deposit should also incur the treasury fee whose
+                        // initial value is 0.05% of the deposited amount so the
+                        // final depositor balance should be cut by 10 satoshi.
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[0].reveal.depositor
+                          )
+                        ).to.be.equal(18490)
+                      })
 
-                  it("should transfer collected treasury fee", async () => {
-                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
-                      10
-                    )
-                  })
+                      it("should transfer collected treasury fee", async () => {
+                        expect(
+                          await bank.balanceOf(treasury.address)
+                        ).to.be.equal(10)
+                      })
 
-                  it("should emit DepositsSwept event", async () => {
-                    await expect(tx)
-                      .to.emit(bridge, "DepositsSwept")
-                      .withArgs(walletPubKeyHash, data.sweepTx.hash)
-                  })
-                }
-              )
-
-              context(
-                "when the single input is a revealed unswept P2WSH deposit",
-                () => {
-                  let tx: ContractTransaction
-                  const data: SweepTestData = SingleP2WSHDeposit
-                  // Take wallet public key hash from first deposit. All
-                  // deposits in same sweep batch should have the same value
-                  // of that field.
-                  const { walletPubKeyHash } = data.deposits[0].reveal
-
-                  before(async () => {
-                    await createSnapshot()
-
-                    tx = await runSweepScenario(data)
-                  })
-
-                  after(async () => {
-                    await restoreSnapshot()
-                  })
-
-                  it("should mark deposit as swept", async () => {
-                    // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
-                    const depositKey = ethers.utils.solidityKeccak256(
-                      ["bytes32", "uint32"],
-                      [
-                        data.deposits[0].fundingTx.hash,
-                        data.deposits[0].reveal.fundingOutputIndex,
-                      ]
-                    )
-
-                    const deposit = await bridge.deposits(depositKey)
-
-                    expect(deposit.sweptAt).to.be.equal(await lastBlockTime())
-                  })
-
-                  it("should update main UTXO for the given wallet", async () => {
-                    const mainUtxoHash = await bridge.mainUtxos(
-                      walletPubKeyHash
-                    )
-
-                    // Amount can be checked by opening the sweep tx in a Bitcoin
-                    // testnet explorer. In this case, the sum of inputs is
-                    // 80000 satoshi (from the single deposit) and there is a
-                    // fee of 2000 so the output value is 78000.
-                    const expectedMainUtxo = ethers.utils.solidityKeccak256(
-                      ["bytes32", "uint32", "uint64"],
-                      [data.sweepTx.hash, 0, 78000]
-                    )
-
-                    expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
-                  })
-
-                  it("should update the depositor's balance", async () => {
-                    // The sum of sweep tx inputs is 80000 satoshi. The output
-                    // value is 78000 so the fee is 2000. There is only one
-                    // deposit so it incurs the entire fee. The deposit should
-                    // also incur the treasury fee whose initial value is 0.05%
-                    // of the deposited amount so the final depositor balance
-                    // should be cut by 40 satoshi.
-                    expect(
-                      await bank.balanceOf(data.deposits[0].reveal.depositor)
-                    ).to.be.equal(77960)
-                  })
-
-                  it("should transfer collected treasury fee", async () => {
-                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
-                      40
-                    )
-                  })
-
-                  it("should emit DepositsSwept event", async () => {
-                    await expect(tx)
-                      .to.emit(bridge, "DepositsSwept")
-                      .withArgs(walletPubKeyHash, data.sweepTx.hash)
-                  })
-                }
-              )
-
-              context("when the single input is the expected main UTXO", () => {
-                const previousData: SweepTestData = SingleP2SHDeposit
-                const data: SweepTestData = SingleMainUtxo
-
-                before(async () => {
-                  await createSnapshot()
-
-                  // Make the first sweep which is actually the predecessor
-                  // of the sweep tested within this scenario.
-                  await runSweepScenario(previousData)
-                })
-
-                after(async () => {
-                  await restoreSnapshot()
-                })
-
-                it("should revert", async () => {
-                  await expect(runSweepScenario(data)).to.be.revertedWith(
-                    "Sweep transaction must process at least one deposit"
-                  )
-                })
-              })
-
-              context(
-                "when the single input is a revealed but already swept deposit",
-                () => {
-                  const data: SweepTestData = SingleP2SHDeposit
-
-                  before(async () => {
-                    await createSnapshot()
-
-                    // Make a proper sweep to turn the tested deposit into
-                    // the swept state.
-                    await runSweepScenario(data)
-                  })
-
-                  after(async () => {
-                    await restoreSnapshot()
-                  })
-
-                  it("should revert", async () => {
-                    // Main UTXO parameter must point to the properly
-                    // made sweep to avoid revert at validation stage.
-                    const mainUtxo = {
-                      txHash: data.sweepTx.hash,
-                      txOutputIndex: 0,
-                      txOutputValue: 18500,
+                      it("should emit DepositsSwept event", async () => {
+                        await expect(tx)
+                          .to.emit(bridge, "DepositsSwept")
+                          .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                      })
                     }
+                  )
 
-                    // Try replaying the already done sweep.
-                    await expect(
-                      bridge.submitSweepProof(
-                        data.sweepTx,
-                        data.sweepProof,
-                        mainUtxo
+                  context(
+                    "when the single input is a revealed unswept P2WSH deposit",
+                    () => {
+                      let tx: ContractTransaction
+                      const data: SweepTestData = SingleP2WSHDeposit
+                      // Take wallet public key hash from first deposit. All
+                      // deposits in same sweep batch should have the same value
+                      // of that field.
+                      const { walletPubKeyHash } = data.deposits[0].reveal
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        tx = await runSweepScenario(data)
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should mark deposit as swept", async () => {
+                        // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                        const depositKey = ethers.utils.solidityKeccak256(
+                          ["bytes32", "uint32"],
+                          [
+                            data.deposits[0].fundingTx.hash,
+                            data.deposits[0].reveal.fundingOutputIndex,
+                          ]
+                        )
+
+                        const deposit = await bridge.deposits(depositKey)
+
+                        expect(deposit.sweptAt).to.be.equal(
+                          await lastBlockTime()
+                        )
+                      })
+
+                      it("should update main UTXO for the given wallet", async () => {
+                        const mainUtxoHash = await bridge.mainUtxos(
+                          walletPubKeyHash
+                        )
+
+                        // Amount can be checked by opening the sweep tx in a Bitcoin
+                        // testnet explorer. In this case, the sum of inputs is
+                        // 80000 satoshi (from the single deposit) and there is a
+                        // fee of 2000 so the output value is 78000.
+                        const expectedMainUtxo = ethers.utils.solidityKeccak256(
+                          ["bytes32", "uint32", "uint64"],
+                          [data.sweepTx.hash, 0, 78000]
+                        )
+
+                        expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
+                      })
+
+                      it("should update the depositor's balance", async () => {
+                        // The sum of sweep tx inputs is 80000 satoshi. The output
+                        // value is 78000 so the fee is 2000. There is only one
+                        // deposit so it incurs the entire fee. The deposit should
+                        // also incur the treasury fee whose initial value is 0.05%
+                        // of the deposited amount so the final depositor balance
+                        // should be cut by 40 satoshi.
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[0].reveal.depositor
+                          )
+                        ).to.be.equal(77960)
+                      })
+
+                      it("should transfer collected treasury fee", async () => {
+                        expect(
+                          await bank.balanceOf(treasury.address)
+                        ).to.be.equal(40)
+                      })
+
+                      it("should emit DepositsSwept event", async () => {
+                        await expect(tx)
+                          .to.emit(bridge, "DepositsSwept")
+                          .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                      })
+                    }
+                  )
+
+                  context(
+                    "when the single input is the expected main UTXO",
+                    () => {
+                      const previousData: SweepTestData = SingleP2SHDeposit
+                      const data: SweepTestData = SingleMainUtxo
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Make the first sweep which is actually the predecessor
+                        // of the sweep tested within this scenario.
+                        await runSweepScenario(previousData)
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should revert", async () => {
+                        await expect(runSweepScenario(data)).to.be.revertedWith(
+                          "Sweep transaction must process at least one deposit"
+                        )
+                      })
+                    }
+                  )
+
+                  context(
+                    "when the single input is a revealed but already swept deposit",
+                    () => {
+                      const data: SweepTestData = SingleP2SHDeposit
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Make a proper sweep to turn the tested deposit into
+                        // the swept state.
+                        await runSweepScenario(data)
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should revert", async () => {
+                        // Main UTXO parameter must point to the properly
+                        // made sweep to avoid revert at validation stage.
+                        const mainUtxo = {
+                          txHash: data.sweepTx.hash,
+                          txOutputIndex: 0,
+                          txOutputValue: 18500,
+                        }
+
+                        // Try replaying the already done sweep.
+                        await expect(
+                          bridge.submitSweepProof(
+                            data.sweepTx,
+                            data.sweepProof,
+                            mainUtxo
+                          )
+                        ).to.be.revertedWith("Deposit already swept")
+                      })
+                    }
+                  )
+
+                  context("when the single input is an unknown", () => {
+                    const data: SweepTestData = SingleP2SHDeposit
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      // Necessary to pass the proof validation.
+                      await relay.setCurrentEpochDifficulty(
+                        data.chainDifficulty
                       )
-                    ).to.be.revertedWith("Deposit already swept")
-                  })
-                }
-              )
+                      await relay.setPrevEpochDifficulty(data.chainDifficulty)
+                    })
 
-              context("when the single input is an unknown", () => {
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      // Try to sweep a deposit which was not revealed before and
+                      // is unknown from system's point of view.
+                      await expect(
+                        bridge.submitSweepProof(
+                          data.sweepTx,
+                          data.sweepProof,
+                          NO_MAIN_UTXO
+                        )
+                      ).to.be.revertedWith("Unknown input type")
+                    })
+                  })
+                })
+
+                // Since P2SH vs P2WSH path has been already checked in the scenario
+                // "when there is only one input", we no longer differentiate deposits
+                // using that criterion during "when there are multiple inputs" scenario.
+                context("when there are multiple inputs", () => {
+                  context(
+                    "when input vector consists only of revealed unswept " +
+                      "deposits and the expected main UTXO",
+                    () => {
+                      let tx: ContractTransaction
+                      const previousData: SweepTestData =
+                        MultipleDepositsNoMainUtxo
+                      const data: SweepTestData = MultipleDepositsWithMainUtxo
+                      // Take wallet public key hash from first deposit. All
+                      // deposits in same sweep batch should have the same value
+                      // of that field.
+                      const { walletPubKeyHash } = data.deposits[0].reveal
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Make the first sweep which is actually the predecessor
+                        // of the sweep tested within this scenario.
+                        await runSweepScenario(previousData)
+
+                        tx = await runSweepScenario(data)
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should mark deposits as swept", async () => {
+                        for (let i = 0; i < data.deposits.length; i++) {
+                          // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                          const depositKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [
+                              data.deposits[i].fundingTx.hash,
+                              data.deposits[i].reveal.fundingOutputIndex,
+                            ]
+                          )
+
+                          // eslint-disable-next-line no-await-in-loop
+                          const deposit = await bridge.deposits(depositKey)
+
+                          expect(deposit.sweptAt).to.be.equal(
+                            // eslint-disable-next-line no-await-in-loop
+                            await lastBlockTime(),
+                            `Deposit with index ${i} has an unexpected swept time`
+                          )
+                        }
+                      })
+
+                      it("should update main UTXO for the given wallet", async () => {
+                        const mainUtxoHash = await bridge.mainUtxos(
+                          walletPubKeyHash
+                        )
+
+                        // Amount can be checked by opening the sweep tx in a Bitcoin
+                        // testnet explorer. In this case, the sum of inputs is
+                        // 4148000 satoshi and there is a fee of 2999 so the output
+                        // value is 4145001.
+                        const expectedMainUtxo = ethers.utils.solidityKeccak256(
+                          ["bytes32", "uint32", "uint64"],
+                          [data.sweepTx.hash, 0, 4145001]
+                        )
+
+                        expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
+                      })
+
+                      it("should update the depositors balances", async () => {
+                        // The sum of sweep tx inputs is 4148000 satoshi. The output
+                        // value is 4145001 so the fee is 2999. There is 5 deposits
+                        // so 599 satoshi fee should be incurred per deposit.
+                        // Each deposit should also incur the treasury fee whose
+                        // initial value is 0.05% of the deposited amount.
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[0].reveal.depositor
+                          )
+                        ).to.be.equal(219291)
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[1].reveal.depositor
+                          )
+                        ).to.be.equal(759021)
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[2].reveal.depositor
+                          )
+                        ).to.be.equal(938931)
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[3].reveal.depositor
+                          )
+                        ).to.be.equal(878961)
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[4].reveal.depositor
+                          )
+                        ).to.be.equal(289256)
+                      })
+
+                      it("should transfer collected treasury fee", async () => {
+                        expect(
+                          await bank.balanceOf(treasury.address)
+                        ).to.be.equal(2075)
+                      })
+
+                      it("should emit DepositsSwept event", async () => {
+                        await expect(tx)
+                          .to.emit(bridge, "DepositsSwept")
+                          .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                      })
+                    }
+                  )
+
+                  context(
+                    "when input vector consists only of revealed unswept " +
+                      "deposits but there is no main UTXO since it is not expected",
+                    () => {
+                      let tx: ContractTransaction
+                      const data: SweepTestData = MultipleDepositsNoMainUtxo
+                      // Take wallet public key hash from first deposit. All
+                      // deposits in same sweep batch should have the same value
+                      // of that field.
+                      const { walletPubKeyHash } = data.deposits[0].reveal
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        tx = await runSweepScenario(data)
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should mark deposits as swept", async () => {
+                        for (let i = 0; i < data.deposits.length; i++) {
+                          // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                          const depositKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [
+                              data.deposits[i].fundingTx.hash,
+                              data.deposits[i].reveal.fundingOutputIndex,
+                            ]
+                          )
+
+                          // eslint-disable-next-line no-await-in-loop
+                          const deposit = await bridge.deposits(depositKey)
+
+                          expect(deposit.sweptAt).to.be.equal(
+                            // eslint-disable-next-line no-await-in-loop
+                            await lastBlockTime(),
+                            `Deposit with index ${i} has an unexpected swept time`
+                          )
+                        }
+                      })
+
+                      it("should update main UTXO for the given wallet", async () => {
+                        const mainUtxoHash = await bridge.mainUtxos(
+                          walletPubKeyHash
+                        )
+
+                        // Amount can be checked by opening the sweep tx in a Bitcoin
+                        // testnet explorer. In this case, the sum of inputs is
+                        // 1060000 satoshi and there is a fee of 2000 so the output
+                        // value is 1058000.
+                        const expectedMainUtxo = ethers.utils.solidityKeccak256(
+                          ["bytes32", "uint32", "uint64"],
+                          [data.sweepTx.hash, 0, 1058000]
+                        )
+
+                        expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
+                      })
+
+                      it("should update the depositors balances", async () => {
+                        // The sum of sweep tx inputs is 1060000 satoshi. The output
+                        // value is 1058000 so the fee is 2000. There is 5 deposits
+                        // so 400 satoshi fee should be incurred per deposit.
+                        // Each deposit should also incur the treasury fee whose
+                        // initial value is 0.05% of the deposited amount.
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[0].reveal.depositor
+                          )
+                        ).to.be.equal(29585)
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[1].reveal.depositor
+                          )
+                        ).to.be.equal(9595)
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[2].reveal.depositor
+                          )
+                        ).to.be.equal(209495)
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[3].reveal.depositor
+                          )
+                        ).to.be.equal(369415)
+                        expect(
+                          await bank.balanceOf(
+                            data.deposits[4].reveal.depositor
+                          )
+                        ).to.be.equal(439380)
+                      })
+
+                      it("should transfer collected treasury fee", async () => {
+                        expect(
+                          await bank.balanceOf(treasury.address)
+                        ).to.be.equal(530)
+                      })
+
+                      it("should emit DepositsSwept event", async () => {
+                        await expect(tx)
+                          .to.emit(bridge, "DepositsSwept")
+                          .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                      })
+                    }
+                  )
+
+                  context(
+                    "when input vector consists only of revealed unswept " +
+                      "deposits but there is no main UTXO despite it is expected",
+                    () => {
+                      const previousData: SweepTestData = SingleP2WSHDeposit
+                      const data: SweepTestData = JSON.parse(
+                        JSON.stringify(MultipleDepositsNoMainUtxo)
+                      )
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Make the first sweep to create an on-chain expectation
+                        // that the tested sweep will contain the main UTXO
+                        // input.
+                        await runSweepScenario(previousData)
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should revert", async () => {
+                        // Use sweep data which doesn't reference the main UTXO.
+                        // However, pass a correct main UTXO parameter in order
+                        // to pass main UTXO validation in the contract.
+                        data.mainUtxo = {
+                          txHash: previousData.sweepTx.hash,
+                          txOutputIndex: 0,
+                          txOutputValue: 78000,
+                        }
+
+                        await expect(runSweepScenario(data)).to.be.revertedWith(
+                          "Expected main UTXO not present in sweep transaction inputs"
+                        )
+                      })
+                    }
+                  )
+
+                  context(
+                    "when input vector contains a revealed but already swept deposit",
+                    () => {
+                      const data: SweepTestData = MultipleDepositsNoMainUtxo
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Make a proper sweep to turn the tested deposits into
+                        // the swept state.
+                        await runSweepScenario(data)
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      it("should revert", async () => {
+                        // Main UTXO parameter must point to the properly
+                        // made sweep to avoid revert at validation stage.
+                        const mainUtxo = {
+                          txHash: data.sweepTx.hash,
+                          txOutputIndex: 0,
+                          txOutputValue: 1058000,
+                        }
+
+                        // Try replaying the already done sweep.
+                        await expect(
+                          bridge.submitSweepProof(
+                            data.sweepTx,
+                            data.sweepProof,
+                            mainUtxo
+                          )
+                        ).to.be.revertedWith("Deposit already swept")
+                      })
+                    }
+                  )
+
+                  context("when input vector contains an unknown input", () => {
+                    const data: SweepTestData = MultipleDepositsWithMainUtxo
+
+                    before(async () => {
+                      await createSnapshot()
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      // Used test data contains an actual main UTXO input
+                      // but the previous action proof was not submitted on-chain
+                      // so input is unknown from contract's perspective.
+                      await expect(runSweepScenario(data)).to.be.revertedWith(
+                        "Unknown input type"
+                      )
+                    })
+                  })
+                })
+              }
+            )
+
+            context(
+              "when transaction fee exceeds the deposit transaction maximum fee",
+              () => {
                 const data: SweepTestData = SingleP2SHDeposit
 
                 before(async () => {
                   await createSnapshot()
 
-                  // Necessary to pass the proof validation.
-                  await relay.setCurrentEpochDifficulty(data.chainDifficulty)
-                  await relay.setPrevEpochDifficulty(data.chainDifficulty)
+                  // Set the deposit transaction maximum fee to a value much
+                  // lower than the fee used by the test data transaction.
+                  await bridge.setDepositTxMaxFee(100)
                 })
 
                 after(async () => {
@@ -785,320 +1163,12 @@ describe("Bridge", () => {
                 })
 
                 it("should revert", async () => {
-                  // Try to sweep a deposit which was not revealed before and
-                  // is unknown from system's point of view.
-                  await expect(
-                    bridge.submitSweepProof(
-                      data.sweepTx,
-                      data.sweepProof,
-                      NO_MAIN_UTXO
-                    )
-                  ).to.be.revertedWith("Unknown input type")
-                })
-              })
-            })
-
-            // Since P2SH vs P2WSH path has been already checked in the scenario
-            // "when there is only one input", we no longer differentiate deposits
-            // using that criterion during "when there are multiple inputs" scenario.
-            context("when there are multiple inputs", () => {
-              context(
-                "when input vector consists only of revealed unswept " +
-                  "deposits and the expected main UTXO",
-                () => {
-                  let tx: ContractTransaction
-                  const previousData: SweepTestData = MultipleDepositsNoMainUtxo
-                  const data: SweepTestData = MultipleDepositsWithMainUtxo
-                  // Take wallet public key hash from first deposit. All
-                  // deposits in same sweep batch should have the same value
-                  // of that field.
-                  const { walletPubKeyHash } = data.deposits[0].reveal
-
-                  before(async () => {
-                    await createSnapshot()
-
-                    // Make the first sweep which is actually the predecessor
-                    // of the sweep tested within this scenario.
-                    await runSweepScenario(previousData)
-
-                    tx = await runSweepScenario(data)
-                  })
-
-                  after(async () => {
-                    await restoreSnapshot()
-                  })
-
-                  it("should mark deposits as swept", async () => {
-                    for (let i = 0; i < data.deposits.length; i++) {
-                      // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
-                      const depositKey = ethers.utils.solidityKeccak256(
-                        ["bytes32", "uint32"],
-                        [
-                          data.deposits[i].fundingTx.hash,
-                          data.deposits[i].reveal.fundingOutputIndex,
-                        ]
-                      )
-
-                      // eslint-disable-next-line no-await-in-loop
-                      const deposit = await bridge.deposits(depositKey)
-
-                      expect(deposit.sweptAt).to.be.equal(
-                        // eslint-disable-next-line no-await-in-loop
-                        await lastBlockTime(),
-                        `Deposit with index ${i} has an unexpected swept time`
-                      )
-                    }
-                  })
-
-                  it("should update main UTXO for the given wallet", async () => {
-                    const mainUtxoHash = await bridge.mainUtxos(
-                      walletPubKeyHash
-                    )
-
-                    // Amount can be checked by opening the sweep tx in a Bitcoin
-                    // testnet explorer. In this case, the sum of inputs is
-                    // 4148000 satoshi and there is a fee of 2999 so the output
-                    // value is 4145001.
-                    const expectedMainUtxo = ethers.utils.solidityKeccak256(
-                      ["bytes32", "uint32", "uint64"],
-                      [data.sweepTx.hash, 0, 4145001]
-                    )
-
-                    expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
-                  })
-
-                  it("should update the depositors balances", async () => {
-                    // The sum of sweep tx inputs is 4148000 satoshi. The output
-                    // value is 4145001 so the fee is 2999. There is 5 deposits
-                    // so 599 satoshi fee should be incurred per deposit.
-                    // Each deposit should also incur the treasury fee whose
-                    // initial value is 0.05% of the deposited amount.
-                    expect(
-                      await bank.balanceOf(data.deposits[0].reveal.depositor)
-                    ).to.be.equal(219291)
-                    expect(
-                      await bank.balanceOf(data.deposits[1].reveal.depositor)
-                    ).to.be.equal(759021)
-                    expect(
-                      await bank.balanceOf(data.deposits[2].reveal.depositor)
-                    ).to.be.equal(938931)
-                    expect(
-                      await bank.balanceOf(data.deposits[3].reveal.depositor)
-                    ).to.be.equal(878961)
-                    expect(
-                      await bank.balanceOf(data.deposits[4].reveal.depositor)
-                    ).to.be.equal(289256)
-                  })
-
-                  it("should transfer collected treasury fee", async () => {
-                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
-                      2075
-                    )
-                  })
-
-                  it("should emit DepositsSwept event", async () => {
-                    await expect(tx)
-                      .to.emit(bridge, "DepositsSwept")
-                      .withArgs(walletPubKeyHash, data.sweepTx.hash)
-                  })
-                }
-              )
-
-              context(
-                "when input vector consists only of revealed unswept " +
-                  "deposits but there is no main UTXO since it is not expected",
-                () => {
-                  let tx: ContractTransaction
-                  const data: SweepTestData = MultipleDepositsNoMainUtxo
-                  // Take wallet public key hash from first deposit. All
-                  // deposits in same sweep batch should have the same value
-                  // of that field.
-                  const { walletPubKeyHash } = data.deposits[0].reveal
-
-                  before(async () => {
-                    await createSnapshot()
-
-                    tx = await runSweepScenario(data)
-                  })
-
-                  after(async () => {
-                    await restoreSnapshot()
-                  })
-
-                  it("should mark deposits as swept", async () => {
-                    for (let i = 0; i < data.deposits.length; i++) {
-                      // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
-                      const depositKey = ethers.utils.solidityKeccak256(
-                        ["bytes32", "uint32"],
-                        [
-                          data.deposits[i].fundingTx.hash,
-                          data.deposits[i].reveal.fundingOutputIndex,
-                        ]
-                      )
-
-                      // eslint-disable-next-line no-await-in-loop
-                      const deposit = await bridge.deposits(depositKey)
-
-                      expect(deposit.sweptAt).to.be.equal(
-                        // eslint-disable-next-line no-await-in-loop
-                        await lastBlockTime(),
-                        `Deposit with index ${i} has an unexpected swept time`
-                      )
-                    }
-                  })
-
-                  it("should update main UTXO for the given wallet", async () => {
-                    const mainUtxoHash = await bridge.mainUtxos(
-                      walletPubKeyHash
-                    )
-
-                    // Amount can be checked by opening the sweep tx in a Bitcoin
-                    // testnet explorer. In this case, the sum of inputs is
-                    // 1060000 satoshi and there is a fee of 2000 so the output
-                    // value is 1058000.
-                    const expectedMainUtxo = ethers.utils.solidityKeccak256(
-                      ["bytes32", "uint32", "uint64"],
-                      [data.sweepTx.hash, 0, 1058000]
-                    )
-
-                    expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
-                  })
-
-                  it("should update the depositors balances", async () => {
-                    // The sum of sweep tx inputs is 1060000 satoshi. The output
-                    // value is 1058000 so the fee is 2000. There is 5 deposits
-                    // so 400 satoshi fee should be incurred per deposit.
-                    // Each deposit should also incur the treasury fee whose
-                    // initial value is 0.05% of the deposited amount.
-                    expect(
-                      await bank.balanceOf(data.deposits[0].reveal.depositor)
-                    ).to.be.equal(29585)
-                    expect(
-                      await bank.balanceOf(data.deposits[1].reveal.depositor)
-                    ).to.be.equal(9595)
-                    expect(
-                      await bank.balanceOf(data.deposits[2].reveal.depositor)
-                    ).to.be.equal(209495)
-                    expect(
-                      await bank.balanceOf(data.deposits[3].reveal.depositor)
-                    ).to.be.equal(369415)
-                    expect(
-                      await bank.balanceOf(data.deposits[4].reveal.depositor)
-                    ).to.be.equal(439380)
-                  })
-
-                  it("should transfer collected treasury fee", async () => {
-                    expect(await bank.balanceOf(treasury.address)).to.be.equal(
-                      530
-                    )
-                  })
-
-                  it("should emit DepositsSwept event", async () => {
-                    await expect(tx)
-                      .to.emit(bridge, "DepositsSwept")
-                      .withArgs(walletPubKeyHash, data.sweepTx.hash)
-                  })
-                }
-              )
-
-              context(
-                "when input vector consists only of revealed unswept " +
-                  "deposits but there is no main UTXO despite it is expected",
-                () => {
-                  const previousData: SweepTestData = SingleP2WSHDeposit
-                  const data: SweepTestData = JSON.parse(
-                    JSON.stringify(MultipleDepositsNoMainUtxo)
-                  )
-
-                  before(async () => {
-                    await createSnapshot()
-
-                    // Make the first sweep to create an on-chain expectation
-                    // that the tested sweep will contain the main UTXO
-                    // input.
-                    await runSweepScenario(previousData)
-                  })
-
-                  after(async () => {
-                    await restoreSnapshot()
-                  })
-
-                  it("should revert", async () => {
-                    // Use sweep data which doesn't reference the main UTXO.
-                    // However, pass a correct main UTXO parameter in order
-                    // to pass main UTXO validation in the contract.
-                    data.mainUtxo = {
-                      txHash: previousData.sweepTx.hash,
-                      txOutputIndex: 0,
-                      txOutputValue: 78000,
-                    }
-
-                    await expect(runSweepScenario(data)).to.be.revertedWith(
-                      "Expected main UTXO not present in sweep transaction inputs"
-                    )
-                  })
-                }
-              )
-
-              context(
-                "when input vector contains a revealed but already swept deposit",
-                () => {
-                  const data: SweepTestData = MultipleDepositsNoMainUtxo
-
-                  before(async () => {
-                    await createSnapshot()
-
-                    // Make a proper sweep to turn the tested deposits into
-                    // the swept state.
-                    await runSweepScenario(data)
-                  })
-
-                  after(async () => {
-                    await restoreSnapshot()
-                  })
-
-                  it("should revert", async () => {
-                    // Main UTXO parameter must point to the properly
-                    // made sweep to avoid revert at validation stage.
-                    const mainUtxo = {
-                      txHash: data.sweepTx.hash,
-                      txOutputIndex: 0,
-                      txOutputValue: 1058000,
-                    }
-
-                    // Try replaying the already done sweep.
-                    await expect(
-                      bridge.submitSweepProof(
-                        data.sweepTx,
-                        data.sweepProof,
-                        mainUtxo
-                      )
-                    ).to.be.revertedWith("Deposit already swept")
-                  })
-                }
-              )
-
-              context("when input vector contains an unknown input", () => {
-                const data: SweepTestData = MultipleDepositsWithMainUtxo
-
-                before(async () => {
-                  await createSnapshot()
-                })
-
-                after(async () => {
-                  await restoreSnapshot()
-                })
-
-                it("should revert", async () => {
-                  // Used test data contains an actual main UTXO input
-                  // but the previous action proof was not submitted on-chain
-                  // so input is unknown from contract's perspective.
                   await expect(runSweepScenario(data)).to.be.revertedWith(
-                    "Unknown input type"
+                    "'Transaction fee is too high"
                   )
                 })
-              })
-            })
+              }
+            )
           })
 
           context("when main UTXO data are invalid", () => {

@@ -226,6 +226,13 @@ contract Bridge is Ownable {
     uint64 public depositTreasuryFeeDivisor;
 
     /// TODO: Make it governable.
+    /// @notice Maximum amount of BTC transaction fee that can be incurred by
+    ///         each swept deposit being part of the given sweep
+    ///         transaction. If the maximum BTC transaction fee is exceeded,
+    ///         such transaction is considered a fraud.
+    uint64 public depositTxMaxFee;
+
+    /// TODO: Make it governable.
     /// @notice The minimal amount that can be requested for redemption.
     ///         Value of this parameter must take into account the value of
     ///         `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
@@ -377,6 +384,7 @@ contract Bridge is Ownable {
         txProofDifficultyFactor = _txProofDifficultyFactor;
 
         // TODO: Revisit initial values.
+        depositTxMaxFee = 1000; // 1000 satoshi
         depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
@@ -652,9 +660,10 @@ contract Bridge is Ownable {
         //       the higher transaction fee than others if there is a change,
         //       just like it has been proposed in discussion:
         //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r800555359.
-        // TODO: Check txFee against max fee.
         uint256 txFee = (inputsInfo.inputsTotalValue - sweepTxOutputValue) /
             inputsInfo.depositedAmounts.length;
+
+        require(txFee <= depositTxMaxFee, "Transaction fee is too high");
 
         // Reduce each deposit amount by treasury fee and transaction fee.
         for (uint256 i = 0; i < inputsInfo.depositedAmounts.length; i++) {

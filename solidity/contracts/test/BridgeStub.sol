@@ -31,6 +31,10 @@ contract BridgeStub is Bridge {
         wallets[walletPubKeyHash] = wallet;
     }
 
+    function setDepositTxMaxFee(uint64 _depositTxMaxFee) external {
+        depositTxMaxFee = _depositTxMaxFee;
+    }
+
     function setRedemptionDustThreshold(uint64 _redemptionDustThreshold)
         external
     {
