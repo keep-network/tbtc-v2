@@ -19,7 +19,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
-import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
 
 import "../bank/Bank.sol";
 import "./BitcoinTx.sol";
@@ -59,8 +58,6 @@ contract Bridge is Ownable {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
     using BytesLib for bytes;
-    using ValidateSPV for bytes;
-    using ValidateSPV for bytes32;
 
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
@@ -413,6 +410,22 @@ contract Bridge is Ownable {
         emit VaultStatusUpdated(vault, isTrusted);
     }
 
+    /// @notice Determines the current Bitcoin SPV proof difficulty context.
+    /// @return proofDifficulty Bitcoin proof difficulty context.
+    function proofDifficulty()
+        internal
+        view
+        returns (BitcoinTx.ProofDifficulty memory proofDifficulty)
+    {
+        proofDifficulty.currentEpochDifficulty = relay
+            .getCurrentEpochDifficulty();
+        proofDifficulty.previousEpochDifficulty = relay
+            .getPrevEpochDifficulty();
+        proofDifficulty.difficultyFactor = txProofDifficultyFactor;
+
+        return proofDifficulty;
+    }
+
     /// @notice Used by the depositor to reveal information about their P2(W)SH
     ///         Bitcoin deposit to the Bridge on Ethereum chain. The off-chain
     ///         wallet listens for revealed deposit events and may decide to
@@ -608,7 +621,11 @@ contract Bridge is Ownable {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 sweepTxHash = validateBitcoinTxProof(sweepTx, sweepProof);
+        bytes32 sweepTxHash = BitcoinTx.validateProof(
+            sweepTx,
+            sweepProof,
+            proofDifficulty()
+        );
 
         // Process sweep transaction output and extract its target wallet
         // public key hash and value.
@@ -710,103 +727,6 @@ contract Bridge is Ownable {
         bank.increaseBalance(treasury, totalTreasuryFee);
 
         // TODO: Handle deposits having `vault` set.
-    }
-
-    /// @notice Validates the SPV proof of the Bitcoin transaction.
-    ///         Reverts in case the validation or proof verification fail.
-    /// @param txInfo Bitcoin transaction data
-    /// @param proof Bitcoin proof data
-    /// @return txHash Proven 32-byte transaction hash.
-    function validateBitcoinTxProof(
-        BitcoinTx.Info calldata txInfo,
-        BitcoinTx.Proof calldata proof
-    ) internal view returns (bytes32 txHash) {
-        require(
-            txInfo.inputVector.validateVin(),
-            "Invalid input vector provided"
-        );
-        require(
-            txInfo.outputVector.validateVout(),
-            "Invalid output vector provided"
-        );
-
-        txHash = abi
-            .encodePacked(
-                txInfo.version,
-                txInfo.inputVector,
-                txInfo.outputVector,
-                txInfo.locktime
-            )
-            .hash256View();
-
-        checkProofFromTxHash(txHash, proof);
-
-        return txHash;
-    }
-
-    /// @notice Checks the given Bitcoin transaction hash against the SPV proof.
-    ///         Reverts in case the check fails.
-    /// @param txHash 32-byte hash of the checked Bitcoin transaction
-    /// @param proof Bitcoin proof data
-    function checkProofFromTxHash(
-        bytes32 txHash,
-        BitcoinTx.Proof calldata proof
-    ) internal view {
-        require(
-            txHash.prove(
-                proof.bitcoinHeaders.extractMerkleRootLE(),
-                proof.merkleProof,
-                proof.txIndexInBlock
-            ),
-            "Tx merkle proof is not valid for provided header and tx hash"
-        );
-
-        evaluateProofDifficulty(proof.bitcoinHeaders);
-    }
-
-    /// @notice Evaluates the given Bitcoin proof difficulty against the actual
-    ///         Bitcoin chain difficulty provided by the relay oracle.
-    ///         Reverts in case the evaluation fails.
-    /// @param bitcoinHeaders Bitcoin headers chain being part of the SPV
-    ///        proof. Used to extract the observed proof difficulty
-    function evaluateProofDifficulty(bytes memory bitcoinHeaders)
-        internal
-        view
-    {
-        uint256 requestedDiff = 0;
-        uint256 currentDiff = relay.getCurrentEpochDifficulty();
-        uint256 previousDiff = relay.getPrevEpochDifficulty();
-        uint256 firstHeaderDiff = bitcoinHeaders
-            .extractTarget()
-            .calculateDifficulty();
-
-        if (firstHeaderDiff == currentDiff) {
-            requestedDiff = currentDiff;
-        } else if (firstHeaderDiff == previousDiff) {
-            requestedDiff = previousDiff;
-        } else {
-            revert("Not at current or previous difficulty");
-        }
-
-        uint256 observedDiff = bitcoinHeaders.validateHeaderChain();
-
-        require(
-            observedDiff != ValidateSPV.getErrBadLength(),
-            "Invalid length of the headers chain"
-        );
-        require(
-            observedDiff != ValidateSPV.getErrInvalidChain(),
-            "Invalid headers chain"
-        );
-        require(
-            observedDiff != ValidateSPV.getErrLowWork(),
-            "Insufficient work in a header"
-        );
-
-        require(
-            observedDiff >= requestedDiff * txProofDifficultyFactor,
-            "Insufficient accumulated difficulty in header chain"
-        );
     }
 
     /// @notice Processes the Bitcoin sweep transaction output vector by
@@ -1271,9 +1191,10 @@ contract Bridge is Ownable {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 redemptionTxHash = validateBitcoinTxProof(
+        bytes32 redemptionTxHash = BitcoinTx.validateProof(
             redemptionTx,
-            redemptionProof
+            redemptionProof,
+            proofDifficulty()
         );
 
         // Perform validation of the redemption transaction input. Specifically,

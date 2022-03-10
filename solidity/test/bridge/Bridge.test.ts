@@ -38,6 +38,7 @@ import {
   MultiplePendingRequestedRedemptionsWithProvablyUnspendable,
   MultiplePendingRequestedRedemptionsWithMultipleInputs,
 } from "../data/redemption"
+import { BridgeStub__factory } from "../../typechain"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
@@ -58,7 +59,15 @@ const fixture = async () => {
   const relay: TestRelay = await TestRelay.deploy()
   await relay.deployed()
 
-  const Bridge = await ethers.getContractFactory("BridgeStub")
+  const BitcoinTx = await ethers.getContractFactory("BitcoinTx")
+  const bitcoinTx = await BitcoinTx.deploy()
+  await bitcoinTx.deployed()
+
+  const Bridge = await ethers.getContractFactory("BridgeStub", {
+    libraries: {
+      BitcoinTx: bitcoinTx.address,
+    },
+  })
   const bridge: Bridge & BridgeStub = await Bridge.deploy(
     bank.address,
     relay.address,
@@ -86,6 +95,7 @@ const fixture = async () => {
     treasury,
     bank,
     relay,
+    Bridge,
     bridge,
   }
 }
@@ -97,11 +107,12 @@ describe("Bridge", () => {
 
   let bank: Bank & BankStub
   let relay: TestRelay
+  let Bridge: BridgeStub__factory
   let bridge: Bridge & BridgeStub
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, thirdParty, treasury, bank, relay, bridge } =
+    ;({ governance, thirdParty, treasury, bank, relay, Bridge, bridge } =
       await waffle.loadFixture(fixture))
   })
 
@@ -1567,7 +1578,6 @@ describe("Bridge", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            const Bridge = await ethers.getContractFactory("Bridge")
             otherBridge = await Bridge.deploy(
               bank.address,
               relay.address,
@@ -4602,7 +4612,6 @@ describe("Bridge", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            const Bridge = await ethers.getContractFactory("Bridge")
             otherBridge = await Bridge.deploy(
               bank.address,
               relay.address,
