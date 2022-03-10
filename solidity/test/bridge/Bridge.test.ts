@@ -892,30 +892,52 @@ describe("Bridge", () => {
 
                       it("should update the depositors balances", async () => {
                         // The sum of sweep tx inputs is 4148000 satoshi. The output
-                        // value is 4145001 so the fee is 2999. There is 5 deposits
-                        // so 599 satoshi fee should be incurred per deposit.
-                        // Each deposit should also incur the treasury fee whose
-                        // initial value is 0.05% of the deposited amount.
+                        // value is 4145001 so the sweep transaction fee is 2999.
+                        // There are 5 deposits so the fee per deposit is 599
+                        // and the indivisible remainder is 4 which means the
+                        // last deposit should incur 603 satoshi. Worth noting
+                        // the order of deposits used by this test scenario
+                        // data does not correspond to the order of sweep
+                        // transaction inputs. Each deposit should also incur
+                        // the treasury fee whose initial value is 0.05% of the
+                        // deposited amount.
+
+                        // Deposit with index 0 used as input with index 5
+                        // in the sweep transaction. This is the last deposit
+                        // (according to inputs order) and it should incur the
+                        // remainder of the transaction fee.
                         expect(
                           await bank.balanceOf(
                             data.deposits[0].reveal.depositor
                           )
-                        ).to.be.equal(219291)
+                        ).to.be.equal(219287)
+
+                        // Deposit with index 1 used as input with index 3
+                        // in the sweep transaction.
                         expect(
                           await bank.balanceOf(
                             data.deposits[1].reveal.depositor
                           )
                         ).to.be.equal(759021)
+
+                        // Deposit with index 2 used as input with index 1
+                        // in the sweep transaction.
                         expect(
                           await bank.balanceOf(
                             data.deposits[2].reveal.depositor
                           )
                         ).to.be.equal(938931)
+
+                        // Deposit with index 3 used as input with index 2
+                        // in the sweep transaction.
                         expect(
                           await bank.balanceOf(
                             data.deposits[3].reveal.depositor
                           )
                         ).to.be.equal(878961)
+
+                        // Deposit with index 4 used as input with index 4
+                        // in the sweep transaction.
                         expect(
                           await bank.balanceOf(
                             data.deposits[4].reveal.depositor
@@ -999,30 +1021,35 @@ describe("Bridge", () => {
 
                       it("should update the depositors balances", async () => {
                         // The sum of sweep tx inputs is 1060000 satoshi. The output
-                        // value is 1058000 so the fee is 2000. There is 5 deposits
-                        // so 400 satoshi fee should be incurred per deposit.
-                        // Each deposit should also incur the treasury fee whose
-                        // initial value is 0.05% of the deposited amount.
+                        // value is 1058000 so the sweep transaction fee is 2000.
+                        // There are 5 deposits so the fee per deposit is 400
+                        // and there is no indivisible remainder. Each deposit
+                        // should also incur the treasury fee whose initial
+                        // value is 0.05% of the deposited amount.
                         expect(
                           await bank.balanceOf(
                             data.deposits[0].reveal.depositor
                           )
                         ).to.be.equal(29585)
+
                         expect(
                           await bank.balanceOf(
                             data.deposits[1].reveal.depositor
                           )
                         ).to.be.equal(9595)
+
                         expect(
                           await bank.balanceOf(
                             data.deposits[2].reveal.depositor
                           )
                         ).to.be.equal(209495)
+
                         expect(
                           await bank.balanceOf(
                             data.deposits[3].reveal.depositor
                           )
                         ).to.be.equal(369415)
+
                         expect(
                           await bank.balanceOf(
                             data.deposits[4].reveal.depositor

@@ -653,20 +653,34 @@ contract Bridge is Ownable {
         // all deposits.
         uint256 totalTreasuryFee = 0;
 
-        // Calculate the transaction fee per deposit by dividing the total
-        // transaction fee by deposits count. The total fee is just the
-        // difference between inputs amounts sum and the output amount.
-        // TODO: Deal with precision loss by having the last depositor pay
-        //       the higher transaction fee than others if there is a change,
-        //       just like it has been proposed in discussion:
-        //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r800555359.
-        uint256 txFee = (inputsInfo.inputsTotalValue - sweepTxOutputValue) /
-            inputsInfo.depositedAmounts.length;
+        // Determine the transaction fee that should be incurred by each deposit
+        // and the indivisible remainder that should be additionally incurred
+        // by the last deposit.
+        (
+            uint256 depositTxFee,
+            uint256 depositTxFeeRemainder
+        ) = sweepTxFeeDistribution(
+                inputsInfo.inputsTotalValue,
+                sweepTxOutputValue,
+                inputsInfo.depositedAmounts.length
+            );
 
-        require(txFee <= depositTxMaxFee, "Transaction fee is too high");
+        // Make sure the highest value of the deposit transaction fee does not
+        // exceed the maximum value limited by the governable parameter.
+        require(
+            depositTxFee + depositTxFeeRemainder <= depositTxMaxFee,
+            "Transaction fee is too high"
+        );
 
         // Reduce each deposit amount by treasury fee and transaction fee.
         for (uint256 i = 0; i < inputsInfo.depositedAmounts.length; i++) {
+            // The last deposit should incur the deposit transaction fee
+            // remainder.
+            uint256 depositTxFeeIncurred = i ==
+                inputsInfo.depositedAmounts.length - 1
+                ? depositTxFee + depositTxFeeRemainder
+                : depositTxFee;
+
             // There is no need to check whether
             // `inputsInfo.depositedAmounts[i] - inputsInfo.treasuryFees[i] - txFee > 0`
             // since the `depositDustThreshold` should force that condition
@@ -674,7 +688,7 @@ contract Bridge is Ownable {
             inputsInfo.depositedAmounts[i] =
                 inputsInfo.depositedAmounts[i] -
                 inputsInfo.treasuryFees[i] -
-                txFee;
+                depositTxFeeIncurred;
             totalTreasuryFee += inputsInfo.treasuryFees[i];
         }
 
@@ -1010,6 +1024,40 @@ contract Bridge is Ownable {
         inputLength = inputVector.determineInputLengthAt(inputStartingIndex);
 
         return (outpointTxHash, outpointIndex, inputLength);
+    }
+
+    /// @notice Determines the distribution of the sweep transaction fee
+    ///         over swept deposits.
+    /// @param sweepTxInputsTotalValue Total value of all sweep transaction inputs.
+    /// @param sweepTxOutputValue Value of the sweep transaction output.
+    /// @param depositsCount Count of the deposits swept by the sweep transaction.
+    /// @return depositTxFee Transaction fee per deposit determined by evenly
+    ///         spreading the divisible part of the sweep transaction fee
+    ///         over all deposits.
+    /// @return depositTxFeeRemainder The indivisible part of the sweep
+    ///         transaction fee than cannot be distributed over all deposits.
+    /// @dev It is up to the caller to decide how the remainder should be
+    ///      counted in. This function only computes its value.
+    function sweepTxFeeDistribution(
+        uint256 sweepTxInputsTotalValue,
+        uint256 sweepTxOutputValue,
+        uint256 depositsCount
+    )
+        internal
+        pure
+        returns (uint256 depositTxFee, uint256 depositTxFeeRemainder)
+    {
+        // The sweep transaction fee is just the difference between inputs
+        // amounts sum and the output amount.
+        uint256 sweepTxFee = sweepTxInputsTotalValue - sweepTxOutputValue;
+        // Compute the indivisible remainder that remains after dividing the
+        // sweep transaction fee over all deposits evenly.
+        depositTxFeeRemainder = sweepTxFee % depositsCount;
+        // Compute the transaction fee per deposit by dividing the sweep
+        // transaction fee (reduced by the remainder) by the number of deposits.
+        depositTxFee = (sweepTxFee - depositTxFeeRemainder) / depositsCount;
+
+        return (depositTxFee, depositTxFeeRemainder);
     }
 
     /// @notice Requests redemption of the given amount from the specified
