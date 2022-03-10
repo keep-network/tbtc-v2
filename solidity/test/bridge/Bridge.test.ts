@@ -895,7 +895,7 @@ describe("Bridge", () => {
                         // value is 4145001 so the sweep transaction fee is 2999.
                         // There are 5 deposits so the fee per deposit is 599
                         // and the indivisible remainder is 4 which means the
-                        // last deposit should incur 604 satoshi. Worth noting
+                        // last deposit should incur 603 satoshi. Worth noting
                         // the order of deposits used by this test scenario
                         // data does not correspond to the order of sweep
                         // transaction inputs. Each deposit should also incur
