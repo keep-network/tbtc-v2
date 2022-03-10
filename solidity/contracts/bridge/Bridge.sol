@@ -412,7 +412,7 @@ contract Bridge is Ownable {
 
     /// @notice Determines the current Bitcoin SPV proof difficulty context.
     /// @return proofDifficulty Bitcoin proof difficulty context.
-    function proofDifficulty()
+    function proofDifficultyContext()
         internal
         view
         returns (BitcoinTx.ProofDifficulty memory proofDifficulty)
@@ -624,7 +624,7 @@ contract Bridge is Ownable {
         bytes32 sweepTxHash = BitcoinTx.validateProof(
             sweepTx,
             sweepProof,
-            proofDifficulty()
+            proofDifficultyContext()
         );
 
         // Process sweep transaction output and extract its target wallet
@@ -1194,7 +1194,7 @@ contract Bridge is Ownable {
         bytes32 redemptionTxHash = BitcoinTx.validateProof(
             redemptionTx,
             redemptionProof,
-            proofDifficulty()
+            proofDifficultyContext()
         );
 
         // Perform validation of the redemption transaction input. Specifically,
