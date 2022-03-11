@@ -18,32 +18,46 @@ pragma solidity ^0.8.9;
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {CheckBitcoinSigs} from "@keep-network/bitcoin-spv-sol/contracts/CheckBitcoinSigs.sol";
+import "../../GovernanceUtils.sol";
 import "../Bridge.sol";
 
-library FraudVerification {
+library Fraud {
     using BytesLib for bytes;
     using BTCUtils for bytes;
     using BTCUtils for uint32;
-
-    struct Parameters {
-        /// The amount of ETH the party challenging the wallet for fraud needs
-        /// to deposit.
-        uint256 fraudChallengeDepositAmount; //TODO: Initialize
-    }
 
     struct FraudChallenge {
         address challenger;
         uint256 ethDepositAmount;
         uint32 reportedAt;
-        bool defended;
+        bool closed;
     }
 
     struct Data {
-        Parameters parameters;
+        ///  The amount of stake slashed from each member of a wallet for a fraud.
+        uint256 fraudSlashingAmount; //TODO: Initialize
+        /// The percentage of the notifier reward from the staking contract
+        /// the notifier of a fraud receives.
+        uint256 fraudNotifierRewardMultiplier; //TODO: Initialize
+        /// The amount of time the wallet has to defend against a fraud challenge.
+        uint256 fraudChallengeDefendTimeout; //TODO: Initialize
+        /// The amount of ETH the party challenging the wallet for fraud needs
+        /// to deposit.
+        uint256 fraudChallengeDepositAmount; //TODO: Initialize
         /// Collection of all submitted fraud challenges indexed by challenge
         /// key built as keccak256(walletPublicKey|sighash|v|r|s).
-        mapping(uint256 => FraudChallenge) fraudChallenges;
+        mapping(uint256 => FraudChallenge) challenges;
     }
+
+    event FraudFraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
+
+    event FraudNotifierRewardMultiplierUpdated(
+        uint256 newFraudNotifierRewardMultiplier
+    );
+
+    event FraudChallengeDefendTimeoutUpdated(
+        uint256 newFraudChallengeDefendTimeout
+    );
 
     event FraudChallengeDepositAmountUpdated(
         uint256 newFraudChallengeDepositAmount
@@ -57,7 +71,7 @@ library FraudVerification {
         bytes32 s
     );
 
-    event FraudChallengeDefended(
+    event FraudChallengeDefeated(
         bytes walletPublicKey,
         bytes32 sighash,
         uint8 v,
@@ -65,16 +79,42 @@ library FraudVerification {
         bytes32 s
     );
 
-    /// @notice Submits a wallet fraud challenge.
+    event FraudChallengeTimeout(
+        bytes walletPublicKey,
+        bytes32 sighash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    );
+
+    /// @notice Submits a fraud challenge indicating that a UTXO being under
+    ///         wallet control was unlocked by the wallet but was not used
+    ///         according to the protocol rules. That means the wallet signed
+    ///         a transaction input pointing to that UTXO and there is a unique
+    ///         sighash and signature pair associated with that input. This
+    ///         function uses those parameters to create a fraud accusation that
+    ///         proves a given transaction input unlocking the given UTXO was
+    ///         actually signed by the wallet. This function cannot determine
+    ///         whether the transaction was actually broadcast and the input was
+    ///         consumed in a fraudulent way so it just opens a challenge period
+    ///         during which the wallet can defeat the challenge by submitting
+    ///         proof of a transaction that consumes the given input according
+    ///         to protocol rules. To prevent spurious allegations, the caller
+    ///         must deposit ETH that is returned back upon justified fraud
+    ///         challenge or confiscated otherwise.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///                        and unprefixed format (64 bytes).
-    /// @param sighash Hash of the data (preimage) used for generating signature
-    ///                for the given input.
+    ///        and unprefixed format (64 bytes).
+    /// @param sighash The hash that was used to produce the ECDSA signature
+    ///        that is the subject of the fraud claim. This hash is constructed
+    ///        by applying double SHA-256 over a serialized subset of the
+    ///        transaction. The exact subset used as hash preimage depends on
+    ///        the transaction input the signature is produced for. See BIP-143
+    ///        for reference.
     /// @param v Signature recovery value.
     /// @param r Signature r value.
     /// @param s Signature s value.
     function submitFraudChallenge(
-        Data storage data,
+        Data storage self,
         bytes memory walletPublicKey,
         bytes32 sighash,
         uint8 v,
@@ -86,33 +126,27 @@ library FraudVerification {
         // the v value. It can take values: 27, 28, 29, 30, 31, 32, 33, 34.
         // https://bitcoin.stackexchange.com/questions/38351/ecdsa-v-r-s-what-is-v
         require(
-            msg.value >= data.parameters.fraudChallengeDepositAmount,
+            msg.value >= self.fraudChallengeDepositAmount,
             "The amount of ETH deposited is too low"
         );
 
-        bool verificationResult = CheckBitcoinSigs.checkSig(
-            walletPublicKey,
-            sighash,
-            v,
-            r,
-            s
+        require(
+            CheckBitcoinSigs.checkSig(walletPublicKey, sighash, v, r, s),
+            "Signature verification failure"
         );
-        require(verificationResult, "Signature verification failure");
 
         uint256 challengeKey = uint256(
             keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
         );
 
-        FraudChallenge storage fraudChallenge = data.fraudChallenges[
-            challengeKey
-        ];
-        require(fraudChallenge.reportedAt == 0, "Fraud already challenged");
+        FraudChallenge storage challenge = self.challenges[challengeKey];
+        require(challenge.reportedAt == 0, "Fraud challenge already exists");
 
-        fraudChallenge.challenger = msg.sender;
-        fraudChallenge.ethDepositAmount = msg.value;
+        challenge.challenger = msg.sender;
+        challenge.ethDepositAmount = msg.value;
         /* solhint-disable-next-line not-rely-on-time */
-        fraudChallenge.reportedAt = uint32(block.timestamp);
-        fraudChallenge.defended = false;
+        challenge.reportedAt = uint32(block.timestamp);
+        challenge.closed = false;
 
         // TODO: Consider emitting the event with walletPublicKey in the
         //       compressed format as it's how we identify wallets in the Bridge.
@@ -120,47 +154,32 @@ library FraudVerification {
     }
 
     // TODO: description
-    function submitFraudChallengeResponse(
-        Data storage data,
+    function defeatFraudChallenge(
+        Data storage self,
         bytes memory walletPublicKey,
         bytes memory preimage,
         uint8 v,
         bytes32 r,
         bytes32 s,
         bool witness,
+        address treasury,
         mapping(uint256 => Bridge.DepositRequest) storage deposits,
         mapping(uint256 => bool) storage spentMainUTXOs
     ) external {
-        // TODO: Consider moving `deposits` and `spentMainUTXOs` to this library
-        // and renaming it `UTXO`. It would be responsible for UTXO-related
-        // logic, like UTXO frauds.
         bytes32 sighash = preimage.hash256();
-
-        bool verificationResult = CheckBitcoinSigs.checkSig(
-            walletPublicKey,
-            sighash,
-            v,
-            r,
-            s
-        );
-        require(verificationResult, "Signature verification failure");
 
         uint256 challengeKey = uint256(
             keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
         );
 
-        require(
-            data.fraudChallenges[challengeKey].reportedAt > 0,
-            "Fraud not challenged"
-        );
+        FraudChallenge storage challenge = self.challenges[challengeKey];
 
-        require(
-            !data.fraudChallenges[challengeKey].defended,
-            "Fraud challenge already defended"
-        );
+        require(challenge.reportedAt > 0, "Fraud challenge does not exist");
+        require(!challenge.closed, "Fraud challenge closed");
 
-        uint32 sighashType = extractSighashType(preimage);
-        require(sighashType == 1, "Wrong sighash type");
+        // Ensure SIGHASH_ALL type was used during signing, which is represented
+        // by type value `1`.
+        require(extractSighashType(preimage) == 1, "Wrong sighash type");
 
         if (witness) {
             verifyWitnessPreimage(preimage, deposits, spentMainUTXOs);
@@ -170,13 +189,58 @@ library FraudVerification {
         // If we passed the preimage verification, the wallet has successfully
         // defended the fraud challenge.
 
-        // TODO: Reward the wallet for successful fraud challenge response.
+        // Send the ether deposited by the challenger to the treasury
+        /* solhint-disable avoid-low-level-calls */
+        // slither-disable-next-line low-level-calls
+        (bool success, ) = treasury.call{value: challenge.ethDepositAmount}("");
+        require(success, "Failed to send Ether");
+        /* solhint-enable avoid-low-level-calls */
 
-        data.fraudChallenges[challengeKey].defended = true;
+        // TODO: Reward the caller for defeating the challenge successfully.
+        challenge.closed = true;
 
         // TODO: Consider emitting the event with walletPublicKey in the
         //       compressed format as it's how we identify wallets in the Bridge.
-        emit FraudChallengeDefended(walletPublicKey, sighash, v, r, s);
+        emit FraudChallengeDefeated(walletPublicKey, sighash, v, r, s);
+    }
+
+    // TODO: description
+    function notifyChallengeTimeout(
+        Data storage self,
+        bytes memory walletPublicKey,
+        bytes32 sighash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        uint256 challengeKey = uint256(
+            keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
+        );
+
+        FraudChallenge storage challenge = self.challenges[challengeKey];
+        require(challenge.reportedAt > 0, "Fraud challenge does not exist");
+        require(!challenge.closed, "Fraud challenge is closed");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp - challenge.reportedAt >=
+                self.fraudChallengeDefendTimeout,
+            "Fraud challenge defend timeout has not elapsed"
+        );
+
+        // TODO: Slash the wallet
+        // TODO: Reward the challenger
+
+        challenge.closed = true;
+
+        // Return the ether deposited by the challenger
+        /* solhint-disable avoid-low-level-calls */
+        // slither-disable-next-line low-level-calls
+        (bool success, ) = challenge.challenger.call{
+            value: challenge.ethDepositAmount
+        }("");
+        require(success, "Failed to send Ether");
+        /* solhint-enable avoid-low-level-calls */
+        emit FraudChallengeTimeout(walletPublicKey, sighash, v, r, s);
     }
 
     // TODO: description
@@ -259,6 +323,49 @@ library FraudVerification {
     }
 
     // TODO: description
+    function setFraudSlashingAmount(
+        Data storage self,
+        uint256 _newFraudSlashingAmount
+    ) internal {
+        require(
+            _newFraudSlashingAmount > 0,
+            "Fraud slashing amount must be > 0"
+        );
+        self.fraudSlashingAmount = _newFraudSlashingAmount;
+        emit FraudFraudSlashingAmountUpdated(_newFraudSlashingAmount);
+    }
+
+    // TODO: description
+    function setFraudNotifierRewardMultiplier(
+        Data storage self,
+        uint256 _newFraudNotifierRewardMultiplier
+    ) internal {
+        require(
+            _newFraudNotifierRewardMultiplier > 0,
+            "Fraud notifier reward multiplier must be > 0"
+        );
+        self.fraudNotifierRewardMultiplier = _newFraudNotifierRewardMultiplier;
+        emit FraudNotifierRewardMultiplierUpdated(
+            _newFraudNotifierRewardMultiplier
+        );
+    }
+
+    // TODO: description
+    function setFraudChallengeDefendTimeout(
+        Data storage self,
+        uint256 _newFraudChallengeDefendTimeout
+    ) internal {
+        require(
+            _newFraudChallengeDefendTimeout > 0,
+            "Fraud challenge defend timeout must be > 0"
+        );
+        self.fraudChallengeDefendTimeout = _newFraudChallengeDefendTimeout;
+        emit FraudChallengeDefendTimeoutUpdated(
+            _newFraudChallengeDefendTimeout
+        );
+    }
+
+    // TODO: description
     function setFraudChallengeDepositAmount(
         Data storage self,
         uint256 _newFraudChallengeDepositAmount
@@ -267,9 +374,7 @@ library FraudVerification {
             _newFraudChallengeDepositAmount > 0,
             "Fraud challenge deposit amount must be > 0"
         );
-        self
-            .parameters
-            .fraudChallengeDepositAmount = _newFraudChallengeDepositAmount;
+        self.fraudChallengeDepositAmount = _newFraudChallengeDepositAmount;
         emit FraudChallengeDepositAmountUpdated(
             _newFraudChallengeDepositAmount
         );

@@ -6,12 +6,47 @@ import "../bridge/BitcoinTx.sol";
 import "../bridge/Bridge.sol";
 
 contract BridgeStub is Bridge {
+    struct Outpoint {
+        bytes32 fundingTxHash;
+        uint32 fundingOutputIndex;
+    }
+
     constructor(
         address _bank,
         address _relay,
         address _treasury,
         uint256 _txProofDifficultyFactor
     ) Bridge(_bank, _relay, _treasury, _txProofDifficultyFactor) {}
+
+    function setSweptDeposits(Outpoint[] calldata outpoints) external {
+        for (uint256 i = 0; i < outpoints.length; i++) {
+            uint256 utxoKey = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        outpoints[i].fundingTxHash,
+                        outpoints[i].fundingOutputIndex
+                    )
+                )
+            );
+
+            deposits[utxoKey].sweptAt = 1641650400;
+        }
+    }
+
+    function setSpentMainUtxos(Outpoint[] calldata outpoints) external {
+        for (uint256 i = 0; i < outpoints.length; i++) {
+            uint256 utxoKey = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        outpoints[i].fundingTxHash,
+                        outpoints[i].fundingOutputIndex
+                    )
+                )
+            );
+
+            spentMainUTXOs[utxoKey] = true;
+        }
+    }
 
     function setMainUtxo(bytes20 walletPubKeyHash, BitcoinTx.UTXO calldata utxo)
         external

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
@@ -13,7 +15,7 @@ import type {
   BankStub,
   Bridge,
   BridgeStub,
-  FraudVerification,
+  Fraud,
   TestRelay,
 } from "../../typechain"
 import {
@@ -44,6 +46,13 @@ import {
   MultiplePendingRequestedRedemptionsWithProvablyUnspendable,
   MultiplePendingRequestedRedemptionsWithMultipleInputs,
 } from "../data/redemption"
+import {
+  fraudWalletPublicKey,
+  fraudWalletPublicKeyHash,
+  nonWitnessSignSingleInputTx,
+  nonWitnessSignMultipleInputsTx,
+  witnessSignSingleInputTx,
+} from "../data/fraud"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
@@ -64,13 +73,13 @@ const fixture = async () => {
   const relay: TestRelay = await TestRelay.deploy()
   await relay.deployed()
 
-  const FraudVerification = await ethers.getContractFactory("FraudVerification")
-  const fraudVerification: FraudVerification = await FraudVerification.deploy()
-  await fraudVerification.deployed()
+  const Fraud = await ethers.getContractFactory("Fraud")
+  const fraud: Fraud = await Fraud.deploy()
+  await fraud.deployed()
 
   const Bridge = await ethers.getContractFactory("BridgeStub", {
     libraries: {
-      FraudVerification: fraudVerification.address,
+      Fraud: fraud.address,
     },
   })
   const bridge: Bridge & BridgeStub = await Bridge.deploy(
@@ -183,6 +192,7 @@ describe("Bridge", () => {
     })
   })
 
+  // TODO: Add unit tests for the other fraud parameters
   describe("setFraudChallengeDepositAmount", () => {
     const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
 
@@ -932,6 +942,15 @@ describe("Bridge", () => {
                     expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
                   })
 
+                  it("should mark the previous main UTXO as spent", async () => {
+                    const mainUtxoKey = ethers.utils.solidityKeccak256(
+                      ["bytes32", "uint32"],
+                      [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                    )
+
+                    expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be.true
+                  })
+
                   it("should update the depositors balances", async () => {
                     // The sum of sweep tx inputs is 4148000 satoshi. The output
                     // value is 4145001 so the fee is 2999. There is 5 deposits
@@ -1535,15 +1554,12 @@ describe("Bridge", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            const FraudVerification = await ethers.getContractFactory(
-              "FraudVerification"
-            )
-            const fraudVerification: FraudVerification =
-              await FraudVerification.deploy()
-            await fraudVerification.deployed()
+            const Fraud = await ethers.getContractFactory("Fraud")
+            const fraud: Fraud = await Fraud.deploy()
+            await fraud.deployed()
             const Bridge = await ethers.getContractFactory("BridgeStub", {
               libraries: {
-                FraudVerification: fraudVerification.address,
+                Fraud: fraud.address,
               },
             })
             otherBridge = await Bridge.deploy(
@@ -2288,6 +2304,16 @@ describe("Bridge", () => {
                           ).to.be.equal(ZERO_32_BYTES)
                         })
 
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
+                        })
+
                         it("should decrease the wallet's pending redemptions value", async () => {
                           // Wallet pending redemptions value should be
                           // decreased by the total redeemable amount but since
@@ -2410,6 +2436,16 @@ describe("Bridge", () => {
                           expect(
                             await bridge.mainUtxos(data.wallet.pubKeyHash)
                           ).to.be.equal(ZERO_32_BYTES)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -2542,6 +2578,16 @@ describe("Bridge", () => {
                           expect(
                             await bridge.mainUtxos(data.wallet.pubKeyHash)
                           ).to.be.equal(ZERO_32_BYTES)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should not change the wallet's pending redemptions value", async () => {
@@ -2934,6 +2980,16 @@ describe("Bridge", () => {
                           ).to.be.equal(ZERO_32_BYTES)
                         })
 
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
+                        })
+
                         it("should decrease the wallet's pending redemptions value", async () => {
                           // Wallet pending redemptions value should be
                           // decreased by the total redeemable amount but since
@@ -3064,6 +3120,16 @@ describe("Bridge", () => {
                           expect(
                             await bridge.mainUtxos(data.wallet.pubKeyHash)
                           ).to.be.equal(expectedMainUtxoHash)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -3225,6 +3291,16 @@ describe("Bridge", () => {
                           ).to.be.equal(ZERO_32_BYTES)
                         })
 
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
+                        })
+
                         it("should not change the wallet's pending redemptions value", async () => {
                           // All the bookkeeping regarding the timed out
                           // requests was done upon timeout reports. The
@@ -3376,6 +3452,16 @@ describe("Bridge", () => {
                           expect(
                             await bridge.mainUtxos(data.wallet.pubKeyHash)
                           ).to.be.equal(expectedMainUtxoHash)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should not change the wallet's pending redemptions value", async () => {
@@ -3551,6 +3637,16 @@ describe("Bridge", () => {
                           expect(
                             await bridge.mainUtxos(data.wallet.pubKeyHash)
                           ).to.be.equal(ZERO_32_BYTES)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -3737,6 +3833,16 @@ describe("Bridge", () => {
                           expect(
                             await bridge.mainUtxos(data.wallet.pubKeyHash)
                           ).to.be.equal(expectedMainUtxoHash)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -4580,7 +4686,14 @@ describe("Bridge", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            const Bridge = await ethers.getContractFactory("Bridge")
+            const Fraud = await ethers.getContractFactory("Fraud")
+            const fraud: Fraud = await Fraud.deploy()
+            await fraud.deployed()
+            const Bridge = await ethers.getContractFactory("Bridge", {
+              libraries: {
+                Fraud: fraud.address,
+              },
+            })
             otherBridge = await Bridge.deploy(
               bank.address,
               relay.address,
@@ -4613,33 +4726,15 @@ describe("Bridge", () => {
 
   describe("submitFraudChallenge", () => {
     const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
-
-    // r and s values were extracted from signature with DER format:
-    // 3045022100be367625b075362d13a46a71e91e99b633ab476d6e76870c6daaa078
-    // 991e41b50220041e65394627554cf832d073c47760e96ca5f3a554c01cf7b1d96d
-    // 79c200202a01
-    const r =
-      "0xbe367625b075362d13a46a71e91e99b633ab476d6e76870c6daaa078991e41b5"
-    const s =
-      "0x041e65394627554cf832d073c47760e96ca5f3a554c01cf7b1d96d79c200202a"
-    const v = 27
-
-    const sighash =
-      "0xb8994753efd78cc66075991d3a21beef96d4e8a5e9ff06bc692401203df02610"
-
-    // Uncompressed and unprefixed version of the public key:
-    // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
-    const walletPublicKey =
-      "0x989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9" +
-      "d218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af"
-
-    // Hash 160 of the public key:
-    // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
-    const walletPubKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
+    const data = witnessSignSingleInputTx
 
     context("when the amount of sent ether is too small", () => {
       before(async () => {
         await createSnapshot()
+        await bridge.setWallet(fraudWalletPublicKeyHash, {
+          state: 1,
+          pendingRedemptionsValue: 0,
+        })
         await bridge
           .connect(governance)
           .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
@@ -4654,12 +4749,12 @@ describe("Bridge", () => {
           bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
-              walletPubKeyHash,
-              sighash,
-              v,
-              r,
-              s,
+              fraudWalletPublicKey,
+              fraudWalletPublicKeyHash,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s,
               {
                 value: fraudChallengeDepositAmount.sub(1),
               }
@@ -4675,6 +4770,10 @@ describe("Bridge", () => {
 
       before(async () => {
         await createSnapshot()
+        await bridge.setWallet(fraudWalletPublicKeyHash, {
+          state: 1,
+          pendingRedemptionsValue: 0,
+        })
         await bridge
           .connect(governance)
           .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
@@ -4690,11 +4789,11 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               incorrectWalletPublicKey,
-              walletPubKeyHash,
-              sighash,
-              v,
-              r,
-              s,
+              fraudWalletPublicKeyHash,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s,
               {
                 value: fraudChallengeDepositAmount,
               }
@@ -4709,6 +4808,10 @@ describe("Bridge", () => {
 
       before(async () => {
         await createSnapshot()
+        await bridge.setWallet(fraudWalletPublicKeyHash, {
+          state: 1,
+          pendingRedemptionsValue: 0,
+        })
         await bridge
           .connect(governance)
           .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
@@ -4723,12 +4826,12 @@ describe("Bridge", () => {
           bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
-              walletPubKeyHash,
+              fraudWalletPublicKey,
+              fraudWalletPublicKeyHash,
               incorrectSighash,
-              v,
-              r,
-              s,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s,
               {
                 value: fraudChallengeDepositAmount,
               }
@@ -4738,10 +4841,14 @@ describe("Bridge", () => {
     })
 
     context("when incorrect recovery ID is used", () => {
-      const incorrectV = v + 1
+      const incorrectV = data.signature.v + 1
 
       before(async () => {
         await createSnapshot()
+        await bridge.setWallet(fraudWalletPublicKeyHash, {
+          state: 1,
+          pendingRedemptionsValue: 0,
+        })
         await bridge
           .connect(governance)
           .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
@@ -4756,12 +4863,12 @@ describe("Bridge", () => {
           bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
-              walletPubKeyHash,
-              sighash,
+              fraudWalletPublicKey,
+              fraudWalletPublicKeyHash,
+              data.sighash,
               incorrectV,
-              r,
-              s,
+              data.signature.r,
+              data.signature.s,
               {
                 value: fraudChallengeDepositAmount,
               }
@@ -4772,11 +4879,15 @@ describe("Bridge", () => {
 
     context("when incorrect signature data is used", () => {
       // just swap r and s
-      const incorrectS = r
-      const incorrectR = s
+      const incorrectS = data.signature.r
+      const incorrectR = data.signature.s
 
       before(async () => {
         await createSnapshot()
+        await bridge.setWallet(fraudWalletPublicKeyHash, {
+          state: 1,
+          pendingRedemptionsValue: 0,
+        })
         await bridge
           .connect(governance)
           .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
@@ -4791,10 +4902,10 @@ describe("Bridge", () => {
           bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
-              walletPubKeyHash,
-              sighash,
-              v,
+              fraudWalletPublicKey,
+              fraudWalletPublicKeyHash,
+              data.sighash,
+              data.signature.v,
               incorrectR,
               incorrectS,
               {
@@ -4811,15 +4922,19 @@ describe("Bridge", () => {
         await bridge
           .connect(governance)
           .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
+        await bridge.setWallet(fraudWalletPublicKeyHash, {
+          state: 1,
+          pendingRedemptionsValue: 0,
+        })
         await bridge
           .connect(thirdParty)
           .submitFraudChallenge(
-            walletPublicKey,
-            walletPubKeyHash,
-            sighash,
-            v,
-            r,
-            s,
+            fraudWalletPublicKey,
+            fraudWalletPublicKeyHash,
+            data.sighash,
+            data.signature.v,
+            data.signature.r,
+            data.signature.s,
             {
               value: fraudChallengeDepositAmount,
             }
@@ -4835,17 +4950,17 @@ describe("Bridge", () => {
           bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
-              walletPubKeyHash,
-              sighash,
-              v,
-              r,
-              s,
+              fraudWalletPublicKey,
+              fraudWalletPublicKeyHash,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s,
               {
                 value: fraudChallengeDepositAmount,
               }
             )
-        ).to.be.revertedWith("Fraud already challenged")
+        ).to.be.revertedWith("Fraud challenge already exists")
       })
     })
 
@@ -4859,15 +4974,19 @@ describe("Bridge", () => {
           await bridge
             .connect(governance)
             .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
+          await bridge.setWallet(fraudWalletPublicKeyHash, {
+            state: 1,
+            pendingRedemptionsValue: 0,
+          })
           tx = await bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
-              walletPubKeyHash,
-              sighash,
-              v,
-              r,
-              s,
+              fraudWalletPublicKey,
+              fraudWalletPublicKeyHash,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s,
               {
                 value: fraudChallengeDepositAmount,
               }
@@ -4891,11 +5010,11 @@ describe("Bridge", () => {
 
         it("should store the fraud challenge data", async () => {
           const challengeKey = buildChallengeKey(
-            walletPublicKey,
-            sighash,
-            v,
-            r,
-            s
+            fraudWalletPublicKey,
+            data.sighash,
+            data.signature.v,
+            data.signature.r,
+            data.signature.s
           )
           const fraudChallenge = await bridge.fraudChallenges(challengeKey)
           expect(fraudChallenge.challenger).to.equal(
@@ -4905,169 +5024,672 @@ describe("Bridge", () => {
             fraudChallengeDepositAmount
           )
           expect(fraudChallenge.reportedAt).to.equal(await lastBlockTime())
-          expect(fraudChallenge.defended).to.equal(false)
+          expect(fraudChallenge.closed).to.equal(false)
         })
 
         it("should emit FraudChallengeSubmitted event", async () => {
           await expect(tx)
             .to.emit(bridge, "FraudChallengeSubmitted")
-            .withArgs(walletPublicKey, walletPubKeyHash, sighash, v, r, s)
+            .withArgs(
+              fraudWalletPublicKey,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s
+            )
         })
       }
     )
   })
 
-  describe("submitFraudChallengeResponse", () => {
+  describe("defeatFraudChallenge", () => {
     const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
-    // Uncompressed and unprefixed version of the public key:
-    // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
-    const walletPublicKey =
-      "0x989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9" +
-      "d218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af"
 
-    // Hash 160 of the public key:
-    // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
-    const walletPubKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
+    context("when the challenge exists", () => {
+      context("when the challenge is open", () => {
+        context("when the sighash type is correct", () => {
+          context("when the input is non-witness", () => {
+            context("when the transaction has single input", () => {
+              context(
+                "when the inputs are marked correctly spent in the Bridge",
+                () => {
+                  const data = nonWitnessSignSingleInputTx
+                  let tx: Transaction
 
-    context("when the transaction has only one input", () => {
-      context("when the transaction input comes from P2WSH", () => {
-        context(
-          "when there was a challenge and the response data is correct",
-          () => {
-            // r and s values were extracted from signature with DER format:
-            // 3045022100be367625b075362d13a46a71e91e99b633ab476d6e76870c6daaa078
-            // 991e41b50220041e65394627554cf832d073c47760e96ca5f3a554c01cf7b1d96d
-            // 79c200202a01
-            const r =
-              "0xbe367625b075362d13a46a71e91e99b633ab476d6e76870c6daaa078991e41b5"
-            const s =
-              "0x041e65394627554cf832d073c47760e96ca5f3a554c01cf7b1d96d79c200202a"
-            const v = 27
+                  before(async () => {
+                    await createSnapshot()
+                    await bridge.setWallet(fraudWalletPublicKeyHash, {
+                      state: 1,
+                      pendingRedemptionsValue: 0,
+                    })
+                    await bridge
+                      .connect(governance)
+                      .setFraudChallengeDepositAmount(
+                        fraudChallengeDepositAmount
+                      )
+                    await bridge.setSweptDeposits(data.deposits)
+                    await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                    await bridge
+                      .connect(thirdParty)
+                      .submitFraudChallenge(
+                        fraudWalletPublicKey,
+                        fraudWalletPublicKeyHash,
+                        data.sighash,
+                        data.signature.v,
+                        data.signature.r,
+                        data.signature.s,
+                        {
+                          value: fraudChallengeDepositAmount,
+                        }
+                      )
+                    tx = await bridge
+                      .connect(thirdParty)
+                      .defeatFraudChallenge(
+                        fraudWalletPublicKey,
+                        data.preimage,
+                        data.signature.v,
+                        data.signature.r,
+                        data.signature.s,
+                        false
+                      )
+                  })
 
-            // From tx eccc55030fb7c3c7eda6d12d69014aa55bb6a942997e388c4aadb0930facb4cb
-            const preimage =
-              "0x01000000bb7f55b88160c46023b4f2f5356df30e6032f0cc4ebb896462a11be4a0" +
-              "1b9a523bb13029ce7b1f559ef5e747fcac439f1455a2ec7c5f09b72290795e7066" +
-              "5044cbb4ac0f93b0ad4a8c387e9942a9b65ba54a01692dd1a6edc7c3b70f0355cc" +
-              "ec000000005c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d" +
-              "000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776" +
-              "a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac68f0" +
-              "55000000000000fffffffff5ef547c0c70b4a4747f180b1cc244b99a3d2c12e71d" +
-              "73d68ca9da53591139f10000000001000000"
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
 
-            const sighash =
-              "0xb8994753efd78cc66075991d3a21beef96d4e8a5e9ff06bc692401203df02610"
+                  it("should mark the challenge as closed", async () => {
+                    const challengeKey = buildChallengeKey(
+                      fraudWalletPublicKey,
+                      data.sighash,
+                      data.signature.v,
+                      data.signature.r,
+                      data.signature.s
+                    )
+                    const fraudChallenge = await bridge.fraudChallenges(
+                      challengeKey
+                    )
+                    expect(fraudChallenge.closed).to.equal(true)
+                  })
 
-            let tx: Transaction
+                  it("should send the ether deposited by the challenger to the treasury", async () => {
+                    await expect(tx).to.changeEtherBalance(
+                      bridge,
+                      fraudChallengeDepositAmount.mul(-1)
+                    )
+                    await expect(tx).to.changeEtherBalance(
+                      treasury,
+                      fraudChallengeDepositAmount
+                    )
+                  })
 
-            before(async () => {
-              await createSnapshot()
-              await bridge
-                .connect(governance)
-                .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
-              await bridge
-                .connect(thirdParty)
-                .submitFraudChallenge(
-                  walletPublicKey,
-                  walletPubKeyHash,
-                  sighash,
-                  v,
-                  r,
-                  s,
-                  {
-                    value: fraudChallengeDepositAmount,
-                  }
-                )
-              tx = await bridge
-                .connect(thirdParty)
-                .submitFraudChallengeResponse(
-                  walletPublicKey,
-                  preimage,
-                  v,
-                  r,
-                  s,
-                  true
-                )
+                  it("should emit FraudChallengeDefeated event", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "FraudChallengeDefeated")
+                      .withArgs(
+                        fraudWalletPublicKey,
+                        data.sighash,
+                        data.signature.v,
+                        data.signature.r,
+                        data.signature.s
+                      )
+                  })
+                }
+              )
+
+              context(
+                "when the inputs are not marked as correctly spent in the Bridge",
+                () => {
+                  const data = nonWitnessSignSingleInputTx
+
+                  before(async () => {
+                    await createSnapshot()
+                    await bridge.setWallet(fraudWalletPublicKeyHash, {
+                      state: 1,
+                      pendingRedemptionsValue: 0,
+                    })
+                    await bridge
+                      .connect(governance)
+                      .setFraudChallengeDepositAmount(
+                        fraudChallengeDepositAmount
+                      )
+                    await bridge
+                      .connect(thirdParty)
+                      .submitFraudChallenge(
+                        fraudWalletPublicKey,
+                        fraudWalletPublicKeyHash,
+                        data.sighash,
+                        data.signature.v,
+                        data.signature.r,
+                        data.signature.s,
+                        {
+                          value: fraudChallengeDepositAmount,
+                        }
+                      )
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should revert", async () => {
+                    await expect(
+                      bridge
+                        .connect(thirdParty)
+                        .defeatFraudChallenge(
+                          fraudWalletPublicKey,
+                          data.preimage,
+                          data.signature.v,
+                          data.signature.r,
+                          data.signature.s,
+                          false
+                        )
+                    ).to.be.revertedWith(
+                      "Spent UTXO not found among correctly spent UTXOs"
+                    )
+                  })
+                }
+              )
             })
 
-            after(async () => {
-              await restoreSnapshot()
+            context("when the transaction has multiple inputs", () => {
+              context(
+                "when the inputs are marked correctly spent in the Bridge",
+                () => {
+                  const data = nonWitnessSignMultipleInputsTx
+                  let tx: Transaction
+
+                  before(async () => {
+                    await createSnapshot()
+                    await bridge
+                      .connect(governance)
+                      .setFraudChallengeDepositAmount(
+                        fraudChallengeDepositAmount
+                      )
+                    await bridge.setWallet(fraudWalletPublicKeyHash, {
+                      state: 1,
+                      pendingRedemptionsValue: 0,
+                    })
+                    await bridge.setSweptDeposits(data.deposits)
+                    await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                    await bridge
+                      .connect(thirdParty)
+                      .submitFraudChallenge(
+                        fraudWalletPublicKey,
+                        fraudWalletPublicKeyHash,
+                        data.sighash,
+                        data.signature.v,
+                        data.signature.r,
+                        data.signature.s,
+                        {
+                          value: fraudChallengeDepositAmount,
+                        }
+                      )
+                    tx = await bridge
+                      .connect(thirdParty)
+                      .defeatFraudChallenge(
+                        fraudWalletPublicKey,
+                        data.preimage,
+                        data.signature.v,
+                        data.signature.r,
+                        data.signature.s,
+                        false
+                      )
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should mark the challenge as closed", async () => {
+                    const challengeKey = buildChallengeKey(
+                      fraudWalletPublicKey,
+                      data.sighash,
+                      data.signature.v,
+                      data.signature.r,
+                      data.signature.s
+                    )
+                    const fraudChallenge = await bridge.fraudChallenges(
+                      challengeKey
+                    )
+                    expect(fraudChallenge.closed).to.equal(true)
+                  })
+
+                  it("should send the ether deposited by the challenger to the treasury", async () => {
+                    await expect(tx).to.changeEtherBalance(
+                      bridge,
+                      fraudChallengeDepositAmount.mul(-1)
+                    )
+                    await expect(tx).to.changeEtherBalance(
+                      treasury,
+                      fraudChallengeDepositAmount
+                    )
+                  })
+
+                  it("should emit FraudChallengeDefeated event", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "FraudChallengeDefeated")
+                      .withArgs(
+                        fraudWalletPublicKey,
+                        data.sighash,
+                        data.signature.v,
+                        data.signature.r,
+                        data.signature.s
+                      )
+                  })
+                }
+              )
+
+              context(
+                "when the inputs are not marked as correctly spent in the Bridge",
+                () => {
+                  const data = nonWitnessSignMultipleInputsTx
+
+                  before(async () => {
+                    await createSnapshot()
+                    await bridge
+                      .connect(governance)
+                      .setFraudChallengeDepositAmount(
+                        fraudChallengeDepositAmount
+                      )
+                    await bridge.setWallet(fraudWalletPublicKeyHash, {
+                      state: 1,
+                      pendingRedemptionsValue: 0,
+                    })
+                    await bridge
+                      .connect(thirdParty)
+                      .submitFraudChallenge(
+                        fraudWalletPublicKey,
+                        fraudWalletPublicKeyHash,
+                        data.sighash,
+                        data.signature.v,
+                        data.signature.r,
+                        data.signature.s,
+                        {
+                          value: fraudChallengeDepositAmount,
+                        }
+                      )
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should revert", async () => {
+                    await expect(
+                      bridge
+                        .connect(thirdParty)
+                        .defeatFraudChallenge(
+                          fraudWalletPublicKey,
+                          data.preimage,
+                          data.signature.v,
+                          data.signature.r,
+                          data.signature.s,
+                          false
+                        )
+                    ).to.be.revertedWith(
+                      "Spent UTXO not found among correctly spent UTXOs"
+                    )
+                  })
+                }
+              )
+            })
+          })
+
+          context("when the input is witness", () => {
+            context("when the transaction has single input", () => {
+              context(
+                "when the inputs are marked correctly spent in the Bridge",
+                () => {
+                  //  TODO: Implement
+                }
+              )
+
+              context(
+                "when the inputs are not marked as correctly spent in the Bridge",
+                () => {
+                  // TODO: Implement
+                }
+              )
             })
 
-            it("should emit FraudChallengeDefended event", async () => {
-              await expect(tx)
-                .to.emit(bridge, "FraudChallengeDefended")
-                .withArgs(walletPublicKey, sighash, v, r, s)
+            context("when the transaction has multiple inputs", () => {
+              context(
+                "when the inputs are marked correctly spent in the Bridge",
+                () => {
+                  // TODO: Implement
+                }
+              )
+
+              context(
+                "when the inputs are not marked as correctly spent in the Bridge",
+                () => {
+                  // TODO:Implement
+                }
+              )
             })
-          }
-        )
+          })
+        })
+
+        context("when the sighash type is incorrect", () => {
+          // TODO: Implement
+        })
       })
 
-      context("when the transaction input comes from P2SH", () => {
-        context(
-          "when there was a challenge and the response data is correct",
-          () => {
-            const r =
-              "0x918157d51c1c74858b577d039f0a936aea6236c2510cf31828d1025e4dfd803d"
-            const s =
-              "0x27905b4bd56fa9a2ee15c2bc4478bccb83dd8340db272ec5fad5b3b4faf32fcd"
-            const v = 28
+      context("when the challenge is closed", () => {
+        // TODO: Implement
+      })
+    })
 
-            // From tx 25725b6110fdd095282e61f714e72ec14ebdba7d2c29e93a89a9fb11504a5f10
-            const preimage =
-              "0x0100000001fb26e52365437fc4fce01864d1303e0e1ed2824ef83345ea6e8517" +
-              "4060778acb000000005c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508" +
-              "f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f687" +
-              "63ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b1" +
-              "75ac68ffffffff01b8240000000000001600148db50eb52063ea9d98b3eac91489" +
-              "a90f738986f60000000001000000"
+    context("when the challenge does not exist", () => {
+      const data = nonWitnessSignMultipleInputsTx
 
-            const sighash =
-              "0x5d09cd07392c7163335b67eacc999491a3794c15b88e2b59094be5c5b157064b"
+      before(async () => {
+        await createSnapshot()
+      })
 
-            let tx: Transaction
+      after(async () => {
+        await restoreSnapshot()
+      })
 
-            before(async () => {
-              await createSnapshot()
-              await bridge
-                .connect(governance)
-                .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
-              await bridge
-                .connect(thirdParty)
-                .submitFraudChallenge(
-                  walletPublicKey,
-                  walletPubKeyHash,
-                  sighash,
-                  v,
-                  r,
-                  s,
-                  {
-                    value: fraudChallengeDepositAmount,
-                  }
-                )
-              tx = await bridge
-                .connect(thirdParty)
-                .submitFraudChallengeResponse(
-                  walletPublicKey,
-                  preimage,
-                  v,
-                  r,
-                  s,
-                  false
-                )
-            })
-
-            after(async () => {
-              await restoreSnapshot()
-            })
-
-            it.only("should emit FraudChallengeDefended event", async () => {
-              await expect(tx)
-                .to.emit(bridge, "FraudChallengeDefended")
-                .withArgs(walletPublicKey, sighash, v, r, s)
-            })
-          }
+      it("should revert", async () => {
+        await expect(
+          bridge
+            .connect(thirdParty)
+            .defeatFraudChallenge(
+              fraudWalletPublicKey,
+              data.preimage,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s,
+              false
+            )
+        ).to.be.revertedWith(
+          "Fraud challenge does not exist"
         )
+      })
+    })
+  })
+
+  describe("notifyChallengeTimeout", () => {
+    const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
+    const fraudChallengeDefendTimeout = 7 * 24 * 3600 // 7 days
+    const data = nonWitnessSignSingleInputTx
+
+    describe("when the fraud challenge exists", () => {
+      describe("when the fraud challenge is open", () => {
+        describe("when the fraud challenge has timed out", () => {
+          let tx: Transaction
+
+          before(async () => {
+            await createSnapshot()
+            await bridge.setWallet(fraudWalletPublicKeyHash, {
+              state: 1,
+              pendingRedemptionsValue: 0,
+            })
+            await bridge
+              .connect(governance)
+              .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
+            await bridge
+              .connect(governance)
+              .setFraudChallengeDefendTimeout(fraudChallengeDefendTimeout)
+            await bridge.setSweptDeposits(data.deposits)
+            await bridge.setSpentMainUtxos(data.spentMainUtxos)
+            await bridge
+              .connect(thirdParty)
+              .submitFraudChallenge(
+                fraudWalletPublicKey,
+                fraudWalletPublicKeyHash,
+                data.sighash,
+                data.signature.v,
+                data.signature.r,
+                data.signature.s,
+                {
+                  value: fraudChallengeDepositAmount,
+                }
+              )
+            await increaseTime(fraudChallengeDefendTimeout)
+            tx = await bridge
+              .connect(thirdParty)
+              .notifyFraudChallengeTimeout(
+                fraudWalletPublicKey,
+                data.sighash,
+                data.signature.v,
+                data.signature.r,
+                data.signature.s
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should mark the fraud challenge as closed", async () => {
+            const challengeKey = buildChallengeKey(
+              fraudWalletPublicKey,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s
+            )
+            const fraudChallenge = await bridge.fraudChallenges(challengeKey)
+            expect(fraudChallenge.closed).to.be.true
+          })
+
+          it("should return the deposited ether to the challenger", async () => {
+            await expect(tx).to.changeEtherBalance(
+              bridge,
+              fraudChallengeDepositAmount.mul(-1)
+            )
+            await expect(tx).to.changeEtherBalance(
+              thirdParty,
+              fraudChallengeDepositAmount
+            )
+          })
+
+          it("should emit FraudChallengeTimeout event", async () => {
+            await expect(tx)
+              .to.emit(bridge, "FraudChallengeTimeout")
+              .withArgs(
+                fraudWalletPublicKey,
+                data.sighash,
+                data.signature.v,
+                data.signature.r,
+                data.signature.s
+              )
+          })
+        })
+
+        describe("when the fraud challenge has not timed out yet", () => {
+          before(async () => {
+            await createSnapshot()
+            await bridge.setWallet(fraudWalletPublicKeyHash, {
+              state: 1,
+              pendingRedemptionsValue: 0,
+            })
+            await bridge
+              .connect(governance)
+              .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
+            await bridge
+              .connect(governance)
+              .setFraudChallengeDefendTimeout(fraudChallengeDefendTimeout)
+            await bridge.setSweptDeposits(data.deposits)
+            await bridge.setSpentMainUtxos(data.spentMainUtxos)
+            await bridge
+              .connect(thirdParty)
+              .submitFraudChallenge(
+                fraudWalletPublicKey,
+                fraudWalletPublicKeyHash,
+                data.sighash,
+                data.signature.v,
+                data.signature.r,
+                data.signature.s,
+                {
+                  value: fraudChallengeDepositAmount,
+                }
+              )
+            await increaseTime(fraudChallengeDefendTimeout - 2)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(thirdParty)
+                .notifyFraudChallengeTimeout(
+                  fraudWalletPublicKey,
+                  data.sighash,
+                  data.signature.v,
+                  data.signature.r,
+                  data.signature.s
+                )
+            ).to.be.revertedWith(
+              "Fraud challenge defend timeout has not elapsed"
+            )
+          })
+        })
+      })
+
+      describe("when the fraud challenge is closed by challenge defeat", () => {
+        before(async () => {
+          await createSnapshot()
+          await bridge.setWallet(fraudWalletPublicKeyHash, {
+            state: 1,
+            pendingRedemptionsValue: 0,
+          })
+          await bridge
+            .connect(governance)
+            .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
+          await bridge.setSweptDeposits(data.deposits)
+          await bridge.setSpentMainUtxos(data.spentMainUtxos)
+          await bridge
+            .connect(thirdParty)
+            .submitFraudChallenge(
+              fraudWalletPublicKey,
+              fraudWalletPublicKeyHash,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s,
+              {
+                value: fraudChallengeDepositAmount,
+              }
+            )
+          await bridge
+            .connect(thirdParty)
+            .defeatFraudChallenge(
+              fraudWalletPublicKey,
+              data.preimage,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s,
+              false
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(thirdParty)
+              .notifyFraudChallengeTimeout(
+                fraudWalletPublicKey,
+                data.sighash,
+                data.signature.v,
+                data.signature.r,
+                data.signature.s
+              )
+          ).to.be.revertedWith("Fraud challenge is closed")
+        })
+      })
+
+      describe("when the fraud challenge is closed by previous timeout notification", () => {
+        before(async () => {
+          await createSnapshot()
+          await bridge.setWallet(fraudWalletPublicKeyHash, {
+            state: 1,
+            pendingRedemptionsValue: 0,
+          })
+          await bridge
+            .connect(governance)
+            .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
+          await bridge
+            .connect(governance)
+            .setFraudChallengeDefendTimeout(fraudChallengeDefendTimeout)
+          await bridge.setSweptDeposits(data.deposits)
+          await bridge.setSpentMainUtxos(data.spentMainUtxos)
+          await bridge
+            .connect(thirdParty)
+            .submitFraudChallenge(
+              fraudWalletPublicKey,
+              fraudWalletPublicKeyHash,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s,
+              {
+                value: fraudChallengeDepositAmount,
+              }
+            )
+          await increaseTime(fraudChallengeDefendTimeout)
+          await bridge
+            .connect(thirdParty)
+            .notifyFraudChallengeTimeout(
+              fraudWalletPublicKey,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(thirdParty)
+              .notifyFraudChallengeTimeout(
+                fraudWalletPublicKey,
+                data.sighash,
+                data.signature.v,
+                data.signature.r,
+                data.signature.s
+              )
+          ).to.be.revertedWith("Fraud challenge is closed")
+        })
+      })
+    })
+
+    describe("when the fraud challenge does not exist", () => {
+      before(async () => {
+        await createSnapshot()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridge
+            .connect(thirdParty)
+            .notifyFraudChallengeTimeout(
+              fraudWalletPublicKey,
+              data.sighash,
+              data.signature.v,
+              data.signature.r,
+              data.signature.s
+            )
+        ).to.be.revertedWith("Fraud challenge does not exist")
       })
     })
   })
