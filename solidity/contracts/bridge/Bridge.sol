@@ -213,12 +213,20 @@ contract Bridge is Ownable {
     address public immutable treasury;
 
     /// TODO: Make it governable.
+    /// @notice The minimal amount that can be requested for deposit.
+    ///         Value of this parameter must take into account the value of
+    ///         `depositTreasuryFeeDivisor` and `depositTxMaxFee`
+    ///         parameters in order to make requests that can incur the
+    ///         treasury and transaction fee and still satisfy the depositor.
+    uint64 public depositDustThreshold;
+
+    /// TODO: Make it governable.
     /// @notice Divisor used to compute the treasury fee taken from each
     ///         deposit and transferred to the treasury upon sweep proof
     ///         submission. That fee is computed as follows:
     ///         `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
     ///         For example, if the treasury fee needs to be 2% of each deposit,
-    ///         the `redemptionTreasuryFeeDivisor` should be set to `50`
+    ///         the `depositTreasuryFeeDivisor` should be set to `50`
     ///         because `1/50 = 0.02 = 2%`.
     uint64 public depositTreasuryFeeDivisor;
 
@@ -381,6 +389,7 @@ contract Bridge is Ownable {
         txProofDifficultyFactor = _txProofDifficultyFactor;
 
         // TODO: Revisit initial values.
+        depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         depositTxMaxFee = 1000; // 1000 satoshi
         depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
@@ -549,7 +558,10 @@ contract Bridge is Ownable {
 
         uint64 fundingOutputAmount = fundingOutput.extractValue();
 
-        // TODO: Check the amount against the dust threshold.
+        require(
+            fundingOutputAmount >= depositDustThreshold,
+            "Deposit amount too small"
+        );
 
         deposit.amount = fundingOutputAmount;
         deposit.depositor = reveal.depositor;
