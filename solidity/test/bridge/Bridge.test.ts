@@ -4750,7 +4750,6 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               fraudWalletPublicKey,
-              fraudWalletPublicKeyHash,
               data.sighash,
               data.signature.v,
               data.signature.r,
@@ -4765,12 +4764,15 @@ describe("Bridge", () => {
 
     context("when incorrect wallet public key is used", () => {
       const incorrectWalletPublicKey =
-        "0x9d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bf" +
-        "a5a3d0aa5ca31521e6efb5e643aa161a3ea770cb30c98e7d3e290c9315b67d149"
+        "0xffc045ade19f8a5d464299146ce069049cdcc2390a9b44d9abcd83f11d8cce4" +
+        "01ea6800e307b87aadebdcd2f7293cc60f0526afaff1a7b1abddfd787e6c5871e"
+
+      const incorrectWalletPublicKeyHash =
+        "0xb5222794425b9b8cd8c3358e73a50dea73480927"
 
       before(async () => {
         await createSnapshot()
-        await bridge.setWallet(fraudWalletPublicKeyHash, {
+        await bridge.setWallet(incorrectWalletPublicKeyHash, {
           state: 1,
           pendingRedemptionsValue: 0,
         })
@@ -4789,7 +4791,6 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               incorrectWalletPublicKey,
-              fraudWalletPublicKeyHash,
               data.sighash,
               data.signature.v,
               data.signature.r,
@@ -4827,7 +4828,6 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               fraudWalletPublicKey,
-              fraudWalletPublicKeyHash,
               incorrectSighash,
               data.signature.v,
               data.signature.r,
@@ -4864,7 +4864,6 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               fraudWalletPublicKey,
-              fraudWalletPublicKeyHash,
               data.sighash,
               incorrectV,
               data.signature.r,
@@ -4903,7 +4902,6 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               fraudWalletPublicKey,
-              fraudWalletPublicKeyHash,
               data.sighash,
               data.signature.v,
               incorrectR,
@@ -4930,7 +4928,6 @@ describe("Bridge", () => {
           .connect(thirdParty)
           .submitFraudChallenge(
             fraudWalletPublicKey,
-            fraudWalletPublicKeyHash,
             data.sighash,
             data.signature.v,
             data.signature.r,
@@ -4951,7 +4948,6 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               fraudWalletPublicKey,
-              fraudWalletPublicKeyHash,
               data.sighash,
               data.signature.v,
               data.signature.r,
@@ -4982,7 +4978,6 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               fraudWalletPublicKey,
-              fraudWalletPublicKeyHash,
               data.sighash,
               data.signature.v,
               data.signature.r,
@@ -5031,7 +5026,7 @@ describe("Bridge", () => {
           await expect(tx)
             .to.emit(bridge, "FraudChallengeSubmitted")
             .withArgs(
-              fraudWalletPublicKey,
+              fraudWalletPublicKeyHash,
               data.sighash,
               data.signature.v,
               data.signature.r,
@@ -5073,7 +5068,6 @@ describe("Bridge", () => {
                       .connect(thirdParty)
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
-                        fraudWalletPublicKeyHash,
                         data.sighash,
                         data.signature.v,
                         data.signature.r,
@@ -5127,7 +5121,7 @@ describe("Bridge", () => {
                     await expect(tx)
                       .to.emit(bridge, "FraudChallengeDefeated")
                       .withArgs(
-                        fraudWalletPublicKey,
+                        fraudWalletPublicKeyHash,
                         data.sighash,
                         data.signature.v,
                         data.signature.r,
@@ -5157,7 +5151,6 @@ describe("Bridge", () => {
                       .connect(thirdParty)
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
-                        fraudWalletPublicKeyHash,
                         data.sighash,
                         data.signature.v,
                         data.signature.r,
@@ -5216,7 +5209,6 @@ describe("Bridge", () => {
                       .connect(thirdParty)
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
-                        fraudWalletPublicKeyHash,
                         data.sighash,
                         data.signature.v,
                         data.signature.r,
@@ -5270,7 +5262,7 @@ describe("Bridge", () => {
                     await expect(tx)
                       .to.emit(bridge, "FraudChallengeDefeated")
                       .withArgs(
-                        fraudWalletPublicKey,
+                        fraudWalletPublicKeyHash,
                         data.sighash,
                         data.signature.v,
                         data.signature.r,
@@ -5300,7 +5292,6 @@ describe("Bridge", () => {
                       .connect(thirdParty)
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
-                        fraudWalletPublicKeyHash,
                         data.sighash,
                         data.signature.v,
                         data.signature.r,
@@ -5404,9 +5395,7 @@ describe("Bridge", () => {
               data.signature.s,
               false
             )
-        ).to.be.revertedWith(
-          "Fraud challenge does not exist"
-        )
+        ).to.be.revertedWith("Fraud challenge does not exist")
       })
     })
   })
@@ -5439,7 +5428,6 @@ describe("Bridge", () => {
               .connect(thirdParty)
               .submitFraudChallenge(
                 fraudWalletPublicKey,
-                fraudWalletPublicKeyHash,
                 data.sighash,
                 data.signature.v,
                 data.signature.r,
@@ -5491,7 +5479,7 @@ describe("Bridge", () => {
             await expect(tx)
               .to.emit(bridge, "FraudChallengeTimeout")
               .withArgs(
-                fraudWalletPublicKey,
+                fraudWalletPublicKeyHash,
                 data.sighash,
                 data.signature.v,
                 data.signature.r,
@@ -5519,7 +5507,6 @@ describe("Bridge", () => {
               .connect(thirdParty)
               .submitFraudChallenge(
                 fraudWalletPublicKey,
-                fraudWalletPublicKeyHash,
                 data.sighash,
                 data.signature.v,
                 data.signature.r,
@@ -5569,7 +5556,6 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               fraudWalletPublicKey,
-              fraudWalletPublicKeyHash,
               data.sighash,
               data.signature.v,
               data.signature.r,
@@ -5628,7 +5614,6 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               fraudWalletPublicKey,
-              fraudWalletPublicKeyHash,
               data.sighash,
               data.signature.v,
               data.signature.r,

@@ -20,6 +20,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
+import "./library/EcdsaLib.sol";
 import "./library/Fraud.sol";
 import "../bank/Bank.sol";
 import "./BitcoinTx.sol";
@@ -61,6 +62,7 @@ contract Bridge is Ownable {
     using BytesLib for bytes;
     using ValidateSPV for bytes;
     using ValidateSPV for bytes32;
+    using EcdsaLib for bytes;
     using Fraud for Fraud.Data;
 
     /// @notice Represents data which must be revealed by the depositor during
@@ -372,7 +374,7 @@ contract Bridge is Ownable {
     );
 
     event FraudChallengeSubmitted(
-        bytes walletPublicKey,
+        bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
@@ -380,7 +382,7 @@ contract Bridge is Ownable {
     );
 
     event FraudChallengeDefeated(
-        bytes walletPublicKey,
+        bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
@@ -388,7 +390,7 @@ contract Bridge is Ownable {
     );
 
     event FraudChallengeTimeout(
-        bytes walletPublicKey,
+        bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
@@ -1365,9 +1367,6 @@ contract Bridge is Ownable {
     ///         challenge or confiscated otherwise.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes).
-    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    ///        HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the redemption transaction.
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
@@ -1379,14 +1378,14 @@ contract Bridge is Ownable {
     /// @param s Signature s value.
     function submitFraudChallenge(
         bytes memory walletPublicKey,
-        bytes20 walletPubKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) external payable {
-        // TODO: Consider calculating wallet public key hash instead of passing
-        // it as a parameter.
+        bytes memory compressedWalletPublicKey = walletPublicKey
+            .compressPublicKey();
+        bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
         require(
             wallets[walletPubKeyHash].state == WalletState.Active ||
                 wallets[walletPubKeyHash].state == WalletState.MovingFunds,

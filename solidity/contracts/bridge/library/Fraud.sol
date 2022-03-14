@@ -19,12 +19,14 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {CheckBitcoinSigs} from "@keep-network/bitcoin-spv-sol/contracts/CheckBitcoinSigs.sol";
 import "../../GovernanceUtils.sol";
+import "./EcdsaLib.sol";
 import "../Bridge.sol";
 
 library Fraud {
     using BytesLib for bytes;
     using BTCUtils for bytes;
     using BTCUtils for uint32;
+    using EcdsaLib for bytes;
 
     struct FraudChallenge {
         address challenger;
@@ -64,7 +66,7 @@ library Fraud {
     );
 
     event FraudChallengeSubmitted(
-        bytes walletPublicKey,
+        bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
@@ -72,7 +74,7 @@ library Fraud {
     );
 
     event FraudChallengeDefeated(
-        bytes walletPublicKey,
+        bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
@@ -80,7 +82,7 @@ library Fraud {
     );
 
     event FraudChallengeTimeout(
-        bytes walletPublicKey,
+        bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
@@ -148,9 +150,11 @@ library Fraud {
         challenge.reportedAt = uint32(block.timestamp);
         challenge.closed = false;
 
-        // TODO: Consider emitting the event with walletPublicKey in the
-        //       compressed format as it's how we identify wallets in the Bridge.
-        emit FraudChallengeSubmitted(walletPublicKey, sighash, v, r, s);
+        bytes memory compressedWalletPublicKey = walletPublicKey
+            .compressPublicKey();
+        bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
+
+        emit FraudChallengeSubmitted(walletPubKeyHash, sighash, v, r, s);
     }
 
     // TODO: description
@@ -199,9 +203,11 @@ library Fraud {
         // TODO: Reward the caller for defeating the challenge successfully.
         challenge.closed = true;
 
-        // TODO: Consider emitting the event with walletPublicKey in the
-        //       compressed format as it's how we identify wallets in the Bridge.
-        emit FraudChallengeDefeated(walletPublicKey, sighash, v, r, s);
+        bytes memory compressedWalletPublicKey = walletPublicKey
+            .compressPublicKey();
+        bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
+
+        emit FraudChallengeDefeated(walletPubKeyHash, sighash, v, r, s);
     }
 
     // TODO: description
@@ -240,7 +246,12 @@ library Fraud {
         }("");
         require(success, "Failed to send Ether");
         /* solhint-enable avoid-low-level-calls */
-        emit FraudChallengeTimeout(walletPublicKey, sighash, v, r, s);
+
+        bytes memory compressedWalletPublicKey = walletPublicKey
+            .compressPublicKey();
+        bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
+
+        emit FraudChallengeTimeout(walletPubKeyHash, sighash, v, r, s);
     }
 
     // TODO: description
