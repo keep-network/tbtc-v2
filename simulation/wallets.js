@@ -25,10 +25,10 @@ function fact(x) {
   return x * fact(x - 1)
 }
 function poisson(k, lambda) {
-  exponentialPower = Math.pow(2.718281828, -lambda)
-  landaPowerK = Math.pow(lambda, k)
-  numerator = exponentialPower * landaPowerK
-  denominator = fact(k)
+  const exponentialPower = Math.pow(2.718281828, -lambda)
+  const landaPowerK = Math.pow(lambda, k)
+  const numerator = exponentialPower * landaPowerK
+  const denominator = fact(k)
   return numerator / denominator
 }
 
@@ -51,7 +51,7 @@ function getRandomSample(array, size) {
     swaps.push({ from: index, to: rindex })
   }
 
-  let end = start + size
+  const end = start + size
   let sample = array.slice(start, end)
 
   if (end > length) {
@@ -60,7 +60,7 @@ function getRandomSample(array, size) {
 
   i = size
   while (i--) {
-    let pop = swaps.pop()
+    const pop = swaps.pop()
     temp = array[pop.from]
     array[pop.from] = array[pop.to]
     array[pop.to] = temp
