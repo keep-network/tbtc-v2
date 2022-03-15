@@ -198,8 +198,7 @@ library Fraud {
         // Send the ether deposited by the challenger to the treasury
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls
-        (bool success, ) = treasury.call{value: challenge.depositAmount}("");
-        require(success, "Failed to send Ether");
+        treasury.call{value: challenge.depositAmount}("");
         /* solhint-enable avoid-low-level-calls */
 
         // TODO: Reward the caller for defeating the challenge successfully.
@@ -243,10 +242,7 @@ library Fraud {
         // Return the ether deposited by the challenger
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls
-        (bool success, ) = challenge.challenger.call{
-            value: challenge.depositAmount
-        }("");
-        require(success, "Failed to send Ether");
+        challenge.challenger.call{value: challenge.depositAmount}("");
         /* solhint-enable avoid-low-level-calls */
 
         bytes memory compressedWalletPublicKey = walletPublicKey
