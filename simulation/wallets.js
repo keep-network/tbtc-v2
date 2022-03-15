@@ -1,18 +1,16 @@
-const NUM_ITERATIONS = 100
+const NUM_ITERATIONS = 2
 const LOG_LEVEL = 3
 
-const operatorCount = 2000
-const threshold = 51
-const walletSize = 100
-const heartbeat = 70
-const operatorQuitChance = 0.005
-const expectedNewOperators = 10
-const expectedNewDeposits = 30
-const expectedNewWithdraws = 25
-const walletMaxBtc = 200
-const dustThreshold = 1
-const maxAge = 30*6 // days
-const walletCreationTime = 3 // days
+const DUST_THRESHOLD = 1
+const EXPECTED_NEW_DEPOSITS = 30
+const EXPECTED_NEW_OPERATORS = 10
+const EXPECTED_NEW_WITHDRAWS = 25
+const HEARTBEAT = 70
+const OPERATOR_COUNT = 2000
+const OPERATOR_QUIT_CHANCE = 0.005
+const WALLET_MAX_AGE = 30*6 // days
+const WALLET_MAX_BTC = 200
+const WALLET_SIZE = 100
 
 function log(logLevel, message) {
   if (logLevel >= LOG_LEVEL) {
@@ -67,7 +65,7 @@ var newOperatorCDF = {}
 const epsilon = 0.0001
 var total = 0
 for (let i = 0; total + epsilon <= 1; i++) {
-  total += poisson(i, expectedNewOperators)
+  total += poisson(i, EXPECTED_NEW_OPERATORS)
   newOperatorCDF[i] = total
 }
 function newOperatorCount() {
@@ -84,7 +82,7 @@ function newOperatorCount() {
 var newDepositCDF = {}
 total = 0
 for (let i = 0; total + epsilon <= 1; i++) {
-  total += poisson(i, expectedNewDeposits)
+  total += poisson(i, EXPECTED_NEW_DEPOSITS)
   newDepositCDF[i] = total
 }
 function randomNewDeposit() {
@@ -101,7 +99,7 @@ function randomNewDeposit() {
 var newWithdrawCDF = {}
 total = 0
 for (let i = 0; total + epsilon <= 1; i++) {
-  total += poisson(i, expectedNewWithdraws)
+  total += poisson(i, EXPECTED_NEW_WITHDRAWS)
   newWithdrawCDF[i] = total
 }
 
@@ -119,7 +117,7 @@ function randomNewWithdraw() {
 function closeOldWallets(data) {
   const wallets = Object.keys(walletBalances)
   wallets.forEach(wallet => {
-    if (data.day >= (wallet * 7) + maxAge) {
+    if (data.day >= (wallet * 7) + WALLET_MAX_AGE) {
       closeWallet({walletIndex: wallet, reason: "too old"})
     }
   })
@@ -142,7 +140,7 @@ function beginUnstakingOperators(data) {
   const currentStakingOperators = Object.keys(stakingOperators)
   let unstakingOperatorsToday = []
   currentStakingOperators.forEach(operator => {
-    if (Math.random() < operatorQuitChance) {
+    if (Math.random() < OPERATOR_QUIT_CHANCE) {
       delete stakingOperators[operator]
       if (operator in operatorToWallets) {
         const wallets = Object.keys(operatorToWallets[operator])
@@ -150,7 +148,7 @@ function beginUnstakingOperators(data) {
           let walletStakers = walletStakingOperators[wallet]
           delete walletStakers[operator]
           walletStakingOperators[wallet] = walletStakers
-          if (Object.keys(walletStakingOperators[wallet]).length < heartbeat) {
+          if (Object.keys(walletStakingOperators[wallet]).length < HEARTBEAT) {
             closeWallet({walletIndex: wallet, reason: "failed heartbeat"})
           }
         })
@@ -188,7 +186,7 @@ function createNewWalletEvent(data) {
 
 function newWallet(data) {
   walletBalances[data.walletIndex] = 0
-  const operators = getRandomSample(Object.keys(stakingOperators), 100)
+  const operators = getRandomSample(Object.keys(stakingOperators), WALLET_SIZE)
   walletLiveOperators[data.walletIndex] = {}
   walletStakingOperators[data.walletIndex] = {}
   operators.forEach(operator => {
@@ -207,7 +205,7 @@ function newWallet(data) {
 function randomTransferWithoutCap(data) {
   let liveWallets = []
   for (let i = 0; i < walletIndex; i++) {
-    if (walletBalances[i] > dustThreshold && Object.keys(walletStakingOperators[i]).length >= heartbeat && i != data.walletIndex) {
+    if (walletBalances[i] > DUST_THRESHOLD && Object.keys(walletStakingOperators[i]).length >= HEARTBEAT && i != data.walletIndex) {
       liveWallets.push(i) 
     }
   }
@@ -224,17 +222,17 @@ function randomTransferWithoutCap(data) {
 function randomTransfer(data) {
   let liveWallets = []
   for (let i = 0; i < walletIndex; i++) {
-    if (walletBalances[i] > dustThreshold && Object.keys(walletStakingOperators[i]).length >= heartbeat && i != data.walletIndex) {
+    if (walletBalances[i] > DUST_THRESHOLD && Object.keys(walletStakingOperators[i]).length >= HEARTBEAT && i != data.walletIndex) {
       liveWallets.push(i) 
     }
   }
-  const transferCount = Math.ceil(walletBalances[data.walletIndex] / walletMaxBtc)
+  const transferCount = Math.ceil(walletBalances[data.walletIndex] / WALLET_MAX_BTC)
   const randomIndexes = getRandomSample(liveWallets, transferCount)
   let remaining = walletBalances[data.walletIndex]
   randomIndexes.forEach(randomIndex => {
     let transferAmount = 0
-    if (remaining > walletMaxBtc) {
-      transferAmount = walletMaxBtc
+    if (remaining > WALLET_MAX_BTC) {
+      transferAmount = WALLET_MAX_BTC
     } else {
       transferAmount = remaining
     }
@@ -313,7 +311,7 @@ function withdraw(data) {
   log(1, "Withdrawing " + data.amount + " btc from Wallet#" + data.walletIndex + ". Remaining balance: " + remainingBalance)
   walletBalances[data.walletIndex] -= data.amount
   btcInSystem -= data.amount
-  if (remainingBalance <= dustThreshold) {
+  if (remainingBalance <= DUST_THRESHOLD) {
     closeWallet({walletIndex: data.walletIndex, reason: "below dust"})
   }
 }
@@ -347,7 +345,7 @@ for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
   walletLiveOperators = {}
   walletStakingOperators = {}
 
-  for (let i=0; i<2000; i++) {
+  for (let i=0; i < OPERATOR_COUNT; i++) {
     liveOperators[i] = true
     stakingOperators[i] = true
     operatorIndex++
