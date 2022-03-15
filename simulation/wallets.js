@@ -1,16 +1,18 @@
-const NUM_ITERATIONS = 1
-const LOG_LEVEL = 1
+const NUM_ITERATIONS = 100
+const LOG_LEVEL = 3
 
 const operatorCount = 2000
 const threshold = 51
 const walletSize = 100
 const heartbeat = 70
-const operatorQuitChance = 0.00005
+const operatorQuitChance = 0.005
 const expectedNewOperators = 10
 const expectedNewDeposits = 30
-const expectedNewWithdraws = 15
-const dustThreshold = 0
-const maxAge = 30*15 // days
+const expectedNewWithdraws = 25
+const walletMaxBtc = 200
+const dustThreshold = 1
+const maxAge = 30*6 // days
+const walletCreationTime = 3 // days
 
 function log(logLevel, message) {
   if (logLevel >= LOG_LEVEL) {
@@ -201,7 +203,8 @@ function newWallet(data) {
   walletIndex++
 }
 
-function randomTransfer(data) {
+
+function randomTransferWithoutCap(data) {
   let liveWallets = []
   for (let i = 0; i < walletIndex; i++) {
     if (walletBalances[i] > dustThreshold && Object.keys(walletStakingOperators[i]).length >= heartbeat && i != data.walletIndex) {
@@ -210,14 +213,48 @@ function randomTransfer(data) {
   }
   const randomIndex = Math.floor(Math.random() * liveWallets.length)
   const randomWallet = liveWallets[randomIndex]
-  log(1, "Transferring " + walletBalances[data.walletIndex] + " btc from Wallet#" + data.walletIndex + " to Wallet#" + randomWallet)
-  walletBalances[randomWallet] += walletBalances[data.walletIndex]
+  log(1, "Transferring " + walletBalances[data.walletIndex] + " btc from Wallet#" + data.walletIndex + " to Wallet#" + randomIndex)
+  walletBalances[randomWallet] += walletBalances[data.walletIndex] 
+  if (walletBalances[randomWallet] > biggestWalletBalance) {
+    biggestWalletBalance = walletBalances[randomWallet]
+  }
   numberOfTransfers++
+}
+
+function randomTransfer(data) {
+  let liveWallets = []
+  for (let i = 0; i < walletIndex; i++) {
+    if (walletBalances[i] > dustThreshold && Object.keys(walletStakingOperators[i]).length >= heartbeat && i != data.walletIndex) {
+      liveWallets.push(i) 
+    }
+  }
+  const transferCount = Math.ceil(walletBalances[data.walletIndex] / walletMaxBtc)
+  const randomIndexes = getRandomSample(liveWallets, transferCount)
+  let remaining = walletBalances[data.walletIndex]
+  randomIndexes.forEach(randomIndex => {
+    let transferAmount = 0
+    if (remaining > walletMaxBtc) {
+      transferAmount = walletMaxBtc
+    } else {
+      transferAmount = remaining
+    }
+    remaining -= transferAmount
+    const randomWallet = liveWallets[randomIndex]
+    log(1, "Transferring " + transferAmount + " btc from Wallet#" + data.walletIndex + " to Wallet#" + randomIndex)
+    walletBalances[randomWallet] += transferAmount
+    if (walletBalances[randomWallet] > biggestWalletBalance) {
+      biggestWalletBalance = walletBalances[randomWallet]
+    }
+    numberOfTransfers++
+  })
 }
 
 function transferToActive(data) {
   log(1, "Transferring " + walletBalances[data.walletIndex] + " btc from Wallet#" + data.walletIndex + " to Wallet#" + (walletIndex-1))
   walletBalances[walletIndex-1] += walletBalances[data.walletIndex]
+  if (walletBalances[walletIndex-1] > biggestWalletBalance) {
+    biggestWalletBalance = walletBalances[walletIndex-1]
+  }
   numberOfTransfers++
 }
 
@@ -265,6 +302,9 @@ function dailyDeposit(_) {
   const amount = randomNewDeposit()
   log(1, "Depositing " + amount + " btc into Wallet#" + (walletIndex-1))
   walletBalances[walletIndex-1] += amount
+  if (walletBalances[walletIndex-1] > biggestWalletBalance) {
+    biggestWalletBalance = walletBalances[walletIndex-1]
+  }
   btcInSystem += amount
 }
 
@@ -278,20 +318,28 @@ function withdraw(data) {
   }
 }
 
+let biggestWalletBalance = 0
 let btcInSystem = 0
+let currentlyCreatingWallet = false
+let lastWalletCreationDay = -7
 let liveOperators = {}
 let numberOfTransfers = 0
 let operatorIndex = 0
 let operatorToWallets = {}
 let stakingOperators = {}
+let totalBiggestWalletBalance = 0
 let unstakingOperators = {}
 let walletBalances = {}
 let walletIndex = 0
 let walletLiveOperators = {}
 let walletStakingOperators = {}
+let walletStartCreationDay = 0
 
 for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
+  biggestWalletBalance = 0
   btcInSystem = 0
+  currentlyCreatingWallet = false
+  lastWalletCreationDay = -7
   liveOperators = {}
   operatorIndex = 0
   operatorToWallets = {}
@@ -301,6 +349,7 @@ for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
   walletIndex = 0
   walletLiveOperators = {}
   walletStakingOperators = {}
+  walletStartCreationDay = 0
 
   for (let i=0; i<2000; i++) {
     liveOperators[i] = true
@@ -311,5 +360,6 @@ for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
   for (let i = 0; i < 365*2; i++) {
     newDay({day: i})
   }
+  totalBiggestWalletBalance += biggestWalletBalance
 }
-log(3, "total number of transfers: " + numberOfTransfers / NUM_ITERATIONS)
+log(3, "biggestWalletBalance: " + totalBiggestWalletBalance / NUM_ITERATIONS)
