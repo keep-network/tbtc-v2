@@ -230,26 +230,14 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .__ecdsaWalletCreatedCallback(
               ecdsaWalletTestData.walletID,
-              ecdsaWalletTestData.uncompressedPublicKey
+              ecdsaWalletTestData.publicKeyX,
+              ecdsaWalletTestData.publicKeyY
             )
         ).to.be.revertedWith("Caller is not the ECDSA Wallet Registry")
       })
     })
 
     context("when called by the ECDSA Wallet Registry", async () => {
-      context("when called with invalid ECDSA Wallet details", async () => {
-        it("should revert", async () => {
-          await expect(
-            bridge
-              .connect(walletRegistry.wallet)
-              .__ecdsaWalletCreatedCallback(
-                ecdsaWalletTestData.walletID,
-                ethers.utils.randomBytes(63)
-              )
-          ).to.be.revertedWith("Invalid public key length")
-        })
-      })
-
       context("when called with a valid ECDSA Wallet details", async () => {
         let tx: ContractTransaction
 
@@ -260,7 +248,8 @@ describe("Bridge", () => {
             .connect(walletRegistry.wallet)
             .__ecdsaWalletCreatedCallback(
               ecdsaWalletTestData.walletID,
-              ecdsaWalletTestData.uncompressedPublicKey
+              ecdsaWalletTestData.publicKeyX,
+              ecdsaWalletTestData.publicKeyY
             )
         })
 
@@ -296,7 +285,8 @@ describe("Bridge", () => {
               .connect(walletRegistry.wallet)
               .__ecdsaWalletCreatedCallback(
                 ecdsaWalletTestData.walletID,
-                ecdsaWalletTestData.uncompressedPublicKey
+                ecdsaWalletTestData.publicKeyX,
+                ecdsaWalletTestData.publicKeyY
               )
           })
 
@@ -306,27 +296,31 @@ describe("Bridge", () => {
 
           const testData = [
             {
-              testName: "with unique wallet ID and unique public key Y",
+              testName: "with unique wallet ID and unique public key",
               walletID: ethers.utils.randomBytes(32),
-              publicKey: ethers.utils.randomBytes(64),
+              publicKeyX: ethers.utils.randomBytes(32),
+              publicKeyY: ethers.utils.randomBytes(32),
               expectedError: undefined,
             },
             {
               testName: "with duplicated wallet ID and unique public key",
               walletID: ecdsaWalletTestData.walletID,
-              publicKey: ethers.utils.randomBytes(64),
+              publicKeyX: ethers.utils.randomBytes(32),
+              publicKeyY: ethers.utils.randomBytes(32),
               expectedError: undefined,
             },
             {
-              testName: "with unique wallet ID and duplicated public key Y",
+              testName: "with unique wallet ID and duplicated public key",
               walletID: ethers.utils.randomBytes(32),
-              publicKey: ecdsaWalletTestData.uncompressedPublicKey,
+              publicKeyX: ecdsaWalletTestData.publicKeyX,
+              publicKeyY: ecdsaWalletTestData.publicKeyY,
               expectedError: "ECDSA wallet has been already registered",
             },
             {
-              testName: "with duplicated wallet ID and duplicated public key Y",
+              testName: "with duplicated wallet ID and duplicated public key",
               walletID: ecdsaWalletTestData.walletID,
-              publicKey: ecdsaWalletTestData.uncompressedPublicKey,
+              publicKeyX: ecdsaWalletTestData.publicKeyX,
+              publicKeyY: ecdsaWalletTestData.publicKeyY,
               expectedError: "ECDSA wallet has been already registered",
             },
           ]
@@ -346,7 +340,11 @@ describe("Bridge", () => {
                 async () => {
                   const tx: Promise<ContractTransaction> = bridge
                     .connect(walletRegistry.wallet)
-                    .__ecdsaWalletCreatedCallback(test.walletID, test.publicKey)
+                    .__ecdsaWalletCreatedCallback(
+                      test.walletID,
+                      test.publicKeyX,
+                      test.publicKeyY
+                    )
 
                   if (test.expectedError) {
                     await expect(tx).to.be.revertedWith(test.expectedError)
@@ -2263,6 +2261,7 @@ describe("Bridge", () => {
           await bridge.setWallet(walletPubKeyHash, {
             state: 2,
             pendingRedemptionsValue: 0,
+            ecdsaWalletID: ethers.constants.HashZero,
           })
         })
 
@@ -2291,6 +2290,7 @@ describe("Bridge", () => {
           await bridge.setWallet(walletPubKeyHash, {
             state: 3,
             pendingRedemptionsValue: 0,
+            ecdsaWalletID: ethers.constants.HashZero,
           })
         })
 
@@ -2319,6 +2319,7 @@ describe("Bridge", () => {
           await bridge.setWallet(walletPubKeyHash, {
             state: 4,
             pendingRedemptionsValue: 0,
+            ecdsaWalletID: ethers.constants.HashZero,
           })
         })
 
@@ -4709,6 +4710,7 @@ describe("Bridge", () => {
               bank.address,
               relay.address,
               treasury.address,
+              walletRegistry.address,
               12
             )
             await otherBridge.deployed()
