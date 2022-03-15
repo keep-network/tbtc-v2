@@ -29,9 +29,13 @@ library Fraud {
     using EcdsaLib for bytes;
 
     struct FraudChallenge {
+        // The address of the party challenging the wallet.
         address challenger;
-        uint256 ethDepositAmount;
+        // The amount of ETH the challenger deposited.
+        uint256 depositAmount;
+        // The timestamp the challenge was submitted at.
         uint32 reportedAt;
+        // The flag indicating whether the challenge has been closed.
         bool closed;
     }
 
@@ -145,7 +149,7 @@ library Fraud {
         require(challenge.reportedAt == 0, "Fraud challenge already exists");
 
         challenge.challenger = msg.sender;
-        challenge.ethDepositAmount = msg.value;
+        challenge.depositAmount = msg.value;
         /* solhint-disable-next-line not-rely-on-time */
         challenge.reportedAt = uint32(block.timestamp);
         challenge.closed = false;
@@ -196,7 +200,7 @@ library Fraud {
         // Send the ether deposited by the challenger to the treasury
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls
-        (bool success, ) = treasury.call{value: challenge.ethDepositAmount}("");
+        (bool success, ) = treasury.call{value: challenge.depositAmount}("");
         require(success, "Failed to send Ether");
         /* solhint-enable avoid-low-level-calls */
 
@@ -242,7 +246,7 @@ library Fraud {
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls
         (bool success, ) = challenge.challenger.call{
-            value: challenge.ethDepositAmount
+            value: challenge.depositAmount
         }("");
         require(success, "Failed to send Ether");
         /* solhint-enable avoid-low-level-calls */

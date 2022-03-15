@@ -5132,7 +5132,7 @@ describe("Bridge", () => {
           expect(fraudChallenge.challenger).to.equal(
             await thirdParty.getAddress()
           )
-          expect(fraudChallenge.ethDepositAmount).to.equal(
+          expect(fraudChallenge.depositAmount).to.equal(
             fraudChallengeDepositAmount
           )
           expect(fraudChallenge.reportedAt).to.equal(await lastBlockTime())
