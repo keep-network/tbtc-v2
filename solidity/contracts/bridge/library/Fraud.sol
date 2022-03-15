@@ -45,8 +45,8 @@ library Fraud {
         /// The percentage of the notifier reward from the staking contract
         /// the notifier of a fraud receives.
         uint256 notifierRewardMultiplier; //TODO: Initialize
-        /// The amount of time the wallet has to defend against a fraud challenge.
-        uint256 challengeDefendTimeout; //TODO: Initialize
+        /// The amount of time the wallet has to defeat a fraud challenge.
+        uint256 challengeDefeatTimeout; //TODO: Initialize
         /// The amount of ETH the party challenging the wallet for fraud needs
         /// to deposit.
         uint256 challengeDepositAmount; //TODO: Initialize
@@ -61,8 +61,8 @@ library Fraud {
         uint256 newFraudNotifierRewardMultiplier
     );
 
-    event FraudChallengeDefendTimeoutUpdated(
-        uint256 newFraudChallengeDefendTimeout
+    event FraudChallengeDefeatTimeoutUpdated(
+        uint256 newFraudChallengeDefeatTimeout
     );
 
     event FraudChallengeDepositAmountUpdated(
@@ -85,7 +85,7 @@ library Fraud {
         bytes32 s
     );
 
-    event FraudChallengeDefendTimeout(
+    event FraudChallengeDefeatTimeout(
         bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
@@ -193,7 +193,7 @@ library Fraud {
             verifyNonWitnessPreimage(preimage, deposits, spentMainUTXOs);
         }
         // If we passed the preimage verification, the wallet has successfully
-        // defended the fraud challenge.
+        // defeated the fraud challenge.
 
         challenge.closed = true;
 
@@ -229,8 +229,8 @@ library Fraud {
         require(
             /* solhint-disable-next-line not-rely-on-time */
             block.timestamp >=
-                challenge.reportedAt + self.challengeDefendTimeout,
-            "Fraud challenge defend timeout has not elapsed"
+                challenge.reportedAt + self.challengeDefeatTimeout,
+            "Fraud challenge defeat timeout has not elapsed"
         );
 
         // TODO: Slash the wallet
@@ -248,7 +248,7 @@ library Fraud {
             .compressPublicKey();
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
 
-        emit FraudChallengeDefendTimeout(walletPubKeyHash, sighash, v, r, s);
+        emit FraudChallengeDefeatTimeout(walletPubKeyHash, sighash, v, r, s);
     }
 
     /// @notice Verifies whether the witness input in the provided preimage has
@@ -410,16 +410,16 @@ library Fraud {
     }
 
     // TODO: description
-    function setChallengeDefendTimeout(
+    function setChallengeDefeatTimeout(
         Data storage self,
-        uint256 _newChallengeDefendTimeout
+        uint256 _newChallengeDefeatTimeout
     ) internal {
         require(
-            _newChallengeDefendTimeout > 0,
-            "Fraud challenge defend timeout must be > 0"
+            _newChallengeDefeatTimeout > 0,
+            "Fraud challenge defeat timeout must be > 0"
         );
-        self.challengeDefendTimeout = _newChallengeDefendTimeout;
-        emit FraudChallengeDefendTimeoutUpdated(_newChallengeDefendTimeout);
+        self.challengeDefeatTimeout = _newChallengeDefeatTimeout;
+        emit FraudChallengeDefeatTimeoutUpdated(_newChallengeDefeatTimeout);
     }
 
     // TODO: description

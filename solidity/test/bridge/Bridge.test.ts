@@ -5467,7 +5467,7 @@ describe("Bridge", () => {
 
   describe("notifyFraudChallengeDefeatTimeout", () => {
     const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
-    const fraudChallengeDefendTimeout = 7 * 24 * 3600 // 7 days
+    const fraudChallengeDefeatTimeout = 7 * 24 * 3600 // 7 days
     const data = nonWitnessSignSingleInputTx
 
     describe("when the fraud challenge exists", () => {
@@ -5486,7 +5486,7 @@ describe("Bridge", () => {
               .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
             await bridge
               .connect(governance)
-              .setFraudChallengeDefendTimeout(fraudChallengeDefendTimeout)
+              .setFraudChallengeDefeatTimeout(fraudChallengeDefeatTimeout)
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
             await bridge
@@ -5501,7 +5501,7 @@ describe("Bridge", () => {
                   value: fraudChallengeDepositAmount,
                 }
               )
-            await increaseTime(fraudChallengeDefendTimeout)
+            await increaseTime(fraudChallengeDefeatTimeout)
             tx = await bridge
               .connect(thirdParty)
               .notifyFraudChallengeDefeatTimeout(
@@ -5540,9 +5540,9 @@ describe("Bridge", () => {
             )
           })
 
-          it("should emit FraudChallengeDefendTimeout event", async () => {
+          it("should emit FraudChallengeDefeatTimeout event", async () => {
             await expect(tx)
-              .to.emit(bridge, "FraudChallengeDefendTimeout")
+              .to.emit(bridge, "FraudChallengeDefeatTimeout")
               .withArgs(
                 fraudWalletPublicKeyHash,
                 data.sighash,
@@ -5565,7 +5565,7 @@ describe("Bridge", () => {
               .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
             await bridge
               .connect(governance)
-              .setFraudChallengeDefendTimeout(fraudChallengeDefendTimeout)
+              .setFraudChallengeDefeatTimeout(fraudChallengeDefeatTimeout)
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
             await bridge
@@ -5580,7 +5580,7 @@ describe("Bridge", () => {
                   value: fraudChallengeDepositAmount,
                 }
               )
-            await increaseTime(fraudChallengeDefendTimeout - 2)
+            await increaseTime(fraudChallengeDefeatTimeout - 2)
           })
 
           after(async () => {
@@ -5599,7 +5599,7 @@ describe("Bridge", () => {
                   data.signature.s
                 )
             ).to.be.revertedWith(
-              "Fraud challenge defend timeout has not elapsed"
+              "Fraud challenge defeat timeout has not elapsed"
             )
           })
         })
@@ -5672,7 +5672,7 @@ describe("Bridge", () => {
             .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
           await bridge
             .connect(governance)
-            .setFraudChallengeDefendTimeout(fraudChallengeDefendTimeout)
+            .setFraudChallengeDefeatTimeout(fraudChallengeDefeatTimeout)
           await bridge.setSweptDeposits(data.deposits)
           await bridge.setSpentMainUtxos(data.spentMainUtxos)
           await bridge
@@ -5687,7 +5687,7 @@ describe("Bridge", () => {
                 value: fraudChallengeDepositAmount,
               }
             )
-          await increaseTime(fraudChallengeDefendTimeout)
+          await increaseTime(fraudChallengeDefeatTimeout)
           await bridge
             .connect(thirdParty)
             .notifyFraudChallengeDefeatTimeout(

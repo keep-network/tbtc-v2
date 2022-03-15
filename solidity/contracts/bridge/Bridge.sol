@@ -362,8 +362,8 @@ contract Bridge is Ownable {
         uint256 newFraudNotifierRewardMultiplier
     );
 
-    event FraudChallengeDefendTimeoutUpdated(
-        uint256 newFraudChallengeDefendTimeout
+    event FraudChallengeDefeatTimeoutUpdated(
+        uint256 newFraudChallengeDefeatTimeout
     );
 
     event FraudChallengeDepositAmountUpdated(
@@ -414,7 +414,7 @@ contract Bridge is Ownable {
         bytes32 s
     );
 
-    event FraudChallengeDefendTimeout(
+    event FraudChallengeDefeatTimeout(
         bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
@@ -488,10 +488,10 @@ contract Bridge is Ownable {
     }
 
     // TODO: Add description and unit tests
-    function setFraudChallengeDefendTimeout(
-        uint256 _newFraudChallengeDefendTimeout
+    function setFraudChallengeDefeatTimeout(
+        uint256 _newFraudChallengeDefeatTimeout
     ) external onlyOwner {
-        fraudData.setChallengeDefendTimeout(_newFraudChallengeDefendTimeout);
+        fraudData.setChallengeDefeatTimeout(_newFraudChallengeDefeatTimeout);
     }
 
     /// @notice Allows the Governance to update the fraud challenge deposit
@@ -1387,13 +1387,16 @@ contract Bridge is Ownable {
     ) external payable {
         bytes memory compressedWalletPublicKey = walletPublicKey
             .compressPublicKey();
+            
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
+
         require(
             // TODO: Rename WalletState.Active to WalletState.Live
             wallets[walletPubKeyHash].state == WalletState.Active ||
                 wallets[walletPubKeyHash].state == WalletState.MovingFunds,
             "Wallet is neither active nor is moving funds"
         );
+
         fraudData.submitFraudChallenge(walletPublicKey, sighash, v, r, s);
     }
 
@@ -1722,8 +1725,8 @@ contract Bridge is Ownable {
         return fraudData.notifierRewardMultiplier;
     }
 
-    function fraudChallengeDefendTimeout() external view returns (uint256) {
-        return fraudData.challengeDefendTimeout;
+    function fraudChallengeDefeatTimeout() external view returns (uint256) {
+        return fraudData.challengeDefeatTimeout;
     }
 
     function fraudChallengeDepositAmount() external view returns (uint256) {
