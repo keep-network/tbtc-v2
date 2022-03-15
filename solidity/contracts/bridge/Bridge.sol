@@ -1389,6 +1389,7 @@ contract Bridge is Ownable {
             .compressPublicKey();
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
         require(
+            // TODO: Rename WalletState.Active to WalletState.Live
             wallets[walletPubKeyHash].state == WalletState.Active ||
                 wallets[walletPubKeyHash].state == WalletState.MovingFunds,
             "Wallet is neither active nor is moving funds"
