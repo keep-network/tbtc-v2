@@ -62,7 +62,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
     using BytesLib for bytes;
-    using EcdsaLib for bytes;
     using ValidateSPV for bytes;
     using ValidateSPV for bytes32;
 
@@ -444,10 +443,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      to identify wallets by Bitcoin's hash160, hence we map the wallets
     ///      between those two.
     /// @param ecdsaWalletID Wallet's unique identifier.
-    /// @param ecdsaUncompressedPublicKey Wallet's uncompressed public key.
+    /// @param publicKeyY Wallet's public key's X coordinate.
+    /// @param publicKeyY Wallet's public key's Y coordinate.
     function __ecdsaWalletCreatedCallback(
         bytes32 ecdsaWalletID,
-        bytes memory ecdsaUncompressedPublicKey
+        bytes32 publicKeyX,
+        bytes32 publicKeyY
     ) external override {
         require(
             msg.sender == address(ecdsaWalletRegistry),
@@ -456,7 +457,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         // Compress wallet's public key and calculate Bitcoin's hash160 of it.
         bytes20 walletPubKeyHash160 = bytes20(
-            ecdsaUncompressedPublicKey.compressPublicKey().hash160()
+            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
         );
 
         require(

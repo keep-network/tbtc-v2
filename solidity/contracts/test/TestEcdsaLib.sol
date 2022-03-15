@@ -6,13 +6,11 @@ import "../bridge/EcdsaLib.sol";
 
 /// @dev This is a contract implemented to test EcdsaLib library directly.
 contract TestEcdsaLib {
-    using EcdsaLib for bytes;
-
-    function compressPublicKey(bytes memory uncompressedPublicKey)
+    function compressPublicKey(bytes32 x, bytes32 y)
         public
         pure
         returns (bytes memory)
     {
-        return uncompressedPublicKey.compressPublicKey();
+        return EcdsaLib.compressPublicKey(x, y);
     }
 }
