@@ -5,6 +5,7 @@ import "@keep-network/hardhat-local-networks-config"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-etherscan"
 import "hardhat-gas-reporter"
+import "hardhat-contract-sizer"
 import "hardhat-deploy"
 import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
@@ -90,8 +91,15 @@ const config: HardhatUserConfig = {
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
   },
+
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: true,
   },
   typechain: {
     outDir: "typechain",

@@ -19,7 +19,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
-import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
 
@@ -62,8 +61,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
     using BytesLib for bytes;
-    using ValidateSPV for bytes;
-    using ValidateSPV for bytes32;
 
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
@@ -225,14 +222,29 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     EcdsaWalletRegistry public immutable ecdsaWalletRegistry;
 
     /// TODO: Make it governable.
+    /// @notice The minimal amount that can be requested for deposit.
+    ///         Value of this parameter must take into account the value of
+    ///         `depositTreasuryFeeDivisor` and `depositTxMaxFee`
+    ///         parameters in order to make requests that can incur the
+    ///         treasury and transaction fee and still satisfy the depositor.
+    uint64 public depositDustThreshold;
+
+    /// TODO: Make it governable.
     /// @notice Divisor used to compute the treasury fee taken from each
     ///         deposit and transferred to the treasury upon sweep proof
     ///         submission. That fee is computed as follows:
     ///         `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
     ///         For example, if the treasury fee needs to be 2% of each deposit,
-    ///         the `redemptionTreasuryFeeDivisor` should be set to `50`
+    ///         the `depositTreasuryFeeDivisor` should be set to `50`
     ///         because `1/50 = 0.02 = 2%`.
     uint64 public depositTreasuryFeeDivisor;
+
+    /// TODO: Make it governable.
+    /// @notice Maximum amount of BTC transaction fee that can be incurred by
+    ///         each swept deposit being part of the given sweep
+    ///         transaction. If the maximum BTC transaction fee is exceeded,
+    ///         such transaction is considered a fraud.
+    uint64 public depositTxMaxFee;
 
     /// TODO: Make it governable.
     /// @notice The minimal amount that can be requested for redemption.
@@ -398,6 +410,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         txProofDifficultyFactor = _txProofDifficultyFactor;
 
         // TODO: Revisit initial values.
+        depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
+        depositTxMaxFee = 1000; // 1000 satoshi
         depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
@@ -468,6 +482,22 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets[walletPubKeyHash160].ecdsaWalletID = ecdsaWalletID;
 
         emit WalletCreated(walletPubKeyHash160, ecdsaWalletID);
+    }
+
+    /// @notice Determines the current Bitcoin SPV proof difficulty context.
+    /// @return proofDifficulty Bitcoin proof difficulty context.
+    function proofDifficultyContext()
+        internal
+        view
+        returns (BitcoinTx.ProofDifficulty memory proofDifficulty)
+    {
+        proofDifficulty.currentEpochDifficulty = relay
+            .getCurrentEpochDifficulty();
+        proofDifficulty.previousEpochDifficulty = relay
+            .getPrevEpochDifficulty();
+        proofDifficulty.difficultyFactor = txProofDifficultyFactor;
+
+        return proofDifficulty;
     }
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
@@ -593,7 +623,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         uint64 fundingOutputAmount = fundingOutput.extractValue();
 
-        // TODO: Check the amount against the dust threshold.
+        require(
+            fundingOutputAmount >= depositDustThreshold,
+            "Deposit amount too small"
+        );
 
         deposit.amount = fundingOutputAmount;
         deposit.depositor = reveal.depositor;
@@ -665,7 +698,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 sweepTxHash = validateBitcoinTxProof(sweepTx, sweepProof);
+        bytes32 sweepTxHash = BitcoinTx.validateProof(
+            sweepTx,
+            sweepProof,
+            proofDifficultyContext()
+        );
 
         // Process sweep transaction output and extract its target wallet
         // public key hash and value.
@@ -710,19 +747,34 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // all deposits.
         uint256 totalTreasuryFee = 0;
 
-        // Calculate the transaction fee per deposit by dividing the total
-        // transaction fee by deposits count. The total fee is just the
-        // difference between inputs amounts sum and the output amount.
-        // TODO: Deal with precision loss by having the last depositor pay
-        //       the higher transaction fee than others if there is a change,
-        //       just like it has been proposed in discussion:
-        //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r800555359.
-        // TODO: Check txFee against max fee.
-        uint256 txFee = (inputsInfo.inputsTotalValue - sweepTxOutputValue) /
-            inputsInfo.depositedAmounts.length;
+        // Determine the transaction fee that should be incurred by each deposit
+        // and the indivisible remainder that should be additionally incurred
+        // by the last deposit.
+        (
+            uint256 depositTxFee,
+            uint256 depositTxFeeRemainder
+        ) = sweepTxFeeDistribution(
+                inputsInfo.inputsTotalValue,
+                sweepTxOutputValue,
+                inputsInfo.depositedAmounts.length
+            );
+
+        // Make sure the highest value of the deposit transaction fee does not
+        // exceed the maximum value limited by the governable parameter.
+        require(
+            depositTxFee + depositTxFeeRemainder <= depositTxMaxFee,
+            "Transaction fee is too high"
+        );
 
         // Reduce each deposit amount by treasury fee and transaction fee.
         for (uint256 i = 0; i < inputsInfo.depositedAmounts.length; i++) {
+            // The last deposit should incur the deposit transaction fee
+            // remainder.
+            uint256 depositTxFeeIncurred = i ==
+                inputsInfo.depositedAmounts.length - 1
+                ? depositTxFee + depositTxFeeRemainder
+                : depositTxFee;
+
             // There is no need to check whether
             // `inputsInfo.depositedAmounts[i] - inputsInfo.treasuryFees[i] - txFee > 0`
             // since the `depositDustThreshold` should force that condition
@@ -730,7 +782,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             inputsInfo.depositedAmounts[i] =
                 inputsInfo.depositedAmounts[i] -
                 inputsInfo.treasuryFees[i] -
-                txFee;
+                depositTxFeeIncurred;
             totalTreasuryFee += inputsInfo.treasuryFees[i];
         }
 
@@ -752,103 +804,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bank.increaseBalance(treasury, totalTreasuryFee);
 
         // TODO: Handle deposits having `vault` set.
-    }
-
-    /// @notice Validates the SPV proof of the Bitcoin transaction.
-    ///         Reverts in case the validation or proof verification fail.
-    /// @param txInfo Bitcoin transaction data
-    /// @param proof Bitcoin proof data
-    /// @return txHash Proven 32-byte transaction hash.
-    function validateBitcoinTxProof(
-        BitcoinTx.Info calldata txInfo,
-        BitcoinTx.Proof calldata proof
-    ) internal view returns (bytes32 txHash) {
-        require(
-            txInfo.inputVector.validateVin(),
-            "Invalid input vector provided"
-        );
-        require(
-            txInfo.outputVector.validateVout(),
-            "Invalid output vector provided"
-        );
-
-        txHash = abi
-            .encodePacked(
-                txInfo.version,
-                txInfo.inputVector,
-                txInfo.outputVector,
-                txInfo.locktime
-            )
-            .hash256View();
-
-        checkProofFromTxHash(txHash, proof);
-
-        return txHash;
-    }
-
-    /// @notice Checks the given Bitcoin transaction hash against the SPV proof.
-    ///         Reverts in case the check fails.
-    /// @param txHash 32-byte hash of the checked Bitcoin transaction
-    /// @param proof Bitcoin proof data
-    function checkProofFromTxHash(
-        bytes32 txHash,
-        BitcoinTx.Proof calldata proof
-    ) internal view {
-        require(
-            txHash.prove(
-                proof.bitcoinHeaders.extractMerkleRootLE(),
-                proof.merkleProof,
-                proof.txIndexInBlock
-            ),
-            "Tx merkle proof is not valid for provided header and tx hash"
-        );
-
-        evaluateProofDifficulty(proof.bitcoinHeaders);
-    }
-
-    /// @notice Evaluates the given Bitcoin proof difficulty against the actual
-    ///         Bitcoin chain difficulty provided by the relay oracle.
-    ///         Reverts in case the evaluation fails.
-    /// @param bitcoinHeaders Bitcoin headers chain being part of the SPV
-    ///        proof. Used to extract the observed proof difficulty
-    function evaluateProofDifficulty(bytes memory bitcoinHeaders)
-        internal
-        view
-    {
-        uint256 requestedDiff = 0;
-        uint256 currentDiff = relay.getCurrentEpochDifficulty();
-        uint256 previousDiff = relay.getPrevEpochDifficulty();
-        uint256 firstHeaderDiff = bitcoinHeaders
-            .extractTarget()
-            .calculateDifficulty();
-
-        if (firstHeaderDiff == currentDiff) {
-            requestedDiff = currentDiff;
-        } else if (firstHeaderDiff == previousDiff) {
-            requestedDiff = previousDiff;
-        } else {
-            revert("Not at current or previous difficulty");
-        }
-
-        uint256 observedDiff = bitcoinHeaders.validateHeaderChain();
-
-        require(
-            observedDiff != ValidateSPV.getErrBadLength(),
-            "Invalid length of the headers chain"
-        );
-        require(
-            observedDiff != ValidateSPV.getErrInvalidChain(),
-            "Invalid headers chain"
-        );
-        require(
-            observedDiff != ValidateSPV.getErrLowWork(),
-            "Insufficient work in a header"
-        );
-
-        require(
-            observedDiff >= requestedDiff * txProofDifficultyFactor,
-            "Insufficient accumulated difficulty in header chain"
-        );
     }
 
     /// @notice Processes the Bitcoin sweep transaction output vector by
@@ -1068,6 +1023,40 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return (outpointTxHash, outpointIndex, inputLength);
     }
 
+    /// @notice Determines the distribution of the sweep transaction fee
+    ///         over swept deposits.
+    /// @param sweepTxInputsTotalValue Total value of all sweep transaction inputs.
+    /// @param sweepTxOutputValue Value of the sweep transaction output.
+    /// @param depositsCount Count of the deposits swept by the sweep transaction.
+    /// @return depositTxFee Transaction fee per deposit determined by evenly
+    ///         spreading the divisible part of the sweep transaction fee
+    ///         over all deposits.
+    /// @return depositTxFeeRemainder The indivisible part of the sweep
+    ///         transaction fee than cannot be distributed over all deposits.
+    /// @dev It is up to the caller to decide how the remainder should be
+    ///      counted in. This function only computes its value.
+    function sweepTxFeeDistribution(
+        uint256 sweepTxInputsTotalValue,
+        uint256 sweepTxOutputValue,
+        uint256 depositsCount
+    )
+        internal
+        pure
+        returns (uint256 depositTxFee, uint256 depositTxFeeRemainder)
+    {
+        // The sweep transaction fee is just the difference between inputs
+        // amounts sum and the output amount.
+        uint256 sweepTxFee = sweepTxInputsTotalValue - sweepTxOutputValue;
+        // Compute the indivisible remainder that remains after dividing the
+        // sweep transaction fee over all deposits evenly.
+        depositTxFeeRemainder = sweepTxFee % depositsCount;
+        // Compute the transaction fee per deposit by dividing the sweep
+        // transaction fee (reduced by the remainder) by the number of deposits.
+        depositTxFee = (sweepTxFee - depositTxFeeRemainder) / depositsCount;
+
+        return (depositTxFee, depositTxFeeRemainder);
+    }
+
     /// @notice Requests redemption of the given amount from the specified
     ///         wallet to the redeemer Bitcoin output script.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
@@ -1279,9 +1268,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 redemptionTxHash = validateBitcoinTxProof(
+        bytes32 redemptionTxHash = BitcoinTx.validateProof(
             redemptionTx,
-            redemptionProof
+            redemptionProof,
+            proofDifficultyContext()
         );
 
         // Perform validation of the redemption transaction input. Specifically,
