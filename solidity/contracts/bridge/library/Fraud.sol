@@ -195,14 +195,13 @@ library Fraud {
         // If we passed the preimage verification, the wallet has successfully
         // defended the fraud challenge.
 
+        challenge.closed = true;
+
         // Send the ether deposited by the challenger to the treasury
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls
         treasury.call{value: challenge.depositAmount}("");
         /* solhint-enable avoid-low-level-calls */
-
-        // TODO: Reward the caller for defeating the challenge successfully.
-        challenge.closed = true;
 
         bytes memory compressedWalletPublicKey = walletPublicKey
             .compressPublicKey();
