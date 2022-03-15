@@ -22,11 +22,27 @@ import "../../GovernanceUtils.sol";
 import "./EcdsaLib.sol";
 import "../Bridge.sol";
 
-library Fraud {
+library Frauds {
     using BytesLib for bytes;
     using BTCUtils for bytes;
     using BTCUtils for uint32;
     using EcdsaLib for bytes;
+
+    struct Data {
+        ///  The amount of stake slashed from each member of a wallet for a fraud.
+        uint256 slashingAmount; //TODO: Initialize
+        /// The percentage of the notifier reward from the staking contract
+        /// the notifier of a fraud receives. The value is in the range [0, 100].
+        uint256 notifierRewardMultiplier; //TODO: Initialize
+        /// The amount of time the wallet has to defeat a fraud challenge.
+        uint256 challengeDefeatTimeout; //TODO: Initialize
+        /// The amount of ETH the party challenging the wallet for fraud needs
+        /// to deposit.
+        uint256 challengeDepositAmount; //TODO: Initialize
+        /// Collection of all submitted fraud challenges indexed by challenge
+        /// key built as keccak256(walletPublicKey|sighash|v|r|s).
+        mapping(uint256 => FraudChallenge) challenges;
+    }
 
     struct FraudChallenge {
         // The address of the party challenging the wallet.
@@ -37,22 +53,6 @@ library Fraud {
         uint32 reportedAt;
         // The flag indicating whether the challenge has been closed.
         bool closed;
-    }
-
-    struct Data {
-        ///  The amount of stake slashed from each member of a wallet for a fraud.
-        uint256 slashingAmount; //TODO: Initialize
-        /// The percentage of the notifier reward from the staking contract
-        /// the notifier of a fraud receives.
-        uint256 notifierRewardMultiplier; //TODO: Initialize
-        /// The amount of time the wallet has to defeat a fraud challenge.
-        uint256 challengeDefeatTimeout; //TODO: Initialize
-        /// The amount of ETH the party challenging the wallet for fraud needs
-        /// to deposit.
-        uint256 challengeDepositAmount; //TODO: Initialize
-        /// Collection of all submitted fraud challenges indexed by challenge
-        /// key built as keccak256(walletPublicKey|sighash|v|r|s).
-        mapping(uint256 => FraudChallenge) challenges;
     }
 
     event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
@@ -230,7 +230,7 @@ library Fraud {
             /* solhint-disable-next-line not-rely-on-time */
             block.timestamp >=
                 challenge.reportedAt + self.challengeDefeatTimeout,
-            "Fraud challenge defeat timeout has not elapsed"
+            "Fraud challenge defeat period did not time out yet"
         );
 
         // TODO: Slash the wallet

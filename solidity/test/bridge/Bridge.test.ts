@@ -15,7 +15,7 @@ import type {
   BankStub,
   Bridge,
   BridgeStub,
-  Fraud,
+  Frauds,
   TestRelay,
 } from "../../typechain"
 import {
@@ -74,9 +74,9 @@ const fixture = async () => {
   const relay: TestRelay = await TestRelay.deploy()
   await relay.deployed()
 
-  const Fraud = await ethers.getContractFactory("Fraud")
-  const fraud: Fraud = await Fraud.deploy()
-  await fraud.deployed()
+  const Frauds = await ethers.getContractFactory("Frauds")
+  const frauds: Frauds = await Frauds.deploy()
+  await frauds.deployed()
 
   const BitcoinTx = await ethers.getContractFactory("BitcoinTx")
   const bitcoinTx = await BitcoinTx.deploy()
@@ -84,7 +84,7 @@ const fixture = async () => {
 
   const Bridge = await ethers.getContractFactory("BridgeStub", {
     libraries: {
-      Fraud: fraud.address,
+      Frauds: frauds.address,
       BitcoinTx: bitcoinTx.address,
     },
   })
@@ -5599,7 +5599,7 @@ describe("Bridge", () => {
                   data.signature.s
                 )
             ).to.be.revertedWith(
-              "Fraud challenge defeat timeout has not elapsed"
+              "Fraud challenge defeat period did not time out yet"
             )
           })
         })

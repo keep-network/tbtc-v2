@@ -21,7 +21,7 @@ import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
 import "./library/EcdsaLib.sol";
-import "./library/Fraud.sol";
+import "./library/Frauds.sol";
 import "../bank/Bank.sol";
 import "./BitcoinTx.sol";
 
@@ -63,7 +63,7 @@ contract Bridge is Ownable {
     using ValidateSPV for bytes;
     using ValidateSPV for bytes32;
     using EcdsaLib for bytes;
-    using Fraud for Fraud.Data;
+    using Frauds for Frauds.Data;
 
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
@@ -276,7 +276,7 @@ contract Bridge is Ownable {
     ///         to the redeemer in full amount.
     uint256 public redemptionTimeout;
 
-    Fraud.Data public fraudData;
+    Frauds.Data internal frauds;
 
     /// @notice Indicates if the vault with the given address is trusted or not.
     ///         Depositors can route their revealed deposits only to trusted
@@ -475,23 +475,21 @@ contract Bridge is Ownable {
         external
         onlyOwner
     {
-        fraudData.setSlashingAmount(_newFraudSlashingAmount);
+        frauds.setSlashingAmount(_newFraudSlashingAmount);
     }
 
     // TODO: Add description and unit tests
     function setFraudNotifierRewardMultiplier(
         uint256 _newFraudNotifierRewardMultiplier
     ) external onlyOwner {
-        fraudData.setNotifierRewardMultiplier(
-            _newFraudNotifierRewardMultiplier
-        );
+        frauds.setNotifierRewardMultiplier(_newFraudNotifierRewardMultiplier);
     }
 
     // TODO: Add description and unit tests
     function setFraudChallengeDefeatTimeout(
         uint256 _newFraudChallengeDefeatTimeout
     ) external onlyOwner {
-        fraudData.setChallengeDefeatTimeout(_newFraudChallengeDefeatTimeout);
+        frauds.setChallengeDefeatTimeout(_newFraudChallengeDefeatTimeout);
     }
 
     /// @notice Allows the Governance to update the fraud challenge deposit
@@ -502,7 +500,7 @@ contract Bridge is Ownable {
     function setFraudChallengeDepositAmount(
         uint256 _newFraudChallengeDepositAmount
     ) external onlyOwner {
-        fraudData.setChallengeDepositAmount(_newFraudChallengeDepositAmount);
+        frauds.setChallengeDepositAmount(_newFraudChallengeDepositAmount);
     }
 
     /// @notice Determines the current Bitcoin SPV proof difficulty context.
@@ -1387,17 +1385,17 @@ contract Bridge is Ownable {
     ) external payable {
         bytes memory compressedWalletPublicKey = walletPublicKey
             .compressPublicKey();
-            
+
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
 
         require(
             // TODO: Rename WalletState.Active to WalletState.Live
             wallets[walletPubKeyHash].state == WalletState.Active ||
                 wallets[walletPubKeyHash].state == WalletState.MovingFunds,
-            "Wallet is neither active nor is moving funds"
+            "Wallet is neither in Active nor MovingFunds state"
         );
 
-        fraudData.submitFraudChallenge(walletPublicKey, sighash, v, r, s);
+        frauds.submitFraudChallenge(walletPublicKey, sighash, v, r, s);
     }
 
     // TODO: description
@@ -1409,7 +1407,7 @@ contract Bridge is Ownable {
         bytes32 s,
         bool witness
     ) external {
-        fraudData.defeatFraudChallenge(
+        frauds.defeatFraudChallenge(
             walletPublicKey,
             preimage,
             v,
@@ -1429,7 +1427,7 @@ contract Bridge is Ownable {
         bytes32 r,
         bytes32 s
     ) external {
-        fraudData.notifyFraudChallengeDefeatTimeout(
+        frauds.notifyFraudChallengeDefeatTimeout(
             walletPublicKey,
             sighash,
             v,
@@ -1718,27 +1716,27 @@ contract Bridge is Ownable {
     }
 
     function fraudSlashingAmount() external view returns (uint256) {
-        return fraudData.slashingAmount;
+        return frauds.slashingAmount;
     }
 
     function fraudNotifierRewardMultiplier() external view returns (uint256) {
-        return fraudData.notifierRewardMultiplier;
+        return frauds.notifierRewardMultiplier;
     }
 
     function fraudChallengeDefeatTimeout() external view returns (uint256) {
-        return fraudData.challengeDefeatTimeout;
+        return frauds.challengeDefeatTimeout;
     }
 
     function fraudChallengeDepositAmount() external view returns (uint256) {
-        return fraudData.challengeDepositAmount;
+        return frauds.challengeDepositAmount;
     }
 
     function fraudChallenges(uint256 challengeKey)
         external
         view
-        returns (Fraud.FraudChallenge memory)
+        returns (Frauds.FraudChallenge memory)
     {
-        return fraudData.challenges[challengeKey];
+        return frauds.challenges[challengeKey];
     }
 
     // TODO: Function `notifyRedemptionTimeout. That function must:
