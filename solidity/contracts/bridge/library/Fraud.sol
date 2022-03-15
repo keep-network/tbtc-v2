@@ -334,7 +334,6 @@ library Fraud {
     function setSlashingAmount(Data storage self, uint256 _newSlashingAmount)
         internal
     {
-        require(_newSlashingAmount > 0, "Fraud slashing amount must be > 0");
         self.slashingAmount = _newSlashingAmount;
         emit FraudSlashingAmountUpdated(_newSlashingAmount);
     }
@@ -345,8 +344,8 @@ library Fraud {
         uint256 _newNotifierRewardMultiplier
     ) internal {
         require(
-            _newNotifierRewardMultiplier > 0,
-            "Fraud notifier reward multiplier must be > 0"
+            _newNotifierRewardMultiplier <= 100,
+            "Fraud notifier reward multiplier must be <= 100"
         );
         self.notifierRewardMultiplier = _newNotifierRewardMultiplier;
         emit FraudNotifierRewardMultiplierUpdated(_newNotifierRewardMultiplier);
