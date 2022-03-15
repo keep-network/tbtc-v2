@@ -320,7 +320,6 @@ function withdraw(data) {
 
 let biggestWalletBalance = 0
 let btcInSystem = 0
-let currentlyCreatingWallet = false
 let lastWalletCreationDay = -7
 let liveOperators = {}
 let numberOfTransfers = 0
@@ -333,12 +332,10 @@ let walletBalances = {}
 let walletIndex = 0
 let walletLiveOperators = {}
 let walletStakingOperators = {}
-let walletStartCreationDay = 0
 
 for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
   biggestWalletBalance = 0
   btcInSystem = 0
-  currentlyCreatingWallet = false
   lastWalletCreationDay = -7
   liveOperators = {}
   operatorIndex = 0
@@ -349,7 +346,6 @@ for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
   walletIndex = 0
   walletLiveOperators = {}
   walletStakingOperators = {}
-  walletStartCreationDay = 0
 
   for (let i=0; i<2000; i++) {
     liveOperators[i] = true
