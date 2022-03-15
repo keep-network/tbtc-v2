@@ -209,58 +209,6 @@ describe("Bridge", () => {
     })
   })
 
-  // TODO: Add unit tests for the other fraud parameters
-  describe("setFraudChallengeDepositAmount", () => {
-    const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
-
-    describe("when called not by the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          bridge
-            .connect(thirdParty)
-            .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    describe("when called with zero", () => {
-      it("should revert", async () => {
-        await expect(
-          bridge.connect(governance).setFraudChallengeDepositAmount(0)
-        ).to.be.revertedWith("Fraud challenge deposit amount must be > 0")
-      })
-    })
-
-    describe("when called by the governance", () => {
-      let tx: ContractTransaction
-
-      describe("when setting vault status as trusted", () => {
-        before(async () => {
-          await createSnapshot()
-          tx = await bridge
-            .connect(governance)
-            .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should correctly update vault status", async () => {
-          expect(await bridge.fraudChallengeDepositAmount()).to.equal(
-            fraudChallengeDepositAmount
-          )
-        })
-
-        it("should emit VaultStatusUpdated event", async () => {
-          await expect(tx)
-            .to.emit(bridge, "FraudChallengeDepositAmountUpdated")
-            .withArgs(fraudChallengeDepositAmount)
-        })
-      })
-    })
-  })
-
   describe("revealDeposit", () => {
     // Data of a proper P2SH deposit funding transaction. Little-endian hash is:
     // 0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2 and

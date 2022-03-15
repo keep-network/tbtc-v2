@@ -356,6 +356,16 @@ contract Bridge is Ownable {
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
+    event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
+
+    event FraudNotifierRewardMultiplierUpdated(
+        uint256 newFraudNotifierRewardMultiplier
+    );
+
+    event FraudChallengeDefendTimeoutUpdated(
+        uint256 newFraudChallengeDefendTimeout
+    );
+
     event FraudChallengeDepositAmountUpdated(
         uint256 newFraudChallengeDepositAmount
     );
@@ -460,27 +470,28 @@ contract Bridge is Ownable {
         emit VaultStatusUpdated(vault, isTrusted);
     }
 
+    // TODO: Add description and unit tests
     function setFraudSlashingAmount(uint256 _newFraudSlashingAmount)
         external
         onlyOwner
     {
-        fraudData.setFraudSlashingAmount(_newFraudSlashingAmount);
+        fraudData.setSlashingAmount(_newFraudSlashingAmount);
     }
 
+    // TODO: Add description and unit tests
     function setFraudNotifierRewardMultiplier(
         uint256 _newFraudNotifierRewardMultiplier
     ) external onlyOwner {
-        fraudData.setFraudNotifierRewardMultiplier(
+        fraudData.setNotifierRewardMultiplier(
             _newFraudNotifierRewardMultiplier
         );
     }
 
+    // TODO: Add description and unit tests
     function setFraudChallengeDefendTimeout(
         uint256 _newFraudChallengeDefendTimeout
     ) external onlyOwner {
-        fraudData.setFraudChallengeDefendTimeout(
-            _newFraudChallengeDefendTimeout
-        );
+        fraudData.setChallengeDefendTimeout(_newFraudChallengeDefendTimeout);
     }
 
     /// @notice Allows the Governance to update the fraud challenge deposit
@@ -491,9 +502,7 @@ contract Bridge is Ownable {
     function setFraudChallengeDepositAmount(
         uint256 _newFraudChallengeDepositAmount
     ) external onlyOwner {
-        fraudData.setFraudChallengeDepositAmount(
-            _newFraudChallengeDepositAmount
-        );
+        fraudData.setChallengeDepositAmount(_newFraudChallengeDepositAmount);
     }
 
     /// @notice Determines the current Bitcoin SPV proof difficulty context.
@@ -1699,19 +1708,19 @@ contract Bridge is Ownable {
     }
 
     function fraudSlashingAmount() external view returns (uint256) {
-        return fraudData.fraudSlashingAmount;
+        return fraudData.slashingAmount;
     }
 
     function fraudNotifierRewardMultiplier() external view returns (uint256) {
-        return fraudData.fraudNotifierRewardMultiplier;
+        return fraudData.notifierRewardMultiplier;
     }
 
     function fraudChallengeDefendTimeout() external view returns (uint256) {
-        return fraudData.fraudChallengeDefendTimeout;
+        return fraudData.challengeDefendTimeout;
     }
 
     function fraudChallengeDepositAmount() external view returns (uint256) {
-        return fraudData.fraudChallengeDepositAmount;
+        return fraudData.challengeDepositAmount;
     }
 
     function fraudChallenges(uint256 challengeKey)

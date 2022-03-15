@@ -41,21 +41,21 @@ library Fraud {
 
     struct Data {
         ///  The amount of stake slashed from each member of a wallet for a fraud.
-        uint256 fraudSlashingAmount; //TODO: Initialize
+        uint256 slashingAmount; //TODO: Initialize
         /// The percentage of the notifier reward from the staking contract
         /// the notifier of a fraud receives.
-        uint256 fraudNotifierRewardMultiplier; //TODO: Initialize
+        uint256 notifierRewardMultiplier; //TODO: Initialize
         /// The amount of time the wallet has to defend against a fraud challenge.
-        uint256 fraudChallengeDefendTimeout; //TODO: Initialize
+        uint256 challengeDefendTimeout; //TODO: Initialize
         /// The amount of ETH the party challenging the wallet for fraud needs
         /// to deposit.
-        uint256 fraudChallengeDepositAmount; //TODO: Initialize
+        uint256 challengeDepositAmount; //TODO: Initialize
         /// Collection of all submitted fraud challenges indexed by challenge
         /// key built as keccak256(walletPublicKey|sighash|v|r|s).
         mapping(uint256 => FraudChallenge) challenges;
     }
 
-    event FraudFraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
+    event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
 
     event FraudNotifierRewardMultiplierUpdated(
         uint256 newFraudNotifierRewardMultiplier
@@ -132,7 +132,7 @@ library Fraud {
         // the v value. It can take values: 27, 28, 29, 30, 31, 32, 33, 34.
         // https://bitcoin.stackexchange.com/questions/38351/ecdsa-v-r-s-what-is-v
         require(
-            msg.value >= self.fraudChallengeDepositAmount,
+            msg.value >= self.challengeDepositAmount,
             "The amount of ETH deposited is too low"
         );
 
@@ -233,7 +233,7 @@ library Fraud {
         require(
             /* solhint-disable-next-line not-rely-on-time */
             block.timestamp - challenge.reportedAt >=
-                self.fraudChallengeDefendTimeout,
+                self.challengeDefendTimeout,
             "Fraud challenge defend timeout has not elapsed"
         );
 
@@ -338,61 +338,51 @@ library Fraud {
     }
 
     // TODO: description
-    function setFraudSlashingAmount(
-        Data storage self,
-        uint256 _newFraudSlashingAmount
-    ) internal {
-        require(
-            _newFraudSlashingAmount > 0,
-            "Fraud slashing amount must be > 0"
-        );
-        self.fraudSlashingAmount = _newFraudSlashingAmount;
-        emit FraudFraudSlashingAmountUpdated(_newFraudSlashingAmount);
+    function setSlashingAmount(Data storage self, uint256 _newSlashingAmount)
+        internal
+    {
+        require(_newSlashingAmount > 0, "Fraud slashing amount must be > 0");
+        self.slashingAmount = _newSlashingAmount;
+        emit FraudSlashingAmountUpdated(_newSlashingAmount);
     }
 
     // TODO: description
-    function setFraudNotifierRewardMultiplier(
+    function setNotifierRewardMultiplier(
         Data storage self,
-        uint256 _newFraudNotifierRewardMultiplier
+        uint256 _newNotifierRewardMultiplier
     ) internal {
         require(
-            _newFraudNotifierRewardMultiplier > 0,
+            _newNotifierRewardMultiplier > 0,
             "Fraud notifier reward multiplier must be > 0"
         );
-        self.fraudNotifierRewardMultiplier = _newFraudNotifierRewardMultiplier;
-        emit FraudNotifierRewardMultiplierUpdated(
-            _newFraudNotifierRewardMultiplier
-        );
+        self.notifierRewardMultiplier = _newNotifierRewardMultiplier;
+        emit FraudNotifierRewardMultiplierUpdated(_newNotifierRewardMultiplier);
     }
 
     // TODO: description
-    function setFraudChallengeDefendTimeout(
+    function setChallengeDefendTimeout(
         Data storage self,
-        uint256 _newFraudChallengeDefendTimeout
+        uint256 _newChallengeDefendTimeout
     ) internal {
         require(
-            _newFraudChallengeDefendTimeout > 0,
+            _newChallengeDefendTimeout > 0,
             "Fraud challenge defend timeout must be > 0"
         );
-        self.fraudChallengeDefendTimeout = _newFraudChallengeDefendTimeout;
-        emit FraudChallengeDefendTimeoutUpdated(
-            _newFraudChallengeDefendTimeout
-        );
+        self.challengeDefendTimeout = _newChallengeDefendTimeout;
+        emit FraudChallengeDefendTimeoutUpdated(_newChallengeDefendTimeout);
     }
 
     // TODO: description
-    function setFraudChallengeDepositAmount(
+    function setChallengeDepositAmount(
         Data storage self,
-        uint256 _newFraudChallengeDepositAmount
+        uint256 _newChallengeDepositAmount
     ) internal {
         require(
-            _newFraudChallengeDepositAmount > 0,
+            _newChallengeDepositAmount > 0,
             "Fraud challenge deposit amount must be > 0"
         );
-        self.fraudChallengeDepositAmount = _newFraudChallengeDepositAmount;
-        emit FraudChallengeDepositAmountUpdated(
-            _newFraudChallengeDepositAmount
-        );
+        self.challengeDepositAmount = _newChallengeDepositAmount;
+        emit FraudChallengeDepositAmountUpdated(_newChallengeDepositAmount);
     }
 
     // TODO: description
