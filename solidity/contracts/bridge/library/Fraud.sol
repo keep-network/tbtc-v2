@@ -119,6 +119,8 @@ library Fraud {
     /// @param v Signature recovery value.
     /// @param r Signature r value.
     /// @param s Signature s value.
+    /// @dev Bitcoin uses signatures in DER format which can be converted to r/s
+    ///      format. The v value can be in the range 27 to 34 (inclusive).
     function submitFraudChallenge(
         Data storage self,
         bytes memory walletPublicKey,
@@ -127,10 +129,6 @@ library Fraud {
         bytes32 r,
         bytes32 s
     ) external {
-        // TODO: Bitcoin uses signatures in the DER format. From a signature in
-        // DER form values r and s can be easily extracted. Check how to obtain
-        // the v value. It can take values: 27, 28, 29, 30, 31, 32, 33, 34.
-        // https://bitcoin.stackexchange.com/questions/38351/ecdsa-v-r-s-what-is-v
         require(
             msg.value >= self.challengeDepositAmount,
             "The amount of ETH deposited is too low"
