@@ -251,14 +251,38 @@ library Fraud {
         emit FraudChallengeDefendTimeout(walletPubKeyHash, sighash, v, r, s);
     }
 
-    // TODO: description
+    /// @notice Verifies whether the witness input in the provided preimage has
+    ///         an outpoint that has been proven to be correctly spent in the
+    ///         Bridge.
+    /// @param preimage Serialized subset of the transaction. See BIP-143
+    ///        for reference.
+    /// @param deposits Information on deposits in the Bridge.
+    /// @param spentMainUTXOs Information on the spent main UTXO, which are main
+    ///        UTXOs that were used as inputs in transactions processed in the
+    ///        Bridge.
+    /// @dev As the preimage was generated during signing of a witness input,
+    ///      there is only one outpoint in the preimage, even though the
+    ///      transaction could have multiple inputs.
     function verifyWitnessPreimage(
         bytes memory preimage,
         mapping(uint256 => Bridge.DepositRequest) storage deposits,
         mapping(uint256 => bool) storage spentMainUTXOs
     ) internal {
-        // A preimage created for a witness input contains the outpoint located
-        // at a constant offset of 68.
+        // The expected structure of the preimage created during signing of a
+        // witness input:
+        // - transaction version (4 bytes)
+        // - hash of previous outpoints of all inputs (32 bytes)
+        // - hash of sequences of all inputs (32 bytes)
+        // - outpoint (hash + index) of the input being signed (36 bytes)
+        // - the unlocking script of the input (variable length)
+        // - value of the outpoint (8 bytes)
+        // - sequence of the input being signed (4 bytes)
+        // - hash of all outputs (32 bytes)
+        // - transaction locktime (4 bytes)
+        // - sighash type (4 bytes)
+
+        // The outpoint (hash and index) is located at the constant offset of
+        // 68 (4 + 32 + 32).
         bytes32 previousOutpointTxIdLe = preimage.extractInputTxIdLeAt(68);
         uint32 previousOutpointIndex = BTCUtils.reverseUint32(
             uint32(preimage.extractTxIndexLeAt(68))
@@ -277,20 +301,62 @@ library Fraud {
         );
     }
 
-    // TODO: description
+    /// @notice Verifies whether the inputs in the provided preimage have
+    ///         outpoints that has been proven to be correctly spent in the
+    ///         Bridge.
+    /// @param preimage Serialized subset of the transaction. See BIP-143
+    ///        for reference.
+    /// @param deposits Information on deposits in the Bridge.
+    /// @param spentMainUTXOs Information on the spent main UTXO, which are main
+    ///        UTXOs that were used as inputs in transactions successfully
+    ///        processed in the Bridge.
+    /// @dev As the preimage was generated during signing of a non-witness input,
+    ///      there can be multiple outpoints in the preimage, both witness and
+    ///      non-witness. The input the preimage was generated for could be
+    ///      found by looking at unlocking scripts - it has a non-zero unlocking
+    ///      script, while other inputs have `00` set as unlocking scripts.
+    ///      For simplicity, we verify all the inputs, not just the one with a
+    ///      non-zero unlocking script.
     function verifyNonWitnessPreimage(
         bytes memory preimage,
         mapping(uint256 => Bridge.DepositRequest) storage deposits,
         mapping(uint256 => bool) storage spentMainUTXOs
     ) internal {
-        // A preimage created during signing of a non-witness input contains
-        // all the inputs of the transaction. The input the preimage was
-        // generated for can be distinguished from other inputs by looking at
-        // unlocking scripts. The unlocking script of such input is non-null
-        // while unlocking scripts of other inputs are null.
+        // The expected structure of the preimage created during signing of a
+        // non-witness input:
+        // - transaction version (4 bytes)
+        // - number of inputs as written as varint (1 byte, 3 bytes, 5 bytes or
+        //   9 bytes)
+        // - for each input
+        //   - outpoint (hash and index) (36 bytes)
+        //   - unlocking script for the input being signed (variable length)
+        //     or `00` for all other inputs (1 byte)
+        //   - input sequence (4 bytes)
+        // - outputs (variable length)
+        // - transaction locktime (4 bytes)
+        // - sighash type (4 bytes)
+
+        // The input data begins at the constant offset of 4 (the first 4 bytes
+        // are for the transaction version).
         (uint256 inputsCompactSizeUintLength, uint256 inputsCount) = preimage
             .parseVarIntAt(4);
 
+        // To determine the first input starting index, we must jump 4 bytes
+        // over the transaction version length and the compactSize uint which
+        // prepends the input vector. One byte must be added because
+        // `BtcUtils.parseVarInt` does not include compactSize uint tag in the
+        // returned length.
+        //
+        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
+        // returns `0`, so we jump over one byte of compactSize uint.
+        //
+        // For >= 253 && <= 0xffff there is `0xfd` tag,
+        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
+        // tag byte included) so we need to jump over 1+2 bytes of
+        // compactSize uint.
+        //
+        // Please refer `BTCUtils` library and compactSize uint
+        // docs in `BitcoinTx` library for more details.
         uint256 inputStartingIndex = 4 + 1 + inputsCompactSizeUintLength;
         for (uint256 i = 0; i < inputsCount; i++) {
             bytes32 previousOutpointTxIdLe = preimage.extractInputTxIdLeAt(
@@ -319,14 +385,6 @@ library Fraud {
             inputStartingIndex += preimage.determineInputLengthAt(
                 inputStartingIndex
             );
-
-            // TODO: Check which approach is better:
-            //       1) Checking outpoint of every input in the preimage - will
-            //          require accessing storage multiple times
-            //       2) Check only the outpoint of the input the preimage was
-            //          generated for - will require reading the unlocking script
-            //          of every input and the searched for input will have a
-            //          non-null script.
         }
     }
 
