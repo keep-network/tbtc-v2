@@ -9,9 +9,13 @@ import type { FakeContract } from "@defi-wonderland/smock"
 import type {
   Bank,
   BankStub,
+  BankStub__factory,
   Bridge,
   BridgeStub,
+  BridgeStub__factory,
+  Bridge__factory,
   TestRelay,
+  TestRelay__factory,
   IWalletRegistry,
 } from "../../typechain"
 import {
@@ -57,11 +61,13 @@ const ZERO_32_BYTES =
 const fixture = async () => {
   const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
 
-  const Bank = await ethers.getContractFactory("BankStub")
+  const Bank = await ethers.getContractFactory<BankStub__factory>("BankStub")
   const bank: Bank & BankStub = await Bank.deploy()
   await bank.deployed()
 
-  const TestRelay = await ethers.getContractFactory("TestRelay")
+  const TestRelay = await ethers.getContractFactory<TestRelay__factory>(
+    "TestRelay"
+  )
   const relay: TestRelay = await TestRelay.deploy()
   await relay.deployed()
 
@@ -71,7 +77,9 @@ const fixture = async () => {
     value: ethers.utils.parseEther("1"),
   })
 
-  const Bridge = await ethers.getContractFactory("BridgeStub")
+  const Bridge = await ethers.getContractFactory<BridgeStub__factory>(
+    "BridgeStub"
+  )
   const bridge: Bridge & BridgeStub = await Bridge.deploy(
     bank.address,
     relay.address,
@@ -1655,7 +1663,9 @@ describe("Bridge", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            const Bridge = await ethers.getContractFactory("Bridge")
+            const Bridge = await ethers.getContractFactory<Bridge__factory>(
+              "Bridge"
+            )
             otherBridge = await Bridge.deploy(
               bank.address,
               relay.address,
@@ -4692,7 +4702,9 @@ describe("Bridge", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            const Bridge = await ethers.getContractFactory("Bridge")
+            const Bridge = await ethers.getContractFactory<Bridge__factory>(
+              "Bridge"
+            )
             otherBridge = await Bridge.deploy(
               bank.address,
               relay.address,

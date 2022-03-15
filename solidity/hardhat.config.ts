@@ -93,6 +93,9 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  typechain: {
+    outDir: "typechain",
+  },
 }
 
 export default config

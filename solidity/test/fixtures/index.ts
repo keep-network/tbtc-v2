@@ -1,7 +1,14 @@
 import { Contract } from "ethers"
 import { ethers } from "hardhat"
 // eslint-disable-next-line import/extensions
-import type { TestERC20, TBTC, VendingMachine } from "../../typechain"
+import {
+  TestERC20,
+  TBTC,
+  VendingMachine,
+  TestERC20__factory,
+  TBTC__factory,
+  VendingMachine__factory,
+} from "../../typechain"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 export const constants = {
@@ -13,15 +20,18 @@ export interface DeployedContracts {
 }
 
 export async function vendingMachineDeployment(): Promise<DeployedContracts> {
-  const TestERC20 = await ethers.getContractFactory("TestERC20")
+  const TestERC20 = await ethers.getContractFactory<TestERC20__factory>(
+    "TestERC20"
+  )
   const tbtcV1: TestERC20 = await TestERC20.deploy()
   await tbtcV1.deployed()
 
-  const TBTC = await ethers.getContractFactory("TBTC")
+  const TBTC = await ethers.getContractFactory<TBTC__factory>("TBTC")
   const tbtcV2: TBTC = await TBTC.deploy()
   await tbtcV2.deployed()
 
-  const VendingMachine = await ethers.getContractFactory("VendingMachine")
+  const VendingMachine =
+    await ethers.getContractFactory<VendingMachine__factory>("VendingMachine")
   const vendingMachine: VendingMachine = await VendingMachine.deploy(
     tbtcV1.address,
     tbtcV2.address,
