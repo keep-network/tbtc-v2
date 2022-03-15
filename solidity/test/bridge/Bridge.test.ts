@@ -5540,9 +5540,9 @@ describe("Bridge", () => {
             )
           })
 
-          it("should emit FraudChallengeTimeout event", async () => {
+          it("should emit FraudChallengeDefendTimeout event", async () => {
             await expect(tx)
-              .to.emit(bridge, "FraudChallengeTimeout")
+              .to.emit(bridge, "FraudChallengeDefendTimeout")
               .withArgs(
                 fraudWalletPublicKeyHash,
                 data.sighash,

@@ -85,7 +85,7 @@ library Fraud {
         bytes32 s
     );
 
-    event FraudChallengeTimeout(
+    event FraudChallengeDefendTimeout(
         bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
@@ -253,7 +253,7 @@ library Fraud {
             .compressPublicKey();
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
 
-        emit FraudChallengeTimeout(walletPubKeyHash, sighash, v, r, s);
+        emit FraudChallengeDefendTimeout(walletPubKeyHash, sighash, v, r, s);
     }
 
     // TODO: description

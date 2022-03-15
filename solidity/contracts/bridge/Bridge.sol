@@ -414,7 +414,7 @@ contract Bridge is Ownable {
         bytes32 s
     );
 
-    event FraudChallengeTimeout(
+    event FraudChallengeDefendTimeout(
         bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
