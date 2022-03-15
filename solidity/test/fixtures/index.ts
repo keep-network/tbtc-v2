@@ -1,7 +1,6 @@
 import { Contract } from "ethers"
 import { ethers } from "hardhat"
-// eslint-disable-next-line import/extensions
-import {
+import type {
   TestERC20,
   TBTC,
   VendingMachine,

@@ -217,7 +217,7 @@ describe("Bridge", () => {
       it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
         await bridge.connect(thirdParty).createNewWallet()
 
-        expect(walletRegistry.requestNewWallet).to.have.been.calledOnce
+        await expect(walletRegistry.requestNewWallet).to.have.been.calledOnce
       })
     })
   })
