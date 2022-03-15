@@ -5465,7 +5465,7 @@ describe("Bridge", () => {
     })
   })
 
-  describe("notifyChallengeTimeout", () => {
+  describe("notifyFraudChallengeDefeatTimeout", () => {
     const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
     const fraudChallengeDefendTimeout = 7 * 24 * 3600 // 7 days
     const data = nonWitnessSignSingleInputTx
@@ -5504,7 +5504,7 @@ describe("Bridge", () => {
             await increaseTime(fraudChallengeDefendTimeout)
             tx = await bridge
               .connect(thirdParty)
-              .notifyFraudChallengeTimeout(
+              .notifyFraudChallengeDefeatTimeout(
                 fraudWalletPublicKey,
                 data.sighash,
                 data.signature.v,
@@ -5591,7 +5591,7 @@ describe("Bridge", () => {
             await expect(
               bridge
                 .connect(thirdParty)
-                .notifyFraudChallengeTimeout(
+                .notifyFraudChallengeDefeatTimeout(
                   fraudWalletPublicKey,
                   data.sighash,
                   data.signature.v,
@@ -5649,7 +5649,7 @@ describe("Bridge", () => {
           await expect(
             bridge
               .connect(thirdParty)
-              .notifyFraudChallengeTimeout(
+              .notifyFraudChallengeDefeatTimeout(
                 fraudWalletPublicKey,
                 data.sighash,
                 data.signature.v,
@@ -5690,7 +5690,7 @@ describe("Bridge", () => {
           await increaseTime(fraudChallengeDefendTimeout)
           await bridge
             .connect(thirdParty)
-            .notifyFraudChallengeTimeout(
+            .notifyFraudChallengeDefeatTimeout(
               fraudWalletPublicKey,
               data.sighash,
               data.signature.v,
@@ -5707,7 +5707,7 @@ describe("Bridge", () => {
           await expect(
             bridge
               .connect(thirdParty)
-              .notifyFraudChallengeTimeout(
+              .notifyFraudChallengeDefeatTimeout(
                 fraudWalletPublicKey,
                 data.sighash,
                 data.signature.v,
@@ -5732,7 +5732,7 @@ describe("Bridge", () => {
         await expect(
           bridge
             .connect(thirdParty)
-            .notifyFraudChallengeTimeout(
+            .notifyFraudChallengeDefeatTimeout(
               fraudWalletPublicKey,
               data.sighash,
               data.signature.v,

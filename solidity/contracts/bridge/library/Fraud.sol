@@ -211,7 +211,7 @@ library Fraud {
     }
 
     // TODO: description
-    function notifyChallengeTimeout(
+    function notifyFraudChallengeDefeatTimeout(
         Data storage self,
         bytes memory walletPublicKey,
         bytes32 sighash,

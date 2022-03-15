@@ -1419,14 +1419,20 @@ contract Bridge is Ownable {
         );
     }
 
-    function notifyFraudChallengeTimeout(
+    function notifyFraudChallengeDefeatTimeout(
         bytes memory walletPublicKey,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) external {
-        fraudData.notifyChallengeTimeout(walletPublicKey, sighash, v, r, s);
+        fraudData.notifyFraudChallengeDefeatTimeout(
+            walletPublicKey,
+            sighash,
+            v,
+            r,
+            s
+        );
     }
 
     /// @notice Validates whether the redemption Bitcoin transaction input
