@@ -60,8 +60,6 @@ contract Bridge is Ownable {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
     using BytesLib for bytes;
-    using ValidateSPV for bytes;
-    using ValidateSPV for bytes32;
     using EcdsaLib for bytes;
     using Frauds for Frauds.Data;
 
@@ -447,6 +445,10 @@ contract Bridge is Ownable {
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionTxMaxFee = 1000; // 1000 satoshi
         redemptionTimeout = 172800; // 48 hours
+        frauds.setSlashingAmount(1e8);
+        frauds.setNotifierRewardMultiplier(20); // 20%
+        frauds.setChallengeDefeatTimeout(7 days);
+        frauds.setChallengeDepositAmount(2 ether);
     }
 
     // TODO: Add function `onNewWalletCreated` according to discussion:
@@ -468,39 +470,6 @@ contract Bridge is Ownable {
     function setVaultStatus(address vault, bool isTrusted) external onlyOwner {
         isVaultTrusted[vault] = isTrusted;
         emit VaultStatusUpdated(vault, isTrusted);
-    }
-
-    // TODO: Add description and unit tests
-    function setFraudSlashingAmount(uint256 _newFraudSlashingAmount)
-        external
-        onlyOwner
-    {
-        frauds.setSlashingAmount(_newFraudSlashingAmount);
-    }
-
-    // TODO: Add description and unit tests
-    function setFraudNotifierRewardMultiplier(
-        uint256 _newFraudNotifierRewardMultiplier
-    ) external onlyOwner {
-        frauds.setNotifierRewardMultiplier(_newFraudNotifierRewardMultiplier);
-    }
-
-    // TODO: Add description and unit tests
-    function setFraudChallengeDefeatTimeout(
-        uint256 _newFraudChallengeDefeatTimeout
-    ) external onlyOwner {
-        frauds.setChallengeDefeatTimeout(_newFraudChallengeDefeatTimeout);
-    }
-
-    /// @notice Allows the Governance to update the fraud challenge deposit
-    ///         amount.
-    /// @param _newFraudChallengeDepositAmount The new value of the fraud
-    ///        challenge deposit amount (must be greater than 0).
-    /// TODO: Should it be updated after a delay?
-    function setFraudChallengeDepositAmount(
-        uint256 _newFraudChallengeDepositAmount
-    ) external onlyOwner {
-        frauds.setChallengeDepositAmount(_newFraudChallengeDepositAmount);
     }
 
     /// @notice Determines the current Bitcoin SPV proof difficulty context.

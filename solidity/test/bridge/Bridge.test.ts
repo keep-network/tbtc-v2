@@ -4790,7 +4790,6 @@ describe("Bridge", () => {
   })
 
   describe("submitFraudChallenge", () => {
-    const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
     const data = witnessSignSingleInputTx
 
     context("when the amount of sent ether is too small", () => {
@@ -4800,9 +4799,6 @@ describe("Bridge", () => {
           state: 1,
           pendingRedemptionsValue: 0,
         })
-        await bridge
-          .connect(governance)
-          .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
       })
 
       after(async () => {
@@ -4820,7 +4816,7 @@ describe("Bridge", () => {
               data.signature.r,
               data.signature.s,
               {
-                value: fraudChallengeDepositAmount.sub(1),
+                value: (await bridge.fraudChallengeDepositAmount()).sub(1),
               }
             )
         ).to.be.revertedWith("The amount of ETH deposited is too low")
@@ -4841,9 +4837,6 @@ describe("Bridge", () => {
           state: 1,
           pendingRedemptionsValue: 0,
         })
-        await bridge
-          .connect(governance)
-          .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
       })
 
       after(async () => {
@@ -4861,7 +4854,7 @@ describe("Bridge", () => {
               data.signature.r,
               data.signature.s,
               {
-                value: fraudChallengeDepositAmount,
+                value: await bridge.fraudChallengeDepositAmount(),
               }
             )
         ).to.be.revertedWith("Signature verification failure")
@@ -4878,9 +4871,6 @@ describe("Bridge", () => {
           state: 1,
           pendingRedemptionsValue: 0,
         })
-        await bridge
-          .connect(governance)
-          .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
       })
 
       after(async () => {
@@ -4898,7 +4888,7 @@ describe("Bridge", () => {
               data.signature.r,
               data.signature.s,
               {
-                value: fraudChallengeDepositAmount,
+                value: await bridge.fraudChallengeDepositAmount(),
               }
             )
         ).to.be.revertedWith("Signature verification failure")
@@ -4914,9 +4904,6 @@ describe("Bridge", () => {
           state: 1,
           pendingRedemptionsValue: 0,
         })
-        await bridge
-          .connect(governance)
-          .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
       })
 
       after(async () => {
@@ -4934,7 +4921,7 @@ describe("Bridge", () => {
               data.signature.r,
               data.signature.s,
               {
-                value: fraudChallengeDepositAmount,
+                value: await bridge.fraudChallengeDepositAmount(),
               }
             )
         ).to.be.revertedWith("Signature verification failure")
@@ -4952,9 +4939,6 @@ describe("Bridge", () => {
           state: 1,
           pendingRedemptionsValue: 0,
         })
-        await bridge
-          .connect(governance)
-          .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
       })
 
       after(async () => {
@@ -4972,7 +4956,7 @@ describe("Bridge", () => {
               incorrectR,
               incorrectS,
               {
-                value: fraudChallengeDepositAmount,
+                value: await bridge.fraudChallengeDepositAmount(),
               }
             )
         ).to.be.revertedWith("Signature verification failure")
@@ -4982,9 +4966,6 @@ describe("Bridge", () => {
     context("when the same fraud challenge called twice", () => {
       before(async () => {
         await createSnapshot()
-        await bridge
-          .connect(governance)
-          .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
         await bridge.setWallet(fraudWalletPublicKeyHash, {
           state: 1,
           pendingRedemptionsValue: 0,
@@ -4998,7 +4979,7 @@ describe("Bridge", () => {
             data.signature.r,
             data.signature.s,
             {
-              value: fraudChallengeDepositAmount,
+              value: await bridge.fraudChallengeDepositAmount(),
             }
           )
       })
@@ -5018,7 +4999,7 @@ describe("Bridge", () => {
               data.signature.r,
               data.signature.s,
               {
-                value: fraudChallengeDepositAmount,
+                value: await bridge.fraudChallengeDepositAmount(),
               }
             )
         ).to.be.revertedWith("Fraud challenge already exists")
@@ -5032,9 +5013,6 @@ describe("Bridge", () => {
 
         before(async () => {
           await createSnapshot()
-          await bridge
-            .connect(governance)
-            .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
           await bridge.setWallet(fraudWalletPublicKeyHash, {
             state: 1,
             pendingRedemptionsValue: 0,
@@ -5048,7 +5026,7 @@ describe("Bridge", () => {
               data.signature.r,
               data.signature.s,
               {
-                value: fraudChallengeDepositAmount,
+                value: await bridge.fraudChallengeDepositAmount(),
               }
             )
         })
@@ -5060,11 +5038,11 @@ describe("Bridge", () => {
         it("should transfer ether from the caller to the bridge", async () => {
           await expect(tx).to.changeEtherBalance(
             thirdParty,
-            fraudChallengeDepositAmount.mul(-1)
+            (await bridge.fraudChallengeDepositAmount()).mul(-1)
           )
           await expect(tx).to.changeEtherBalance(
             bridge,
-            fraudChallengeDepositAmount
+            await bridge.fraudChallengeDepositAmount()
           )
         })
 
@@ -5081,7 +5059,7 @@ describe("Bridge", () => {
             await thirdParty.getAddress()
           )
           expect(fraudChallenge.depositAmount).to.equal(
-            fraudChallengeDepositAmount
+            await bridge.fraudChallengeDepositAmount()
           )
           expect(fraudChallenge.reportedAt).to.equal(await lastBlockTime())
           expect(fraudChallenge.closed).to.equal(false)
@@ -5103,8 +5081,6 @@ describe("Bridge", () => {
   })
 
   describe("defeatFraudChallenge", () => {
-    const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
-
     context("when the challenge exists", () => {
       context("when the challenge is open", () => {
         context("when the sighash type is correct", () => {
@@ -5122,11 +5098,6 @@ describe("Bridge", () => {
                       state: 1,
                       pendingRedemptionsValue: 0,
                     })
-                    await bridge
-                      .connect(governance)
-                      .setFraudChallengeDepositAmount(
-                        fraudChallengeDepositAmount
-                      )
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
                     await bridge
@@ -5138,7 +5109,7 @@ describe("Bridge", () => {
                         data.signature.r,
                         data.signature.s,
                         {
-                          value: fraudChallengeDepositAmount,
+                          value: await bridge.fraudChallengeDepositAmount(),
                         }
                       )
                     tx = await bridge
@@ -5174,11 +5145,11 @@ describe("Bridge", () => {
                   it("should send the ether deposited by the challenger to the treasury", async () => {
                     await expect(tx).to.changeEtherBalance(
                       bridge,
-                      fraudChallengeDepositAmount.mul(-1)
+                      (await bridge.fraudChallengeDepositAmount()).mul(-1)
                     )
                     await expect(tx).to.changeEtherBalance(
                       treasury,
-                      fraudChallengeDepositAmount
+                      await bridge.fraudChallengeDepositAmount()
                     )
                   })
 
@@ -5208,11 +5179,6 @@ describe("Bridge", () => {
                       pendingRedemptionsValue: 0,
                     })
                     await bridge
-                      .connect(governance)
-                      .setFraudChallengeDepositAmount(
-                        fraudChallengeDepositAmount
-                      )
-                    await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
@@ -5221,7 +5187,7 @@ describe("Bridge", () => {
                         data.signature.r,
                         data.signature.s,
                         {
-                          value: fraudChallengeDepositAmount,
+                          value: await bridge.fraudChallengeDepositAmount(),
                         }
                       )
                   })
@@ -5259,11 +5225,6 @@ describe("Bridge", () => {
 
                   before(async () => {
                     await createSnapshot()
-                    await bridge
-                      .connect(governance)
-                      .setFraudChallengeDepositAmount(
-                        fraudChallengeDepositAmount
-                      )
                     await bridge.setWallet(fraudWalletPublicKeyHash, {
                       state: 1,
                       pendingRedemptionsValue: 0,
@@ -5279,7 +5240,7 @@ describe("Bridge", () => {
                         data.signature.r,
                         data.signature.s,
                         {
-                          value: fraudChallengeDepositAmount,
+                          value: await bridge.fraudChallengeDepositAmount(),
                         }
                       )
                     tx = await bridge
@@ -5315,11 +5276,11 @@ describe("Bridge", () => {
                   it("should send the ether deposited by the challenger to the treasury", async () => {
                     await expect(tx).to.changeEtherBalance(
                       bridge,
-                      fraudChallengeDepositAmount.mul(-1)
+                      (await bridge.fraudChallengeDepositAmount()).mul(-1)
                     )
                     await expect(tx).to.changeEtherBalance(
                       treasury,
-                      fraudChallengeDepositAmount
+                      await bridge.fraudChallengeDepositAmount()
                     )
                   })
 
@@ -5344,11 +5305,6 @@ describe("Bridge", () => {
 
                   before(async () => {
                     await createSnapshot()
-                    await bridge
-                      .connect(governance)
-                      .setFraudChallengeDepositAmount(
-                        fraudChallengeDepositAmount
-                      )
                     await bridge.setWallet(fraudWalletPublicKeyHash, {
                       state: 1,
                       pendingRedemptionsValue: 0,
@@ -5362,7 +5318,7 @@ describe("Bridge", () => {
                         data.signature.r,
                         data.signature.s,
                         {
-                          value: fraudChallengeDepositAmount,
+                          value: await bridge.fraudChallengeDepositAmount(),
                         }
                       )
                   })
@@ -5466,8 +5422,6 @@ describe("Bridge", () => {
   })
 
   describe("notifyFraudChallengeDefeatTimeout", () => {
-    const fraudChallengeDepositAmount = ethers.utils.parseEther("2")
-    const fraudChallengeDefeatTimeout = 7 * 24 * 3600 // 7 days
     const data = nonWitnessSignSingleInputTx
 
     describe("when the fraud challenge exists", () => {
@@ -5481,12 +5435,6 @@ describe("Bridge", () => {
               state: 1,
               pendingRedemptionsValue: 0,
             })
-            await bridge
-              .connect(governance)
-              .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
-            await bridge
-              .connect(governance)
-              .setFraudChallengeDefeatTimeout(fraudChallengeDefeatTimeout)
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
             await bridge
@@ -5498,10 +5446,10 @@ describe("Bridge", () => {
                 data.signature.r,
                 data.signature.s,
                 {
-                  value: fraudChallengeDepositAmount,
+                  value: await bridge.fraudChallengeDepositAmount(),
                 }
               )
-            await increaseTime(fraudChallengeDefeatTimeout)
+            await increaseTime(await bridge.fraudChallengeDefeatTimeout())
             tx = await bridge
               .connect(thirdParty)
               .notifyFraudChallengeDefeatTimeout(
@@ -5532,11 +5480,11 @@ describe("Bridge", () => {
           it("should return the deposited ether to the challenger", async () => {
             await expect(tx).to.changeEtherBalance(
               bridge,
-              fraudChallengeDepositAmount.mul(-1)
+              (await bridge.fraudChallengeDepositAmount()).mul(-1)
             )
             await expect(tx).to.changeEtherBalance(
               thirdParty,
-              fraudChallengeDepositAmount
+              await bridge.fraudChallengeDepositAmount()
             )
           })
 
@@ -5560,12 +5508,6 @@ describe("Bridge", () => {
               state: 1,
               pendingRedemptionsValue: 0,
             })
-            await bridge
-              .connect(governance)
-              .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
-            await bridge
-              .connect(governance)
-              .setFraudChallengeDefeatTimeout(fraudChallengeDefeatTimeout)
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
             await bridge
@@ -5577,10 +5519,12 @@ describe("Bridge", () => {
                 data.signature.r,
                 data.signature.s,
                 {
-                  value: fraudChallengeDepositAmount,
+                  value: await bridge.fraudChallengeDepositAmount(),
                 }
               )
-            await increaseTime(fraudChallengeDefeatTimeout - 2)
+            await increaseTime(
+              (await bridge.fraudChallengeDefeatTimeout()).sub(2)
+            )
           })
 
           after(async () => {
@@ -5612,9 +5556,6 @@ describe("Bridge", () => {
             state: 1,
             pendingRedemptionsValue: 0,
           })
-          await bridge
-            .connect(governance)
-            .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
           await bridge.setSweptDeposits(data.deposits)
           await bridge.setSpentMainUtxos(data.spentMainUtxos)
           await bridge
@@ -5626,7 +5567,7 @@ describe("Bridge", () => {
               data.signature.r,
               data.signature.s,
               {
-                value: fraudChallengeDepositAmount,
+                value: await bridge.fraudChallengeDepositAmount(),
               }
             )
           await bridge
@@ -5667,12 +5608,6 @@ describe("Bridge", () => {
             state: 1,
             pendingRedemptionsValue: 0,
           })
-          await bridge
-            .connect(governance)
-            .setFraudChallengeDepositAmount(fraudChallengeDepositAmount)
-          await bridge
-            .connect(governance)
-            .setFraudChallengeDefeatTimeout(fraudChallengeDefeatTimeout)
           await bridge.setSweptDeposits(data.deposits)
           await bridge.setSpentMainUtxos(data.spentMainUtxos)
           await bridge
@@ -5684,10 +5619,10 @@ describe("Bridge", () => {
               data.signature.r,
               data.signature.s,
               {
-                value: fraudChallengeDepositAmount,
+                value: await bridge.fraudChallengeDepositAmount(),
               }
             )
-          await increaseTime(fraudChallengeDefeatTimeout)
+          await increaseTime(await bridge.fraudChallengeDefeatTimeout())
           await bridge
             .connect(thirdParty)
             .notifyFraudChallengeDefeatTimeout(
