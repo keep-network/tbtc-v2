@@ -229,8 +229,8 @@ library Fraud {
         require(!challenge.closed, "Fraud challenge is closed");
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp - challenge.reportedAt >=
-                self.challengeDefendTimeout,
+            block.timestamp >=
+                challenge.reportedAt + self.challengeDefendTimeout,
             "Fraud challenge defend timeout has not elapsed"
         );
 
