@@ -73,6 +73,8 @@ const fixture = async () => {
   await relay.deployed()
 
   const walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry")
+  // Fund the `walletRegistry` account so it's possible to mock sending requests
+  // from it.
   await deployer.sendTransaction({
     to: walletRegistry.address,
     value: ethers.utils.parseEther("1"),
