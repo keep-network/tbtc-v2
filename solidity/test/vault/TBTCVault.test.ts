@@ -3,7 +3,14 @@ import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 
 import { ContractTransaction } from "ethers"
-import type { Bank, TBTC, TBTCVault } from "../../typechain"
+import type {
+  Bank,
+  Bank__factory,
+  TBTC,
+  TBTCVault,
+  TBTCVault__factory,
+  TBTC__factory,
+} from "../../typechain"
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
@@ -13,17 +20,19 @@ const ZERO_ADDRESS = ethers.constants.AddressZero
 const fixture = async () => {
   const [deployer, bridge] = await ethers.getSigners()
 
-  const Bank = await ethers.getContractFactory("Bank")
+  const Bank = await ethers.getContractFactory<Bank__factory>("Bank")
   const bank = await Bank.deploy()
   await bank.deployed()
 
   await bank.connect(deployer).updateBridge(bridge.address)
 
-  const TBTC = await ethers.getContractFactory("TBTC")
+  const TBTC = await ethers.getContractFactory<TBTC__factory>("TBTC")
   const tbtc = await TBTC.deploy()
   await tbtc.deployed()
 
-  const TBTCVault = await ethers.getContractFactory("TBTCVault")
+  const TBTCVault = await ethers.getContractFactory<TBTCVault__factory>(
+    "TBTCVault"
+  )
   const vault = await TBTCVault.deploy(bank.address, tbtc.address)
   await vault.deployed()
 
