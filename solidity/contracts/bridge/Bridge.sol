@@ -444,7 +444,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @dev ECDSA wallet creation is asynchronous process. Once a wallet is
     ///      created the ECDSA Wallet Registry will notify this contract by
     ///      calling a `__ecdsaWalletCreatedCallback` function.
-    function createNewWallet() external {
+    function requestNewWallet() external {
         // TODO: Implement wallet creation rules
 
         ecdsaWalletRegistry.requestNewWallet();
