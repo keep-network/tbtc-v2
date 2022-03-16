@@ -74,7 +74,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes8 blindingFactor;
         // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
         // of the deposit's wallet hashed in the HASH160 Bitcoin opcode style.
-        bytes20 walletPubKeyHash; // TODO: Rename to walletPubKeyHash160 ?
+        bytes20 walletPubKeyHash;
         // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
         // that can be used to make the deposit refund after the refund
         // locktime passes. Hashed in the HASH160 Bitcoin opcode style.
@@ -351,7 +351,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     mapping(bytes20 => Wallet) public wallets;
 
     event WalletCreated(
-        bytes20 indexed walletPubKeyHash160,
+        bytes20 indexed walletPubKeyHash,
         bytes32 indexed ecdsaWalletID
     );
 
@@ -470,18 +470,18 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
 
         // Compress wallet's public key and calculate Bitcoin's hash160 of it.
-        bytes20 walletPubKeyHash160 = bytes20(
+        bytes20 walletPubKeyHash = bytes20(
             EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
         );
 
         require(
-            wallets[walletPubKeyHash160].ecdsaWalletID == bytes20(0),
+            wallets[walletPubKeyHash].ecdsaWalletID == bytes20(0),
             "ECDSA wallet has been already registered"
         );
 
-        wallets[walletPubKeyHash160].ecdsaWalletID = ecdsaWalletID;
+        wallets[walletPubKeyHash].ecdsaWalletID = ecdsaWalletID;
 
-        emit WalletCreated(walletPubKeyHash160, ecdsaWalletID);
+        emit WalletCreated(walletPubKeyHash, ecdsaWalletID);
     }
 
     /// @notice Determines the current Bitcoin SPV proof difficulty context.
