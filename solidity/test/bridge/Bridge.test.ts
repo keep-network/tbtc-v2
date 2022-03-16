@@ -292,6 +292,14 @@ describe("Bridge", () => {
           ).equals(ecdsaWalletTestData.walletID)
         })
 
+        it("should transition Wallet to Active state", async () => {
+          await expect(
+            (
+              await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)
+            ).state
+          ).equals(walletState.Active)
+        })
+
         it("should emit WalletCreated event", async () => {
           await expect(tx)
             .to.emit(bridge, "WalletCreated")
@@ -333,6 +341,22 @@ describe("Bridge", () => {
               testName: "with duplicated wallet ID and unique public key",
               walletID: ecdsaWalletTestData.walletID,
               publicKeyX: ethers.utils.randomBytes(32),
+              publicKeyY: ethers.utils.randomBytes(32),
+              expectedError: undefined,
+            },
+            {
+              testName:
+                "with unique wallet ID, unique public key X and duplicated public key Y",
+              walletID: ethers.utils.randomBytes(32),
+              publicKeyX: ethers.utils.randomBytes(32),
+              publicKeyY: ecdsaWalletTestData.publicKeyY,
+              expectedError: undefined,
+            },
+            {
+              testName:
+                "with unique wallet ID, unique public key Y and duplicated public key X",
+              walletID: ethers.utils.randomBytes(32),
+              publicKeyX: ecdsaWalletTestData.publicKeyY,
               publicKeyY: ethers.utils.randomBytes(32),
               expectedError: undefined,
             },
@@ -4348,7 +4372,7 @@ describe("Bridge", () => {
                       )
                       await bridge.setWallet(data.wallet.pubKeyHash, {
                         ...wallet,
-                        state: 2,
+                        state: walletState.MovingFunds,
                       })
                     }
 
