@@ -475,11 +475,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
 
         require(
-            wallets[walletPubKeyHash].ecdsaWalletID == bytes20(0),
+            wallets[walletPubKeyHash].state == WalletState.Unknown,
             "ECDSA wallet has been already registered"
         );
 
         wallets[walletPubKeyHash].ecdsaWalletID = ecdsaWalletID;
+        wallets[walletPubKeyHash].state = WalletState.Active;
 
         emit WalletCreated(walletPubKeyHash, ecdsaWalletID);
     }
