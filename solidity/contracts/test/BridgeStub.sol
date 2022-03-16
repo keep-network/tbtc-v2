@@ -15,8 +15,17 @@ contract BridgeStub is Bridge {
         address _bank,
         address _relay,
         address _treasury,
+        address _walletRegistry,
         uint256 _txProofDifficultyFactor
-    ) Bridge(_bank, _relay, _treasury, _txProofDifficultyFactor) {}
+    )
+        Bridge(
+            _bank,
+            _relay,
+            _treasury,
+            _walletRegistry,
+            _txProofDifficultyFactor
+        )
+    {}
 
     function setSweptDeposits(Outpoint[] calldata outpoints) external {
         for (uint256 i = 0; i < outpoints.length; i++) {

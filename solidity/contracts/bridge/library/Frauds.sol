@@ -18,7 +18,7 @@ pragma solidity ^0.8.9;
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {CheckBitcoinSigs} from "@keep-network/bitcoin-spv-sol/contracts/CheckBitcoinSigs.sol";
-import "./EcdsaLib.sol";
+import "../EcdsaLib.sol";
 import "../Bridge.sol";
 
 library Frauds {

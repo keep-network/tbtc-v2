@@ -3,7 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 
 import { ContractTransaction, Signature, Wallet } from "ethers"
-import type { Bank } from "../../typechain"
+import type { Bank, Bank__factory } from "../../typechain"
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
@@ -16,7 +16,7 @@ const MAX_UINT256 = ethers.constants.MaxUint256
 const fixture = async () => {
   const [deployer, governance, bridge, thirdParty] = await ethers.getSigners()
 
-  const Bank = await ethers.getContractFactory("Bank")
+  const Bank = await ethers.getContractFactory<Bank__factory>("Bank")
   const bank = await Bank.deploy()
   await bank.deployed()
 

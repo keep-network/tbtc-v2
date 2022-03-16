@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "esModuleInterop": true
   },
   "files": [
     "./hardhat.config.ts",
