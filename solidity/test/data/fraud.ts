@@ -17,7 +17,7 @@ export interface FraudTestData {
     fundingOutputIndex: number
   }[]
   spentMainUtxos: {
-    fundingTxHash: BytesLike
+    fundingTxHash: BytesLike // little endian
     fundingOutputIndex: number
   }[]
 }
@@ -119,7 +119,7 @@ export const nonWitnessSignMultipleInputsTx: FraudTestData = {
 }
 
 // Test data comes from the (only) input of transaction:
-// https://live.blockcypher.com/btc-testnet/tx/eccc55030fb7c3c7eda6d12d69014aa55bb6a942997e388c4aadb0930facb4cb/
+// https://live.blockcypher.com/btc-testnet/tx/1cd5779e463eb4e3cb4b2aa93333ccc022d6d46f74e2855a6985775be98b8bba/
 export const witnessSignSingleInputTx: FraudTestData = {
   signature: {
     v: 27,
@@ -137,7 +137,13 @@ export const witnessSignSingleInputTx: FraudTestData = {
     "73d68ca9da53591139f10000000001000000",
   sighash: "0xb8994753efd78cc66075991d3a21beef96d4e8a5e9ff06bc692401203df02610",
   witness: true,
-  deposits: [],
+  deposits: [
+    {
+      fundingTxHash:
+        "0xcbb4ac0f93b0ad4a8c387e9942a9b65ba54a01692dd1a6edc7c3b70f0355ccec",
+      fundingOutputIndex: 0,
+    },
+  ],
   spentMainUtxos: [],
 }
 
@@ -156,8 +162,40 @@ export const witnessSignMultipleInputTx: FraudTestData = {
     "1976a9148db50eb52063ea9d98b3eac91489a90f738986f688acd020000000000000ff" +
     "ffffffb72599001cf12b672a074ce9ff50fe8cb87432044fd6a5b85953ddc9abc458b9" +
     "0000000001000000",
-  sighash: "d05adb53b09ac6b1cc0a0166558f8b90d2898c9a368d40a2a033e5e0c1af9b11",
+  sighash: "0xd05adb53b09ac6b1cc0a0166558f8b90d2898c9a368d40a2a033e5e0c1af9b11",
   witness: true,
-  deposits: [],
-  spentMainUtxos: [],
+  deposits: [
+    {
+      fundingTxHash:
+        "0xbdaf864f75dbe4490bc3acf451c291906cbb9c32c5a6b50cdc97b23f4277890a",
+      fundingOutputIndex: 0,
+    },
+    {
+      fundingTxHash:
+        "0x3c5a87fe0a5d77616623278cd25fa7b5f2602e43d4a1c17e6a2b2fd964670def",
+      fundingOutputIndex: 0,
+    },
+    {
+      fundingTxHash:
+        "0x3fd813441999ae54f62f6e5ace9b1ee2941ff53432a3d8b4317f22c6072978c0",
+      fundingOutputIndex: 0,
+    },
+    {
+      fundingTxHash:
+        "0x0d43fe1d6e5e0a44838fbedb2eb41a8f5c5f313470c3dfd7dad92bc50cc1f617",
+      fundingOutputIndex: 0,
+    },
+    {
+      fundingTxHash:
+        "0x7a39cc92883a8ec888c6d86a741b1bf8a51769230832e52d1395346bcab037e9",
+      fundingOutputIndex: 0,
+    },
+  ],
+  spentMainUtxos: [
+    {
+      fundingTxHash:
+        "0xa5f90f326daa312858eba12b225704ec668762cabffd83b2a0eeb0a0f12c77d1",
+      fundingOutputIndex: 0,
+    },
+  ],
 }
