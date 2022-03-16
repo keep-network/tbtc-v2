@@ -1,4 +1,5 @@
 import type { BigNumber, BigNumberish, BytesLike } from "ethers"
+import { walletState } from "../fixtures"
 
 /**
  * Represents a set of data used for given redemption scenario.
@@ -89,7 +90,7 @@ export interface RedemptionBalanceChange {
 export const SinglePendingRequestedRedemption: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-    state: 1,
+    state: walletState.Active,
     pendingRedemptionsValue: 0,
     // Uncompressed public key for the pubKeyHash `0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726`:
     //    04ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04efc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306
@@ -180,7 +181,7 @@ export const SingleNonRequestedRedemption: RedemptionTestData = {
 export const SingleP2PKHChange: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-    state: 1,
+    state: walletState.Active,
     pendingRedemptionsValue: 0,
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -252,7 +253,7 @@ export const SingleP2PKHChange: RedemptionTestData = {
 export const SingleP2WPKHChange: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-    state: 1,
+    state: walletState.Active,
     pendingRedemptionsValue: 0,
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -321,7 +322,7 @@ export const SingleP2WPKHChange: RedemptionTestData = {
 export const SingleP2SHChange: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-    state: 1,
+    state: walletState.Active,
     pendingRedemptionsValue: 0,
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -393,7 +394,7 @@ export const SingleP2SHChange: RedemptionTestData = {
 export const SingleP2WPKHChangeZeroValue: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-    state: 1,
+    state: walletState.Active,
     pendingRedemptionsValue: 0,
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -464,7 +465,7 @@ export const SingleP2WPKHChangeZeroValue: RedemptionTestData = {
 export const SingleProvablyUnspendable: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-    state: 1,
+    state: walletState.Active,
     pendingRedemptionsValue: 0,
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -540,7 +541,7 @@ export const SingleProvablyUnspendable: RedemptionTestData = {
 export const MultiplePendingRequestedRedemptions: RedemptionTestData = {
   wallet: {
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-    state: 1,
+    state: walletState.Active,
     pendingRedemptionsValue: 0,
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -657,7 +658,7 @@ export const MultiplePendingRequestedRedemptionsWithP2WPKHChange: RedemptionTest
   {
     wallet: {
       pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-      state: 1,
+      state: walletState.Active,
       pendingRedemptionsValue: 0,
       ecdsaWalletID:
         "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -772,7 +773,7 @@ export const MultiplePendingRequestedRedemptionsWithP2SHChange: RedemptionTestDa
   {
     wallet: {
       pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-      state: 1,
+      state: walletState.Active,
       pendingRedemptionsValue: 0,
       ecdsaWalletID:
         "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -868,7 +869,7 @@ export const MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges: Redem
   {
     wallet: {
       pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-      state: 1,
+      state: walletState.Active,
       pendingRedemptionsValue: 0,
       ecdsaWalletID:
         "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -964,7 +965,7 @@ export const MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue: Redem
   {
     wallet: {
       pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-      state: 1,
+      state: walletState.Active,
       pendingRedemptionsValue: 0,
       ecdsaWalletID:
         "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -1077,7 +1078,7 @@ export const MultiplePendingRequestedRedemptionsWithProvablyUnspendable: Redempt
   {
     wallet: {
       pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-      state: 1,
+      state: walletState.Active,
       pendingRedemptionsValue: 0,
       ecdsaWalletID:
         "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -1170,7 +1171,7 @@ export const MultiplePendingRequestedRedemptionsWithMultipleInputs: RedemptionTe
   {
     wallet: {
       pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-      state: 1,
+      state: walletState.Active,
       pendingRedemptionsValue: 0,
       ecdsaWalletID:
         "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",

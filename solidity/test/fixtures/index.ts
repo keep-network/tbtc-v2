@@ -14,6 +14,14 @@ export const constants = {
   unmintFee: to1ePrecision(1, 15), // 0.001
 }
 
+export const walletState = {
+  Unknown: 0,
+  Active: 1,
+  MovingFunds: 2,
+  Closed: 3,
+  Terminated: 4,
+}
+
 export interface DeployedContracts {
   [key: string]: Contract
 }
