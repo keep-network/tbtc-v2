@@ -191,13 +191,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     /// @notice Holds information about a wallet.
     struct Wallet {
+        // Identifier of a ECDSA Wallet registered in the ECDSA Wallet Registry.
+        bytes32 ecdsaWalletID;
         // Current state of the wallet.
         WalletState state;
         // The total redeemable value of pending redemption requests targeting
         // that wallet.
         uint64 pendingRedemptionsValue;
-        // Identifier of a ECDSA Wallet registered in the ECDSA Wallet Registry.
-        bytes32 ecdsaWalletID;
     }
 
     /// @notice The number of confirmations on the Bitcoin chain required to
