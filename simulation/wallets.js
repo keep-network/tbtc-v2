@@ -18,33 +18,44 @@ function log(logLevel, message) {
   }
 }
 
-function fact(x) {
+function factorial(x) {
   if (x == 0) {
     return 1
   }
-  return x * fact(x - 1)
+  return x * factorial(x - 1)
 }
+
+// calculates the probability mass function at k of a poisson random variable
+// with an expected value of lambda. See
+// https://en.wikipedia.org/wiki/Poisson_distribution
 function poisson(k, lambda) {
   const exponentialPower = Math.pow(2.718281828, -lambda)
   const landaPowerK = Math.pow(lambda, k)
   const numerator = exponentialPower * landaPowerK
-  const denominator = fact(k)
+  const denominator = factorial(k)
   return numerator / denominator
 }
 
-function getRandom(length) {
+// Generates a random integer from [0, length). The number of different
+// integers that could be generated is equal to `length`. For example,
+// randomInt(3) picks 0, 1, or 2.
+function randomInt(length) {
   return Math.floor(Math.random() * length)
 }
+
+// Generates a random, shuffled subset of `array` of length `size`. For
+// example, getRandomSample([1,2,3,4], 2) might return [3,1] or [3,4].
+// Inspired by https://stackoverflow.com/a/37835673/2144609
 function getRandomSample(array, size) {
   let length = array.length
-  let start = getRandom(length)
+  let start = randomInt(length)
   let swaps = []
   let i = size
   let temp
 
   while (i--) {
     let index = (start + i) % length,
-      rindex = getRandom(length)
+      rindex = randomInt(length)
     temp = array[rindex]
     array[rindex] = array[index]
     array[index] = temp
@@ -69,59 +80,63 @@ function getRandomSample(array, size) {
   return sample
 }
 
-let newOperatorCDF = {}
-const epsilon = 0.0001
-let total = 0
-for (let i = 0; total + epsilon <= 1; i++) {
-  total += poisson(i, EXPECTED_NEW_OPERATORS)
-  newOperatorCDF[i] = total
-}
-function newOperatorCount() {
-  const rng = Math.random()
-  let i = 0
-  while (true) {
-    if (newOperatorCDF[i] >= rng || newOperatorCDF[i] == undefined) {
-      return i
+function poissonNumberGenerator(lambda) {
+  let cumulativeDistributionFunction = {}
+  const epsilon = 0.0001
+  let total = 0
+  for (let i = 0; total + epsilon <= 1; i++) {
+    total += poisson(i, lambda)
+    cumulativeDistributionFunction[i] = total
+  }
+
+  return () => {
+    const rng = Math.random()
+    let i = 0
+    while (true) {
+      if (cumulativeDistributionFunction[i] >= rng || cumulativeDistributionFunction[i] == undefined) {
+        return i
+      }
+      i++
     }
-    i++
   }
 }
 
-let newDepositCDF = {}
-total = 0
-for (let i = 0; total + epsilon <= 1; i++) {
-  total += poisson(i, EXPECTED_NEW_DEPOSITS)
-  newDepositCDF[i] = total
-}
-function randomNewDeposit() {
-  const rng = Math.random()
-  let i = 0
-  while (true) {
-    if (newDepositCDF[i] >= rng || newDepositCDF[i] == undefined) {
-      return i
+// The poisson probability mass function isn't useful on its own - we need a
+// way to convert Math.random() into poisson random numbers. The way we do this
+// is by generating a cumulative distribution function:
+// https://en.wikipedia.org/wiki/Cumulative_distribution_function and then
+// finding the first random variable whose place in the cumulative distribution
+// function is at least Math.random(). Note: this trick works for any
+// distribution! To save us some time calculating the cumulative distribution
+// function over and over we cache it ahead of time. Since the poisson can
+// generate infinitely high numbers we call it quits after we approach within
+// `epsilon` of 1.
+function poissonNumberGenerator(lambda) {
+  let cumulativeDistributionFunction = {}
+  const epsilon = 0.0001
+  let total = 0
+  for (let i = 0; total + epsilon <= 1; i++) {
+    total += poisson(i, lambda)
+    cumulativeDistributionFunction[i] = total
+  }
+
+  return () => {
+    const rng = Math.random()
+    let i = 0
+    while (true) {
+      if (cumulativeDistributionFunction[i] >= rng || cumulativeDistributionFunction[i] == undefined) {
+        return i
+      }
+      i++
     }
-    i++
   }
 }
 
-let newWithdrawCDF = {}
-total = 0
-for (let i = 0; total + epsilon <= 1; i++) {
-  total += poisson(i, EXPECTED_NEW_WITHDRAWS)
-  newWithdrawCDF[i] = total
-}
+const newOperatorCount = poissonNumberGenerator(EXPECTED_NEW_OPERATORS)
+const randomNewDeposit = poissonNumberGenerator(EXPECTED_NEW_DEPOSITS)
+const randomNewWithdraw = poissonNumberGenerator(EXPECTED_NEW_WITHDRAWS)
 
-function randomNewWithdraw() {
-  const rng = Math.random()
-  let i = 0
-  while (true) {
-    if (newWithdrawCDF[i] >= rng || newWithdrawCDF[i] == undefined) {
-      return i
-    }
-    i++
-  }
-}
-
+// Close all wallets that are older than `WALLET_MAX_AGE`
 function closeOldWallets(data) {
   const wallets = Object.keys(walletBalances)
   wallets.forEach((wallet) => {
@@ -131,6 +146,7 @@ function closeOldWallets(data) {
   })
 }
 
+// Kick off all of the subroutines that happen on a new day
 function newDay(data) {
   log(1, "Day " + data.day)
   log(1, "There are " + Object.keys(liveOperators).length + " live operators")
@@ -147,6 +163,11 @@ function newDay(data) {
   dailyWithdraw(data)
 }
 
+// Each operator has an independent `OPERATOR_QUIT_CHANCE` of unstaking each
+// time `beginUnstakingOperators` is called, which is each day. Each time an
+// operator unstakes we record their unstaking completion data as well as check
+// for whether or not that causes heartbeat failures in any of the wallets they
+// are participating in.
 function beginUnstakingOperators(data) {
   const currentStakingOperators = Object.keys(stakingOperators)
   let unstakingOperatorsToday = []
@@ -170,6 +191,7 @@ function beginUnstakingOperators(data) {
   unstakingOperators[data.day + 60] = unstakingOperatorsToday
 }
 
+// Fully unstake the operators that began unstaking 60 days ago via `beginUnstakingOperators`
 function unstakeOperators(data) {
   const unstakingOperatorsToday = unstakingOperators[data.day]
   if (!!unstakingOperatorsToday) {
@@ -180,6 +202,7 @@ function unstakeOperators(data) {
   }
 }
 
+// Add a poisson random amount of new operators to the network
 function registerNewOperators(_) {
   const newOperators = newOperatorCount()
   for (let j = 0; j < newOperators; j++) {
@@ -189,12 +212,14 @@ function registerNewOperators(_) {
   }
 }
 
+// Create a new wallet every 7 days
 function createNewWalletEvent(data) {
   if (data.day % 7 == 0) {
     newWallet({ walletIndex: walletIndex, day: data.day })
   }
 }
 
+// Shuffle the staking operators and select 100 to form the signing group.
 function newWallet(data) {
   walletBalances[data.walletIndex] = 0
   const operators = getRandomSample(Object.keys(stakingOperators), WALLET_SIZE)
@@ -212,6 +237,7 @@ function newWallet(data) {
   walletIndex++
 }
 
+// An implementation of wallet closure that transfers to a random live wallet.
 function randomTransferWithoutCap(data) {
   let liveWallets = []
   for (let i = 0; i < walletIndex; i++) {
@@ -241,6 +267,9 @@ function randomTransferWithoutCap(data) {
   numberOfTransfers++
 }
 
+// An implementation of wallet closure that transfers to random live wallet(s)
+// sending out batches of `WALLET_MAX_BTC` before picking a new wallet. If we
+// run out of wallets we start over.
 function randomTransfer(data) {
   let liveWallets = []
   for (let i = 0; i < walletIndex; i++) {
@@ -283,6 +312,7 @@ function randomTransfer(data) {
   })
 }
 
+// An implementation of wallet closure that transfers to the active wallet.
 function transferToActive(data) {
   log(
     1,
@@ -324,6 +354,9 @@ function closeWallet(data) {
   }
 }
 
+// Withdraws a poisson random amount of bitcoin (capped by the amount we have
+  // remaining) starting from the oldest wallet. Might end up closing multiple
+// wallets to fulfill the withdraw.
 function dailyWithdraw(_) {
   let remaining = randomNewWithdraw()
   if (remaining > btcInSystem) {
@@ -380,19 +413,39 @@ function withdraw(data) {
   }
 }
 
+// Used to track how different protocol decisions impact wallet risk
 let biggestWalletBalance = 0
 let btcInSystem = 0
 let lastWalletCreationDay = -7
+// Cache of {operatorId => bool}. Used query which operators are still live
+// with O(1).
 let liveOperators = {}
+// used to track how different protocol decisions impact operating overhead
+// costs
 let numberOfTransfers = 0
+// Used to assign each operator a unique ID
 let operatorIndex = 0
+// Cache of {operatorId => {walletId => bool}}. Used to query which wallets are
+// associated to a particular operator.
 let operatorToWallets = {}
+// Cache of {operatorId => bool}. Used to query which operators are still
+// staking with O(1).
 let stakingOperators = {}
+// Used to track how different protocol decisions impact wallet risk across
+// multiple simulation iterations.
 let totalBiggestWalletBalance = 0
+// Cache of {day => [operatorId]}. Used to query which operators are unstaking
+// on a particular day.
 let unstakingOperators = {}
+// Cache of {walletId => int}. Used to query a wallet balance.
 let walletBalances = {}
+// Used to assign each wallet a unique ID
 let walletIndex = 0
+// Cache of {walletId => {operatorId => bool}}. Used to query the live
+// operators on a particular wallet.
 let walletLiveOperators = {}
+// Cache of {walletId => {operatorId => bool}}. Used to query the staking
+// operators on a particular wallet.
 let walletStakingOperators = {}
 
 for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
