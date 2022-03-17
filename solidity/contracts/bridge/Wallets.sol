@@ -164,13 +164,10 @@ library Wallets {
         Data storage self,
         BitcoinTx.UTXO calldata activeWalletMainUtxo
     ) external {
-        // TODO: Uncomment when `getWalletCreationState` will be exposed by
-        //       EcdsaWalletRegistry.
-        //
-        // require(
-        //     self.registry.getWalletCreationState() == EcdsaDkg.State.IDLE,
-        //     "Wallet creation already in progress"
-        // );
+        require(
+            self.registry.getWalletCreationState() == EcdsaDkg.State.IDLE,
+            "Wallet creation already in progress"
+        );
 
         bytes20 activeWalletPubKeyHash = self.activeWalletPubKeyHash;
 
