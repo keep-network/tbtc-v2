@@ -93,7 +93,10 @@ function poissonNumberGenerator(lambda) {
     const rng = Math.random()
     let i = 0
     while (true) {
-      if (cumulativeDistributionFunction[i] >= rng || cumulativeDistributionFunction[i] == undefined) {
+      if (
+        cumulativeDistributionFunction[i] >= rng ||
+        cumulativeDistributionFunction[i] == undefined
+      ) {
         return i
       }
       i++
@@ -124,7 +127,10 @@ function poissonNumberGenerator(lambda) {
     const rng = Math.random()
     let i = 0
     while (true) {
-      if (cumulativeDistributionFunction[i] >= rng || cumulativeDistributionFunction[i] == undefined) {
+      if (
+        cumulativeDistributionFunction[i] >= rng ||
+        cumulativeDistributionFunction[i] == undefined
+      ) {
         return i
       }
       i++
@@ -355,7 +361,7 @@ function closeWallet(data) {
 }
 
 // Withdraws a poisson random amount of bitcoin (capped by the amount we have
-  // remaining) starting from the oldest wallet. Might end up closing multiple
+// remaining) starting from the oldest wallet. Might end up closing multiple
 // wallets to fulfill the withdraw.
 function dailyWithdraw(_) {
   let remaining = randomNewWithdraw()
