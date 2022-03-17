@@ -1413,9 +1413,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        transaction. The exact subset used as hash preimage depends on
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference.
-    /// @param v Signature recovery value.
-    /// @param r Signature r value.
-    /// @param s Signature s value.
+    /// @param signature Bitcoin signature in the R/S/V format.
     /// @dev Requirements:
     ///      - Wallet behind `walletPubKey` must be active
     ///      - The challenger must send appropriate amount of ETH used as
@@ -1426,12 +1424,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function submitFraudChallenge(
         bytes memory walletPublicKey,
         bytes32 sighash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        Frauds.RSVSignature calldata signature
     ) external payable {
         bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
-            walletPublicKey
+            walletPublicKey.slice32(0),
+            walletPublicKey.slice32(32)
         );
 
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
@@ -1443,7 +1440,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "Wallet is neither in Active nor MovingFunds state"
         );
 
-        frauds.submitFraudChallenge(walletPublicKey, sighash, v, r, s);
+        frauds.submitFraudChallenge(walletPublicKey, sighash, signature);
     }
 
     /// @notice Allows to defeat a pending fraud challenge against a wallet if
@@ -1466,9 +1463,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
     ///        produced for. See BIP-143 for reference.
-    /// @param v Signature recovery value.
-    /// @param r Signature r value.
-    /// @param s Signature s value.
+    /// @param signature Bitcoin signature in the R/S/V format.
     /// @param witness Flag indicating whether the preimage was produced for a
     ///        witness input. True for witness, false for non-witness input.
     /// @dev Requirements:
@@ -1481,17 +1476,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function defeatFraudChallenge(
         bytes memory walletPublicKey,
         bytes memory preimage,
-        uint8 v,
-        bytes32 r,
-        bytes32 s,
+        Frauds.RSVSignature calldata signature,
         bool witness
     ) external {
         frauds.defeatFraudChallenge(
             walletPublicKey,
             preimage,
-            v,
-            r,
-            s,
+            signature,
             witness,
             treasury,
             deposits,
@@ -1517,9 +1508,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        transaction. The exact subset used as hash preimage depends on
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference.
-    /// @param v Signature recovery value.
-    /// @param r Signature r value.
-    /// @param s Signature s value.
+    /// @param signature Bitcoin signature in the R/S/V format.
     /// @dev Requirements:
     ///      - `walletPublicKey`, signature (represented by `r`, `s` and `v`)
     ///        and `sighash` must identify an open fraud challenge
@@ -1528,16 +1517,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function notifyFraudChallengeDefeatTimeout(
         bytes memory walletPublicKey,
         bytes32 sighash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        Frauds.RSVSignature calldata signature
     ) external {
         frauds.notifyFraudChallengeDefeatTimeout(
             walletPublicKey,
             sighash,
-            v,
-            r,
-            s
+            signature
         );
     }
 

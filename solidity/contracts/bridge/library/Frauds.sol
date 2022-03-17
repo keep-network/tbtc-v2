@@ -54,6 +54,16 @@ library Frauds {
         bool closed;
     }
 
+    /// @notice Represents Bitcoin signature in the R/S/V format.
+    struct RSVSignature {
+        /// @notice Signature r value.
+        bytes32 r;
+        /// @notice Signature s value.
+        bytes32 s;
+        /// @notice Signature recovery value.
+        uint8 v;
+    }
+
     event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
 
     event FraudNotifierRewardMultiplierUpdated(
@@ -115,9 +125,7 @@ library Frauds {
     ///        transaction. The exact subset used as hash preimage depends on
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference.
-    /// @param v Signature recovery value.
-    /// @param r Signature r value.
-    /// @param s Signature s value.
+    /// @param signature Bitcoin signature in the R/S/V format.
     /// @dev Requirements:
     ///      - Wallet behind `walletPubKey` must be active
     ///      - The challenger must send appropriate amount of ETH used as
@@ -129,9 +137,7 @@ library Frauds {
         Data storage self,
         bytes memory walletPublicKey,
         bytes32 sighash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        RSVSignature calldata signature
     ) external {
         require(
             msg.value >= self.challengeDepositAmount,
@@ -139,12 +145,26 @@ library Frauds {
         );
 
         require(
-            CheckBitcoinSigs.checkSig(walletPublicKey, sighash, v, r, s),
+            CheckBitcoinSigs.checkSig(
+                walletPublicKey,
+                sighash,
+                signature.v,
+                signature.r,
+                signature.s
+            ),
             "Signature verification failure"
         );
 
         uint256 challengeKey = uint256(
-            keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
+            keccak256(
+                abi.encodePacked(
+                    walletPublicKey,
+                    sighash,
+                    signature.v,
+                    signature.r,
+                    signature.s
+                )
+            )
         );
 
         FraudChallenge storage challenge = self.challenges[challengeKey];
@@ -156,11 +176,19 @@ library Frauds {
         challenge.reportedAt = uint32(block.timestamp);
         challenge.closed = false;
 
-        bytes memory compressedWalletPublicKey = walletPublicKey
-            .compressPublicKey();
+        bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
+            walletPublicKey.slice32(0),
+            walletPublicKey.slice32(32)
+        );
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
 
-        emit FraudChallengeSubmitted(walletPubKeyHash, sighash, v, r, s);
+        emit FraudChallengeSubmitted(
+            walletPubKeyHash,
+            sighash,
+            signature.v,
+            signature.r,
+            signature.s
+        );
     }
 
     /// @notice Allows to defeat a pending fraud challenge against a wallet if
@@ -183,9 +211,7 @@ library Frauds {
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
     ///        produced for. See BIP-143 for reference.
-    /// @param v Signature recovery value.
-    /// @param r Signature r value.
-    /// @param s Signature s value.
+    /// @param signature Bitcoin signature in the R/S/V format.
     /// @param witness Flag indicating whether the preimage was produced for a
     ///        witness input. True for witness, false for non-witness input.
     /// @param treasury Treasury associated with the Bridge.
@@ -202,9 +228,7 @@ library Frauds {
         Data storage self,
         bytes memory walletPublicKey,
         bytes memory preimage,
-        uint8 v,
-        bytes32 r,
-        bytes32 s,
+        Frauds.RSVSignature calldata signature,
         bool witness,
         address treasury,
         mapping(uint256 => Bridge.DepositRequest) storage deposits,
@@ -213,7 +237,15 @@ library Frauds {
         bytes32 sighash = preimage.hash256();
 
         uint256 challengeKey = uint256(
-            keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
+            keccak256(
+                abi.encodePacked(
+                    walletPublicKey,
+                    sighash,
+                    signature.v,
+                    signature.r,
+                    signature.s
+                )
+            )
         );
 
         FraudChallenge storage challenge = self.challenges[challengeKey];
@@ -241,11 +273,19 @@ library Frauds {
         treasury.call{gas: 5000, value: challenge.depositAmount}("");
         /* solhint-enable avoid-low-level-calls */
 
-        bytes memory compressedWalletPublicKey = walletPublicKey
-            .compressPublicKey();
+        bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
+            walletPublicKey.slice32(0),
+            walletPublicKey.slice32(32)
+        );
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
 
-        emit FraudChallengeDefeated(walletPubKeyHash, sighash, v, r, s);
+        emit FraudChallengeDefeated(
+            walletPubKeyHash,
+            sighash,
+            signature.v,
+            signature.r,
+            signature.s
+        );
     }
 
     /// @notice Notifies about defeat timeout for the given fraud challenge.
@@ -266,9 +306,7 @@ library Frauds {
     ///        transaction. The exact subset used as hash preimage depends on
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference.
-    /// @param v Signature recovery value.
-    /// @param r Signature r value.
-    /// @param s Signature s value.
+    /// @param signature Bitcoin signature in the R/S/V format.
     /// @dev Requirements:
     ///      - `walletPublicKey`, signature (represented by `r`, `s` and `v`)
     ///        and `sighash` must identify an open fraud challenge
@@ -278,12 +316,18 @@ library Frauds {
         Data storage self,
         bytes memory walletPublicKey,
         bytes32 sighash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        Frauds.RSVSignature calldata signature
     ) external {
         uint256 challengeKey = uint256(
-            keccak256(abi.encodePacked(walletPublicKey, sighash, v, r, s))
+            keccak256(
+                abi.encodePacked(
+                    walletPublicKey,
+                    sighash,
+                    signature.v,
+                    signature.r,
+                    signature.s
+                )
+            )
         );
 
         FraudChallenge storage challenge = self.challenges[challengeKey];
@@ -309,11 +353,19 @@ library Frauds {
         );
         /* solhint-enable avoid-low-level-calls */
 
-        bytes memory compressedWalletPublicKey = walletPublicKey
-            .compressPublicKey();
+        bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
+            walletPublicKey.slice32(0),
+            walletPublicKey.slice32(32)
+        );
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
 
-        emit FraudChallengeDefeatTimeout(walletPubKeyHash, sighash, v, r, s);
+        emit FraudChallengeDefeatTimeout(
+            walletPubKeyHash,
+            sighash,
+            signature.v,
+            signature.r,
+            signature.s
+        );
     }
 
     /// @notice Verifies whether the witness input in the provided preimage has

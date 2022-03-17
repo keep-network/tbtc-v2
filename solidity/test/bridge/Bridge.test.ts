@@ -5044,9 +5044,7 @@ describe("Bridge", () => {
                   .submitFraudChallenge(
                     fraudWalletPublicKey,
                     data.sighash,
-                    data.signature.v,
-                    data.signature.r,
-                    data.signature.s,
+                    data.signature,
                     {
                       value: await bridge.fraudChallengeDepositAmount(),
                     }
@@ -5121,9 +5119,7 @@ describe("Bridge", () => {
                   .submitFraudChallenge(
                     fraudWalletPublicKey,
                     data.sighash,
-                    data.signature.v,
-                    data.signature.r,
-                    data.signature.s,
+                    data.signature,
                     {
                       value: await bridge.fraudChallengeDepositAmount(),
                     }
@@ -5141,9 +5137,7 @@ describe("Bridge", () => {
                     .submitFraudChallenge(
                       fraudWalletPublicKey,
                       data.sighash,
-                      data.signature.v,
-                      data.signature.r,
-                      data.signature.s,
+                      data.signature,
                       {
                         value: await bridge.fraudChallengeDepositAmount(),
                       }
@@ -5182,9 +5176,7 @@ describe("Bridge", () => {
                 .submitFraudChallenge(
                   incorrectWalletPublicKey,
                   data.sighash,
-                  data.signature.v,
-                  data.signature.r,
-                  data.signature.s,
+                  data.signature,
                   {
                     value: await bridge.fraudChallengeDepositAmount(),
                   }
@@ -5217,9 +5209,7 @@ describe("Bridge", () => {
                 .submitFraudChallenge(
                   fraudWalletPublicKey,
                   incorrectSighash,
-                  data.signature.v,
-                  data.signature.r,
-                  data.signature.s,
+                  data.signature,
                   {
                     value: await bridge.fraudChallengeDepositAmount(),
                   }
@@ -5246,18 +5236,18 @@ describe("Bridge", () => {
 
           it("should revert", async () => {
             await expect(
-              bridge
-                .connect(thirdParty)
-                .submitFraudChallenge(
-                  fraudWalletPublicKey,
-                  data.sighash,
-                  incorrectV,
-                  data.signature.r,
-                  data.signature.s,
-                  {
-                    value: await bridge.fraudChallengeDepositAmount(),
-                  }
-                )
+              bridge.connect(thirdParty).submitFraudChallenge(
+                fraudWalletPublicKey,
+                data.sighash,
+                {
+                  r: data.signature.r,
+                  s: data.signature.s,
+                  v: incorrectV,
+                },
+                {
+                  value: await bridge.fraudChallengeDepositAmount(),
+                }
+              )
             ).to.be.revertedWith("Signature verification failure")
           })
         })
@@ -5282,18 +5272,18 @@ describe("Bridge", () => {
 
           it("should revert", async () => {
             await expect(
-              bridge
-                .connect(thirdParty)
-                .submitFraudChallenge(
-                  fraudWalletPublicKey,
-                  data.sighash,
-                  data.signature.v,
-                  incorrectR,
-                  incorrectS,
-                  {
-                    value: await bridge.fraudChallengeDepositAmount(),
-                  }
-                )
+              bridge.connect(thirdParty).submitFraudChallenge(
+                fraudWalletPublicKey,
+                data.sighash,
+                {
+                  r: incorrectR,
+                  s: incorrectS,
+                  v: data.signature.v,
+                },
+                {
+                  value: await bridge.fraudChallengeDepositAmount(),
+                }
+              )
             ).to.be.revertedWith("Signature verification failure")
           })
         })
@@ -5320,9 +5310,7 @@ describe("Bridge", () => {
               .submitFraudChallenge(
                 fraudWalletPublicKey,
                 data.sighash,
-                data.signature.v,
-                data.signature.r,
-                data.signature.s,
+                data.signature,
                 {
                   value: (await bridge.fraudChallengeDepositAmount()).sub(1),
                 }
@@ -5353,9 +5341,7 @@ describe("Bridge", () => {
             .submitFraudChallenge(
               fraudWalletPublicKey,
               data.sighash,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s,
+              data.signature,
               {
                 value: await bridge.fraudChallengeDepositAmount(),
               }
@@ -5387,9 +5373,7 @@ describe("Bridge", () => {
               .submitFraudChallenge(
                 fraudWalletPublicKey,
                 data.sighash,
-                data.signature.v,
-                data.signature.r,
-                data.signature.s,
+                data.signature,
                 {
                   value: await bridge.fraudChallengeDepositAmount(),
                 }
@@ -5430,9 +5414,7 @@ describe("Bridge", () => {
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
                         data.sighash,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         {
                           value: await bridge.fraudChallengeDepositAmount(),
                         }
@@ -5443,9 +5425,7 @@ describe("Bridge", () => {
                       .defeatFraudChallenge(
                         fraudWalletPublicKey,
                         data.preimage,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         false
                       )
                   })
@@ -5514,9 +5494,7 @@ describe("Bridge", () => {
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
                         data.sighash,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         {
                           value: await bridge.fraudChallengeDepositAmount(),
                         }
@@ -5534,9 +5512,7 @@ describe("Bridge", () => {
                         .defeatFraudChallenge(
                           fraudWalletPublicKey,
                           data.preimage,
-                          data.signature.v,
-                          data.signature.r,
-                          data.signature.s,
+                          data.signature,
                           false
                         )
                     ).to.be.revertedWith(
@@ -5570,9 +5546,7 @@ describe("Bridge", () => {
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
                         data.sighash,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         {
                           value: await bridge.fraudChallengeDepositAmount(),
                         }
@@ -5583,9 +5557,7 @@ describe("Bridge", () => {
                       .defeatFraudChallenge(
                         fraudWalletPublicKey,
                         data.preimage,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         false
                       )
                   })
@@ -5654,9 +5626,7 @@ describe("Bridge", () => {
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
                         data.sighash,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         {
                           value: await bridge.fraudChallengeDepositAmount(),
                         }
@@ -5674,9 +5644,7 @@ describe("Bridge", () => {
                         .defeatFraudChallenge(
                           fraudWalletPublicKey,
                           data.preimage,
-                          data.signature.v,
-                          data.signature.r,
-                          data.signature.s,
+                          data.signature,
                           false
                         )
                     ).to.be.revertedWith(
@@ -5712,9 +5680,7 @@ describe("Bridge", () => {
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
                         data.sighash,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         {
                           value: await bridge.fraudChallengeDepositAmount(),
                         }
@@ -5725,9 +5691,7 @@ describe("Bridge", () => {
                       .defeatFraudChallenge(
                         fraudWalletPublicKey,
                         data.preimage,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         true
                       )
                   })
@@ -5796,9 +5760,7 @@ describe("Bridge", () => {
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
                         data.sighash,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         {
                           value: await bridge.fraudChallengeDepositAmount(),
                         }
@@ -5816,9 +5778,7 @@ describe("Bridge", () => {
                         .defeatFraudChallenge(
                           fraudWalletPublicKey,
                           data.preimage,
-                          data.signature.v,
-                          data.signature.r,
-                          data.signature.s,
+                          data.signature,
                           true
                         )
                     ).to.be.revertedWith(
@@ -5852,9 +5812,7 @@ describe("Bridge", () => {
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
                         data.sighash,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         {
                           value: await bridge.fraudChallengeDepositAmount(),
                         }
@@ -5865,9 +5823,7 @@ describe("Bridge", () => {
                       .defeatFraudChallenge(
                         fraudWalletPublicKey,
                         data.preimage,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         true
                       )
                   })
@@ -5936,9 +5892,7 @@ describe("Bridge", () => {
                       .submitFraudChallenge(
                         fraudWalletPublicKey,
                         data.sighash,
-                        data.signature.v,
-                        data.signature.r,
-                        data.signature.s,
+                        data.signature,
                         {
                           value: await bridge.fraudChallengeDepositAmount(),
                         }
@@ -5956,9 +5910,7 @@ describe("Bridge", () => {
                         .defeatFraudChallenge(
                           fraudWalletPublicKey,
                           data.preimage,
-                          data.signature.v,
-                          data.signature.r,
-                          data.signature.s,
+                          data.signature,
                           true
                         )
                     ).to.be.revertedWith(
@@ -5995,9 +5947,7 @@ describe("Bridge", () => {
             .submitFraudChallenge(
               fraudWalletPublicKey,
               data.sighash,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s,
+              data.signature,
               {
                 value: await bridge.fraudChallengeDepositAmount(),
               }
@@ -6008,9 +5958,7 @@ describe("Bridge", () => {
             .defeatFraudChallenge(
               fraudWalletPublicKey,
               data.preimage,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s,
+              data.signature,
               false
             )
         })
@@ -6026,9 +5974,7 @@ describe("Bridge", () => {
               .defeatFraudChallenge(
                 fraudWalletPublicKey,
                 data.preimage,
-                data.signature.v,
-                data.signature.r,
-                data.signature.s,
+                data.signature,
                 false
               )
           ).to.be.revertedWith("Fraud challenge closed")
@@ -6054,9 +6000,7 @@ describe("Bridge", () => {
             .submitFraudChallenge(
               fraudWalletPublicKey,
               data.sighash,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s,
+              data.signature,
               {
                 value: await bridge.fraudChallengeDepositAmount(),
               }
@@ -6069,9 +6013,7 @@ describe("Bridge", () => {
             .notifyFraudChallengeDefeatTimeout(
               fraudWalletPublicKey,
               data.sighash,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s
+              data.signature
             )
         })
 
@@ -6086,9 +6028,7 @@ describe("Bridge", () => {
               .defeatFraudChallenge(
                 fraudWalletPublicKey,
                 data.preimage,
-                data.signature.v,
-                data.signature.r,
-                data.signature.s,
+                data.signature,
                 false
               )
           ).to.be.revertedWith("Fraud challenge closed")
@@ -6114,9 +6054,7 @@ describe("Bridge", () => {
             .defeatFraudChallenge(
               fraudWalletPublicKey,
               data.preimage,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s,
+              data.signature,
               false
             )
         ).to.be.revertedWith("Fraud challenge does not exist")
@@ -6148,9 +6086,7 @@ describe("Bridge", () => {
               .submitFraudChallenge(
                 fraudWalletPublicKey,
                 data.sighash,
-                data.signature.v,
-                data.signature.r,
-                data.signature.s,
+                data.signature,
                 {
                   value: await bridge.fraudChallengeDepositAmount(),
                 }
@@ -6163,9 +6099,7 @@ describe("Bridge", () => {
               .notifyFraudChallengeDefeatTimeout(
                 fraudWalletPublicKey,
                 data.sighash,
-                data.signature.v,
-                data.signature.r,
-                data.signature.s
+                data.signature
               )
           })
 
@@ -6228,9 +6162,7 @@ describe("Bridge", () => {
               .submitFraudChallenge(
                 fraudWalletPublicKey,
                 data.sighash,
-                data.signature.v,
-                data.signature.r,
-                data.signature.s,
+                data.signature,
                 {
                   value: await bridge.fraudChallengeDepositAmount(),
                 }
@@ -6252,9 +6184,7 @@ describe("Bridge", () => {
                 .notifyFraudChallengeDefeatTimeout(
                   fraudWalletPublicKey,
                   data.sighash,
-                  data.signature.v,
-                  data.signature.r,
-                  data.signature.s
+                  data.signature
                 )
             ).to.be.revertedWith(
               "Fraud challenge defeat period did not time out yet"
@@ -6280,9 +6210,7 @@ describe("Bridge", () => {
             .submitFraudChallenge(
               fraudWalletPublicKey,
               data.sighash,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s,
+              data.signature,
               {
                 value: await bridge.fraudChallengeDepositAmount(),
               }
@@ -6293,9 +6221,7 @@ describe("Bridge", () => {
             .defeatFraudChallenge(
               fraudWalletPublicKey,
               data.preimage,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s,
+              data.signature,
               false
             )
         })
@@ -6311,9 +6237,7 @@ describe("Bridge", () => {
               .notifyFraudChallengeDefeatTimeout(
                 fraudWalletPublicKey,
                 data.sighash,
-                data.signature.v,
-                data.signature.r,
-                data.signature.s
+                data.signature
               )
           ).to.be.revertedWith("Fraud challenge is closed")
         })
@@ -6336,9 +6260,7 @@ describe("Bridge", () => {
             .submitFraudChallenge(
               fraudWalletPublicKey,
               data.sighash,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s,
+              data.signature,
               {
                 value: await bridge.fraudChallengeDepositAmount(),
               }
@@ -6351,9 +6273,7 @@ describe("Bridge", () => {
             .notifyFraudChallengeDefeatTimeout(
               fraudWalletPublicKey,
               data.sighash,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s
+              data.signature
             )
         })
 
@@ -6368,9 +6288,7 @@ describe("Bridge", () => {
               .notifyFraudChallengeDefeatTimeout(
                 fraudWalletPublicKey,
                 data.sighash,
-                data.signature.v,
-                data.signature.r,
-                data.signature.s
+                data.signature
               )
           ).to.be.revertedWith("Fraud challenge is closed")
         })
@@ -6393,9 +6311,7 @@ describe("Bridge", () => {
             .notifyFraudChallengeDefeatTimeout(
               fraudWalletPublicKey,
               data.sighash,
-              data.signature.v,
-              data.signature.r,
-              data.signature.s
+              data.signature
             )
         ).to.be.revertedWith("Fraud challenge does not exist")
       })
