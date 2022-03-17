@@ -48,6 +48,7 @@ import {
   MultiplePendingRequestedRedemptionsWithMultipleInputs,
 } from "../data/redemption"
 import { ecdsaWalletTestData } from "../data/ecdsa"
+import { walletState } from "../fixtures"
 
 chai.use(smock.matchers)
 
@@ -226,7 +227,7 @@ describe("Bridge", () => {
     })
   })
 
-  describe("createNewWallet", () => {
+  describe("requestNewWallet", () => {
     before(async () => {
       await createSnapshot()
     })
@@ -241,7 +242,7 @@ describe("Bridge", () => {
 
     context("when called by a third party", async () => {
       it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
-        await bridge.connect(thirdParty).createNewWallet()
+        await bridge.connect(thirdParty).requestNewWallet()
 
         await expect(walletRegistry.requestNewWallet).to.have.been.calledOnce
       })
@@ -291,6 +292,14 @@ describe("Bridge", () => {
           ).equals(ecdsaWalletTestData.walletID)
         })
 
+        it("should transition Wallet to Active state", async () => {
+          await expect(
+            (
+              await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)
+            ).state
+          ).equals(walletState.Active)
+        })
+
         it("should emit WalletCreated event", async () => {
           await expect(tx)
             .to.emit(bridge, "WalletCreated")
@@ -332,6 +341,22 @@ describe("Bridge", () => {
               testName: "with duplicated wallet ID and unique public key",
               walletID: ecdsaWalletTestData.walletID,
               publicKeyX: ethers.utils.randomBytes(32),
+              publicKeyY: ethers.utils.randomBytes(32),
+              expectedError: undefined,
+            },
+            {
+              testName:
+                "with unique wallet ID, unique public key X and duplicated public key Y",
+              walletID: ethers.utils.randomBytes(32),
+              publicKeyX: ethers.utils.randomBytes(32),
+              publicKeyY: ecdsaWalletTestData.publicKeyY,
+              expectedError: undefined,
+            },
+            {
+              testName:
+                "with unique wallet ID, unique public key Y and duplicated public key X",
+              walletID: ethers.utils.randomBytes(32),
+              publicKeyX: ecdsaWalletTestData.publicKeyY,
               publicKeyY: ethers.utils.randomBytes(32),
               expectedError: undefined,
             },
@@ -1841,7 +1866,7 @@ describe("Bridge", () => {
 
         // Simulate the wallet is an active one and is known in the system.
         await bridge.setWallet(walletPubKeyHash, {
-          state: 1,
+          state: walletState.Active,
           pendingRedemptionsValue: 0,
           ecdsaWalletID: ethers.constants.HashZero,
         })
@@ -2397,7 +2422,7 @@ describe("Bridge", () => {
           await createSnapshot()
 
           await bridge.setWallet(walletPubKeyHash, {
-            state: 2,
+            state: walletState.MovingFunds,
             pendingRedemptionsValue: 0,
             ecdsaWalletID: ethers.constants.HashZero,
           })
@@ -2426,7 +2451,7 @@ describe("Bridge", () => {
           await createSnapshot()
 
           await bridge.setWallet(walletPubKeyHash, {
-            state: 3,
+            state: walletState.Closed,
             pendingRedemptionsValue: 0,
             ecdsaWalletID: ethers.constants.HashZero,
           })
@@ -2455,7 +2480,7 @@ describe("Bridge", () => {
           await createSnapshot()
 
           await bridge.setWallet(walletPubKeyHash, {
-            state: 4,
+            state: walletState.Terminated,
             pendingRedemptionsValue: 0,
             ecdsaWalletID: ethers.constants.HashZero,
           })
@@ -4347,7 +4372,7 @@ describe("Bridge", () => {
                       )
                       await bridge.setWallet(data.wallet.pubKeyHash, {
                         ...wallet,
-                        state: 2,
+                        state: walletState.MovingFunds,
                       })
                     }
 
@@ -4386,7 +4411,7 @@ describe("Bridge", () => {
                           )
                           await bridge.setWallet(data.wallet.pubKeyHash, {
                             ...wallet,
-                            state: 0,
+                            state: walletState.Unknown,
                           })
                         }
 
@@ -4425,7 +4450,7 @@ describe("Bridge", () => {
                           )
                           await bridge.setWallet(data.wallet.pubKeyHash, {
                             ...wallet,
-                            state: 3,
+                            state: walletState.Closed,
                           })
                         }
 
@@ -4464,7 +4489,7 @@ describe("Bridge", () => {
                           )
                           await bridge.setWallet(data.wallet.pubKeyHash, {
                             ...wallet,
-                            state: 4,
+                            state: walletState.Terminated,
                           })
                         }
 
