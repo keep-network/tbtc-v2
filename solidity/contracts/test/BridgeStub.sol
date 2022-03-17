@@ -4,6 +4,7 @@ pragma solidity ^0.8.9;
 
 import "../bridge/BitcoinTx.sol";
 import "../bridge/Bridge.sol";
+import "../bridge/Wallets.sol";
 
 contract BridgeStub is Bridge {
     constructor(
@@ -25,7 +26,7 @@ contract BridgeStub is Bridge {
     function setMainUtxo(bytes20 walletPubKeyHash, BitcoinTx.UTXO calldata utxo)
         external
     {
-        mainUtxos[walletPubKeyHash] = keccak256(
+        wallets.registeredWallets[walletPubKeyHash].mainUtxoHash = keccak256(
             abi.encodePacked(
                 utxo.txHash,
                 utxo.txOutputIndex,
@@ -34,10 +35,10 @@ contract BridgeStub is Bridge {
         );
     }
 
-    function setWallet(bytes20 walletPubKeyHash, Wallet calldata wallet)
+    function setWallet(bytes20 walletPubKeyHash, Wallets.Wallet calldata wallet)
         external
     {
-        wallets[walletPubKeyHash] = wallet;
+        wallets.registeredWallets[walletPubKeyHash] = wallet;
     }
 
     function setDepositDustThreshold(uint64 _depositDustThreshold) external {
@@ -81,8 +82,11 @@ contract BridgeStub is Bridge {
         timedOutRedemptions[redemptionKey] = request;
         delete pendingRedemptions[redemptionKey];
 
-        wallets[walletPubKeyHash].state = WalletState.MovingFunds;
-        wallets[walletPubKeyHash].pendingRedemptionsValue -=
+        Wallets.Wallet storage wallet = wallets.registeredWallets[
+            walletPubKeyHash
+        ];
+        wallet.state = Wallets.WalletState.MovingFunds;
+        wallet.pendingRedemptionsValue -=
             request.requestedAmount -
             request.treasuryFee;
     }

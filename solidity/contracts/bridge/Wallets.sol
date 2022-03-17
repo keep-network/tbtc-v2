@@ -96,20 +96,24 @@ library Wallets {
 
     event NewWalletRegistered(
         bytes32 indexed ecdsaWalletID,
-        bytes20 indexed walletPubKeyHash160
+        bytes20 indexed walletPubKeyHash
     );
 
     /// @notice Initializes state invariants.
     /// @param registry ECDSA Wallet Registry reference
     /// @dev Requirements:
     ///      - ECDSA Wallet Registry address must not be initialized
-    function init(Data storage self, EcdsaWalletRegistry registry) external {
+    function init(Data storage self, address registry) external {
+        require(
+            registry != address(0),
+            "ECDSA Wallet Registry address cannot be zero"
+        );
         require(
             address(self.registry) == address(0),
             "ECDSA Wallet Registry address already set"
         );
 
-        self.registry = registry;
+        self.registry = EcdsaWalletRegistry(registry);
     }
 
     /// @notice Sets the wallet creation period.
@@ -158,8 +162,6 @@ library Wallets {
     ///          and the active wallet is old enough, i.e. the creation period
     ///           was elapsed since its creation time
     ///        - The active wallet BTC balance is above the maximum threshold
-    ///        If the active wallet is not set at the moment, there is no
-    ///        additional conditions.
     function requestNewWallet(
         Data storage self,
         BitcoinTx.UTXO calldata activeWalletMainUtxo
