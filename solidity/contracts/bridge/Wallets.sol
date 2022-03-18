@@ -38,7 +38,7 @@ library Wallets {
         // creation or closing.
         uint64 minBtcBalance;
         // The maximum BTC threshold that is used to decide about wallet
-        // creation or closing.
+        // creation.
         uint64 maxBtcBalance;
         // TODO: Make sure the `activeWalletPubKeyHash` is zeroed in case
         //       the active wallet becomes non-Live. This will be implemented
