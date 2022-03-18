@@ -128,15 +128,17 @@ library Wallets {
     /// @param minBtcBalance New value of the minimum BTC balance
     /// @param maxBtcBalance New value of the maximum BTC balance
     /// @dev Requirements:
-    ///      - Minimum BTC balance must be lower than maximum BTC balance
+    ///      - Minimum BTC balance must be greater than zero
+    ///      - Maximum BTC balance must be greater than minimum BTC balance
     function setBtcBalanceRange(
         Data storage self,
         uint64 minBtcBalance,
         uint64 maxBtcBalance
     ) external {
+        require(minBtcBalance > 0, "Minimum must be greater than zero");
         require(
-            minBtcBalance < maxBtcBalance,
-            "Minimum must be lower than the maximum"
+            maxBtcBalance > minBtcBalance,
+            "Maximum must be greater than the minimum"
         );
 
         self.minBtcBalance = minBtcBalance;
