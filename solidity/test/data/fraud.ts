@@ -199,3 +199,37 @@ export const witnessSignMultipleInputTx: FraudTestData = {
     },
   ],
 }
+
+// Test data comes from the input at index 1 of transaction:
+// https://live.blockcypher.com/btc-testnet/tx/28690a451632041443e9a5bb365c70bbd3f5c1bc6c4d9b8290873c94709cc1fe/
+// Wrong sighash was used (SIGHASH_NONE | SIGHASH_ANYONECANPAY).
+export const wrongSighashType: FraudTestData = {
+  signature: {
+    v: 27,
+    r: "0x829e367e4a7212184e869ae6aca9487131c9548a4fa6be7e829a91af433c3f75",
+    s: "0x616cc02ca4b894e0ef1a9e48f8468d7c1b4338ae0b992debcd1030f13fbd7adc",
+  },
+  preimage:
+    "0x01000000000000000000000000000000000000000000000000000000000000000000000" +
+    "00000000000000000000000000000000000000000000000000000000000000000f7f663bc" +
+    "3e389cce42c0d0874a9e0d6390ecbb9af3eba1b3f276b83795f1b1af000000005c14934b9" +
+    "8637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576a9148db50eb520" +
+    "63ea9d98b3eac91489a90f738986f68763ac6776a914e257eccafbc07c381642ce6e7e551" +
+    "20fb077fbed8804e0250162b175ac682823000000000000ffffffff000000000000000000" +
+    "00000000000000000000000000000000000000000000000000000082000000",
+  sighash: "0x4fd8491a872a42d20e434e838afd6e4d6d6422e035db0d41a9a11cb0596b2959",
+  witness: true,
+  deposits: [
+    {
+      fundingTxHash:
+        "0x06365675e78613dd4298c820fa02111ee8c658af786dca939e11b70769ca47ca",
+      fundingOutputIndex: 0,
+    },
+    {
+      fundingTxHash:
+        "0xf7f663bc3e389cce42c0d0874a9e0d6390ecbb9af3eba1b3f276b83795f1b1af",
+      fundingOutputIndex: 0,
+    },
+  ],
+  spentMainUtxos: [],
+}

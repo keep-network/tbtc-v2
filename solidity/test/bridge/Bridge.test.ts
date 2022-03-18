@@ -63,6 +63,7 @@ import {
   nonWitnessSignMultipleInputsTx,
   witnessSignSingleInputTx,
   witnessSignMultipleInputTx,
+  wrongSighashType,
 } from "../data/fraud"
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { walletState } from "../fixtures"
@@ -5924,7 +5925,47 @@ describe("Bridge", () => {
         })
 
         context("when the sighash type is incorrect", () => {
-          // TODO: Implement
+          const data = wrongSighashType
+
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(fraudWalletPublicKeyHash, {
+              state: walletState.Active,
+              pendingRedemptionsValue: 0,
+              ecdsaWalletID: ethers.constants.HashZero,
+            })
+            await bridge.setSweptDeposits(data.deposits)
+            await bridge.setSpentMainUtxos(data.spentMainUtxos)
+
+            await bridge
+              .connect(thirdParty)
+              .submitFraudChallenge(
+                fraudWalletPublicKey,
+                data.sighash,
+                data.signature,
+                {
+                  value: await bridge.fraudChallengeDepositAmount(),
+                }
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(thirdParty)
+                .defeatFraudChallenge(
+                  fraudWalletPublicKey,
+                  data.preimage,
+                  data.signature,
+                  true
+                )
+            ).to.be.revertedWith("Wrong sighash type")
+          })
         })
       })
 
