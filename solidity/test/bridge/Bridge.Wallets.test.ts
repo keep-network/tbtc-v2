@@ -19,11 +19,12 @@ import type {
 import { Wallets__factory } from "../../typechain"
 import { NO_MAIN_UTXO } from "../data/sweep"
 import { ecdsaWalletTestData } from "../data/ecdsa"
-import { walletState } from "../fixtures"
+import { constants, ecdsaDkgState, walletState } from "../fixtures"
 
 chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
+const { lastBlockTime, increaseTime } = helpers.time
 
 const fixture = async () => {
   const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
@@ -108,13 +109,338 @@ describe("Bridge - Wallets", () => {
       await restoreSnapshot()
     })
 
-    // TODO: Implement wallet creation rules
-
     context("when called by a third party", async () => {
-      it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
-        await bridge.connect(thirdParty).requestNewWallet(NO_MAIN_UTXO)
+      context("when wallet creation is not in progress", () => {
+        before(async () => {
+          await createSnapshot()
 
-        await expect(walletRegistry.requestNewWallet).to.have.been.calledOnce
+          walletRegistry.getWalletCreationState.returns(ecdsaDkgState.IDLE)
+        })
+
+        after(async () => {
+          walletRegistry.getWalletCreationState.reset()
+
+          await restoreSnapshot()
+        })
+
+        context("when active wallet is not set", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            tx = await bridge.connect(thirdParty).requestNewWallet(NO_MAIN_UTXO)
+          })
+
+          after(async () => {
+            walletRegistry.requestNewWallet.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should emit NewWalletRequested event", async () => {
+            await expect(tx).to.emit(bridge, "NewWalletRequested")
+          })
+
+          it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
+            await expect(walletRegistry.requestNewWallet).to.have.been
+              .calledOnce
+          })
+        })
+
+        context("when active wallet is set", () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setActiveWallet(ecdsaWalletTestData.pubKeyHash160)
+
+            await bridge.setRegisteredWallet(
+              ecdsaWalletTestData.pubKeyHash160,
+              {
+                ecdsaWalletID: ecdsaWalletTestData.walletID,
+                mainUtxoHash: ethers.constants.HashZero,
+                pendingRedemptionsValue: 0,
+                createdAt: await lastBlockTime(),
+                state: walletState.Live,
+              }
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          context("when active wallet has a main UTXO set", () => {
+            context("when the active wallet main UTXO data are valid", () => {
+              context("when wallet creation conditions are met", () => {
+                context(
+                  "when active wallet is old enough and its balance is greater or equal the minimum BTC balance threshold",
+                  () => {
+                    let tx: ContractTransaction
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      // Make the wallet old enough.
+                      await increaseTime(constants.walletCreationPeriod)
+
+                      // Simulate the wallet has a BTC balance equal to the
+                      // minimum BTC amount threshold by preparing the wallet's
+                      // main UTXO accordingly.
+                      const activeWalletMainUtxo = {
+                        txHash:
+                          "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                        txOutputIndex: 1,
+                        txOutputValue: constants.walletMinBtcBalance,
+                      }
+
+                      await bridge.setRegisteredWalletMainUtxo(
+                        ecdsaWalletTestData.pubKeyHash160,
+                        activeWalletMainUtxo
+                      )
+
+                      tx = await bridge.requestNewWallet(activeWalletMainUtxo)
+                    })
+
+                    after(async () => {
+                      walletRegistry.requestNewWallet.reset()
+
+                      await restoreSnapshot()
+                    })
+
+                    it("should emit NewWalletRequested event", async () => {
+                      await expect(tx).to.emit(bridge, "NewWalletRequested")
+                    })
+
+                    it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
+                      await expect(walletRegistry.requestNewWallet).to.have.been
+                        .calledOnce
+                    })
+                  }
+                )
+
+                context(
+                  "when active wallet is not old enough but its balance is greater or equal the maximum BTC balance threshold",
+                  () => {
+                    let tx: ContractTransaction
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      // Simulate the wallet has a BTC balance equal to the
+                      // maximum BTC amount threshold by preparing the wallet's
+                      // main UTXO accordingly. Note that the time is not
+                      // increased at all so the wallet is not old enough
+                      // for sure.
+                      const activeWalletMainUtxo = {
+                        txHash:
+                          "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                        txOutputIndex: 1,
+                        txOutputValue: constants.walletMaxBtcBalance,
+                      }
+
+                      await bridge.setRegisteredWalletMainUtxo(
+                        ecdsaWalletTestData.pubKeyHash160,
+                        activeWalletMainUtxo
+                      )
+
+                      tx = await bridge.requestNewWallet(activeWalletMainUtxo)
+                    })
+
+                    after(async () => {
+                      walletRegistry.requestNewWallet.reset()
+
+                      await restoreSnapshot()
+                    })
+
+                    it("should emit NewWalletRequested event", async () => {
+                      await expect(tx).to.emit(bridge, "NewWalletRequested")
+                    })
+
+                    it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
+                      await expect(walletRegistry.requestNewWallet).to.have.been
+                        .calledOnce
+                    })
+                  }
+                )
+              })
+
+              context(
+                "when active wallet is not old enough and its balance is greater or equal the minimum but lesser than the maximum BTC balance threshold",
+                () => {
+                  let tx: Promise<ContractTransaction>
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    // Simulate the wallet has a BTC balance between the minimum
+                    // and maximum BTC amount thresholds by preparing the
+                    // wallet's main UTXO accordingly. Note that the time is not
+                    // increased at all so the wallet is not old enough for sure.
+                    const activeWalletMainUtxo = {
+                      txHash:
+                        "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                      txOutputIndex: 1,
+                      txOutputValue: constants.walletMaxBtcBalance.sub(1),
+                    }
+
+                    await bridge.setRegisteredWalletMainUtxo(
+                      ecdsaWalletTestData.pubKeyHash160,
+                      activeWalletMainUtxo
+                    )
+
+                    tx = bridge.requestNewWallet(activeWalletMainUtxo)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should revert", async () => {
+                    await expect(tx).to.be.revertedWith(
+                      "Wallet creation conditions are not met"
+                    )
+                  })
+                }
+              )
+
+              context(
+                "when active wallet is old enough but its balance is lesser than the minimum BTC balance threshold",
+                () => {
+                  let tx: Promise<ContractTransaction>
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    // Make the wallet old enough.
+                    await increaseTime(constants.walletCreationPeriod)
+
+                    // Simulate the wallet has a BTC balance below the minimum
+                    // BTC amount threshold by preparing the wallet's main
+                    // UTXO accordingly.
+                    const activeWalletMainUtxo = {
+                      txHash:
+                        "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                      txOutputIndex: 1,
+                      txOutputValue: constants.walletMinBtcBalance.sub(1),
+                    }
+
+                    await bridge.setRegisteredWalletMainUtxo(
+                      ecdsaWalletTestData.pubKeyHash160,
+                      activeWalletMainUtxo
+                    )
+
+                    tx = bridge.requestNewWallet(activeWalletMainUtxo)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should revert", async () => {
+                    await expect(tx).to.be.revertedWith(
+                      "Wallet creation conditions are not met"
+                    )
+                  })
+                }
+              )
+            })
+
+            context("when the active wallet main UTXO data are invalid", () => {
+              const activeWalletMainUtxo = {
+                txHash:
+                  "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                txOutputIndex: 1,
+                txOutputValue: constants.walletMaxBtcBalance,
+              }
+
+              before(async () => {
+                await createSnapshot()
+
+                await bridge.setRegisteredWalletMainUtxo(
+                  ecdsaWalletTestData.pubKeyHash160,
+                  activeWalletMainUtxo
+                )
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                const corruptedActiveWalletMainUtxo = {
+                  ...activeWalletMainUtxo,
+                  txOutputIndex: 0,
+                }
+
+                await expect(
+                  bridge.requestNewWallet(corruptedActiveWalletMainUtxo)
+                ).to.be.revertedWith("Invalid wallet main UTXO data")
+              })
+            })
+          })
+
+          context("when active wallet has no main UTXO set", () => {
+            before(async () => {
+              await createSnapshot()
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            // If the wallet has 0 BTC, the function must revert.
+            // This is because the active wallet's balance must be above the
+            // minimum BTC balance threshold and that threshold is guaranteed
+            // to be always greater than zero.
+            it("should revert", async () => {
+              await expect(
+                bridge.requestNewWallet(NO_MAIN_UTXO)
+              ).to.be.revertedWith("Wallet creation conditions are not met")
+            })
+          })
+        })
+      })
+
+      context("when wallet creation is already in progress", () => {
+        const testData = [
+          {
+            testName: "when wallet creation state is AWAITING_SEED",
+            walletCreationState: ecdsaDkgState.AWAITING_SEED,
+          },
+          {
+            testName: "when wallet creation state is AWAITING_RESULT",
+            walletCreationState: ecdsaDkgState.AWAITING_RESULT,
+          },
+          {
+            testName: "when wallet creation state is CHALLENGE",
+            walletCreationState: ecdsaDkgState.CHALLENGE,
+          },
+        ]
+
+        testData.forEach((test) => {
+          context(test.testName, () => {
+            before(async () => {
+              await createSnapshot()
+
+              walletRegistry.getWalletCreationState.returns(
+                test.walletCreationState
+              )
+            })
+
+            after(async () => {
+              walletRegistry.getWalletCreationState.reset()
+
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge.requestNewWallet(NO_MAIN_UTXO)
+              ).to.be.revertedWith("Wallet creation already in progress")
+            })
+          })
+        })
       })
     })
   })

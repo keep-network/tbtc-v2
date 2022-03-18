@@ -46,7 +46,6 @@ import {
   MultiplePendingRequestedRedemptionsWithProvablyUnspendable,
   MultiplePendingRequestedRedemptionsWithMultipleInputs,
 } from "../data/redemption"
-import { ecdsaWalletTestData } from "../data/ecdsa"
 import { walletState } from "../fixtures"
 import { Wallets__factory } from "../../typechain"
 

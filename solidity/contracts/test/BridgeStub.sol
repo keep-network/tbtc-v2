@@ -23,6 +23,10 @@ contract BridgeStub is Bridge {
         )
     {}
 
+    function setActiveWallet(bytes20 activeWalletPubKeyHash) external {
+        wallets.activeWalletPubKeyHash = activeWalletPubKeyHash;
+    }
+
     function setRegisteredWalletMainUtxo(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
