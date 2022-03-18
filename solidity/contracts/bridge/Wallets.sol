@@ -41,7 +41,9 @@ library Wallets {
         // creation or closing.
         uint64 maxBtcBalance;
         // TODO: Make sure the `activeWalletPubKeyHash` is zeroed in case
-        //       the active wallet becomes non-Live.
+        //       the active wallet becomes non-Live. This will be implemented
+        //       soon, along with the code for closing wallets.
+        //
         // 20-byte wallet public key hash being reference to the currently
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
