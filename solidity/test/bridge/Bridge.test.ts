@@ -64,6 +64,7 @@ const fixture = async () => {
   const bank: Bank & BankStub = await Bank.deploy()
   await bank.deployed()
 
+  // TODO: Use Smock fake and get rid of `TestRelay` contract.
   const TestRelay = await ethers.getContractFactory<TestRelay__factory>(
     "TestRelay"
   )
