@@ -29,15 +29,15 @@ library Frauds {
 
     struct Data {
         ///  The amount of stake slashed from each member of a wallet for a fraud.
-        uint256 slashingAmount; //TODO: Initialize
+        uint256 slashingAmount;
         /// The percentage of the notifier reward from the staking contract
         /// the notifier of a fraud receives. The value is in the range [0, 100].
-        uint256 notifierRewardMultiplier; //TODO: Initialize
+        uint256 notifierRewardMultiplier;
         /// The amount of time the wallet has to defeat a fraud challenge.
-        uint256 challengeDefeatTimeout; //TODO: Initialize
+        uint256 challengeDefeatTimeout;
         /// The amount of ETH the party challenging the wallet for fraud needs
         /// to deposit.
-        uint256 challengeDepositAmount; //TODO: Initialize
+        uint256 challengeDepositAmount;
         /// Collection of all submitted fraud challenges indexed by challenge
         /// key built as keccak256(walletPublicKey|sighash|v|r|s).
         mapping(uint256 => FraudChallenge) challenges;
@@ -368,6 +368,60 @@ library Frauds {
         );
     }
 
+    /// @notice Sets the new value for the `slashingAmount` parameter.
+    /// @param _newSlashingAmount the new value for `slashingAmount`.
+    function setSlashingAmount(Data storage self, uint256 _newSlashingAmount)
+        external
+    {
+        self.slashingAmount = _newSlashingAmount;
+        emit FraudSlashingAmountUpdated(_newSlashingAmount);
+    }
+
+    /// @notice Sets the new value for the `notifierRewardMultiplier` parameter.
+    /// @param _newNotifierRewardMultiplier the new value for `notifierRewardMultiplier`.
+    /// @dev The value of `notifierRewardMultiplier` must be <= 100.
+    function setNotifierRewardMultiplier(
+        Data storage self,
+        uint256 _newNotifierRewardMultiplier
+    ) external {
+        require(
+            _newNotifierRewardMultiplier <= 100,
+            "Fraud notifier reward multiplier must be <= 100"
+        );
+        self.notifierRewardMultiplier = _newNotifierRewardMultiplier;
+        emit FraudNotifierRewardMultiplierUpdated(_newNotifierRewardMultiplier);
+    }
+
+    /// @notice Sets the new value for the `challengeDefeatTimeout` parameter.
+    /// @param _newChallengeDefeatTimeout the new value for `challengeDefeatTimeout`.
+    /// @dev The value of `challengeDefeatTimeout` must be > 0.
+    function setChallengeDefeatTimeout(
+        Data storage self,
+        uint256 _newChallengeDefeatTimeout
+    ) external {
+        require(
+            _newChallengeDefeatTimeout > 0,
+            "Fraud challenge defeat timeout must be > 0"
+        );
+        self.challengeDefeatTimeout = _newChallengeDefeatTimeout;
+        emit FraudChallengeDefeatTimeoutUpdated(_newChallengeDefeatTimeout);
+    }
+
+    /// @notice Sets the new value for the `challengeDepositAmount` parameter.
+    /// @param _newChallengeDepositAmount the new value for `challengeDepositAmount`.
+    /// @dev The value of `challengeDepositAmount` must be > 0.
+    function setChallengeDepositAmount(
+        Data storage self,
+        uint256 _newChallengeDepositAmount
+    ) external {
+        require(
+            _newChallengeDepositAmount > 0,
+            "Fraud challenge deposit amount must be > 0"
+        );
+        self.challengeDepositAmount = _newChallengeDepositAmount;
+        emit FraudChallengeDepositAmountUpdated(_newChallengeDepositAmount);
+    }
+
     /// @notice Verifies whether the witness input in the provided preimage has
     ///         an outpoint that has been proven to be correctly spent in the
     ///         Bridge.
@@ -384,7 +438,7 @@ library Frauds {
         bytes memory preimage,
         mapping(uint256 => Bridge.DepositRequest) storage deposits,
         mapping(uint256 => bool) storage spentMainUTXOs
-    ) internal {
+    ) internal view {
         // The expected structure of the preimage created during signing of a
         // witness input:
         // - transaction version (4 bytes)
@@ -438,7 +492,7 @@ library Frauds {
         bytes memory preimage,
         mapping(uint256 => Bridge.DepositRequest) storage deposits,
         mapping(uint256 => bool) storage spentMainUTXOs
-    ) internal {
+    ) internal view {
         // The expected structure of the preimage created during signing of a
         // non-witness input:
         // - transaction version (4 bytes)
@@ -503,60 +557,6 @@ library Frauds {
                 inputStartingIndex
             );
         }
-    }
-
-    /// @notice Sets the new value for the `slashingAmount` parameter.
-    /// @param _newSlashingAmount the new value for `slashingAmount`.
-    function setSlashingAmount(Data storage self, uint256 _newSlashingAmount)
-        external
-    {
-        self.slashingAmount = _newSlashingAmount;
-        emit FraudSlashingAmountUpdated(_newSlashingAmount);
-    }
-
-    /// @notice Sets the new value for the `notifierRewardMultiplier` parameter.
-    /// @param _newNotifierRewardMultiplier the new value for `notifierRewardMultiplier`.
-    /// @dev The value of `notifierRewardMultiplier` must be <= 100.
-    function setNotifierRewardMultiplier(
-        Data storage self,
-        uint256 _newNotifierRewardMultiplier
-    ) external {
-        require(
-            _newNotifierRewardMultiplier <= 100,
-            "Fraud notifier reward multiplier must be <= 100"
-        );
-        self.notifierRewardMultiplier = _newNotifierRewardMultiplier;
-        emit FraudNotifierRewardMultiplierUpdated(_newNotifierRewardMultiplier);
-    }
-
-    /// @notice Sets the new value for the `challengeDefeatTimeout` parameter.
-    /// @param _newChallengeDefeatTimeout the new value for `challengeDefeatTimeout`.
-    /// @dev The value of `challengeDefeatTimeout` must be > 0.
-    function setChallengeDefeatTimeout(
-        Data storage self,
-        uint256 _newChallengeDefeatTimeout
-    ) external {
-        require(
-            _newChallengeDefeatTimeout > 0,
-            "Fraud challenge defeat timeout must be > 0"
-        );
-        self.challengeDefeatTimeout = _newChallengeDefeatTimeout;
-        emit FraudChallengeDefeatTimeoutUpdated(_newChallengeDefeatTimeout);
-    }
-
-    /// @notice Sets the new value for the `challengeDepositAmount` parameter.
-    /// @param _newChallengeDepositAmount the new value for `challengeDepositAmount`.
-    /// @dev The value of `challengeDepositAmount` must be > 0.
-    function setChallengeDepositAmount(
-        Data storage self,
-        uint256 _newChallengeDepositAmount
-    ) external {
-        require(
-            _newChallengeDepositAmount > 0,
-            "Fraud challenge deposit amount must be > 0"
-        );
-        self.challengeDepositAmount = _newChallengeDepositAmount;
-        emit FraudChallengeDepositAmountUpdated(_newChallengeDepositAmount);
     }
 
     /// @notice Extracts the sighash type from the given preimage.
