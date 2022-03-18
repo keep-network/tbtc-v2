@@ -102,7 +102,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
-    except: ["BridgeStub$", "Bridge$"],
+    except: ["BridgeStub$"],
   },
   typechain: {
     outDir: "typechain",

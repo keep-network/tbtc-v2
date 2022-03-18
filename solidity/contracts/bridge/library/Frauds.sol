@@ -508,7 +508,7 @@ library Frauds {
     /// @notice Sets the new value for the `slashingAmount` parameter.
     /// @param _newSlashingAmount the new value for `slashingAmount`.
     function setSlashingAmount(Data storage self, uint256 _newSlashingAmount)
-        internal
+        external
     {
         self.slashingAmount = _newSlashingAmount;
         emit FraudSlashingAmountUpdated(_newSlashingAmount);
@@ -520,7 +520,7 @@ library Frauds {
     function setNotifierRewardMultiplier(
         Data storage self,
         uint256 _newNotifierRewardMultiplier
-    ) internal {
+    ) external {
         require(
             _newNotifierRewardMultiplier <= 100,
             "Fraud notifier reward multiplier must be <= 100"
@@ -535,7 +535,7 @@ library Frauds {
     function setChallengeDefeatTimeout(
         Data storage self,
         uint256 _newChallengeDefeatTimeout
-    ) internal {
+    ) external {
         require(
             _newChallengeDefeatTimeout > 0,
             "Fraud challenge defeat timeout must be > 0"
@@ -550,7 +550,7 @@ library Frauds {
     function setChallengeDepositAmount(
         Data storage self,
         uint256 _newChallengeDepositAmount
-    ) internal {
+    ) external {
         require(
             _newChallengeDepositAmount > 0,
             "Fraud challenge deposit amount must be > 0"
