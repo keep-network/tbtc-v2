@@ -445,6 +445,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return wallets.registeredWallets[walletPubKeyHash];
     }
 
+    /// @notice Gets the public key hash of the active wallet.
+    /// @return The 20-byte public key hash (computed using Bitcoin HASH160
+    ///         over the compressed ECDSA public key) of the active wallet.
+    function getActiveWalletPubKeyHash() external view returns (bytes20) {
+        return wallets.activeWalletPubKeyHash;
+    }
+
     /// @notice Determines the current Bitcoin SPV proof difficulty context.
     /// @return proofDifficulty Bitcoin proof difficulty context.
     function proofDifficultyContext()
