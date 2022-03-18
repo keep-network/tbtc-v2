@@ -490,7 +490,7 @@ describe("Bridge - Wallets", () => {
           ).equals(ecdsaWalletTestData.walletID)
         })
 
-        it("should transition Wallet to Live state", async () => {
+        it("should transition wallet to Live state", async () => {
           await expect(
             (
               await bridge.getRegisteredWallet(
@@ -498,6 +498,22 @@ describe("Bridge - Wallets", () => {
               )
             ).state
           ).equals(walletState.Live)
+        })
+
+        it("should set the created at timestamp", async () => {
+          await expect(
+            (
+              await bridge.getRegisteredWallet(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+            ).createdAt
+          ).equals(await lastBlockTime())
+        })
+
+        it("should set the wallet as the active one", async () => {
+          await expect(await bridge.getActiveWalletPubKeyHash()).equals(
+            ecdsaWalletTestData.pubKeyHash160
+          )
         })
 
         it("should emit NewWalletRegistered event", async () => {
