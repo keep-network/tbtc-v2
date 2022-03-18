@@ -23,9 +23,10 @@ contract BridgeStub is Bridge {
         )
     {}
 
-    function setMainUtxo(bytes20 walletPubKeyHash, BitcoinTx.UTXO calldata utxo)
-        external
-    {
+    function setRegisteredWalletMainUtxo(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata utxo
+    ) external {
         wallets.registeredWallets[walletPubKeyHash].mainUtxoHash = keccak256(
             abi.encodePacked(
                 utxo.txHash,
@@ -35,9 +36,10 @@ contract BridgeStub is Bridge {
         );
     }
 
-    function setWallet(bytes20 walletPubKeyHash, Wallets.Wallet calldata wallet)
-        external
-    {
+    function setRegisteredWallet(
+        bytes20 walletPubKeyHash,
+        Wallets.Wallet calldata wallet
+    ) external {
         wallets.registeredWallets[walletPubKeyHash] = wallet;
     }
 

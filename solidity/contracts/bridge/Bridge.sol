@@ -433,6 +433,18 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
     }
 
+    /// @notice Gets details about a registered wallet.
+    /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key)
+    /// @return Wallet details.
+    function getRegisteredWallet(bytes20 walletPubKeyHash)
+        external
+        view
+        returns (Wallets.Wallet memory)
+    {
+        return wallets.registeredWallets[walletPubKeyHash];
+    }
+
     /// @notice Determines the current Bitcoin SPV proof difficulty context.
     /// @return proofDifficulty Bitcoin proof difficulty context.
     function proofDifficultyContext()
@@ -1013,7 +1025,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @notice Requests redemption of the given amount from the specified
     ///         wallet to the redeemer Bitcoin output script.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
-    //         using Bitcoin HASH160 over the compressed ECDSA public key)
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key)
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain
     /// @param redeemerOutputScript The redeemer's length-prefixed output

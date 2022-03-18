@@ -16,7 +16,7 @@ export const constants = {
 
 export const walletState = {
   Unknown: 0,
-  Active: 1,
+  Live: 1,
   MovingFunds: 2,
   Closed: 3,
   Terminated: 4,
