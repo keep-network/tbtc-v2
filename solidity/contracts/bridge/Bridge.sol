@@ -275,8 +275,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///           successfully
     ///         - `notifyRedemptionTimeout` in case the request was reported
     ///           to be timed out
-    ///         - `submitRedemptionFraudProof` in case the request was handled
-    ///           in an fraudulent way amount-wise.
     mapping(uint256 => RedemptionRequest) public pendingRedemptions;
 
     /// @notice Collection of all timed out redemptions requests indexed by
@@ -1628,83 +1626,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     //       7. Reduce the `pendingRedemptionsValue` (`wallets` mapping) for
     //          given wallet by request's redeemable amount computed as
     //          `requestedAmount - treasuryFee`.
-    //       8. Punish the wallet, probably by slashing its operators.
-    //       9. Change wallet's state in `wallets` mapping to `MovingFunds` in
-    //          order to prevent against new redemption requests hitting
-    //          that wallet.
-    //      10. Expect the wallet to transfer its funds to another healthy
-    //          wallet (just as in case of failed heartbeat). The wallet is
-    //          expected to finish the already queued redemption requests
-    //          before moving funds but we are not going to enforce it on-chain.
-
-    // TODO: Function `submitRedemptionFraudProof`
-    //
-    //       Deposit and redemption fraud proofs are challenging to implement
-    //       and it may happen we will have to rely on the coverage pool
-    //       (https://github.com/keep-network/coverage-pools) and DAO to
-    //       reimburse unlucky depositors and bring back the balance to the
-    //       system in case  of a wallet fraud by liquidating a part of the
-    //       coverage pool manually.
-    //
-    //       The probability of 51-of-100 wallet being fraudulent is negligible:
-    //       https://github.com/keep-network/tbtc-v2/blob/main/docs/rfc/rfc-2.adoc#111-group-size-and-threshold
-    //       and the coverage pool would be there to bring the balance back in
-    //       case we are unlucky and malicious wallet emerges.
-    //
-    //       We do not want to slash for a misbehavior that is not provable
-    //       on-chain and it is possible to construct such a Bitcoin transaction
-    //       that is not provable on Ethereum, see
-    //       https://consensys.net/diligence/blog/2020/05/tbtc-navigating-the-cross-chain-conundrum
-    //
-    //       The algorithm described below assumes we will be able to prove the
-    //       TX on Ethereum which may not always be the case. Consider the steps
-    //       below as an idea, and not necessarily how this function will be
-    //       implemented because it may happen this function will never be
-    //       implemented, given the Bitcoin transaction size problems.
-    //
-    //       The algorithm:
-    //       1. Take a `BitcoinTx.Info` and `BitcoinTx.Proof` of the
-    //          fraudulent transaction. It should also accept `walletPubKeyHash`
-    //          and index of fraudulent output. Probably index of fraudulent
-    //          input will be also required if the transaction is supposed
-    //          to have a bad input vector.
-    //       2. Perform SPV proof to make sure it occurred on Bitcoin chain.
-    //          If not - revert.
-    //       3. Check if wallet state is Live or MovingFunds. If not, revert.
-    //       4. Validate the number of inputs. If there is one input and it
-    //          points to the wallet's main UTXO - move to point 5. If there
-    //          are multiple inputs and there is wallet's main UTXO in the set,
-    //          check if this is  a sweep transaction. If it's not a sweep,
-    //          consider it as fraudulent and move to point 6.
-    //          In all other cases revert the call.
-    //       5. Extract the output and analyze its type. The output is not
-    //          a fraud and the call should be reverted ONLY IF one of the
-    //          following conditions is true:
-    //          - Output is a requested redemption held by `pendingRedemptions`
-    //            and output value fulfills the request range. There is an
-    //            open question if a misfunded request should be removed
-    //            from `pendingRedemptions` (probably yes) and whether the
-    //            redeemer should be reimbursed in case of an underfund.
-    //          - Output is a timed out redemption held by `timedOutRedemptions`
-    //            and output value fulfills the request range.
-    //          - Output is a proper change i.e. a single output targeting
-    //            the wallet PKH back and having a non-zero value.
-    //          - Wallet is in MovingFunds state, the output points to the
-    //            expected target wallet, have non-zero value, and is a single
-    //            output in the vector.
-    //          In all other cases consider the transaction as fraud and
-    //          proceed to point 6.
-    //       6. Punish the wallet, probably by severely slashing its operators.
-    //       7. Change wallet's state in `wallets` mapping to `Terminated` in
-    //          order to prevent against new redemption requests hitting
-    //          that wallet. This also prevents against reporting a fraud
-    //          multiple times for one transaction (see point 3) and blocks
-    //          submission of sweep and redemption proofs. `Terminated` wallet
-    //          is blocked in the Bridge forever. If the fraud was a mistake
-    //          done by the wallet and the wallet is still honest deep in its
-    //          heart, the wallet can coordinate off-chain to recover the BTC
-    //          and donate it to another wallet. If they recover all of the
-    //          remaining BTC, DAO might decide to reward them with tokens so
-    //          that they can have at least some portion of their slashed
-    //          tokens back.
+    //       8. Call `wallets.notifyWalletActionTimedOut` to propagate timeout
+    //          consequences to the wallet.
 }
