@@ -378,6 +378,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.init(_ecdsaWalletRegistry);
         wallets.setCreationPeriod(1 weeks);
         wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // 1 BTC - 10 BTC
+        wallets.setMaxAge(8 weeks);
     }
 
     // TODO: Add function `onNewWalletCreated` according to discussion:
@@ -450,16 +451,22 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param publicKeyY Wallet's public key's Y coordinate.
     /// @dev Requirements:
     ///      - The only caller authorized to call this function is `registry`
+    ///      - Wallet must be in Live state
     function __ecdsaWalletHeartbeatFailedCallback(
+        /* solhint-disable-next-line no-unused-vars */
         bytes32 ecdsaWalletID,
         bytes32 publicKeyX,
         bytes32 publicKeyY
     ) external override {
-        wallets.notifyWalletHeartbeatFailed(
-            ecdsaWalletID,
-            publicKeyX,
-            publicKeyY
-        );
+        wallets.notifyWalletHeartbeatFailed(publicKeyX, publicKeyY);
+    }
+
+    // TODO: Documentation.
+    function notifyWalletExhausted(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata walletMainUtxo
+    ) external {
+        wallets.notifyWalletExhausted(walletPubKeyHash, walletMainUtxo);
     }
 
     /// @notice Gets details about a registered wallet.

@@ -40,6 +40,9 @@ library Wallets {
         // The maximum BTC threshold that is used to decide about wallet
         // creation.
         uint64 maxBtcBalance;
+        // The maximum age of a wallet in seconds, after which the wallet
+        // closure can be requested.
+        uint32 maxAge;
         // TODO: Make sure the `activeWalletPubKeyHash` is zeroed in case
         //       the active wallet becomes non-Live. This will be implemented
         //       soon, along with the code for closing wallets.
@@ -155,6 +158,12 @@ library Wallets {
 
         self.minBtcBalance = minBtcBalance;
         self.maxBtcBalance = maxBtcBalance;
+    }
+
+    /// @notice Sets the wallet maximum age.
+    /// @param maxAge New value of the wallet maximum age
+    function setMaxAge(Data storage self, uint32 maxAge) external {
+        self.maxAge = maxAge;
     }
 
     /// @notice Requests creation of a new wallet. This function just
@@ -301,7 +310,6 @@ library Wallets {
     // TODO: Documentation.
     function notifyWalletHeartbeatFailed(
         Data storage self,
-        bytes32 ecdsaWalletID,
         bytes32 publicKeyX,
         bytes32 publicKeyY
     ) external {
@@ -310,21 +318,53 @@ library Wallets {
             "Caller is not the ECDSA Wallet Registry"
         );
 
-        requestWalletClosure(self, ecdsaWalletID, publicKeyX, publicKeyY);
-    }
-
-    // TODO: Documentation.
-    function requestWalletClosure(
-        Data storage self,
-        bytes32 ecdsaWalletID,
-        bytes32 publicKeyX,
-        bytes32 publicKeyY
-    ) internal {
         // Compress wallet's public key and calculate Bitcoin's hash160 of it.
         bytes20 walletPubKeyHash = bytes20(
             EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
         );
 
+        requestWalletClosure(self, walletPubKeyHash);
+    }
+
+    // TODO: Documentation.
+    function notifyWalletActionTimedOut(
+        Data storage self,
+        bytes20 walletPubKeyHash
+    ) external {
+        // TODO: Perform slashing of wallet operators.
+
+        requestWalletClosure(self, walletPubKeyHash);
+    }
+
+    // TODO: Documentation.
+    function notifyWalletExhausted(
+        Data storage self,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata walletMainUtxo
+    ) external {
+        require(
+            self.activeWalletPubKeyHash != walletPubKeyHash,
+            "Active wallet cannot be considered exhausted"
+        );
+
+        /* solhint-disable-next-line not-rely-on-time */
+        bool walletMaxAge = block.timestamp >=
+            self.registeredWallets[walletPubKeyHash].createdAt + self.maxAge;
+
+        require(
+            walletMaxAge ||
+                getWalletBtcBalance(self, walletPubKeyHash, walletMainUtxo) <
+                self.minBtcBalance,
+            "Wallet exhaustion conditions are not met"
+        );
+
+        requestWalletClosure(self, walletPubKeyHash);
+    }
+
+    // TODO: Documentation.
+    function requestWalletClosure(Data storage self, bytes20 walletPubKeyHash)
+        internal
+    {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
         require(
             wallet.state == WalletState.Live,
@@ -335,11 +375,16 @@ library Wallets {
             // If the wallet has no main UTXO, that means its BTC balance
             // is zero and it should be closed immediately.
             wallet.state = WalletState.Closed;
-            emit WalletClosed(ecdsaWalletID, walletPubKeyHash);
+            emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
+
+            // TODO: Send close signal to the ECDSA registry.
+            //       https://github.com/keep-network/keep-core/issues/2864
         } else {
             // Otherwise, initialize the moving funds process.
             wallet.state = WalletState.MovingFunds;
-            emit WalletMovingFunds(ecdsaWalletID, walletPubKeyHash);
+            emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
+
+            // TODO: Initialize moving funds process.
         }
 
         if (self.activeWalletPubKeyHash == walletPubKeyHash) {
@@ -349,4 +394,6 @@ library Wallets {
             delete self.activeWalletPubKeyHash;
         }
     }
+
+    // TODO: Implement notifyWalletFraudProven function that terminates the wallet.
 }
