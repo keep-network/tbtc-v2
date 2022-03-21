@@ -307,6 +307,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 indexed walletPubKeyHash
     );
 
+    event WalletMovingFunds(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
+    event WalletClosed(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
     event DepositRevealed(
@@ -431,6 +441,25 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 publicKeyY
     ) external override {
         wallets.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
+    }
+
+    /// @notice A callback function that is called by the ECDSA Wallet Registry
+    ///         once a wallet heartbeat failure is detected.
+    /// @param ecdsaWalletID Wallet's unique identifier.
+    /// @param publicKeyY Wallet's public key's X coordinate.
+    /// @param publicKeyY Wallet's public key's Y coordinate.
+    /// @dev Requirements:
+    ///      - The only caller authorized to call this function is `registry`
+    function __ecdsaWalletHeartbeatFailedCallback(
+        bytes32 ecdsaWalletID,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY
+    ) external override {
+        wallets.notifyWalletHeartbeatFailed(
+            ecdsaWalletID,
+            publicKeyX,
+            publicKeyY
+        );
     }
 
     /// @notice Gets details about a registered wallet.

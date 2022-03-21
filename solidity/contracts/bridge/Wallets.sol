@@ -101,6 +101,16 @@ library Wallets {
         bytes20 indexed walletPubKeyHash
     );
 
+    event WalletMovingFunds(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
+    event WalletClosed(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
     /// @notice Initializes state invariants.
     /// @param registry ECDSA Wallet Registry reference
     /// @dev Requirements:
@@ -286,5 +296,57 @@ library Wallets {
         self.activeWalletPubKeyHash = walletPubKeyHash;
 
         emit NewWalletRegistered(ecdsaWalletID, walletPubKeyHash);
+    }
+
+    // TODO: Documentation.
+    function notifyWalletHeartbeatFailed(
+        Data storage self,
+        bytes32 ecdsaWalletID,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY
+    ) external {
+        require(
+            msg.sender == address(self.registry),
+            "Caller is not the ECDSA Wallet Registry"
+        );
+
+        requestWalletClosure(self, ecdsaWalletID, publicKeyX, publicKeyY);
+    }
+
+    // TODO: Documentation.
+    function requestWalletClosure(
+        Data storage self,
+        bytes32 ecdsaWalletID,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY
+    ) internal {
+        // Compress wallet's public key and calculate Bitcoin's hash160 of it.
+        bytes20 walletPubKeyHash = bytes20(
+            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
+        );
+
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        require(
+            wallet.state == WalletState.Live,
+            "ECDSA wallet must be in Live state"
+        );
+
+        if (wallet.mainUtxoHash == bytes32(0)) {
+            // If the wallet has no main UTXO, that means its BTC balance
+            // is zero and it should be closed immediately.
+            wallet.state = WalletState.Closed;
+            emit WalletClosed(ecdsaWalletID, walletPubKeyHash);
+        } else {
+            // Otherwise, initialize the moving funds process.
+            wallet.state = WalletState.MovingFunds;
+            emit WalletMovingFunds(ecdsaWalletID, walletPubKeyHash);
+        }
+
+        if (self.activeWalletPubKeyHash == walletPubKeyHash) {
+            // If the requested closure refers to the current active wallet,
+            // unset the active wallet and make the wallet creation process
+            // possible in order to get a new healthy active wallet.
+            delete self.activeWalletPubKeyHash;
+        }
     }
 }
