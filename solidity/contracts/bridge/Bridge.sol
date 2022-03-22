@@ -298,6 +298,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @notice State related with wallets.
     Wallets.Data internal wallets;
 
+    event WalletCreationPeriodUpdated(uint32 newCreationPeriod);
+
+    event WalletBtcBalanceRangeUpdated(
+        uint64 newMinBtcBalance,
+        uint64 newMaxBtcBalance
+    );
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -375,12 +382,45 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // TODO: Revisit initial values.
         wallets.init(_ecdsaWalletRegistry);
         wallets.setCreationPeriod(1 weeks);
-        wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // 1 BTC - 10 BTC
+        wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // [1 BTC, 10 BTC]
         wallets.setMaxAge(8 weeks);
     }
 
-    // TODO: Add function `onNewWalletCreated` according to discussion:
-    //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r809885230
+    /// @notice Updates parameters used by the `Wallets` library.
+    /// @param creationPeriod New value of the wallet creation period
+    /// @param minBtcBalance New value of the minimum BTC balance
+    /// @param maxBtcBalance New value of the maximum BTC balance
+    /// @dev Requirements:
+    ///      - Caller must be the contract owner.
+    ///      - Minimum BTC balance must be greater than zero
+    ///      - Maximum BTC balance must be greater than minimum BTC balance
+    function updateWalletsParameters(
+        uint32 creationPeriod,
+        uint64 minBtcBalance,
+        uint64 maxBtcBalance
+    ) external onlyOwner {
+        wallets.setCreationPeriod(creationPeriod);
+        wallets.setBtcBalanceRange(minBtcBalance, maxBtcBalance);
+    }
+
+    /// @return creationPeriod Value of the wallet creation period
+    /// @return minBtcBalance Value of the minimum BTC balance
+    /// @return maxBtcBalance Value of the maximum BTC balance
+    function getWalletsParameters()
+        external
+        view
+        returns (
+            uint32 creationPeriod,
+            uint64 minBtcBalance,
+            uint64 maxBtcBalance
+        )
+    {
+        creationPeriod = wallets.creationPeriod;
+        minBtcBalance = wallets.minBtcBalance;
+        maxBtcBalance = wallets.maxBtcBalance;
+
+        return (creationPeriod, minBtcBalance, maxBtcBalance);
+    }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
     ///         or no longer trusted. Vaults are not trusted by default.
@@ -418,7 +458,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        conditions must be true:
     ///        - The active wallet BTC balance is above the minimum threshold
     ///          and the active wallet is old enough, i.e. the creation period
-    ///           was elapsed since its creation time
+    ///          was elapsed since its creation time
     ///        - The active wallet BTC balance is above the maximum threshold
     function requestNewWallet(BitcoinTx.UTXO calldata activeWalletMainUtxo)
         external
@@ -471,7 +511,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
     ///        using Bitcoin HASH160 over the compressed ECDSA public key)
     /// @return Wallet details.
-    function getRegisteredWallet(bytes20 walletPubKeyHash)
+    function getWallet(bytes20 walletPubKeyHash)
         external
         view
         returns (Wallets.Wallet memory)
@@ -482,6 +522,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @notice Gets the public key hash of the active wallet.
     /// @return The 20-byte public key hash (computed using Bitcoin HASH160
     ///         over the compressed ECDSA public key) of the active wallet.
+    ///         Returns bytes20(0) if there is no active wallet at the moment.
     function getActiveWalletPubKeyHash() external view returns (bytes20) {
         return wallets.activeWalletPubKeyHash;
     }

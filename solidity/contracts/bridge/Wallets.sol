@@ -33,12 +33,13 @@ library Wallets {
         // ECDSA Wallet Registry contract handle.
         EcdsaWalletRegistry registry;
         // Determines how frequently a new wallet creation can be requested.
+        // Value in seconds.
         uint32 creationPeriod;
-        // The minimum BTC threshold that is used to decide about wallet
-        // creation or closing.
+        // The minimum BTC threshold in satoshi that is used to decide about
+        // wallet creation or closing.
         uint64 minBtcBalance;
-        // The maximum BTC threshold that is used to decide about wallet
-        // creation.
+        // The maximum BTC threshold in satoshi that is used to decide about
+        // wallet creation.
         uint64 maxBtcBalance;
         // The maximum age of a wallet in seconds, after which the wallet
         // closure can be requested.
@@ -97,6 +98,13 @@ library Wallets {
         WalletState state;
     }
 
+    event WalletCreationPeriodUpdated(uint32 newCreationPeriod);
+
+    event WalletBtcBalanceRangeUpdated(
+        uint64 newMinBtcBalance,
+        uint64 newMaxBtcBalance
+    );
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -137,6 +145,8 @@ library Wallets {
         external
     {
         self.creationPeriod = creationPeriod;
+
+        emit WalletCreationPeriodUpdated(creationPeriod);
     }
 
     /// @notice Sets the minimum and maximum BTC balance parameters.
@@ -158,6 +168,8 @@ library Wallets {
 
         self.minBtcBalance = minBtcBalance;
         self.maxBtcBalance = maxBtcBalance;
+
+        emit WalletBtcBalanceRangeUpdated(minBtcBalance, maxBtcBalance);
     }
 
     /// @notice Sets the wallet maximum age.
@@ -226,11 +238,11 @@ library Wallets {
         self.registry.requestNewWallet();
     }
 
-    /// @notice Gets BTC balance for given wallet.
+    /// @notice Gets BTC balance for given the wallet.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
     ///        known on the Ethereum chain.
-    /// @return walletBtcBalance Current BTC balance for given wallet.
+    /// @return walletBtcBalance Current BTC balance for the given wallet.
     /// @dev Requirements:
     ///      - `walletMainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.

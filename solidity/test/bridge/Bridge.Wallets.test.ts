@@ -20,6 +20,7 @@ import { Wallets__factory } from "../../typechain"
 import { NO_MAIN_UTXO } from "../data/sweep"
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { constants, ecdsaDkgState, walletState } from "../fixtures"
+import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 chai.use(smock.matchers)
 
@@ -98,6 +99,97 @@ describe("Bridge - Wallets", () => {
       await waffle.loadFixture(fixture))
   })
 
+  describe("updateWalletsParameters", () => {
+    context("when caller is the contract owner", () => {
+      context("when all new parameter values are correct", () => {
+        const newCreationPeriod = constants.walletCreationPeriod * 2
+        const newMinBtcBalance = constants.walletMinBtcBalance.add(1000)
+        const newMaxBtcBalance = constants.walletMaxBtcBalance.add(2000)
+
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          tx = await bridge
+            .connect(governance)
+            .updateWalletsParameters(
+              newCreationPeriod,
+              newMinBtcBalance,
+              newMaxBtcBalance
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should set correct values", async () => {
+          const params = await bridge.getWalletsParameters()
+
+          expect(params.creationPeriod).to.be.equal(newCreationPeriod)
+          expect(params.minBtcBalance).to.be.equal(newMinBtcBalance)
+          expect(params.maxBtcBalance).to.be.equal(newMaxBtcBalance)
+        })
+
+        it("should emit correct events", async () => {
+          await expect(tx)
+            .to.emit(bridge, "WalletCreationPeriodUpdated")
+            .withArgs(newCreationPeriod)
+
+          await expect(tx)
+            .to.emit(bridge, "WalletBtcBalanceRangeUpdated")
+            .withArgs(newMinBtcBalance, newMaxBtcBalance)
+        })
+      })
+
+      context("when new minimum BTC balance is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateWalletsParameters(
+                constants.walletCreationPeriod,
+                0,
+                constants.walletMaxBtcBalance
+              )
+          ).to.be.revertedWith("Minimum must be greater than zero")
+        })
+      })
+
+      context(
+        "when new maximum BTC balance is not greater than the minimum",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateWalletsParameters(
+                  constants.walletCreationPeriod,
+                  constants.walletMinBtcBalance,
+                  constants.walletMinBtcBalance
+                )
+            ).to.be.revertedWith("Maximum must be greater than the minimum")
+          })
+        }
+      )
+    })
+
+    context("when caller is not the contract owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridge
+            .connect(thirdParty)
+            .updateWalletsParameters(
+              constants.walletCreationPeriod,
+              constants.walletMinBtcBalance,
+              constants.walletMaxBtcBalance
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
   describe("requestNewWallet", () => {
     before(async () => {
       await createSnapshot()
@@ -143,8 +235,8 @@ describe("Bridge - Wallets", () => {
           })
 
           it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
-            await expect(walletRegistry.requestNewWallet).to.have.been
-              .calledOnce
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            expect(walletRegistry.requestNewWallet).to.have.been.calledOnce
           })
         })
 
@@ -154,16 +246,13 @@ describe("Bridge - Wallets", () => {
 
             await bridge.setActiveWallet(ecdsaWalletTestData.pubKeyHash160)
 
-            await bridge.setRegisteredWallet(
-              ecdsaWalletTestData.pubKeyHash160,
-              {
-                ecdsaWalletID: ecdsaWalletTestData.walletID,
-                mainUtxoHash: ethers.constants.HashZero,
-                pendingRedemptionsValue: 0,
-                createdAt: await lastBlockTime(),
-                state: walletState.Live,
-              }
-            )
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ecdsaWalletID: ecdsaWalletTestData.walletID,
+              mainUtxoHash: ethers.constants.HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: await lastBlockTime(),
+              state: walletState.Live,
+            })
           })
 
           after(async () => {
@@ -194,7 +283,7 @@ describe("Bridge - Wallets", () => {
                         txOutputValue: constants.walletMinBtcBalance,
                       }
 
-                      await bridge.setRegisteredWalletMainUtxo(
+                      await bridge.setWalletMainUtxo(
                         ecdsaWalletTestData.pubKeyHash160,
                         activeWalletMainUtxo
                       )
@@ -239,7 +328,7 @@ describe("Bridge - Wallets", () => {
                         txOutputValue: constants.walletMaxBtcBalance,
                       }
 
-                      await bridge.setRegisteredWalletMainUtxo(
+                      await bridge.setWalletMainUtxo(
                         ecdsaWalletTestData.pubKeyHash160,
                         activeWalletMainUtxo
                       )
@@ -284,7 +373,7 @@ describe("Bridge - Wallets", () => {
                       txOutputValue: constants.walletMaxBtcBalance.sub(1),
                     }
 
-                    await bridge.setRegisteredWalletMainUtxo(
+                    await bridge.setWalletMainUtxo(
                       ecdsaWalletTestData.pubKeyHash160,
                       activeWalletMainUtxo
                     )
@@ -325,7 +414,7 @@ describe("Bridge - Wallets", () => {
                       txOutputValue: constants.walletMinBtcBalance.sub(1),
                     }
 
-                    await bridge.setRegisteredWalletMainUtxo(
+                    await bridge.setWalletMainUtxo(
                       ecdsaWalletTestData.pubKeyHash160,
                       activeWalletMainUtxo
                     )
@@ -357,7 +446,7 @@ describe("Bridge - Wallets", () => {
               before(async () => {
                 await createSnapshot()
 
-                await bridge.setRegisteredWalletMainUtxo(
+                await bridge.setWalletMainUtxo(
                   ecdsaWalletTestData.pubKeyHash160,
                   activeWalletMainUtxo
                 )
@@ -481,37 +570,27 @@ describe("Bridge - Wallets", () => {
         })
 
         it("should register ECDSA wallet reference", async () => {
-          await expect(
-            (
-              await bridge.getRegisteredWallet(
-                ecdsaWalletTestData.pubKeyHash160
-              )
-            ).ecdsaWalletID
+          expect(
+            (await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160))
+              .ecdsaWalletID
           ).equals(ecdsaWalletTestData.walletID)
         })
 
         it("should transition wallet to Live state", async () => {
-          await expect(
-            (
-              await bridge.getRegisteredWallet(
-                ecdsaWalletTestData.pubKeyHash160
-              )
-            ).state
+          expect(
+            (await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160)).state
           ).equals(walletState.Live)
         })
 
         it("should set the created at timestamp", async () => {
-          await expect(
-            (
-              await bridge.getRegisteredWallet(
-                ecdsaWalletTestData.pubKeyHash160
-              )
-            ).createdAt
+          expect(
+            (await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160))
+              .createdAt
           ).equals(await lastBlockTime())
         })
 
         it("should set the wallet as the active one", async () => {
-          await expect(await bridge.getActiveWalletPubKeyHash()).equals(
+          expect(await bridge.getActiveWalletPubKeyHash()).equals(
             ecdsaWalletTestData.pubKeyHash160
           )
         })
