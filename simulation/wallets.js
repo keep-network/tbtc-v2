@@ -2,7 +2,7 @@ const NUM_ITERATIONS = 2
 const DAYS_TO_SIMULATE = 365 * 2 // days
 const LOG_LEVEL = 3
 
-const DUST_THRESHOLD = 1
+const WALLET_MIN_BTC = 1
 const EXPECTED_NEW_DEPOSITS = 30
 const EXPECTED_NEW_OPERATORS = 10
 const EXPECTED_NEW_WITHDRAWS = 25
@@ -252,7 +252,7 @@ function randomTransferWithoutCap(wallet) {
   let liveWallets = []
   for (let i = 0; i < walletIndex; i++) {
     if (
-      walletBalances[i] > DUST_THRESHOLD &&
+      walletBalances[i] > WALLET_MIN_BTC &&
       Object.keys(walletStakingOperators[i]).length >= HEARTBEAT &&
       i != walletIndex
     ) {
@@ -284,7 +284,7 @@ function randomTransfer(wallet) {
   let liveWallets = []
   for (let i = 0; i < walletIndex; i++) {
     if (
-      walletBalances[i] > DUST_THRESHOLD &&
+      walletBalances[i] > WALLET_MIN_BTC &&
       Object.keys(walletStakingOperators[i]).length >= HEARTBEAT &&
       i != walletIndex
     ) {
@@ -411,7 +411,7 @@ function withdraw(wallet, amount) {
   )
   walletBalances[wallet] -= amount
   btcInSystem -= amount
-  if (remainingBalance <= DUST_THRESHOLD) {
+  if (remainingBalance <= WALLET_MIN_BTC) {
     closeWallet(wallet, "below dust")
   }
 }
