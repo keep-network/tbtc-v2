@@ -314,6 +314,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 indexed walletPubKeyHash
     );
 
+    event WalletTerminated(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
     event DepositRevealed(

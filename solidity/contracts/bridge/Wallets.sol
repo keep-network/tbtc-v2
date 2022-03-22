@@ -109,6 +109,11 @@ library Wallets {
         bytes20 indexed walletPubKeyHash
     );
 
+    event WalletTerminated(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
     /// @notice Initializes state invariants.
     /// @param registry ECDSA Wallet Registry reference
     /// @dev Requirements:
@@ -298,5 +303,36 @@ library Wallets {
         self.activeWalletPubKeyHash = walletPubKeyHash;
 
         emit NewWalletRegistered(ecdsaWalletID, walletPubKeyHash);
+    }
+
+    /// @notice Reports about a proven fraud committed by the given wallet.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - Wallet must be in Live state
+    function notifyWalletFraudProven(
+        Data storage self,
+        bytes20 walletPubKeyHash
+    ) external {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        require(
+            wallet.state == WalletState.Live,
+            "ECDSA wallet must be in Live state"
+        );
+
+        wallet.state = WalletState.Terminated;
+
+        if (self.activeWalletPubKeyHash == walletPubKeyHash) {
+            // If termination refers to the current active wallet,
+            // unset the active wallet and make the wallet creation process
+            // possible in order to get a new healthy active wallet.
+            delete self.activeWalletPubKeyHash;
+        }
+
+        emit WalletTerminated(wallet.ecdsaWalletID, walletPubKeyHash);
+
+        // TODO: Perform slashing of wallet operators and add unit tests for that.
+
+        // TODO: Send termination signal to the ECDSA registry and add unit tests for that.
+        //       See: https://github.com/keep-network/keep-core/issues/2864
     }
 }
