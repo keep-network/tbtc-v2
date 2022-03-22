@@ -1,4 +1,4 @@
-const NUM_ITERATIONS = 2
+const NUM_ITERATIONS = 20
 const LOG_LEVEL = 3
 
 const DUST_THRESHOLD = 1
@@ -431,8 +431,13 @@ let operatorToWallets = {}
 // staking with O(1).
 let stakingOperators = {}
 // Used to track how different protocol decisions impact wallet risk across
-// multiple simulation iterations.
+// multiple simulation iterations. Used to calculate the average biggest wallet
+// across the simulations..
 let totalBiggestWalletBalance = 0
+// Used to track how different protocol decisions impact wallet risk across
+// multiple simulation iterations. Used to keep track of the biggest wallet
+// across the simulations.
+let maxBiggestWalletBalance = 0
 // Cache of {day => [operatorId]}. Used to query which operators are unstaking
 // on a particular day.
 let unstakingOperators = {}
@@ -471,5 +476,9 @@ for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
     newDay(i)
   }
   totalBiggestWalletBalance += biggestWalletBalance
+  if (maxBiggestWalletBalance < biggestWalletBalance) {
+    maxBiggestWalletBalance = biggestWalletBalance
+  }
 }
-log(3, "biggestWalletBalance: " + totalBiggestWalletBalance / NUM_ITERATIONS)
+log(3, "average biggest wallet balance: " + totalBiggestWalletBalance / NUM_ITERATIONS)
+log(3, "max biggest wallet balance: " + maxBiggestWalletBalance)
