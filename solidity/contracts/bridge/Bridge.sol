@@ -409,7 +409,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        conditions must be true:
     ///        - The active wallet BTC balance is above the minimum threshold
     ///          and the active wallet is old enough, i.e. the creation period
-    ///           was elapsed since its creation time
+    ///          was elapsed since its creation time
     ///        - The active wallet BTC balance is above the maximum threshold
     function requestNewWallet(BitcoinTx.UTXO calldata activeWalletMainUtxo)
         external
