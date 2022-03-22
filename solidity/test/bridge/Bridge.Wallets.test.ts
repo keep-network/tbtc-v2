@@ -5,7 +5,6 @@ import chai, { expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { ContractTransaction } from "ethers"
-import { applyWorkaround } from "hardhat/internal/util/antlr-prototype-pollution-workaround"
 import type {
   Bank,
   BankStub,
@@ -236,8 +235,8 @@ describe("Bridge - Wallets", () => {
           })
 
           it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
-            await expect(walletRegistry.requestNewWallet).to.have.been
-              .calledOnce
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            expect(walletRegistry.requestNewWallet).to.have.been.calledOnce
           })
         })
 
@@ -571,31 +570,27 @@ describe("Bridge - Wallets", () => {
         })
 
         it("should register ECDSA wallet reference", async () => {
-          await expect(
-            (
-              await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160)
-            ).ecdsaWalletID
+          expect(
+            (await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160))
+              .ecdsaWalletID
           ).equals(ecdsaWalletTestData.walletID)
         })
 
         it("should transition wallet to Live state", async () => {
-          await expect(
-            (
-              await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160)
-            ).state
+          expect(
+            (await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160)).state
           ).equals(walletState.Live)
         })
 
         it("should set the created at timestamp", async () => {
-          await expect(
-            (
-              await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160)
-            ).createdAt
+          expect(
+            (await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160))
+              .createdAt
           ).equals(await lastBlockTime())
         })
 
         it("should set the wallet as the active one", async () => {
-          await expect(await bridge.getActiveWalletPubKeyHash()).equals(
+          expect(await bridge.getActiveWalletPubKeyHash()).equals(
             ecdsaWalletTestData.pubKeyHash160
           )
         })
