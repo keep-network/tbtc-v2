@@ -219,11 +219,11 @@ library Wallets {
         self.registry.requestNewWallet();
     }
 
-    /// @notice Gets BTC balance for given wallet.
+    /// @notice Gets BTC balance for given the wallet.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
     ///        known on the Ethereum chain.
-    /// @return walletBtcBalance Current BTC balance for given wallet.
+    /// @return walletBtcBalance Current BTC balance for the given wallet.
     /// @dev Requirements:
     ///      - `walletMainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
