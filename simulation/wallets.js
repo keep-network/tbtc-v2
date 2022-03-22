@@ -505,3 +505,4 @@ for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
 }
 log(3, "average biggest wallet balance: " + totalBiggestWalletBalance / NUM_ITERATIONS)
 log(3, "max biggest wallet balance: " + maxBiggestWalletBalance)
+log(3, "average number of wallet to wallet transfers: " + numberOfTransfers / NUM_ITERATIONS)
