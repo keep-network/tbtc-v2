@@ -14,9 +14,9 @@ const WALLET_TRANSFER_MAX = 200
 const WALLET_SIZE = 100
 const WALLET_CREATION_PERIOD = 7 // days
 const TRANSFER_IMPLEMENTATIONS = {
-  RANDOM_TRANSFER_WITHOUT_CAP: 'randomTransferWithoutCap',
-  RANDOM_TRANSFER: 'randomTransfer',
-  TRANSFER_TO_ACTIVE: 'transferToActive'
+  RANDOM_TRANSFER_WITHOUT_CAP: "randomTransferWithoutCap",
+  RANDOM_TRANSFER: "randomTransfer",
+  TRANSFER_TO_ACTIVE: "transferToActive",
 }
 const TRANSFER_IMPLEMENTATION = TRANSFER_IMPLEMENTATIONS.RANDOM_TRANSFER
 
@@ -344,19 +344,19 @@ function transferToActive(wallet) {
   numberOfTransfers++
 }
 
-let transfer;
+let transfer
 switch (TRANSFER_IMPLEMENTATION) {
   case TRANSFER_IMPLEMENTATIONS.RANDOM_TRANSFER:
     transfer = randomTransfer
-    break;
+    break
   case TRANSFER_IMPLEMENTATIONS.RANDOM_TRANSFER_WITHOUT_CAP:
     transfer = randomTransferWithoutCap
-    break;
+    break
   case TRANSFER_IMPLEMENTATIONS.TRANSFER_TO_ACTIVE:
     transfer = transferToActive
-    break;
+    break
   default:
-    throw 'unknown transfer implementation: ' + TRANSFER_IMPLEMENTATION
+    throw "unknown transfer implementation: " + TRANSFER_IMPLEMENTATION
 }
 
 function closeWallet(wallet, reason) {
@@ -503,6 +503,14 @@ for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
     maxBiggestWalletBalance = biggestWalletBalance
   }
 }
-log(3, "average biggest wallet balance: " + totalBiggestWalletBalance / NUM_ITERATIONS)
+log(
+  3,
+  "average biggest wallet balance: " +
+    totalBiggestWalletBalance / NUM_ITERATIONS
+)
 log(3, "max biggest wallet balance: " + maxBiggestWalletBalance)
-log(3, "average number of wallet to wallet transfers: " + numberOfTransfers / NUM_ITERATIONS)
+log(
+  3,
+  "average number of wallet to wallet transfers: " +
+    numberOfTransfers / NUM_ITERATIONS
+)
