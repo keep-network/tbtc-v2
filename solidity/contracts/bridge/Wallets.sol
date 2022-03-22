@@ -33,12 +33,13 @@ library Wallets {
         // ECDSA Wallet Registry contract handle.
         EcdsaWalletRegistry registry;
         // Determines how frequently a new wallet creation can be requested.
+        // Value in seconds.
         uint32 creationPeriod;
-        // The minimum BTC threshold that is used to decide about wallet
-        // creation or closing.
+        // The minimum BTC threshold in satoshi that is used to decide about
+        // wallet creation or closing.
         uint64 minBtcBalance;
-        // The maximum BTC threshold that is used to decide about wallet
-        // creation.
+        // The maximum BTC threshold in satoshi that is used to decide about
+        // wallet creation.
         uint64 maxBtcBalance;
         // TODO: Make sure the `activeWalletPubKeyHash` is zeroed in case
         //       the active wallet becomes non-Live. This will be implemented
