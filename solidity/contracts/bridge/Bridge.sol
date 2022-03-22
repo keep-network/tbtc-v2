@@ -20,12 +20,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
-import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
 
 import "./library/Frauds.sol";
 import "../bank/Bank.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
+import "./Wallets.sol";
 
 /// @title Interface for the Bitcoin relay
 /// @notice Contains only the methods needed by tBTC v2. The Bitcoin relay
@@ -63,6 +63,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using BTCUtils for uint256;
     using BytesLib for bytes;
     using Frauds for Frauds.Data;
+    using Wallets for Wallets.Data;
 
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
@@ -170,38 +171,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint64 changeValue;
     }
 
-    /// @notice Represents wallet state:
-    enum WalletState {
-        /// @dev The wallet is unknown to the Bridge.
-        Unknown,
-        /// @dev The wallet can sweep deposits and accept redemption requests.
-        Active,
-        /// @dev The wallet was deemed unhealthy and is expected to move their
-        ///      outstanding funds to another wallet. The wallet can still
-        ///      fulfill their pending redemption requests although new
-        ///      redemption requests and new deposit reveals are not accepted.
-        MovingFunds,
-        /// @dev The wallet moved or redeemed all their funds and cannot
-        ///      perform any action.
-        Closed,
-        /// @dev The wallet committed a fraud that was reported. The wallet is
-        ///      blocked and can not perform any actions in the Bridge.
-        ///      Off-chain coordination with the wallet operators is needed to
-        ///      recover funds.
-        Terminated
-    }
-
-    /// @notice Holds information about a wallet.
-    struct Wallet {
-        // Identifier of a ECDSA Wallet registered in the ECDSA Wallet Registry.
-        bytes32 ecdsaWalletID;
-        // Current state of the wallet.
-        WalletState state;
-        // The total redeemable value of pending redemption requests targeting
-        // that wallet.
-        uint64 pendingRedemptionsValue;
-    }
-
     /// @notice The number of confirmations on the Bitcoin chain required to
     ///         successfully evaluate an SPV proof.
     uint256 public immutable txProofDifficultyFactor;
@@ -218,10 +187,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @notice Address where the redemptions treasury fees will be sent to.
     ///         Treasury takes part in the operators rewarding process.
     address public immutable treasury;
-
-    /// TODO: Revisit whether it should be governable or not.
-    /// @notice ECDSA Wallet Registry contract handle.
-    EcdsaWalletRegistry public immutable ecdsaWalletRegistry;
 
     /// TODO: Make it governable.
     /// @notice The minimal amount that can be requested for deposit.
@@ -302,15 +267,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         validating them before attempting to execute a sweep.
     mapping(uint256 => DepositRequest) public deposits;
 
-    /// @notice Maps the 20-byte wallet public key hash (computed using
-    ///         Bitcoin HASH160 over the compressed ECDSA public key) to
-    ///         the latest wallet's main UTXO computed as
-    ///         keccak256(txHash | txOutputIndex | txOutputValue). The `tx`
-    ///         prefix refers to the transaction which created that main UTXO.
-    ///         The txHash is bytes32 (ordered as in Bitcoin internally),
-    ///         txOutputIndex an uint32, and txOutputValue an uint64 value.
-    mapping(bytes20 => bytes32) public mainUtxos;
-
     //TODO: Remember to update this map when implementing transferring funds
     //      between wallets (insert the main UTXO that was used as the input).
     /// @notice Collection of main UTXOs that are honestly spent indexed by
@@ -357,18 +313,21 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     // slither-disable-next-line uninitialized-state
     mapping(uint256 => RedemptionRequest) public timedOutRedemptions;
 
-    /// @notice Maps the 20-byte wallet public key hash (computed using
-    ///         Bitcoin HASH160 over the compressed ECDSA public key) to the
-    ///         basic wallet information like state and pending
-    ///         redemptions value.
-    ///
-    // TODO: Remove that Slither disable once this variable is used.
-    // slither-disable-next-line uninitialized-state
-    mapping(bytes20 => Wallet) public wallets;
+    /// @notice State related with wallets.
+    Wallets.Data internal wallets;
 
-    event WalletCreated(
-        bytes20 indexed walletPubKeyHash,
-        bytes32 indexed ecdsaWalletID
+    event WalletCreationPeriodUpdated(uint32 newCreationPeriod);
+
+    event WalletBtcBalanceRangeUpdated(
+        uint64 newMinBtcBalance,
+        uint64 newMaxBtcBalance
+    );
+
+    event NewWalletRequested();
+
+    event NewWalletRegistered(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
     );
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
@@ -455,12 +414,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         require(_treasury != address(0), "Treasury address cannot be zero");
         treasury = _treasury;
 
-        require(
-            _ecdsaWalletRegistry != address(0),
-            "ECDSA Wallet Registry address cannot be zero"
-        );
-        ecdsaWalletRegistry = EcdsaWalletRegistry(_ecdsaWalletRegistry);
-
         txProofDifficultyFactor = _txProofDifficultyFactor;
 
         // TODO: Revisit initial values.
@@ -475,10 +428,48 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         frauds.setNotifierRewardMultiplier(20); // 20%
         frauds.setChallengeDefeatTimeout(7 days);
         frauds.setChallengeDepositAmount(2 ether);
+
+        // TODO: Revisit initial values.
+        wallets.init(_ecdsaWalletRegistry);
+        wallets.setCreationPeriod(1 weeks);
+        wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // [1 BTC, 10 BTC]
     }
 
-    // TODO: Add function `onNewWalletCreated` according to discussion:
-    //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r809885230
+    /// @notice Updates parameters used by the `Wallets` library.
+    /// @param creationPeriod New value of the wallet creation period
+    /// @param minBtcBalance New value of the minimum BTC balance
+    /// @param maxBtcBalance New value of the maximum BTC balance
+    /// @dev Requirements:
+    ///      - Caller must be the contract owner.
+    ///      - Minimum BTC balance must be greater than zero
+    ///      - Maximum BTC balance must be greater than minimum BTC balance
+    function updateWalletsParameters(
+        uint32 creationPeriod,
+        uint64 minBtcBalance,
+        uint64 maxBtcBalance
+    ) external onlyOwner {
+        wallets.setCreationPeriod(creationPeriod);
+        wallets.setBtcBalanceRange(minBtcBalance, maxBtcBalance);
+    }
+
+    /// @return creationPeriod Value of the wallet creation period
+    /// @return minBtcBalance Value of the minimum BTC balance
+    /// @return maxBtcBalance Value of the maximum BTC balance
+    function getWalletsParameters()
+        external
+        view
+        returns (
+            uint32 creationPeriod,
+            uint64 minBtcBalance,
+            uint64 maxBtcBalance
+        )
+    {
+        creationPeriod = wallets.creationPeriod;
+        minBtcBalance = wallets.minBtcBalance;
+        maxBtcBalance = wallets.maxBtcBalance;
+
+        return (creationPeriod, minBtcBalance, maxBtcBalance);
+    }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
     ///         or no longer trusted. Vaults are not trusted by default.
@@ -498,49 +489,66 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         emit VaultStatusUpdated(vault, isTrusted);
     }
 
-    /// @notice Initiates a new wallet creation.
-    /// @dev ECDSA wallet creation is asynchronous process. Once a wallet is
-    ///      created the ECDSA Wallet Registry will notify this contract by
-    ///      calling a `__ecdsaWalletCreatedCallback` function.
-    function requestNewWallet() external {
-        // TODO: Implement wallet creation rules
-
-        ecdsaWalletRegistry.requestNewWallet();
+    /// @notice Requests creation of a new wallet. This function just
+    ///         forms a request and the creation process is performed
+    ///         asynchronously. Once a wallet is created, the ECDSA Wallet
+    ///         Registry will notify this contract by calling the
+    ///         `__ecdsaWalletCreatedCallback` function.
+    /// @param activeWalletMainUtxo Data of the active wallet's main UTXO, as
+    ///        currently known on the Ethereum chain.
+    /// @dev Requirements:
+    ///      - `activeWalletMainUtxo` components must point to the recent main
+    ///        UTXO of the given active wallet, as currently known on the
+    ///        Ethereum chain. If there is no active wallet at the moment, or
+    ///        the active wallet has no main UTXO, this parameter can be
+    ///        empty as it is ignored.
+    ///      - Wallet creation must not be in progress
+    ///      - If the active wallet is set, one of the following
+    ///        conditions must be true:
+    ///        - The active wallet BTC balance is above the minimum threshold
+    ///          and the active wallet is old enough, i.e. the creation period
+    ///          was elapsed since its creation time
+    ///        - The active wallet BTC balance is above the maximum threshold
+    function requestNewWallet(BitcoinTx.UTXO calldata activeWalletMainUtxo)
+        external
+    {
+        wallets.requestNewWallet(activeWalletMainUtxo);
     }
 
     /// @notice A callback function that is called by the ECDSA Wallet Registry
     ///         once a new ECDSA wallet is created.
-    /// @dev ECDSA Wallet Registry assigns a unique wallet ID generated by hashing
-    ///      wallet's public key with keccak256. In this contract we expect
-    ///      to identify wallets by Bitcoin's hash160, hence we map the wallets
-    ///      between those two.
     /// @param ecdsaWalletID Wallet's unique identifier.
-    /// @param publicKeyY Wallet's public key's X coordinate.
+    /// @param publicKeyX Wallet's public key's X coordinate.
     /// @param publicKeyY Wallet's public key's Y coordinate.
+    /// @dev Requirements:
+    ///      - The only caller authorized to call this function is `registry`
+    ///      - Given wallet data must not belong to an already registered wallet
     function __ecdsaWalletCreatedCallback(
         bytes32 ecdsaWalletID,
         bytes32 publicKeyX,
         bytes32 publicKeyY
     ) external override {
-        require(
-            msg.sender == address(ecdsaWalletRegistry),
-            "Caller is not the ECDSA Wallet Registry"
-        );
+        wallets.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
+    }
 
-        // Compress wallet's public key and calculate Bitcoin's hash160 of it.
-        bytes20 walletPubKeyHash = bytes20(
-            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
-        );
+    /// @notice Gets details about a registered wallet.
+    /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key)
+    /// @return Wallet details.
+    function getWallet(bytes20 walletPubKeyHash)
+        external
+        view
+        returns (Wallets.Wallet memory)
+    {
+        return wallets.registeredWallets[walletPubKeyHash];
+    }
 
-        require(
-            wallets[walletPubKeyHash].state == WalletState.Unknown,
-            "ECDSA wallet has been already registered"
-        );
-
-        wallets[walletPubKeyHash].ecdsaWalletID = ecdsaWalletID;
-        wallets[walletPubKeyHash].state = WalletState.Active;
-
-        emit WalletCreated(walletPubKeyHash, ecdsaWalletID);
+    /// @notice Gets the public key hash of the active wallet.
+    /// @return The 20-byte public key hash (computed using Bitcoin HASH160
+    ///         over the compressed ECDSA public key) of the active wallet.
+    ///         Returns bytes20(0) if there is no active wallet at the moment.
+    function getActiveWalletPubKeyHash() external view returns (bytes20) {
+        return wallets.activeWalletPubKeyHash;
     }
 
     /// @notice Determines the current Bitcoin SPV proof difficulty context.
@@ -601,7 +609,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "Vault is not trusted"
         );
 
-        // TODO: Validate if `walletPubKeyHash` is a known and active wallet.
+        // TODO: Validate if `walletPubKeyHash` is a known and live wallet.
         // TODO: Should we enforce a specific locktime at contract level?
 
         bytes memory expectedScript = abi.encodePacked(
@@ -770,7 +778,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             uint64 sweepTxOutputValue
         ) = processSweepTxOutput(sweepTx.outputVector);
 
-        // TODO: Validate if `walletPubKeyHash` is a known and active wallet.
+        Wallets.Wallet storage wallet = wallets.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        // TODO: Validate if `walletPubKeyHash` is a known and live wallet.
 
         // Check if the main UTXO for given wallet exists. If so, validate
         // passed main UTXO data against the stored hash and use them for
@@ -780,7 +792,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             0,
             0
         );
-        bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
+        bytes32 mainUtxoHash = wallet.mainUtxoHash;
         if (mainUtxoHash != bytes32(0)) {
             require(
                 keccak256(
@@ -848,7 +860,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // Record this sweep data and assign them to the wallet public key hash
         // as new main UTXO. Transaction output index is always 0 as sweep
         // transaction always contains only one output.
-        mainUtxos[walletPubKeyHash] = keccak256(
+        wallet.mainUtxoHash = keccak256(
             abi.encodePacked(sweepTxHash, uint32(0), sweepTxOutputValue)
         );
 
@@ -1128,7 +1140,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @notice Requests redemption of the given amount from the specified
     ///         wallet to the redeemer Bitcoin output script.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
-    //         using Bitcoin HASH160 over the compressed ECDSA public key)
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key)
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain
     /// @param redeemerOutputScript The redeemer's length-prefixed output
@@ -1143,7 +1155,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        `amount - (amount / redemptionTreasuryFeeDivisor) - redemptionTxMaxFee`.
     ///        Fees values are taken at the moment of request creation.
     /// @dev Requirements:
-    ///      - Wallet behind `walletPubKeyHash` must be active
+    ///      - Wallet behind `walletPubKeyHash` must be live
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
     ///      - `redeemerOutputScript` must be a proper Bitcoin script
@@ -1160,12 +1172,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes calldata redeemerOutputScript,
         uint64 amount
     ) external {
+        Wallets.Wallet storage wallet = wallets.registeredWallets[
+            walletPubKeyHash
+        ];
+
         require(
-            wallets[walletPubKeyHash].state == WalletState.Active,
-            "Wallet must be in Active state"
+            wallet.state == Wallets.WalletState.Live,
+            "Wallet must be in Live state"
         );
 
-        bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
+        bytes32 mainUtxoHash = wallet.mainUtxoHash;
         require(
             mainUtxoHash != bytes32(0),
             "No main UTXO for the given wallet"
@@ -1227,7 +1243,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         // Check if given redemption key is not used by a pending redemption.
         // There is no need to check for existence in `timedOutRedemptions`
-        // since the wallet's state is changed to other than Active after
+        // since the wallet's state is changed to other than Live after
         // first time out is reported so making new requests is not possible.
         // slither-disable-next-line incorrect-equality
         require(
@@ -1248,12 +1264,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // wallet we need to subtract the total value of all pending redemptions
         // from that wallet's main UTXO value. Given that the treasury fee is
         // not redeemed from the wallet, we are subtracting it.
-        wallets[walletPubKeyHash].pendingRedemptionsValue +=
-            amount -
-            treasuryFee;
+        wallet.pendingRedemptionsValue += amount - treasuryFee;
         require(
-            mainUtxo.txOutputValue >=
-                wallets[walletPubKeyHash].pendingRedemptionsValue,
+            mainUtxo.txOutputValue >= wallet.pendingRedemptionsValue,
             "Insufficient wallet funds"
         );
 
@@ -1350,11 +1363,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             walletPubKeyHash
         );
 
-        WalletState walletState = wallets[walletPubKeyHash].state;
+        Wallets.Wallet storage wallet = wallets.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        Wallets.WalletState walletState = wallet.state;
         require(
-            walletState == WalletState.Active ||
-                walletState == WalletState.MovingFunds,
-            "Wallet must be in Active or MovingFuds state"
+            walletState == Wallets.WalletState.Live ||
+                walletState == Wallets.WalletState.MovingFunds,
+            "Wallet must be in Live or MovingFuds state"
         );
 
         // Process redemption transaction outputs to extract some info required
@@ -1367,7 +1384,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         if (outputsInfo.changeValue > 0) {
             // If the change value is grater than zero, it means the change
             // output exists and can be used as new wallet's main UTXO.
-            mainUtxos[walletPubKeyHash] = keccak256(
+            wallet.mainUtxoHash = keccak256(
                 abi.encodePacked(
                     redemptionTxHash,
                     outputsInfo.changeIndex,
@@ -1378,11 +1395,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             // If the change value is zero, it means the change output doesn't
             // exists and no funds left on the wallet. Delete the main UTXO
             // for that wallet to represent that state in a proper way.
-            delete mainUtxos[walletPubKeyHash];
+            delete wallet.mainUtxoHash;
         }
 
-        wallets[walletPubKeyHash].pendingRedemptionsValue -= outputsInfo
-            .totalBurnableValue;
+        wallet.pendingRedemptionsValue -= outputsInfo.totalBurnableValue;
 
         emit RedemptionsCompleted(walletPubKeyHash, redemptionTxHash);
 
@@ -1433,11 +1449,14 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
 
+        Wallets.Wallet storage wallet = wallets.registeredWallets[
+            walletPubKeyHash
+        ];
+
         require(
-            // TODO: Rename WalletState.Active to WalletState.Live
-            wallets[walletPubKeyHash].state == WalletState.Active ||
-                wallets[walletPubKeyHash].state == WalletState.MovingFunds,
-            "Wallet is neither in Active nor MovingFunds state"
+            wallet.state == Wallets.WalletState.Live ||
+                wallet.state == Wallets.WalletState.MovingFunds,
+            "Wallet is neither in Live nor MovingFunds state"
         );
 
         frauds.submitFraudChallenge(walletPublicKey, sighash, signature);
@@ -1544,7 +1563,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 walletPubKeyHash
     ) internal {
         // Assert that main UTXO for passed wallet exists in storage.
-        bytes32 mainUtxoHash = mainUtxos[walletPubKeyHash];
+        bytes32 mainUtxoHash = wallets
+            .registeredWallets[walletPubKeyHash]
+            .mainUtxoHash;
         require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
 
         // Assert that passed main UTXO parameter is the same as in storage and
@@ -1840,7 +1861,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     //          by copying the entire `RedemptionRequest` struct there. No need
     //          to check if `timedOutRedemptions` mapping already contains
     //          that key because `requestRedemption` blocks requests targeting
-    //          non-active wallets. Because `notifyRedemptionTimeout` changes
+    //          non-live wallets. Because `notifyRedemptionTimeout` changes
     //          wallet state after first call (point 9), there is no possibility
     //          that the given redemption key could be reported as timed out
     //          multiple times. At the same time, if the given redemption key
@@ -1893,7 +1914,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     //          to have a bad input vector.
     //       2. Perform SPV proof to make sure it occurred on Bitcoin chain.
     //          If not - revert.
-    //       3. Check if wallet state is Active or MovingFunds. If not, revert.
+    //       3. Check if wallet state is Live or MovingFunds. If not, revert.
     //       4. Validate the number of inputs. If there is one input and it
     //          points to the wallet's main UTXO - move to point 5. If there
     //          are multiple inputs and there is wallet's main UTXO in the set,
