@@ -1,4 +1,4 @@
-const NUM_ITERATIONS = 20
+const NUM_ITERATIONS = 2
 const LOG_LEVEL = 3
 
 const DUST_THRESHOLD = 1
@@ -11,6 +11,7 @@ const OPERATOR_QUIT_CHANCE = 0.005
 const WALLET_MAX_AGE = 30 * 6 // days
 const WALLET_MAX_BTC = 200
 const WALLET_SIZE = 100
+const WALLET_CREATION_PERIOD = 7 // days
 
 function log(logLevel, message) {
   if (logLevel >= LOG_LEVEL) {
@@ -146,7 +147,7 @@ const randomNewWithdraw = poissonNumberGenerator(EXPECTED_NEW_WITHDRAWS)
 function closeOldWallets(day) {
   const wallets = Object.keys(walletBalances)
   wallets.forEach((wallet) => {
-    if (day >= wallet * 7 + WALLET_MAX_AGE) {
+    if (day >= wallet * WALLET_CREATION_PERIOD + WALLET_MAX_AGE) {
       closeWallet(wallet, "too old")
     }
   })
@@ -218,9 +219,9 @@ function registerNewOperators() {
   }
 }
 
-// Create a new wallet every 7 days
+// Create a new wallet every WALLET_CREATION_PERIOD days
 function createNewWalletEvent(day) {
-  if (day % 7 == 0) {
+  if (day % WALLET_CREATION_PERIOD == 0) {
     newWallet()
   }
 }
@@ -415,7 +416,7 @@ function withdraw(walletIndex, amount) {
 // Used to track how different protocol decisions impact wallet risk
 let biggestWalletBalance = 0
 let btcInSystem = 0
-let lastWalletCreationDay = -7
+let lastWalletCreationDay = -1 * WALLET_CREATION_PERIOD
 // Cache of {operatorId => bool}. Used query which operators are still live
 // with O(1).
 let liveOperators = {}
@@ -455,7 +456,7 @@ let walletStakingOperators = {}
 for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
   biggestWalletBalance = 0
   btcInSystem = 0
-  lastWalletCreationDay = -7
+  lastWalletCreationDay = -1 * WALLET_CREATION_PERIOD
   liveOperators = {}
   operatorIndex = 0
   operatorToWallets = {}
