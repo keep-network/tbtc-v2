@@ -377,6 +377,42 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // [1 BTC, 10 BTC]
     }
 
+    /// @notice Updates parameters used by the `Wallets` library.
+    /// @param creationPeriod New value of the wallet creation period
+    /// @param minBtcBalance New value of the minimum BTC balance
+    /// @param maxBtcBalance New value of the maximum BTC balance
+    /// @dev Requirements:
+    ///      - Caller must be the contract owner.
+    ///      - Minimum BTC balance must be greater than zero
+    ///      - Maximum BTC balance must be greater than minimum BTC balance
+    function updateWalletsParameters(
+        uint32 creationPeriod,
+        uint64 minBtcBalance,
+        uint64 maxBtcBalance
+    ) external onlyOwner {
+        wallets.setCreationPeriod(creationPeriod);
+        wallets.setBtcBalanceRange(minBtcBalance, maxBtcBalance);
+    }
+
+    /// @return creationPeriod Value of the wallet creation period
+    /// @return minBtcBalance Value of the minimum BTC balance
+    /// @return maxBtcBalance Value of the maximum BTC balance
+    function getWalletsParameters()
+        external
+        view
+        returns (
+            uint32 creationPeriod,
+            uint64 minBtcBalance,
+            uint64 maxBtcBalance
+        )
+    {
+        creationPeriod = wallets.creationPeriod;
+        minBtcBalance = wallets.minBtcBalance;
+        maxBtcBalance = wallets.maxBtcBalance;
+
+        return (creationPeriod, minBtcBalance, maxBtcBalance);
+    }
+
     /// @notice Allows the Governance to mark the given vault address as trusted
     ///         or no longer trusted. Vaults are not trusted by default.
     ///         Trusted vault must meet the following criteria:

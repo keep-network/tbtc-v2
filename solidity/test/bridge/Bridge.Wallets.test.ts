@@ -5,6 +5,7 @@ import chai, { expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { ContractTransaction } from "ethers"
+import { applyWorkaround } from "hardhat/internal/util/antlr-prototype-pollution-workaround"
 import type {
   Bank,
   BankStub,
@@ -20,6 +21,7 @@ import { Wallets__factory } from "../../typechain"
 import { NO_MAIN_UTXO } from "../data/sweep"
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { constants, ecdsaDkgState, walletState } from "../fixtures"
+import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 chai.use(smock.matchers)
 
@@ -96,6 +98,97 @@ describe("Bridge - Wallets", () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ governance, thirdParty, walletRegistry, bridge } =
       await waffle.loadFixture(fixture))
+  })
+
+  describe("updateWalletsParameters", () => {
+    context("when caller is the contract owner", () => {
+      context("when all new parameter values are correct", () => {
+        const newCreationPeriod = constants.walletCreationPeriod * 2
+        const newMinBtcBalance = constants.walletMinBtcBalance.add(1000)
+        const newMaxBtcBalance = constants.walletMaxBtcBalance.add(2000)
+
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          tx = await bridge
+            .connect(governance)
+            .updateWalletsParameters(
+              newCreationPeriod,
+              newMinBtcBalance,
+              newMaxBtcBalance
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should set correct values", async () => {
+          const params = await bridge.getWalletsParameters()
+
+          expect(params.creationPeriod).to.be.equal(newCreationPeriod)
+          expect(params.minBtcBalance).to.be.equal(newMinBtcBalance)
+          expect(params.maxBtcBalance).to.be.equal(newMaxBtcBalance)
+        })
+
+        it("should emit correct events", async () => {
+          await expect(tx)
+            .to.emit(bridge, "WalletCreationPeriodUpdated")
+            .withArgs(newCreationPeriod)
+
+          await expect(tx)
+            .to.emit(bridge, "WalletBtcBalanceRangeUpdated")
+            .withArgs(newMinBtcBalance, newMaxBtcBalance)
+        })
+      })
+
+      context("when new minimum BTC balance is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateWalletsParameters(
+                constants.walletCreationPeriod,
+                0,
+                constants.walletMaxBtcBalance
+              )
+          ).to.be.revertedWith("Minimum must be greater than zero")
+        })
+      })
+
+      context(
+        "when new maximum BTC balance is not greater than the minimum",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateWalletsParameters(
+                  constants.walletCreationPeriod,
+                  constants.walletMinBtcBalance,
+                  constants.walletMinBtcBalance
+                )
+            ).to.be.revertedWith("Maximum must be greater than the minimum")
+          })
+        }
+      )
+    })
+
+    context("when caller is not the contract owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridge
+            .connect(thirdParty)
+            .updateWalletsParameters(
+              constants.walletCreationPeriod,
+              constants.walletMinBtcBalance,
+              constants.walletMaxBtcBalance
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
   })
 
   describe("requestNewWallet", () => {
