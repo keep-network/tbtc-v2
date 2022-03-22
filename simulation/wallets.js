@@ -9,7 +9,7 @@ const HEARTBEAT = 70
 const OPERATOR_COUNT = 2000
 const OPERATOR_QUIT_CHANCE = 0.005
 const WALLET_MAX_AGE = 30 * 6 // days
-const WALLET_MAX_BTC = 200
+const WALLET_TRANSFER_MAX = 200
 const WALLET_SIZE = 100
 const WALLET_CREATION_PERIOD = 7 // days
 
@@ -275,7 +275,7 @@ function randomTransferWithoutCap(walletIndex) {
 }
 
 // An implementation of wallet closure that transfers to random live wallet(s)
-// sending out batches of `WALLET_MAX_BTC` before picking a new wallet. If we
+// sending out batches of `WALLET_TRANSFER_MAX` before picking a new wallet. If we
 // run out of wallets we start over.
 function randomTransfer(walletIndex) {
   let liveWallets = []
@@ -288,13 +288,13 @@ function randomTransfer(walletIndex) {
       liveWallets.push(i)
     }
   }
-  const transferCount = Math.ceil(walletBalances[walletIndex] / WALLET_MAX_BTC)
+  const transferCount = Math.ceil(walletBalances[walletIndex] / WALLET_TRANSFER_MAX)
   const randomIndexes = getRandomSample(liveWallets, transferCount)
   let remaining = walletBalances[walletIndex]
   randomIndexes.forEach((randomIndex) => {
     let transferAmount = 0
-    if (remaining > WALLET_MAX_BTC) {
-      transferAmount = WALLET_MAX_BTC
+    if (remaining > WALLET_TRANSFER_MAX) {
+      transferAmount = WALLET_TRANSFER_MAX
     } else {
       transferAmount = remaining
     }
