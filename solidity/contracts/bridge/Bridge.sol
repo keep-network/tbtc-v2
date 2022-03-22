@@ -367,7 +367,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // TODO: Revisit initial values.
         wallets.init(_ecdsaWalletRegistry);
         wallets.setCreationPeriod(1 weeks);
-        wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // 1 BTC - 10 BTC
+        wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // [1 BTC, 10 BTC]
     }
 
     // TODO: Add function `onNewWalletCreated` according to discussion:
