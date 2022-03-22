@@ -13,6 +13,12 @@ const WALLET_MAX_AGE = 30 * 6 // days
 const WALLET_TRANSFER_MAX = 200
 const WALLET_SIZE = 100
 const WALLET_CREATION_PERIOD = 7 // days
+const TRANSFER_IMPLEMENTATIONS = {
+  RANDOM_TRANSFER_WITHOUT_CAP: 'randomTransferWithoutCap',
+  RANDOM_TRANSFER: 'randomTransfer',
+  TRANSFER_TO_ACTIVE: 'transferToActive'
+}
+const TRANSFER_IMPLEMENTATION = TRANSFER_IMPLEMENTATIONS.RANDOM_TRANSFER
 
 function log(logLevel, message) {
   if (logLevel >= LOG_LEVEL) {
@@ -338,7 +344,20 @@ function transferToActive(wallet) {
   numberOfTransfers++
 }
 
-const transfer = randomTransfer
+let transfer;
+switch (TRANSFER_IMPLEMENTATION) {
+  case TRANSFER_IMPLEMENTATIONS.RANDOM_TRANSFER:
+    transfer = randomTransfer
+    break;
+  case TRANSFER_IMPLEMENTATIONS.RANDOM_TRANSFER_WITHOUT_CAP:
+    transfer = randomTransferWithoutCap
+    break;
+  case TRANSFER_IMPLEMENTATIONS.TRANSFER_TO_ACTIVE:
+    transfer = transferToActive
+    break;
+  default:
+    throw 'unknown transfer implementation: ' + TRANSFER_IMPLEMENTATION
+}
 
 function closeWallet(wallet, reason) {
   if (wallet < walletIndex - 1 && wallet in walletBalances) {
