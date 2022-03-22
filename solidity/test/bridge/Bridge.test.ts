@@ -14,7 +14,6 @@ import type {
   Bridge,
   BridgeStub,
   BridgeStub__factory,
-  Bridge__factory,
   TestRelay,
   TestRelay__factory,
   IWalletRegistry,
@@ -47,8 +46,8 @@ import {
   MultiplePendingRequestedRedemptionsWithProvablyUnspendable,
   MultiplePendingRequestedRedemptionsWithMultipleInputs,
 } from "../data/redemption"
-import { ecdsaWalletTestData } from "../data/ecdsa"
 import { walletState } from "../fixtures"
+import { Wallets__factory } from "../../typechain"
 
 chai.use(smock.matchers)
 
@@ -57,8 +56,6 @@ const { lastBlockTime, increaseTime } = helpers.time
 const { impersonateAccount } = helpers.account
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
-const ZERO_32_BYTES =
-  "0x0000000000000000000000000000000000000000000000000000000000000000"
 
 const fixture = async () => {
   const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
@@ -67,6 +64,7 @@ const fixture = async () => {
   const bank: Bank & BankStub = await Bank.deploy()
   await bank.deployed()
 
+  // TODO: Use Smock fake and get rid of `TestRelay` contract.
   const TestRelay = await ethers.getContractFactory<TestRelay__factory>(
     "TestRelay"
   )
@@ -87,11 +85,16 @@ const fixture = async () => {
   const bitcoinTx = await BitcoinTx.deploy()
   await bitcoinTx.deployed()
 
+  const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
+  const wallets = await Wallets.deploy()
+  await wallets.deployed()
+
   const Bridge = await ethers.getContractFactory<BridgeStub__factory>(
     "BridgeStub",
     {
       libraries: {
         BitcoinTx: bitcoinTx.address,
+        Wallets: wallets.address,
       },
     }
   )
@@ -224,190 +227,6 @@ describe("Bridge", () => {
             .withArgs(vault, false)
         })
       })
-    })
-  })
-
-  describe("requestNewWallet", () => {
-    before(async () => {
-      await createSnapshot()
-    })
-
-    after(async () => {
-      walletRegistry.requestNewWallet.reset()
-
-      await restoreSnapshot()
-    })
-
-    // TODO: Implement wallet creation rules
-
-    context("when called by a third party", async () => {
-      it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
-        await bridge.connect(thirdParty).requestNewWallet()
-
-        await expect(walletRegistry.requestNewWallet).to.have.been.calledOnce
-      })
-    })
-  })
-
-  describe("__ecdsaWalletCreatedCallback", () => {
-    context("when called by a third party", async () => {
-      it("should revert", async () => {
-        await expect(
-          bridge
-            .connect(thirdParty)
-            .__ecdsaWalletCreatedCallback(
-              ecdsaWalletTestData.walletID,
-              ecdsaWalletTestData.publicKeyX,
-              ecdsaWalletTestData.publicKeyY
-            )
-        ).to.be.revertedWith("Caller is not the ECDSA Wallet Registry")
-      })
-    })
-
-    context("when called by the ECDSA Wallet Registry", async () => {
-      context("when called with a valid ECDSA Wallet details", async () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          tx = await bridge
-            .connect(walletRegistry.wallet)
-            .__ecdsaWalletCreatedCallback(
-              ecdsaWalletTestData.walletID,
-              ecdsaWalletTestData.publicKeyX,
-              ecdsaWalletTestData.publicKeyY
-            )
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should register ECDSA wallet reference", async () => {
-          await expect(
-            (
-              await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)
-            ).ecdsaWalletID
-          ).equals(ecdsaWalletTestData.walletID)
-        })
-
-        it("should transition Wallet to Active state", async () => {
-          await expect(
-            (
-              await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)
-            ).state
-          ).equals(walletState.Active)
-        })
-
-        it("should emit WalletCreated event", async () => {
-          await expect(tx)
-            .to.emit(bridge, "WalletCreated")
-            .withArgs(
-              ecdsaWalletTestData.pubKeyHash160,
-              ecdsaWalletTestData.walletID
-            )
-        })
-      })
-
-      context(
-        "when called with the ECDSA Wallet already registered",
-        async () => {
-          before(async () => {
-            await createSnapshot()
-
-            await bridge
-              .connect(walletRegistry.wallet)
-              .__ecdsaWalletCreatedCallback(
-                ecdsaWalletTestData.walletID,
-                ecdsaWalletTestData.publicKeyX,
-                ecdsaWalletTestData.publicKeyY
-              )
-          })
-
-          after(async () => {
-            await restoreSnapshot()
-          })
-
-          const testData = [
-            {
-              testName: "with unique wallet ID and unique public key",
-              walletID: ethers.utils.randomBytes(32),
-              publicKeyX: ethers.utils.randomBytes(32),
-              publicKeyY: ethers.utils.randomBytes(32),
-              expectedError: undefined,
-            },
-            {
-              testName: "with duplicated wallet ID and unique public key",
-              walletID: ecdsaWalletTestData.walletID,
-              publicKeyX: ethers.utils.randomBytes(32),
-              publicKeyY: ethers.utils.randomBytes(32),
-              expectedError: undefined,
-            },
-            {
-              testName:
-                "with unique wallet ID, unique public key X and duplicated public key Y",
-              walletID: ethers.utils.randomBytes(32),
-              publicKeyX: ethers.utils.randomBytes(32),
-              publicKeyY: ecdsaWalletTestData.publicKeyY,
-              expectedError: undefined,
-            },
-            {
-              testName:
-                "with unique wallet ID, unique public key Y and duplicated public key X",
-              walletID: ethers.utils.randomBytes(32),
-              publicKeyX: ecdsaWalletTestData.publicKeyY,
-              publicKeyY: ethers.utils.randomBytes(32),
-              expectedError: undefined,
-            },
-            {
-              testName: "with unique wallet ID and duplicated public key",
-              walletID: ethers.utils.randomBytes(32),
-              publicKeyX: ecdsaWalletTestData.publicKeyX,
-              publicKeyY: ecdsaWalletTestData.publicKeyY,
-              expectedError: "ECDSA wallet has been already registered",
-            },
-            {
-              testName: "with duplicated wallet ID and duplicated public key",
-              walletID: ecdsaWalletTestData.walletID,
-              publicKeyX: ecdsaWalletTestData.publicKeyX,
-              publicKeyY: ecdsaWalletTestData.publicKeyY,
-              expectedError: "ECDSA wallet has been already registered",
-            },
-          ]
-
-          testData.forEach((test) => {
-            context(test.testName, async () => {
-              beforeEach(async () => {
-                await createSnapshot()
-              })
-
-              afterEach(async () => {
-                await restoreSnapshot()
-              })
-
-              it(
-                test.expectedError ? "should revert" : "should not revert",
-                async () => {
-                  const tx: Promise<ContractTransaction> = bridge
-                    .connect(walletRegistry.wallet)
-                    .__ecdsaWalletCreatedCallback(
-                      test.walletID,
-                      test.publicKeyX,
-                      test.publicKeyY
-                    )
-
-                  if (test.expectedError) {
-                    await expect(tx).to.be.revertedWith(test.expectedError)
-                  } else {
-                    await expect(tx).not.to.be.reverted
-                  }
-                }
-              )
-            })
-          })
-        }
-      )
     })
   })
 
@@ -859,7 +678,7 @@ describe("Bridge", () => {
                       })
 
                       it("should update main UTXO for the given wallet", async () => {
-                        const mainUtxoHash = await bridge.mainUtxos(
+                        const { mainUtxoHash } = await bridge.getWallet(
                           walletPubKeyHash
                         )
 
@@ -941,7 +760,7 @@ describe("Bridge", () => {
                       })
 
                       it("should update main UTXO for the given wallet", async () => {
-                        const mainUtxoHash = await bridge.mainUtxos(
+                        const { mainUtxoHash } = await bridge.getWallet(
                           walletPubKeyHash
                         )
 
@@ -1134,7 +953,7 @@ describe("Bridge", () => {
                       })
 
                       it("should update main UTXO for the given wallet", async () => {
-                        const mainUtxoHash = await bridge.mainUtxos(
+                        const { mainUtxoHash } = await bridge.getWallet(
                           walletPubKeyHash
                         )
 
@@ -1263,7 +1082,7 @@ describe("Bridge", () => {
                       })
 
                       it("should update main UTXO for the given wallet", async () => {
-                        const mainUtxoHash = await bridge.mainUtxos(
+                        const { mainUtxoHash } = await bridge.getWallet(
                           walletPubKeyHash
                         )
 
@@ -1860,15 +1679,17 @@ describe("Bridge", () => {
   describe("requestRedemption", () => {
     const walletPubKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
 
-    context("when wallet state is active", () => {
+    context("when wallet state is Live", () => {
       before(async () => {
         await createSnapshot()
 
-        // Simulate the wallet is an active one and is known in the system.
+        // Simulate the wallet is an Live one and is known in the system.
         await bridge.setWallet(walletPubKeyHash, {
-          state: walletState.Active,
-          pendingRedemptionsValue: 0,
           ecdsaWalletID: ethers.constants.HashZero,
+          mainUtxoHash: ethers.constants.HashZero,
+          pendingRedemptionsValue: 0,
+          createdAt: await lastBlockTime(),
+          state: walletState.Live,
         })
       })
 
@@ -1890,7 +1711,7 @@ describe("Bridge", () => {
           await createSnapshot()
 
           // Simulate the prepared main UTXO belongs to the wallet.
-          await bridge.setMainUtxo(walletPubKeyHash, mainUtxo)
+          await bridge.setWalletMainUtxo(walletPubKeyHash, mainUtxo)
         })
 
         after(async () => {
@@ -1972,7 +1793,7 @@ describe("Bridge", () => {
                                   // Capture the initial pending redemptions value
                                   // for the given wallet.
                                   initialWalletPendingRedemptionValue = (
-                                    await bridge.wallets(walletPubKeyHash)
+                                    await bridge.getWallet(walletPubKeyHash)
                                   ).pendingRedemptionsValue
 
                                   // Perform the redemption request.
@@ -1992,7 +1813,7 @@ describe("Bridge", () => {
 
                                 it("should increase the wallet's pending redemptions value", async () => {
                                   const walletPendingRedemptionValue = (
-                                    await bridge.wallets(walletPubKeyHash)
+                                    await bridge.getWallet(walletPubKeyHash)
                                   ).pendingRedemptionsValue
 
                                   expect(
@@ -2399,7 +2220,7 @@ describe("Bridge", () => {
       })
     })
 
-    context("when wallet state is other than Active", () => {
+    context("when wallet state is other than Live", () => {
       context("when wallet state is Unknown", () => {
         // No need to set wallet state explicitly as Unknown is the default
         // for wallets not being in the `wallets` mapping.
@@ -2413,7 +2234,7 @@ describe("Bridge", () => {
                 "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef",
                 100000
               )
-          ).to.be.revertedWith("Wallet must be in Active state")
+          ).to.be.revertedWith("Wallet must be in Live state")
         })
       })
 
@@ -2422,9 +2243,11 @@ describe("Bridge", () => {
           await createSnapshot()
 
           await bridge.setWallet(walletPubKeyHash, {
-            state: walletState.MovingFunds,
-            pendingRedemptionsValue: 0,
             ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            state: walletState.MovingFunds,
           })
         })
 
@@ -2442,7 +2265,7 @@ describe("Bridge", () => {
                 "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef",
                 100000
               )
-          ).to.be.revertedWith("Wallet must be in Active state")
+          ).to.be.revertedWith("Wallet must be in Live state")
         })
       })
 
@@ -2451,9 +2274,11 @@ describe("Bridge", () => {
           await createSnapshot()
 
           await bridge.setWallet(walletPubKeyHash, {
-            state: walletState.Closed,
-            pendingRedemptionsValue: 0,
             ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            state: walletState.Closed,
           })
         })
 
@@ -2471,7 +2296,7 @@ describe("Bridge", () => {
                 "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef",
                 100000
               )
-          ).to.be.revertedWith("Wallet must be in Active state")
+          ).to.be.revertedWith("Wallet must be in Live state")
         })
       })
 
@@ -2480,9 +2305,11 @@ describe("Bridge", () => {
           await createSnapshot()
 
           await bridge.setWallet(walletPubKeyHash, {
-            state: walletState.Terminated,
-            pendingRedemptionsValue: 0,
             ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            state: walletState.Terminated,
           })
         })
 
@@ -2500,7 +2327,7 @@ describe("Bridge", () => {
                 "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef",
                 100000
               )
-          ).to.be.revertedWith("Wallet must be in Active state")
+          ).to.be.revertedWith("Wallet must be in Live state")
         })
       })
     })
@@ -2514,7 +2341,7 @@ describe("Bridge", () => {
             context(
               "when the single input points to the wallet's main UTXO",
               () => {
-                context("when wallet state is Active", () => {
+                context("when wallet state is Live", () => {
                   context("when there is only one output", () => {
                     context(
                       "when the single output is a pending requested redemption",
@@ -2570,8 +2397,9 @@ describe("Bridge", () => {
                           // output so the wallet's main UTXO should be
                           // deleted on the Bridge side.
                           expect(
-                            await bridge.mainUtxos(data.wallet.pubKeyHash)
-                          ).to.be.equal(ZERO_32_BYTES)
+                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                              .mainUtxoHash
+                          ).to.be.equal(ethers.constants.HashZero)
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -2694,8 +2522,9 @@ describe("Bridge", () => {
                           // output so the wallet's main UTXO should be
                           // deleted on the Bridge side.
                           expect(
-                            await bridge.mainUtxos(data.wallet.pubKeyHash)
-                          ).to.be.equal(ZERO_32_BYTES)
+                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                              .mainUtxoHash
+                          ).to.be.equal(ethers.constants.HashZero)
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -2826,8 +2655,9 @@ describe("Bridge", () => {
                           // the only redemption handled by the transaction
                           // is reported as timed out.
                           expect(
-                            await bridge.mainUtxos(data.wallet.pubKeyHash)
-                          ).to.be.equal(ZERO_32_BYTES)
+                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                              .mainUtxoHash
+                          ).to.be.equal(ethers.constants.HashZero)
                         })
 
                         it("should not change the wallet's pending redemptions value", async () => {
@@ -3216,8 +3046,9 @@ describe("Bridge", () => {
                           // output so the wallet's main UTXO should be
                           // deleted on the Bridge side.
                           expect(
-                            await bridge.mainUtxos(data.wallet.pubKeyHash)
-                          ).to.be.equal(ZERO_32_BYTES)
+                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                              .mainUtxoHash
+                          ).to.be.equal(ethers.constants.HashZero)
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -3348,7 +3179,8 @@ describe("Bridge", () => {
                           )
 
                           expect(
-                            await bridge.mainUtxos(data.wallet.pubKeyHash)
+                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                              .mainUtxoHash
                           ).to.be.equal(expectedMainUtxoHash)
                         })
 
@@ -3507,8 +3339,9 @@ describe("Bridge", () => {
                           // that all redemptions handled by the transaction
                           // are reported as timed out.
                           expect(
-                            await bridge.mainUtxos(data.wallet.pubKeyHash)
-                          ).to.be.equal(ZERO_32_BYTES)
+                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                              .mainUtxoHash
+                          ).to.be.equal(ethers.constants.HashZero)
                         })
 
                         it("should not change the wallet's pending redemptions value", async () => {
@@ -3660,7 +3493,8 @@ describe("Bridge", () => {
                           )
 
                           expect(
-                            await bridge.mainUtxos(data.wallet.pubKeyHash)
+                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                              .mainUtxoHash
                           ).to.be.equal(expectedMainUtxoHash)
                         })
 
@@ -3835,8 +3669,9 @@ describe("Bridge", () => {
                           // output so the wallet's main UTXO should be
                           // deleted on the Bridge side.
                           expect(
-                            await bridge.mainUtxos(data.wallet.pubKeyHash)
-                          ).to.be.equal(ZERO_32_BYTES)
+                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                              .mainUtxoHash
+                          ).to.be.equal(ethers.constants.HashZero)
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -4021,7 +3856,8 @@ describe("Bridge", () => {
                           )
 
                           expect(
-                            await bridge.mainUtxos(data.wallet.pubKeyHash)
+                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                              .mainUtxoHash
                           ).to.be.equal(expectedMainUtxoHash)
                         })
 
@@ -4365,9 +4201,9 @@ describe("Bridge", () => {
 
                     // Set wallet state to MovingFunds. That must be done
                     // just before proof submission since requests should
-                    // be made against an Active wallet.
+                    // be made against a Live wallet.
                     const beforeProofActions = async () => {
-                      const wallet = await bridge.wallets(
+                      const wallet = await bridge.getWallet(
                         data.wallet.pubKeyHash
                       )
                       await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -4384,14 +4220,14 @@ describe("Bridge", () => {
                   })
 
                   // Just assert it passes without revert without repeating
-                  // checks from Active state scenario.
+                  // checks from Live state scenario.
                   it("should succeed", async () => {
                     await expect(outcome).to.not.be.reverted
                   })
                 })
 
                 context(
-                  "when wallet state is neither Active nor MovingFunds",
+                  "when wallet state is neither Live nor MovingFunds",
                   () => {
                     context("when wallet state is Unknown", () => {
                       const data: RedemptionTestData =
@@ -4404,9 +4240,9 @@ describe("Bridge", () => {
 
                         // Set wallet state to Unknown. That must be done
                         // just before proof submission since requests should
-                        // be made against an Active wallet.
+                        // be made against a Live wallet.
                         const beforeProofActions = async () => {
-                          const wallet = await bridge.wallets(
+                          const wallet = await bridge.getWallet(
                             data.wallet.pubKeyHash
                           )
                           await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -4427,7 +4263,7 @@ describe("Bridge", () => {
 
                       it("should revert", async () => {
                         await expect(outcome).to.be.revertedWith(
-                          "'Wallet must be in Active or MovingFuds state"
+                          "'Wallet must be in Live or MovingFuds state"
                         )
                       })
                     })
@@ -4443,9 +4279,9 @@ describe("Bridge", () => {
 
                         // Set wallet state to Closed. That must be done
                         // just before proof submission since requests should
-                        // be made against an Active wallet.
+                        // be made against a Live wallet.
                         const beforeProofActions = async () => {
-                          const wallet = await bridge.wallets(
+                          const wallet = await bridge.getWallet(
                             data.wallet.pubKeyHash
                           )
                           await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -4466,7 +4302,7 @@ describe("Bridge", () => {
 
                       it("should revert", async () => {
                         await expect(outcome).to.be.revertedWith(
-                          "'Wallet must be in Active or MovingFuds state"
+                          "'Wallet must be in Live or MovingFuds state"
                         )
                       })
                     })
@@ -4482,9 +4318,9 @@ describe("Bridge", () => {
 
                         // Set wallet state to Terminated. That must be done
                         // just before proof submission since requests should
-                        // be made against an Active wallet.
+                        // be made against a Live wallet.
                         const beforeProofActions = async () => {
-                          const wallet = await bridge.wallets(
+                          const wallet = await bridge.getWallet(
                             data.wallet.pubKeyHash
                           )
                           await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -4505,7 +4341,7 @@ describe("Bridge", () => {
 
                       it("should revert", async () => {
                         await expect(outcome).to.be.revertedWith(
-                          "'Wallet must be in Active or MovingFuds state"
+                          "'Wallet must be in Live or MovingFuds state"
                         )
                       })
                     })
@@ -4589,7 +4425,10 @@ describe("Bridge", () => {
 
             // Wallet main UTXO must be set on the Bridge side to make
             // that scenario happen.
-            await bridge.setMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+            await bridge.setWalletMainUtxo(
+              data.wallet.pubKeyHash,
+              data.mainUtxo
+            )
           })
 
           after(async () => {
@@ -4927,14 +4766,16 @@ describe("Bridge", () => {
     await relay.setCurrentEpochDifficulty(data.chainDifficulty)
     await relay.setPrevEpochDifficulty(data.chainDifficulty)
 
-    // Simulate the wallet is an active one and is known in the system.
+    // Simulate the wallet is a registered one.
     await bridge.setWallet(data.wallet.pubKeyHash, {
-      state: data.wallet.state,
-      pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
       ecdsaWalletID: data.wallet.ecdsaWalletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
+      createdAt: await lastBlockTime(),
+      state: data.wallet.state,
     })
     // Simulate the prepared main UTXO belongs to the wallet.
-    await bridge.setMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+    await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
 
     for (let i = 0; i < data.redemptionRequests.length; i++) {
       const { redeemer, redeemerOutputScript, amount } =
@@ -4965,7 +4806,7 @@ describe("Bridge", () => {
 
     const bridgeBalanceBeforeProof = await bank.balanceOf(bridge.address)
     const walletPendingRedemptionsValueBeforeProof = (
-      await bridge.wallets(data.wallet.pubKeyHash)
+      await bridge.getWallet(data.wallet.pubKeyHash)
     ).pendingRedemptionsValue
     const treasuryBalanceBeforeProof = await bank.balanceOf(treasury.address)
 
@@ -4985,7 +4826,7 @@ describe("Bridge", () => {
 
     const bridgeBalanceAfterProof = await bank.balanceOf(bridge.address)
     const walletPendingRedemptionsValueAfterProof = (
-      await bridge.wallets(data.wallet.pubKeyHash)
+      await bridge.getWallet(data.wallet.pubKeyHash)
     ).pendingRedemptionsValue
     const treasuryBalanceAfterProof = await bank.balanceOf(treasury.address)
 
