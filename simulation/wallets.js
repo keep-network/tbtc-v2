@@ -220,6 +220,8 @@ function registerNewOperators() {
 }
 
 // Create a new wallet every WALLET_CREATION_PERIOD days
+// FIXME: The actual wallet creation conditions are more complicated (min btc
+// and whatnot), so that's something to implement in the future.
 function createNewWalletEvent(day) {
   if (day % WALLET_CREATION_PERIOD == 0) {
     newWallet()
