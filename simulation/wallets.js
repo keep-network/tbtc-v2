@@ -247,7 +247,7 @@ function newWallet() {
 }
 
 // An implementation of wallet closure that transfers to a random live wallet.
-function randomTransferWithoutCap(walletIndex) {
+function randomTransferWithoutCap(wallet) {
   let liveWallets = []
   for (let i = 0; i < walletIndex; i++) {
     if (
@@ -263,13 +263,13 @@ function randomTransferWithoutCap(walletIndex) {
   log(
     1,
     "Transferring " +
-      walletBalances[walletIndex] +
+      walletBalances[wallet] +
       " btc from Wallet#" +
-      walletIndex +
+      wallet +
       " to Wallet#" +
       randomIndex
   )
-  walletBalances[randomWallet] += walletBalances[walletIndex]
+  walletBalances[randomWallet] += walletBalances[wallet]
   if (walletBalances[randomWallet] > biggestWalletBalance) {
     biggestWalletBalance = walletBalances[randomWallet]
   }
@@ -279,7 +279,7 @@ function randomTransferWithoutCap(walletIndex) {
 // An implementation of wallet closure that transfers to random live wallet(s)
 // sending out batches of `WALLET_TRANSFER_MAX` before picking a new wallet. If we
 // run out of wallets we start over.
-function randomTransfer(walletIndex) {
+function randomTransfer(wallet) {
   let liveWallets = []
   for (let i = 0; i < walletIndex; i++) {
     if (
@@ -290,9 +290,9 @@ function randomTransfer(walletIndex) {
       liveWallets.push(i)
     }
   }
-  const transferCount = Math.ceil(walletBalances[walletIndex] / WALLET_TRANSFER_MAX)
+  const transferCount = Math.ceil(walletBalances[wallet] / WALLET_TRANSFER_MAX)
   const randomIndexes = getRandomSample(liveWallets, transferCount)
-  let remaining = walletBalances[walletIndex]
+  let remaining = walletBalances[wallet]
   randomIndexes.forEach((randomIndex) => {
     let transferAmount = 0
     if (remaining > WALLET_TRANSFER_MAX) {
@@ -307,7 +307,7 @@ function randomTransfer(walletIndex) {
       "Transferring " +
         transferAmount +
         " btc from Wallet#" +
-        walletIndex +
+        wallet +
         " to Wallet#" +
         randomIndex
     )
@@ -320,17 +320,17 @@ function randomTransfer(walletIndex) {
 }
 
 // An implementation of wallet closure that transfers to the active wallet.
-function transferToActive(walletIndex) {
+function transferToActive(wallet) {
   log(
     1,
     "Transferring " +
-      walletBalances[walletIndex] +
+      walletBalances[wallet] +
       " btc from Wallet#" +
-      walletIndex +
+      wallet +
       " to Wallet#" +
       (walletIndex - 1)
   )
-  walletBalances[walletIndex - 1] += walletBalances[walletIndex]
+  walletBalances[walletIndex - 1] += walletBalances[wallet]
   if (walletBalances[walletIndex - 1] > biggestWalletBalance) {
     biggestWalletBalance = walletBalances[walletIndex - 1]
   }
@@ -339,20 +339,20 @@ function transferToActive(walletIndex) {
 
 const transfer = randomTransfer
 
-function closeWallet(walletIndex, reason) {
-  if (walletIndex < walletIndex - 1 && walletIndex in walletBalances) {
-    log(1, "Closing Wallet#" + walletIndex + " for reason: " + reason)
-    if (walletBalances[walletIndex] > 0) {
-      transfer(walletIndex)
+function closeWallet(wallet, reason) {
+  if (wallet < walletIndex - 1 && wallet in walletBalances) {
+    log(1, "Closing Wallet#" + wallet + " for reason: " + reason)
+    if (walletBalances[wallet] > 0) {
+      transfer(wallet)
     }
-    Object.keys(walletStakingOperators[walletIndex]).forEach((operator) => {
+    Object.keys(walletStakingOperators[wallet]).forEach((operator) => {
       let wallets = operatorToWallets[operator]
-      delete wallets[walletIndex]
+      delete wallets[wallet]
       operatorToWallets[operator] = wallets
     })
-    delete walletStakingOperators[walletIndex]
-    delete walletLiveOperators[walletIndex]
-    delete walletBalances[walletIndex]
+    delete walletStakingOperators[wallet]
+    delete walletLiveOperators[wallet]
+    delete walletBalances[wallet]
   }
 }
 
@@ -397,21 +397,21 @@ function dailyDeposit() {
   btcInSystem += amount
 }
 
-function withdraw(walletIndex, amount) {
-  const remainingBalance = walletBalances[walletIndex] - amount
+function withdraw(wallet, amount) {
+  const remainingBalance = walletBalances[wallet] - amount
   log(
     1,
     "Withdrawing " +
       amount +
       " btc from Wallet#" +
-      walletIndex +
+      wallet +
       ". Remaining balance: " +
       remainingBalance
   )
-  walletBalances[walletIndex] -= amount
+  walletBalances[wallet] -= amount
   btcInSystem -= amount
   if (remainingBalance <= DUST_THRESHOLD) {
-    closeWallet(walletIndex, "below dust")
+    closeWallet(wallet, "below dust")
   }
 }
 
