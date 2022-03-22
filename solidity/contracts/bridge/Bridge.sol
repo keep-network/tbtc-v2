@@ -448,6 +448,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @notice Gets the public key hash of the active wallet.
     /// @return The 20-byte public key hash (computed using Bitcoin HASH160
     ///         over the compressed ECDSA public key) of the active wallet.
+    ///         Returns bytes20(0) if there is no active wallet at the moment.
     function getActiveWalletPubKeyHash() external view returns (bytes20) {
         return wallets.activeWalletPubKeyHash;
     }
