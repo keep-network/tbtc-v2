@@ -247,16 +247,13 @@ describe("Bridge - Wallets", () => {
 
             await bridge.setActiveWallet(ecdsaWalletTestData.pubKeyHash160)
 
-            await bridge.setRegisteredWallet(
-              ecdsaWalletTestData.pubKeyHash160,
-              {
-                ecdsaWalletID: ecdsaWalletTestData.walletID,
-                mainUtxoHash: ethers.constants.HashZero,
-                pendingRedemptionsValue: 0,
-                createdAt: await lastBlockTime(),
-                state: walletState.Live,
-              }
-            )
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ecdsaWalletID: ecdsaWalletTestData.walletID,
+              mainUtxoHash: ethers.constants.HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: await lastBlockTime(),
+              state: walletState.Live,
+            })
           })
 
           after(async () => {
@@ -287,7 +284,7 @@ describe("Bridge - Wallets", () => {
                         txOutputValue: constants.walletMinBtcBalance,
                       }
 
-                      await bridge.setRegisteredWalletMainUtxo(
+                      await bridge.setWalletMainUtxo(
                         ecdsaWalletTestData.pubKeyHash160,
                         activeWalletMainUtxo
                       )
@@ -332,7 +329,7 @@ describe("Bridge - Wallets", () => {
                         txOutputValue: constants.walletMaxBtcBalance,
                       }
 
-                      await bridge.setRegisteredWalletMainUtxo(
+                      await bridge.setWalletMainUtxo(
                         ecdsaWalletTestData.pubKeyHash160,
                         activeWalletMainUtxo
                       )
@@ -377,7 +374,7 @@ describe("Bridge - Wallets", () => {
                       txOutputValue: constants.walletMaxBtcBalance.sub(1),
                     }
 
-                    await bridge.setRegisteredWalletMainUtxo(
+                    await bridge.setWalletMainUtxo(
                       ecdsaWalletTestData.pubKeyHash160,
                       activeWalletMainUtxo
                     )
@@ -418,7 +415,7 @@ describe("Bridge - Wallets", () => {
                       txOutputValue: constants.walletMinBtcBalance.sub(1),
                     }
 
-                    await bridge.setRegisteredWalletMainUtxo(
+                    await bridge.setWalletMainUtxo(
                       ecdsaWalletTestData.pubKeyHash160,
                       activeWalletMainUtxo
                     )
@@ -450,7 +447,7 @@ describe("Bridge - Wallets", () => {
               before(async () => {
                 await createSnapshot()
 
-                await bridge.setRegisteredWalletMainUtxo(
+                await bridge.setWalletMainUtxo(
                   ecdsaWalletTestData.pubKeyHash160,
                   activeWalletMainUtxo
                 )
@@ -576,9 +573,7 @@ describe("Bridge - Wallets", () => {
         it("should register ECDSA wallet reference", async () => {
           await expect(
             (
-              await bridge.getRegisteredWallet(
-                ecdsaWalletTestData.pubKeyHash160
-              )
+              await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160)
             ).ecdsaWalletID
           ).equals(ecdsaWalletTestData.walletID)
         })
@@ -586,9 +581,7 @@ describe("Bridge - Wallets", () => {
         it("should transition wallet to Live state", async () => {
           await expect(
             (
-              await bridge.getRegisteredWallet(
-                ecdsaWalletTestData.pubKeyHash160
-              )
+              await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160)
             ).state
           ).equals(walletState.Live)
         })
@@ -596,9 +589,7 @@ describe("Bridge - Wallets", () => {
         it("should set the created at timestamp", async () => {
           await expect(
             (
-              await bridge.getRegisteredWallet(
-                ecdsaWalletTestData.pubKeyHash160
-              )
+              await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160)
             ).createdAt
           ).equals(await lastBlockTime())
         })

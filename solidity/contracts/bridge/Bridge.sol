@@ -477,7 +477,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
     ///        using Bitcoin HASH160 over the compressed ECDSA public key)
     /// @return Wallet details.
-    function getRegisteredWallet(bytes20 walletPubKeyHash)
+    function getWallet(bytes20 walletPubKeyHash)
         external
         view
         returns (Wallets.Wallet memory)
