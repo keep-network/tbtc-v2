@@ -95,6 +95,13 @@ library Wallets {
         WalletState state;
     }
 
+    event WalletCreationPeriodUpdated(uint32 newCreationPeriod);
+
+    event WalletBtcBalanceRangeUpdated(
+        uint64 newMinBtcBalance,
+        uint64 newMaxBtcBalance
+    );
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -125,6 +132,8 @@ library Wallets {
         external
     {
         self.creationPeriod = creationPeriod;
+
+        emit WalletCreationPeriodUpdated(creationPeriod);
     }
 
     /// @notice Sets the minimum and maximum BTC balance parameters.
@@ -146,6 +155,8 @@ library Wallets {
 
         self.minBtcBalance = minBtcBalance;
         self.maxBtcBalance = maxBtcBalance;
+
+        emit WalletBtcBalanceRangeUpdated(minBtcBalance, maxBtcBalance);
     }
 
     /// @notice Requests creation of a new wallet. This function just

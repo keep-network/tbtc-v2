@@ -300,6 +300,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @notice State related with wallets.
     Wallets.Data internal wallets;
 
+    event WalletCreationPeriodUpdated(uint32 newCreationPeriod);
+
+    event WalletBtcBalanceRangeUpdated(
+        uint64 newMinBtcBalance,
+        uint64 newMaxBtcBalance
+    );
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
