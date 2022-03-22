@@ -315,8 +315,9 @@ library Wallets {
     ) external {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
         require(
-            wallet.state == WalletState.Live,
-            "ECDSA wallet must be in Live state"
+            wallet.state == WalletState.Live ||
+                wallet.state == WalletState.MovingFunds,
+            "ECDSA wallet must be in Live or MovingFunds state"
         );
 
         wallet.state = WalletState.Terminated;
