@@ -1,4 +1,5 @@
 const NUM_ITERATIONS = 2
+const DAYS_TO_SIMULATE = 365 * 2 // days
 const LOG_LEVEL = 3
 
 const DUST_THRESHOLD = 1
@@ -475,7 +476,7 @@ for (let iteration = 0; iteration < NUM_ITERATIONS; iteration++) {
     operatorIndex++
   }
 
-  for (let i = 0; i < 365 * 2; i++) {
+  for (let i = 0; i < DAYS_TO_SIMULATE; i++) {
     newDay(i)
   }
   totalBiggestWalletBalance += biggestWalletBalance
