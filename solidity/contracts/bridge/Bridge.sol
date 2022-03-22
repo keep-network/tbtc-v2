@@ -377,9 +377,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // [1 BTC, 10 BTC]
     }
 
-    // TODO: Add function `onNewWalletCreated` according to discussion:
-    //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r809885230
-
     /// @notice Allows the Governance to mark the given vault address as trusted
     ///         or no longer trusted. Vaults are not trusted by default.
     ///         Trusted vault must meet the following criteria:
