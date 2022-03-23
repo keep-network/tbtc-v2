@@ -392,9 +392,7 @@ library Wallets {
             // is zero and it should be closed immediately.
             wallet.state = WalletState.Closed;
             emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
-
-            // TODO: Send close signal to the ECDSA registry.
-            //       https://github.com/keep-network/keep-core/issues/2864
+            registry.closeWallet(wallet.ecdsaWalletID);
         } else {
             // Otherwise, initialize the moving funds process.
             wallet.state = WalletState.MovingFunds;
