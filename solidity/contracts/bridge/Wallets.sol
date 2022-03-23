@@ -352,7 +352,15 @@ library Wallets {
     ) external {
         // TODO: Perform slashing of wallet operators.
 
-        requestWalletClosure(self, walletPubKeyHash);
+        WalletState walletState = self
+            .registeredWallets[walletPubKeyHash]
+            .state;
+
+        require(walletState != WalletState.Unknown, "Unknown wallet");
+
+        if (walletState == WalletState.Live) {
+            requestWalletClosure(self, walletPubKeyHash);
+        }
     }
 
     // TODO: Documentation.
@@ -420,4 +428,6 @@ library Wallets {
     //       proof or a timeout.
 
     // TODO: Implement notifyWalletFraudProven function that terminates the wallet.
+    //       Remember multiple frauds related to single wallet can be reported
+    //       and proven so that function must manage the wallet state accordingly.
 }
