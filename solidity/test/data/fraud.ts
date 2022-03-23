@@ -24,14 +24,13 @@ export interface FraudTestData {
 
 // Uncompressed and unprefixed version of the public key:
 // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
-export const fraudWalletPublicKey =
+export const walletPublicKey =
   "0x989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9" +
   "d218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af"
 
 // Hash 160 of the public key:
 // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
-export const fraudWalletPublicKeyHash =
-  "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
+export const walletPublicKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
 
 // Test data comes from the (only) input of transaction:
 // https://live.blockcypher.com/btc-testnet/tx/25725b6110fdd095282e61f714e72ec14ebdba7d2c29e93a89a9fb11504a5f10/
