@@ -44,10 +44,6 @@ library Wallets {
         // The maximum age of a wallet in seconds, after which the wallet
         // closure can be requested.
         uint32 maxAge;
-        // TODO: Make sure the `activeWalletPubKeyHash` is zeroed in case
-        //       the active wallet becomes non-Live. This will be implemented
-        //       soon, along with the code for closing wallets.
-        //
         // 20-byte wallet public key hash being reference to the currently
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
@@ -424,7 +420,7 @@ library Wallets {
     }
 
     // TODO: Implement functions that will be called upon moving funds process
-    //       end. Remember the moving funds process ends up with a sucessful
+    //       end. Remember the moving funds process ends up with a successful
     //       proof or a timeout.
 
     // TODO: Implement notifyWalletFraudProven function that terminates the wallet.
