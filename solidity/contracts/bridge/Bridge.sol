@@ -1498,14 +1498,27 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         Frauds.RSVSignature calldata signature,
         bool witness
     ) external {
-        frauds.defeatFraudChallenge(
+        uint256[] memory utxoKeys = frauds.unwrapChallenge(
             walletPublicKey,
             preimage,
             signature,
-            witness,
-            treasury,
-            deposits,
-            spentMainUTXOs
+            witness
+        );
+
+        // Check that the UTXO keys identify correctly spent UTXOs.
+        for (uint256 i = 0; i < utxoKeys.length; i++) {
+            require(
+                deposits[utxoKeys[i]].sweptAt > 0 ||
+                    spentMainUTXOs[utxoKeys[i]],
+                "Spent UTXO not found among correctly spent UTXOs"
+            );
+        }
+
+        frauds.finalizeFraudChallengeDefeat(
+            walletPublicKey,
+            preimage,
+            signature,
+            treasury
         );
     }
 
