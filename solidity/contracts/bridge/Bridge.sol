@@ -305,6 +305,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint64 newMaxBtcBalance
     );
 
+    event WalletMaxAgeUpdated(uint32 newMaxAge);
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -390,6 +392,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param creationPeriod New value of the wallet creation period
     /// @param minBtcBalance New value of the minimum BTC balance
     /// @param maxBtcBalance New value of the maximum BTC balance
+    /// @param maxAge New value of the wallet maximum age
     /// @dev Requirements:
     ///      - Caller must be the contract owner.
     ///      - Minimum BTC balance must be greater than zero
@@ -397,29 +400,34 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function updateWalletsParameters(
         uint32 creationPeriod,
         uint64 minBtcBalance,
-        uint64 maxBtcBalance
+        uint64 maxBtcBalance,
+        uint32 maxAge
     ) external onlyOwner {
         wallets.setCreationPeriod(creationPeriod);
         wallets.setBtcBalanceRange(minBtcBalance, maxBtcBalance);
+        wallets.setMaxAge(maxAge);
     }
 
     /// @return creationPeriod Value of the wallet creation period
     /// @return minBtcBalance Value of the minimum BTC balance
     /// @return maxBtcBalance Value of the maximum BTC balance
+    /// @return maxAge Value of the wallet max age
     function getWalletsParameters()
         external
         view
         returns (
             uint32 creationPeriod,
             uint64 minBtcBalance,
-            uint64 maxBtcBalance
+            uint64 maxBtcBalance,
+            uint32 maxAge
         )
     {
         creationPeriod = wallets.creationPeriod;
         minBtcBalance = wallets.minBtcBalance;
         maxBtcBalance = wallets.maxBtcBalance;
+        maxAge = wallets.maxAge;
 
-        return (creationPeriod, minBtcBalance, maxBtcBalance);
+        return (creationPeriod, minBtcBalance, maxBtcBalance, maxAge);
     }
 
     /// @notice Allows the Governance to mark the given vault address as trusted

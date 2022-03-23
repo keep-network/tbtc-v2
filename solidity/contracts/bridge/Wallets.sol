@@ -105,6 +105,8 @@ library Wallets {
         uint64 newMaxBtcBalance
     );
 
+    event WalletMaxAgeUpdated(uint32 newMaxAge);
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -176,6 +178,8 @@ library Wallets {
     /// @param maxAge New value of the wallet maximum age
     function setMaxAge(Data storage self, uint32 maxAge) external {
         self.maxAge = maxAge;
+
+        emit WalletMaxAgeUpdated(maxAge);
     }
 
     /// @notice Requests creation of a new wallet. This function just

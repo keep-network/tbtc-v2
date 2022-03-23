@@ -105,6 +105,7 @@ describe("Bridge - Wallets", () => {
         const newCreationPeriod = constants.walletCreationPeriod * 2
         const newMinBtcBalance = constants.walletMinBtcBalance.add(1000)
         const newMaxBtcBalance = constants.walletMaxBtcBalance.add(2000)
+        const newMaxAge = constants.walletMaxAge * 2
 
         let tx: ContractTransaction
 
@@ -116,7 +117,8 @@ describe("Bridge - Wallets", () => {
             .updateWalletsParameters(
               newCreationPeriod,
               newMinBtcBalance,
-              newMaxBtcBalance
+              newMaxBtcBalance,
+              newMaxAge
             )
         })
 
@@ -130,6 +132,7 @@ describe("Bridge - Wallets", () => {
           expect(params.creationPeriod).to.be.equal(newCreationPeriod)
           expect(params.minBtcBalance).to.be.equal(newMinBtcBalance)
           expect(params.maxBtcBalance).to.be.equal(newMaxBtcBalance)
+          expect(params.maxAge).to.be.equal(newMaxAge)
         })
 
         it("should emit correct events", async () => {
@@ -140,6 +143,10 @@ describe("Bridge - Wallets", () => {
           await expect(tx)
             .to.emit(bridge, "WalletBtcBalanceRangeUpdated")
             .withArgs(newMinBtcBalance, newMaxBtcBalance)
+
+          await expect(tx)
+            .to.emit(bridge, "WalletMaxAgeUpdated")
+            .withArgs(newMaxAge)
         })
       })
 
@@ -151,7 +158,8 @@ describe("Bridge - Wallets", () => {
               .updateWalletsParameters(
                 constants.walletCreationPeriod,
                 0,
-                constants.walletMaxBtcBalance
+                constants.walletMaxBtcBalance,
+                constants.walletMaxAge
               )
           ).to.be.revertedWith("Minimum must be greater than zero")
         })
@@ -167,7 +175,8 @@ describe("Bridge - Wallets", () => {
                 .updateWalletsParameters(
                   constants.walletCreationPeriod,
                   constants.walletMinBtcBalance,
-                  constants.walletMinBtcBalance
+                  constants.walletMinBtcBalance,
+                  constants.walletMaxAge
                 )
             ).to.be.revertedWith("Maximum must be greater than the minimum")
           })
@@ -183,7 +192,8 @@ describe("Bridge - Wallets", () => {
             .updateWalletsParameters(
               constants.walletCreationPeriod,
               constants.walletMinBtcBalance,
-              constants.walletMaxBtcBalance
+              constants.walletMaxBtcBalance,
+              constants.walletMaxAge
             )
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
