@@ -185,7 +185,7 @@ library Frauds {
     }
 
     /// @notice Unwraps the fraud challenge by verifying the given challenge
-    ///         and returns the UTXO keys extracted from the preimage.
+    ///         and returns the UTXO key extracted from the preimage.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes).
     /// @param preimage The preimage which produces sighash used to generate the
@@ -196,14 +196,14 @@ library Frauds {
     /// @param signature Bitcoin signature in the R/S/V format.
     /// @param witness Flag indicating whether the preimage was produced for a
     ///        witness input. True for witness, false for non-witness input.
-    /// @return utxoKeys UTXO keys that identify spent inputs.
+    /// @return utxoKey UTXO key that identifies spent input.
     function unwrapChallenge(
         Data storage self,
         bytes memory walletPublicKey,
         bytes memory preimage,
         Frauds.RSVSignature calldata signature,
         bool witness
-    ) external returns (uint256[] memory utxoKeys) {
+    ) external returns (uint256 utxoKey) {
         bytes32 sighash = preimage.hash256();
 
         uint256 challengeKey = uint256(
@@ -229,8 +229,8 @@ library Frauds {
 
         return
             witness
-                ? extractUtxoKeysFromWitnessPreimage(preimage)
-                : extractUtxoKeysFromNonWitnessPreimage(preimage);
+                ? extractUtxoKeyFromWitnessPreimage(preimage)
+                : extractUtxoKeyFromNonWitnessPreimage(preimage);
     }
 
     /// @notice Finalizes fraud challenge defeat by marking a pending fraud
@@ -435,10 +435,10 @@ library Frauds {
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
     ///        produced for. See BIP-143 for reference.
-    /// @return utxoKeys UTXO keys that identify spent inputs.
-    function extractUtxoKeysFromWitnessPreimage(bytes memory preimage)
+    /// @return utxoKey UTXO key that identifies spent input.
+    function extractUtxoKeyFromWitnessPreimage(bytes memory preimage)
         internal
-        returns (uint256[] memory utxoKeys)
+        returns (uint256 utxoKey)
     {
         // The expected structure of the preimage created during signing of a
         // witness input:
@@ -460,29 +460,28 @@ library Frauds {
             uint32(preimage.extractTxIndexLeAt(68))
         );
 
-        // As this is a witness preimage, we have access to just one input
-        // (the one being signed).
-        utxoKeys = new uint256[](1);
-        utxoKeys[0] = uint256(
-            keccak256(
-                abi.encodePacked(previousOutpointTxIdLe, previousOutpointIndex)
-            )
-        );
-
-        return utxoKeys;
+        return
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        previousOutpointTxIdLe,
+                        previousOutpointIndex
+                    )
+                )
+            );
     }
 
-    /// @notice Extracts the UTXO keys from the given preimage used during
+    /// @notice Extracts the UTXO key from the given preimage used during
     ///         signing of a non-witness input.
     /// @param preimage The preimage which produces sighash used to generate the
     ///        ECDSA signature that is the subject of the fraud claim. It is a
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
     ///        produced for. See BIP-143 for reference.
-    /// @return utxoKeys UTXO keys that identify spent inputs.
-    function extractUtxoKeysFromNonWitnessPreimage(bytes memory preimage)
+    /// @return utxoKey UTXO key that identifies spent input.
+    function extractUtxoKeyFromNonWitnessPreimage(bytes memory preimage)
         internal
-        returns (uint256[] memory utxoKeys)
+        returns (uint256 utxoKey)
     {
         // The expected structure of the preimage created during signing of a
         // non-witness input:
@@ -503,10 +502,6 @@ library Frauds {
         (uint256 inputsCompactSizeUintLength, uint256 inputsCount) = preimage
             .parseVarIntAt(4);
 
-        // As this is a non-witness preimage, return keys from all the inputs
-        // (the one being signed as well as all the other inputs).
-        utxoKeys = new uint256[](inputsCount);
-
         // To determine the first input starting index, we must jump 4 bytes
         // over the transaction version length and the compactSize uint which
         // prepends the input vector. One byte must be added because
@@ -526,29 +521,42 @@ library Frauds {
         uint256 inputStartingIndex = 4 + 1 + inputsCompactSizeUintLength;
 
         for (uint256 i = 0; i < inputsCount; i++) {
-            bytes32 previousOutpointTxIdLe = preimage.extractInputTxIdLeAt(
+            uint256 inputLength = preimage.determineInputLengthAt(
                 inputStartingIndex
             );
 
+            bytes memory input = preimage.slice(
+                inputStartingIndex,
+                inputLength
+            );
+
+            bytes32 previousOutpointTxIdLe = input.extractInputTxIdLE();
             uint32 previousOutpointIndex = BTCUtils.reverseUint32(
-                uint32(preimage.extractTxIndexLeAt(inputStartingIndex))
+                uint32(input.extractTxIndexLE())
             );
 
-            utxoKeys[i] = uint256(
-                keccak256(
-                    abi.encodePacked(
-                        previousOutpointTxIdLe,
-                        previousOutpointIndex
+            bytes memory scriptSig = input.extractScriptSig();
+
+            if (scriptSig.length > 1) {
+                // The input this preimage was generated for was found.
+                // All the other inputs in the preimage are marked with a null
+                // scriptSig ("00") which has length of 1.
+                utxoKey = uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            previousOutpointTxIdLe,
+                            previousOutpointIndex
+                        )
                     )
-                )
-            );
+                );
 
-            inputStartingIndex += preimage.determineInputLengthAt(
-                inputStartingIndex
-            );
+                break;
+            }
+
+            inputStartingIndex += inputLength;
         }
 
-        return utxoKeys;
+        return utxoKey;
     }
 
     /// @notice Extracts the sighash type from the given preimage.
