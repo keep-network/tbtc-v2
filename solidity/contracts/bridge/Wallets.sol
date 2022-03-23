@@ -439,7 +439,7 @@ library Wallets {
 
             emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
 
-            registry.closeWallet(wallet.ecdsaWalletID);
+            self.registry.closeWallet(wallet.ecdsaWalletID);
         } else {
             // Otherwise, initialize the moving funds process.
             wallet.state = WalletState.MovingFunds;
