@@ -297,18 +297,11 @@ function randomTransfer(wallet) {
       liveWallets.push(i)
     }
   }
-  const transferCount = Math.ceil(walletBalances[wallet] / WALLET_TRANSFER_MAX)
-  const randomIndexes = getRandomSample(liveWallets, transferCount)
-  let remaining = walletBalances[wallet]
-  randomIndexes.forEach((randomIndex) => {
-    let transferAmount = 0
-    if (remaining > WALLET_TRANSFER_MAX) {
-      transferAmount = WALLET_TRANSFER_MAX
-    } else {
-      transferAmount = remaining
-    }
-    remaining -= transferAmount
-    const randomWallet = liveWallets[randomIndex]
+  const transferCount = Math.min(liveWallets.length, Math.ceil(walletBalances[wallet] / WALLET_TRANSFER_MAX))
+  const randomWallets = getRandomSample(liveWallets, transferCount)
+  const transferAmount = walletBalances[wallet] / transferCount
+  
+  randomWallets.forEach((randomWallet) => {
     log(
       1,
       "Transferring " +
@@ -316,7 +309,7 @@ function randomTransfer(wallet) {
         " btc from Wallet#" +
         wallet +
         " to Wallet#" +
-        randomIndex
+        randomWallet
     )
     walletBalances[randomWallet] += transferAmount
     if (walletBalances[randomWallet] > biggestWalletBalance) {
