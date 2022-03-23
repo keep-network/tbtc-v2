@@ -94,6 +94,9 @@ library Wallets {
         uint64 pendingRedemptionsValue;
         // UNIX timestamp the wallet was created at.
         uint32 createdAt;
+        // UNIX timestamp indicating the moment the wallet was requested to
+        // move their funds.
+        uint32 moveFundsRequestedAt;
         // Current state of the wallet.
         WalletState state;
     }
@@ -391,14 +394,17 @@ library Wallets {
             // If the wallet has no main UTXO, that means its BTC balance
             // is zero and it should be closed immediately.
             wallet.state = WalletState.Closed;
+
             emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
+
             registry.closeWallet(wallet.ecdsaWalletID);
         } else {
             // Otherwise, initialize the moving funds process.
             wallet.state = WalletState.MovingFunds;
-            emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
+            /* solhint-disable-next-line not-rely-on-time */
+            wallet.moveFundsRequestedAt = uint32(block.timestamp);
 
-            // TODO: Initialize moving funds process.
+            emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
         }
 
         if (self.activeWalletPubKeyHash == walletPubKeyHash) {
@@ -408,6 +414,10 @@ library Wallets {
             delete self.activeWalletPubKeyHash;
         }
     }
+
+    // TODO: Implement functions that will be called upon moving funds process
+    //       end. Remember the moving funds process ends up with a sucessful
+    //       proof or a timeout.
 
     // TODO: Implement notifyWalletFraudProven function that terminates the wallet.
 }
