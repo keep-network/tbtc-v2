@@ -322,7 +322,13 @@ library Wallets {
         emit NewWalletRegistered(ecdsaWalletID, walletPubKeyHash);
     }
 
-    // TODO: Documentation.
+    /// @notice Handles a notification about a wallet heartbeat failure and
+    ///         triggers the wallet closure process.
+    /// @param publicKeyX Wallet's public key's X coordinate.
+    /// @param publicKeyY Wallet's public key's Y coordinate.
+    /// @dev Requirements:
+    ///      - The only caller authorized to call this function is `registry`
+    ///      - Wallet must be in Live state
     function notifyWalletHeartbeatFailed(
         Data storage self,
         bytes32 publicKeyX,
@@ -341,7 +347,16 @@ library Wallets {
         requestWalletClosure(self, walletPubKeyHash);
     }
 
-    // TODO: Documentation.
+    /// @notice Handles a notification about a wallet action timeout
+    ///         (e.g. redemption request timeout) and requests slashing
+    ///         of the wallet operators. Triggers wallet closure process
+    ///         only if the wallet is still in the Live state. That means
+    ///         multiple action timeouts can be reported for the same
+    ///         wallet but only the first report will trigger wallet closure
+    ///         process.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - Wallet must be in a state other than Unknown
     function notifyWalletActionTimedOut(
         Data storage self,
         bytes20 walletPubKeyHash
@@ -359,7 +374,21 @@ library Wallets {
         }
     }
 
-    // TODO: Documentation.
+    /// @notice Handles a notification about wallet exhaustion and triggers the
+    ///         wallet closure process.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
+    ///        known on the Ethereum chain.
+    /// @dev Requirements:
+    ///      - Wallet must not be set as the current active wallet
+    ///      - Wallet must exceed the wallet maximum age OR the wallet BTC
+    ///        balance must be lesser than the minimum threshold. If the latter
+    ///        case is true, the `walletMainUtxo` components must point to the
+    ///        recent main UTXO of the given wallet, as currently known on the
+    ///        Ethereum chain. If the wallet has no main UTXO, this parameter
+    ///        can be empty as it is ignored since the wallet balance is
+    ///        assumed to be zero.
+    ///      - Wallet must be in Live state
     function notifyWalletExhausted(
         Data storage self,
         bytes20 walletPubKeyHash,
@@ -384,7 +413,16 @@ library Wallets {
         requestWalletClosure(self, walletPubKeyHash);
     }
 
-    // TODO: Documentation.
+    /// @notice Requests wallet closure. If the wallet balance is greater than
+    ///         zero, the wallet is requested to move their funds first.
+    ///         Otherwise, the wallet is closed immediately and the ECDSA
+    ///         registry is notified about this fact. If the wallet closure
+    ///         request refers to the current active wallet, such a wallet
+    ///         is no longer considered active and the active wallet slot
+    ///         is unset allowing to trigger a new wallet creation immediately.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - Wallet must be in Live state
     function requestWalletClosure(Data storage self, bytes20 walletPubKeyHash)
         internal
     {

@@ -493,7 +493,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @notice A callback function that is called by the ECDSA Wallet Registry
     ///         once a wallet heartbeat failure is detected.
     /// @param ecdsaWalletID Wallet's unique identifier.
-    /// @param publicKeyY Wallet's public key's X coordinate.
+    /// @param publicKeyX Wallet's public key's X coordinate.
     /// @param publicKeyY Wallet's public key's Y coordinate.
     /// @dev Requirements:
     ///      - The only caller authorized to call this function is `registry`
@@ -507,7 +507,21 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.notifyWalletHeartbeatFailed(publicKeyX, publicKeyY);
     }
 
-    // TODO: Documentation.
+    /// @notice Notifies about wallet exhaustion and triggers the
+    ///         wallet closure process.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
+    ///        known on the Ethereum chain.
+    /// @dev Requirements:
+    ///      - Wallet must not be set as the current active wallet
+    ///      - Wallet must exceed the wallet maximum age OR the wallet BTC
+    ///        balance must be lesser than the minimum threshold. If the latter
+    ///        case is true, the `walletMainUtxo` components must point to the
+    ///        recent main UTXO of the given wallet, as currently known on the
+    ///        Ethereum chain. If the wallet has no main UTXO, this parameter
+    ///        can be empty as it is ignored since the wallet balance is
+    ///        assumed to be zero.
+    ///      - Wallet must be in Live state
     function notifyWalletExhausted(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
