@@ -260,7 +260,7 @@ function randomTransferWithoutCap(wallet) {
     if (
       walletBalances[i] > WALLET_MIN_BTC &&
       Object.keys(walletStakingOperators[i]).length >= HEARTBEAT &&
-      i != walletIndex
+      i != wallet
     ) {
       liveWallets.push(i)
     }
@@ -292,7 +292,7 @@ function randomTransfer(wallet) {
     if (
       walletBalances[i] > WALLET_MIN_BTC &&
       Object.keys(walletStakingOperators[i]).length >= HEARTBEAT &&
-      i != walletIndex
+      i != wallet
     ) {
       liveWallets.push(i)
     }
