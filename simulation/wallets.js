@@ -237,7 +237,8 @@ function createNewWalletEvent(day) {
   }
 }
 
-// Shuffle the staking operators and select 100 to form the signing group.
+// Shuffle the staking operators and select WALLET_SIZE to form the signing
+// group.
 function newWallet() {
   walletBalances[walletIndex] = 0
   const operators = getRandomSample(Object.keys(stakingOperators), WALLET_SIZE)
