@@ -275,8 +275,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///           successfully
     ///         - `notifyRedemptionTimeout` in case the request was reported
     ///           to be timed out
-    ///         - `submitRedemptionFraudProof` in case the request was handled
-    ///           in an fraudulent way amount-wise.
     mapping(uint256 => RedemptionRequest) public pendingRedemptions;
 
     /// @notice Collection of all timed out redemptions requests indexed by
