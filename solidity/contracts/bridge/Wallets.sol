@@ -123,6 +123,11 @@ library Wallets {
         bytes20 indexed walletPubKeyHash
     );
 
+    event WalletTerminated(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
     /// @notice Initializes state invariants.
     /// @param registry ECDSA Wallet Registry reference
     /// @dev Requirements:
@@ -461,7 +466,48 @@ library Wallets {
     //       end. Remember the moving funds process ends up with a successful
     //       proof or a timeout.
 
-    // TODO: Implement notifyWalletFraudProven function that terminates the wallet.
-    //       Remember multiple frauds related to single wallet can be reported
-    //       and proven so that function must manage the wallet state accordingly.
+    /// @notice Reports about a fraud committed by the given wallet. This
+    ///         function performs slashing and wallet termination in reaction
+    ///         to a proven fraud and it should only be called when the fraud
+    ///         was confirmed.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - Wallet must be in Live or MovingFunds state
+    function notifyFraud(Data storage self, bytes20 walletPubKeyHash) external {
+        // TODO: Perform slashing of wallet operators and add unit tests for that.
+
+        terminateWallet(self, walletPubKeyHash);
+    }
+
+    /// @notice Terminates the given wallet and notifies the ECDSA registry
+    ///         about this fact. If the wallet termination refers to the current
+    ///         active wallet, such a wallet is no longer considered active and
+    ///         the active wallet slot is unset allowing to trigger a new wallet
+    ///         creation immediately.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - Wallet must be in Live or MovingFunds state
+    function terminateWallet(Data storage self, bytes20 walletPubKeyHash)
+        internal
+    {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        require(
+            wallet.state == WalletState.Live ||
+                wallet.state == WalletState.MovingFunds,
+            "ECDSA wallet must be in Live or MovingFunds state"
+        );
+
+        wallet.state = WalletState.Terminated;
+
+        emit WalletTerminated(wallet.ecdsaWalletID, walletPubKeyHash);
+
+        if (self.activeWalletPubKeyHash == walletPubKeyHash) {
+            // If termination refers to the current active wallet,
+            // unset the active wallet and make the wallet creation process
+            // possible in order to get a new healthy active wallet.
+            delete self.activeWalletPubKeyHash;
+        }
+
+        self.registry.closeWallet(walletPubKeyHash);
+    }
 }
