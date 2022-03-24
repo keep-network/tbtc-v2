@@ -142,6 +142,16 @@ library BitcoinTx {
         uint64 txOutputValue;
     }
 
+    /// @notice Represents Bitcoin signature in the R/S/V format.
+    struct RSVSignature {
+        /// @notice Signature r value.
+        bytes32 r;
+        /// @notice Signature s value.
+        bytes32 s;
+        /// @notice Signature recovery value.
+        uint8 v;
+    }
+
     /// @notice Validates the SPV proof of the Bitcoin transaction.
     ///         Reverts in case the validation or proof verification fail.
     /// @param txInfo Bitcoin transaction data

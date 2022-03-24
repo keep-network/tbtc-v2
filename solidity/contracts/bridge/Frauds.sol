@@ -18,6 +18,7 @@ pragma solidity ^0.8.9;
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {CheckBitcoinSigs} from "@keep-network/bitcoin-spv-sol/contracts/CheckBitcoinSigs.sol";
+import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./Bridge.sol";
 
@@ -52,16 +53,6 @@ library Frauds {
         uint32 reportedAt;
         // The flag indicating whether the challenge has been closed.
         bool closed;
-    }
-
-    /// @notice Represents Bitcoin signature in the R/S/V format.
-    struct RSVSignature {
-        /// @notice Signature r value.
-        bytes32 r;
-        /// @notice Signature s value.
-        bytes32 s;
-        /// @notice Signature recovery value.
-        uint8 v;
     }
 
     event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
@@ -130,7 +121,7 @@ library Frauds {
         Data storage self,
         bytes memory walletPublicKey,
         bytes32 sighash,
-        RSVSignature calldata signature
+        BitcoinTx.RSVSignature calldata signature
     ) external {
         require(
             msg.value >= self.challengeDepositAmount,
@@ -203,7 +194,7 @@ library Frauds {
         Data storage self,
         bytes memory walletPublicKey,
         bytes memory preimage,
-        Frauds.RSVSignature calldata signature,
+        BitcoinTx.RSVSignature calldata signature,
         bool witness
     ) external returns (uint256 utxoKey) {
         bytes32 sighash = preimage.hash256();
@@ -258,7 +249,7 @@ library Frauds {
         Data storage self,
         bytes memory walletPublicKey,
         bytes memory preimage,
-        Frauds.RSVSignature calldata signature,
+        BitcoinTx.RSVSignature calldata signature,
         address treasury
     ) external {
         bytes32 sighash = preimage.hash256();
@@ -326,7 +317,7 @@ library Frauds {
         Data storage self,
         bytes memory walletPublicKey,
         bytes32 sighash,
-        Frauds.RSVSignature calldata signature
+        BitcoinTx.RSVSignature calldata signature
     ) external {
         uint256 challengeKey = uint256(
             keccak256(

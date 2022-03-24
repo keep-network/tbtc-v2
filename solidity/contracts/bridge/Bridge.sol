@@ -1441,7 +1441,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function submitFraudChallenge(
         bytes memory walletPublicKey,
         bytes32 sighash,
-        Frauds.RSVSignature calldata signature
+        BitcoinTx.RSVSignature calldata signature
     ) external payable {
         bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
             walletPublicKey.slice32(0),
@@ -1499,7 +1499,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function defeatFraudChallenge(
         bytes memory walletPublicKey,
         bytes memory preimage,
-        Frauds.RSVSignature calldata signature,
+        BitcoinTx.RSVSignature calldata signature,
         bool witness
     ) external {
         uint256 utxoKey = frauds.unwrapChallenge(
@@ -1545,7 +1545,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function notifyFraudChallengeDefeatTimeout(
         bytes memory walletPublicKey,
         bytes32 sighash,
-        Frauds.RSVSignature calldata signature
+        BitcoinTx.RSVSignature calldata signature
     ) external {
         frauds.notifyFraudChallengeDefeatTimeout(
             walletPublicKey,
