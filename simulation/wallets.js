@@ -300,10 +300,13 @@ function randomTransfer(wallet) {
       liveWallets.push(i)
     }
   }
-  const transferCount = Math.min(liveWallets.length, Math.ceil(walletBalances[wallet] / WALLET_TRANSFER_MAX))
+  const transferCount = Math.min(
+    liveWallets.length,
+    Math.ceil(walletBalances[wallet] / WALLET_TRANSFER_MAX)
+  )
   const randomWallets = getRandomSample(liveWallets, transferCount)
   const transferAmount = walletBalances[wallet] / transferCount
-  
+
   randomWallets.forEach((randomWallet) => {
     log(
       1,
