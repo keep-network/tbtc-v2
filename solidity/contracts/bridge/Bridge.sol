@@ -1448,7 +1448,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             walletPublicKey.slice32(32)
         );
 
-        bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
+        bytes20 walletPubKeyHash = bytes20(
+            compressedWalletPublicKey.hash160View()
+        );
 
         Wallets.Wallet storage wallet = wallets.registeredWallets[
             walletPubKeyHash

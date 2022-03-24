@@ -173,7 +173,9 @@ library Frauds {
             walletPublicKey.slice32(0),
             walletPublicKey.slice32(32)
         );
-        bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
+        bytes20 walletPubKeyHash = bytes20(
+            compressedWalletPublicKey.hash160View()
+        );
 
         emit FraudChallengeSubmitted(
             walletPubKeyHash,
@@ -288,7 +290,9 @@ library Frauds {
             walletPublicKey.slice32(0),
             walletPublicKey.slice32(32)
         );
-        bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
+        bytes20 walletPubKeyHash = bytes20(
+            compressedWalletPublicKey.hash160View()
+        );
 
         emit FraudChallengeDefeated(
             walletPubKeyHash,
@@ -363,7 +367,9 @@ library Frauds {
             walletPublicKey.slice32(0),
             walletPublicKey.slice32(32)
         );
-        bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
+        bytes20 walletPubKeyHash = bytes20(
+            compressedWalletPublicKey.hash160View()
+        );
 
         emit FraudChallengeDefeatTimedOut(
             walletPubKeyHash,
