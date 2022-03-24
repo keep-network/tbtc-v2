@@ -305,14 +305,30 @@ library Wallets {
         emit NewWalletRegistered(ecdsaWalletID, walletPubKeyHash);
     }
 
-    /// @notice Reports about a proven fraud committed by the given wallet.
+    /// @notice Reports about a fraud committed by the given wallet. This
+    ///         function performs slashing and wallet termination in reaction
+    ///         to a proven fraud and it should only be called when the fraud
+    ///         was confirmed.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
-    ///      - Wallet must be in Live state
-    function notifyWalletFraudProven(
-        Data storage self,
-        bytes20 walletPubKeyHash
-    ) external {
+    ///      - Wallet must be in Live or MovingFunds state
+    function notifyFraud(Data storage self, bytes20 walletPubKeyHash) external {
+        // TODO: Perform slashing of wallet operators and add unit tests for that.
+
+        terminateWallet(self, walletPubKeyHash);
+    }
+
+    /// @notice Terminates the given wallet and notifies the ECDSA registry
+    ///         about this fact. If the wallet termination refers to the current
+    ///         active wallet, such a wallet is no longer considered active and
+    ///         the active wallet slot is unset allowing to trigger a new wallet
+    ///         creation immediately.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - Wallet must be in Live or MovingFunds state
+    function terminateWallet(Data storage self, bytes20 walletPubKeyHash)
+        internal
+    {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
         require(
             wallet.state == WalletState.Live ||
@@ -322,6 +338,8 @@ library Wallets {
 
         wallet.state = WalletState.Terminated;
 
+        emit WalletTerminated(wallet.ecdsaWalletID, walletPubKeyHash);
+
         if (self.activeWalletPubKeyHash == walletPubKeyHash) {
             // If termination refers to the current active wallet,
             // unset the active wallet and make the wallet creation process
@@ -329,11 +347,6 @@ library Wallets {
             delete self.activeWalletPubKeyHash;
         }
 
-        emit WalletTerminated(wallet.ecdsaWalletID, walletPubKeyHash);
-
-        // TODO: Perform slashing of wallet operators and add unit tests for that.
-
-        // TODO: Send termination signal to the ECDSA registry and add unit tests for that.
-        //       See: https://github.com/keep-network/keep-core/issues/2864
+        self.registry.closeWallet(walletPubKeyHash);
     }
 }
