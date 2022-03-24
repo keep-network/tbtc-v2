@@ -94,7 +94,7 @@ library Frauds {
         bytes32 s
     );
 
-    event FraudChallengeDefeatTimeout(
+    event FraudChallengeDefeatTimedOut(
         bytes20 walletPublicKeyHash,
         bytes32 sighash,
         uint8 v,
@@ -116,16 +116,16 @@ library Frauds {
     ///         proof of a transaction that consumes the given input according
     ///         to protocol rules. To prevent spurious allegations, the caller
     ///         must deposit ETH that is returned back upon justified fraud
-    ///         challenge or confiscated otherwise.
+    ///         challenge or confiscated otherwise
     /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes).
+    ///        and unprefixed format (64 bytes)
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
     ///        transaction. The exact subset used as hash preimage depends on
     ///        the transaction input the signature is produced for. See BIP-143
-    ///        for reference.
-    /// @param signature Bitcoin signature in the R/S/V format.
+    ///        for reference
+    /// @param signature Bitcoin signature in the R/S/V format
     function submitFraudChallenge(
         Data storage self,
         bytes memory walletPublicKey,
@@ -187,13 +187,13 @@ library Frauds {
     /// @notice Unwraps the fraud challenge by verifying the given challenge
     ///         and returns the UTXO key extracted from the preimage.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes).
+    ///        and unprefixed format (64 bytes)
     /// @param preimage The preimage which produces sighash used to generate the
     ///        ECDSA signature that is the subject of the fraud claim. It is a
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
-    ///        produced for. See BIP-143 for reference.
-    /// @param signature Bitcoin signature in the R/S/V format.
+    ///        produced for. See BIP-143 for reference
+    /// @param signature Bitcoin signature in the R/S/V format
     /// @param witness Flag indicating whether the preimage was produced for a
     ///        witness input. True for witness, false for non-witness input.
     /// @return utxoKey UTXO key that identifies spent input.
@@ -242,17 +242,17 @@ library Frauds {
     ///         Additionally a preimage must be provided which was used to
     ///         calculate the sighash during input signing.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes).
+    ///        and unprefixed format (64 bytes)
     /// @param preimage The preimage which produces sighash used to generate the
     ///        ECDSA signature that is the subject of the fraud claim. It is a
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
-    ///        produced for. See BIP-143 for reference.
-    /// @param signature Bitcoin signature in the R/S/V format.
-    /// @param treasury Treasury associated with the Bridge.
+    ///        produced for. See BIP-143 for reference
+    /// @param signature Bitcoin signature in the R/S/V format
+    /// @param treasury Treasury associated with the Bridge
     /// @dev Should be called for a fraud challenge defeat attempt that has been
     ///      verified.
-    function finalizeFraudChallengeDefeat(
+    function defeatChallenge(
         Data storage self,
         bytes memory walletPublicKey,
         bytes memory preimage,
@@ -310,14 +310,14 @@ library Frauds {
     ///         ether deposited is returned to the challenger and the challenger
     ///         is rewarded.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes).
+    ///        and unprefixed format (64 bytes)
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
     ///        transaction. The exact subset used as hash preimage depends on
     ///        the transaction input the signature is produced for. See BIP-143
-    ///        for reference.
-    /// @param signature Bitcoin signature in the R/S/V format.
+    ///        for reference
+    /// @param signature Bitcoin signature in the R/S/V format
     function notifyFraudChallengeDefeatTimeout(
         Data storage self,
         bytes memory walletPublicKey,
@@ -365,7 +365,7 @@ library Frauds {
         );
         bytes20 walletPubKeyHash = bytes20(compressedWalletPublicKey.hash160());
 
-        emit FraudChallengeDefeatTimeout(
+        emit FraudChallengeDefeatTimedOut(
             walletPubKeyHash,
             sighash,
             signature.v,
@@ -375,7 +375,7 @@ library Frauds {
     }
 
     /// @notice Sets the new value for the `slashingAmount` parameter.
-    /// @param _newSlashingAmount the new value for `slashingAmount`.
+    /// @param _newSlashingAmount the new value for `slashingAmount`
     function setSlashingAmount(Data storage self, uint256 _newSlashingAmount)
         external
     {
@@ -384,7 +384,7 @@ library Frauds {
     }
 
     /// @notice Sets the new value for the `notifierRewardMultiplier` parameter.
-    /// @param _newNotifierRewardMultiplier the new value for `notifierRewardMultiplier`.
+    /// @param _newNotifierRewardMultiplier the new value for `notifierRewardMultiplier`
     /// @dev The value of `notifierRewardMultiplier` must be <= 100.
     function setNotifierRewardMultiplier(
         Data storage self,
@@ -399,7 +399,7 @@ library Frauds {
     }
 
     /// @notice Sets the new value for the `challengeDefeatTimeout` parameter.
-    /// @param _newChallengeDefeatTimeout the new value for `challengeDefeatTimeout`.
+    /// @param _newChallengeDefeatTimeout the new value for `challengeDefeatTimeout`
     /// @dev The value of `challengeDefeatTimeout` must be > 0.
     function setChallengeDefeatTimeout(
         Data storage self,
@@ -414,7 +414,7 @@ library Frauds {
     }
 
     /// @notice Sets the new value for the `challengeDepositAmount` parameter.
-    /// @param _newChallengeDepositAmount the new value for `challengeDepositAmount`.
+    /// @param _newChallengeDepositAmount the new value for `challengeDepositAmount`
     /// @dev The value of `challengeDepositAmount` must be > 0.
     function setChallengeDepositAmount(
         Data storage self,
@@ -434,7 +434,7 @@ library Frauds {
     ///        ECDSA signature that is the subject of the fraud claim. It is a
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
-    ///        produced for. See BIP-143 for reference.
+    ///        produced for. See BIP-143 for reference
     /// @return utxoKey UTXO key that identifies spent input.
     function extractUtxoKeyFromWitnessPreimage(bytes memory preimage)
         internal
@@ -477,7 +477,7 @@ library Frauds {
     ///        ECDSA signature that is the subject of the fraud claim. It is a
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
-    ///        produced for. See BIP-143 for reference.
+    ///        produced for. See BIP-143 for reference
     /// @return utxoKey UTXO key that identifies spent input.
     function extractUtxoKeyFromNonWitnessPreimage(bytes memory preimage)
         internal
@@ -561,7 +561,7 @@ library Frauds {
 
     /// @notice Extracts the sighash type from the given preimage.
     /// @param preimage Serialized subset of the transaction. See BIP-143 for
-    ///        reference.
+    ///        reference
     /// @dev Sighash type is stored as the last 4 bytes in the preimage (little
     ///      endian).
     /// @return sighashType Sighash type as a 32-bit integer (big endian).
