@@ -246,10 +246,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         to the redeemer in full amount.
     uint256 public redemptionTimeout;
 
-    /// @notice Contains parameters related to frauds and the collection of all
-    ///         submitted fraud challenges.
-    Frauds.Data internal frauds;
-
     /// @notice Indicates if the vault with the given address is trusted or not.
     ///         Depositors can route their revealed deposits only to trusted
     ///         vaults and have trusted vaults notified about new deposits as
@@ -312,6 +308,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     // TODO: Remove that Slither disable once this variable is used.
     // slither-disable-next-line uninitialized-state
     mapping(uint256 => RedemptionRequest) public timedOutRedemptions;
+
+    /// @notice Contains parameters related to frauds and the collection of all
+    ///         submitted fraud challenges.
+    Frauds.Data internal frauds;
 
     /// @notice State related with wallets.
     Wallets.Data internal wallets;
@@ -1439,7 +1439,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        the wallet behind `walletPubKey` during signing of `sighash`
     ///      - Wallet can be challenged for the given signature only once
     function submitFraudChallenge(
-        bytes memory walletPublicKey,
+        bytes calldata walletPublicKey,
         bytes32 sighash,
         BitcoinTx.RSVSignature calldata signature
     ) external payable {
@@ -1447,10 +1447,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             walletPublicKey.slice32(0),
             walletPublicKey.slice32(32)
         );
-
-        bytes20 walletPubKeyHash = bytes20(
-            compressedWalletPublicKey.hash160View()
-        );
+        bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
 
         Wallets.Wallet storage wallet = wallets.registeredWallets[
             walletPubKeyHash
@@ -1475,9 +1472,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         the inputs in the preimage are considered honestly spent by the
     ///         wallet. Therefore the transaction spending the UTXO must be
     ///         proven in the Bridge before a challenge defeat is called.
-    ///         If successfully defeated, the fraud challenge is closed and the
-    ///         amount of ether deposited by the challenger is sent to the
-    ///         treasury.
+    ///         If successfully defeated, the fraud challenge is marked as
+    ///         resolved and the amount of ether deposited by the challenger is
+    ///         sent to the treasury.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
     /// @param preimage The preimage which produces sighash used to generate the
@@ -1497,8 +1494,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      - before a defeat attempt is made the transaction that spends the
     ///        given UTXO must be proven in the Bridge
     function defeatFraudChallenge(
-        bytes memory walletPublicKey,
-        bytes memory preimage,
+        bytes calldata walletPublicKey,
+        bytes calldata preimage,
         BitcoinTx.RSVSignature calldata signature,
         bool witness
     ) external {
@@ -1525,9 +1522,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         The amount of time that needs to pass after a fraud challenge is
     ///         reported is indicated by the `challengeDefeatTimeout`. After a
     ///         successful fraud challenge defeat timeout notification the fraud
-    ///         challenge is closed, the stake of each operator is slashed, the
-    ///         ether deposited is returned to the challenger and the challenger
-    ///         is rewarded.
+    ///         challenge is marked as resolved, the stake of each operator is
+    ///         slashed, the ether deposited is returned to the challenger and
+    ///         the challenger is rewarded.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
     /// @param sighash The hash that was used to produce the ECDSA signature
@@ -1543,7 +1540,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      - the amount of time indicated by `challengeDefeatTimeout` must pass
     ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(
-        bytes memory walletPublicKey,
+        bytes calldata walletPublicKey,
         bytes32 sighash,
         BitcoinTx.RSVSignature calldata signature
     ) external {

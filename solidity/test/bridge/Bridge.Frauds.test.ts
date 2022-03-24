@@ -4,7 +4,7 @@
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import chai, { expect } from "chai"
-import { Transaction } from "ethers"
+import { ContractTransaction } from "ethers"
 import { BytesLike } from "@ethersproject/bytes"
 import { smock } from "@defi-wonderland/smock"
 import type {
@@ -140,7 +140,7 @@ describe("Bridge - Frauds", () => {
           "when the data needed for signature verification is correct",
           () => {
             context("when the fraud challenge does not exist yet", () => {
-              let tx: Transaction
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -202,7 +202,7 @@ describe("Bridge - Frauds", () => {
                 expect(fraudChallenge.reportedAt).to.equal(
                   await lastBlockTime()
                 )
-                expect(fraudChallenge.closed).to.equal(false)
+                expect(fraudChallenge.resolved).to.equal(false)
               })
 
               it("should emit FraudChallengeSubmitted event", async () => {
@@ -265,6 +265,7 @@ describe("Bridge - Frauds", () => {
         )
 
         context("when incorrect wallet public key is used", () => {
+          // Unrelated Bitcoin public key
           const incorrectWalletPublicKey =
             "0xffc045ade19f8a5d464299146ce069049cdcc2390a9b44d9abcd83f11d8cce4" +
             "01ea6800e307b87aadebdcd2f7293cc60f0526afaff1a7b1abddfd787e6c5871e"
@@ -304,6 +305,7 @@ describe("Bridge - Frauds", () => {
         })
 
         context("when incorrect sighash is used", () => {
+          // Random hex-string
           const incorrectSighash =
             "0x9e8e249791a5636e5e007fc15487b5a5bd6e60f73f7e236a7025cd63b904650b"
 
@@ -339,6 +341,7 @@ describe("Bridge - Frauds", () => {
         })
 
         context("when incorrect recovery ID is used", () => {
+          // Increase the value of v by 1
           const incorrectV = data.signature.v + 1
 
           before(async () => {
@@ -375,7 +378,7 @@ describe("Bridge - Frauds", () => {
         })
 
         context("when incorrect signature data is used", () => {
-          // just swap r and s
+          // Swap r and s
           const incorrectS = data.signature.r
           const incorrectR = data.signature.s
 
@@ -454,7 +457,7 @@ describe("Bridge - Frauds", () => {
           mainUtxoHash: ethers.constants.HashZero,
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
-          state: walletState.Live,
+          state: walletState.MovingFunds,
         })
       })
 
@@ -518,10 +521,10 @@ describe("Bridge - Frauds", () => {
           context("when the input is non-witness", () => {
             context("when the transaction has single input", () => {
               context(
-                "when the inputs are marked correctly spent in the Bridge",
+                "when the input is marked as correctly spent in the Bridge",
                 () => {
                   const data = nonWitnessSignSingleInputTx
-                  let tx: Transaction
+                  let tx: ContractTransaction
 
                   before(async () => {
                     await createSnapshot()
@@ -561,7 +564,7 @@ describe("Bridge - Frauds", () => {
                     await restoreSnapshot()
                   })
 
-                  it("should mark the challenge as closed", async () => {
+                  it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
                       walletPublicKey,
                       data.sighash,
@@ -574,7 +577,7 @@ describe("Bridge - Frauds", () => {
                       challengeKey
                     )
 
-                    expect(fraudChallenge.closed).to.equal(true)
+                    expect(fraudChallenge.resolved).to.equal(true)
                   })
 
                   it("should send the ether deposited by the challenger to the treasury", async () => {
@@ -603,7 +606,7 @@ describe("Bridge - Frauds", () => {
               )
 
               context(
-                "when the inputs are not marked as correctly spent in the Bridge",
+                "when the input is not marked as correctly spent in the Bridge",
                 () => {
                   const data = nonWitnessSignSingleInputTx
 
@@ -654,10 +657,10 @@ describe("Bridge - Frauds", () => {
 
             context("when the transaction has multiple inputs", () => {
               context(
-                "when the inputs are marked correctly spent in the Bridge",
+                "when the input is marked as correctly spent in the Bridge",
                 () => {
                   const data = nonWitnessSignMultipleInputsTx
-                  let tx: Transaction
+                  let tx: ContractTransaction
 
                   before(async () => {
                     await createSnapshot()
@@ -697,7 +700,7 @@ describe("Bridge - Frauds", () => {
                     await restoreSnapshot()
                   })
 
-                  it("should mark the challenge as closed", async () => {
+                  it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
                       walletPublicKey,
                       data.sighash,
@@ -710,7 +713,7 @@ describe("Bridge - Frauds", () => {
                       challengeKey
                     )
 
-                    expect(fraudChallenge.closed).to.equal(true)
+                    expect(fraudChallenge.resolved).to.equal(true)
                   })
 
                   it("should send the ether deposited by the challenger to the treasury", async () => {
@@ -739,7 +742,7 @@ describe("Bridge - Frauds", () => {
               )
 
               context(
-                "when the inputs are not marked as correctly spent in the Bridge",
+                "when the input is not marked as correctly spent in the Bridge",
                 () => {
                   const data = nonWitnessSignMultipleInputsTx
 
@@ -792,10 +795,10 @@ describe("Bridge - Frauds", () => {
           context("when the input is witness", () => {
             context("when the transaction has single input", () => {
               context(
-                "when the inputs are marked correctly spent in the Bridge",
+                "when the input is marked as correctly spent in the Bridge",
                 () => {
                   const data = witnessSignSingleInputTx
-                  let tx: Transaction
+                  let tx: ContractTransaction
 
                   before(async () => {
                     await createSnapshot()
@@ -835,7 +838,7 @@ describe("Bridge - Frauds", () => {
                     await restoreSnapshot()
                   })
 
-                  it("should mark the challenge as closed", async () => {
+                  it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
                       walletPublicKey,
                       data.sighash,
@@ -848,7 +851,7 @@ describe("Bridge - Frauds", () => {
                       challengeKey
                     )
 
-                    expect(fraudChallenge.closed).to.equal(true)
+                    expect(fraudChallenge.resolved).to.equal(true)
                   })
 
                   it("should send the ether deposited by the challenger to the treasury", async () => {
@@ -877,7 +880,7 @@ describe("Bridge - Frauds", () => {
               )
 
               context(
-                "when the inputs are not marked as correctly spent in the Bridge",
+                "when the input is not marked as correctly spent in the Bridge",
                 () => {
                   const data = witnessSignSingleInputTx
 
@@ -928,10 +931,10 @@ describe("Bridge - Frauds", () => {
 
             context("when the transaction has multiple inputs", () => {
               context(
-                "when the inputs are marked correctly spent in the Bridge",
+                "when the input is marked as correctly spent in the Bridge",
                 () => {
                   const data = witnessSignMultipleInputTx
-                  let tx: Transaction
+                  let tx: ContractTransaction
 
                   before(async () => {
                     await createSnapshot()
@@ -971,7 +974,7 @@ describe("Bridge - Frauds", () => {
                     await restoreSnapshot()
                   })
 
-                  it("should mark the challenge as closed", async () => {
+                  it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
                       walletPublicKey,
                       data.sighash,
@@ -984,7 +987,7 @@ describe("Bridge - Frauds", () => {
                       challengeKey
                     )
 
-                    expect(fraudChallenge.closed).to.equal(true)
+                    expect(fraudChallenge.resolved).to.equal(true)
                   })
 
                   it("should send the ether deposited by the challenger to the treasury", async () => {
@@ -1013,7 +1016,7 @@ describe("Bridge - Frauds", () => {
               )
 
               context(
-                "when the inputs are not marked as correctly spent in the Bridge",
+                "when the input is not marked as correctly spent in the Bridge",
                 () => {
                   const data = witnessSignMultipleInputTx
 
@@ -1065,6 +1068,8 @@ describe("Bridge - Frauds", () => {
         })
 
         context("when the sighash type is incorrect", () => {
+          // Wrong sighash was used (SIGHASH_NONE | SIGHASH_ANYONECANPAY) during
+          // input signing
           const data = wrongSighashType
 
           before(async () => {
@@ -1111,7 +1116,7 @@ describe("Bridge - Frauds", () => {
         })
       })
 
-      context("when the challenge is closed by defeat", () => {
+      context("when the challenge is resolved by defeat", () => {
         const data = nonWitnessSignSingleInputTx
 
         before(async () => {
@@ -1162,11 +1167,11 @@ describe("Bridge - Frauds", () => {
                 data.signature,
                 false
               )
-          ).to.be.revertedWith("Fraud challenge closed")
+          ).to.be.revertedWith("Fraud challenge has already been resolved")
         })
       })
 
-      context("when the challenge is closed by timeout", () => {
+      context("when the challenge is resolved by timeout", () => {
         const data = nonWitnessSignSingleInputTx
 
         before(async () => {
@@ -1218,7 +1223,7 @@ describe("Bridge - Frauds", () => {
                 data.signature,
                 false
               )
-          ).to.be.revertedWith("Fraud challenge closed")
+          ).to.be.revertedWith("Fraud challenge has already been resolved")
         })
       })
     })
@@ -1255,7 +1260,7 @@ describe("Bridge - Frauds", () => {
     describe("when the fraud challenge exists", () => {
       describe("when the fraud challenge is open", () => {
         describe("when the fraud challenge has timed out", () => {
-          let tx: Transaction
+          let tx: ContractTransaction
 
           before(async () => {
             await createSnapshot()
@@ -1296,7 +1301,7 @@ describe("Bridge - Frauds", () => {
             await restoreSnapshot()
           })
 
-          it("should mark the fraud challenge as closed", async () => {
+          it("should mark the fraud challenge as resolved", async () => {
             const challengeKey = buildChallengeKey(
               walletPublicKey,
               data.sighash,
@@ -1307,7 +1312,7 @@ describe("Bridge - Frauds", () => {
 
             const fraudChallenge = await bridge.fraudChallenges(challengeKey)
 
-            expect(fraudChallenge.closed).to.be.true
+            expect(fraudChallenge.resolved).to.be.true
           })
 
           it("should return the deposited ether to the challenger", async () => {
@@ -1384,7 +1389,7 @@ describe("Bridge - Frauds", () => {
         })
       })
 
-      describe("when the fraud challenge is closed by challenge defeat", () => {
+      describe("when the fraud challenge is resolved by challenge defeat", () => {
         before(async () => {
           await createSnapshot()
 
@@ -1432,11 +1437,11 @@ describe("Bridge - Frauds", () => {
                 data.sighash,
                 data.signature
               )
-          ).to.be.revertedWith("Fraud challenge is closed")
+          ).to.be.revertedWith("Fraud challenge has already been resolved")
         })
       })
 
-      describe("when the fraud challenge is closed by previous timeout notification", () => {
+      describe("when the fraud challenge is resolved by previous timeout notification", () => {
         before(async () => {
           await createSnapshot()
 
@@ -1485,7 +1490,7 @@ describe("Bridge - Frauds", () => {
                 data.sighash,
                 data.signature
               )
-          ).to.be.revertedWith("Fraud challenge is closed")
+          ).to.be.revertedWith("Fraud challenge has already been resolved")
         })
       })
     })
