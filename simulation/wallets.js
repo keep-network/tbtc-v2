@@ -2,17 +2,19 @@ const NUM_ITERATIONS = 2
 const DAYS_TO_SIMULATE = 365 * 2 // days
 const LOG_LEVEL = 3
 
-const WALLET_MIN_BTC = 1
+const DAYS_TO_UNSTAKE = 60 //days
 const EXPECTED_NEW_DEPOSITS = 30
 const EXPECTED_NEW_OPERATORS = 10
 const EXPECTED_NEW_WITHDRAWS = 25
 const HEARTBEAT = 70
 const OPERATOR_COUNT = 2000
 const OPERATOR_QUIT_CHANCE = 0.005
-const WALLET_MAX_AGE = 30 * 6 // days
-const WALLET_TRANSFER_MAX = 200
-const WALLET_SIZE = 100
 const WALLET_CREATION_PERIOD = 7 // days
+const WALLET_MAX_AGE = 30 * 6 // days
+const WALLET_MIN_BTC = 1
+const WALLET_SIZE = 100
+const WALLET_TRANSFER_MAX = 200
+
 const TRANSFER_IMPLEMENTATIONS = {
   RANDOM_TRANSFER_WITHOUT_CAP: "randomTransferWithoutCap",
   RANDOM_TRANSFER: "randomTransfer",
@@ -202,10 +204,10 @@ function beginUnstakingOperators(day) {
       unstakingOperatorsToday.push(operator)
     }
   })
-  unstakingOperators[day + 60] = unstakingOperatorsToday
+  unstakingOperators[day + DAYS_TO_UNSTAKE] = unstakingOperatorsToday
 }
 
-// Fully unstake the operators that began unstaking 60 days ago via `beginUnstakingOperators`
+// Fully unstake the operators that began unstaking DAYS_TO_UNSTAKE days ago via `beginUnstakingOperators`
 function unstakeOperators(day) {
   const unstakingOperatorsToday = unstakingOperators[day]
   if (!!unstakingOperatorsToday) {
