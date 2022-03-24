@@ -478,6 +478,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
     }
 
+    // TODO: Documentation.
+    function __ecdsaWalletHeartbeatFailedCallback(
+        bytes32 ecdsaWalletID,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY
+    ) external override {
+        // TODO: Implementation.
+    }
+
     /// @notice Gets details about a registered wallet.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
     ///        using Bitcoin HASH160 over the compressed ECDSA public key)
