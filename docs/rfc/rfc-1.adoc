@@ -395,7 +395,7 @@ wallet that contains enough bitcoin to fulfil the redemption. If more BTC
 needs to be redeemed than there is in the largest wallet, then the user needs
 to submit multiple redemptions. After a redemption, if the wallet has under
 `wallet_min_btc` remaining, it transfers that BTC to a randomly selected wallet
-and closes.
+and <<closing-a-wallet,closes>>.
 
 Each redemption request is identified by a concatenation of the wallet's pubkey
 hash and redeemer's output hash (redeemer's BTC address). Such an identifier
@@ -633,13 +633,13 @@ As time passes and operators drop out of the system, a wallet becomes at risk
 of being able to meet the 51-of-100 threshold to produce signatures.
 Additionally, we want to avoid situations where operators are the custodians of
 a wallet for extended periods. To avoid these issues, once a wallet is older
-than the `wallet_max_age`, or if it drops below the liveness threshold (say, below 70 on
-a <<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
-selected wallet.
+than the `wallet_max_age`, or if it drops below the liveness threshold (say,
+below 70 on a <<heartbeat,heartbeat>>), we motion to
+<<closing-a-wallet,transfer the funds>> to another randomly selected wallet.
 
 Once a wallet no longer has funds and is not the primary wallet for new
-deposits, it can be closed and operators are no longer required to maintain
-it.
+deposits, it can be <<closing-a-wallet,closed>> and operators are no longer
+required to maintain it.
 
 [[closing-a-wallet]]
 ==== Closing A Wallet
@@ -798,8 +798,8 @@ times >= `consecutive_failed_heartbeats`, the operators take a union the
 recorded _inactive_ operators, and an operator from among the active operators
 posts a transaction to disable those inactive operators from receiving rewards
 for `failed_heartbeat_reward_removal_period` amount of time. The active
-operators move the remaining BTC to another random wallet and close this
-wallet.
+operators move the remaining BTC to another random wallet and
+<<closing-a-wallet,close>> this wallet.
 
 For the purposes of heartbeats, an operator that is currently unstaking (they
 started their two-week undelegation period) does not count as a live heartbeat,
