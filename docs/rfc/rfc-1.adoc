@@ -205,7 +205,7 @@ reason), all they need to do is not submit their reveal and wait 30 days.
 [[sweeping]]
 ==== Sweeping
 
-Governable Parameters
+Governable Parameters:
 
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
@@ -310,7 +310,7 @@ address in 3 hours with no further interaction.
 
 ===== How Frequently To Sweep
 
-Governable Parameters
+Governable Parameters:
 
 - `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
@@ -338,7 +338,7 @@ batches) and increasing reliability from a user experience standpoint.
 
 ===== Skipping the Sweeping Line
 
-Governable Parameters
+Governable Parameters:
 
 - `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
   operator for the gas of the sweep and collect their account balance.
@@ -715,6 +715,7 @@ manually liquidate tokens to acquire BTC and donate it to the Bridge.
 === Transaction Incentives
 
 Governable Parameters:
+
 - `max_gas_refund_price`: The highest amount of gwei that the gas refund
   contract will pay out per gas for a refund transaction.
 
@@ -773,7 +774,8 @@ compensate gas.
 
 [[bitcoin-sweeping-fee]]
 === Bitcoin Sweeping Fee
-Governable Parameters
+
+Governable Parameters:
 
 - `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
   suggested BTC fee before the other operators give up and try the next
