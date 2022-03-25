@@ -1551,6 +1551,44 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
     }
 
+    /// @notice Returns parameters used by the `Frauds` library.
+    /// @return slashingAmount Value of the slashing amount
+    /// @return notifierRewardMultiplier Value of the notifier reward multiplier
+    /// @return challengeDefeatTimeout Value of the challenge defeat timeout
+    /// @return challengeDepositAmount Value of the challenge deposit amount
+    function getFraudParameters()
+        external
+        view
+        returns (
+            uint256 slashingAmount,
+            uint256 notifierRewardMultiplier,
+            uint256 challengeDefeatTimeout,
+            uint256 challengeDepositAmount
+        )
+    {
+        slashingAmount = frauds.slashingAmount;
+        notifierRewardMultiplier = frauds.notifierRewardMultiplier;
+        challengeDefeatTimeout = frauds.challengeDefeatTimeout;
+        challengeDepositAmount = frauds.challengeDepositAmount;
+
+        return (
+            slashingAmount,
+            notifierRewardMultiplier,
+            challengeDefeatTimeout,
+            challengeDepositAmount
+        );
+    }
+
+    /// @notice Returns the fraud challenge identified by the given key built
+    ///         as keccak256(walletPublicKey|sighash|v|r|s).
+    function fraudChallenges(uint256 challengeKey)
+        external
+        view
+        returns (Frauds.FraudChallenge memory)
+    {
+        return frauds.challenges[challengeKey];
+    }
+
     /// @notice Validates whether the redemption Bitcoin transaction input
     ///         vector contains a single input referring to the wallet's main
     ///         UTXO. Reverts in case the validation fails.
@@ -1830,42 +1868,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
 
         return info;
-    }
-
-    /// @notice Returns parameters used by the `Frauds` library.
-    /// @return slashingAmount Value of the slashing amount
-    /// @return notifierRewardMultiplier Value of the notifier reward multiplier
-    /// @return challengeDefeatTimeout Value of the challenge defeat timeout
-    /// @return challengeDepositAmount Value of the challenge deposit amount
-    function getFraudParameters()
-        external
-        view
-        returns (
-            uint256 slashingAmount,
-            uint256 notifierRewardMultiplier,
-            uint256 challengeDefeatTimeout,
-            uint256 challengeDepositAmount
-        )
-    {
-        slashingAmount = frauds.slashingAmount;
-        notifierRewardMultiplier = frauds.notifierRewardMultiplier;
-        challengeDefeatTimeout = frauds.challengeDefeatTimeout;
-        challengeDepositAmount = frauds.challengeDepositAmount;
-
-        return (
-            slashingAmount,
-            notifierRewardMultiplier,
-            challengeDefeatTimeout,
-            challengeDepositAmount
-        );
-    }
-
-    function fraudChallenges(uint256 challengeKey)
-        external
-        view
-        returns (Frauds.FraudChallenge memory)
-    {
-        return frauds.challenges[challengeKey];
     }
 
     // TODO: Function `notifyRedemptionTimeout. That function must:

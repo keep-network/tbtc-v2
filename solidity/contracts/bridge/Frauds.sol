@@ -574,6 +574,8 @@ library Frauds {
         pure
         returns (uint32 sighashType)
     {
+        // TODO: Consider using `bytes4` instead allocating `bytes` if it's
+        //       cheaper.
         bytes memory sighashTypeBytes = preimage.lastBytes(4);
         uint32 sighashTypeLE = uint32(sighashTypeBytes.bytesToUint());
         return sighashTypeLE.reverseUint32();
