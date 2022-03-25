@@ -814,8 +814,8 @@ advantage of manipulating btc fee consensus I would be very surprised.
 == Governable Parameters
 Alphabetized list of Governable Parameters with additional notes.
 
-- `base_btc_fee_max`: The highest amount of BTC that operators can
-  initially propose as a fee for miners of Bitcoin transaction.
+- `base_btc_fee_max`: The highest amount of BTC that operators can initially
+  propose as a fee for miners of Bitcoin transaction.
 - `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
   suggested BTC fee before the other operators give up and try the next
   operator.
@@ -827,17 +827,35 @@ Alphabetized list of Governable Parameters with additional notes.
   be considered for a sweep.
 - `failed_heartbeat_reward_removal_period`: The amount of time an operator is
   removed from reward eligibility after failing a heartbeat.
+- `fraud_challenge_defend_timeout`: The amount of time the wallet has to defend
+  against a fraud challenge.
+- `fraud_challenge_deposit_amount`: The amount of ETH the party challenging the
+  wallet for fraud needs to deposit.
+- `fraud_notifier_reward_multiplier`: The percentage of the notifier reward
+  from the staking contract the notifier of a fraud receives.
+- `fraud_slashing_amount`: The amount of stake slashed from each member of a
+  wallet for a fraud.
+- `heartbeat_block_length`: The number of ethereum blocks until the next
+  heartbeat. If set to 40, then the signers sign every 40th block.
 - `heartbeat`: The number of group members required for a
   <<heartbeat,heartbeat>> to be successful.
-- `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
-  If set to 40, then the signers sign every 40th block.
 - `max_gas_refund_price`: The highest amount of gwei that the gas refund
   contract will pay out per gas for a refund transaction.
+- `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
+  notifier reward from the staking contract the redeemer receives in case of a
+  redemption timeout.
+- `redemption_request_timeout_slashing_amount`: The amount of stake slashed
+  from each member of a wallet for a timed-out redemption request.
+- `redemption_request_timeout`: The amount of time the wallet has to provide
+  redemption proof.
+- `redemption_treasury_fee`: The percentage of redeemed amount put aside as a
+  treasury fee.
 - `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
   operator for the gas of the sweep and collect their account balance.
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
   will trigger an early sweep on a wallet.
-- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a
+  wallet.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
   tranaction is mined before increasing the fee.
 - `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
@@ -850,26 +868,14 @@ Alphabetized list of Governable Parameters with additional notes.
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
-- `redemption_request_timeout`: The amount of time the wallet has to provide
-  redemption proof.
-- `redemption_request_timeout_slashing_amount`: The amount of stake slashed
-  from each member of a wallet for a timed-out redemption request.
-- `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
-  notifier reward from the staking contract the redeemer receives in case of a
-  redemption timeout.
-- `redemption_treasury_fee`: The percentage of redeemed amount put aside as a
-  treasury fee.
+- `wallet_closure_timeout`: The amount of time that a wallet has to
+  successfully move its funds to another wallet and inform the ethereum chain
+  before it is at risk of punishment.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
-- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
-  to a randomly selected wallet.
-- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer
+  the funds to a randomly selected wallet.
+- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
-- `fraud_slashing_amount`: The amount of stake slashed from each member of a
-  wallet for a fraud.
-- `fraud_notifier_reward_multiplier`: The percentage of the notifier reward from
-  the staking contract the notifier of a fraud receives.
-- `fraud_challenge_defend_timeout`: The amount of time the wallet has to defend
-  against a fraud challenge.
-- `fraud_challenge_deposit_amount`: The amount of ETH the party challenging the
-  wallet for fraud needs to deposit.
+- `wallet_transfer_max`: The most amount of BTC a wallet can transfer to a
+  single other wallet during a wallet closure.
