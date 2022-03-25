@@ -382,20 +382,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 s
     );
 
-    event FraudChallengeDefeated(
-        bytes20 walletPublicKeyHash,
-        bytes32 sighash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    );
+    event FraudChallengeDefeated(bytes20 walletPublicKeyHash, bytes32 sighash);
 
     event FraudChallengeDefeatTimedOut(
         bytes20 walletPublicKeyHash,
-        bytes32 sighash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        bytes32 sighash
     );
 
     constructor(
@@ -1483,13 +1474,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
     ///        produced for. See BIP-143 for reference
-    /// @param signature Bitcoin signature in the R/S/V format
     /// @param witness Flag indicating whether the preimage was produced for a
     ///        witness input. True for witness, false for non-witness input
     /// @dev Requirements:
-    ///      - `walletPublicKey`, signature (represented by `r`, `s` and `v`),
-    ///        and `sighash` calculated as `hash256(preimage)` must identify an
-    ///        open fraud challenge
+    ///      - `walletPublicKey` and `sighash` calculated as `hash256(preimage)`
+    ///        must identify an open fraud challenge
     ///      - the preimage must be a valid preimage of a transaction generated
     ///        according to the protocol rules and already proved in the Bridge
     ///      - before a defeat attempt is made the transaction that spends the
@@ -1498,13 +1487,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function defeatFraudChallenge(
         bytes calldata walletPublicKey,
         bytes calldata preimage,
-        BitcoinTx.RSVSignature calldata signature,
         bool witness
     ) external {
         uint256 utxoKey = frauds.unwrapChallenge(
             walletPublicKey,
             preimage,
-            signature,
             witness
         );
 
@@ -1514,19 +1501,19 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "Spent UTXO not found among correctly spent UTXOs"
         );
 
-        frauds.defeatChallenge(walletPublicKey, preimage, signature, treasury);
+        frauds.defeatChallenge(walletPublicKey, preimage, treasury);
     }
 
     /// @notice Notifies about defeat timeout for the given fraud challenge.
     ///         Can be called only if there was a fraud challenge identified by
-    ///         the provided `walletPublicKey`, `sighash` and signature
-    ///         (represented by `r`, `s` and `v`) and it was not defeated on time.
-    ///         The amount of time that needs to pass after a fraud challenge is
-    ///         reported is indicated by the `challengeDefeatTimeout`. After a
-    ///         successful fraud challenge defeat timeout notification the fraud
-    ///         challenge is marked as resolved, the stake of each operator is
-    ///         slashed, the ether deposited is returned to the challenger and
-    ///         the challenger is rewarded.
+    ///         the provided `walletPublicKey` and `sighash` and it was not
+    ///         defeated on time. The amount of time that needs to pass after
+    ///         a fraud challenge is reported is indicated by the
+    ///         `challengeDefeatTimeout`. After a successful fraud challenge
+    ///         defeat timeout notification the fraud challenge is marked as
+    ///         resolved, the stake of each operator is slashed, the ether
+    ///         deposited is returned to the challenger and the challenger is
+    ///         rewarded.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
     /// @param sighash The hash that was used to produce the ECDSA signature
@@ -1535,23 +1522,17 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        transaction. The exact subset used as hash preimage depends on
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference
-    /// @param signature Bitcoin signature in the R/S/V format
     /// @dev Requirements:
-    ///      - `walletPublicKey`, signature (represented by `r`, `s` and `v`)
-    ///        and `sighash` must identify an open fraud challenge
-    ///      - the amount of time indicated by `challengeDefeatTimeout` must pass
-    ///        after the challenge was reported
+    ///      - `walletPublicKey`and `sighash` must identify an open fraud
+    ///        challenge
+    ///      - the amount of time indicated by `challengeDefeatTimeout` must
+    ///        pass after the challenge was reported
     /// TODO: Consider using wallet public key in the X/Y form to avoid slicing.
     function notifyFraudChallengeDefeatTimeout(
         bytes calldata walletPublicKey,
-        bytes32 sighash,
-        BitcoinTx.RSVSignature calldata signature
+        bytes32 sighash
     ) external {
-        frauds.notifyFraudChallengeDefeatTimeout(
-            walletPublicKey,
-            sighash,
-            signature
-        );
+        frauds.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
     }
 
     /// @notice Returns parameters used by the `Frauds` library.
