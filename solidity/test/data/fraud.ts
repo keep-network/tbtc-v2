@@ -13,12 +13,14 @@ export interface FraudTestData {
   sighash: BytesLike
   witness: boolean
   deposits: {
-    fundingTxHash: BytesLike
-    fundingOutputIndex: number
+    txHash: BytesLike // little endian
+    txOutputIndex: number
+    txOutputValue: number
   }[]
   spentMainUtxos: {
-    fundingTxHash: BytesLike // little endian
-    fundingOutputIndex: number
+    txHash: BytesLike // little endian
+    txOutputIndex: number
+    txOutputValue: number
   }[]
 }
 
@@ -51,9 +53,10 @@ export const nonWitnessSignSingleInputTx: FraudTestData = {
   witness: false,
   deposits: [
     {
-      fundingTxHash:
+      txHash:
         "0xfb26e52365437fc4fce01864d1303e0e1ed2824ef83345ea6e85174060778acb",
-      fundingOutputIndex: 0,
+      txOutputIndex: 0,
+      txOutputValue: 11000,
     },
   ],
   spentMainUtxos: [],
@@ -83,38 +86,13 @@ export const nonWitnessSignMultipleInputsTx: FraudTestData = {
   witness: false,
   deposits: [
     {
-      fundingTxHash:
-        "0xbdaf864f75dbe4490bc3acf451c291906cbb9c32c5a6b50cdc97b23f4277890a",
-      fundingOutputIndex: 0,
-    },
-    {
-      fundingTxHash:
-        "0x3c5a87fe0a5d77616623278cd25fa7b5f2602e43d4a1c17e6a2b2fd964670def",
-      fundingOutputIndex: 0,
-    },
-    {
-      fundingTxHash:
-        "0x3fd813441999ae54f62f6e5ace9b1ee2941ff53432a3d8b4317f22c6072978c0",
-      fundingOutputIndex: 0,
-    },
-    {
-      fundingTxHash:
-        "0x0d43fe1d6e5e0a44838fbedb2eb41a8f5c5f313470c3dfd7dad92bc50cc1f617",
-      fundingOutputIndex: 0,
-    },
-    {
-      fundingTxHash:
+      txHash:
         "0x7a39cc92883a8ec888c6d86a741b1bf8a51769230832e52d1395346bcab037e9",
-      fundingOutputIndex: 0,
+      txOutputIndex: 0,
+      txOutputValue: 8000,
     },
   ],
-  spentMainUtxos: [
-    {
-      fundingTxHash:
-        "0xa5f90f326daa312858eba12b225704ec668762cabffd83b2a0eeb0a0f12c77d1",
-      fundingOutputIndex: 0,
-    },
-  ],
+  spentMainUtxos: [],
 }
 
 // Test data comes from the (only) input of transaction:
@@ -138,9 +116,10 @@ export const witnessSignSingleInputTx: FraudTestData = {
   witness: true,
   deposits: [
     {
-      fundingTxHash:
+      txHash:
         "0xcbb4ac0f93b0ad4a8c387e9942a9b65ba54a01692dd1a6edc7c3b70f0355ccec",
-      fundingOutputIndex: 0,
+      txOutputIndex: 0,
+      txOutputValue: 22000,
     },
   ],
   spentMainUtxos: [],
@@ -163,38 +142,13 @@ export const witnessSignMultipleInputTx: FraudTestData = {
     "0000000001000000",
   sighash: "0xd05adb53b09ac6b1cc0a0166558f8b90d2898c9a368d40a2a033e5e0c1af9b11",
   witness: true,
-  deposits: [
-    {
-      fundingTxHash:
-        "0xbdaf864f75dbe4490bc3acf451c291906cbb9c32c5a6b50cdc97b23f4277890a",
-      fundingOutputIndex: 0,
-    },
-    {
-      fundingTxHash:
-        "0x3c5a87fe0a5d77616623278cd25fa7b5f2602e43d4a1c17e6a2b2fd964670def",
-      fundingOutputIndex: 0,
-    },
-    {
-      fundingTxHash:
-        "0x3fd813441999ae54f62f6e5ace9b1ee2941ff53432a3d8b4317f22c6072978c0",
-      fundingOutputIndex: 0,
-    },
-    {
-      fundingTxHash:
-        "0x0d43fe1d6e5e0a44838fbedb2eb41a8f5c5f313470c3dfd7dad92bc50cc1f617",
-      fundingOutputIndex: 0,
-    },
-    {
-      fundingTxHash:
-        "0x7a39cc92883a8ec888c6d86a741b1bf8a51769230832e52d1395346bcab037e9",
-      fundingOutputIndex: 0,
-    },
-  ],
+  deposits: [],
   spentMainUtxos: [
     {
-      fundingTxHash:
+      txHash:
         "0xa5f90f326daa312858eba12b225704ec668762cabffd83b2a0eeb0a0f12c77d1",
-      fundingOutputIndex: 0,
+      txOutputIndex: 0,
+      txOutputValue: 8400,
     },
   ],
 }
@@ -220,14 +174,10 @@ export const wrongSighashType: FraudTestData = {
   witness: true,
   deposits: [
     {
-      fundingTxHash:
-        "0x06365675e78613dd4298c820fa02111ee8c658af786dca939e11b70769ca47ca",
-      fundingOutputIndex: 0,
-    },
-    {
-      fundingTxHash:
+      txHash:
         "0xf7f663bc3e389cce42c0d0874a9e0d6390ecbb9af3eba1b3f276b83795f1b1af",
-      fundingOutputIndex: 0,
+      txOutputIndex: 0,
+      txOutputValue: 9000,
     },
   ],
   spentMainUtxos: [],

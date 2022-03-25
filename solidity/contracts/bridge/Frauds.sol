@@ -396,6 +396,7 @@ library Frauds {
     /// @return utxoKey UTXO key that identifies spent input.
     function extractUtxoKeyFromWitnessPreimage(bytes calldata preimage)
         internal
+        pure
         returns (uint256 utxoKey)
     {
         // The expected structure of the preimage created during signing of a
@@ -432,6 +433,7 @@ library Frauds {
     /// @return utxoKey UTXO key that identifies spent input.
     function extractUtxoKeyFromNonWitnessPreimage(bytes calldata preimage)
         internal
+        pure
         returns (uint256 utxoKey)
     {
         // The expected structure of the preimage created during signing of a
