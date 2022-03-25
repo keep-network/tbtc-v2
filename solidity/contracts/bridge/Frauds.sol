@@ -287,7 +287,7 @@ library Frauds {
         // Send the ether deposited by the challenger to the treasury
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls
-        treasury.call{gas: 5000, value: challenge.depositAmount}("");
+        treasury.call{gas: 100000, value: challenge.depositAmount}("");
         /* solhint-enable avoid-low-level-calls */
 
         bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
@@ -368,7 +368,7 @@ library Frauds {
         // Return the ether deposited by the challenger
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls
-        challenge.challenger.call{gas: 5000, value: challenge.depositAmount}(
+        challenge.challenger.call{gas: 100000, value: challenge.depositAmount}(
             ""
         );
         /* solhint-enable avoid-low-level-calls */
