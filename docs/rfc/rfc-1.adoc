@@ -699,7 +699,8 @@ disabled (after the active operators sign this). See
 <<transaction-incentives,transaction incentives>> for more on how to encourage
 this transaction.
 
-=== Bridge donate
+[[donate]]
+=== Bridge Donation
 
 If a wallet committed fraud, there has to be a function allowing to "donate" BTC
 to the Bridge without increasing anyone's balances. This function needs to
