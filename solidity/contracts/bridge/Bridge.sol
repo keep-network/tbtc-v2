@@ -424,7 +424,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionTxMaxFee = 1000; // 1000 satoshi
         redemptionTimeout = 172800; // 48 hours
-        frauds.setSlashingAmount(10000 * 1e8); // 10000 T
+        frauds.setSlashingAmount(10000 * 1e18); // 10000 T
         frauds.setNotifierRewardMultiplier(100); // 100%
         frauds.setChallengeDefeatTimeout(7 days);
         frauds.setChallengeDepositAmount(2 ether);
