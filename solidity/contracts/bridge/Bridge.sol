@@ -1694,6 +1694,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     //       7. Reduce the `pendingRedemptionsValue` (`wallets` mapping) for
     //          given wallet by request's redeemable amount computed as
     //          `requestedAmount - treasuryFee`.
-    //       8. Call `wallets.notifyWalletActionTimedOut` to propagate timeout
+    //       8. Call `wallets.notifyRedemptionTimedOut` to propagate timeout
     //          consequences to the wallet.
 }

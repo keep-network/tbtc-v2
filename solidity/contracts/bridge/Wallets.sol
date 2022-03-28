@@ -352,17 +352,16 @@ library Wallets {
         requestWalletClosure(self, walletPubKeyHash);
     }
 
-    /// @notice Handles a notification about a wallet action timeout
-    ///         (e.g. redemption request timeout) and requests slashing
-    ///         of the wallet operators. Triggers wallet closure process
-    ///         only if the wallet is still in the Live state. That means
-    ///         multiple action timeouts can be reported for the same
+    /// @notice Handles a notification about a wallet redemption timeout
+    ///         and requests slashing of the wallet operators. Triggers wallet
+    ///         closure process only if the wallet is still in the Live state.
+    ///         That means multiple action timeouts can be reported for the same
     ///         wallet but only the first report will trigger wallet closure
     ///         process.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - Wallet must be in a state other than Unknown
-    function notifyWalletActionTimedOut(
+    function notifyRedemptionTimedOut(
         Data storage self,
         bytes20 walletPubKeyHash
     ) external {
