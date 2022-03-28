@@ -419,10 +419,11 @@ library Wallets {
         );
 
         /* solhint-disable-next-line not-rely-on-time */
-        bool walletMaxAge = block.timestamp >= wallet.createdAt + self.maxAge;
+        bool walletOldEnough = block.timestamp >=
+            wallet.createdAt + self.maxAge;
 
         require(
-            walletMaxAge ||
+            walletOldEnough ||
                 getWalletBtcBalance(self, walletPubKeyHash, walletMainUtxo) <
                 self.minBtcBalance,
             "Wallet needs to be old enough or have too few satoshis"
