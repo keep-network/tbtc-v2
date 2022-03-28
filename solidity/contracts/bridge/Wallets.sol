@@ -515,6 +515,6 @@ library Wallets {
             delete self.activeWalletPubKeyHash;
         }
 
-        self.registry.closeWallet(walletPubKeyHash);
+        self.registry.closeWallet(wallet.ecdsaWalletID);
     }
 }
