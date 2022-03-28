@@ -390,7 +390,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.init(_ecdsaWalletRegistry);
         wallets.setCreationPeriod(1 weeks);
         wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // [1 BTC, 10 BTC]
-        wallets.setMaxAge(8 weeks);
+        wallets.setMaxAge(26 weeks); // ~6 months
     }
 
     /// @notice Updates parameters used by the `Wallets` library.
