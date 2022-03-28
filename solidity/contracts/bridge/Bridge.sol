@@ -512,8 +512,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.notifyWalletHeartbeatFailed(publicKeyX, publicKeyY);
     }
 
-    /// @notice Notifies about wallet exhaustion and triggers the
-    ///         wallet closure process.
+    /// @notice Notifies that the wallet is either old enough or has too few
+    ///         satoshis left and qualifies to be closed.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
     ///        known on the Ethereum chain.
@@ -527,11 +527,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        can be empty as it is ignored since the wallet balance is
     ///        assumed to be zero.
     ///      - Wallet must be in Live state
-    function notifyWalletExhausted(
+    function notifyCloseableWallet(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
     ) external {
-        wallets.notifyWalletExhausted(walletPubKeyHash, walletMainUtxo);
+        wallets.notifyCloseableWallet(walletPubKeyHash, walletMainUtxo);
     }
 
     /// @notice Gets details about a registered wallet.

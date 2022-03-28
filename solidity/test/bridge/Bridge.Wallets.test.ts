@@ -1065,7 +1065,7 @@ describe("Bridge - Wallets", () => {
     })
   })
 
-  describe("notifyWalletExhausted", () => {
+  describe("notifyCloseableWallet", () => {
     context("when the reported wallet is not the active one", () => {
       context("when wallet is in Live state", () => {
         before(async () => {
@@ -1104,7 +1104,7 @@ describe("Bridge - Wallets", () => {
 
               tx = await bridge
                 .connect(walletRegistry.wallet)
-                .notifyWalletExhausted(
+                .notifyCloseableWallet(
                   ecdsaWalletTestData.pubKeyHash160,
                   NO_MAIN_UTXO
                 )
@@ -1161,7 +1161,7 @@ describe("Bridge - Wallets", () => {
 
               tx = await bridge
                 .connect(walletRegistry.wallet)
-                .notifyWalletExhausted(
+                .notifyCloseableWallet(
                   ecdsaWalletTestData.pubKeyHash160,
                   walletMainUtxo
                 )
@@ -1216,7 +1216,7 @@ describe("Bridge - Wallets", () => {
 
                 tx = await bridge
                   .connect(walletRegistry.wallet)
-                  .notifyWalletExhausted(
+                  .notifyCloseableWallet(
                     ecdsaWalletTestData.pubKeyHash160,
                     NO_MAIN_UTXO
                   )
@@ -1273,7 +1273,7 @@ describe("Bridge - Wallets", () => {
 
                 tx = await bridge
                   .connect(walletRegistry.wallet)
-                  .notifyWalletExhausted(
+                  .notifyCloseableWallet(
                     ecdsaWalletTestData.pubKeyHash160,
                     walletMainUtxo
                   )
@@ -1345,11 +1345,13 @@ describe("Bridge - Wallets", () => {
               await expect(
                 bridge
                   .connect(walletRegistry.wallet)
-                  .notifyWalletExhausted(
+                  .notifyCloseableWallet(
                     ecdsaWalletTestData.pubKeyHash160,
                     walletMainUtxo
                   )
-              ).to.be.revertedWith("Wallet exhaustion conditions are not met")
+              ).to.be.revertedWith(
+                "Wallet needs to be old enough or have too few satoshis"
+              )
             })
           }
         )
@@ -1386,7 +1388,7 @@ describe("Bridge - Wallets", () => {
               await expect(
                 bridge
                   .connect(walletRegistry.wallet)
-                  .notifyWalletExhausted(
+                  .notifyCloseableWallet(
                     ecdsaWalletTestData.pubKeyHash160,
                     corruptedWalletMainUtxo
                   )
@@ -1439,7 +1441,7 @@ describe("Bridge - Wallets", () => {
               await expect(
                 bridge
                   .connect(walletRegistry.wallet)
-                  .notifyWalletExhausted(
+                  .notifyCloseableWallet(
                     ecdsaWalletTestData.pubKeyHash160,
                     NO_MAIN_UTXO
                   )
@@ -1475,11 +1477,11 @@ describe("Bridge - Wallets", () => {
         await expect(
           bridge
             .connect(walletRegistry.wallet)
-            .notifyWalletExhausted(
+            .notifyCloseableWallet(
               ecdsaWalletTestData.pubKeyHash160,
               NO_MAIN_UTXO
             )
-        ).to.be.revertedWith("Active wallet cannot be considered exhausted")
+        ).to.be.revertedWith("Active wallet cannot be considered closeable")
       })
     })
   })

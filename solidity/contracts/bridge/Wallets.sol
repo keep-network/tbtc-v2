@@ -379,8 +379,8 @@ library Wallets {
         }
     }
 
-    /// @notice Handles a notification about wallet exhaustion and triggers the
-    ///         wallet closure process.
+    /// @notice Notifies that the wallet is either old enough or has too few
+    ///         satoshis left and qualifies to be closed.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
     ///        known on the Ethereum chain.
@@ -394,14 +394,14 @@ library Wallets {
     ///        can be empty as it is ignored since the wallet balance is
     ///        assumed to be zero.
     ///      - Wallet must be in Live state
-    function notifyWalletExhausted(
+    function notifyCloseableWallet(
         Data storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
     ) external {
         require(
             self.activeWalletPubKeyHash != walletPubKeyHash,
-            "Active wallet cannot be considered exhausted"
+            "Active wallet cannot be considered closeable"
         );
 
         /* solhint-disable-next-line not-rely-on-time */
@@ -412,7 +412,7 @@ library Wallets {
             walletMaxAge ||
                 getWalletBtcBalance(self, walletPubKeyHash, walletMainUtxo) <
                 self.minBtcBalance,
-            "Wallet exhaustion conditions are not met"
+            "Wallet needs to be old enough or have too few satoshis"
         );
 
         requestWalletClosure(self, walletPubKeyHash);
