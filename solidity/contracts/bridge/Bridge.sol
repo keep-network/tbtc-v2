@@ -497,15 +497,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     /// @notice A callback function that is called by the ECDSA Wallet Registry
     ///         once a wallet heartbeat failure is detected.
-    /// @param ecdsaWalletID Wallet's unique identifier
     /// @param publicKeyX Wallet's public key's X coordinate
     /// @param publicKeyY Wallet's public key's Y coordinate
     /// @dev Requirements:
     ///      - The only caller authorized to call this function is `registry`
     ///      - Wallet must be in Live state
     function __ecdsaWalletHeartbeatFailedCallback(
-        /* solhint-disable-next-line no-unused-vars */
-        bytes32 ecdsaWalletID,
+        bytes32,
         bytes32 publicKeyX,
         bytes32 publicKeyY
     ) external override {
