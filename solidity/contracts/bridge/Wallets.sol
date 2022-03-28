@@ -349,7 +349,7 @@ library Wallets {
             EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
         );
 
-        requestWalletClosure(self, walletPubKeyHash);
+        moveFunds(self, walletPubKeyHash);
     }
 
     /// @notice Handles a notification about a wallet redemption timeout
@@ -374,7 +374,7 @@ library Wallets {
         require(walletState != WalletState.Unknown, "Unknown wallet");
 
         if (walletState == WalletState.Live) {
-            requestWalletClosure(self, walletPubKeyHash);
+            moveFunds(self, walletPubKeyHash);
         }
     }
 
@@ -414,20 +414,19 @@ library Wallets {
             "Wallet needs to be old enough or have too few satoshis"
         );
 
-        requestWalletClosure(self, walletPubKeyHash);
+        moveFunds(self, walletPubKeyHash);
     }
 
-    /// @notice Requests wallet closure. If the wallet balance is greater than
-    ///         zero, the wallet is requested to move their funds first.
-    ///         Otherwise, the wallet is closed immediately and the ECDSA
-    ///         registry is notified about this fact. If the wallet closure
+    /// @notice Requests a wallet to move their funds. If the wallet balance
+    ///         is zero, the wallet is closed immediately and the ECDSA
+    ///         registry is notified about this fact. If the move funds
     ///         request refers to the current active wallet, such a wallet
     ///         is no longer considered active and the active wallet slot
     ///         is unset allowing to trigger a new wallet creation immediately.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - Wallet must be in Live state
-    function requestWalletClosure(Data storage self, bytes20 walletPubKeyHash)
+    function moveFunds(Data storage self, bytes20 walletPubKeyHash)
         internal
     {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
