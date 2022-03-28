@@ -25,6 +25,7 @@ import "../bank/Bank.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./Wallets.sol";
+import "./Frauds.sol";
 
 /// @title Interface for the Bitcoin relay
 /// @notice Contains only the methods needed by tBTC v2. The Bitcoin relay
@@ -61,6 +62,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
     using BytesLib for bytes;
+    using Frauds for Frauds.Data;
     using Wallets for Wallets.Data;
 
     /// @notice Represents data which must be revealed by the depositor during
@@ -261,6 +263,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         validating them before attempting to execute a sweep.
     mapping(uint256 => DepositRequest) public deposits;
 
+    //TODO: Remember to update this map when implementing transferring funds
+    //      between wallets (insert the main UTXO that was used as the input).
+    /// @notice Collection of main UTXOs that are honestly spent indexed by
+    ///         keccak256(fundingTxHash | fundingOutputIndex). The fundingTxHash
+    ///         is bytes32 (ordered as in Bitcoin internally) and
+    ///         fundingOutputIndex an uint32. A main UTXO is considered honestly
+    ///         spent if it was used as an input of a transaction that have been
+    ///         proven in the Bridge.
+    mapping(uint256 => bool) public spentMainUTXOs;
+
     /// @notice Collection of all pending redemption requests indexed by
     ///         redemption key built as
     ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
@@ -294,6 +306,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     // TODO: Remove that Slither disable once this variable is used.
     // slither-disable-next-line uninitialized-state
     mapping(uint256 => RedemptionRequest) public timedOutRedemptions;
+
+    /// @notice Contains parameters related to frauds and the collection of all
+    ///         submitted fraud challenges.
+    Frauds.Data internal frauds;
 
     /// @notice State related with wallets.
     Wallets.Data internal wallets;
@@ -331,6 +347,20 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
+    event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
+
+    event FraudNotifierRewardMultiplierUpdated(
+        uint256 newFraudNotifierRewardMultiplier
+    );
+
+    event FraudChallengeDefeatTimeoutUpdated(
+        uint256 newFraudChallengeDefeatTimeout
+    );
+
+    event FraudChallengeDepositAmountUpdated(
+        uint256 newFraudChallengeDepositAmount
+    );
+
     event DepositRevealed(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
@@ -359,6 +389,21 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 redemptionTxHash
     );
 
+    event FraudChallengeSubmitted(
+        bytes20 walletPublicKeyHash,
+        bytes32 sighash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    );
+
+    event FraudChallengeDefeated(bytes20 walletPublicKeyHash, bytes32 sighash);
+
+    event FraudChallengeDefeatTimedOut(
+        bytes20 walletPublicKeyHash,
+        bytes32 sighash
+    );
+
     constructor(
         address _bank,
         address _relay,
@@ -385,6 +430,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionTxMaxFee = 1000; // 1000 satoshi
         redemptionTimeout = 172800; // 48 hours
+        frauds.setSlashingAmount(10000 * 1e18); // 10000 T
+        frauds.setNotifierRewardMultiplier(100); // 100%
+        frauds.setChallengeDefeatTimeout(7 days);
+        frauds.setChallengeDepositAmount(2 ether);
 
         // TODO: Revisit initial values.
         wallets.init(_ecdsaWalletRegistry);
@@ -1033,6 +1082,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                 // the expected main UTXO.
                 info.inputsTotalValue += mainUtxo.txOutputValue;
                 mainUtxoFound = true;
+
+                // Main UTXO used as an input, mark it as spent.
+                spentMainUTXOs[
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(outpointTxHash, outpointIndex)
+                        )
+                    )
+                ] = true;
             } else {
                 revert("Unknown input type");
             }
@@ -1398,6 +1456,187 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bank.transferBalance(treasury, outputsInfo.totalTreasuryFee);
     }
 
+    /// @notice Submits a fraud challenge indicating that a UTXO being under
+    ///         wallet control was unlocked by the wallet but was not used
+    ///         according to the protocol rules. That means the wallet signed
+    ///         a transaction input pointing to that UTXO and there is a unique
+    ///         sighash and signature pair associated with that input. This
+    ///         function uses those parameters to create a fraud accusation that
+    ///         proves a given transaction input unlocking the given UTXO was
+    ///         actually signed by the wallet. This function cannot determine
+    ///         whether the transaction was actually broadcast and the input was
+    ///         consumed in a fraudulent way so it just opens a challenge period
+    ///         during which the wallet can defeat the challenge by submitting
+    ///         proof of a transaction that consumes the given input according
+    ///         to protocol rules. To prevent spurious allegations, the caller
+    ///         must deposit ETH that is returned back upon justified fraud
+    ///         challenge or confiscated otherwise.
+    /// @param walletPublicKey The public key of the wallet in the uncompressed
+    ///        and unprefixed format (64 bytes)
+    /// @param sighash The hash that was used to produce the ECDSA signature
+    ///        that is the subject of the fraud claim. This hash is constructed
+    ///        by applying double SHA-256 over a serialized subset of the
+    ///        transaction. The exact subset used as hash preimage depends on
+    ///        the transaction input the signature is produced for. See BIP-143
+    ///        for reference
+    /// @param signature Bitcoin signature in the R/S/V format
+    /// @dev Requirements:
+    ///      - Wallet behind `walletPubKey` must be in `Live` or `MovingFunds`
+    ///        state
+    ///      - The challenger must send appropriate amount of ETH used as
+    ///        fraud challenge deposit
+    ///      - The signature (represented by r, s and v) must be generated by
+    ///        the wallet behind `walletPubKey` during signing of `sighash`
+    ///      - Wallet can be challenged for the given signature only once
+    /// TODO: Consider using wallet public key in the X/Y form to avoid slicing.
+    function submitFraudChallenge(
+        bytes calldata walletPublicKey,
+        bytes32 sighash,
+        BitcoinTx.RSVSignature calldata signature
+    ) external payable {
+        bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
+            walletPublicKey.slice32(0),
+            walletPublicKey.slice32(32)
+        );
+        bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
+
+        Wallets.Wallet storage wallet = wallets.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        require(
+            wallet.state == Wallets.WalletState.Live ||
+                wallet.state == Wallets.WalletState.MovingFunds,
+            "Wallet is neither in Live nor MovingFunds state"
+        );
+
+        frauds.submitFraudChallenge(
+            walletPublicKey,
+            walletPubKeyHash,
+            sighash,
+            signature
+        );
+    }
+
+    /// @notice Allows to defeat a pending fraud challenge against a wallet if
+    ///         the transaction that spends the UTXO follows the protocol rules.
+    ///         In order to defeat the challenge the same `walletPublicKey` and
+    ///         signature (represented by `r`, `s` and `v`) must be provided as
+    ///         were used in the fraud challenge. Additionally a preimage must
+    ///         be provided which was used to calculate the sighash during input
+    ///         signing. The fraud challenge defeat attempt will only succeed if
+    ///         the inputs in the preimage are considered honestly spent by the
+    ///         wallet. Therefore the transaction spending the UTXO must be
+    ///         proven in the Bridge before a challenge defeat is called.
+    ///         If successfully defeated, the fraud challenge is marked as
+    ///         resolved and the amount of ether deposited by the challenger is
+    ///         sent to the treasury.
+    /// @param walletPublicKey The public key of the wallet in the uncompressed
+    ///        and unprefixed format (64 bytes)
+    /// @param preimage The preimage which produces sighash used to generate the
+    ///        ECDSA signature that is the subject of the fraud claim. It is a
+    ///        serialized subset of the transaction. The exact subset used as
+    ///        the preimage depends on the transaction input the signature is
+    ///        produced for. See BIP-143 for reference
+    /// @param witness Flag indicating whether the preimage was produced for a
+    ///        witness input. True for witness, false for non-witness input
+    /// @dev Requirements:
+    ///      - `walletPublicKey` and `sighash` calculated as `hash256(preimage)`
+    ///        must identify an open fraud challenge
+    ///      - the preimage must be a valid preimage of a transaction generated
+    ///        according to the protocol rules and already proved in the Bridge
+    ///      - before a defeat attempt is made the transaction that spends the
+    ///        given UTXO must be proven in the Bridge
+    /// TODO: Consider using wallet public key in the X/Y form to avoid slicing.
+    function defeatFraudChallenge(
+        bytes calldata walletPublicKey,
+        bytes calldata preimage,
+        bool witness
+    ) external {
+        uint256 utxoKey = frauds.unwrapChallenge(
+            walletPublicKey,
+            preimage,
+            witness
+        );
+
+        // Check that the UTXO key identifies a correctly spent UTXO.
+        require(
+            deposits[utxoKey].sweptAt > 0 || spentMainUTXOs[utxoKey],
+            "Spent UTXO not found among correctly spent UTXOs"
+        );
+
+        frauds.defeatChallenge(walletPublicKey, preimage, treasury);
+    }
+
+    /// @notice Notifies about defeat timeout for the given fraud challenge.
+    ///         Can be called only if there was a fraud challenge identified by
+    ///         the provided `walletPublicKey` and `sighash` and it was not
+    ///         defeated on time. The amount of time that needs to pass after
+    ///         a fraud challenge is reported is indicated by the
+    ///         `challengeDefeatTimeout`. After a successful fraud challenge
+    ///         defeat timeout notification the fraud challenge is marked as
+    ///         resolved, the stake of each operator is slashed, the ether
+    ///         deposited is returned to the challenger and the challenger is
+    ///         rewarded.
+    /// @param walletPublicKey The public key of the wallet in the uncompressed
+    ///        and unprefixed format (64 bytes)
+    /// @param sighash The hash that was used to produce the ECDSA signature
+    ///        that is the subject of the fraud claim. This hash is constructed
+    ///        by applying double SHA-256 over a serialized subset of the
+    ///        transaction. The exact subset used as hash preimage depends on
+    ///        the transaction input the signature is produced for. See BIP-143
+    ///        for reference
+    /// @dev Requirements:
+    ///      - `walletPublicKey`and `sighash` must identify an open fraud
+    ///        challenge
+    ///      - the amount of time indicated by `challengeDefeatTimeout` must
+    ///        pass after the challenge was reported
+    /// TODO: Consider using wallet public key in the X/Y form to avoid slicing.
+    function notifyFraudChallengeDefeatTimeout(
+        bytes calldata walletPublicKey,
+        bytes32 sighash
+    ) external {
+        frauds.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
+    }
+
+    /// @notice Returns parameters used by the `Frauds` library.
+    /// @return slashingAmount Value of the slashing amount
+    /// @return notifierRewardMultiplier Value of the notifier reward multiplier
+    /// @return challengeDefeatTimeout Value of the challenge defeat timeout
+    /// @return challengeDepositAmount Value of the challenge deposit amount
+    function getFraudParameters()
+        external
+        view
+        returns (
+            uint256 slashingAmount,
+            uint256 notifierRewardMultiplier,
+            uint256 challengeDefeatTimeout,
+            uint256 challengeDepositAmount
+        )
+    {
+        slashingAmount = frauds.slashingAmount;
+        notifierRewardMultiplier = frauds.notifierRewardMultiplier;
+        challengeDefeatTimeout = frauds.challengeDefeatTimeout;
+        challengeDepositAmount = frauds.challengeDepositAmount;
+
+        return (
+            slashingAmount,
+            notifierRewardMultiplier,
+            challengeDefeatTimeout,
+            challengeDepositAmount
+        );
+    }
+
+    /// @notice Returns the fraud challenge identified by the given key built
+    ///         as keccak256(walletPublicKey|sighash|v|r|s).
+    function fraudChallenges(uint256 challengeKey)
+        external
+        view
+        returns (Frauds.FraudChallenge memory)
+    {
+        return frauds.challenges[challengeKey];
+    }
+
     /// @notice Validates whether the redemption Bitcoin transaction input
     ///         vector contains a single input referring to the wallet's main
     ///         UTXO. Reverts in case the validation fails.
@@ -1414,7 +1653,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes memory redemptionTxInputVector,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
-    ) internal view {
+    ) internal {
         // Assert that main UTXO for passed wallet exists in storage.
         bytes32 mainUtxoHash = wallets
             .registeredWallets[walletPubKeyHash]
@@ -1445,6 +1684,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                 mainUtxo.txOutputIndex == redemptionTxOutpointIndex,
             "Redemption transaction input must point to the wallet's main UTXO"
         );
+
+        // Main UTXO used as an input, mark it as spent.
+        spentMainUTXOs[
+            uint256(
+                keccak256(
+                    abi.encodePacked(mainUtxo.txHash, mainUtxo.txOutputIndex)
+                )
+            )
+        ] = true;
     }
 
     /// @notice Processes the Bitcoin redemption transaction input vector. It

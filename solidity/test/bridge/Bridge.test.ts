@@ -1,4 +1,6 @@
 /* eslint-disable no-underscore-dangle */
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import chai, { expect } from "chai"
@@ -17,6 +19,8 @@ import type {
   TestRelay,
   TestRelay__factory,
   IWalletRegistry,
+  Frauds,
+  Frauds__factory,
 } from "../../typechain"
 import {
   MultipleDepositsNoMainUtxo,
@@ -89,12 +93,17 @@ const fixture = async () => {
   const wallets = await Wallets.deploy()
   await wallets.deployed()
 
+  const Frauds = await ethers.getContractFactory<Frauds__factory>("Frauds")
+  const frauds: Frauds = await Frauds.deploy()
+  await frauds.deployed()
+
   const Bridge = await ethers.getContractFactory<BridgeStub__factory>(
     "BridgeStub",
     {
       libraries: {
         BitcoinTx: bitcoinTx.address,
         Wallets: wallets.address,
+        Frauds: frauds.address,
       },
     }
   )
@@ -1028,6 +1037,16 @@ describe("Bridge", () => {
                         expect(
                           await bank.balanceOf(treasury.address)
                         ).to.be.equal(2075)
+                      })
+
+                      it("should mark the previous main UTXO as spent", async () => {
+                        const mainUtxoKey = ethers.utils.solidityKeccak256(
+                          ["bytes32", "uint32"],
+                          [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                        )
+
+                        expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                          .true
                       })
 
                       it("should emit DepositsSwept event", async () => {
@@ -2406,6 +2425,16 @@ describe("Bridge", () => {
                           ).to.be.equal(ethers.constants.HashZero)
                         })
 
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
+                        })
+
                         it("should decrease the wallet's pending redemptions value", async () => {
                           // Wallet pending redemptions value should be
                           // decreased by the total redeemable amount but since
@@ -2529,6 +2558,16 @@ describe("Bridge", () => {
                             (await bridge.getWallet(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(ethers.constants.HashZero)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -2662,6 +2701,16 @@ describe("Bridge", () => {
                             (await bridge.getWallet(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(ethers.constants.HashZero)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should not change the wallet's pending redemptions value", async () => {
@@ -3055,6 +3104,16 @@ describe("Bridge", () => {
                           ).to.be.equal(ethers.constants.HashZero)
                         })
 
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
+                        })
+
                         it("should decrease the wallet's pending redemptions value", async () => {
                           // Wallet pending redemptions value should be
                           // decreased by the total redeemable amount but since
@@ -3186,6 +3245,16 @@ describe("Bridge", () => {
                             (await bridge.getWallet(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(expectedMainUtxoHash)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -3348,6 +3417,16 @@ describe("Bridge", () => {
                           ).to.be.equal(ethers.constants.HashZero)
                         })
 
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
+                        })
+
                         it("should not change the wallet's pending redemptions value", async () => {
                           // All the bookkeeping regarding the timed out
                           // requests was done upon timeout reports. The
@@ -3500,6 +3579,16 @@ describe("Bridge", () => {
                             (await bridge.getWallet(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(expectedMainUtxoHash)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should not change the wallet's pending redemptions value", async () => {
@@ -3676,6 +3765,16 @@ describe("Bridge", () => {
                             (await bridge.getWallet(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(ethers.constants.HashZero)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {
@@ -3863,6 +3962,16 @@ describe("Bridge", () => {
                             (await bridge.getWallet(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(expectedMainUtxoHash)
+                        })
+
+                        it("should mark the previous main UTXO as spent", async () => {
+                          const mainUtxoKey = ethers.utils.solidityKeccak256(
+                            ["bytes32", "uint32"],
+                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
+                          )
+
+                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
+                            .true
                         })
 
                         it("should decrease the wallet's pending redemptions value", async () => {

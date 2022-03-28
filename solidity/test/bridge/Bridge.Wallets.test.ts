@@ -10,6 +10,8 @@ import type {
   BankStub,
   BankStub__factory,
   BitcoinTx__factory,
+  Frauds,
+  Frauds__factory,
   Bridge,
   BridgeStub,
   BridgeStub__factory,
@@ -54,12 +56,17 @@ const fixture = async () => {
   const wallets = await Wallets.deploy()
   await wallets.deployed()
 
+  const Frauds = await ethers.getContractFactory<Frauds__factory>("Frauds")
+  const frauds: Frauds = await Frauds.deploy()
+  await frauds.deployed()
+
   const Bridge = await ethers.getContractFactory<BridgeStub__factory>(
     "BridgeStub",
     {
       libraries: {
         BitcoinTx: bitcoinTx.address,
         Wallets: wallets.address,
+        Frauds: frauds.address,
       },
     }
   )
