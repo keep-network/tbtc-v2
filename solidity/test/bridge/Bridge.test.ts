@@ -1708,6 +1708,7 @@ describe("Bridge", () => {
           mainUtxoHash: ethers.constants.HashZero,
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
+          moveFundsRequestedAt: 0,
           state: walletState.Live,
         })
       })
@@ -2266,6 +2267,7 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
             state: walletState.MovingFunds,
           })
         })
@@ -2297,6 +2299,7 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
             state: walletState.Closed,
           })
         })
@@ -2328,6 +2331,7 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
             state: walletState.Terminated,
           })
         })
@@ -4881,6 +4885,7 @@ describe("Bridge", () => {
       mainUtxoHash: ethers.constants.HashZero,
       pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
       createdAt: await lastBlockTime(),
+      moveFundsRequestedAt: 0,
       state: data.wallet.state,
     })
     // Simulate the prepared main UTXO belongs to the wallet.

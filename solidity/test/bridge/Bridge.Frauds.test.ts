@@ -150,6 +150,7 @@ describe("Bridge - Frauds", () => {
                   mainUtxoHash: ethers.constants.HashZero,
                   pendingRedemptionsValue: 0,
                   createdAt: await lastBlockTime(),
+                  moveFundsRequestedAt: 0,
                   state: walletState.Live,
                 })
 
@@ -230,6 +231,7 @@ describe("Bridge - Frauds", () => {
                   mainUtxoHash: ethers.constants.HashZero,
                   pendingRedemptionsValue: 0,
                   createdAt: await lastBlockTime(),
+                  moveFundsRequestedAt: 0,
                   state: walletState.Live,
                 })
 
@@ -287,6 +289,7 @@ describe("Bridge - Frauds", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
               state: walletState.Live,
             })
           })
@@ -325,6 +328,7 @@ describe("Bridge - Frauds", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
               state: walletState.Live,
             })
           })
@@ -362,6 +366,7 @@ describe("Bridge - Frauds", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
               state: walletState.Live,
             })
           })
@@ -402,6 +407,7 @@ describe("Bridge - Frauds", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
               state: walletState.Live,
             })
           })
@@ -439,6 +445,7 @@ describe("Bridge - Frauds", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
             state: walletState.Live,
           })
         })
@@ -474,6 +481,7 @@ describe("Bridge - Frauds", () => {
           mainUtxoHash: ethers.constants.HashZero,
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
+          moveFundsRequestedAt: 0,
           state: walletState.MovingFunds,
         })
       })
@@ -525,6 +533,7 @@ describe("Bridge - Frauds", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
               state: test.walletState,
             })
           })
@@ -576,6 +585,7 @@ describe("Bridge - Frauds", () => {
                       mainUtxoHash: ethers.constants.HashZero,
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
+                      moveFundsRequestedAt: 0,
                       state: walletState.Live,
                     })
                     await bridge.setSweptDeposits(data.deposits)
@@ -656,6 +666,7 @@ describe("Bridge - Frauds", () => {
                       mainUtxoHash: ethers.constants.HashZero,
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
+                      moveFundsRequestedAt: 0,
                       state: walletState.Live,
                     })
 
@@ -709,6 +720,7 @@ describe("Bridge - Frauds", () => {
                       mainUtxoHash: ethers.constants.HashZero,
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
+                      moveFundsRequestedAt: 0,
                       state: walletState.Live,
                     })
                     await bridge.setSweptDeposits(data.deposits)
@@ -789,6 +801,7 @@ describe("Bridge - Frauds", () => {
                       mainUtxoHash: ethers.constants.HashZero,
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
+                      moveFundsRequestedAt: 0,
                       state: walletState.Live,
                     })
 
@@ -844,6 +857,7 @@ describe("Bridge - Frauds", () => {
                       mainUtxoHash: ethers.constants.HashZero,
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
+                      moveFundsRequestedAt: 0,
                       state: walletState.Live,
                     })
                     await bridge.setSweptDeposits(data.deposits)
@@ -924,6 +938,7 @@ describe("Bridge - Frauds", () => {
                       mainUtxoHash: ethers.constants.HashZero,
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
+                      moveFundsRequestedAt: 0,
                       state: walletState.Live,
                     })
 
@@ -977,6 +992,7 @@ describe("Bridge - Frauds", () => {
                       mainUtxoHash: ethers.constants.HashZero,
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
+                      moveFundsRequestedAt: 0,
                       state: walletState.Live,
                     })
                     await bridge.setSweptDeposits(data.deposits)
@@ -1057,6 +1073,7 @@ describe("Bridge - Frauds", () => {
                       mainUtxoHash: ethers.constants.HashZero,
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
+                      moveFundsRequestedAt: 0,
                       state: walletState.Live,
                     })
 
@@ -1110,6 +1127,7 @@ describe("Bridge - Frauds", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
               state: walletState.Live,
             })
             await bridge.setSweptDeposits(data.deposits)
@@ -1158,6 +1176,7 @@ describe("Bridge - Frauds", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
             state: walletState.Live,
           })
           await bridge.setSweptDeposits(data.deposits)
@@ -1205,6 +1224,7 @@ describe("Bridge - Frauds", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
             state: walletState.Live,
           })
           await bridge.setSweptDeposits(data.deposits)
@@ -1285,6 +1305,7 @@ describe("Bridge - Frauds", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
               state: walletState.Live,
             })
             await bridge.setSweptDeposits(data.deposits)
@@ -1358,6 +1379,7 @@ describe("Bridge - Frauds", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
               state: walletState.Live,
             })
             await bridge.setSweptDeposits(data.deposits)
@@ -1409,6 +1431,7 @@ describe("Bridge - Frauds", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
             state: walletState.Live,
           })
           await bridge.setSweptDeposits(data.deposits)
@@ -1454,6 +1477,7 @@ describe("Bridge - Frauds", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
             state: walletState.Live,
           })
           await bridge.setSweptDeposits(data.deposits)
