@@ -480,22 +480,21 @@ library Frauds {
                 inputStartingIndex
             );
 
-            bytes memory input = preimage.slice(
-                inputStartingIndex,
-                inputLength
+            (, uint256 scriptSigLength) = preimage.extractScriptSigLenAt(
+                inputStartingIndex
             );
 
-            bytes32 outpointTxHash = input.extractInputTxIdLE();
-            uint32 outpointIndex = BTCUtils.reverseUint32(
-                uint32(input.extractTxIndexLE())
-            );
-
-            bytes memory scriptSig = input.extractScriptSig();
-
-            if (scriptSig.length > 1) {
+            if (scriptSigLength > 0) {
                 // The input this preimage was generated for was found.
                 // All the other inputs in the preimage are marked with a null
                 // scriptSig ("00") which has length of 1.
+                bytes32 outpointTxHash = preimage.extractInputTxIdLeAt(
+                    inputStartingIndex
+                );
+                uint32 outpointIndex = BTCUtils.reverseUint32(
+                    uint32(preimage.extractTxIndexLeAt(inputStartingIndex))
+                );
+
                 utxoKey = uint256(
                     keccak256(abi.encodePacked(outpointTxHash, outpointIndex))
                 );
