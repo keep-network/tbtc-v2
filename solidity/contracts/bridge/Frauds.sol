@@ -409,6 +409,9 @@ library Frauds {
         // - transaction locktime (4 bytes)
         // - sighash type (4 bytes)
 
+        // See Bitcoin's BIP-143 for reference:
+        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki.
+
         // The outpoint (hash and index) is located at the constant offset of
         // 68 (4 + 32 + 32).
         bytes32 outpointTxHash = preimage.extractInputTxIdLeAt(68);
@@ -448,6 +451,9 @@ library Frauds {
         // - outputs (variable length)
         // - transaction locktime (4 bytes)
         // - sighash type (4 bytes)
+
+        // See example for reference:
+        // https://en.bitcoin.it/wiki/OP_CHECKSIG#Code_samples_and_raw_dumps.
 
         // The input data begins at the constant offset of 4 (the first 4 bytes
         // are for the transaction version).
