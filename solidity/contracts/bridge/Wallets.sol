@@ -42,7 +42,7 @@ library Wallets {
         // wallet creation.
         uint64 maxBtcBalance;
         // The maximum age of a wallet in seconds, after which the wallet
-        // closure can be requested.
+        // moving funds process can be requested.
         uint32 maxAge;
         // 20-byte wallet public key hash being reference to the currently
         // active wallet. Can be unset to the zero value under certain
@@ -328,7 +328,7 @@ library Wallets {
     }
 
     /// @notice Handles a notification about a wallet heartbeat failure and
-    ///         triggers the wallet closure process.
+    ///         triggers the wallet moving funds process.
     /// @param publicKeyX Wallet's public key's X coordinate.
     /// @param publicKeyY Wallet's public key's Y coordinate.
     /// @dev Requirements:
@@ -349,33 +349,42 @@ library Wallets {
             EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
         );
 
+        require(
+            self.registeredWallets[walletPubKeyHash].state == WalletState.Live,
+            "ECDSA wallet must be in Live state"
+        );
+
         moveFunds(self, walletPubKeyHash);
     }
 
     /// @notice Handles a notification about a wallet redemption timeout
-    ///         and requests slashing of the wallet operators. Triggers wallet
-    ///         closure process only if the wallet is still in the Live state.
-    ///         That means multiple action timeouts can be reported for the same
-    ///         wallet but only the first report will trigger wallet closure
-    ///         process.
+    ///         and requests slashing of the wallet operators. Triggers the
+    ///         wallet moving funds process only if the wallet is still in the
+    ///         Live state. That means multiple action timeouts can be reported
+    ///         for the same wallet but only the first report requests the
+    ///         wallet to move their funds.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
-    ///      - Wallet must be in a state other than Unknown
+    ///      - Wallet must be in Live or MovingFunds state
     function notifyRedemptionTimedOut(
         Data storage self,
         bytes20 walletPubKeyHash
     ) external {
-        // TODO: Perform slashing of wallet operators.
-
         WalletState walletState = self
             .registeredWallets[walletPubKeyHash]
             .state;
 
-        require(walletState != WalletState.Unknown, "Unknown wallet");
+        require(
+            walletState == WalletState.Live ||
+                walletState == WalletState.MovingFunds,
+            "ECDSA wallet must be in Live or MovingFunds state"
+        );
 
         if (walletState == WalletState.Live) {
             moveFunds(self, walletPubKeyHash);
         }
+
+        // TODO: Perform slashing of wallet operators.
     }
 
     /// @notice Notifies that the wallet is either old enough or has too few
@@ -403,9 +412,14 @@ library Wallets {
             "Active wallet cannot be considered closeable"
         );
 
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        require(
+            wallet.state == WalletState.Live,
+            "ECDSA wallet must be in Live state"
+        );
+
         /* solhint-disable-next-line not-rely-on-time */
-        bool walletMaxAge = block.timestamp >=
-            self.registeredWallets[walletPubKeyHash].createdAt + self.maxAge;
+        bool walletMaxAge = block.timestamp >= wallet.createdAt + self.maxAge;
 
         require(
             walletMaxAge ||
@@ -425,15 +439,9 @@ library Wallets {
     ///         is unset allowing to trigger a new wallet creation immediately.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
-    ///      - Wallet must be in Live state
-    function moveFunds(Data storage self, bytes20 walletPubKeyHash)
-        internal
-    {
+    ///      - The caller must make sure that the wallet is in the Live state
+    function moveFunds(Data storage self, bytes20 walletPubKeyHash) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-        require(
-            wallet.state == WalletState.Live,
-            "ECDSA wallet must be in Live state"
-        );
 
         if (wallet.mainUtxoHash == bytes32(0)) {
             // If the wallet has no main UTXO, that means its BTC balance
@@ -453,7 +461,7 @@ library Wallets {
         }
 
         if (self.activeWalletPubKeyHash == walletPubKeyHash) {
-            // If the requested closure refers to the current active wallet,
+            // If the move funds request refers to the current active wallet,
             // unset the active wallet and make the wallet creation process
             // possible in order to get a new healthy active wallet.
             delete self.activeWalletPubKeyHash;
