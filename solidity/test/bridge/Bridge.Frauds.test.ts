@@ -501,36 +501,57 @@ describe("Bridge - Frauds", () => {
     })
 
     context("when the wallet is in neither Live nor MovingFunds state", () => {
-      before(async () => {
-        await createSnapshot()
-        await bridge.setWallet(walletPublicKeyHash, {
-          ecdsaWalletID: ethers.constants.HashZero,
-          mainUtxoHash: ethers.constants.HashZero,
-          pendingRedemptionsValue: 0,
-          createdAt: await lastBlockTime(),
-          state: walletState.Closed,
-        })
-      })
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+      ]
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+            await bridge.setWallet(walletPublicKeyHash, {
+              ecdsaWalletID: ethers.constants.HashZero,
+              mainUtxoHash: ethers.constants.HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: await lastBlockTime(),
+              state: test.walletState,
+            })
+          })
 
-      it("should revert", async () => {
-        await expect(
-          bridge
-            .connect(thirdParty)
-            .submitFraudChallenge(
-              walletPublicKey,
-              data.sighash,
-              data.signature,
-              {
-                value: (
-                  await bridge.getFraudParameters()
-                ).challengeDepositAmount,
-              }
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(thirdParty)
+                .submitFraudChallenge(
+                  walletPublicKey,
+                  data.sighash,
+                  data.signature,
+                  {
+                    value: (
+                      await bridge.getFraudParameters()
+                    ).challengeDepositAmount,
+                  }
+                )
+            ).to.be.revertedWith(
+              "Wallet is neither in Live nor MovingFunds state"
             )
-        ).to.be.revertedWith("Wallet is neither in Live nor MovingFunds state")
+          })
+        })
       })
     })
   })
