@@ -330,6 +330,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 indexed walletPubKeyHash
     );
 
+    event WalletTerminated(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
     event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
@@ -520,6 +525,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 publicKeyY
     ) external override {
         wallets.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
+    }
+
+    // TODO: Documentation.
+    function __ecdsaWalletHeartbeatFailedCallback(
+        bytes32 ecdsaWalletID,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY
+    ) external override {
+        // TODO: Implementation.
     }
 
     /// @notice Gets details about a registered wallet.
