@@ -101,6 +101,8 @@ library Frauds {
     ///         challenge or confiscated otherwise
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
+    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
+    //         HASH160 over the compressed ECDSA public key) of the wallet
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
@@ -117,6 +119,7 @@ library Frauds {
     function submitFraudChallenge(
         Data storage self,
         bytes calldata walletPublicKey,
+        bytes20 walletPubKeyHash,
         bytes32 sighash,
         BitcoinTx.RSVSignature calldata signature
     ) external {
@@ -148,12 +151,6 @@ library Frauds {
         /* solhint-disable-next-line not-rely-on-time */
         challenge.reportedAt = uint32(block.timestamp);
         challenge.resolved = false;
-
-        bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
-            walletPublicKey.slice32(0),
-            walletPublicKey.slice32(32)
-        );
-        bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
 
         emit FraudChallengeSubmitted(
             walletPubKeyHash,

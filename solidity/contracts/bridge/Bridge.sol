@@ -1465,7 +1465,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "Wallet is neither in Live nor MovingFunds state"
         );
 
-        frauds.submitFraudChallenge(walletPublicKey, sighash, signature);
+        frauds.submitFraudChallenge(
+            walletPublicKey,
+            walletPubKeyHash,
+            sighash,
+            signature
+        );
     }
 
     /// @notice Allows to defeat a pending fraud challenge against a wallet if
