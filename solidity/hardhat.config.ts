@@ -31,6 +31,7 @@ const config: HardhatUserConfig = {
 
   networks: {
     hardhat: {
+      allowUnlimitedContractSize: true, // TODO: Remove it once the problem of BridgeStub's size is solved
       forking: {
         // forking is enabled only if FORKING_URL env is provided
         enabled: !!process.env.FORKING_URL,
@@ -100,6 +101,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+    except: ["BridgeStub$"], // TODO: Remove it once the problem of BridgeStub's size is solved
   },
   typechain: {
     outDir: "typechain",

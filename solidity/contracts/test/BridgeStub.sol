@@ -6,6 +6,8 @@ import "../bridge/BitcoinTx.sol";
 import "../bridge/Bridge.sol";
 import "../bridge/Wallets.sol";
 
+// TODO: Try to create a separate BridgeStub for every test group (wallets,
+//       frauds, etc.) to decrease the size.
 contract BridgeStub is Bridge {
     constructor(
         address _bank,
@@ -22,6 +24,28 @@ contract BridgeStub is Bridge {
             _txProofDifficultyFactor
         )
     {}
+
+    function setSweptDeposits(BitcoinTx.UTXO[] calldata utxos) external {
+        for (uint256 i = 0; i < utxos.length; i++) {
+            uint256 utxoKey = uint256(
+                keccak256(
+                    abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
+                )
+            );
+            deposits[utxoKey].sweptAt = 1641650400;
+        }
+    }
+
+    function setSpentMainUtxos(BitcoinTx.UTXO[] calldata utxos) external {
+        for (uint256 i = 0; i < utxos.length; i++) {
+            uint256 utxoKey = uint256(
+                keccak256(
+                    abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
+                )
+            );
+            spentMainUTXOs[utxoKey] = true;
+        }
+    }
 
     function setActiveWallet(bytes20 activeWalletPubKeyHash) external {
         wallets.activeWalletPubKeyHash = activeWalletPubKeyHash;
