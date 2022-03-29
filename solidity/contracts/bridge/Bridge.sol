@@ -1407,7 +1407,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         // Perform validation of the redemption transaction input. Specifically,
         // check if it refers to the expected wallet's main UTXO.
-        validateRedemptionTxInput(
+        validateWalletOutboundTxInput(
             redemptionTx.inputVector,
             mainUtxo,
             walletPubKeyHash
@@ -1637,10 +1637,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return frauds.challenges[challengeKey];
     }
 
-    /// @notice Validates whether the redemption Bitcoin transaction input
-    ///         vector contains a single input referring to the wallet's main
-    ///         UTXO. Reverts in case the validation fails.
-    /// @param redemptionTxInputVector Bitcoin redemption transaction input
+    /// @notice Validates whether an outbound Bitcoin transaction performed by
+    ///         the given wallet has an input vector that contains a single
+    ///         input referring to the wallet's main UTXO. Reverts in case the
+    ///         validation fails.
+    /// @param walletOutboundTxInputVector Bitcoin outbound transaction's input
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVin` function
     ///        before it is passed here
@@ -1648,9 +1649,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        the Ethereum chain.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
     //         HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the redemption transaction.
-    function validateRedemptionTxInput(
-        bytes memory redemptionTxInputVector,
+    ///        performed the outbound transaction.
+    function validateWalletOutboundTxInput(
+        bytes memory walletOutboundTxInputVector,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) internal {
@@ -1673,16 +1674,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "Invalid main UTXO data"
         );
 
-        // Assert that the single redemption transaction input actually
+        // Assert that the single outbound transaction input actually
         // refers to the wallet's main UTXO.
         (
-            bytes32 redemptionTxOutpointTxHash,
-            uint32 redemptionTxOutpointIndex
-        ) = processRedemptionTxInput(redemptionTxInputVector);
+            bytes32 outpointTxHash,
+            uint32 outpointIndex
+        ) = processWalletOutboundTxInput(walletOutboundTxInputVector);
         require(
-            mainUtxo.txHash == redemptionTxOutpointTxHash &&
-                mainUtxo.txOutputIndex == redemptionTxOutpointIndex,
-            "Redemption transaction input must point to the wallet's main UTXO"
+            mainUtxo.txHash == outpointTxHash &&
+                mainUtxo.txOutputIndex == outpointIndex,
+            "Outbound transaction input must point to the wallet's main UTXO"
         );
 
         // Main UTXO used as an input, mark it as spent.
@@ -1695,10 +1696,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         ] = true;
     }
 
-    /// @notice Processes the Bitcoin redemption transaction input vector. It
-    ///         extracts the single input then the transaction hash and output
-    ///         index from its outpoint.
-    /// @param redemptionTxInputVector Bitcoin redemption transaction input
+    /// @notice Processes the input vector of an outbound Bitcoin transaction
+    ///         performed by the given wallet. It extracts the single input then
+    ///         the transaction hash and output index from its outpoint.
+    /// @param walletOutboundTxInputVector Bitcoin outbound transaction input
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVin` function
     ///        before it is passed here
@@ -1706,12 +1707,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         pointed in the input's outpoint.
     /// @return outpointIndex 4-byte index of the Bitcoin transaction output
     ///         which is pointed in the input's outpoint.
-    function processRedemptionTxInput(bytes memory redemptionTxInputVector)
-        internal
-        pure
-        returns (bytes32 outpointTxHash, uint32 outpointIndex)
-    {
-        // To determine the total number of redemption transaction inputs,
+    function processWalletOutboundTxInput(
+        bytes memory walletOutboundTxInputVector
+    ) internal pure returns (bytes32 outpointTxHash, uint32 outpointIndex) {
+        // To determine the total number of Bitcoin transaction inputs,
         // we need to parse the compactSize uint (VarInt) the input vector is
         // prepended by. That compactSize uint encodes the number of vector
         // elements using the format presented in:
@@ -1719,13 +1718,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // We don't need asserting the compactSize uint is parseable since it
         // was already checked during `validateVin` validation.
         // See `BitcoinTx.inputVector` docs for more details.
-        (, uint256 inputsCount) = redemptionTxInputVector.parseVarInt();
+        (, uint256 inputsCount) = walletOutboundTxInputVector.parseVarInt();
         require(
             inputsCount == 1,
-            "Redemption transaction must have a single input"
+            "Outbound transaction must have a single input"
         );
 
-        bytes memory input = redemptionTxInputVector.extractInputAtIndex(0);
+        bytes memory input = walletOutboundTxInputVector.extractInputAtIndex(0);
 
         outpointTxHash = input.extractInputTxIdLE();
 
