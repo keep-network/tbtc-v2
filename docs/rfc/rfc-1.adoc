@@ -651,8 +651,10 @@ Governable Parameters:
 - `wallet_closure_timeout`: The amount of time that a wallet has to
   successfully move its funds to another wallet and inform the ethereum chain
   before it is at risk of punishment.
-- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
-  to a randomly selected wallet.
+- `wallet_dust_leftover`: The smallest amount of btc that we will transfer to
+  another wallet when a wallet closes. Any amount under this is abandoned.
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer
+  the funds to a randomly selected wallet.
 - `wallet_min_closure_btc`: The smallest amount of btc a wallet can hold before
   we attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
@@ -660,10 +662,13 @@ Governable Parameters:
 When a wallet fails a <<heartbeat,heartbeat>> `consecutive_failed_heartbeats`
 times, ends a <<redemption,redemption>> with less than `wallet_min_closure_btc`
 remaining, or exceeds the `wallet_max_age`, the operators begin the process of
-closing it. If there are still funds remaining, the <<operator-only,first
-operator>> posts a <<operator-only,reimbursable>> transaction to the ethereum
-chain declaring an intention to close the wallet. This transaction includes a
-timestamp hereby referred to as `move_funds_start_timestamp`.
+closing it. If there are still funds remaining, and those funds are at least
+`wallet_dust_leftover`, then the <<operator-only,first operator>> posts a
+<<operator-only,reimbursable>> transaction to the ethereum chain declaring an
+intention to close the wallet. This transaction includes a timestamp hereby
+referred to as `move_funds_start_timestamp`. If the balance is less than
+`wallet_dust_leftover`, we simply close the wallet and abandon the funds. We
+can maintain the peg via a <<donate,donation>>.
 
 That operator proposes a BTC fee (as in <<sweeping,sweeping>>) and the
 operators use the wallet's public key hash to choose viable (it must also have
