@@ -1919,11 +1919,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     }
 
     // TODO: Function `notifyRedemptionTimeout. That function must:
-    //       1. Take a the `walletPubKey` and `redeemerOutputScript` as params.
-    //       2. Build the redemption key using those params.
+    //       1. Take a the `walletPubKey` and `redeemerOutputScript` as params. (DONE)
+    //       2. Build the redemption key using those params. (DONE)
     //       3. Use the redemption key and take the request from
-    //          `pendingRedemptions` mapping.
-    //       4. If request doesn't exist in mapping - revert.
+    //          `pendingRedemptions` mapping. (DONE)
+    //       4. If request doesn't exist in mapping - revert. (DONE)
     //       5. If request exits, and is timed out - remove the redemption key
     //          from `pendingRedemptions` and put it to `timedOutRedemptions`
     //          by copying the entire `RedemptionRequest` struct there. No need
@@ -1935,11 +1935,47 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     //          multiple times. At the same time, if the given redemption key
     //          was already marked as fraudulent due to an amount-related fraud,
     //          it will not be possible to report a time out on it since it
-    //          won't be present in `pendingRedemptions` mapping.
-    //       6. Return the `requestedAmount` to the `redeemer`.
+    //          won't be present in `pendingRedemptions` mapping. (DONE)
+    //       6. Return the `requestedAmount` to the `redeemer`. (DONE)
     //       7. Reduce the `pendingRedemptionsValue` (`wallets` mapping) for
     //          given wallet by request's redeemable amount computed as
-    //          `requestedAmount - treasuryFee`.
+    //          `requestedAmount - treasuryFee`. (DONE)
     //       8. Call `wallets.notifyRedemptionTimedOut` to propagate timeout
-    //          consequences to the wallet.
+    //          consequences to the wallet. (DONE)
+
+    // TODO: description
+    function notifyRedemptionTimeout(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript
+    ) external {
+        uint256 redemptionKey = uint256(
+            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
+        );
+        RedemptionRequest storage request = pendingRedemptions[redemptionKey];
+
+        require(request.requestedAt != 0, "Request does not exist");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            request.requestedAt + redemptionTimeout < block.timestamp,
+            "Request not timed out"
+        );
+
+        // Update the wallet's state
+        Wallets.Wallet storage wallet = wallets.registeredWallets[
+            walletPubKeyHash
+        ];
+        wallet.state = Wallets.WalletState.MovingFunds;
+        wallet.pendingRedemptionsValue -=
+            request.requestedAmount -
+            request.treasuryFee;
+
+        // Return the requested amount of tBTC to the redeemer
+        bank.transferBalance(request.redeemer, request.requestedAmount);
+
+        // Move the redemption from pending redemptions to timed-out redemptions
+        timedOutRedemptions[redemptionKey] = request;
+        delete pendingRedemptions[redemptionKey];
+
+        wallets.notifyRedemptionTimedOut(walletPubKeyHash);
+    }
 }
