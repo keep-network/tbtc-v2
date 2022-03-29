@@ -64,6 +64,10 @@ contract BridgeStub is Bridge {
         );
     }
 
+    function unsetWalletMainUtxo(bytes20 walletPubKeyHash) external {
+        delete wallets.registeredWallets[walletPubKeyHash].mainUtxoHash;
+    }
+
     function setWallet(bytes20 walletPubKeyHash, Wallets.Wallet calldata wallet)
         external
     {

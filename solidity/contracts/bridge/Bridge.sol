@@ -389,6 +389,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 redemptionTxHash
     );
 
+    event RedemptionTimeout(
+        bytes20 walletPubKeyHash,
+        bytes redeemerOutputScript
+    );
+
     event FraudChallengeSubmitted(
         bytes20 walletPublicKeyHash,
         bytes32 sighash,
@@ -1918,31 +1923,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return info;
     }
 
-    // TODO: Function `notifyRedemptionTimeout. That function must:
-    //       1. Take a the `walletPubKey` and `redeemerOutputScript` as params. (DONE)
-    //       2. Build the redemption key using those params. (DONE)
-    //       3. Use the redemption key and take the request from
-    //          `pendingRedemptions` mapping. (DONE)
-    //       4. If request doesn't exist in mapping - revert. (DONE)
-    //       5. If request exits, and is timed out - remove the redemption key
-    //          from `pendingRedemptions` and put it to `timedOutRedemptions`
-    //          by copying the entire `RedemptionRequest` struct there. No need
-    //          to check if `timedOutRedemptions` mapping already contains
-    //          that key because `requestRedemption` blocks requests targeting
-    //          non-live wallets. Because `notifyRedemptionTimeout` changes
-    //          wallet state after first call (point 9), there is no possibility
-    //          that the given redemption key could be reported as timed out
-    //          multiple times. At the same time, if the given redemption key
-    //          was already marked as fraudulent due to an amount-related fraud,
-    //          it will not be possible to report a time out on it since it
-    //          won't be present in `pendingRedemptions` mapping. (DONE)
-    //       6. Return the `requestedAmount` to the `redeemer`. (DONE)
-    //       7. Reduce the `pendingRedemptionsValue` (`wallets` mapping) for
-    //          given wallet by request's redeemable amount computed as
-    //          `requestedAmount - treasuryFee`. (DONE)
-    //       8. Call `wallets.notifyRedemptionTimedOut` to propagate timeout
-    //          consequences to the wallet. (DONE)
-
     // TODO: description
     function notifyRedemptionTimeout(
         bytes20 walletPubKeyHash,
@@ -1953,18 +1933,17 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
         RedemptionRequest storage request = pendingRedemptions[redemptionKey];
 
-        require(request.requestedAt != 0, "Request does not exist");
+        require(request.requestedAt > 0, "Redemption request does not exist");
         require(
             /* solhint-disable-next-line not-rely-on-time */
             request.requestedAt + redemptionTimeout < block.timestamp,
-            "Request not timed out"
+            "Redemption request has not timed out"
         );
 
-        // Update the wallet's state
+        // Update the wallet's pending redemptions value
         Wallets.Wallet storage wallet = wallets.registeredWallets[
             walletPubKeyHash
         ];
-        wallet.state = Wallets.WalletState.MovingFunds;
         wallet.pendingRedemptionsValue -=
             request.requestedAmount -
             request.treasuryFee;
@@ -1976,6 +1955,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         timedOutRedemptions[redemptionKey] = request;
         delete pendingRedemptions[redemptionKey];
 
-        wallets.notifyRedemptionTimedOut(walletPubKeyHash);
+        if (
+            wallet.state == Wallets.WalletState.Live ||
+            wallet.state == Wallets.WalletState.MovingFunds
+        ) {
+            // Propagate timeout consequences to the wallet
+            wallets.notifyRedemptionTimedOut(walletPubKeyHash);
+        }
+        // TODO: should the notifier be reimbursed?
+
+        emit RedemptionTimeout(walletPubKeyHash, redeemerOutputScript);
     }
 }

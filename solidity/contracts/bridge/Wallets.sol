@@ -364,8 +364,6 @@ library Wallets {
     ///         for the same wallet but only the first report requests the
     ///         wallet to move their funds.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
-    /// @dev Requirements:
-    ///      - Wallet must be in Live or MovingFunds state
     function notifyRedemptionTimedOut(
         Data storage self,
         bytes20 walletPubKeyHash
@@ -373,12 +371,6 @@ library Wallets {
         WalletState walletState = self
             .registeredWallets[walletPubKeyHash]
             .state;
-
-        require(
-            walletState == WalletState.Live ||
-                walletState == WalletState.MovingFunds,
-            "ECDSA wallet must be in Live or MovingFunds state"
-        );
 
         if (walletState == WalletState.Live) {
             moveFunds(self, walletPubKeyHash);
