@@ -205,7 +205,7 @@ reason), all they need to do is not submit their reveal and wait 30 days.
 [[sweeping]]
 ==== Sweeping
 
-Governable Parameters
+Governable Parameters:
 
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
@@ -310,7 +310,7 @@ address in 3 hours with no further interaction.
 
 ===== How Frequently To Sweep
 
-Governable Parameters
+Governable Parameters:
 
 - `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
@@ -338,7 +338,7 @@ batches) and increasing reliability from a user experience standpoint.
 
 ===== Skipping the Sweeping Line
 
-Governable Parameters
+Governable Parameters:
 
 - `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
   operator for the gas of the sweep and collect their account balance.
@@ -368,13 +368,13 @@ to buy back T tokens, and then uses those to reimburse the operator.
 
 Governable Parameters:
 
-- `redemption_request_timeout`: The amount of time the wallet has to provide
-  redemption proof.
-- `redemption_request_timeout_slashing_amount`: The amount of stake slashed
-  from each member of a wallet for a timed-out redemption request.
 - `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
   notifier reward from the staking contract the redeemer receives in case of a
   redemption timeout.
+- `redemption_request_timeout_slashing_amount`: The amount of stake slashed
+  from each member of a wallet for a timed-out redemption request.
+- `redemption_request_timeout`: The amount of time the wallet has to provide
+  redemption proof.
 - `redemption_treasury_fee`: The percentage of redeemed amount put aside as a
   treasury fee.
 - `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
@@ -395,7 +395,7 @@ wallet that contains enough bitcoin to fulfil the redemption. If more BTC
 needs to be redeemed than there is in the largest wallet, then the user needs
 to submit multiple redemptions. After a redemption, if the wallet has under
 `wallet_min_btc` remaining, it transfers that BTC to a randomly selected wallet
-and closes.
+and <<closing-a-wallet,closes>>.
 
 Each redemption request is identified by a concatenation of the wallet's pubkey
 hash and redeemer's output hash (redeemer's BTC address). Such an identifier
@@ -633,13 +633,148 @@ As time passes and operators drop out of the system, a wallet becomes at risk
 of being able to meet the 51-of-100 threshold to produce signatures.
 Additionally, we want to avoid situations where operators are the custodians of
 a wallet for extended periods. To avoid these issues, once a wallet is older
-than the `wallet_max_age`, or if it drops below the liveness threshold (say, below 70 on
-a <<heartbeat,heartbeat>>), we motion to transfer the funds to another randomly
-selected wallet.
+than the `wallet_max_age`, or if it drops below the liveness threshold (say,
+below 70 on a <<heartbeat,heartbeat>>), we motion to
+<<closing-a-wallet,transfer the funds>> to another randomly selected wallet.
 
 Once a wallet no longer has funds and is not the primary wallet for new
-deposits, it can be closed and operators are no longer required to maintain
-it.
+deposits, it can be <<closing-a-wallet,closed>> and operators are no longer
+required to maintain it.
+
+[[closing-a-wallet]]
+==== Closing A Wallet
+
+Governable Parameters:
+
+- `heartbeat`: The number of group members required for a
+  <<heartbeat,heartbeat>> to be successful.
+- `wallet_closure_timeout`: The amount of time that a wallet has to
+  successfully move its funds to another wallet and inform the ethereum chain
+  before it is at risk of punishment.
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
+  to a randomly selected wallet.
+- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+  attempt to close the wallet and transfer the funds to a randomly selected
+  wallet.
+
+When a wallet fails a <<heartbeat,heartbeat>> `consecutive_failed_heartbeats`
+times, ends a <<redemption,redemption>> with less than `wallet_min_btc`
+remaining, or exceeds the `wallet_max_age`, the operators begin the process of
+closing it. If there are still funds remaining, the <<operator-only,first
+operator>> posts a <<operator-only,reimbursable>> transaction to the ethereum
+chain declaring an intention to close the wallet. This transaction includes a
+timestamp hereby referred to as `move_funds_start_timestamp`.
+
+That operator proposes a BTC fee (as in <<sweeping,sweeping>>) and the
+operators use the wallet's public key hash to choose viable (it must also have
+a passing heartbeat and be above `wallet_min_btc`, and not exceeded the
+`wallet_max_age) wallet(s) to transfer the remaining funds to. They construct a
+P2PKH transaction moving the wallet's main UTXO to that wallet. For more
+details on exactly how a wallet is chosen and how the funds are split up see
+<<wallet-closure-transaction,the dedicated section>>.
+
+After this transaction is complete, <<public-knowledge,the public>> is able to
+submit a SPV proof to let ethereum know that the funds were transferred
+nonfraudulently. Later, a <<donate,donation>> can be made by governance to
+handle any difference in outstanding v2 token supply and locked BTC due to
+mining transfer fees.
+
+Later, <<public-knowledge,the public>> at any time can challenge the operator's
+wallet choice. They do so by showing that there exists a live, valid wallet
+which was created before `move_funds_start_timestamp` that _wasn't_ chosen
+_and_ should have been. These challenges are incentivized to happen sooner
+rather than later, as eventually all of the relevant operators may be fully
+unstaked and there will be no stake to slash, and thus no reward.
+
+*Notes*: Transferring the BTC to any address other than the P2PKH of one of the
+other wallet addresses is fraud, and is <<Punishment,punishable>>. Moving funds
+without sending a follow-up proof is <<Punishment,punishable>>. Failure to
+close a wallet that failed a <<heartbeat,heartbeat>> or fell below
+`wallet_min_btc`, or exceeded `wallet_max_age` is <<Punishment,punishable>>.
+Failure to complete the process before `wallet_closure_timeout` has elapsed is
+<<Punishment,punishable>>.
+
+Any unswept funds can be returned via the 30-day return script, though since
+we're redeeming from the oldest wallet and only sweeping/depositing to the
+newest wallets this hopefully won't come up often 🤞.
+
+[[wallet-closure-transaction]]
+===== Wallet Closure Transactions
+
+Governable Parameters:
+
+- `wallet_transfer_max`: The most amount of BTC a wallet can transfer to a
+  single other wallet during a wallet closure.
+
+When a wallet <<closing-a-wallet,closes>>, if there is any amount of bitcoin
+remaining, it needs to be transfered to another _live_ wallet. Our input to the
+transaction is the closing wallet's main UTXO, and we create an equal sized
+output for the `N` valid wallets, where `N = min(valid_wallets.size,
+ceil(funds_to_transfer / wallet_transfer_max))`.
+
+The destination wallets are chosen for their public key hash's modulus distance
+to the closing wallet's public key hash (both represented as a number). Ties are
+broken by the destination with the greater public key hash, and if we run out of
+viable wallets, it is okay to reuse them (though we prefer not to).
+
+For all the below examples, say that the public key hashes can range from 0 to
+99 (mod 100). Wallet#43 Means that the PKH of the Wallet is 43. Real public key
+hashes and their max mod values will be much higher in practice!
+
+Exceeding Transfer Max Example:
+
+- Wallet#90 with balance `250 BTC` needs to close.
+- `wallet_transfer_max = 100 BTC`
+- Live wallet options are Wallet#30, Wallet#80, Wallet#25, Wallet#15
+- Calculate distances:
+- Wallet#30 = min(90 - 30, 130 - 90) = min(60, 40) = 40
+- Wallet#80 = min(90 - 80, 180 - 90) = min(10, 90) = 10
+- Wallet#25 = min(90 - 25, 125 - 90) = min(65, 35) = 35
+- Wallet#15 = min(90 - 15, 115 - 90) = min(75, 25) = 25
+
+`N = min([Wallet#30, Wallet#80, Wallet#25, Wallet#15].size, ceil(250 / 100)) = min(4, ceil(2.5)) = min(4, 3) = 3`
+Split the 250 BTC 3 ways. Deposit 250/3 = 83 1/3 BTC into Wallet#80, Wallet#15, and Wallet#25.
+
+Under Transfer Max Example:
+
+- Wallet#52 with balance `50 BTC` needs to close.
+- `wallet_transfer_max = 100 BTC`
+- Live wallet options are Wallet#13, Wallet#90, Wallet#59, Wallet#42
+- Calculate distances:
+- Wallet#13 = min(52 - 13, 113 - 52) = min(39, 61) = 39
+- Wallet#90 = min(90 - 52, 152 - 90) = min(38, 62) = 38
+- Wallet#59 = min(59 - 52, 152 - 59) = min(7, 93) = 7
+- Wallet#42 = min(52 - 42, 142 - 52) = min(10, 90) = 10
+
+`N = min([Wallet#13, Wallet#90, Wallet#59, Wallet#42].size, ceil(50/100)) = min(4, ceil(0.5) = min(4,1) = 1)`
+Split the 50 BTC 1 way. Deposit 50/1 = 50 BTC into Wallet#59.
+
+Tiebreak Example:
+
+- Wallet#52 with a balance `13 BTC` needs to close.
+- `wallet_transfer_max = 100 BTC`
+- Live wallet options are Wallet#13, Wallet#60, Wallet#44, Wallet#75
+- Calculate distances:
+- Wallet#13 = min(52 - 13, 113 - 52) = min(39, 61) = 39
+- Wallet#60 = min(60 - 52, 152 - 60) = min(8, 92) = 8
+- Wallet#44 = min(52 - 44, 144 - 52) = min(8, 92) = 8
+- Wallet#75 = min(75 - 52, 152 - 75) = min(23, 77) = 23
+
+`N = min([Wallet#13, Wallet#60, Wallet#44, Wallet#75].size, ceil(13/100)) = min(4, ceil(0.13) = min(4, 1) = 1)`
+Split the 13 BTC 1 way. Since Wallet#60 is tied with Wallet#44 for the closest, we favor Wallet#60
+because 60>44. Deposit 13/1 = 13 BTC into Wallet#60.
+
+Wallet Reuse Example:
+
+- Wallet#35 with a balance `413 BTC` needs to close.
+- `wallet_transfer_max = 100 BTC`
+- Live wallet options are Wallet#20, Wallet#30
+- Calculate distances:
+- Wallet#20 = min(35 - 20, 120 - 35) = min(15, 85) = 15
+- Wallet#30 = min(35 - 30, 130 - 35) = min(5, 95) = 5
+
+`N = min([Wallet#20, Wallet#30].size, ceil(413/100)) = min(2, ceil(4.13)) = min(2, 5) = 2`
+Split the 413 BTC 2 ways. Deposit 413/2 = 206.5 BTC into Wallet#30 and Wallet#20.
 
 [[heartbeat]]
 === Heartbeats
@@ -663,8 +798,8 @@ times >= `consecutive_failed_heartbeats`, the operators take a union the
 recorded _inactive_ operators, and an operator from among the active operators
 posts a transaction to disable those inactive operators from receiving rewards
 for `failed_heartbeat_reward_removal_period` amount of time. The active
-operators move the remaining BTC to another random wallet and close this
-wallet.
+operators move the remaining BTC to another random wallet and
+<<closing-a-wallet,close>> this wallet.
 
 For the purposes of heartbeats, an operator that is currently unstaking (they
 started their two-week undelegation period) does not count as a live heartbeat,
@@ -699,7 +834,8 @@ disabled (after the active operators sign this). See
 <<transaction-incentives,transaction incentives>> for more on how to encourage
 this transaction.
 
-=== Bridge donate
+[[donate]]
+=== Bridge Donation
 
 If a wallet committed fraud, there has to be a function allowing to "donate" BTC
 to the Bridge without increasing anyone's balances. This function needs to
@@ -715,6 +851,7 @@ manually liquidate tokens to acquire BTC and donate it to the Bridge.
 === Transaction Incentives
 
 Governable Parameters:
+
 - `max_gas_refund_price`: The highest amount of gwei that the gas refund
   contract will pay out per gas for a refund transaction.
 
@@ -773,7 +910,8 @@ compensate gas.
 
 [[bitcoin-sweeping-fee]]
 === Bitcoin Sweeping Fee
-Governable Parameters
+
+Governable Parameters:
 
 - `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
   suggested BTC fee before the other operators give up and try the next
@@ -812,8 +950,8 @@ advantage of manipulating btc fee consensus I would be very surprised.
 == Governable Parameters
 Alphabetized list of Governable Parameters with additional notes.
 
-- `base_btc_fee_max`: The highest amount of BTC that operators can
-  initially propose as a fee for miners of Bitcoin transaction.
+- `base_btc_fee_max`: The highest amount of BTC that operators can initially
+  propose as a fee for miners of Bitcoin transaction.
 - `btc_fee_broadcast_timeout`: The amount of time an operator has to provide a
   suggested BTC fee before the other operators give up and try the next
   operator.
@@ -825,17 +963,35 @@ Alphabetized list of Governable Parameters with additional notes.
   be considered for a sweep.
 - `failed_heartbeat_reward_removal_period`: The amount of time an operator is
   removed from reward eligibility after failing a heartbeat.
+- `fraud_challenge_defend_timeout`: The amount of time the wallet has to defend
+  against a fraud challenge.
+- `fraud_challenge_deposit_amount`: The amount of ETH the party challenging the
+  wallet for fraud needs to deposit.
+- `fraud_notifier_reward_multiplier`: The percentage of the notifier reward
+  from the staking contract the notifier of a fraud receives.
+- `fraud_slashing_amount`: The amount of stake slashed from each member of a
+  wallet for a fraud.
+- `heartbeat_block_length`: The number of ethereum blocks until the next
+  heartbeat. If set to 40, then the signers sign every 40th block.
 - `heartbeat`: The number of group members required for a
   <<heartbeat,heartbeat>> to be successful.
-- `heartbeat_block_length`: The number of ethereum blocks until the next heartbeat.
-  If set to 40, then the signers sign every 40th block.
 - `max_gas_refund_price`: The highest amount of gwei that the gas refund
   contract will pay out per gas for a refund transaction.
+- `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
+  notifier reward from the staking contract the redeemer receives in case of a
+  redemption timeout.
+- `redemption_request_timeout_slashing_amount`: The amount of stake slashed
+  from each member of a wallet for a timed-out redemption request.
+- `redemption_request_timeout`: The amount of time the wallet has to provide
+  redemption proof.
+- `redemption_treasury_fee`: The percentage of redeemed amount put aside as a
+  treasury fee.
 - `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
   operator for the gas of the sweep and collect their account balance.
 - `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
   will trigger an early sweep on a wallet.
-- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a
+  wallet.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
   tranaction is mined before increasing the fee.
 - `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
@@ -848,26 +1004,14 @@ Alphabetized list of Governable Parameters with additional notes.
 - `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
-- `redemption_request_timeout`: The amount of time the wallet has to provide
-  redemption proof.
-- `redemption_request_timeout_slashing_amount`: The amount of stake slashed
-  from each member of a wallet for a timed-out redemption request.
-- `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
-  notifier reward from the staking contract the redeemer receives in case of a
-  redemption timeout.
-- `redemption_treasury_fee`: The percentage of redeemed amount put aside as a
-  treasury fee.
+- `wallet_closure_timeout`: The amount of time that a wallet has to
+  successfully move its funds to another wallet and inform the ethereum chain
+  before it is at risk of punishment.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
-- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
-  to a randomly selected wallet.
-- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer
+  the funds to a randomly selected wallet.
+- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
   attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
-- `fraud_slashing_amount`: The amount of stake slashed from each member of a
-  wallet for a fraud.
-- `fraud_notifier_reward_multiplier`: The percentage of the notifier reward from
-  the staking contract the notifier of a fraud receives.
-- `fraud_challenge_defend_timeout`: The amount of time the wallet has to defend
-  against a fraud challenge.
-- `fraud_challenge_deposit_amount`: The amount of ETH the party challenging the
-  wallet for fraud needs to deposit.
+- `wallet_transfer_max`: The most amount of BTC a wallet can transfer to a
+  single other wallet during a wallet closure.
