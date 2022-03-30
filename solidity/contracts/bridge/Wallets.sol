@@ -447,11 +447,7 @@ library Wallets {
         if (wallet.mainUtxoHash == bytes32(0)) {
             // If the wallet has no main UTXO, that means its BTC balance
             // is zero and it should be closed immediately.
-            wallet.state = WalletState.Closed;
-
-            emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
-
-            self.registry.closeWallet(wallet.ecdsaWalletID);
+            closeWallet(self, walletPubKeyHash);
         } else {
             // Otherwise, initialize the moving funds process.
             wallet.state = WalletState.MovingFunds;
@@ -469,9 +465,16 @@ library Wallets {
         }
     }
 
-    // TODO: Implement functions that will be called upon moving funds process
-    //       end. Remember the moving funds process ends up with a successful
-    //       proof or a timeout.
+    // TODO: Documentation. Mention about checking wallet state outside.
+    function closeWallet(Data storage self, bytes20 walletPubKeyHash) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        wallet.state = WalletState.Closed;
+
+        emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
+
+        self.registry.closeWallet(wallet.ecdsaWalletID);
+    }
 
     /// @notice Reports about a fraud committed by the given wallet. This
     ///         function performs slashing and wallet termination in reaction
