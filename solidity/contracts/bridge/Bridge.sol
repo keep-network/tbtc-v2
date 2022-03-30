@@ -58,6 +58,11 @@ interface IRelay {
 ///         wallet informs the Bridge about the sweep increasing appropriate
 ///         balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank.
+///
+/// TODO: All wallets-related operations that are currently done directly
+///       by the Bridge can be probably delegated to the Wallets library.
+///       Examples of such operations are main UTXO or pending redemptions
+///       value updates.
 contract Bridge is Ownable, EcdsaWalletOwner {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
@@ -263,8 +268,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         validating them before attempting to execute a sweep.
     mapping(uint256 => DepositRequest) public deposits;
 
-    //TODO: Remember to update this map when implementing transferring funds
-    //      between wallets (insert the main UTXO that was used as the input).
     /// @notice Collection of main UTXOs that are honestly spent indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex). The fundingTxHash
     ///         is bytes32 (ordered as in Bitcoin internally) and
@@ -1941,4 +1944,106 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     //          `requestedAmount - treasuryFee`.
     //       8. Call `wallets.notifyRedemptionTimedOut` to propagate timeout
     //          consequences to the wallet.
+
+    // TODO: Documentation
+    function submitMovingFundsProof(
+        BitcoinTx.Info calldata movingFundsTx,
+        BitcoinTx.Proof calldata movingFundsProof,
+        BitcoinTx.UTXO calldata mainUtxo,
+        bytes20 walletPubKeyHash
+    ) external {
+        // The actual transaction proof is performed here. After that point, we
+        // can assume the transaction happened on Bitcoin chain and has
+        // a sufficient number of confirmations as determined by
+        // `txProofDifficultyFactor` constant.
+        BitcoinTx.validateProof(
+            movingFundsTx,
+            movingFundsProof,
+            proofDifficultyContext()
+        );
+
+        // Perform validation of the moving funds transaction input.
+        // Specifically, check if it refers to the expected wallet's main UTXO.
+        //
+        // TODO: Rename validateWalletOutboundTxInput as it does more than
+        //       validation.
+        validateWalletOutboundTxInput(
+            movingFundsTx.inputVector,
+            mainUtxo,
+            walletPubKeyHash
+        );
+
+        processMovingFundsTxOutputs(
+            movingFundsTx.outputVector,
+            walletPubKeyHash
+        );
+
+        wallets.notifyFundsMoved(walletPubKeyHash);
+    }
+
+    // TODO: Documentation
+    function processMovingFundsTxOutputs(
+        bytes memory movingFundsTxOutputVector,
+        bytes20 movingFundsWalletPubKeyHash
+    ) internal {
+        // Determining the total number of Bitcoin transaction outputs in
+        // the same way as for number of inputs. See `BitcoinTx.outputVector`
+        // docs for more details.
+        (
+            uint256 outputsCompactSizeUintLength,
+            uint256 outputsCount
+        ) = movingFundsTxOutputVector.parseVarInt();
+
+        // To determine the first output starting index, we must jump over
+        // the compactSize uint which prepends the output vector. One byte
+        // must be added because `BtcUtils.parseVarInt` does not include
+        // compactSize uint tag in the returned length.
+        //
+        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
+        // returns `0`, so we jump over one byte of compactSize uint.
+        //
+        // For >= 253 && <= 0xffff there is `0xfd` tag,
+        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
+        // tag byte included) so we need to jump over 1+2 bytes of
+        // compactSize uint.
+        //
+        // Please refer `BTCUtils` library and compactSize uint
+        // docs in `BitcoinTx` library for more details.
+        uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
+
+        // Outputs processing loop.
+        for (uint256 i = 0; i < outputsCount; i++) {
+            uint256 outputLength = movingFundsTxOutputVector
+                .determineOutputLengthAt(outputStartingIndex);
+
+            bytes memory output = movingFundsTxOutputVector.slice(
+                outputStartingIndex,
+                outputLength
+            );
+            // Extract the value from given output.
+            uint64 outputValue = output.extractValue();
+            // Extract the output script payload.
+            bytes memory walletPubKeyHashBytes = output.extractHash();
+            // Output script payload must refer to a known wallet public key
+            // hash which is always 20-byte.
+            require(
+                walletPubKeyHashBytes.length == 20,
+                "Wallet public key hash should have 20 bytes"
+            );
+
+            bytes20 walletPubKeyHash = walletPubKeyHashBytes.slice20(0);
+
+            require(
+                walletPubKeyHash != movingFundsWalletPubKeyHash,
+                "Change output is not allowed"
+            );
+
+            // TODO: Do appropriate validation using `outputValue` and
+            //       `walletPubKeyHash`.
+
+            // Make the `outputStartingIndex` pointing to the next output by
+            // increasing it by current output's length.
+            outputStartingIndex += outputLength;
+        }
+    }
 }
