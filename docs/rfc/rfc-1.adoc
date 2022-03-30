@@ -1013,6 +1013,8 @@ Alphabetized list of Governable Parameters with additional notes.
   successfully move its funds to another wallet and inform the ethereum chain
   before it is at risk of punishment.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
+- `wallet_dust_leftover`: The smallest amount of btc that we will transfer to
+  another wallet when a wallet closes. Any amount under this is abandoned.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer
   the funds to a randomly selected wallet.
 - `wallet_min_closure_btc`: The smallest amount of BTC a wallet can hold before
