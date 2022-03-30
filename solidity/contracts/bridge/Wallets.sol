@@ -520,4 +520,35 @@ library Wallets {
 
         self.registry.closeWallet(wallet.ecdsaWalletID);
     }
+
+    // TODO: Documentation
+    function notifyFundsMoved(Data storage self, bytes20 walletPubKeyHash)
+        external
+    {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        // Check that the wallet is in the MovingFunds state but don't check
+        // if the moving funds timeout is exceeded. That should give a
+        // possibility to move funds in case when timeout was hit but was
+        // not reported yet.
+        require(
+            wallet.state == WalletState.MovingFunds,
+            "ECDSA wallet must be in MovingFunds state"
+        );
+
+        // Wallet must handle all pending redemptions before moving funds.
+        // If it is not able to do so, timeouts for those pending redemptions
+        // must be performed to punish the wallet for each timeout and
+        // return funds to the redeemer.
+        require(
+            wallet.pendingRedemptionsValue == 0,
+            "Wallet must not have pending redemptions"
+        );
+
+        // If funds were moved, the wallet has no longer a main UTXO.
+        delete wallet.mainUtxoHash;
+
+        closeWallet(self, walletPubKeyHash);
+    }
+
+    // TODO: Function for reporting moving funds timeout.
 }
