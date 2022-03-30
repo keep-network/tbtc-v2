@@ -308,7 +308,7 @@ library Wallets {
 
         // Compress wallet's public key and calculate Bitcoin's hash160 of it.
         bytes20 walletPubKeyHash = bytes20(
-            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
+            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160View()
         );
 
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
@@ -346,7 +346,7 @@ library Wallets {
 
         // Compress wallet's public key and calculate Bitcoin's hash160 of it.
         bytes20 walletPubKeyHash = bytes20(
-            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
+            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160View()
         );
 
         require(
