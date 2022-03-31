@@ -377,8 +377,8 @@ Governable Parameters:
   redemption proof.
 - `redemption_treasury_fee`: The percentage of redeemed amount put aside as a
   treasury fee.
-- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
-  attempt to close the wallet and transfer the funds to a randomly selected
+- `wallet_min_closure_btc`: The smallest amount of BTC a wallet can hold before
+  we attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
 
 To initiate a redemption, a user with a swept balance > `x` supplies a bitcoin
@@ -391,11 +391,11 @@ process in the <<continuous-fees,fee section>>) to pay to the operators.
 In the MVP version of the system, a redemption is capped at the amount of
 bitcoin contained in the largest wallet. The wallet doing the redemption is
 selected by the redeemer, but the dApp should suggest that this is the oldest
-wallet that contains enough bitcoin to fulfil the redemption. If more BTC
-needs to be redeemed than there is in the largest wallet, then the user needs
-to submit multiple redemptions. After a redemption, if the wallet has under
-`wallet_min_btc` remaining, it transfers that BTC to a randomly selected wallet
-and <<closing-a-wallet,closes>>.
+wallet that contains enough bitcoin to fulfil the redemption. If more BTC needs
+to be redeemed than there is in the largest wallet, then the user needs to
+submit multiple redemptions. After a redemption, if the wallet has under
+`wallet_min_closure_btc` remaining, it transfers that BTC to a randomly
+selected wallet and <<closing-a-wallet,closes>>.
 
 Each redemption request is identified by a concatenation of the wallet's pubkey
 hash and redeemer's output hash (redeemer's BTC address). Such an identifier
@@ -611,18 +611,18 @@ proof and then, call the defend function again.
 Governable Parameters:
 
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
-- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
-  attempt to close the wallet and transfer the funds to a randomly selected
-  wallet.
+- `wallet_min_creation_btc`: The minimum amount of BTC an active wallet needs
+  to have before we allow for the creation of a new active wallet.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
   to a randomly selected wallet.
 
 A new wallet is created when enough time has passed as defined in
-`wallet_creation_period` *AND* the wallet contains at least `wallet_min_btc`
-btc. To create a new wallet, a group of 100 operators is selected from the pool
-of available operators using a process called sortition. The probability that a
-particular operator is chosen is based on their stake weight, which in turn is
-based on the number of `T` tokens they have invested in the staking contract.
+`wallet_creation_period` *AND* the wallet contains at least
+`wallet_min_creation_btc` btc. To create a new wallet, a group of 100 operators
+is selected from the pool of available operators using a process called
+sortition. The probability that a particular operator is chosen is based on
+their stake weight, which in turn is based on the number of `T` tokens they
+have invested in the staking contract.
 
 Once the operators have been selected from the sortition pool, they generate a
 51-of-100 ecdsa signing group to handle the bitcoin key material per the
@@ -651,23 +651,28 @@ Governable Parameters:
 - `wallet_closure_timeout`: The amount of time that a wallet has to
   successfully move its funds to another wallet and inform the ethereum chain
   before it is at risk of punishment.
-- `wallet_max_age`: The oldest we allow a wallet to become before we transfer the funds
-  to a randomly selected wallet.
-- `wallet_min_btc`: The smallest amount of btc a wallet can hold before we
-  attempt to close the wallet and transfer the funds to a randomly selected
+- `wallet_dust_leftover`: The smallest amount of btc that we will transfer to
+  another wallet when a wallet closes. Any amount under this is abandoned.
+- `wallet_max_age`: The oldest we allow a wallet to become before we transfer
+  the funds to a randomly selected wallet.
+- `wallet_min_closure_btc`: The smallest amount of btc a wallet can hold before
+  we attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
 
 When a wallet fails a <<heartbeat,heartbeat>> `consecutive_failed_heartbeats`
-times, ends a <<redemption,redemption>> with less than `wallet_min_btc`
+times, ends a <<redemption,redemption>> with less than `wallet_min_closure_btc`
 remaining, or exceeds the `wallet_max_age`, the operators begin the process of
-closing it. If there are still funds remaining, the <<operator-only,first
-operator>> posts a <<operator-only,reimbursable>> transaction to the ethereum
-chain declaring an intention to close the wallet. This transaction includes a
-timestamp hereby referred to as `move_funds_start_timestamp`.
+closing it. If there are still funds remaining, and those funds are at least
+`wallet_dust_leftover`, then the <<operator-only,first operator>> posts a
+<<operator-only,reimbursable>> transaction to the ethereum chain declaring an
+intention to close the wallet. This transaction includes a timestamp hereby
+referred to as `move_funds_start_timestamp`. If the balance is less than
+`wallet_dust_leftover`, we simply close the wallet and abandon the funds. We
+can maintain the peg via a <<donate,donation>>.
 
 That operator proposes a BTC fee (as in <<sweeping,sweeping>>) and the
 operators use the wallet's public key hash to choose viable (it must also have
-a passing heartbeat and be above `wallet_min_btc`, and not exceeded the
+a passing heartbeat and be above `wallet_min_closure_btc`, and not exceeded the
 `wallet_max_age) wallet(s) to transfer the remaining funds to. They construct a
 P2PKH transaction moving the wallet's main UTXO to that wallet. For more
 details on exactly how a wallet is chosen and how the funds are split up see
@@ -690,9 +695,9 @@ unstaked and there will be no stake to slash, and thus no reward.
 other wallet addresses is fraud, and is <<Punishment,punishable>>. Moving funds
 without sending a follow-up proof is <<Punishment,punishable>>. Failure to
 close a wallet that failed a <<heartbeat,heartbeat>> or fell below
-`wallet_min_btc`, or exceeded `wallet_max_age` is <<Punishment,punishable>>.
-Failure to complete the process before `wallet_closure_timeout` has elapsed is
-<<Punishment,punishable>>.
+`wallet_min_closure_btc`, or exceeded `wallet_max_age` is
+<<Punishment,punishable>>. Failure to complete the process before
+`wallet_closure_timeout` has elapsed is <<Punishment,punishable>>.
 
 Any unswept funds can be returned via the 30-day return script, though since
 we're redeeming from the oldest wallet and only sweeping/depositing to the
@@ -1008,10 +1013,14 @@ Alphabetized list of Governable Parameters with additional notes.
   successfully move its funds to another wallet and inform the ethereum chain
   before it is at risk of punishment.
 - `wallet_creation_period`: How frequently we attempt to create new wallets.
+- `wallet_dust_leftover`: The smallest amount of btc that we will transfer to
+  another wallet when a wallet closes. Any amount under this is abandoned.
 - `wallet_max_age`: The oldest we allow a wallet to become before we transfer
   the funds to a randomly selected wallet.
-- `wallet_min_btc`: The smallest amount of BTC a wallet can hold before we
-  attempt to close the wallet and transfer the funds to a randomly selected
+- `wallet_min_closure_btc`: The smallest amount of BTC a wallet can hold before
+  we attempt to close the wallet and transfer the funds to a randomly selected
   wallet.
+- `wallet_min_creation_btc`: The minimum amount of BTC an active wallet needs
+  to have before we allow for the creation of a new active wallet.
 - `wallet_transfer_max`: The most amount of BTC a wallet can transfer to a
   single other wallet during a wallet closure.
