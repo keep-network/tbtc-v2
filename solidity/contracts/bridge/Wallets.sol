@@ -364,6 +364,9 @@ library Wallets {
     ///         for the same wallet but only the first report requests the
     ///         wallet to move their funds.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - The caller must make sure that the wallet is in the `Live` or
+    ///        `MovingFunds` state
     function notifyRedemptionTimedOut(
         Data storage self,
         bytes20 walletPubKeyHash

@@ -1923,7 +1923,30 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return info;
     }
 
-    // TODO: description
+    /// @notice Notifies that there is a pending redemption request associated
+    ///         with the given wallet, that has timed out. The redemption
+    ///         request is identified by the key built as
+    ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
+    ///         The results of calling this function: the pending redemptions
+    ///         value for the wallet will be decreased by the requested amount
+    ///         (minus treasury fee), the tokens taken from the redeemer on
+    ///         redemption request will be returned to the redeemer, the request
+    ///         will be moved from pending redemptions to timed-out redemptions.
+    ///         If the state of the wallet is `Live` or `MovingFunds`, the
+    ///         wallet operators will be slashed.
+    ///         Additionally, if the state of wallet is `Live`, the wallet will
+    ///         be closed or marked as `MovingFunds` (depending on the presence
+    ///         or absence of the wallet's main UTXO) and the wallet will no
+    ///         longer be marked as the active wallet (if it was marked as such).
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param redeemerOutputScript  The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH)
+    /// @dev Requirements:
+    ///      - The redemption request identified by `walletPubKeyHash` and
+    ///        `redeemerOutputScript` must exist
+    ///      - The amount of time defined by `redemptionTimeout` must have
+    ///        passed since the redemption was requested (the request must be
+    ///        timed-out).
     function notifyRedemptionTimeout(
         bytes20 walletPubKeyHash,
         bytes calldata redeemerOutputScript
