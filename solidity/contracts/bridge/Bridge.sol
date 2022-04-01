@@ -1589,9 +1589,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             proofDifficultyContext()
         );
 
-        // Perform validation of the redemption transaction input. Specifically,
-        // check if it refers to the expected wallet's main UTXO.
-        validateWalletOutboundTxInput(
+        // Process the redemption transaction input. Specifically, check if it
+        // refers to the expected wallet's main UTXO.
+        processWalletOutboundTxInput(
             redemptionTx.inputVector,
             mainUtxo,
             walletPubKeyHash
@@ -1640,10 +1640,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bank.transferBalance(treasury, outputsInfo.totalTreasuryFee);
     }
 
-    /// @notice Validates whether an outbound Bitcoin transaction performed by
+    /// @notice Checks whether an outbound Bitcoin transaction performed by
     ///         the given wallet has an input vector that contains a single
-    ///         input referring to the wallet's main UTXO. Reverts in case the
-    ///         validation fails.
+    ///         input referring to the wallet's main UTXO. Marks that main UTXO
+    ///         as correctly spent if the validation succeeds. Reverts otherwise.
     /// @param walletOutboundTxInputVector Bitcoin outbound transaction's input
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVin` function
@@ -1653,7 +1653,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
     //         HASH160 over the compressed ECDSA public key) of the wallet which
     ///        performed the outbound transaction.
-    function validateWalletOutboundTxInput(
+    function processWalletOutboundTxInput(
         bytes memory walletOutboundTxInputVector,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
@@ -1682,7 +1682,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         (
             bytes32 outpointTxHash,
             uint32 outpointIndex
-        ) = processWalletOutboundTxInput(walletOutboundTxInputVector);
+        ) = parseWalletOutboundTxInput(walletOutboundTxInputVector);
         require(
             mainUtxo.txHash == outpointTxHash &&
                 mainUtxo.txOutputIndex == outpointIndex,
@@ -1699,7 +1699,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         ] = true;
     }
 
-    /// @notice Processes the input vector of an outbound Bitcoin transaction
+    /// @notice Parses the input vector of an outbound Bitcoin transaction
     ///         performed by the given wallet. It extracts the single input then
     ///         the transaction hash and output index from its outpoint.
     /// @param walletOutboundTxInputVector Bitcoin outbound transaction input
@@ -1710,7 +1710,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         pointed in the input's outpoint.
     /// @return outpointIndex 4-byte index of the Bitcoin transaction output
     ///         which is pointed in the input's outpoint.
-    function processWalletOutboundTxInput(
+    function parseWalletOutboundTxInput(
         bytes memory walletOutboundTxInputVector
     ) internal pure returns (bytes32 outpointTxHash, uint32 outpointIndex) {
         // To determine the total number of Bitcoin transaction inputs,
@@ -1962,12 +1962,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             proofDifficultyContext()
         );
 
-        // Perform validation of the moving funds transaction input.
-        // Specifically, check if it refers to the expected wallet's main UTXO.
-        //
-        // TODO: Rename validateWalletOutboundTxInput as it does more than
-        //       validation.
-        validateWalletOutboundTxInput(
+        // Process the moving funds transaction input. Specifically, check if
+        // it refers to the expected wallet's main UTXO.
+        processWalletOutboundTxInput(
             movingFundsTx.inputVector,
             mainUtxo,
             walletPubKeyHash
