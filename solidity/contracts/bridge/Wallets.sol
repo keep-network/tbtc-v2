@@ -48,6 +48,8 @@ library Wallets {
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
         bytes20 activeWalletPubKeyHash;
+        // TODO: Documentation and make it governable.
+        uint32 movingFundsCommitmentChallengePeriod;
         // Maps the 20-byte wallet public key hash (computed using Bitcoin
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
@@ -92,9 +94,13 @@ library Wallets {
         uint32 createdAt;
         // UNIX timestamp indicating the moment the wallet was requested to
         // move their funds.
-        uint32 moveFundsRequestedAt;
+        uint32 movingFundsRequestedAt;
+        // TODO: Documentation
+        uint32 movingFundsCommitmentSubmittedAt;
         // Current state of the wallet.
         WalletState state;
+        // TODO: Documentation
+        bytes32 movingFundsTargetWalletsCommitmentHash;
     }
 
     event WalletCreationPeriodUpdated(uint32 newCreationPeriod);
@@ -452,7 +458,7 @@ library Wallets {
             // Otherwise, initialize the moving funds process.
             wallet.state = WalletState.MovingFunds;
             /* solhint-disable-next-line not-rely-on-time */
-            wallet.moveFundsRequestedAt = uint32(block.timestamp);
+            wallet.movingFundsRequestedAt = uint32(block.timestamp);
 
             emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
         }
@@ -527,9 +533,11 @@ library Wallets {
     }
 
     // TODO: Documentation
-    function notifyFundsMoved(Data storage self, bytes20 walletPubKeyHash)
-        external
-    {
+    function notifyFundsMoved(
+        Data storage self,
+        bytes20 walletPubKeyHash,
+        bytes32 targetWalletsHash
+    ) external {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
         // Check that the wallet is in the MovingFunds state but don't check
         // if the moving funds timeout is exceeded. That should give a
@@ -540,13 +548,24 @@ library Wallets {
             "ECDSA wallet must be in MovingFunds state"
         );
 
-        // Wallet must handle all pending redemptions before moving funds.
-        // If it is not able to do so, timeouts for those pending redemptions
-        // must be performed to punish the wallet for each timeout and
-        // return funds to the redeemer.
+        uint32 commitmentSubmittedAt = wallet.movingFundsCommitmentSubmittedAt;
         require(
-            wallet.pendingRedemptionsValue == 0,
-            "Wallet must not have pending redemptions"
+            commitmentSubmittedAt > 0,
+            "Target wallet commitment not submitted yet"
+        );
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp >
+                commitmentSubmittedAt +
+                    self.movingFundsCommitmentChallengePeriod,
+            "Target wallet commitment challenge period has not passed yet"
+        );
+
+        // Make sure that the target wallets where funds were moved to are
+        // exactly the same as the ones the source wallet committed to.
+        require(
+            wallet.movingFundsTargetWalletsCommitmentHash == targetWalletsHash,
+            "Target wallets don't correspond to the commitment"
         );
 
         // If funds were moved, the wallet has no longer a main UTXO.
@@ -555,5 +574,23 @@ library Wallets {
         closeWallet(self, walletPubKeyHash);
     }
 
-    // TODO: Function for reporting moving funds timeout.
+    // TODO: Function for committing target wallets for moving funds.
+    //       Can be called only when `movingFundsRequestedAt` field is
+    //       grater than zero, `movingFundsCommitmentSubmittedAt` and
+    //       `movingFundsTargetWalletsCommitmentHash` fields are zeroed, and
+    //       the caller is a wallet's operator. If validation passes, it must
+    //       set the `movingFundsCommitmentSubmittedAt` and
+    //       `movingFundsTargetWalletsCommitmentHash` fields accordingly.
+
+    // TODO: Function for challenging target wallets commitments.
+    //       Can only be called if `block.timestamp` is lesser or equal to
+    //       the sum of `movingFundsCommitmentSubmittedAt` field and
+    //       `movingFundsCommitmentChallengePeriod` governance parameter.
+    //       If the challenge is successful, it must reset the
+    //       `movingFundsCommitmentSubmittedAt` and
+    //       `movingFundsTargetWalletsCommitmentHash` fields to their zero
+    //       value and set `movingFundsRequestedAt` to `block.timestamp`
+    //       to adjust the timeout.
+
+    // TODO: Function for reporting moving funds timeout. To be specified.
 }

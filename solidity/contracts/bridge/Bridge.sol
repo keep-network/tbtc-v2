@@ -251,6 +251,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         to the redeemer in full amount.
     uint256 public redemptionTimeout;
 
+    /// TODO: Make it governable.
+    /// TODO: Documentation.
+    uint64 public movingFundsTxMaxTotalFee;
+
     /// @notice Indicates if the vault with the given address is trusted or not.
     ///         Depositors can route their revealed deposits only to trusted
     ///         vaults and have trusted vaults notified about new deposits as
@@ -433,6 +437,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionTxMaxFee = 1000; // 1000 satoshi
         redemptionTimeout = 172800; // 48 hours
+        movingFundsTxMaxFee = 10000; // 10000 satoshi
+
+        // TODO: Revisit initial values.
         frauds.setSlashingAmount(10000 * 1e18); // 10000 T
         frauds.setNotifierRewardMultiplier(100); // 100%
         frauds.setChallengeDefeatTimeout(7 days);
@@ -1970,19 +1977,26 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             walletPubKeyHash
         );
 
-        processMovingFundsTxOutputs(
-            movingFundsTx.outputVector,
-            walletPubKeyHash
+        (
+            bytes32 targetWalletsHash,
+            uint64 outputsTotalValue
+        ) = processMovingFundsTxOutputs(movingFundsTx.outputVector);
+
+        require(
+            mainUtxo.txOutputValue - outputsTotalValue <=
+                movingFundsTxMaxTotalFee,
+            "Transaction fee is too high"
         );
 
-        wallets.notifyFundsMoved(walletPubKeyHash);
+        wallets.notifyFundsMoved(walletPubKeyHash, targetWalletsHash);
     }
 
     // TODO: Documentation
-    function processMovingFundsTxOutputs(
-        bytes memory movingFundsTxOutputVector,
-        bytes20 movingFundsWalletPubKeyHash
-    ) internal {
+    function processMovingFundsTxOutputs(bytes memory movingFundsTxOutputVector)
+        internal
+        view
+        returns (bytes32 targetWalletsHash, uint64 outputsTotalValue)
+    {
         // Determining the total number of Bitcoin transaction outputs in
         // the same way as for number of inputs. See `BitcoinTx.outputVector`
         // docs for more details.
@@ -2008,6 +2022,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // docs in `BitcoinTx` library for more details.
         uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
 
+        bytes20[] memory targetWallets = new byte20[](outputsCount);
+        uint64[] memory outputsValues = new uint64[](outputsCount);
+
         // Outputs processing loop.
         for (uint256 i = 0; i < outputsCount; i++) {
             uint256 outputLength = movingFundsTxOutputVector
@@ -2017,30 +2034,51 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                 outputStartingIndex,
                 outputLength
             );
-            // Extract the value from given output.
-            uint64 outputValue = output.extractValue();
+
             // Extract the output script payload.
-            bytes memory walletPubKeyHashBytes = output.extractHash();
+            bytes memory targetWalletPubKeyHashBytes = output.extractHash();
             // Output script payload must refer to a known wallet public key
             // hash which is always 20-byte.
             require(
-                walletPubKeyHashBytes.length == 20,
+                targetWalletPubKeyHashBytes.length == 20,
                 "Wallet public key hash should have 20 bytes"
             );
+            // Add the wallet public key hash to the list that will be used
+            // to build the result list hash. There is no need to check if
+            // given output is a change here because the actual target wallet
+            // list must be exactly the same as the pre-committed target wallet
+            // list which is guaranteed to be valid.
+            targetWallets[i] = targetWalletPubKeyHashBytes.slice20(0);
 
-            bytes20 walletPubKeyHash = walletPubKeyHashBytes.slice20(0);
-
-            require(
-                walletPubKeyHash != movingFundsWalletPubKeyHash,
-                "Change output is not allowed"
-            );
-
-            // TODO: Do appropriate validation using `outputValue` and
-            //       `walletPubKeyHash`.
+            // Extract the value from given output.
+            outputsValues[i] = output.extractValue();
+            outputsTotalValue += outputsValues[i];
 
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.
             outputStartingIndex += outputLength;
         }
+
+        // Compute the indivisible remainder that remains after dividing the
+        // outputs total value over all outputs evenly.
+        uint64 outputsTotalValueRemainder = outputsTotalValue % outputsCount;
+        // Compute the minimum allowed output value by dividing the outputs
+        // total value (reduced by the remainder) by the number of outputs.
+        uint64 minOutputValue = (outputsTotalValue -
+            outputsTotalValueRemainder) / outputsCount;
+        // Maximum possible value is the minimum value with the remainder included.
+        uint64 maxOutputValue = minOutputValue + outputsTotalValueRemainder;
+
+        for (uint256 i = 0; i < outputsCount; i++) {
+            require(
+                minOutputValue <= outputsValues[i] &&
+                    outputsValues[i] <= maxOutputValue,
+                "Transaction amount is not distributed evenly"
+            );
+        }
+
+        targetWalletsHash = keccak256(abi.encodePacked(targetWallets));
+
+        return (targetWalletsHash, outputsTotalValue);
     }
 }
