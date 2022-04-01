@@ -22,7 +22,8 @@ import type {
   Frauds__factory,
 } from "../../typechain"
 import {
-  walletPublicKey,
+  walletPublicKeyX,
+  walletPublicKeyY,
   walletPublicKeyHash,
   nonWitnessSignSingleInputTx,
   nonWitnessSignMultipleInputsTx,
@@ -157,7 +158,8 @@ describe("Bridge - Frauds", () => {
                 tx = await bridge
                   .connect(thirdParty)
                   .submitFraudChallenge(
-                    walletPublicKey,
+                    walletPublicKeyX,
+                    walletPublicKeyY,
                     data.sighash,
                     data.signature,
                     {
@@ -189,7 +191,8 @@ describe("Bridge - Frauds", () => {
 
               it("should store the fraud challenge data", async () => {
                 const challengeKey = buildChallengeKey(
-                  walletPublicKey,
+                  walletPublicKeyX,
+                  walletPublicKeyY,
                   data.sighash
                 )
 
@@ -238,7 +241,8 @@ describe("Bridge - Frauds", () => {
                 await bridge
                   .connect(thirdParty)
                   .submitFraudChallenge(
-                    walletPublicKey,
+                    walletPublicKeyX,
+                    walletPublicKeyY,
                     data.sighash,
                     data.signature,
                     {
@@ -258,7 +262,8 @@ describe("Bridge - Frauds", () => {
                   bridge
                     .connect(thirdParty)
                     .submitFraudChallenge(
-                      walletPublicKey,
+                      walletPublicKeyX,
+                      walletPublicKeyY,
                       data.sighash,
                       data.signature,
                       {
@@ -275,9 +280,10 @@ describe("Bridge - Frauds", () => {
 
         context("when incorrect wallet public key is used", () => {
           // Unrelated Bitcoin public key
-          const incorrectWalletPublicKey =
-            "0xffc045ade19f8a5d464299146ce069049cdcc2390a9b44d9abcd83f11d8cce4" +
-            "01ea6800e307b87aadebdcd2f7293cc60f0526afaff1a7b1abddfd787e6c5871e"
+          const incorrectPublicKeyX =
+            "0xffc045ade19f8a5d464299146ce069049cdcc2390a9b44d9abcd83f11d8cce40"
+          const incorrectPublicKeyY =
+            "0x1ea6800e307b87aadebdcd2f7293cc60f0526afaff1a7b1abddfd787e6c5871e"
 
           const incorrectWalletPublicKeyHash =
             "0xb5222794425b9b8cd8c3358e73a50dea73480927"
@@ -303,7 +309,8 @@ describe("Bridge - Frauds", () => {
               bridge
                 .connect(thirdParty)
                 .submitFraudChallenge(
-                  incorrectWalletPublicKey,
+                  incorrectPublicKeyX,
+                  incorrectPublicKeyY,
                   data.sighash,
                   data.signature,
                   {
@@ -342,7 +349,8 @@ describe("Bridge - Frauds", () => {
               bridge
                 .connect(thirdParty)
                 .submitFraudChallenge(
-                  walletPublicKey,
+                  walletPublicKeyX,
+                  walletPublicKeyY,
                   incorrectSighash,
                   data.signature,
                   {
@@ -378,7 +386,8 @@ describe("Bridge - Frauds", () => {
           it("should revert", async () => {
             await expect(
               bridge.connect(thirdParty).submitFraudChallenge(
-                walletPublicKey,
+                walletPublicKeyX,
+                walletPublicKeyY,
                 data.sighash,
                 {
                   r: data.signature.r,
@@ -419,7 +428,8 @@ describe("Bridge - Frauds", () => {
           it("should revert", async () => {
             await expect(
               bridge.connect(thirdParty).submitFraudChallenge(
-                walletPublicKey,
+                walletPublicKeyX,
+                walletPublicKeyY,
                 data.sighash,
                 {
                   r: incorrectR,
@@ -459,7 +469,8 @@ describe("Bridge - Frauds", () => {
             bridge
               .connect(thirdParty)
               .submitFraudChallenge(
-                walletPublicKey,
+                walletPublicKeyX,
+                walletPublicKeyY,
                 data.sighash,
                 data.signature,
                 {
@@ -495,7 +506,8 @@ describe("Bridge - Frauds", () => {
           bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
+              walletPublicKeyX,
+              walletPublicKeyY,
               data.sighash,
               data.signature,
               {
@@ -547,7 +559,8 @@ describe("Bridge - Frauds", () => {
               bridge
                 .connect(thirdParty)
                 .submitFraudChallenge(
-                  walletPublicKey,
+                  walletPublicKeyX,
+                  walletPublicKeyY,
                   data.sighash,
                   data.signature,
                   {
@@ -594,7 +607,8 @@ describe("Bridge - Frauds", () => {
                     await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.sighash,
                         data.signature,
                         {
@@ -607,7 +621,8 @@ describe("Bridge - Frauds", () => {
                     tx = await bridge
                       .connect(thirdParty)
                       .defeatFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.preimage,
                         data.witness
                       )
@@ -619,7 +634,8 @@ describe("Bridge - Frauds", () => {
 
                   it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
-                      walletPublicKey,
+                      walletPublicKeyX,
+                      walletPublicKeyY,
                       data.sighash
                     )
 
@@ -673,7 +689,8 @@ describe("Bridge - Frauds", () => {
                     await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.sighash,
                         data.signature,
                         {
@@ -693,7 +710,8 @@ describe("Bridge - Frauds", () => {
                       bridge
                         .connect(thirdParty)
                         .defeatFraudChallenge(
-                          walletPublicKey,
+                          walletPublicKeyX,
+                          walletPublicKeyY,
                           data.preimage,
                           data.witness
                         )
@@ -729,7 +747,8 @@ describe("Bridge - Frauds", () => {
                     await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.sighash,
                         data.signature,
                         {
@@ -742,7 +761,8 @@ describe("Bridge - Frauds", () => {
                     tx = await bridge
                       .connect(thirdParty)
                       .defeatFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.preimage,
                         data.witness
                       )
@@ -754,7 +774,8 @@ describe("Bridge - Frauds", () => {
 
                   it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
-                      walletPublicKey,
+                      walletPublicKeyX,
+                      walletPublicKeyY,
                       data.sighash
                     )
 
@@ -808,7 +829,8 @@ describe("Bridge - Frauds", () => {
                     await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.sighash,
                         data.signature,
                         {
@@ -828,7 +850,8 @@ describe("Bridge - Frauds", () => {
                       bridge
                         .connect(thirdParty)
                         .defeatFraudChallenge(
-                          walletPublicKey,
+                          walletPublicKeyX,
+                          walletPublicKeyY,
                           data.preimage,
                           data.witness
                         )
@@ -866,7 +889,8 @@ describe("Bridge - Frauds", () => {
                     await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.sighash,
                         data.signature,
                         {
@@ -879,7 +903,8 @@ describe("Bridge - Frauds", () => {
                     tx = await bridge
                       .connect(thirdParty)
                       .defeatFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.preimage,
                         data.witness
                       )
@@ -891,7 +916,8 @@ describe("Bridge - Frauds", () => {
 
                   it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
-                      walletPublicKey,
+                      walletPublicKeyX,
+                      walletPublicKeyY,
                       data.sighash
                     )
 
@@ -945,7 +971,8 @@ describe("Bridge - Frauds", () => {
                     await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.sighash,
                         data.signature,
                         {
@@ -965,7 +992,8 @@ describe("Bridge - Frauds", () => {
                       bridge
                         .connect(thirdParty)
                         .defeatFraudChallenge(
-                          walletPublicKey,
+                          walletPublicKeyX,
+                          walletPublicKeyY,
                           data.preimage,
                           data.witness
                         )
@@ -1001,7 +1029,8 @@ describe("Bridge - Frauds", () => {
                     await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.sighash,
                         data.signature,
                         {
@@ -1014,7 +1043,8 @@ describe("Bridge - Frauds", () => {
                     tx = await bridge
                       .connect(thirdParty)
                       .defeatFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.preimage,
                         data.witness
                       )
@@ -1026,7 +1056,8 @@ describe("Bridge - Frauds", () => {
 
                   it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
-                      walletPublicKey,
+                      walletPublicKeyX,
+                      walletPublicKeyY,
                       data.sighash
                     )
 
@@ -1080,7 +1111,8 @@ describe("Bridge - Frauds", () => {
                     await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
-                        walletPublicKey,
+                        walletPublicKeyX,
+                        walletPublicKeyY,
                         data.sighash,
                         data.signature,
                         {
@@ -1100,7 +1132,8 @@ describe("Bridge - Frauds", () => {
                       bridge
                         .connect(thirdParty)
                         .defeatFraudChallenge(
-                          walletPublicKey,
+                          walletPublicKeyX,
+                          walletPublicKeyY,
                           data.preimage,
                           data.witness
                         )
@@ -1136,7 +1169,8 @@ describe("Bridge - Frauds", () => {
             await bridge
               .connect(thirdParty)
               .submitFraudChallenge(
-                walletPublicKey,
+                walletPublicKeyX,
+                walletPublicKeyY,
                 data.sighash,
                 data.signature,
                 {
@@ -1156,7 +1190,8 @@ describe("Bridge - Frauds", () => {
               bridge
                 .connect(thirdParty)
                 .defeatFraudChallenge(
-                  walletPublicKey,
+                  walletPublicKeyX,
+                  walletPublicKeyY,
                   data.preimage,
                   data.witness
                 )
@@ -1185,7 +1220,8 @@ describe("Bridge - Frauds", () => {
           await bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
+              walletPublicKeyX,
+              walletPublicKeyY,
               data.sighash,
               data.signature,
               {
@@ -1197,7 +1233,12 @@ describe("Bridge - Frauds", () => {
 
           await bridge
             .connect(thirdParty)
-            .defeatFraudChallenge(walletPublicKey, data.preimage, false)
+            .defeatFraudChallenge(
+              walletPublicKeyX,
+              walletPublicKeyY,
+              data.preimage,
+              false
+            )
         })
 
         after(async () => {
@@ -1208,7 +1249,12 @@ describe("Bridge - Frauds", () => {
           await expect(
             bridge
               .connect(thirdParty)
-              .defeatFraudChallenge(walletPublicKey, data.preimage, false)
+              .defeatFraudChallenge(
+                walletPublicKeyX,
+                walletPublicKeyY,
+                data.preimage,
+                false
+              )
           ).to.be.revertedWith("Fraud challenge has already been resolved")
         })
       })
@@ -1233,7 +1279,8 @@ describe("Bridge - Frauds", () => {
           await bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
+              walletPublicKeyX,
+              walletPublicKeyY,
               data.sighash,
               data.signature,
               {
@@ -1251,7 +1298,11 @@ describe("Bridge - Frauds", () => {
 
           await bridge
             .connect(thirdParty)
-            .notifyFraudChallengeDefeatTimeout(walletPublicKey, data.sighash)
+            .notifyFraudChallengeDefeatTimeout(
+              walletPublicKeyX,
+              walletPublicKeyY,
+              data.sighash
+            )
         })
 
         after(async () => {
@@ -1262,7 +1313,12 @@ describe("Bridge - Frauds", () => {
           await expect(
             bridge
               .connect(thirdParty)
-              .defeatFraudChallenge(walletPublicKey, data.preimage, false)
+              .defeatFraudChallenge(
+                walletPublicKeyX,
+                walletPublicKeyY,
+                data.preimage,
+                false
+              )
           ).to.be.revertedWith("Fraud challenge has already been resolved")
         })
       })
@@ -1283,7 +1339,12 @@ describe("Bridge - Frauds", () => {
         await expect(
           bridge
             .connect(thirdParty)
-            .defeatFraudChallenge(walletPublicKey, data.preimage, false)
+            .defeatFraudChallenge(
+              walletPublicKeyX,
+              walletPublicKeyY,
+              data.preimage,
+              false
+            )
         ).to.be.revertedWith("Fraud challenge does not exist")
       })
     })
@@ -1314,7 +1375,8 @@ describe("Bridge - Frauds", () => {
             await bridge
               .connect(thirdParty)
               .submitFraudChallenge(
-                walletPublicKey,
+                walletPublicKeyX,
+                walletPublicKeyY,
                 data.sighash,
                 data.signature,
                 {
@@ -1332,7 +1394,11 @@ describe("Bridge - Frauds", () => {
 
             tx = await bridge
               .connect(thirdParty)
-              .notifyFraudChallengeDefeatTimeout(walletPublicKey, data.sighash)
+              .notifyFraudChallengeDefeatTimeout(
+                walletPublicKeyX,
+                walletPublicKeyY,
+                data.sighash
+              )
           })
 
           after(async () => {
@@ -1341,7 +1407,8 @@ describe("Bridge - Frauds", () => {
 
           it("should mark the fraud challenge as resolved", async () => {
             const challengeKey = buildChallengeKey(
-              walletPublicKey,
+              walletPublicKeyX,
+              walletPublicKeyY,
               data.sighash
             )
 
@@ -1388,7 +1455,8 @@ describe("Bridge - Frauds", () => {
             await bridge
               .connect(thirdParty)
               .submitFraudChallenge(
-                walletPublicKey,
+                walletPublicKeyX,
+                walletPublicKeyY,
                 data.sighash,
                 data.signature,
                 {
@@ -1412,7 +1480,8 @@ describe("Bridge - Frauds", () => {
               bridge
                 .connect(thirdParty)
                 .notifyFraudChallengeDefeatTimeout(
-                  walletPublicKey,
+                  walletPublicKeyX,
+                  walletPublicKeyY,
                   data.sighash
                 )
             ).to.be.revertedWith(
@@ -1440,7 +1509,8 @@ describe("Bridge - Frauds", () => {
           await bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
+              walletPublicKeyX,
+              walletPublicKeyY,
               data.sighash,
               data.signature,
               {
@@ -1452,7 +1522,12 @@ describe("Bridge - Frauds", () => {
 
           await bridge
             .connect(thirdParty)
-            .defeatFraudChallenge(walletPublicKey, data.preimage, false)
+            .defeatFraudChallenge(
+              walletPublicKeyX,
+              walletPublicKeyY,
+              data.preimage,
+              false
+            )
         })
 
         after(async () => {
@@ -1463,7 +1538,11 @@ describe("Bridge - Frauds", () => {
           await expect(
             bridge
               .connect(thirdParty)
-              .notifyFraudChallengeDefeatTimeout(walletPublicKey, data.sighash)
+              .notifyFraudChallengeDefeatTimeout(
+                walletPublicKeyX,
+                walletPublicKeyY,
+                data.sighash
+              )
           ).to.be.revertedWith("Fraud challenge has already been resolved")
         })
       })
@@ -1486,7 +1565,8 @@ describe("Bridge - Frauds", () => {
           await bridge
             .connect(thirdParty)
             .submitFraudChallenge(
-              walletPublicKey,
+              walletPublicKeyX,
+              walletPublicKeyY,
               data.sighash,
               data.signature,
               {
@@ -1504,7 +1584,11 @@ describe("Bridge - Frauds", () => {
 
           await bridge
             .connect(thirdParty)
-            .notifyFraudChallengeDefeatTimeout(walletPublicKey, data.sighash)
+            .notifyFraudChallengeDefeatTimeout(
+              walletPublicKeyX,
+              walletPublicKeyY,
+              data.sighash
+            )
         })
 
         after(async () => {
@@ -1515,7 +1599,11 @@ describe("Bridge - Frauds", () => {
           await expect(
             bridge
               .connect(thirdParty)
-              .notifyFraudChallengeDefeatTimeout(walletPublicKey, data.sighash)
+              .notifyFraudChallengeDefeatTimeout(
+                walletPublicKeyX,
+                walletPublicKeyY,
+                data.sighash
+              )
           ).to.be.revertedWith("Fraud challenge has already been resolved")
         })
       })
@@ -1534,16 +1622,24 @@ describe("Bridge - Frauds", () => {
         await expect(
           bridge
             .connect(thirdParty)
-            .notifyFraudChallengeDefeatTimeout(walletPublicKey, data.sighash)
+            .notifyFraudChallengeDefeatTimeout(
+              walletPublicKeyX,
+              walletPublicKeyY,
+              data.sighash
+            )
         ).to.be.revertedWith("Fraud challenge does not exist")
       })
     })
   })
 
-  function buildChallengeKey(publicKey: BytesLike, sighash: BytesLike): string {
+  function buildChallengeKey(
+    publicKeyX: BytesLike,
+    publicKeyY: BytesLike,
+    sighash: BytesLike
+  ): string {
     return ethers.utils.solidityKeccak256(
-      ["bytes", "bytes32"],
-      [publicKey, sighash]
+      ["bytes32", "bytes32", "bytes32"],
+      [publicKeyX, publicKeyY, sighash]
     )
   }
 })
