@@ -484,9 +484,19 @@ library Wallets {
     /// @dev Requirements:
     ///      - Wallet must be in Live or MovingFunds state
     function notifyFraud(Data storage self, bytes20 walletPubKeyHash) external {
-        // TODO: Perform slashing of wallet operators and add unit tests for that.
+        WalletState walletState = self
+            .registeredWallets[walletPubKeyHash]
+            .state;
+
+        require(
+            walletState == WalletState.Live ||
+                walletState == WalletState.MovingFunds,
+            "ECDSA wallet must be in Live or MovingFunds state"
+        );
 
         terminateWallet(self, walletPubKeyHash);
+
+        // TODO: Perform slashing of wallet operators and add unit tests for that.
     }
 
     /// @notice Terminates the given wallet and notifies the ECDSA registry
@@ -496,16 +506,11 @@ library Wallets {
     ///         creation immediately.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
-    ///      - Wallet must be in Live or MovingFunds state
+    ///      - The caller must make sure that the wallet is in the right state.
     function terminateWallet(Data storage self, bytes20 walletPubKeyHash)
         internal
     {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-        require(
-            wallet.state == WalletState.Live ||
-                wallet.state == WalletState.MovingFunds,
-            "ECDSA wallet must be in Live or MovingFunds state"
-        );
 
         wallet.state = WalletState.Terminated;
 
