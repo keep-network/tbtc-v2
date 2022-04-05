@@ -302,9 +302,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         - `notifyRedemptionTimeout` which puts the redemption key
     ///           to this mapping basing on a timed out request stored
     ///           previously in `pendingRedemptions` mapping.
-    ///
-    // TODO: Remove that Slither disable once this variable is used.
-    // slither-disable-next-line uninitialized-state
     mapping(uint256 => RedemptionRequest) public timedOutRedemptions;
 
     /// @notice Contains parameters related to frauds and the collection of all
