@@ -675,7 +675,7 @@ The first operator posts a signed, <<operator-only,reimbursable>>
 the operators intend to move the funds to. This starts a challenge period in
 which <<public-knowledge,the public>> can challenge the destination wallets.
 They do so by showing there exists a live, valid wallet which was created
-before `move_funds_start_timestamp` that _wasn't_ chosen _and_ should have
+before `intention_to_move_timestamp` that _wasn't_ chosen _and_ should have
 been. See <<wallet-closure-transaction,the dedicated section>> for how wallets
 are chosen.
 
