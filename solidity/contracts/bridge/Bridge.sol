@@ -1993,9 +1993,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             wallets.notifyRedemptionTimedOut(walletPubKeyHash);
         }
 
+        emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
+
         // Return the requested amount of tokens to the redeemer
         bank.transferBalance(request.redeemer, request.requestedAmount);
-
-        emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
     }
 }
