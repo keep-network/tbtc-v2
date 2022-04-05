@@ -1974,16 +1974,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // Return the requested amount of tokens to the redeemer
         bank.transferBalance(request.redeemer, request.requestedAmount);
 
-        // Notice that there is no need to check if `timedOutRedemptions`
-        // mapping already contains the redemption key because
-        // `requestRedemption` blocks requests targeting non-live wallets.
-        // Because `notifyRedemptionTimeout` changes the state of any live-wallet
-        // after the first call, there is no possibility that the given
-        // redemption key could be reported as timed-out multiple times.
-        // At the same time, if the given redemption key was already marked as
-        // fraudulent due to an amount-related fraud, it will not be possible
-        // to report a timeout on it since it will not be present in
-        // `pendingRedemptions` mapping.
+        // It is worth noting that there is no need to check if
+        // `timedOutRedemption` mapping already contains the given redemption
+        // key. There is no possibility to re-use a key of a reported timed-out
+        // redemption because the wallet responsible for causing the timeout is
+        // moved to a state that prevents it to receive new redemption requests.
 
         // Move the redemption from pending redemptions to timed-out redemptions
         timedOutRedemptions[redemptionKey] = request;
