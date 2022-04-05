@@ -389,7 +389,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 redemptionTxHash
     );
 
-    event RedemptionTimeout(
+    event RedemptionTimedOut(
         bytes20 walletPubKeyHash,
         bytes redeemerOutputScript
     );
@@ -1996,8 +1996,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             // Propagate timeout consequences to the wallet
             wallets.notifyRedemptionTimedOut(walletPubKeyHash);
         }
-        // TODO: should the notifier be reimbursed?
 
-        emit RedemptionTimeout(walletPubKeyHash, redeemerOutputScript);
+        emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
     }
 }

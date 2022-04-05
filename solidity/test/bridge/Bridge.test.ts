@@ -5046,9 +5046,9 @@ describe("Bridge", () => {
                 // TODO: Add test when operator slashing is implemented
               })
 
-              it("should emit RedemptionTimeout event", async () => {
+              it("should emit RedemptionTimedOut event", async () => {
                 await expect(tx)
-                  .to.emit(bridge, "RedemptionTimeout")
+                  .to.emit(bridge, "RedemptionTimedOut")
                   .withArgs(
                     data.wallet.pubKeyHash,
                     data.redemptionRequests[0].redeemerOutputScript
@@ -5242,9 +5242,9 @@ describe("Bridge", () => {
                 // TODO: Add test when operator slashing is implemented
               })
 
-              it("should emit RedemptionTimeout event", async () => {
+              it("should emit RedemptionTimedOut event", async () => {
                 await expect(tx)
-                  .to.emit(bridge, "RedemptionTimeout")
+                  .to.emit(bridge, "RedemptionTimedOut")
                   .withArgs(
                     data.wallet.pubKeyHash,
                     data.redemptionRequests[0].redeemerOutputScript
@@ -5494,9 +5494,9 @@ describe("Bridge", () => {
             await expect(tx).not.to.emit(bridge, "WalletClosed")
           })
 
-          it("should emit RedemptionTimeout event", async () => {
+          it("should emit RedemptionTimedOut event", async () => {
             await expect(tx)
-              .to.emit(bridge, "RedemptionTimeout")
+              .to.emit(bridge, "RedemptionTimedOut")
               .withArgs(
                 data.wallet.pubKeyHash,
                 data.redemptionRequests[0].redeemerOutputScript
@@ -5694,9 +5694,9 @@ describe("Bridge", () => {
                   await expect(tx).not.to.emit(bridge, "WalletClosed")
                 })
 
-                it("should emit RedemptionTimeout event", async () => {
+                it("should emit RedemptionTimedOut event", async () => {
                   await expect(tx)
-                    .to.emit(bridge, "RedemptionTimeout")
+                    .to.emit(bridge, "RedemptionTimedOut")
                     .withArgs(
                       data.wallet.pubKeyHash,
                       data.redemptionRequests[0].redeemerOutputScript

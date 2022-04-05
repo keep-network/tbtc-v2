@@ -379,7 +379,8 @@ library Wallets {
             moveFunds(self, walletPubKeyHash);
         }
 
-        // TODO: Perform slashing of wallet operators.
+        // TODO: Perform slashing of wallet operators and transfer some of the
+        //       slashed tokens to the caller of this function.
     }
 
     /// @notice Notifies that the wallet is either old enough or has too few
