@@ -48,7 +48,8 @@ library Wallets {
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
         bytes20 activeWalletPubKeyHash;
-        // TODO: Documentation and make it governable.
+        // Determines the length of the period within which the moving funds
+        // target wallet commitment can be challenged. Value in seconds.
         uint32 movingFundsCommitmentChallengePeriod;
         // Maps the 20-byte wallet public key hash (computed using Bitcoin
         // HASH160 over the compressed ECDSA public key) to the basic wallet
@@ -111,6 +112,10 @@ library Wallets {
     );
 
     event WalletMaxAgeUpdated(uint32 newMaxAge);
+
+    event MovingFundsCommitmentChallengePeriodUpdated(
+        uint32 movingFundsCommitmentChallengePeriodUpdated
+    );
 
     event NewWalletRequested();
 
@@ -190,6 +195,21 @@ library Wallets {
         self.maxAge = maxAge;
 
         emit WalletMaxAgeUpdated(maxAge);
+    }
+
+    /// @notice Sets the moving funds commitment challenge period.
+    /// @param movingFundsCommitmentChallengePeriod New value of the moving
+    ///        funds commitment challenge period.
+    function setMovingFundsCommitmentChallengePeriod(
+        Data storage self,
+        uint32 movingFundsCommitmentChallengePeriod
+    ) external {
+        self
+            .movingFundsCommitmentChallengePeriod = movingFundsCommitmentChallengePeriod;
+
+        emit MovingFundsCommitmentChallengePeriodUpdated(
+            movingFundsCommitmentChallengePeriod
+        );
     }
 
     /// @notice Requests creation of a new wallet. This function just
