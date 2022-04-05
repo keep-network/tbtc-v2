@@ -1971,6 +1971,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             request.requestedAmount -
             request.treasuryFee;
 
+        require(
+            wallet.state == Wallets.WalletState.Live ||
+                wallet.state == Wallets.WalletState.MovingFunds ||
+                wallet.state == Wallets.WalletState.Terminated,
+            "The wallet must be in Live, MovingFunds or Terminated state"
+        );
+
         // Return the requested amount of tokens to the redeemer
         bank.transferBalance(request.redeemer, request.requestedAmount);
 
