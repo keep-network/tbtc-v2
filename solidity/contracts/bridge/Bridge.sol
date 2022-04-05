@@ -252,7 +252,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     uint256 public redemptionTimeout;
 
     /// TODO: Make it governable.
-    /// TODO: Documentation.
+    /// @notice Maximum amount of the total BTC transaction fee that is
+    ///         acceptable in a single moving funds transaction.
     uint64 public movingFundsTxMaxTotalFee;
 
     /// @notice Indicates if the vault with the given address is trusted or not.
