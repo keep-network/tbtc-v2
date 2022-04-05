@@ -505,7 +505,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         minBtcBalance = wallets.minBtcBalance;
         maxBtcBalance = wallets.maxBtcBalance;
         maxAge = wallets.maxAge;
-        movingFundsCommitmentChallengePeriod = movingFundsCommitmentChallengePeriod;
+        movingFundsCommitmentChallengePeriod = wallets
+            .movingFundsCommitmentChallengePeriod;
 
         return (
             creationPeriod,
