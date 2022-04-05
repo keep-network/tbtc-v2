@@ -1973,7 +1973,51 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     //       8. Call `wallets.notifyRedemptionTimedOut` to propagate timeout
     //          consequences to the wallet.
 
-    // TODO: Documentation
+    /// @notice Used by the wallet to prove the BTC moving funds transaction
+    ///         and to make the necessary state changes. Moving funds is only
+    ///         accepted if it satisfies SPV proof.
+    ///
+    ///         The function validates the moving funds transaction structure
+    ///         by checking if it actually spends the main UTXO of the declared
+    ///         wallet and locks the value on the pre-committed target wallets
+    ///         using a reasonable transaction fee. If all preconditions are
+    ///         met, this functions closes the source wallet.
+    ///
+    ///         It is possible to prove the given moving funds only one time.
+    /// @param movingFundsTx Bitcoin moving funds transaction data
+    /// @param movingFundsProof Bitcoin moving funds proof data
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain
+    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
+    ///        HASH160 over the compressed ECDSA public key) of the wallet
+    ///        which performed the moving funds transaction
+    /// @dev Requirements:
+    ///      - `movingFundsTx` components must match the expected structure. See
+    ///        `BitcoinTx.Info` docs for reference. Their values must exactly
+    ///        correspond to appropriate Bitcoin transaction fields to produce
+    ///        a provable transaction hash.
+    ///      - The `movingFundsTx` should represent a Bitcoin transaction with
+    ///        exactly 1 input that refers to the wallet's main UTXO. That
+    ///        transaction should have 1..n outputs corresponding to the
+    ///        pre-committed target wallets. Outputs must be ordered in the
+    ///        same way as their corresponding target wallets are ordered
+    ///        within the target wallets commitment.
+    ///      - `movingFundsProof` components must match the expected structure.
+    ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
+    ///        field must contain a valid number of block headers, not less
+    ///        than the `txProofDifficultyFactor` contract constant.
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///        Additionally, the recent main UTXO on Ethereum must be set.
+    ///      - `walletPubKeyHash` must be connected with the main UTXO used
+    ///        as transaction single input.
+    ///      - The wallet that `walletPubKeyHash` points to must be in the
+    ///        Live state.
+    ///      - The target wallets commitment must be submitted by the wallet
+    ///        that `walletPubKeyHash` points to.
+    ///      - The target wallets commitment challenge period must be completed.
+    ///      - The total Bitcoin transaction fee must be lesser or equal
+    ///        to `movingFundsTxMaxTotalFee` governable parameter.
     function submitMovingFundsProof(
         BitcoinTx.Info calldata movingFundsTx,
         BitcoinTx.Proof calldata movingFundsProof,
@@ -2012,7 +2056,20 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.notifyFundsMoved(walletPubKeyHash, targetWalletsHash);
     }
 
-    // TODO: Documentation
+    /// @notice Processes the moving funds Bitcoin transaction output vector
+    ///         and extracts information required for further processing.
+    /// @param movingFundsTxOutputVector Bitcoin moving funds transaction output
+    ///        vector. This function assumes vector's structure is valid so it
+    ///        must be validated using e.g. `BTCUtils.validateVout` function
+    ///        before it is passed here
+    /// @return targetWalletsHash keccak256 hash over the list of actual
+    ///         target wallets used in the transaction.
+    /// @return outputsTotalValue Sum of all outputs values.
+    /// @dev Requirements:
+    ///      - The `movingFundsTxOutputVector` must be parseable, i.e. must
+    ///        be validated by the caller as stated in their parameter doc.
+    ///      - Each output must refer to a 20-byte public key hash.
+    ///      - The total outputs value must be evenly divided over all outputs.
     function processMovingFundsTxOutputs(bytes memory movingFundsTxOutputVector)
         internal
         view

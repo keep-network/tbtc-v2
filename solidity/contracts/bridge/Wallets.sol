@@ -96,11 +96,14 @@ library Wallets {
         // UNIX timestamp indicating the moment the wallet was requested to
         // move their funds.
         uint32 movingFundsRequestedAt;
-        // TODO: Documentation
+        // UNIX timestamp indicating the moment when the wallet submitted their
+        // moving funds target wallet commitment.
         uint32 movingFundsCommitmentSubmittedAt;
         // Current state of the wallet.
         WalletState state;
-        // TODO: Documentation
+        // Moving funds target wallet commitment submitted by the wallet. It
+        // is built by applying the keccak256 hash over the list of 20-byte
+        // public key hashes of the target wallets.
         bytes32 movingFundsTargetWalletsCommitmentHash;
     }
 
@@ -491,7 +494,12 @@ library Wallets {
         }
     }
 
-    // TODO: Documentation. Mention about checking wallet state outside.
+    /// @notice Closes the given wallet and notifies the ECDSA registry
+    ///         about this fact.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - The caller must make sure that the wallet is in the
+    ///        Live or MovingFunds state.
     function closeWallet(Data storage self, bytes20 walletPubKeyHash) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
 
@@ -532,7 +540,8 @@ library Wallets {
     ///         creation immediately.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
-    ///      - The caller must make sure that the wallet is in the right state.
+    ///      - The caller must make sure that the wallet is in the
+    ///        Live or MovingFunds state.
     function terminateWallet(Data storage self, bytes20 walletPubKeyHash)
         internal
     {
@@ -552,7 +561,23 @@ library Wallets {
         self.registry.closeWallet(wallet.ecdsaWalletID);
     }
 
-    // TODO: Documentation
+    /// @notice Notifies that the wallet completed the moving funds process
+    ///         successfully. Checks if the funds were moved to the expected
+    ///         target wallets. Closes the source wallet if everything went
+    ///         good and reverts otherwise.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param targetWalletsHash 32-byte keccak256 hash over the list of
+    ///        20-byte public key hashes of the target wallets actually used
+    ///        within the moving funds transactions.
+    /// @dev Requirements:
+    ///      - The caller must make sure the moving funds transaction actually
+    ///        happened on Bitcoin chain and fits the protocol requirements.
+    ///      - The source wallet must be in the Live state
+    ///      - The target wallets commitment must be submitted by the source
+    ///        wallet.
+    ///      - The target wallets commitment challenge period must be completed.
+    ///      - The actual target wallets used in the moving funds transaction
+    ///        must be exactly the same as the target wallets commitment.
     function notifyFundsMoved(
         Data storage self,
         bytes20 walletPubKeyHash,
