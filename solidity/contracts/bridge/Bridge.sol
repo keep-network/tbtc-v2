@@ -1954,7 +1954,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint256 redemptionKey = uint256(
             keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
         );
-        RedemptionRequest storage request = pendingRedemptions[redemptionKey];
+        RedemptionRequest memory request = pendingRedemptions[redemptionKey];
 
         require(request.requestedAt > 0, "Redemption request does not exist");
         require(
@@ -1978,9 +1978,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "The wallet must be in Live, MovingFunds or Terminated state"
         );
 
-        // Return the requested amount of tokens to the redeemer
-        bank.transferBalance(request.redeemer, request.requestedAmount);
-
         // It is worth noting that there is no need to check if
         // `timedOutRedemption` mapping already contains the given redemption
         // key. There is no possibility to re-use a key of a reported timed-out
@@ -1998,6 +1995,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             // Propagate timeout consequences to the wallet
             wallets.notifyRedemptionTimedOut(walletPubKeyHash);
         }
+
+        // Return the requested amount of tokens to the redeemer
+        bank.transferBalance(request.redeemer, request.requestedAmount);
 
         emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
     }
