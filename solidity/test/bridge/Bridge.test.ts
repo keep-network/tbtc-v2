@@ -61,6 +61,7 @@ const { impersonateAccount } = helpers.account
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
+// TODO: Use the `bridgeFixture`.
 const fixture = async () => {
   const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
 
@@ -1708,8 +1709,9 @@ describe("Bridge", () => {
           mainUtxoHash: ethers.constants.HashZero,
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
-          moveFundsRequestedAt: 0,
+          movingFundsRequestedAt: 0,
           state: walletState.Live,
+          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
       })
 
@@ -2267,8 +2269,9 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
-            moveFundsRequestedAt: 0,
+            movingFundsRequestedAt: 0,
             state: walletState.MovingFunds,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
         })
 
@@ -2299,8 +2302,9 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
-            moveFundsRequestedAt: 0,
+            movingFundsRequestedAt: 0,
             state: walletState.Closed,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
         })
 
@@ -2331,8 +2335,9 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
-            moveFundsRequestedAt: 0,
+            movingFundsRequestedAt: 0,
             state: walletState.Terminated,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
         })
 
@@ -4885,8 +4890,9 @@ describe("Bridge", () => {
       mainUtxoHash: ethers.constants.HashZero,
       pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
       createdAt: await lastBlockTime(),
-      moveFundsRequestedAt: 0,
+      movingFundsRequestedAt: 0,
       state: data.wallet.state,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
     // Simulate the prepared main UTXO belongs to the wallet.
     await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)

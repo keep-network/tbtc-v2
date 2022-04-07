@@ -5,93 +5,18 @@ import chai, { expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { ContractTransaction } from "ethers"
-import type {
-  Bank,
-  BankStub,
-  BankStub__factory,
-  BitcoinTx__factory,
-  Frauds,
-  Frauds__factory,
-  Bridge,
-  BridgeStub,
-  BridgeStub__factory,
-  IWalletRegistry,
-  IRelay,
-} from "../../typechain"
-import { Wallets__factory } from "../../typechain"
+import type { Bridge, BridgeStub, IWalletRegistry } from "../../typechain"
 import { NO_MAIN_UTXO } from "../data/sweep"
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { constants, ecdsaDkgState, walletState } from "../fixtures"
-import { to1ePrecision } from "../helpers/contract-test-helpers"
+import bridgeFixture from "./bridge-fixture"
 
 chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 
-const fixture = async () => {
-  const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
-
-  const Bank = await ethers.getContractFactory<BankStub__factory>("BankStub")
-  const bank: Bank & BankStub = await Bank.deploy()
-  await bank.deployed()
-
-  const relay = await smock.fake<IRelay>("IRelay")
-
-  const walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry")
-  // Fund the `walletRegistry` account so it's possible to mock sending requests
-  // from it.
-  await deployer.sendTransaction({
-    to: walletRegistry.address,
-    value: ethers.utils.parseEther("1"),
-  })
-
-  const BitcoinTx = await ethers.getContractFactory<BitcoinTx__factory>(
-    "BitcoinTx"
-  )
-  const bitcoinTx = await BitcoinTx.deploy()
-  await bitcoinTx.deployed()
-
-  const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
-  const wallets = await Wallets.deploy()
-  await wallets.deployed()
-
-  const Frauds = await ethers.getContractFactory<Frauds__factory>("Frauds")
-  const frauds: Frauds = await Frauds.deploy()
-  await frauds.deployed()
-
-  const Bridge = await ethers.getContractFactory<BridgeStub__factory>(
-    "BridgeStub",
-    {
-      libraries: {
-        BitcoinTx: bitcoinTx.address,
-        Wallets: wallets.address,
-        Frauds: frauds.address,
-      },
-    }
-  )
-  const bridge: Bridge & BridgeStub = await Bridge.deploy(
-    bank.address,
-    relay.address,
-    treasury.address,
-    walletRegistry.address,
-    1
-  )
-  await bridge.deployed()
-
-  await bank.updateBridge(bridge.address)
-  await bridge.connect(deployer).transferOwnership(governance.address)
-
-  return {
-    governance,
-    thirdParty,
-    treasury,
-    bank,
-    relay,
-    walletRegistry,
-    bridge,
-  }
-}
+const fixture = async () => bridgeFixture()
 
 describe("Bridge - Wallets", () => {
   let governance: SignerWithAddress
@@ -268,8 +193,9 @@ describe("Bridge - Wallets", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -735,8 +661,9 @@ describe("Bridge - Wallets", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
-            moveFundsRequestedAt: 0,
+            movingFundsRequestedAt: 0,
             state: walletState.Live,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
         })
 
@@ -907,11 +834,11 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should set move funds requested at timestamp", async () => {
-              const { moveFundsRequestedAt } = await bridge.getWallet(
+              const { movingFundsRequestedAt } = await bridge.getWallet(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
-              expect(moveFundsRequestedAt).to.be.equal(await lastBlockTime())
+              expect(movingFundsRequestedAt).to.be.equal(await lastBlockTime())
             })
 
             it("should emit WalletMovingFunds event", async () => {
@@ -970,11 +897,11 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should set move funds requested at timestamp", async () => {
-              const { moveFundsRequestedAt } = await bridge.getWallet(
+              const { movingFundsRequestedAt } = await bridge.getWallet(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
-              expect(moveFundsRequestedAt).to.be.equal(await lastBlockTime())
+              expect(movingFundsRequestedAt).to.be.equal(await lastBlockTime())
             })
 
             it("should emit WalletMovingFunds event", async () => {
@@ -1030,8 +957,10 @@ describe("Bridge - Wallets", () => {
                 mainUtxoHash: ethers.constants.HashZero,
                 pendingRedemptionsValue: 0,
                 createdAt: 0,
-                moveFundsRequestedAt: 0,
+                movingFundsRequestedAt: 0,
                 state: test.walletState,
+                movingFundsTargetWalletsCommitmentHash:
+                  ethers.constants.HashZero,
               })
             })
 
@@ -1083,8 +1012,9 @@ describe("Bridge - Wallets", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
-            moveFundsRequestedAt: 0,
+            movingFundsRequestedAt: 0,
             state: walletState.Live,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
         })
 
@@ -1189,11 +1119,11 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should set move funds requested at timestamp", async () => {
-              const { moveFundsRequestedAt } = await bridge.getWallet(
+              const { movingFundsRequestedAt } = await bridge.getWallet(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
-              expect(moveFundsRequestedAt).to.be.equal(await lastBlockTime())
+              expect(movingFundsRequestedAt).to.be.equal(await lastBlockTime())
             })
 
             it("should emit WalletMovingFunds event", async () => {
@@ -1301,11 +1231,13 @@ describe("Bridge - Wallets", () => {
               })
 
               it("should set move funds requested at timestamp", async () => {
-                const { moveFundsRequestedAt } = await bridge.getWallet(
+                const { movingFundsRequestedAt } = await bridge.getWallet(
                   ecdsaWalletTestData.pubKeyHash160
                 )
 
-                expect(moveFundsRequestedAt).to.be.equal(await lastBlockTime())
+                expect(movingFundsRequestedAt).to.be.equal(
+                  await lastBlockTime()
+                )
               })
 
               it("should emit WalletMovingFunds event", async () => {
@@ -1435,8 +1367,10 @@ describe("Bridge - Wallets", () => {
                 mainUtxoHash: ethers.constants.HashZero,
                 pendingRedemptionsValue: 0,
                 createdAt: 0,
-                moveFundsRequestedAt: 0,
+                movingFundsRequestedAt: 0,
                 state: test.walletState,
+                movingFundsTargetWalletsCommitmentHash:
+                  ethers.constants.HashZero,
               })
             })
 
@@ -1471,8 +1405,9 @@ describe("Bridge - Wallets", () => {
           mainUtxoHash: ethers.constants.HashZero,
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
-          moveFundsRequestedAt: 0,
+          movingFundsRequestedAt: 0,
           state: walletState.Live,
+          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
       })
 
