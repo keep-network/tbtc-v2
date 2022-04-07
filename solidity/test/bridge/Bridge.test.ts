@@ -4499,7 +4499,7 @@ describe("Bridge", () => {
 
                 it("should revert", async () => {
                   await expect(outcome).to.be.revertedWith(
-                    "Redemption transaction input must point to the wallet's main UTXO"
+                    "Outbound transaction input must point to the wallet's main UTXO"
                   )
                 })
               }
@@ -4524,7 +4524,7 @@ describe("Bridge", () => {
 
             it("should revert", async () => {
               await expect(outcome).to.be.revertedWith(
-                "Redemption transaction must have a single input"
+                "Outbound transaction must have a single input"
               )
             })
           })
