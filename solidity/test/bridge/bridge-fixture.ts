@@ -78,6 +78,7 @@ const bridgeFixture = async () => {
     bank,
     relay,
     walletRegistry,
+    Bridge,
     bridge,
   }
 }
