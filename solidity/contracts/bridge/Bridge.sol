@@ -438,7 +438,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionTxMaxFee = 1000; // 1000 satoshi
         redemptionTimeout = 172800; // 48 hours
-        movingFundsTxMaxFee = 10000; // 10000 satoshi
+        movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
 
         // TODO: Revisit initial values.
         frauds.setSlashingAmount(10000 * 1e18); // 10000 T
@@ -2023,7 +2023,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         (
             bytes32 targetWalletsHash,
-            uint64 outputsTotalValue
+            uint256 outputsTotalValue
         ) = processMovingFundsTxOutputs(movingFundsTx.outputVector);
 
         require(
@@ -2052,7 +2052,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function processMovingFundsTxOutputs(bytes memory movingFundsTxOutputVector)
         internal
         view
-        returns (bytes32 targetWalletsHash, uint64 outputsTotalValue)
+        returns (bytes32 targetWalletsHash, uint256 outputsTotalValue)
     {
         // Determining the total number of Bitcoin transaction outputs in
         // the same way as for number of inputs. See `BitcoinTx.outputVector`
@@ -2079,7 +2079,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // docs in `BitcoinTx` library for more details.
         uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
 
-        bytes20[] memory targetWallets = new byte20[](outputsCount);
+        bytes20[] memory targetWallets = new bytes20[](outputsCount);
         uint64[] memory outputsValues = new uint64[](outputsCount);
 
         // Outputs processing loop.
@@ -2118,13 +2118,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         // Compute the indivisible remainder that remains after dividing the
         // outputs total value over all outputs evenly.
-        uint64 outputsTotalValueRemainder = outputsTotalValue % outputsCount;
+        uint256 outputsTotalValueRemainder = outputsTotalValue % outputsCount;
         // Compute the minimum allowed output value by dividing the outputs
         // total value (reduced by the remainder) by the number of outputs.
-        uint64 minOutputValue = (outputsTotalValue -
+        uint256 minOutputValue = (outputsTotalValue -
             outputsTotalValueRemainder) / outputsCount;
         // Maximum possible value is the minimum value with the remainder included.
-        uint64 maxOutputValue = minOutputValue + outputsTotalValueRemainder;
+        uint256 maxOutputValue = minOutputValue + outputsTotalValueRemainder;
 
         for (uint256 i = 0; i < outputsCount; i++) {
             require(
