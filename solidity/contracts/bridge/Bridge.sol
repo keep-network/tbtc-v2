@@ -658,7 +658,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         require(
             wallets.registeredWallets[reveal.walletPubKeyHash].state ==
                 Wallets.WalletState.Live,
-            "Wallet must be in Live state"
+            "Wallet is not in Live state"
         );
 
         require(
