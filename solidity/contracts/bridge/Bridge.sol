@@ -1833,7 +1833,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             // Extract the value from given output.
             uint64 outputValue = output.extractValue();
             // The output consists of an 8-byte value and a variable length
-            // script. To extract that script we slice the output staring from
+            // script. To extract that script we slice the output starting from
             // 9th byte until the end.
             bytes memory outputScript = output.slice(8, output.length - 8);
 
@@ -2105,14 +2105,50 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             // hash which is always 20-byte.
             require(
                 targetWalletPubKeyHashBytes.length == 20,
-                "Wallet public key hash should have 20 bytes"
+                "Target wallet public key hash must have 20 bytes"
             );
+
+            bytes20 targetWalletPubKeyHash = targetWalletPubKeyHashBytes
+                .slice20(0);
+
+            // The next step is making sure that the 20-byte public key hash
+            // is actually used in the right context of a P2PKH or P2WPKH
+            // output. To do so, we must extract the full script from the output
+            // and compare with the expected P2PKH and P2WPKH scripts
+            // referring to that 20-byte public key hash. The output consists
+            // of an 8-byte value and a variable length script. To extract the
+            // script we slice the output starting from 9th byte until the end.
+            bytes32 outputScriptKeccak = keccak256(
+                output.slice(8, output.length - 8)
+            );
+            // Build the expected P2PKH script which has the following format:
+            // <0x1976a914> <20-byte PKH> <0x88ac>.
+            bytes32 targetWalletP2PKHScriptKeccak = keccak256(
+                abi.encodePacked(
+                    hex"1976a914",
+                    targetWalletPubKeyHash,
+                    hex"88ac"
+                )
+            );
+            // Build the expected P2WPKH script which has the following format:
+            // <0x160014> <20-byte PKH>.
+            bytes32 targetWalletP2WPKHScriptKeccak = keccak256(
+                abi.encodePacked(hex"160014", targetWalletPubKeyHash)
+            );
+            // Make sure the actual output script matches either the P2PKH
+            // or P2WPKH format.
+            require(
+                outputScriptKeccak == targetWalletP2PKHScriptKeccak ||
+                    outputScriptKeccak == targetWalletP2WPKHScriptKeccak,
+                "Output must be P2PKH or P2WPKH"
+            );
+
             // Add the wallet public key hash to the list that will be used
             // to build the result list hash. There is no need to check if
             // given output is a change here because the actual target wallet
             // list must be exactly the same as the pre-committed target wallet
             // list which is guaranteed to be valid.
-            targetWallets[i] = targetWalletPubKeyHashBytes.slice20(0);
+            targetWallets[i] = targetWalletPubKeyHash;
 
             // Extract the value from given output.
             outputsValues[i] = output.extractValue();
