@@ -412,6 +412,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 sighash
     );
 
+    event MovingFundsCompleted(
+        bytes20 walletPubKeyHash,
+        bytes32 movingFundsTxHash
+    );
+
     constructor(
         address _bank,
         address _relay,
@@ -2007,7 +2012,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        BitcoinTx.validateProof(
+        bytes32 movingFundsTxHash = BitcoinTx.validateProof(
             movingFundsTx,
             movingFundsProof,
             proofDifficultyContext()
@@ -2033,6 +2038,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
 
         wallets.notifyFundsMoved(walletPubKeyHash, targetWalletsHash);
+
+        emit MovingFundsCompleted(walletPubKeyHash, movingFundsTxHash);
     }
 
     /// @notice Processes the moving funds Bitcoin transaction output vector
