@@ -5660,6 +5660,10 @@ describe("Bridge", () => {
           })
         })
 
+        context("when the wallet is in Closing state", () => {
+          // TODO: Implement
+        })
+
         context("when the wallet is either in Unknown or Closed state", () => {
           const testData = [
             {
@@ -5747,8 +5751,6 @@ describe("Bridge", () => {
             })
           })
         })
-
-        // TODO: Add tests for Closing state
       })
 
       context("when the redemption request has not timed out", () => {

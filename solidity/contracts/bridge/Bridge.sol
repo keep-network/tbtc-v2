@@ -1969,6 +1969,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             request.treasuryFee;
 
         require(
+            // TODO: Allow the wallets in `Closing` state when the state is added
             wallet.state == Wallets.WalletState.Live ||
                 wallet.state == Wallets.WalletState.MovingFunds ||
                 wallet.state == Wallets.WalletState.Terminated,
