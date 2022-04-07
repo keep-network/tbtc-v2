@@ -331,10 +331,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     event WalletMaxAgeUpdated(uint32 newMaxAge);
 
-    event MovingFundsCommitmentChallengePeriodUpdated(
-        uint32 movingFundsCommitmentChallengePeriodUpdated
-    );
-
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -455,7 +451,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.setCreationPeriod(1 weeks);
         wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // [1 BTC, 10 BTC]
         wallets.setMaxAge(26 weeks); // ~6 months
-        wallets.setMovingFundsCommitmentChallengePeriod(24 hours);
     }
 
     /// @notice Updates parameters used by the `Wallets` library.
@@ -463,8 +458,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param minBtcBalance New value of the minimum BTC balance
     /// @param maxBtcBalance New value of the maximum BTC balance
     /// @param maxAge New value of the wallet maximum age
-    /// @param movingFundsCommitmentChallengePeriod New value of the moving
-    ///        funds commitment challenge period.
     /// @dev Requirements:
     ///      - Caller must be the contract owner.
     ///      - Minimum BTC balance must be greater than zero
@@ -473,23 +466,17 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint32 creationPeriod,
         uint64 minBtcBalance,
         uint64 maxBtcBalance,
-        uint32 maxAge,
-        uint32 movingFundsCommitmentChallengePeriod
+        uint32 maxAge
     ) external onlyOwner {
         wallets.setCreationPeriod(creationPeriod);
         wallets.setBtcBalanceRange(minBtcBalance, maxBtcBalance);
         wallets.setMaxAge(maxAge);
-        wallets.setMovingFundsCommitmentChallengePeriod(
-            movingFundsCommitmentChallengePeriod
-        );
     }
 
     /// @return creationPeriod Value of the wallet creation period
     /// @return minBtcBalance Value of the minimum BTC balance
     /// @return maxBtcBalance Value of the maximum BTC balance
     /// @return maxAge Value of the wallet max age
-    /// @return movingFundsCommitmentChallengePeriod Value of the moving funds
-    ///         commitment challenge period.
     function getWalletsParameters()
         external
         view
@@ -497,24 +484,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             uint32 creationPeriod,
             uint64 minBtcBalance,
             uint64 maxBtcBalance,
-            uint32 maxAge,
-            uint32 movingFundsCommitmentChallengePeriod
+            uint32 maxAge
         )
     {
         creationPeriod = wallets.creationPeriod;
         minBtcBalance = wallets.minBtcBalance;
         maxBtcBalance = wallets.maxBtcBalance;
         maxAge = wallets.maxAge;
-        movingFundsCommitmentChallengePeriod = wallets
-            .movingFundsCommitmentChallengePeriod;
 
-        return (
-            creationPeriod,
-            minBtcBalance,
-            maxBtcBalance,
-            maxAge,
-            movingFundsCommitmentChallengePeriod
-        );
+        return (creationPeriod, minBtcBalance, maxBtcBalance, maxAge);
     }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
@@ -2017,7 +1995,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        Live state.
     ///      - The target wallets commitment must be submitted by the wallet
     ///        that `walletPubKeyHash` points to.
-    ///      - The target wallets commitment challenge period must be completed.
     ///      - The total Bitcoin transaction fee must be lesser or equal
     ///        to `movingFundsTxMaxTotalFee` governable parameter.
     function submitMovingFundsProof(

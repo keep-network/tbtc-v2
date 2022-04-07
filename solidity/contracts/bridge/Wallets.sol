@@ -48,9 +48,6 @@ library Wallets {
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
         bytes20 activeWalletPubKeyHash;
-        // Determines the length of the period within which the moving funds
-        // target wallet commitment can be challenged. Value in seconds.
-        uint32 movingFundsCommitmentChallengePeriod;
         // Maps the 20-byte wallet public key hash (computed using Bitcoin
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
@@ -96,9 +93,6 @@ library Wallets {
         // UNIX timestamp indicating the moment the wallet was requested to
         // move their funds.
         uint32 movingFundsRequestedAt;
-        // UNIX timestamp indicating the moment when the wallet submitted their
-        // moving funds target wallet commitment.
-        uint32 movingFundsCommitmentSubmittedAt;
         // Current state of the wallet.
         WalletState state;
         // Moving funds target wallet commitment submitted by the wallet. It
@@ -115,10 +109,6 @@ library Wallets {
     );
 
     event WalletMaxAgeUpdated(uint32 newMaxAge);
-
-    event MovingFundsCommitmentChallengePeriodUpdated(
-        uint32 movingFundsCommitmentChallengePeriodUpdated
-    );
 
     event NewWalletRequested();
 
@@ -198,21 +188,6 @@ library Wallets {
         self.maxAge = maxAge;
 
         emit WalletMaxAgeUpdated(maxAge);
-    }
-
-    /// @notice Sets the moving funds commitment challenge period.
-    /// @param movingFundsCommitmentChallengePeriod New value of the moving
-    ///        funds commitment challenge period.
-    function setMovingFundsCommitmentChallengePeriod(
-        Data storage self,
-        uint32 movingFundsCommitmentChallengePeriod
-    ) external {
-        self
-            .movingFundsCommitmentChallengePeriod = movingFundsCommitmentChallengePeriod;
-
-        emit MovingFundsCommitmentChallengePeriodUpdated(
-            movingFundsCommitmentChallengePeriod
-        );
     }
 
     /// @notice Requests creation of a new wallet. This function just
@@ -575,7 +550,6 @@ library Wallets {
     ///      - The source wallet must be in the Live state
     ///      - The target wallets commitment must be submitted by the source
     ///        wallet.
-    ///      - The target wallets commitment challenge period must be completed.
     ///      - The actual target wallets used in the moving funds transaction
     ///        must be exactly the same as the target wallets commitment.
     function notifyFundsMoved(
@@ -593,23 +567,18 @@ library Wallets {
             "ECDSA wallet must be in MovingFunds state"
         );
 
-        uint32 commitmentSubmittedAt = wallet.movingFundsCommitmentSubmittedAt;
+        bytes32 targetWalletsCommitmentHash = wallet
+            .movingFundsTargetWalletsCommitmentHash;
+
         require(
-            commitmentSubmittedAt > 0,
-            "Target wallet commitment not submitted yet"
-        );
-        require(
-            /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp >
-                commitmentSubmittedAt +
-                    self.movingFundsCommitmentChallengePeriod,
-            "Target wallet commitment challenge period has not passed yet"
+            targetWalletsCommitmentHash != bytes32(0),
+            "Target wallets commitment not submitted yet"
         );
 
         // Make sure that the target wallets where funds were moved to are
         // exactly the same as the ones the source wallet committed to.
         require(
-            wallet.movingFundsTargetWalletsCommitmentHash == targetWalletsHash,
+            targetWalletsCommitmentHash == targetWalletsHash,
             "Target wallets don't correspond to the commitment"
         );
 
@@ -618,24 +587,4 @@ library Wallets {
 
         closeWallet(self, walletPubKeyHash);
     }
-
-    // TODO: Function for committing target wallets for moving funds.
-    //       Can be called only when `movingFundsRequestedAt` field is
-    //       grater than zero, `movingFundsCommitmentSubmittedAt` and
-    //       `movingFundsTargetWalletsCommitmentHash` fields are zeroed, and
-    //       the caller is a wallet's operator. If validation passes, it must
-    //       set the `movingFundsCommitmentSubmittedAt` and
-    //       `movingFundsTargetWalletsCommitmentHash` fields accordingly.
-
-    // TODO: Function for challenging target wallets commitments.
-    //       Can only be called if `block.timestamp` is lesser or equal to
-    //       the sum of `movingFundsCommitmentSubmittedAt` field and
-    //       `movingFundsCommitmentChallengePeriod` governance parameter.
-    //       If the challenge is successful, it must reset the
-    //       `movingFundsCommitmentSubmittedAt` and
-    //       `movingFundsTargetWalletsCommitmentHash` fields to their zero
-    //       value and set `movingFundsRequestedAt` to `block.timestamp`
-    //       to adjust the timeout.
-
-    // TODO: Function for reporting moving funds timeout. To be specified.
 }
