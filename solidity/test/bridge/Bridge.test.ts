@@ -4976,12 +4976,6 @@ describe("Bridge", () => {
                 )
                 const request = await bridge.pendingRedemptions(redemptionKey)
 
-                expect(request.redeemer).to.be.equal(
-                  "0x0000000000000000000000000000000000000000"
-                )
-                expect(request.requestedAmount).to.be.equal(0)
-                expect(request.treasuryFee).to.be.equal(0)
-                expect(request.txMaxFee).to.be.equal(0)
                 expect(request.requestedAt).to.be.equal(0)
               })
 
@@ -5173,12 +5167,6 @@ describe("Bridge", () => {
                 )
                 const request = await bridge.pendingRedemptions(redemptionKey)
 
-                expect(request.redeemer).to.be.equal(
-                  "0x0000000000000000000000000000000000000000"
-                )
-                expect(request.requestedAmount).to.be.equal(0)
-                expect(request.treasuryFee).to.be.equal(0)
-                expect(request.txMaxFee).to.be.equal(0)
                 expect(request.requestedAt).to.be.equal(0)
               })
 
@@ -5221,7 +5209,7 @@ describe("Bridge", () => {
 
               it("should not emit WalletClosed events", async () => {
                 // Since the wallet has UTXO set it should be not be closed but
-                // marked as zMovingFunds` and we should not see any `WalletClosed`
+                // marked as `MovingFunds` and we should not see any `WalletClosed`
                 // event
                 await expect(tx).not.to.emit(bridge, "WalletClosed")
               })
@@ -5314,6 +5302,9 @@ describe("Bridge", () => {
               await restoreSnapshot()
             })
 
+            // Only verify the active wallet public key hash has not changed.
+            // The other checks are covered in scenarios where the wallet was
+            // the active wallet and they should not be repeated here.
             it("should not delete the active wallet public key hash", async () => {
               // Check that the active wallet has not changed
               expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
@@ -5448,12 +5439,6 @@ describe("Bridge", () => {
             )
             const request = await bridge.pendingRedemptions(redemptionKey)
 
-            expect(request.redeemer).to.be.equal(
-              "0x0000000000000000000000000000000000000000"
-            )
-            expect(request.requestedAmount).to.be.equal(0)
-            expect(request.treasuryFee).to.be.equal(0)
-            expect(request.txMaxFee).to.be.equal(0)
             expect(request.requestedAt).to.be.equal(0)
           })
 
@@ -5619,12 +5604,6 @@ describe("Bridge", () => {
             )
             const request = await bridge.pendingRedemptions(redemptionKey)
 
-            expect(request.redeemer).to.be.equal(
-              "0x0000000000000000000000000000000000000000"
-            )
-            expect(request.requestedAmount).to.be.equal(0)
-            expect(request.treasuryFee).to.be.equal(0)
-            expect(request.txMaxFee).to.be.equal(0)
             expect(request.requestedAt).to.be.equal(0)
           })
 
