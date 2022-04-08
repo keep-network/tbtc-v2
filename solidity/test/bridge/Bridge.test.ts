@@ -2162,7 +2162,72 @@ describe("Bridge", () => {
     })
 
     context("when the wallet state is neither Live or MovingFunds", () => {
-      // TODO: Implement
+      const data: SweepTestData = SingleP2SHDeposit
+      const { fundingTx, reveal } = data.deposits[0]
+
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+        // TODO: Implement tests for state `Closed` when it's added
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            // Initially set the state to Live, so that the deposit can be revealed
+            await bridge.setWallet(reveal.walletPubKeyHash, {
+              ecdsaWalletID: ethers.constants.HashZero,
+              mainUtxoHash: ethers.constants.HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
+              state: walletState.Live,
+            })
+
+            await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+            await relay.setPrevEpochDifficulty(data.chainDifficulty)
+
+            await bridge.revealDeposit(fundingTx, reveal)
+
+            // Simulate the wallet's state has changed
+            const wallet = await bridge.getWallet(reveal.walletPubKeyHash)
+            await bridge.setWallet(reveal.walletPubKeyHash, {
+              ecdsaWalletID: wallet.ecdsaWalletID,
+              mainUtxoHash: wallet.mainUtxoHash,
+              pendingRedemptionsValue: wallet.pendingRedemptionsValue,
+              createdAt: wallet.createdAt,
+              moveFundsRequestedAt: wallet.moveFundsRequestedAt,
+              state: test.walletState,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.submitSweepProof(
+                data.sweepTx,
+                data.sweepProof,
+                data.mainUtxo
+              )
+            ).to.be.revertedWith("Wallet must be in Live or MovingFunds state")
+          })
+        })
+      })
     })
   })
 
