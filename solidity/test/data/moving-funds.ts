@@ -294,3 +294,294 @@ export const MultipleTargetWalletsAndDivisibleAmount = {
 
   chainDifficulty: 21461933,
 }
+
+/**
+ * `MultipleTargetWalletsAndDivisibleAmount` test data represents a moving
+ * funds with the following properties:
+ * - 1 main UTXO input
+ * - 2 P2PKH and 1 P2WPKH outputs that matches the target wallets from
+ *   the commitment
+ * - The total transacted amount is distributed unevenly over the target wallets
+ * - 6+ on-chain confirmations of the sweep transaction
+ */
+export const MultipleTargetWalletsButAmountDistributedUnevenly = {
+  wallet: {
+    // Uncompressed public key for the pubKeyHash `0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726`:
+    //    04ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04efc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306
+    // X: ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04e
+    // Y: fc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306
+    // ecdsaWalletID = keccak256(XY)
+    ecdsaWalletID:
+      "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
+    pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    state: walletState.MovingFunds,
+  },
+
+  targetWalletsCommitment: [
+    "0x2cd680318747b720d67bf4246eb7403b476adb34",
+    "0x8900de8fc6e4cd1db4c7ab0759d28503b4cb0ab1",
+    "0xaf7a841e055fc19bf31acf4cbed5ef548a2cc453",
+  ],
+
+  mainUtxo: {
+    txHash:
+      "0x3ca370f492449e2b413c27fe18b1a139f602d049fc0903595c41441f5a35eaed",
+    txOutputIndex: 0,
+    txOutputValue: 1279418,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/5b362273b9471f62c35b2ef6940c3c13bd2b773626ab5de63efe4e895d56f98c
+  movingFundsTx: {
+    hash: "0x8cf9565d894efe3ee65dab2636772bbd133c0c94f62e5bc3621f47b97322365b",
+    version: "0x01000000",
+    inputVector:
+      "0x013ca370f492449e2b413c27fe18b1a139f602d049fc0903595c41441f5a35eaed" +
+      "0000000000ffffffff",
+    outputVector:
+      "0x032f760600000000001976a9142cd680318747b720d67bf4246eb7403b476adb34" +
+      "88ac30760600000000001600148900de8fc6e4cd1db4c7ab0759d28503b4cb0ab133" +
+      "760600000000001976a914af7a841e055fc19bf31acf4cbed5ef548a2cc45388ac",
+    locktime: "0x00000000",
+  },
+
+  movingFundsProof: {
+    merkleProof:
+      "0x24c50204f1d2c838e7872dd7f5c3a38bac573cce654620dfec76c6a05e9eb3139d" +
+      "b0514e107025c8c055c8a10e83826c244820a32821a3d010880c1b3ab6bcf620fb48" +
+      "f188126e2628fb2d3ead8b7bd458c0bc9d2b6d15368831538114901f3bfd9ad0532a" +
+      "b93c6f36c1755d3315fbdd146753b2332363cf75b931ddb824e9c3e21676a253e14f" +
+      "be05ca546420c7b2e535666129660fb462adde0075114d5e00",
+    txIndexInBlock: 2,
+    bitcoinHeaders:
+      "0x00000020fea86838d788d0c0e2f4c32272ba5dd599c4bd04baa4ff759900000000" +
+      "000000b04fb0eaa2f1e39b53c26afdfa726289940864e3a42e06103fc7236aa67b15" +
+      "f3d50c50621ec8001a73dc826b04000020b18b27f95a438fd3d1bd571fd5ed10876b" +
+      "678f7f29cbb9a3ba000000000000009f9da0db22cc9d10d085502e74e6025e295bef" +
+      "3abc1441f7f0986ddadfd97776ce0d50621ec8001a7b784f6200000020e17a6b1a17" +
+      "34108e303b47a27ac7ff80a9ce9facc795e5bf8600000000000000e6da2811b1b28d" +
+      "b55ac59062c3651798356c5186b92664628eae8bc14f634ec27b0e50621ec8001a2e" +
+      "4075860000c020e7021f51166a77246660d627322dc6887cf0a9491f07f3d9430000" +
+      "00000000005c5437498047dcc617029442e5493460987ce6a1d186c2562412eae524" +
+      "42aa79b20e50621ec8001a02d802c804000020007219023a7eea3691d8091f3e67a2" +
+      "c17bbe15da9ae464663c000000000000007e1b1140ada8cb3f240f011243c8da5e4d" +
+      "abcd753d22d13c86d7c240413165f6160f50621ec8001a57daeccc0000a020a8597b" +
+      "1c1720560be7cc0f3707499f11e05df742c74cb5c99f00000000000000e17e1fc4b6" +
+      "70a70c0c67b1ccb183f0e8bf4c3321039d49675aa6886bd2ec691c4e0f50621ec800" +
+      "1a59b3b33c000000205058b8dcbbfdfb9e00b30e3f374ec17e1789fc4f3f678f27bf" +
+      "000000000000001b329dd98f5f1d79f36d0b74fa3da4a9e82609a424287f6e1de301" +
+      "485278b0ce4f1150621ec8001a4b24dd9e",
+  },
+
+  chainDifficulty: 21461933,
+}
+
+/**
+ * `SingleTargetWalletButP2SH` test data represents a moving funds with the
+ * following properties:
+ * - 1 main UTXO input
+ * - 1 P2SH output that matches the target wallet from the commitment
+ * - 6+ on-chain confirmations of the sweep transaction
+ */
+export const SingleTargetWalletButP2SH: MovingFundsTestData = {
+  wallet: {
+    // Uncompressed public key for the pubKeyHash `0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726`:
+    //    04ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04efc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306
+    // X: ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04e
+    // Y: fc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306
+    // ecdsaWalletID = keccak256(XY)
+    ecdsaWalletID:
+      "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
+    pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    state: walletState.MovingFunds,
+  },
+
+  targetWalletsCommitment: ["0x86884e6be1525dab5ae0b451bd2c72cee67dcf41"],
+
+  mainUtxo: {
+    txHash:
+      "0xb69a2869840aa6fdfd143136ff4514ca46ea2d876855040892ad74ab8c527422",
+    txOutputIndex: 1,
+    txOutputValue: 1177424,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/70d4182e795ebb0ddd8339ed9c0213d6e48f7cb6c956ced03c49f554a93a5669
+  movingFundsTx: {
+    hash: "0x69563aa954f5493cd0ce56c9b67c8fe4d613029ced3983dd0dbb5e792e18d470",
+    version: "0x01000000",
+    inputVector:
+      "0x01b69a2869840aa6fdfd143136ff4514ca46ea2d876855040892ad74ab8c527422" +
+      "0100000000ffffffff",
+    outputVector:
+      "0x015cf511000000000017a91486884e6be1525dab5ae0b451bd2c72cee67dcf4187",
+    locktime: "0x00000000",
+  },
+
+  movingFundsProof: {
+    merkleProof:
+      "0xba19ac24192479ac72000fe4500ec87f7b8cf994e90f42c3e66e70f9decfd81aee" +
+      "743b1c3a6935e4d157221fc36e6e24182ed94fc23f4f5268d51c9c7625acebc65c9b" +
+      "4a0e8e4eb52a89852aeaa1f935058620ccff4ade5fb5e05524ae727dfcaa9004792a" +
+      "281959ca2c8b6839135ee645353783f4c6c7d358acf3f4a83f819dec4effe91462dc" +
+      "fbc0d0ed6b4cc38e5470eaf5b450481482d9201a4fd870f9ec81aa88378f3e2aab62" +
+      "de93105ed1563a8b3fca7995f9828a9042639680d0e49488cb14eabe41276f4ed8f8" +
+      "7527690fb7f83b3b9abb170e1aadac941b53c29ec09e85514a6844e864397ded279e" +
+      "f4ace9833195f112cff129626f30a1bbc9b22f",
+    txIndexInBlock: 33,
+    bitcoinHeaders:
+      "0x00000020f47db0755dc684d17088c20b5d0cfdd2a637c0c1d611616f9cd868b100" +
+      "00000084349634f8489675c4ac31b82f66f3c6ea369f328e8dc08716d245a0a01bfa" +
+      "ba1a161662ffff001dab708bb90000002031b92d92aa302ad2a73058eaaa09ebfad1" +
+      "4be89cae782709e197b352000000009e5528a66f13a86be6f61937d478d696c9cae9" +
+      "ebce6649bf80b0b0be070f3cb1e51a1662ffff001d55d83989",
+  },
+
+  chainDifficulty: 1,
+}
+
+/**
+ * `SingleProvablyUnspendable` test data represents a moving funds with
+ *  the following properties:
+ * - 1 main UTXO input
+ * - 1 provably unspendable output with value 0 satoshi and index 0.
+ * - 6+ on-chain confirmations of the redemption transaction
+ */
+export const SingleProvablyUnspendable: MovingFundsTestData = {
+  wallet: {
+    // Uncompressed public key for the pubKeyHash `0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726`:
+    //    04ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04efc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306
+    // X: ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04e
+    // Y: fc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306
+    // ecdsaWalletID = keccak256(XY)
+    ecdsaWalletID:
+      "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
+    pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    state: walletState.MovingFunds,
+  },
+
+  targetWalletsCommitment: ["0x86884e6be1525dab5ae0b451bd2c72cee67dcf41"],
+
+  mainUtxo: {
+    txHash:
+      "0xc83c538a70028dd9fd40d7e8be0d05dc414a95927eb52df895e9d0c424786c53",
+    txOutputIndex: 0,
+    txOutputValue: 1914700,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/58a7d94d019aa658d00dfa2b5d5bb6b5d627b71afefff2bda5db501a75981fd3
+  movingFundsTx: {
+    hash: "0xd31f98751a50dba5bdf2fffe1ab727d6b5b65b5d2bfa0dd058a69a014dd9a758",
+    version: "0x01000000",
+    inputVector:
+      "0x01c83c538a70028dd9fd40d7e8be0d05dc414a95927eb52df895e9d0c424786c53" +
+      "0000000000ffffffff",
+    outputVector:
+      "0x010000000000000000176a0f6d6f6e6579627574746f6e2e636f6d0568656c6c6f",
+    locktime: "0x00000000",
+  },
+
+  movingFundsProof: {
+    merkleProof:
+      "0x905ff7ee49bf6e4290d4045f19317130044e77241b4b38fb3c8c1f1413b8a89574" +
+      "ebfb6efeabf05d65f5ad9cc1f8355d2a00a4ca22d7c7a0e0cabc0d6a4c6c00db10e3" +
+      "b9f542c6eeb6ec38df9acba0726e452cf50d19b285b5ebb60e2faafb24ea8a2604cc" +
+      "8f08c7ab494f4619e240bcc91e91174432a07809ffbfa579e931c16ccbdff6587298" +
+      "eb5a02da3f1afc3d5f0ccc06ddad31690cae99d9261218fa4f76e3bd2c3157089f5f" +
+      "4586201fccd2ebcc75db72b46fc7a026de0ac5dd7a8245",
+    txIndexInBlock: 1,
+    bitcoinHeaders:
+      "0x040000201d7a507f86c714fd747e45078096087c65bcabb8e6defa98b433000000" +
+      "000000d27279d16f4ef9b10ab2fd0b20be00cf380f9e1d4409d1577822cffbd65989" +
+      "d9cb081e62ed3e031ab61e9f5600000020b811a75ec03812f7a0b8580b73282afd59" +
+      "6ed9d2b0a9b1c79700000000000000538ba47e9eade7963da25fa640d87a2234489f" +
+      "a60741fb2ba89efab52e442b77810d1e62ffff001de0c4afc504e00020342898739f" +
+      "1e6ac6e8fe86dc3584fe8f21e5bef01dc714033a20ad3300000000910830b662c217" +
+      "5c9a41b3377d072a2b0290d5e44e8a40e038acae63171d216b140f1e62ed3e031a32" +
+      "b4b5e000000020345c4a1f645e26da4ec35cbc52543c6871e526b0a6c52070a30200" +
+      "00000000002160037975ec5f355cba38f4e9e2a98d8271bba7844a313fb5cb91709a" +
+      "4b4c0ee6131e62ffff001da0bddd2404000020667e4f0e217d2f2dd4d5fdcfb27857" +
+      "bdd3ae0c643a036897e762a99600000000f189c5237d6d5e15214a7f4d0ad6b82ac1" +
+      "522a1b1ee93bc4c76ab169462f26c308161e62ed3e031af4b78af704e00020968648" +
+      "2db903e6880604162d4ecedb113e5e0895131dcb608900000000000000d3d4eeb630" +
+      "cc71bb0ebf76822c95e19b3d0046ad01b74b6941507b5beaa1cf67db191e62ed3e03" +
+      "1a0040a522040000208d370c6f9d47eaf0c1ab779a5b811838a61403def157972e35" +
+      "0300000000000080b93554feec4b0c497738f604526bf990bb8924c538f58f030f3a" +
+      "ff72bc0347e91b1e62ed3e031a07543bdf",
+  },
+
+  chainDifficulty: 5168815,
+}
+
+/**
+ * `MultipleInputs` test data represents a moving funds with
+ *  the following properties:
+ * - 2 inputs where 1 of them points to the main UTXO
+ * - 6+ on-chain confirmations of the redemption transaction
+ */
+export const MultipleInputs: MovingFundsTestData = {
+  wallet: {
+    // Uncompressed public key for the pubKeyHash `0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726`:
+    //    04ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04efc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306
+    // X: ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04e
+    // Y: fc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306
+    // ecdsaWalletID = keccak256(XY)
+    ecdsaWalletID:
+      "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
+    pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    state: walletState.MovingFunds,
+  },
+
+  targetWalletsCommitment: ["0x86884e6be1525dab5ae0b451bd2c72cee67dcf41"],
+
+  mainUtxo: {
+    txHash:
+      "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+    txOutputIndex: 1,
+    txOutputValue: 718510,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/605edd75ae0b4fa7cfc7aae8f1399119e9d7ecc212e6253156b60d60f4925d44
+  movingFundsTx: {
+    hash: "0x445d92f4600db6563125e612c2ecd7e9199139f1e8aac7cfa74f0bae75dd5e60",
+    version: "0x01000000",
+    inputVector:
+      "0x0225a666beb7380a3fa2a0a8f64a562c7f1749a131bfee26ff61e4cee07cb3dd" +
+      "030100000000ffffffffc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f" +
+      "2a1868ddd917458bdf0100000000ffffffff",
+    outputVector:
+      "0x03c0900400000000001976a9142cd680318747b720d67bf4246eb7403b476adb" +
+      "3488acc090040000000000160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1" +
+      "d0041d0800000000001600147ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    locktime: "0x00000000",
+  },
+
+  movingFundsProof: {
+    merkleProof:
+      "0x88269e1c322be70bfbefb31c21880716592b5c50cc05daed725278d574c3e472" +
+      "6347cd0825a64a705f72133c93a181547d0a27919605ef110aeafc30a88fefdfc1" +
+      "c9d3e01fbb6e628ed67c41b5ea533a112883d5a8672d669fe3739ca7b274b3c1f5" +
+      "4765886f2444ef13d4c90d72594920df006793362ec6169ae4840be26af17fb255" +
+      "5399b14643436ba75f862e4aac9b5e53c68dddc706720ab18f2f46be59a00211d8" +
+      "cf4f8e311f49f2a52177c7a21d421e52748d01114e83e13c21ad4131",
+    txIndexInBlock: 1,
+    bitcoinHeaders:
+      "0x000000208ec76388aa580d8fa32ce9becbfd8f140dc33fc5a91fbc00f9020000" +
+      "00000000959305797e5c97c81fe38629d01271d3f583f4cebe878ddb3e93547004" +
+      "b29f7961952062ed3e031a6bd3f8050000ff3f42a37a9f0d546b1752e712abf607" +
+      "ee0d4f63d65e2590ccef4202000000000000ce9a58c9a6f39c18225afd7a7e5591" +
+      "423d77620595d4dd264167d889c4ddb7fa28972062ed3e031a75397f0104e00020" +
+      "d9cb8a5f9c012c43e9e0ccb4eb2ef134f3deb03a71ec005c8c0000000000000058" +
+      "fd6736c2d43ef0e414e31333f08fda58be1046967f412be7033421e4ca87e03997" +
+      "2062ed3e031acd8c3dcb04000020bbcf82f0e7a70b2070f7c32e8ac686fa2bef3c" +
+      "f735ea7778030200000000000049926ec1e65124db0045942e5e98a323e8c15a9e" +
+      "1c6a43139b79618fc7efcece37972062ed3e031ab38bf0fc00e0002055daa8e180" +
+      "320777a0b8d9b27f574513720caa0bd4c6f7ae34030000000000009935ad26c911" +
+      "4f4b21781b3509a8d106b2b597af2fa41e19469cca843a1c650b49972062ed3e03" +
+      "1a6a3ca59100e0002012ea5dafd8e9e4c149da2e3a896281b68b375eb2ea38cdef" +
+      "1403000000000000c9e61160c8367db22bbf0f3a0c07acb29ea15ca44cbc92a2dc" +
+      "9ea17a971c2e63ad982062ed3e031a3cfc880f00e00020fc72ae375a8cd436d959" +
+      "c96b73323c81e2ef11e31d7c98e72e02000000000000711a4b0d4fadef376c37da" +
+      "044aa896ea0e7c64008c2d6c3e3eb2d6f1b58e78b5339a2062ed3e031a9b77f2eb",
+  },
+
+  chainDifficulty: 5168815,
+}

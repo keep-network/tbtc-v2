@@ -18,9 +18,13 @@ import bridgeFixture from "./bridge-fixture"
 import { walletState } from "../fixtures"
 import {
   MovingFundsTestData,
+  MultipleInputs,
   MultipleTargetWalletsAndDivisibleAmount,
   MultipleTargetWalletsAndIndivisibleAmount,
+  MultipleTargetWalletsButAmountDistributedUnevenly,
+  SingleProvablyUnspendable,
   SingleTargetWallet,
+  SingleTargetWalletButP2SH,
 } from "../data/moving-funds"
 
 chai.use(smock.matchers)
@@ -205,8 +209,141 @@ describe("Bridge - Moving funds", () => {
                                         context(
                                           "when actual target wallets does not correspond to the commitment",
                                           () => {
-                                            it("should revert", async () => {
-                                              // TODO: Implementation.
+                                            // The below test data send funds to
+                                            // three wallets with the following
+                                            // 20-byte PKHs (in this order):
+                                            // - 0x2cd680318747b720d67bf4246eb7403b476adb34
+                                            // - 0x8900de8fc6e4cd1db4c7ab0759d28503b4cb0ab1
+                                            // - 0xaf7a841e055fc19bf31acf4cbed5ef548a2cc453
+                                            // If the commitment is not exactly
+                                            // this list, the moving funds proof
+                                            // will revert.
+                                            const data: MovingFundsTestData =
+                                              MultipleTargetWalletsAndIndivisibleAmount
+
+                                            const testData: {
+                                              testName: string
+                                              modifyData: (
+                                                data: MovingFundsTestData
+                                              ) => MovingFundsTestData
+                                            }[] = [
+                                              {
+                                                testName:
+                                                  "when funds were sent to more wallets than submitted in the commitment",
+                                                modifyData: (
+                                                  dataCopy: MovingFundsTestData
+                                                ) =>
+                                                  // Simulate that the commitment
+                                                  // contains only the two first
+                                                  // wallets used in the transaction.
+                                                  ({
+                                                    ...dataCopy,
+                                                    targetWalletsCommitment: [
+                                                      dataCopy
+                                                        .targetWalletsCommitment[0],
+                                                      dataCopy
+                                                        .targetWalletsCommitment[1],
+                                                    ],
+                                                  }),
+                                              },
+                                              {
+                                                testName:
+                                                  "when funds were sent to less wallets than submitted in the commitment",
+                                                modifyData: (
+                                                  dataCopy: MovingFundsTestData
+                                                ) =>
+                                                  // Simulate that the commitment
+                                                  // contains an additional wallet apart
+                                                  // from all wallets used in the transaction.
+                                                  ({
+                                                    ...dataCopy,
+                                                    targetWalletsCommitment: [
+                                                      dataCopy
+                                                        .targetWalletsCommitment[0],
+                                                      dataCopy
+                                                        .targetWalletsCommitment[1],
+                                                      dataCopy
+                                                        .targetWalletsCommitment[2],
+                                                      "0xe04f5dbeafea147699fce4e0e12027aa0bc12e78",
+                                                    ],
+                                                  }),
+                                              },
+                                              {
+                                                testName:
+                                                  "when funds were sent to completely different wallets than submitted in the commitment",
+                                                modifyData: (
+                                                  dataCopy: MovingFundsTestData
+                                                ) =>
+                                                  // Simulate that the commitment
+                                                  // contains three different wallets
+                                                  // than the wallets used in the
+                                                  // transaction.
+                                                  ({
+                                                    ...dataCopy,
+                                                    targetWalletsCommitment: [
+                                                      "0x1e445df2d9136831193d90c5e2c6b7ea8a0882fb",
+                                                      "0x9d134f065a6566bcc2f99fffe21856e129638526",
+                                                      "0x4f524b05f817bd8f3be613ff5bc5ef87f0b68b46",
+                                                    ],
+                                                  }),
+                                              },
+                                              {
+                                                testName:
+                                                  "when funds were sent to the wallets submitted in the commitment but with a wrong order",
+                                                modifyData: (
+                                                  dataCopy: MovingFundsTestData
+                                                ) =>
+                                                  // Simulate that the commitment
+                                                  // contains three different wallets
+                                                  // than the wallets used in the
+                                                  // transaction.
+                                                  ({
+                                                    ...dataCopy,
+                                                    targetWalletsCommitment: [
+                                                      dataCopy
+                                                        .targetWalletsCommitment[2],
+                                                      dataCopy
+                                                        .targetWalletsCommitment[1],
+                                                      dataCopy
+                                                        .targetWalletsCommitment[0],
+                                                    ],
+                                                  }),
+                                              },
+                                            ]
+
+                                            testData.forEach((test) => {
+                                              context(test.testName, () => {
+                                                let tx: Promise<ContractTransaction>
+
+                                                before(async () => {
+                                                  await createSnapshot()
+
+                                                  // Pass a copy of the original data.
+                                                  const modifiedData =
+                                                    test.modifyData(
+                                                      JSON.parse(
+                                                        JSON.stringify(data)
+                                                      )
+                                                    )
+
+                                                  tx =
+                                                    runMovingFundsScenario(
+                                                      modifiedData
+                                                    )
+                                                })
+
+                                                after(async () => {
+                                                  await restoreSnapshot()
+                                                })
+
+                                                it("should revert", async () => {
+                                                  await expect(
+                                                    tx
+                                                  ).to.be.revertedWith(
+                                                    "Target wallets don't correspond to the commitment"
+                                                  )
+                                                })
+                                              })
                                             })
                                           }
                                         )
@@ -216,8 +353,30 @@ describe("Bridge - Moving funds", () => {
                                     context(
                                       "when target wallets commitment is not submitted",
                                       () => {
+                                        const data: MovingFundsTestData =
+                                          JSON.parse(
+                                            JSON.stringify(SingleTargetWallet)
+                                          )
+
+                                        let tx: Promise<ContractTransaction>
+
+                                        before(async () => {
+                                          await createSnapshot()
+
+                                          tx = runMovingFundsScenario({
+                                            ...data,
+                                            targetWalletsCommitment: [],
+                                          })
+                                        })
+
+                                        after(async () => {
+                                          await restoreSnapshot()
+                                        })
+
                                         it("should revert", async () => {
-                                          // TODO: Implementation.
+                                          await expect(tx).to.be.revertedWith(
+                                            "Target wallets commitment not submitted yet"
+                                          )
                                         })
                                       }
                                     )
@@ -227,8 +386,57 @@ describe("Bridge - Moving funds", () => {
                                 context(
                                   "when source wallet is not in the MovingFunds state",
                                   () => {
-                                    it("should revert", async () => {
-                                      // TODO: Implementation.
+                                    const testData: {
+                                      testName: string
+                                      state: number
+                                    }[] = [
+                                      {
+                                        testName:
+                                          "when wallet state is Unknown",
+                                        state: walletState.Unknown,
+                                      },
+                                      {
+                                        testName: "when wallet state is Live",
+                                        state: walletState.Live,
+                                      },
+                                      {
+                                        testName: "when wallet state is Closed",
+                                        state: walletState.Closed,
+                                      },
+                                      {
+                                        testName:
+                                          "when wallet state is Terminated",
+                                        state: walletState.Terminated,
+                                      },
+                                    ]
+
+                                    testData.forEach((test) => {
+                                      context(test.testName, () => {
+                                        const data: MovingFundsTestData =
+                                          JSON.parse(
+                                            JSON.stringify(SingleTargetWallet)
+                                          )
+
+                                        let tx: Promise<ContractTransaction>
+
+                                        before(async () => {
+                                          await createSnapshot()
+
+                                          data.wallet.state = test.state
+
+                                          tx = runMovingFundsScenario(data)
+                                        })
+
+                                        after(async () => {
+                                          await restoreSnapshot()
+                                        })
+
+                                        it("should revert", async () => {
+                                          await expect(tx).to.be.revertedWith(
+                                            "ECDSA wallet must be in MovingFunds state"
+                                          )
+                                        })
+                                      })
                                     })
                                   }
                                 )
@@ -236,8 +444,36 @@ describe("Bridge - Moving funds", () => {
                             )
 
                             context("when transaction fee is too high", () => {
+                              const data: MovingFundsTestData =
+                                SingleTargetWallet
+
+                              let tx: Promise<ContractTransaction>
+
+                              before(async () => {
+                                await createSnapshot()
+
+                                const beforeProofActions = async () => {
+                                  // The transaction used by this scenario's
+                                  // test data has a fee of 9000 satoshis. Lowering
+                                  // the max fee in the Bridge by one should
+                                  // cause the expected failure.
+                                  await bridge.setMovingFundsTxMaxTotalFee(8999)
+                                }
+
+                                tx = runMovingFundsScenario(
+                                  data,
+                                  beforeProofActions
+                                )
+                              })
+
+                              after(async () => {
+                                await restoreSnapshot()
+                              })
+
                               it("should revert", async () => {
-                                // TODO: Implementation.
+                                await expect(tx).to.be.revertedWith(
+                                  "Transaction fee is too high"
+                                )
                               })
                             })
                           }
@@ -246,8 +482,25 @@ describe("Bridge - Moving funds", () => {
                         context(
                           "when transaction amount is not distributed evenly",
                           () => {
+                            const data: MovingFundsTestData =
+                              MultipleTargetWalletsButAmountDistributedUnevenly
+
+                            let tx: Promise<ContractTransaction>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              tx = runMovingFundsScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
                             it("should revert", async () => {
-                              // TODO: Implementation.
+                              await expect(tx).to.be.revertedWith(
+                                "Transaction amount is not distributed evenly"
+                              )
                             })
                           }
                         )
@@ -257,8 +510,30 @@ describe("Bridge - Moving funds", () => {
                     context(
                       "when the output vector has not only P2PKH and P2WPKH outputs",
                       () => {
+                        // The only possible case is P2SH which contains the
+                        // 20-byte payload, just like P2PKH and P2WPKH.
+                        // No need to check P2WSH as it uses a 32-byte payload
+                        // so it would fail earlier, at the payload length
+                        // assertion.
+                        const data: MovingFundsTestData =
+                          SingleTargetWalletButP2SH
+
+                        let tx: Promise<ContractTransaction>
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          tx = runMovingFundsScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(tx).to.be.revertedWith(
+                            "Output must be P2PKH or P2WPKH"
+                          )
                         })
                       }
                     )
@@ -268,8 +543,27 @@ describe("Bridge - Moving funds", () => {
                 context(
                   "when the output vector doesn't only reference 20-byte hashes",
                   () => {
+                    // Use a provably unspendable output whose payload length
+                    // is zero so it should cause a failure upon the assertion
+                    // that makes sure the output payload is 20-byte.
+                    const data: MovingFundsTestData = SingleProvablyUnspendable
+
+                    let tx: Promise<ContractTransaction>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      tx = runMovingFundsScenario(data)
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
                     it("should revert", async () => {
-                      // TODO: Implementation.
+                      await expect(tx).to.be.revertedWith(
+                        "Target wallet public key hash must have 20 bytes"
+                      )
                     })
                   }
                 )
@@ -279,30 +573,138 @@ describe("Bridge - Moving funds", () => {
             context(
               "when the single input doesn't point to the wallet's main UTXO",
               () => {
+                const data: MovingFundsTestData = JSON.parse(
+                  JSON.stringify(SingleTargetWallet)
+                )
+
+                let tx: Promise<ContractTransaction>
+
+                before(async () => {
+                  await createSnapshot()
+
+                  // Corrupt the wallet's main UTXO that is injected to
+                  // the Bridge state by the test runner in order to make it
+                  // different than the input used by the actual Bitcoin
+                  // transaction thus make the tested scenario happen. The
+                  // proper value of `txOutputIndex` is `1` so any other value
+                  // will do the trick.
+                  data.mainUtxo.txOutputIndex = 0
+
+                  tx = runMovingFundsScenario(data)
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
                 it("should revert", async () => {
-                  // TODO: Implementation.
+                  await expect(tx).to.be.revertedWith(
+                    "Outbound transaction input must point to the wallet's main UTXO"
+                  )
                 })
               }
             )
           })
 
           context("when input count is other than one", () => {
+            const data: MovingFundsTestData = MultipleInputs
+
+            let tx: Promise<ContractTransaction>
+
+            before(async () => {
+              await createSnapshot()
+
+              tx = runMovingFundsScenario(data)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
             it("should revert", async () => {
-              // TODO: Implementation.
+              await expect(tx).to.be.revertedWith(
+                "Outbound transaction must have a single input"
+              )
             })
           })
         })
 
         context("when main UTXO data are invalid", () => {
+          const data: MovingFundsTestData = SingleTargetWallet
+
+          before(async () => {
+            await createSnapshot()
+
+            // Required for a successful SPV proof.
+            relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+            relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+
+            // Wallet main UTXO must be set on the Bridge side to make
+            // that scenario happen.
+            await bridge.setWalletMainUtxo(
+              data.wallet.pubKeyHash,
+              data.mainUtxo
+            )
+          })
+
+          after(async () => {
+            relay.getPrevEpochDifficulty.reset()
+            relay.getCurrentEpochDifficulty.reset()
+
+            await restoreSnapshot()
+          })
+
           it("should revert", async () => {
-            // TODO: Implementation.
+            // Corrupt the main UTXO parameter passed during
+            // `submitMovingFundsProof` call. The proper value of
+            // `txOutputIndex` for this test data set is `1` so any other
+            // value will make this test scenario happen.
+            const corruptedMainUtxo = {
+              ...data.mainUtxo,
+              txOutputIndex: 0,
+            }
+
+            await expect(
+              bridge.submitMovingFundsProof(
+                data.movingFundsTx,
+                data.movingFundsProof,
+                corruptedMainUtxo,
+                data.wallet.pubKeyHash
+              )
+            ).to.be.revertedWith("Invalid main UTXO data")
           })
         })
       })
 
       context("when there is no main UTXO for the given wallet", () => {
+        const data: MovingFundsTestData = SingleTargetWallet
+
+        before(async () => {
+          await createSnapshot()
+
+          // Required for a successful SPV proof.
+          relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+          relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+        })
+
+        after(async () => {
+          relay.getPrevEpochDifficulty.reset()
+          relay.getCurrentEpochDifficulty.reset()
+
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          // There was no preparations before `submitMovingFundsProof` call
+          // so no main UTXO is set for the given wallet.
+          await expect(
+            bridge.submitMovingFundsProof(
+              data.movingFundsTx,
+              data.movingFundsProof,
+              data.mainUtxo,
+              data.wallet.pubKeyHash
+            )
+          ).to.be.revertedWith("No main UTXO for given wallet")
         })
       })
     })
@@ -559,7 +961,8 @@ describe("Bridge - Moving funds", () => {
   })
 
   async function runMovingFundsScenario(
-    data: MovingFundsTestData
+    data: MovingFundsTestData,
+    beforeProofActions?: () => Promise<void>
   ): Promise<ContractTransaction> {
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
@@ -582,6 +985,10 @@ describe("Bridge - Moving funds", () => {
     })
     // Simulate the prepared main UTXO belongs to the wallet.
     await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+
+    if (beforeProofActions) {
+      await beforeProofActions()
+    }
 
     const tx = await bridge.submitMovingFundsProof(
       data.movingFundsTx,
