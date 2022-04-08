@@ -1000,9 +1000,23 @@ describe("Bridge", () => {
 
                   context("when the single input is an unknown", () => {
                     const data: SweepTestData = SingleP2SHDeposit
+                    // Take wallet public key hash from first deposit. All
+                    // deposits in same sweep batch should have the same value
+                    // of that field.
+                    const { walletPubKeyHash } = data.deposits[0].reveal
 
                     before(async () => {
                       await createSnapshot()
+
+                      // Simulate the wallet is an Live one and is known in the system.
+                      await bridge.setWallet(walletPubKeyHash, {
+                        ecdsaWalletID: ethers.constants.HashZero,
+                        mainUtxoHash: ethers.constants.HashZero,
+                        pendingRedemptionsValue: 0,
+                        createdAt: await lastBlockTime(),
+                        moveFundsRequestedAt: 0,
+                        state: walletState.Live,
+                      })
 
                       // Necessary to pass the proof validation.
                       await relay.setCurrentEpochDifficulty(
