@@ -365,7 +365,7 @@ library Wallets {
     ///         wallet to move their funds.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
-    ///      - Wallet must be in Live or MovingFunds state
+    ///      - The wallet must be in the `Live` or `MovingFunds` state
     function notifyRedemptionTimedOut(
         Data storage self,
         bytes20 walletPubKeyHash
@@ -384,7 +384,8 @@ library Wallets {
             moveFunds(self, walletPubKeyHash);
         }
 
-        // TODO: Perform slashing of wallet operators.
+        // TODO: Perform slashing of wallet operators and transfer some of the
+        //       slashed tokens to the caller of this function.
     }
 
     /// @notice Notifies that the wallet is either old enough or has too few

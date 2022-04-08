@@ -302,9 +302,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         - `notifyRedemptionTimeout` which puts the redemption key
     ///           to this mapping basing on a timed out request stored
     ///           previously in `pendingRedemptions` mapping.
-    ///
-    // TODO: Remove that Slither disable once this variable is used.
-    // slither-disable-next-line uninitialized-state
     mapping(uint256 => RedemptionRequest) public timedOutRedemptions;
 
     /// @notice Contains parameters related to frauds and the collection of all
@@ -387,6 +384,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     event RedemptionsCompleted(
         bytes20 walletPubKeyHash,
         bytes32 redemptionTxHash
+    );
+
+    event RedemptionTimedOut(
+        bytes20 walletPubKeyHash,
+        bytes redeemerOutputScript
     );
 
     event FraudChallengeSubmitted(
@@ -1918,28 +1920,83 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return info;
     }
 
-    // TODO: Function `notifyRedemptionTimeout. That function must:
-    //       1. Take a the `walletPubKey` and `redeemerOutputScript` as params.
-    //       2. Build the redemption key using those params.
-    //       3. Use the redemption key and take the request from
-    //          `pendingRedemptions` mapping.
-    //       4. If request doesn't exist in mapping - revert.
-    //       5. If request exits, and is timed out - remove the redemption key
-    //          from `pendingRedemptions` and put it to `timedOutRedemptions`
-    //          by copying the entire `RedemptionRequest` struct there. No need
-    //          to check if `timedOutRedemptions` mapping already contains
-    //          that key because `requestRedemption` blocks requests targeting
-    //          non-live wallets. Because `notifyRedemptionTimeout` changes
-    //          wallet state after first call (point 9), there is no possibility
-    //          that the given redemption key could be reported as timed out
-    //          multiple times. At the same time, if the given redemption key
-    //          was already marked as fraudulent due to an amount-related fraud,
-    //          it will not be possible to report a time out on it since it
-    //          won't be present in `pendingRedemptions` mapping.
-    //       6. Return the `requestedAmount` to the `redeemer`.
-    //       7. Reduce the `pendingRedemptionsValue` (`wallets` mapping) for
-    //          given wallet by request's redeemable amount computed as
-    //          `requestedAmount - treasuryFee`.
-    //       8. Call `wallets.notifyRedemptionTimedOut` to propagate timeout
-    //          consequences to the wallet.
+    /// @notice Notifies that there is a pending redemption request associated
+    ///         with the given wallet, that has timed out. The redemption
+    ///         request is identified by the key built as
+    ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
+    ///         The results of calling this function: the pending redemptions
+    ///         value for the wallet will be decreased by the requested amount
+    ///         (minus treasury fee), the tokens taken from the redeemer on
+    ///         redemption request will be returned to the redeemer, the request
+    ///         will be moved from pending redemptions to timed-out redemptions.
+    ///         If the state of the wallet is `Live` or `MovingFunds`, the
+    ///         wallet operators will be slashed.
+    ///         Additionally, if the state of wallet is `Live`, the wallet will
+    ///         be closed or marked as `MovingFunds` (depending on the presence
+    ///         or absence of the wallet's main UTXO) and the wallet will no
+    ///         longer be marked as the active wallet (if it was marked as such).
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param redeemerOutputScript  The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH)
+    /// @dev Requirements:
+    ///      - The redemption request identified by `walletPubKeyHash` and
+    ///        `redeemerOutputScript` must exist
+    ///      - The amount of time defined by `redemptionTimeout` must have
+    ///        passed since the redemption was requested (the request must be
+    ///        timed-out).
+    function notifyRedemptionTimeout(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript
+    ) external {
+        uint256 redemptionKey = uint256(
+            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
+        );
+        RedemptionRequest memory request = pendingRedemptions[redemptionKey];
+
+        require(request.requestedAt > 0, "Redemption request does not exist");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            request.requestedAt + redemptionTimeout < block.timestamp,
+            "Redemption request has not timed out"
+        );
+
+        // Update the wallet's pending redemptions value
+        Wallets.Wallet storage wallet = wallets.registeredWallets[
+            walletPubKeyHash
+        ];
+        wallet.pendingRedemptionsValue -=
+            request.requestedAmount -
+            request.treasuryFee;
+
+        require(
+            // TODO: Allow the wallets in `Closing` state when the state is added
+            wallet.state == Wallets.WalletState.Live ||
+                wallet.state == Wallets.WalletState.MovingFunds ||
+                wallet.state == Wallets.WalletState.Terminated,
+            "The wallet must be in Live, MovingFunds or Terminated state"
+        );
+
+        // It is worth noting that there is no need to check if
+        // `timedOutRedemption` mapping already contains the given redemption
+        // key. There is no possibility to re-use a key of a reported timed-out
+        // redemption because the wallet responsible for causing the timeout is
+        // moved to a state that prevents it to receive new redemption requests.
+
+        // Move the redemption from pending redemptions to timed-out redemptions
+        timedOutRedemptions[redemptionKey] = request;
+        delete pendingRedemptions[redemptionKey];
+
+        if (
+            wallet.state == Wallets.WalletState.Live ||
+            wallet.state == Wallets.WalletState.MovingFunds
+        ) {
+            // Propagate timeout consequences to the wallet
+            wallets.notifyRedemptionTimedOut(walletPubKeyHash);
+        }
+
+        emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
+
+        // Return the requested amount of tokens to the redeemer
+        bank.transferBalance(request.redeemer, request.requestedAmount);
+    }
 }
