@@ -649,6 +649,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`
     /// @param reveal Deposit reveal data, see `RevealInfo struct
     /// @dev Requirements:
+    ///      - `reveal.walletPubKeyHash` must identify a `Live` wallet
     ///      - `reveal.vault` must be 0x0 or point to a trusted vault
     ///      - `reveal.fundingOutputIndex` must point to the actual P2(W)SH
     ///        output of the BTC deposit transaction
@@ -673,11 +674,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         RevealInfo calldata reveal
     ) external {
         require(
+            wallets.registeredWallets[reveal.walletPubKeyHash].state ==
+                Wallets.WalletState.Live,
+            "Wallet is not in Live state"
+        );
+
+        require(
             reveal.vault == address(0) || isVaultTrusted[reveal.vault],
             "Vault is not trusted"
         );
 
-        // TODO: Validate if `walletPubKeyHash` is a known and live wallet.
         // TODO: Should we enforce a specific locktime at contract level?
 
         bytes memory expectedScript = abi.encodePacked(

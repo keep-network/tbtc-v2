@@ -287,21 +287,219 @@ describe("Bridge", () => {
       vault: "0x594cfd89700040163727828AE20B52099C58F02C",
     }
 
-    before(async () => {
-      await bridge.connect(governance).setVaultStatus(reveal.vault, true)
-    })
+    context("when wallet is in Live state", () => {
+      before(async () => {
+        await createSnapshot()
 
-    context("when funding transaction is P2SH", () => {
-      context("when funding output script hash is correct", () => {
-        context("when deposit was not revealed yet", () => {
-          context("when amount is not below the dust threshold", () => {
+        await bridge.connect(governance).setVaultStatus(reveal.vault, true)
+
+        // Simulate the wallet is an Live one and is known in the system.
+        await bridge.setWallet(reveal.walletPubKeyHash, {
+          ecdsaWalletID: ethers.constants.HashZero,
+          mainUtxoHash: ethers.constants.HashZero,
+          pendingRedemptionsValue: 0,
+          createdAt: await lastBlockTime(),
+          moveFundsRequestedAt: 0,
+          state: walletState.Live,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when funding transaction is P2SH", () => {
+        context("when funding output script hash is correct", () => {
+          context("when deposit was not revealed yet", () => {
+            context("when amount is not below the dust threshold", () => {
+              context("when deposit is routed to a trusted vault", () => {
+                let tx: ContractTransaction
+
+                before(async () => {
+                  await createSnapshot()
+
+                  tx = await bridge.revealDeposit(P2SHFundingTx, reveal)
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should store proper deposit data", async () => {
+                  // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                  const depositKey = ethers.utils.solidityKeccak256(
+                    ["bytes32", "uint32"],
+                    [
+                      "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                      reveal.fundingOutputIndex,
+                    ]
+                  )
+
+                  const deposit = await bridge.deposits(depositKey)
+
+                  // Depositor address, same as in `reveal.depositor`.
+                  expect(deposit.depositor).to.be.equal(
+                    "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
+                  )
+                  // Deposit amount in satoshi. In this case it's 10000 satoshi
+                  // because the P2SH deposit transaction set this value for the
+                  // funding output.
+                  expect(deposit.amount).to.be.equal(10000)
+                  // Revealed time should be set.
+                  expect(deposit.revealedAt).to.be.equal(await lastBlockTime())
+                  // Deposit vault, same as in `reveal.vault`.
+                  expect(deposit.vault).to.be.equal(
+                    "0x594cfd89700040163727828AE20B52099C58F02C"
+                  )
+                  // Treasury fee should be computed according to the current
+                  // value of the `depositTreasuryFeeDivisor`.
+                  expect(deposit.treasuryFee).to.be.equal(5)
+                  // Swept time should be unset.
+                  expect(deposit.sweptAt).to.be.equal(0)
+                })
+
+                it("should emit DepositRevealed event", async () => {
+                  await expect(tx)
+                    .to.emit(bridge, "DepositRevealed")
+                    .withArgs(
+                      "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                      reveal.fundingOutputIndex,
+                      "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                      10000,
+                      "0xf9f0c90d00039523",
+                      "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                      "0x28e081f285138ccbe389c1eb8985716230129f89",
+                      "0x60bcea61",
+                      reveal.vault
+                    )
+                })
+              })
+
+              context("when deposit is not routed to a vault", () => {
+                let tx: ContractTransaction
+                let nonRoutedReveal
+
+                before(async () => {
+                  await createSnapshot()
+
+                  nonRoutedReveal = { ...reveal }
+                  nonRoutedReveal.vault = ZERO_ADDRESS
+                  tx = await bridge.revealDeposit(
+                    P2SHFundingTx,
+                    nonRoutedReveal
+                  )
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should accept the deposit", async () => {
+                  await expect(tx)
+                    .to.emit(bridge, "DepositRevealed")
+                    .withArgs(
+                      "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                      reveal.fundingOutputIndex,
+                      "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                      10000,
+                      "0xf9f0c90d00039523",
+                      "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                      "0x28e081f285138ccbe389c1eb8985716230129f89",
+                      "0x60bcea61",
+                      ZERO_ADDRESS
+                    )
+                })
+              })
+
+              context("when deposit is routed to a non-trusted vault", () => {
+                let nonTrustedVaultReveal
+
+                before(async () => {
+                  await createSnapshot()
+
+                  nonTrustedVaultReveal = { ...reveal }
+                  nonTrustedVaultReveal.vault =
+                    "0x92499afEAD6c41f757Ec3558D0f84bf7ec5aD967"
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  await expect(
+                    bridge.revealDeposit(P2SHFundingTx, nonTrustedVaultReveal)
+                  ).to.be.revertedWith("Vault is not trusted")
+                })
+              })
+            })
+
+            context("when amount is below the dust threshold", () => {
+              before(async () => {
+                await createSnapshot()
+
+                // The `P2SHFundingTx` used within this scenario has an output
+                // whose value is 10000 satoshi. To make the scenario happen, it
+                // is enough that the contract's deposit dust threshold is
+                // bigger by 1 satoshi.
+                await bridge.setDepositDustThreshold(10001)
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  bridge.revealDeposit(P2SHFundingTx, reveal)
+                ).to.be.revertedWith("Deposit amount too small")
+              })
+            })
+          })
+
+          context("when deposit was already revealed", () => {
+            before(async () => {
+              await createSnapshot()
+
+              await bridge.revealDeposit(P2SHFundingTx, reveal)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge.revealDeposit(P2SHFundingTx, reveal)
+              ).to.be.revertedWith("Deposit already revealed")
+            })
+          })
+        })
+
+        context("when funding output script hash is wrong", () => {
+          it("should revert", async () => {
+            // Corrupt reveal data by setting a wrong depositor address.
+            const corruptedReveal = { ...reveal }
+            corruptedReveal.depositor =
+              "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
+
+            await expect(
+              bridge.revealDeposit(P2SHFundingTx, corruptedReveal)
+            ).to.be.revertedWith("Wrong 20-byte script hash")
+          })
+        })
+      })
+
+      context("when funding transaction is P2WSH", () => {
+        context("when funding output script hash is correct", () => {
+          context("when deposit was not revealed yet", () => {
             context("when deposit is routed to a trusted vault", () => {
               let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
 
-                tx = await bridge.revealDeposit(P2SHFundingTx, reveal)
+                tx = await bridge.revealDeposit(P2WSHFundingTx, reveal)
               })
 
               after(async () => {
@@ -313,7 +511,7 @@ describe("Bridge", () => {
                 const depositKey = ethers.utils.solidityKeccak256(
                   ["bytes32", "uint32"],
                   [
-                    "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                    "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                     reveal.fundingOutputIndex,
                   ]
                 )
@@ -345,7 +543,7 @@ describe("Bridge", () => {
                 await expect(tx)
                   .to.emit(bridge, "DepositRevealed")
                   .withArgs(
-                    "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                    "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                     reveal.fundingOutputIndex,
                     "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                     10000,
@@ -367,7 +565,7 @@ describe("Bridge", () => {
 
                 nonRoutedReveal = { ...reveal }
                 nonRoutedReveal.vault = ZERO_ADDRESS
-                tx = await bridge.revealDeposit(P2SHFundingTx, nonRoutedReveal)
+                tx = await bridge.revealDeposit(P2WSHFundingTx, nonRoutedReveal)
               })
 
               after(async () => {
@@ -378,7 +576,7 @@ describe("Bridge", () => {
                 await expect(tx)
                   .to.emit(bridge, "DepositRevealed")
                   .withArgs(
-                    "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                    "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                     reveal.fundingOutputIndex,
                     "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                     10000,
@@ -408,21 +606,17 @@ describe("Bridge", () => {
 
               it("should revert", async () => {
                 await expect(
-                  bridge.revealDeposit(P2SHFundingTx, nonTrustedVaultReveal)
+                  bridge.revealDeposit(P2WSHFundingTx, nonTrustedVaultReveal)
                 ).to.be.revertedWith("Vault is not trusted")
               })
             })
           })
 
-          context("when amount is below the dust threshold", () => {
+          context("when deposit was already revealed", () => {
             before(async () => {
               await createSnapshot()
 
-              // The `P2SHFundingTx` used within this scenario has an output
-              // whose value is 10000 satoshi. To make the scenario happen, it
-              // is enough that the contract's deposit dust threshold is
-              // bigger by 1 satoshi.
-              await bridge.setDepositDustThreshold(10001)
+              await bridge.revealDeposit(P2WSHFundingTx, reveal)
             })
 
             after(async () => {
@@ -431,17 +625,74 @@ describe("Bridge", () => {
 
             it("should revert", async () => {
               await expect(
-                bridge.revealDeposit(P2SHFundingTx, reveal)
-              ).to.be.revertedWith("Deposit amount too small")
+                bridge.revealDeposit(P2WSHFundingTx, reveal)
+              ).to.be.revertedWith("Deposit already revealed")
             })
           })
         })
 
-        context("when deposit was already revealed", () => {
+        context("when funding output script hash is wrong", () => {
+          it("should revert", async () => {
+            // Corrupt reveal data by setting a wrong depositor address.
+            const corruptedReveal = { ...reveal }
+            corruptedReveal.depositor =
+              "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
+
+            await expect(
+              bridge.revealDeposit(P2WSHFundingTx, corruptedReveal)
+            ).to.be.revertedWith("Wrong 32-byte script hash")
+          })
+        })
+      })
+
+      context("when funding transaction is neither P2SH nor P2WSH", () => {
+        it("should revert", async () => {
+          // Corrupt transaction output data by making a 21-byte script hash.
+          const corruptedP2SHFundingTx = { ...P2SHFundingTx }
+          corruptedP2SHFundingTx.outputVector =
+            "0x02102700000000000017a9156a6ade1c799a3e5a59678e776f21be14d66dc" +
+            "15ed8877ed73b00000000001600147ac2d9378a1c47e589dfb8095ca95ed2" +
+            "140d2726"
+
+          await expect(
+            bridge.revealDeposit(corruptedP2SHFundingTx, reveal)
+          ).to.be.revertedWith("Wrong script hash length")
+        })
+      })
+    })
+
+    context("when wallet is not in Live state", () => {
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is MovingFunds",
+          walletState: walletState.MovingFunds,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
           before(async () => {
             await createSnapshot()
-
-            await bridge.revealDeposit(P2SHFundingTx, reveal)
+            await bridge.setWallet(reveal.walletPubKeyHash, {
+              ecdsaWalletID: ethers.constants.HashZero,
+              mainUtxoHash: ethers.constants.HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
+              state: test.walletState,
+            })
           })
 
           after(async () => {
@@ -451,192 +702,9 @@ describe("Bridge", () => {
           it("should revert", async () => {
             await expect(
               bridge.revealDeposit(P2SHFundingTx, reveal)
-            ).to.be.revertedWith("Deposit already revealed")
+            ).to.be.revertedWith("Wallet is not in Live state")
           })
         })
-      })
-
-      context("when funding output script hash is wrong", () => {
-        it("should revert", async () => {
-          // Corrupt reveal data by setting a wrong depositor address.
-          const corruptedReveal = { ...reveal }
-          corruptedReveal.depositor =
-            "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
-
-          await expect(
-            bridge.revealDeposit(P2SHFundingTx, corruptedReveal)
-          ).to.be.revertedWith("Wrong 20-byte script hash")
-        })
-      })
-    })
-
-    context("when funding transaction is P2WSH", () => {
-      context("when funding output script hash is correct", () => {
-        context("when deposit was not revealed yet", () => {
-          context("when deposit is routed to a trusted vault", () => {
-            let tx: ContractTransaction
-
-            before(async () => {
-              await createSnapshot()
-
-              tx = await bridge.revealDeposit(P2WSHFundingTx, reveal)
-            })
-
-            after(async () => {
-              await restoreSnapshot()
-            })
-
-            it("should store proper deposit data", async () => {
-              // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
-              const depositKey = ethers.utils.solidityKeccak256(
-                ["bytes32", "uint32"],
-                [
-                  "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
-                  reveal.fundingOutputIndex,
-                ]
-              )
-
-              const deposit = await bridge.deposits(depositKey)
-
-              // Depositor address, same as in `reveal.depositor`.
-              expect(deposit.depositor).to.be.equal(
-                "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
-              )
-              // Deposit amount in satoshi. In this case it's 10000 satoshi
-              // because the P2SH deposit transaction set this value for the
-              // funding output.
-              expect(deposit.amount).to.be.equal(10000)
-              // Revealed time should be set.
-              expect(deposit.revealedAt).to.be.equal(await lastBlockTime())
-              // Deposit vault, same as in `reveal.vault`.
-              expect(deposit.vault).to.be.equal(
-                "0x594cfd89700040163727828AE20B52099C58F02C"
-              )
-              // Treasury fee should be computed according to the current
-              // value of the `depositTreasuryFeeDivisor`.
-              expect(deposit.treasuryFee).to.be.equal(5)
-              // Swept time should be unset.
-              expect(deposit.sweptAt).to.be.equal(0)
-            })
-
-            it("should emit DepositRevealed event", async () => {
-              await expect(tx)
-                .to.emit(bridge, "DepositRevealed")
-                .withArgs(
-                  "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
-                  reveal.fundingOutputIndex,
-                  "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
-                  10000,
-                  "0xf9f0c90d00039523",
-                  "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
-                  "0x28e081f285138ccbe389c1eb8985716230129f89",
-                  "0x60bcea61",
-                  reveal.vault
-                )
-            })
-          })
-
-          context("when deposit is not routed to a vault", () => {
-            let tx: ContractTransaction
-            let nonRoutedReveal
-
-            before(async () => {
-              await createSnapshot()
-
-              nonRoutedReveal = { ...reveal }
-              nonRoutedReveal.vault = ZERO_ADDRESS
-              tx = await bridge.revealDeposit(P2WSHFundingTx, nonRoutedReveal)
-            })
-
-            after(async () => {
-              await restoreSnapshot()
-            })
-
-            it("should accept the deposit", async () => {
-              await expect(tx)
-                .to.emit(bridge, "DepositRevealed")
-                .withArgs(
-                  "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
-                  reveal.fundingOutputIndex,
-                  "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
-                  10000,
-                  "0xf9f0c90d00039523",
-                  "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
-                  "0x28e081f285138ccbe389c1eb8985716230129f89",
-                  "0x60bcea61",
-                  ZERO_ADDRESS
-                )
-            })
-          })
-
-          context("when deposit is routed to a non-trusted vault", () => {
-            let nonTrustedVaultReveal
-
-            before(async () => {
-              await createSnapshot()
-
-              nonTrustedVaultReveal = { ...reveal }
-              nonTrustedVaultReveal.vault =
-                "0x92499afEAD6c41f757Ec3558D0f84bf7ec5aD967"
-            })
-
-            after(async () => {
-              await restoreSnapshot()
-            })
-
-            it("should revert", async () => {
-              await expect(
-                bridge.revealDeposit(P2WSHFundingTx, nonTrustedVaultReveal)
-              ).to.be.revertedWith("Vault is not trusted")
-            })
-          })
-        })
-
-        context("when deposit was already revealed", () => {
-          before(async () => {
-            await createSnapshot()
-
-            await bridge.revealDeposit(P2WSHFundingTx, reveal)
-          })
-
-          after(async () => {
-            await restoreSnapshot()
-          })
-
-          it("should revert", async () => {
-            await expect(
-              bridge.revealDeposit(P2WSHFundingTx, reveal)
-            ).to.be.revertedWith("Deposit already revealed")
-          })
-        })
-      })
-
-      context("when funding output script hash is wrong", () => {
-        it("should revert", async () => {
-          // Corrupt reveal data by setting a wrong depositor address.
-          const corruptedReveal = { ...reveal }
-          corruptedReveal.depositor =
-            "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
-
-          await expect(
-            bridge.revealDeposit(P2WSHFundingTx, corruptedReveal)
-          ).to.be.revertedWith("Wrong 32-byte script hash")
-        })
-      })
-    })
-
-    context("when funding transaction is neither P2SH nor P2WSH", () => {
-      it("should revert", async () => {
-        // Corrupt transaction output data by making a 21-byte script hash.
-        const corruptedP2SHFundingTx = { ...P2SHFundingTx }
-        corruptedP2SHFundingTx.outputVector =
-          "0x02102700000000000017a9156a6ade1c799a3e5a59678e776f21be14d66dc" +
-          "15ed8877ed73b00000000001600147ac2d9378a1c47e589dfb8095ca95ed2" +
-          "140d2726"
-
-        await expect(
-          bridge.revealDeposit(corruptedP2SHFundingTx, reveal)
-        ).to.be.revertedWith("Wrong script hash length")
       })
     })
   })
@@ -662,6 +730,17 @@ describe("Bridge", () => {
 
                       before(async () => {
                         await createSnapshot()
+
+                        // Simulate the wallet is an Live one and is known in
+                        // the system.
+                        await bridge.setWallet(walletPubKeyHash, {
+                          ecdsaWalletID: ethers.constants.HashZero,
+                          mainUtxoHash: ethers.constants.HashZero,
+                          pendingRedemptionsValue: 0,
+                          createdAt: await lastBlockTime(),
+                          moveFundsRequestedAt: 0,
+                          state: walletState.Live,
+                        })
 
                         tx = await runSweepScenario(data)
                       })
@@ -745,6 +824,17 @@ describe("Bridge", () => {
                       before(async () => {
                         await createSnapshot()
 
+                        // Simulate the wallet is an Live one and is known in
+                        // the system.
+                        await bridge.setWallet(walletPubKeyHash, {
+                          ecdsaWalletID: ethers.constants.HashZero,
+                          mainUtxoHash: ethers.constants.HashZero,
+                          pendingRedemptionsValue: 0,
+                          createdAt: await lastBlockTime(),
+                          moveFundsRequestedAt: 0,
+                          state: walletState.Live,
+                        })
+
                         tx = await runSweepScenario(data)
                       })
 
@@ -819,9 +909,25 @@ describe("Bridge", () => {
                     () => {
                       const previousData: SweepTestData = SingleP2SHDeposit
                       const data: SweepTestData = SingleMainUtxo
+                      // Take wallet public key hash from first deposit. All
+                      // deposits in same sweep batch should have the same value
+                      // of that field.
+                      const { walletPubKeyHash } =
+                        previousData.deposits[0].reveal
 
                       before(async () => {
                         await createSnapshot()
+
+                        // Simulate the wallet is an Live one and is known in
+                        // the system.
+                        await bridge.setWallet(walletPubKeyHash, {
+                          ecdsaWalletID: ethers.constants.HashZero,
+                          mainUtxoHash: ethers.constants.HashZero,
+                          pendingRedemptionsValue: 0,
+                          createdAt: await lastBlockTime(),
+                          moveFundsRequestedAt: 0,
+                          state: walletState.Live,
+                        })
 
                         // Make the first sweep which is actually the predecessor
                         // of the sweep tested within this scenario.
@@ -844,9 +950,24 @@ describe("Bridge", () => {
                     "when the single input is a revealed but already swept deposit",
                     () => {
                       const data: SweepTestData = SingleP2SHDeposit
+                      // Take wallet public key hash from first deposit. All
+                      // deposits in same sweep batch should have the same value
+                      // of that field.
+                      const { walletPubKeyHash } = data.deposits[0].reveal
 
                       before(async () => {
                         await createSnapshot()
+
+                        // Simulate the wallet is an Live one and is known in
+                        // the system.
+                        await bridge.setWallet(walletPubKeyHash, {
+                          ecdsaWalletID: ethers.constants.HashZero,
+                          mainUtxoHash: ethers.constants.HashZero,
+                          pendingRedemptionsValue: 0,
+                          createdAt: await lastBlockTime(),
+                          moveFundsRequestedAt: 0,
+                          state: walletState.Live,
+                        })
 
                         // Make a proper sweep to turn the tested deposit into
                         // the swept state.
@@ -928,6 +1049,17 @@ describe("Bridge", () => {
 
                       before(async () => {
                         await createSnapshot()
+
+                        // Simulate the wallet is an Live one and is known in
+                        // the system.
+                        await bridge.setWallet(walletPubKeyHash, {
+                          ecdsaWalletID: ethers.constants.HashZero,
+                          mainUtxoHash: ethers.constants.HashZero,
+                          pendingRedemptionsValue: 0,
+                          createdAt: await lastBlockTime(),
+                          moveFundsRequestedAt: 0,
+                          state: walletState.Live,
+                        })
 
                         // Make the first sweep which is actually the predecessor
                         // of the sweep tested within this scenario.
@@ -1072,6 +1204,17 @@ describe("Bridge", () => {
                       before(async () => {
                         await createSnapshot()
 
+                        // Simulate the wallet is an Live one and is known in
+                        // the system.
+                        await bridge.setWallet(walletPubKeyHash, {
+                          ecdsaWalletID: ethers.constants.HashZero,
+                          mainUtxoHash: ethers.constants.HashZero,
+                          pendingRedemptionsValue: 0,
+                          createdAt: await lastBlockTime(),
+                          moveFundsRequestedAt: 0,
+                          state: walletState.Live,
+                        })
+
                         tx = await runSweepScenario(data)
                       })
 
@@ -1178,9 +1321,25 @@ describe("Bridge", () => {
                       const data: SweepTestData = JSON.parse(
                         JSON.stringify(MultipleDepositsNoMainUtxo)
                       )
+                      // Take wallet public key hash from first deposit. All
+                      // deposits in same sweep batch should have the same value
+                      // of that field.
+                      const { walletPubKeyHash } =
+                        previousData.deposits[0].reveal
 
                       before(async () => {
                         await createSnapshot()
+
+                        // Simulate the wallet is an Live one and is known in
+                        // the system.
+                        await bridge.setWallet(walletPubKeyHash, {
+                          ecdsaWalletID: ethers.constants.HashZero,
+                          mainUtxoHash: ethers.constants.HashZero,
+                          pendingRedemptionsValue: 0,
+                          createdAt: await lastBlockTime(),
+                          moveFundsRequestedAt: 0,
+                          state: walletState.Live,
+                        })
 
                         // Make the first sweep to create an on-chain expectation
                         // that the tested sweep will contain the main UTXO
@@ -1213,9 +1372,24 @@ describe("Bridge", () => {
                     "when input vector contains a revealed but already swept deposit",
                     () => {
                       const data: SweepTestData = MultipleDepositsNoMainUtxo
+                      // Take wallet public key hash from first deposit. All
+                      // deposits in same sweep batch should have the same value
+                      // of that field.
+                      const { walletPubKeyHash } = data.deposits[0].reveal
 
                       before(async () => {
                         await createSnapshot()
+
+                        // Simulate the wallet is an Live one and is known in
+                        // the system.
+                        await bridge.setWallet(walletPubKeyHash, {
+                          ecdsaWalletID: ethers.constants.HashZero,
+                          mainUtxoHash: ethers.constants.HashZero,
+                          pendingRedemptionsValue: 0,
+                          createdAt: await lastBlockTime(),
+                          moveFundsRequestedAt: 0,
+                          state: walletState.Live,
+                        })
 
                         // Make a proper sweep to turn the tested deposits into
                         // the swept state.
@@ -1249,9 +1423,24 @@ describe("Bridge", () => {
 
                   context("when input vector contains an unknown input", () => {
                     const data: SweepTestData = MultipleDepositsWithMainUtxo
+                    // Take wallet public key hash from first deposit. All
+                    // deposits in same sweep batch should have the same value
+                    // of that field.
+                    const { walletPubKeyHash } = data.deposits[0].reveal
 
                     before(async () => {
                       await createSnapshot()
+
+                      // Simulate the wallet is an Live one and is known in
+                      // the system.
+                      await bridge.setWallet(walletPubKeyHash, {
+                        ecdsaWalletID: ethers.constants.HashZero,
+                        mainUtxoHash: ethers.constants.HashZero,
+                        pendingRedemptionsValue: 0,
+                        createdAt: await lastBlockTime(),
+                        moveFundsRequestedAt: 0,
+                        state: walletState.Live,
+                      })
                     })
 
                     after(async () => {
@@ -1275,9 +1464,24 @@ describe("Bridge", () => {
               "when transaction fee exceeds the deposit transaction maximum fee",
               () => {
                 const data: SweepTestData = SingleP2SHDeposit
+                // Take wallet public key hash from first deposit. All
+                // deposits in same sweep batch should have the same value
+                // of that field.
+                const { walletPubKeyHash } = data.deposits[0].reveal
 
                 before(async () => {
                   await createSnapshot()
+
+                  // Simulate the wallet is an Live one and is known in
+                  // the system.
+                  await bridge.setWallet(walletPubKeyHash, {
+                    ecdsaWalletID: ethers.constants.HashZero,
+                    mainUtxoHash: ethers.constants.HashZero,
+                    pendingRedemptionsValue: 0,
+                    createdAt: await lastBlockTime(),
+                    moveFundsRequestedAt: 0,
+                    state: walletState.Live,
+                  })
 
                   // Set the deposit transaction maximum fee to a value much
                   // lower than the fee used by the test data transaction.
@@ -1302,9 +1506,24 @@ describe("Bridge", () => {
             const data: SweepTestData = JSON.parse(
               JSON.stringify(MultipleDepositsWithMainUtxo)
             )
+            // Take wallet public key hash from first deposit. All
+            // deposits in same sweep batch should have the same value
+            // of that field.
+            const { walletPubKeyHash } = data.deposits[0].reveal
 
             before(async () => {
               await createSnapshot()
+
+              // Simulate the wallet is an Live one and is known in
+              // the system.
+              await bridge.setWallet(walletPubKeyHash, {
+                ecdsaWalletID: ethers.constants.HashZero,
+                mainUtxoHash: ethers.constants.HashZero,
+                pendingRedemptionsValue: 0,
+                createdAt: await lastBlockTime(),
+                moveFundsRequestedAt: 0,
+                state: walletState.Live,
+              })
 
               // Make the first sweep which is actually the predecessor
               // of the sweep tested within this scenario.
@@ -1447,9 +1666,24 @@ describe("Bridge", () => {
         const data: SweepTestData = JSON.parse(
           JSON.stringify(SingleP2SHDeposit)
         )
+        // Take wallet public key hash from first deposit. All
+        // deposits in same sweep batch should have the same value
+        // of that field.
+        const { walletPubKeyHash } = data.deposits[0].reveal
 
         before(async () => {
           await createSnapshot()
+
+          // Simulate the wallet is an Live one and is known in
+          // the system.
+          await bridge.setWallet(walletPubKeyHash, {
+            ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
+            state: walletState.Live,
+          })
         })
 
         after(async () => {
@@ -1480,9 +1714,24 @@ describe("Bridge", () => {
         const data: SweepTestData = JSON.parse(
           JSON.stringify(SingleP2SHDeposit)
         )
+        // Take wallet public key hash from first deposit. All
+        // deposits in same sweep batch should have the same value
+        // of that field.
+        const { walletPubKeyHash } = data.deposits[0].reveal
 
         before(async () => {
           await createSnapshot()
+
+          // Simulate the wallet is an Live one and is known in
+          // the system.
+          await bridge.setWallet(walletPubKeyHash, {
+            ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
+            state: walletState.Live,
+          })
         })
 
         after(async () => {
@@ -1506,9 +1755,24 @@ describe("Bridge", () => {
         const data: SweepTestData = JSON.parse(
           JSON.stringify(SingleP2SHDeposit)
         )
+        // Take wallet public key hash from first deposit. All
+        // deposits in same sweep batch should have the same value
+        // of that field.
+        const { walletPubKeyHash } = data.deposits[0].reveal
 
         before(async () => {
           await createSnapshot()
+
+          // Simulate the wallet is an Live one and is known in
+          // the system.
+          await bridge.setWallet(walletPubKeyHash, {
+            ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
+            state: walletState.Live,
+          })
         })
 
         after(async () => {
@@ -1530,9 +1794,24 @@ describe("Bridge", () => {
         const data: SweepTestData = JSON.parse(
           JSON.stringify(SingleP2SHDeposit)
         )
+        // Take wallet public key hash from first deposit. All
+        // deposits in same sweep batch should have the same value
+        // of that field.
+        const { walletPubKeyHash } = data.deposits[0].reveal
 
         before(async () => {
           await createSnapshot()
+
+          // Simulate the wallet is an Live one and is known in
+          // the system.
+          await bridge.setWallet(walletPubKeyHash, {
+            ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
+            state: walletState.Live,
+          })
         })
 
         after(async () => {
@@ -1555,9 +1834,24 @@ describe("Bridge", () => {
         const data: SweepTestData = JSON.parse(
           JSON.stringify(SingleP2SHDeposit)
         )
+        // Take wallet public key hash from first deposit. All
+        // deposits in same sweep batch should have the same value
+        // of that field.
+        const { walletPubKeyHash } = data.deposits[0].reveal
 
         before(async () => {
           await createSnapshot()
+
+          // Simulate the wallet is an Live one and is known in
+          // the system.
+          await bridge.setWallet(walletPubKeyHash, {
+            ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
+            state: walletState.Live,
+          })
         })
 
         after(async () => {
@@ -1585,9 +1879,24 @@ describe("Bridge", () => {
         const data: SweepTestData = JSON.parse(
           JSON.stringify(SingleP2SHDeposit)
         )
+        // Take wallet public key hash from first deposit. All
+        // deposits in same sweep batch should have the same value
+        // of that field.
+        const { walletPubKeyHash } = data.deposits[0].reveal
 
         before(async () => {
           await createSnapshot()
+
+          // Simulate the wallet is an Live one and is known in
+          // the system.
+          await bridge.setWallet(walletPubKeyHash, {
+            ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
+            state: walletState.Live,
+          })
         })
 
         after(async () => {
@@ -1619,9 +1928,23 @@ describe("Bridge", () => {
         const data: SweepTestData = JSON.parse(
           JSON.stringify(SingleP2SHDeposit)
         )
+        // Take wallet public key hash from first deposit. All
+        // deposits in same sweep batch should have the same value
+        // of that field.
+        const { walletPubKeyHash } = data.deposits[0].reveal
 
         before(async () => {
           await createSnapshot()
+          // Simulate the wallet is an Live one and is known in
+          // the system.
+          await bridge.setWallet(walletPubKeyHash, {
+            ecdsaWalletID: ethers.constants.HashZero,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: await lastBlockTime(),
+            moveFundsRequestedAt: 0,
+            state: walletState.Live,
+          })
         })
 
         after(async () => {
@@ -1653,9 +1976,24 @@ describe("Bridge", () => {
           const data: SweepTestData = JSON.parse(
             JSON.stringify(SingleP2SHDeposit)
           )
+          // Take wallet public key hash from first deposit. All
+          // deposits in same sweep batch should have the same value
+          // of that field.
+          const { walletPubKeyHash } = data.deposits[0].reveal
 
           before(async () => {
             await createSnapshot()
+
+            // Simulate the wallet is an Live one and is known in
+            // the system.
+            await bridge.setWallet(walletPubKeyHash, {
+              ecdsaWalletID: ethers.constants.HashZero,
+              mainUtxoHash: ethers.constants.HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: await lastBlockTime(),
+              moveFundsRequestedAt: 0,
+              state: walletState.Live,
+            })
 
             // Necessary to pass the first part of proof validation.
             await relay.setCurrentEpochDifficulty(data.chainDifficulty)
