@@ -671,7 +671,7 @@ can maintain the peg via a <<donate,donation>>.
 
 The first operator posts a signed, <<operator-only,reimbursable>>
 `intention-to-move` transaction to the ethereum chain declaring which wallets
-the operators intend to move the funds to. We trust the wallet to do the
+the operators intend to move the funds to. We trust the wallet to do this
 correctly, because if it was malicious, it has little reason to not just steal
 the funds. Then, that operator proposes a BTC fee (as in <<sweeping,sweeping>>)
 and the operators transfer the funds evenly between the wallets proposed in the
