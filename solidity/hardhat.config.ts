@@ -101,7 +101,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
-    except: ["BridgeStub$"], // TODO: Remove it once the problem of BridgeStub's size is solved
+    except: ["BridgeStub$", "Bridge$"], // TODO: Remove it once the problem of contracts' size is solved
   },
   typechain: {
     outDir: "typechain",
