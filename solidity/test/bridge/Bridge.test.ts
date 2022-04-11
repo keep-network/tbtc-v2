@@ -2064,7 +2064,6 @@ describe("Bridge", () => {
       // `MovingFunds` state as for the ones in `Live` state. Therefore the
       // testing of `MovingFunds` state is limited to just one simple test case
       // (sweeping single P2SH deposit).
-      let tx: ContractTransaction
       const data: SweepTestData = SingleP2SHDeposit
       const { fundingTx, reveal } = data.deposits[0]
 
@@ -2096,68 +2095,20 @@ describe("Bridge", () => {
           moveFundsRequestedAt: wallet.moveFundsRequestedAt,
           state: walletState.MovingFunds,
         })
-
-        tx = await bridge.submitSweepProof(
-          data.sweepTx,
-          data.sweepProof,
-          data.mainUtxo
-        )
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should mark deposit as swept", async () => {
-        // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
-        const depositKey = ethers.utils.solidityKeccak256(
-          ["bytes32", "uint32"],
-          [
-            data.deposits[0].fundingTx.hash,
-            data.deposits[0].reveal.fundingOutputIndex,
-          ]
-        )
-
-        const deposit = await bridge.deposits(depositKey)
-
-        expect(deposit.sweptAt).to.be.equal(await lastBlockTime())
-      })
-
-      it("should update main UTXO for the given wallet", async () => {
-        const { mainUtxoHash } = await bridge.getWallet(reveal.walletPubKeyHash)
-
-        // Amount can be checked by opening the sweep tx in a Bitcoin
-        // testnet explorer. In this case, the sum of inputs is
-        // 20000 satoshi (from the single deposit) and there is a
-        // fee of 1500 so the output value is 18500.
-        const expectedMainUtxo = ethers.utils.solidityKeccak256(
-          ["bytes32", "uint32", "uint64"],
-          [data.sweepTx.hash, 0, 18500]
-        )
-
-        expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
-      })
-
-      it("should update the depositor's balance", async () => {
-        // The sum of sweep tx inputs is 20000 satoshi. The output
-        // value is 18500 so the transaction fee is 1500. There is
-        // only one deposit so it incurs the entire transaction fee.
-        // The deposit should also incur the treasury fee whose
-        // initial value is 0.05% of the deposited amount so the
-        // final depositor balance should be cut by 10 satoshi.
-        expect(
-          await bank.balanceOf(data.deposits[0].reveal.depositor)
-        ).to.be.equal(18490)
-      })
-
-      it("should transfer collected treasury fee", async () => {
-        expect(await bank.balanceOf(treasury.address)).to.be.equal(10)
-      })
-
-      it("should emit DepositsSwept event", async () => {
-        await expect(tx)
-          .to.emit(bridge, "DepositsSwept")
-          .withArgs(reveal.walletPubKeyHash, data.sweepTx.hash)
+      it("should succeed", async () => {
+        await expect(
+          bridge.submitSweepProof(
+            data.sweepTx,
+            data.sweepProof,
+            data.mainUtxo
+          )
+        ).not.to.be.reverted
       })
     })
 
