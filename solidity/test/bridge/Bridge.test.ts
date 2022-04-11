@@ -2088,11 +2088,7 @@ describe("Bridge", () => {
         // Simulate the wallet's state has changed to MovingFunds
         const wallet = await bridge.getWallet(reveal.walletPubKeyHash)
         await bridge.setWallet(reveal.walletPubKeyHash, {
-          ecdsaWalletID: wallet.ecdsaWalletID,
-          mainUtxoHash: wallet.mainUtxoHash,
-          pendingRedemptionsValue: wallet.pendingRedemptionsValue,
-          createdAt: wallet.createdAt,
-          moveFundsRequestedAt: wallet.moveFundsRequestedAt,
+          ...wallet,
           state: walletState.MovingFunds,
         })
       })
@@ -2103,11 +2099,7 @@ describe("Bridge", () => {
 
       it("should succeed", async () => {
         await expect(
-          bridge.submitSweepProof(
-            data.sweepTx,
-            data.sweepProof,
-            data.mainUtxo
-          )
+          bridge.submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
         ).not.to.be.reverted
       })
     })
