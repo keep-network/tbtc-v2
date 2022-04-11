@@ -2178,7 +2178,6 @@ describe("Bridge", () => {
           testName: "when wallet state is Terminated",
           walletState: walletState.Terminated,
         },
-        // TODO: Implement tests for state `Closed` when it's added
       ]
 
       testData.forEach((test) => {
