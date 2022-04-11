@@ -661,13 +661,21 @@ Governable Parameters:
 
 When a wallet fails a <<heartbeat,heartbeat>> `consecutive_failed_heartbeats`
 times, ends a <<redemption,redemption>> with less than `wallet_min_closure_btc`
-remaining, or exceeds the `wallet_max_age`, the operators begin the process of
-closing it. If there are still funds remaining, and those funds are at least
-`wallet_dust_leftover`, then the <<operator-only,first operator>> posts a
-<<operator-only,reimbursable>> transaction to the ethereum chain declaring an
-intention to close the wallet. If the balance is less than
-`wallet_dust_leftover`, we simply close the wallet and abandon the funds. We
-can maintain the peg via a <<donate,donation>>.
+remaining, or exceeds the `wallet_max_age`, the a few different parties can
+begin the process of closing it.
+
+If the wallet failed a heartbeat, then the then the <<operator-only,first
+operator>> posts a <<operator-only,reimbursable>> transaction to the ethereum
+chain declaring an intention to close the wallet. If the wallet exceeds
+`wallet_max_age` or the funds fall under `wallet_min_closure_btc`, then
+<<public-knowledge,the public>> can post that transaction. If the wallet failed
+a redemption, then the public (probably the redeemer) can post a
+<<punishment,punishment>> transaction.
+
+If the balance is less than `wallet_dust_leftover`, we simply close the wallet
+and abandon the funds, signaling this with a <<public-knowledge, public>>
+transaction, and can maintain the peg via a <<donate,donation>>.
+Otherwise, we attempt to move the funds to other active wallet(s).
 
 The first operator posts a signed, <<operator-only,reimbursable>>
 `intention-to-move` transaction to the ethereum chain declaring which wallets
