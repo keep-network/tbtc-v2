@@ -548,7 +548,7 @@ library Wallets {
     /// @dev Requirements:
     ///      - The caller must make sure the moving funds transaction actually
     ///        happened on Bitcoin chain and fits the protocol requirements.
-    ///      - The source wallet must be in the Live state
+    ///      - The source wallet must be in the MovingFunds state
     ///      - The target wallets commitment must be submitted by the source
     ///        wallet.
     ///      - The actual target wallets used in the moving funds transaction

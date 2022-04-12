@@ -2080,7 +2080,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      - `walletPubKeyHash` must be connected with the main UTXO used
     ///        as transaction single input.
     ///      - The wallet that `walletPubKeyHash` points to must be in the
-    ///        Live state.
+    ///        MovingFunds state.
     ///      - The target wallets commitment must be submitted by the wallet
     ///        that `walletPubKeyHash` points to.
     ///      - The total Bitcoin transaction fee must be lesser or equal
