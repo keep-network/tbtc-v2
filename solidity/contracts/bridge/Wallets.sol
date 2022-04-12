@@ -92,9 +92,13 @@ library Wallets {
         uint32 createdAt;
         // UNIX timestamp indicating the moment the wallet was requested to
         // move their funds.
-        uint32 moveFundsRequestedAt;
+        uint32 movingFundsRequestedAt;
         // Current state of the wallet.
         WalletState state;
+        // Moving funds target wallet commitment submitted by the wallet. It
+        // is built by applying the keccak256 hash over the list of 20-byte
+        // public key hashes of the target wallets.
+        bytes32 movingFundsTargetWalletsCommitmentHash;
     }
 
     event WalletCreationPeriodUpdated(uint32 newCreationPeriod);
@@ -308,7 +312,7 @@ library Wallets {
 
         // Compress wallet's public key and calculate Bitcoin's hash160 of it.
         bytes20 walletPubKeyHash = bytes20(
-            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
+            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160View()
         );
 
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
@@ -346,7 +350,7 @@ library Wallets {
 
         // Compress wallet's public key and calculate Bitcoin's hash160 of it.
         bytes20 walletPubKeyHash = bytes20(
-            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160()
+            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160View()
         );
 
         require(
@@ -448,16 +452,12 @@ library Wallets {
         if (wallet.mainUtxoHash == bytes32(0)) {
             // If the wallet has no main UTXO, that means its BTC balance
             // is zero and it should be closed immediately.
-            wallet.state = WalletState.Closed;
-
-            emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
-
-            self.registry.closeWallet(wallet.ecdsaWalletID);
+            closeWallet(self, walletPubKeyHash);
         } else {
             // Otherwise, initialize the moving funds process.
             wallet.state = WalletState.MovingFunds;
             /* solhint-disable-next-line not-rely-on-time */
-            wallet.moveFundsRequestedAt = uint32(block.timestamp);
+            wallet.movingFundsRequestedAt = uint32(block.timestamp);
 
             emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
         }
@@ -470,9 +470,21 @@ library Wallets {
         }
     }
 
-    // TODO: Implement functions that will be called upon moving funds process
-    //       end. Remember the moving funds process ends up with a successful
-    //       proof or a timeout.
+    /// @notice Closes the given wallet and notifies the ECDSA registry
+    ///         about this fact.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - The caller must make sure that the wallet is in the
+    ///        Live or MovingFunds state.
+    function closeWallet(Data storage self, bytes20 walletPubKeyHash) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        wallet.state = WalletState.Closed;
+
+        emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
+
+        self.registry.closeWallet(wallet.ecdsaWalletID);
+    }
 
     /// @notice Reports about a fraud committed by the given wallet. This
     ///         function performs slashing and wallet termination in reaction
@@ -482,9 +494,19 @@ library Wallets {
     /// @dev Requirements:
     ///      - Wallet must be in Live or MovingFunds state
     function notifyFraud(Data storage self, bytes20 walletPubKeyHash) external {
-        // TODO: Perform slashing of wallet operators and add unit tests for that.
+        WalletState walletState = self
+            .registeredWallets[walletPubKeyHash]
+            .state;
+
+        require(
+            walletState == WalletState.Live ||
+                walletState == WalletState.MovingFunds,
+            "ECDSA wallet must be in Live or MovingFunds state"
+        );
 
         terminateWallet(self, walletPubKeyHash);
+
+        // TODO: Perform slashing of wallet operators and add unit tests for that.
     }
 
     /// @notice Terminates the given wallet and notifies the ECDSA registry
@@ -494,16 +516,12 @@ library Wallets {
     ///         creation immediately.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
-    ///      - Wallet must be in Live or MovingFunds state
+    ///      - The caller must make sure that the wallet is in the
+    ///        Live or MovingFunds state.
     function terminateWallet(Data storage self, bytes20 walletPubKeyHash)
         internal
     {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-        require(
-            wallet.state == WalletState.Live ||
-                wallet.state == WalletState.MovingFunds,
-            "ECDSA wallet must be in Live or MovingFunds state"
-        );
 
         wallet.state = WalletState.Terminated;
 
@@ -517,5 +535,57 @@ library Wallets {
         }
 
         self.registry.closeWallet(wallet.ecdsaWalletID);
+    }
+
+    /// @notice Notifies that the wallet completed the moving funds process
+    ///         successfully. Checks if the funds were moved to the expected
+    ///         target wallets. Closes the source wallet if everything went
+    ///         good and reverts otherwise.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param targetWalletsHash 32-byte keccak256 hash over the list of
+    ///        20-byte public key hashes of the target wallets actually used
+    ///        within the moving funds transactions.
+    /// @dev Requirements:
+    ///      - The caller must make sure the moving funds transaction actually
+    ///        happened on Bitcoin chain and fits the protocol requirements.
+    ///      - The source wallet must be in the MovingFunds state
+    ///      - The target wallets commitment must be submitted by the source
+    ///        wallet.
+    ///      - The actual target wallets used in the moving funds transaction
+    ///        must be exactly the same as the target wallets commitment.
+    function notifyFundsMoved(
+        Data storage self,
+        bytes20 walletPubKeyHash,
+        bytes32 targetWalletsHash
+    ) external {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        // Check that the wallet is in the MovingFunds state but don't check
+        // if the moving funds timeout is exceeded. That should give a
+        // possibility to move funds in case when timeout was hit but was
+        // not reported yet.
+        require(
+            wallet.state == WalletState.MovingFunds,
+            "ECDSA wallet must be in MovingFunds state"
+        );
+
+        bytes32 targetWalletsCommitmentHash = wallet
+            .movingFundsTargetWalletsCommitmentHash;
+
+        require(
+            targetWalletsCommitmentHash != bytes32(0),
+            "Target wallets commitment not submitted yet"
+        );
+
+        // Make sure that the target wallets where funds were moved to are
+        // exactly the same as the ones the source wallet committed to.
+        require(
+            targetWalletsCommitmentHash == targetWalletsHash,
+            "Target wallets don't correspond to the commitment"
+        );
+
+        // If funds were moved, the wallet has no longer a main UTXO.
+        delete wallet.mainUtxoHash;
+
+        closeWallet(self, walletPubKeyHash);
     }
 }

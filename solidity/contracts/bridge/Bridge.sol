@@ -58,6 +58,11 @@ interface IRelay {
 ///         wallet informs the Bridge about the sweep increasing appropriate
 ///         balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank.
+///
+/// TODO: All wallets-related operations that are currently done directly
+///       by the Bridge can be probably delegated to the Wallets library.
+///       Examples of such operations are main UTXO or pending redemptions
+///       value updates.
 contract Bridge is Ownable, EcdsaWalletOwner {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
@@ -211,6 +216,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         each swept deposit being part of the given sweep
     ///         transaction. If the maximum BTC transaction fee is exceeded,
     ///         such transaction is considered a fraud.
+    /// @dev This is a per-deposit input max fee for the sweep transaction.
     uint64 public depositTxMaxFee;
 
     /// TODO: Make it governable.
@@ -236,6 +242,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         each redemption request being part of the given redemption
     ///         transaction. If the maximum BTC transaction fee is exceeded, such
     ///         transaction is considered a fraud.
+    /// @dev This is a per-redemption output max fee for the redemption transaction.
     uint64 public redemptionTxMaxFee;
 
     /// TODO: Make it governable.
@@ -245,6 +252,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         timed out requests are cancelled and locked TBTC is returned
     ///         to the redeemer in full amount.
     uint256 public redemptionTimeout;
+
+    /// TODO: Make it governable.
+    /// @notice Maximum amount of the total BTC transaction fee that is
+    ///         acceptable in a single moving funds transaction.
+    /// @dev This is a TOTAL max fee for the moving funds transaction. Note that
+    ///      `depositTxMaxFee` is per single deposit and `redemptionTxMaxFee`
+    ///      if per single redemption. `movingFundsTxMaxTotalFee` is a total fee
+    ///      for the entire transaction.
+    uint64 public movingFundsTxMaxTotalFee;
 
     /// @notice Indicates if the vault with the given address is trusted or not.
     ///         Depositors can route their revealed deposits only to trusted
@@ -263,8 +279,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         validating them before attempting to execute a sweep.
     mapping(uint256 => DepositRequest) public deposits;
 
-    //TODO: Remember to update this map when implementing transferring funds
-    //      between wallets (insert the main UTXO that was used as the input).
     /// @notice Collection of main UTXOs that are honestly spent indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex). The fundingTxHash
     ///         is bytes32 (ordered as in Bitcoin internally) and
@@ -406,6 +420,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 sighash
     );
 
+    event MovingFundsCompleted(
+        bytes20 walletPubKeyHash,
+        bytes32 movingFundsTxHash
+    );
+
     constructor(
         address _bank,
         address _relay,
@@ -426,12 +445,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         // TODO: Revisit initial values.
         depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
-        depositTxMaxFee = 1000; // 1000 satoshi
+        depositTxMaxFee = 10000; // 10000 satoshi
         depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
-        redemptionTxMaxFee = 1000; // 1000 satoshi
+        redemptionTxMaxFee = 10000; // 10000 satoshi
         redemptionTimeout = 172800; // 48 hours
+        movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
+
+        // TODO: Revisit initial values.
         frauds.setSlashingAmount(10000 * 1e18); // 10000 T
         frauds.setNotifierRewardMultiplier(100); // 100%
         frauds.setChallengeDefeatTimeout(7 days);
@@ -1595,9 +1617,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             proofDifficultyContext()
         );
 
-        // Perform validation of the redemption transaction input. Specifically,
-        // check if it refers to the expected wallet's main UTXO.
-        validateRedemptionTxInput(
+        // Process the redemption transaction input. Specifically, check if it
+        // refers to the expected wallet's main UTXO.
+        processWalletOutboundTxInput(
             redemptionTx.inputVector,
             mainUtxo,
             walletPubKeyHash
@@ -1646,10 +1668,14 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bank.transferBalance(treasury, outputsInfo.totalTreasuryFee);
     }
 
-    /// @notice Validates whether the redemption Bitcoin transaction input
-    ///         vector contains a single input referring to the wallet's main
-    ///         UTXO. Reverts in case the validation fails.
-    /// @param redemptionTxInputVector Bitcoin redemption transaction input
+    /// @notice Checks whether an outbound Bitcoin transaction performed from
+    ///         the given wallet has an input vector that contains a single
+    ///         input referring to the wallet's main UTXO. Marks that main UTXO
+    ///         as correctly spent if the validation succeeds. Reverts otherwise.
+    ///         There are two outbound transactions from a wallet possible: a
+    ///         redemption transaction or a moving funds to another wallet
+    ///         transaction.
+    /// @param walletOutboundTxInputVector Bitcoin outbound transaction's input
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVin` function
     ///        before it is passed here
@@ -1657,9 +1683,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        the Ethereum chain.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
     //         HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the redemption transaction.
-    function validateRedemptionTxInput(
-        bytes memory redemptionTxInputVector,
+    ///        performed the outbound transaction.
+    function processWalletOutboundTxInput(
+        bytes memory walletOutboundTxInputVector,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) internal {
@@ -1682,16 +1708,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "Invalid main UTXO data"
         );
 
-        // Assert that the single redemption transaction input actually
+        // Assert that the single outbound transaction input actually
         // refers to the wallet's main UTXO.
         (
-            bytes32 redemptionTxOutpointTxHash,
-            uint32 redemptionTxOutpointIndex
-        ) = processRedemptionTxInput(redemptionTxInputVector);
+            bytes32 outpointTxHash,
+            uint32 outpointIndex
+        ) = parseWalletOutboundTxInput(walletOutboundTxInputVector);
         require(
-            mainUtxo.txHash == redemptionTxOutpointTxHash &&
-                mainUtxo.txOutputIndex == redemptionTxOutpointIndex,
-            "Redemption transaction input must point to the wallet's main UTXO"
+            mainUtxo.txHash == outpointTxHash &&
+                mainUtxo.txOutputIndex == outpointIndex,
+            "Outbound transaction input must point to the wallet's main UTXO"
         );
 
         // Main UTXO used as an input, mark it as spent.
@@ -1704,10 +1730,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         ] = true;
     }
 
-    /// @notice Processes the Bitcoin redemption transaction input vector. It
-    ///         extracts the single input then the transaction hash and output
-    ///         index from its outpoint.
-    /// @param redemptionTxInputVector Bitcoin redemption transaction input
+    /// @notice Parses the input vector of an outbound Bitcoin transaction
+    ///         performed from the given wallet. It extracts the single input
+    ///         then the transaction hash and output index from its outpoint.
+    ///         There are two outbound transactions from a wallet possible: a
+    ///         redemption transaction or a moving funds to another wallet
+    ///         transaction.
+    /// @param walletOutboundTxInputVector Bitcoin outbound transaction input
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVin` function
     ///        before it is passed here
@@ -1715,12 +1744,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         pointed in the input's outpoint.
     /// @return outpointIndex 4-byte index of the Bitcoin transaction output
     ///         which is pointed in the input's outpoint.
-    function processRedemptionTxInput(bytes memory redemptionTxInputVector)
-        internal
-        pure
-        returns (bytes32 outpointTxHash, uint32 outpointIndex)
-    {
-        // To determine the total number of redemption transaction inputs,
+    function parseWalletOutboundTxInput(
+        bytes memory walletOutboundTxInputVector
+    ) internal pure returns (bytes32 outpointTxHash, uint32 outpointIndex) {
+        // To determine the total number of Bitcoin transaction inputs,
         // we need to parse the compactSize uint (VarInt) the input vector is
         // prepended by. That compactSize uint encodes the number of vector
         // elements using the format presented in:
@@ -1728,13 +1755,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // We don't need asserting the compactSize uint is parseable since it
         // was already checked during `validateVin` validation.
         // See `BitcoinTx.inputVector` docs for more details.
-        (, uint256 inputsCount) = redemptionTxInputVector.parseVarInt();
+        (, uint256 inputsCount) = walletOutboundTxInputVector.parseVarInt();
         require(
             inputsCount == 1,
-            "Redemption transaction must have a single input"
+            "Outbound transaction must have a single input"
         );
 
-        bytes memory input = redemptionTxInputVector.extractInputAtIndex(0);
+        bytes memory input = walletOutboundTxInputVector.extractInputAtIndex(0);
 
         outpointTxHash = input.extractInputTxIdLE();
 
@@ -1797,11 +1824,26 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // scripts that can be used to lock the change. This is done upfront to
         // save on gas. Both scripts have a strict format defined by Bitcoin.
         //
-        // The P2PKH script has format <0x1976a914> <20-byte PKH> <0x88ac>.
+        // The P2PKH script has the byte format: <0x1976a914> <20-byte PKH> <0x88ac>.
+        // According to https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+        // - 0x19: Byte length of the entire script
+        // - 0x76: OP_DUP
+        // - 0xa9: OP_HASH160
+        // - 0x14: Byte length of the public key hash
+        // - 0x88: OP_EQUALVERIFY
+        // - 0xac: OP_CHECKSIG
+        // which matches the P2PKH structure as per:
+        // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
         bytes32 walletP2PKHScriptKeccak = keccak256(
             abi.encodePacked(hex"1976a914", walletPubKeyHash, hex"88ac")
         );
-        // The P2WPKH script has format <0x160014> <20-byte PKH>.
+        // The P2WPKH script has the byte format: <0x160014> <20-byte PKH>.
+        // According to https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+        // - 0x16: Byte length of the entire script
+        // - 0x00: OP_0
+        // - 0x14: Byte length of the public key hash
+        // which matches the P2WPKH structure as per:
+        // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
         bytes32 walletP2WPKHScriptKeccak = keccak256(
             abi.encodePacked(hex"160014", walletPubKeyHash)
         );
@@ -1827,7 +1869,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             // Extract the value from given output.
             uint64 outputValue = output.extractValue();
             // The output consists of an 8-byte value and a variable length
-            // script. To extract that script we slice the output staring from
+            // script. To extract that script we slice the output starting from
             // 9th byte until the end.
             bytes memory outputScript = output.slice(8, output.length - 8);
 
@@ -2005,5 +2047,245 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         // Return the requested amount of tokens to the redeemer
         bank.transferBalance(request.redeemer, request.requestedAmount);
+    }
+
+    /// @notice Used by the wallet to prove the BTC moving funds transaction
+    ///         and to make the necessary state changes. Moving funds is only
+    ///         accepted if it satisfies SPV proof.
+    ///
+    ///         The function validates the moving funds transaction structure
+    ///         by checking if it actually spends the main UTXO of the declared
+    ///         wallet and locks the value on the pre-committed target wallets
+    ///         using a reasonable transaction fee. If all preconditions are
+    ///         met, this functions closes the source wallet.
+    ///
+    ///         It is possible to prove the given moving funds transaction only
+    ///         one time.
+    /// @param movingFundsTx Bitcoin moving funds transaction data
+    /// @param movingFundsProof Bitcoin moving funds proof data
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain
+    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
+    ///        HASH160 over the compressed ECDSA public key) of the wallet
+    ///        which performed the moving funds transaction
+    /// @dev Requirements:
+    ///      - `movingFundsTx` components must match the expected structure. See
+    ///        `BitcoinTx.Info` docs for reference. Their values must exactly
+    ///        correspond to appropriate Bitcoin transaction fields to produce
+    ///        a provable transaction hash.
+    ///      - The `movingFundsTx` should represent a Bitcoin transaction with
+    ///        exactly 1 input that refers to the wallet's main UTXO. That
+    ///        transaction should have 1..n outputs corresponding to the
+    ///        pre-committed target wallets. Outputs must be ordered in the
+    ///        same way as their corresponding target wallets are ordered
+    ///        within the target wallets commitment.
+    ///      - `movingFundsProof` components must match the expected structure.
+    ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
+    ///        field must contain a valid number of block headers, not less
+    ///        than the `txProofDifficultyFactor` contract constant.
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///        Additionally, the recent main UTXO on Ethereum must be set.
+    ///      - `walletPubKeyHash` must be connected with the main UTXO used
+    ///        as transaction single input.
+    ///      - The wallet that `walletPubKeyHash` points to must be in the
+    ///        MovingFunds state.
+    ///      - The target wallets commitment must be submitted by the wallet
+    ///        that `walletPubKeyHash` points to.
+    ///      - The total Bitcoin transaction fee must be lesser or equal
+    ///        to `movingFundsTxMaxTotalFee` governable parameter.
+    function submitMovingFundsProof(
+        BitcoinTx.Info calldata movingFundsTx,
+        BitcoinTx.Proof calldata movingFundsProof,
+        BitcoinTx.UTXO calldata mainUtxo,
+        bytes20 walletPubKeyHash
+    ) external {
+        // The actual transaction proof is performed here. After that point, we
+        // can assume the transaction happened on Bitcoin chain and has
+        // a sufficient number of confirmations as determined by
+        // `txProofDifficultyFactor` constant.
+        bytes32 movingFundsTxHash = BitcoinTx.validateProof(
+            movingFundsTx,
+            movingFundsProof,
+            proofDifficultyContext()
+        );
+
+        // Process the moving funds transaction input. Specifically, check if
+        // it refers to the expected wallet's main UTXO.
+        processWalletOutboundTxInput(
+            movingFundsTx.inputVector,
+            mainUtxo,
+            walletPubKeyHash
+        );
+
+        (
+            bytes32 targetWalletsHash,
+            uint256 outputsTotalValue
+        ) = processMovingFundsTxOutputs(movingFundsTx.outputVector);
+
+        require(
+            mainUtxo.txOutputValue - outputsTotalValue <=
+                movingFundsTxMaxTotalFee,
+            "Transaction fee is too high"
+        );
+
+        wallets.notifyFundsMoved(walletPubKeyHash, targetWalletsHash);
+
+        emit MovingFundsCompleted(walletPubKeyHash, movingFundsTxHash);
+    }
+
+    /// @notice Processes the moving funds Bitcoin transaction output vector
+    ///         and extracts information required for further processing.
+    /// @param movingFundsTxOutputVector Bitcoin moving funds transaction output
+    ///        vector. This function assumes vector's structure is valid so it
+    ///        must be validated using e.g. `BTCUtils.validateVout` function
+    ///        before it is passed here
+    /// @return targetWalletsHash keccak256 hash over the list of actual
+    ///         target wallets used in the transaction.
+    /// @return outputsTotalValue Sum of all outputs values.
+    /// @dev Requirements:
+    ///      - The `movingFundsTxOutputVector` must be parseable, i.e. must
+    ///        be validated by the caller as stated in their parameter doc.
+    ///      - Each output must refer to a 20-byte public key hash.
+    ///      - The total outputs value must be evenly divided over all outputs.
+    function processMovingFundsTxOutputs(bytes memory movingFundsTxOutputVector)
+        internal
+        view
+        returns (bytes32 targetWalletsHash, uint256 outputsTotalValue)
+    {
+        // Determining the total number of Bitcoin transaction outputs in
+        // the same way as for number of inputs. See `BitcoinTx.outputVector`
+        // docs for more details.
+        (
+            uint256 outputsCompactSizeUintLength,
+            uint256 outputsCount
+        ) = movingFundsTxOutputVector.parseVarInt();
+
+        // To determine the first output starting index, we must jump over
+        // the compactSize uint which prepends the output vector. One byte
+        // must be added because `BtcUtils.parseVarInt` does not include
+        // compactSize uint tag in the returned length.
+        //
+        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
+        // returns `0`, so we jump over one byte of compactSize uint.
+        //
+        // For >= 253 && <= 0xffff there is `0xfd` tag,
+        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
+        // tag byte included) so we need to jump over 1+2 bytes of
+        // compactSize uint.
+        //
+        // Please refer `BTCUtils` library and compactSize uint
+        // docs in `BitcoinTx` library for more details.
+        uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
+
+        bytes20[] memory targetWallets = new bytes20[](outputsCount);
+        uint64[] memory outputsValues = new uint64[](outputsCount);
+
+        // Outputs processing loop.
+        for (uint256 i = 0; i < outputsCount; i++) {
+            uint256 outputLength = movingFundsTxOutputVector
+                .determineOutputLengthAt(outputStartingIndex);
+
+            bytes memory output = movingFundsTxOutputVector.slice(
+                outputStartingIndex,
+                outputLength
+            );
+
+            // Extract the output script payload.
+            bytes memory targetWalletPubKeyHashBytes = output.extractHash();
+            // Output script payload must refer to a known wallet public key
+            // hash which is always 20-byte.
+            require(
+                targetWalletPubKeyHashBytes.length == 20,
+                "Target wallet public key hash must have 20 bytes"
+            );
+
+            bytes20 targetWalletPubKeyHash = targetWalletPubKeyHashBytes
+                .slice20(0);
+
+            // The next step is making sure that the 20-byte public key hash
+            // is actually used in the right context of a P2PKH or P2WPKH
+            // output. To do so, we must extract the full script from the output
+            // and compare with the expected P2PKH and P2WPKH scripts
+            // referring to that 20-byte public key hash. The output consists
+            // of an 8-byte value and a variable length script. To extract the
+            // script we slice the output starting from 9th byte until the end.
+            bytes32 outputScriptKeccak = keccak256(
+                output.slice(8, output.length - 8)
+            );
+            // Build the expected P2PKH script which has the following byte
+            // format: <0x1976a914> <20-byte PKH> <0x88ac>. According to
+            // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+            // - 0x19: Byte length of the entire script
+            // - 0x76: OP_DUP
+            // - 0xa9: OP_HASH160
+            // - 0x14: Byte length of the public key hash
+            // - 0x88: OP_EQUALVERIFY
+            // - 0xac: OP_CHECKSIG
+            // which matches the P2PKH structure as per:
+            // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
+            bytes32 targetWalletP2PKHScriptKeccak = keccak256(
+                abi.encodePacked(
+                    hex"1976a914",
+                    targetWalletPubKeyHash,
+                    hex"88ac"
+                )
+            );
+            // Build the expected P2WPKH script which has the following format:
+            // <0x160014> <20-byte PKH>. According to
+            // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+            // - 0x16: Byte length of the entire script
+            // - 0x00: OP_0
+            // - 0x14: Byte length of the public key hash
+            // which matches the P2WPKH structure as per:
+            // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
+            bytes32 targetWalletP2WPKHScriptKeccak = keccak256(
+                abi.encodePacked(hex"160014", targetWalletPubKeyHash)
+            );
+            // Make sure the actual output script matches either the P2PKH
+            // or P2WPKH format.
+            require(
+                outputScriptKeccak == targetWalletP2PKHScriptKeccak ||
+                    outputScriptKeccak == targetWalletP2WPKHScriptKeccak,
+                "Output must be P2PKH or P2WPKH"
+            );
+
+            // Add the wallet public key hash to the list that will be used
+            // to build the result list hash. There is no need to check if
+            // given output is a change here because the actual target wallet
+            // list must be exactly the same as the pre-committed target wallet
+            // list which is guaranteed to be valid.
+            targetWallets[i] = targetWalletPubKeyHash;
+
+            // Extract the value from given output.
+            outputsValues[i] = output.extractValue();
+            outputsTotalValue += outputsValues[i];
+
+            // Make the `outputStartingIndex` pointing to the next output by
+            // increasing it by current output's length.
+            outputStartingIndex += outputLength;
+        }
+
+        // Compute the indivisible remainder that remains after dividing the
+        // outputs total value over all outputs evenly.
+        uint256 outputsTotalValueRemainder = outputsTotalValue % outputsCount;
+        // Compute the minimum allowed output value by dividing the outputs
+        // total value (reduced by the remainder) by the number of outputs.
+        uint256 minOutputValue = (outputsTotalValue -
+            outputsTotalValueRemainder) / outputsCount;
+        // Maximum possible value is the minimum value with the remainder included.
+        uint256 maxOutputValue = minOutputValue + outputsTotalValueRemainder;
+
+        for (uint256 i = 0; i < outputsCount; i++) {
+            require(
+                minOutputValue <= outputsValues[i] &&
+                    outputsValues[i] <= maxOutputValue,
+                "Transaction amount is not distributed evenly"
+            );
+        }
+
+        targetWalletsHash = keccak256(abi.encodePacked(targetWallets));
+
+        return (targetWalletsHash, outputsTotalValue);
     }
 }
