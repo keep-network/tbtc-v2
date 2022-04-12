@@ -1811,11 +1811,26 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         // scripts that can be used to lock the change. This is done upfront to
         // save on gas. Both scripts have a strict format defined by Bitcoin.
         //
-        // The P2PKH script has format <0x1976a914> <20-byte PKH> <0x88ac>.
+        // The P2PKH script has the byte format: <0x1976a914> <20-byte PKH> <0x88ac>.
+        // According to https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+        // - 0x19: Byte length of the entire script
+        // - 0x76: OP_DUP
+        // - 0xa9: OP_HASH160
+        // - 0x14: Byte length of the public key hash
+        // - 0x88: OP_EQUALVERIFY
+        // - 0xac: OP_CHECKSIG
+        // which matches the P2PKH structure as per:
+        // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
         bytes32 walletP2PKHScriptKeccak = keccak256(
             abi.encodePacked(hex"1976a914", walletPubKeyHash, hex"88ac")
         );
-        // The P2WPKH script has format <0x160014> <20-byte PKH>.
+        // The P2WPKH script has the byte format: <0x160014> <20-byte PKH>.
+        // According to https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+        // - 0x16: Byte length of the entire script
+        // - 0x00: OP_0
+        // - 0x14: Byte length of the public key hash
+        // which matches the P2WPKH structure as per:
+        // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
         bytes32 walletP2WPKHScriptKeccak = keccak256(
             abi.encodePacked(hex"160014", walletPubKeyHash)
         );
@@ -2184,8 +2199,17 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             bytes32 outputScriptKeccak = keccak256(
                 output.slice(8, output.length - 8)
             );
-            // Build the expected P2PKH script which has the following format:
-            // <0x1976a914> <20-byte PKH> <0x88ac>.
+            // Build the expected P2PKH script which has the following byte
+            // format: <0x1976a914> <20-byte PKH> <0x88ac>. According to
+            // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+            // - 0x19: Byte length of the entire script
+            // - 0x76: OP_DUP
+            // - 0xa9: OP_HASH160
+            // - 0x14: Byte length of the public key hash
+            // - 0x88: OP_EQUALVERIFY
+            // - 0xac: OP_CHECKSIG
+            // which matches the P2PKH structure as per:
+            // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
             bytes32 targetWalletP2PKHScriptKeccak = keccak256(
                 abi.encodePacked(
                     hex"1976a914",
@@ -2194,7 +2218,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                 )
             );
             // Build the expected P2WPKH script which has the following format:
-            // <0x160014> <20-byte PKH>.
+            // <0x160014> <20-byte PKH>. According to
+            // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+            // - 0x16: Byte length of the entire script
+            // - 0x00: OP_0
+            // - 0x14: Byte length of the public key hash
+            // which matches the P2WPKH structure as per:
+            // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
             bytes32 targetWalletP2WPKHScriptKeccak = keccak256(
                 abi.encodePacked(hex"160014", targetWalletPubKeyHash)
             );
