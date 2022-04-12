@@ -508,7 +508,7 @@ describe("Bridge - Moving funds", () => {
                     )
 
                     context(
-                      "when the output vector has not only P2PKH and P2WPKH outputs",
+                      "when the output vector contains P2SH output",
                       () => {
                         // The only possible case is P2SH which contains the
                         // 20-byte payload, just like P2PKH and P2WPKH.
@@ -541,7 +541,7 @@ describe("Bridge - Moving funds", () => {
                 )
 
                 context(
-                  "when the output vector doesn't only reference 20-byte hashes",
+                  "when the output vector does not only reference 20-byte hashes",
                   () => {
                     // Use a provably unspendable output whose payload length
                     // is zero so it should cause a failure upon the assertion
