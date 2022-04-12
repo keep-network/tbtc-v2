@@ -216,6 +216,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         each swept deposit being part of the given sweep
     ///         transaction. If the maximum BTC transaction fee is exceeded,
     ///         such transaction is considered a fraud.
+    /// @dev This is a per-deposit input max fee for the sweep transaction.
     uint64 public depositTxMaxFee;
 
     /// TODO: Make it governable.
@@ -241,6 +242,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         each redemption request being part of the given redemption
     ///         transaction. If the maximum BTC transaction fee is exceeded, such
     ///         transaction is considered a fraud.
+    /// @dev This is a per-redemption output max fee for the redemption transaction.
     uint64 public redemptionTxMaxFee;
 
     /// TODO: Make it governable.
@@ -254,6 +256,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// TODO: Make it governable.
     /// @notice Maximum amount of the total BTC transaction fee that is
     ///         acceptable in a single moving funds transaction.
+    /// @dev This is a TOTAL max fee for the moving funds transaction. Note that
+    ///      `depositTxMaxFee` is per single deposit and `redemptionTxMaxFee`
+    ///      if per single redemption. `movingFundsTxMaxTotalFee` is a total fee
+    ///      for the entire transaction.
     uint64 public movingFundsTxMaxTotalFee;
 
     /// @notice Indicates if the vault with the given address is trusted or not.
