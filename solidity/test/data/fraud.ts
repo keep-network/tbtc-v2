@@ -24,15 +24,11 @@ export interface FraudTestData {
   }[]
 }
 
-// X coordinate of the public key:
+// Uncompressed and unprefixed version of the public key:
 // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
-export const walletPublicKeyX =
-  "0x989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
-
-// Y coordinate of the public key:
-// 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
-export const walletPublicKeyY =
-  "0xd218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af"
+export const walletPublicKey =
+  "0x989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9" +
+  "d218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af"
 
 // Hash 160 of the public key:
 // 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
