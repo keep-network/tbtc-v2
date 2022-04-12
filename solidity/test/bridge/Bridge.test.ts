@@ -123,12 +123,6 @@ const fixture = async () => {
   // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
   // the initial value in the Bridge in order to save test Bitcoins.
   await bridge.setDepositDustThreshold(10000)
-  // Set the deposit transaction max fee to 10000 satoshi, i.e. 10x bigger than
-  // the initial value in the Bridge. This is required because `depositTxMaxFee`
-  // was introduced after BTC testnet transactions used in sweep tests were
-  // created and many of them used a high fee to speed up mining. A bigger
-  // value of this parameter gives more flexibility in general.
-  await bridge.setDepositTxMaxFee(10000)
   // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
   // the initial value in the Bridge in order to save test Bitcoins.
   await bridge.setRedemptionDustThreshold(100000)
