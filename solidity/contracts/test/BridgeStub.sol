@@ -93,4 +93,10 @@ contract BridgeStub is Bridge {
     ) external {
         redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
     }
+
+    function setMovingFundsTxMaxTotalFee(uint64 _movingFundsTxMaxTotalFee)
+        external
+    {
+        movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
+    }
 }
