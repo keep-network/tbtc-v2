@@ -856,7 +856,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             walletPubKeyHash
         ];
 
-        // TODO: Validate if `walletPubKeyHash` is a known and live wallet.
+        Wallets.WalletState walletState = wallet.state;
+        require(
+            walletState == Wallets.WalletState.Live ||
+                walletState == Wallets.WalletState.MovingFunds,
+            "Wallet must be in Live or MovingFunds state"
+        );
 
         // Check if the main UTXO for given wallet exists. If so, validate
         // passed main UTXO data against the stored hash and use them for
