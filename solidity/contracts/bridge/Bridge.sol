@@ -1666,10 +1666,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return frauds.challenges[challengeKey];
     }
 
-    /// @notice Checks whether an outbound Bitcoin transaction performed by
+    /// @notice Checks whether an outbound Bitcoin transaction performed from
     ///         the given wallet has an input vector that contains a single
     ///         input referring to the wallet's main UTXO. Marks that main UTXO
     ///         as correctly spent if the validation succeeds. Reverts otherwise.
+    ///         There are two outbound transactions from a wallet possible: a
+    ///         redemption transaction or a moving funds to another wallet
+    ///         transaction.
     /// @param walletOutboundTxInputVector Bitcoin outbound transaction's input
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVin` function
@@ -1726,8 +1729,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     }
 
     /// @notice Parses the input vector of an outbound Bitcoin transaction
-    ///         performed by the given wallet. It extracts the single input then
-    ///         the transaction hash and output index from its outpoint.
+    ///         performed from the given wallet. It extracts the single input
+    ///         then the transaction hash and output index from its outpoint.
+    ///         There are two outbound transactions from a wallet possible: a
+    ///         redemption transaction or a moving funds to another wallet
+    ///         transaction.
     /// @param walletOutboundTxInputVector Bitcoin outbound transaction input
     ///        vector. This function assumes vector's structure is valid so it
     ///        must be validated using e.g. `BTCUtils.validateVin` function
@@ -2051,7 +2057,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         using a reasonable transaction fee. If all preconditions are
     ///         met, this functions closes the source wallet.
     ///
-    ///         It is possible to prove the given moving funds only one time.
+    ///         It is possible to prove the given moving funds transaction only
+    ///         one time.
     /// @param movingFundsTx Bitcoin moving funds transaction data
     /// @param movingFundsProof Bitcoin moving funds proof data
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
