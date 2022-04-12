@@ -2,7 +2,7 @@ import { BigNumberish, BytesLike } from "ethers"
 import { walletState } from "../fixtures"
 
 /**
- * Represents a set of data used for given moving funds scenario.
+ * Represents a set of data used for the given moving funds scenario.
  */
 export interface MovingFundsTestData {
   /**
@@ -296,13 +296,15 @@ export const MultipleTargetWalletsAndDivisibleAmount = {
 }
 
 /**
- * `MultipleTargetWalletsAndDivisibleAmount` test data represents a moving
- * funds with the following properties:
+ * `MultipleTargetWalletsButAmountDistributedUnevenly` test data represents a
+ * moving funds with the following properties:
  * - 1 main UTXO input
  * - 2 P2PKH and 1 P2WPKH outputs that matches the target wallets from
  *   the commitment
  * - The total transacted amount is distributed unevenly over the target wallets
  * - 6+ on-chain confirmations of the sweep transaction
+ * - This is not a valid moving funds transaction that should be rejected
+ *   because amounts are not evenly distributed.
  */
 export const MultipleTargetWalletsButAmountDistributedUnevenly = {
   wallet: {
@@ -381,6 +383,8 @@ export const MultipleTargetWalletsButAmountDistributedUnevenly = {
  * - 1 main UTXO input
  * - 1 P2SH output that matches the target wallet from the commitment
  * - 6+ on-chain confirmations of the sweep transaction
+ * - This is not a valid moving funds transaction that should be rejected
+ *   because of the illegal P2SH output.
  */
 export const SingleTargetWalletButP2SH: MovingFundsTestData = {
   wallet: {
