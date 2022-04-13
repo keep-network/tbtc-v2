@@ -10,7 +10,7 @@ import {
   UnspentTransactionOutput,
 } from "./bitcoin"
 // @ts-ignore
-import { ElectrumClient as Electrum } from "electrum-client-js"
+import Electrum from "electrum-client-js"
 // @ts-ignore
 import sha256 from "bcrypto/lib/sha256-browser.js"
 
