@@ -22,23 +22,12 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
 import "../bank/Bank.sol";
+import "./IRelay.sol";
 import "./BridgeState.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./Wallets.sol";
 import "./Frauds.sol";
-
-/// @title Interface for the Bitcoin relay
-/// @notice Contains only the methods needed by tBTC v2. The Bitcoin relay
-///         provides the difficulty of the previous and current epoch. One
-///         difficulty epoch spans 2016 blocks.
-interface IRelay {
-    /// @notice Returns the difficulty of the current epoch.
-    function getCurrentEpochDifficulty() external view returns (uint256);
-
-    /// @notice Returns the difficulty of the previous epoch.
-    function getPrevEpochDifficulty() external view returns (uint256);
-}
 
 /// @title Bitcoin Bridge
 /// @notice Bridge manages BTC deposit and redemption flow and is increasing and
