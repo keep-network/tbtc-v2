@@ -135,20 +135,20 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     /// @notice The number of confirmations on the Bitcoin chain required to
     ///         successfully evaluate an SPV proof.
-    uint256 public immutable txProofDifficultyFactor;
+    uint256 public txProofDifficultyFactor;
 
     /// TODO: Revisit whether it should be governable or not.
     /// @notice Address of the Bank this Bridge belongs to.
-    Bank public immutable bank;
+    Bank public bank;
 
     /// TODO: Make it governable.
     /// @notice Handle to the Bitcoin relay.
-    IRelay public immutable relay;
+    IRelay public relay;
 
     /// TODO: Revisit whether it should be governable or not.
     /// @notice Address where the redemptions treasury fees will be sent to.
     ///         Treasury takes part in the operators rewarding process.
-    address public immutable treasury;
+    address public treasury;
 
     BridgeState.Storage internal self;
 
@@ -744,7 +744,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     /// @notice Resolves sweeping wallet based on the provided wallet public key
     ///         hash. Validates the wallet state and current main UTXO, as
-    ///         currently known on the Ethereum chain.  
+    ///         currently known on the Ethereum chain.
     /// @param walletPubKeyHash public key hash of the wallet proving the sweep
     ///        Bitcoin transaction.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
