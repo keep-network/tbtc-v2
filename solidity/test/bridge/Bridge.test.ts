@@ -61,6 +61,7 @@ const { impersonateAccount } = helpers.account
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
+// TODO: Use the `bridgeFixture`.
 const fixture = async () => {
   const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
 
@@ -122,12 +123,6 @@ const fixture = async () => {
   // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
   // the initial value in the Bridge in order to save test Bitcoins.
   await bridge.setDepositDustThreshold(10000)
-  // Set the deposit transaction max fee to 10000 satoshi, i.e. 10x bigger than
-  // the initial value in the Bridge. This is required because `depositTxMaxFee`
-  // was introduced after BTC testnet transactions used in sweep tests were
-  // created and many of them used a high fee to speed up mining. A bigger
-  // value of this parameter gives more flexibility in general.
-  await bridge.setDepositTxMaxFee(10000)
   // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
   // the initial value in the Bridge in order to save test Bitcoins.
   await bridge.setRedemptionDustThreshold(100000)
@@ -298,8 +293,9 @@ describe("Bridge", () => {
           mainUtxoHash: ethers.constants.HashZero,
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
-          moveFundsRequestedAt: 0,
+          movingFundsRequestedAt: 0,
           state: walletState.Live,
+          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
       })
 
@@ -689,8 +685,9 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: test.walletState,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -738,8 +735,10 @@ describe("Bridge", () => {
                             mainUtxoHash: ethers.constants.HashZero,
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
-                            moveFundsRequestedAt: 0,
+                            movingFundsRequestedAt: 0,
                             state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
                           })
 
                           tx = await runSweepScenario(data)
@@ -832,8 +831,10 @@ describe("Bridge", () => {
                             mainUtxoHash: ethers.constants.HashZero,
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
-                            moveFundsRequestedAt: 0,
+                            movingFundsRequestedAt: 0,
                             state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
                           })
 
                           tx = await runSweepScenario(data)
@@ -927,8 +928,10 @@ describe("Bridge", () => {
                             mainUtxoHash: ethers.constants.HashZero,
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
-                            moveFundsRequestedAt: 0,
+                            movingFundsRequestedAt: 0,
                             state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
                           })
 
                           // Make the first sweep which is actually the predecessor
@@ -969,8 +972,10 @@ describe("Bridge", () => {
                             mainUtxoHash: ethers.constants.HashZero,
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
-                            moveFundsRequestedAt: 0,
+                            movingFundsRequestedAt: 0,
                             state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
                           })
 
                           // Make a proper sweep to turn the tested deposit into
@@ -1019,8 +1024,10 @@ describe("Bridge", () => {
                           mainUtxoHash: ethers.constants.HashZero,
                           pendingRedemptionsValue: 0,
                           createdAt: await lastBlockTime(),
-                          moveFundsRequestedAt: 0,
+                          movingFundsRequestedAt: 0,
                           state: walletState.Live,
+                          movingFundsTargetWalletsCommitmentHash:
+                            ethers.constants.HashZero,
                         })
 
                         // Necessary to pass the proof validation.
@@ -1075,8 +1082,10 @@ describe("Bridge", () => {
                             mainUtxoHash: ethers.constants.HashZero,
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
-                            moveFundsRequestedAt: 0,
+                            movingFundsRequestedAt: 0,
                             state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
                           })
 
                           // Make the first sweep which is actually the predecessor
@@ -1230,8 +1239,10 @@ describe("Bridge", () => {
                             mainUtxoHash: ethers.constants.HashZero,
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
-                            moveFundsRequestedAt: 0,
+                            movingFundsRequestedAt: 0,
                             state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
                           })
 
                           tx = await runSweepScenario(data)
@@ -1357,8 +1368,10 @@ describe("Bridge", () => {
                             mainUtxoHash: ethers.constants.HashZero,
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
-                            moveFundsRequestedAt: 0,
+                            movingFundsRequestedAt: 0,
                             state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
                           })
 
                           // Make the first sweep to create an on-chain expectation
@@ -1409,8 +1422,10 @@ describe("Bridge", () => {
                             mainUtxoHash: ethers.constants.HashZero,
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
-                            moveFundsRequestedAt: 0,
+                            movingFundsRequestedAt: 0,
                             state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
                           })
 
                           // Make a proper sweep to turn the tested deposits into
@@ -1462,8 +1477,10 @@ describe("Bridge", () => {
                             mainUtxoHash: ethers.constants.HashZero,
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
-                            moveFundsRequestedAt: 0,
+                            movingFundsRequestedAt: 0,
                             state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
                           })
                         })
 
@@ -1504,8 +1521,10 @@ describe("Bridge", () => {
                       mainUtxoHash: ethers.constants.HashZero,
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
-                      moveFundsRequestedAt: 0,
+                      movingFundsRequestedAt: 0,
                       state: walletState.Live,
+                      movingFundsTargetWalletsCommitmentHash:
+                        ethers.constants.HashZero,
                     })
 
                     // Set the deposit transaction maximum fee to a value much
@@ -1546,8 +1565,10 @@ describe("Bridge", () => {
                   mainUtxoHash: ethers.constants.HashZero,
                   pendingRedemptionsValue: 0,
                   createdAt: await lastBlockTime(),
-                  moveFundsRequestedAt: 0,
+                  movingFundsRequestedAt: 0,
                   state: walletState.Live,
+                  movingFundsTargetWalletsCommitmentHash:
+                    ethers.constants.HashZero,
                 })
 
                 // Make the first sweep which is actually the predecessor
@@ -1706,8 +1727,9 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1754,8 +1776,9 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1795,8 +1818,9 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1834,8 +1858,9 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1874,8 +1899,9 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1919,8 +1945,9 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1967,8 +1994,9 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -2016,8 +2044,10 @@ describe("Bridge", () => {
                 mainUtxoHash: ethers.constants.HashZero,
                 pendingRedemptionsValue: 0,
                 createdAt: await lastBlockTime(),
-                moveFundsRequestedAt: 0,
+                movingFundsRequestedAt: 0,
                 state: walletState.Live,
+                movingFundsTargetWalletsCommitmentHash:
+                  ethers.constants.HashZero,
               })
 
               // Necessary to pass the first part of proof validation.
@@ -2076,8 +2106,9 @@ describe("Bridge", () => {
           mainUtxoHash: ethers.constants.HashZero,
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
-          moveFundsRequestedAt: 0,
+          movingFundsRequestedAt: 0,
           state: walletState.Live,
+          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
 
         await relay.setCurrentEpochDifficulty(data.chainDifficulty)
@@ -2134,8 +2165,9 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
 
             await relay.setCurrentEpochDifficulty(data.chainDifficulty)
@@ -2150,8 +2182,9 @@ describe("Bridge", () => {
               mainUtxoHash: wallet.mainUtxoHash,
               pendingRedemptionsValue: wallet.pendingRedemptionsValue,
               createdAt: wallet.createdAt,
-              moveFundsRequestedAt: wallet.moveFundsRequestedAt,
+              movingFundsRequestedAt: wallet.movingFundsRequestedAt,
               state: test.walletState,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -2186,8 +2219,9 @@ describe("Bridge", () => {
           mainUtxoHash: ethers.constants.HashZero,
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
-          moveFundsRequestedAt: 0,
+          movingFundsRequestedAt: 0,
           state: walletState.Live,
+          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
       })
 
@@ -2745,8 +2779,9 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
-            moveFundsRequestedAt: 0,
+            movingFundsRequestedAt: 0,
             state: walletState.MovingFunds,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
         })
 
@@ -2777,8 +2812,9 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
-            moveFundsRequestedAt: 0,
+            movingFundsRequestedAt: 0,
             state: walletState.Closed,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
         })
 
@@ -2809,8 +2845,9 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
-            moveFundsRequestedAt: 0,
+            movingFundsRequestedAt: 0,
             state: walletState.Terminated,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
         })
 
@@ -4972,7 +5009,7 @@ describe("Bridge", () => {
 
                 it("should revert", async () => {
                   await expect(outcome).to.be.revertedWith(
-                    "Redemption transaction input must point to the wallet's main UTXO"
+                    "Outbound transaction input must point to the wallet's main UTXO"
                   )
                 })
               }
@@ -4997,7 +5034,7 @@ describe("Bridge", () => {
 
             it("should revert", async () => {
               await expect(outcome).to.be.revertedWith(
-                "Redemption transaction must have a single input"
+                "Outbound transaction must have a single input"
               )
             })
           })
@@ -5353,8 +5390,10 @@ describe("Bridge", () => {
                   mainUtxoHash: ethers.constants.HashZero,
                   pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
                   createdAt: await lastBlockTime(),
-                  moveFundsRequestedAt: 0,
+                  movingFundsRequestedAt: 0,
                   state: walletState.Live,
+                  movingFundsTargetWalletsCommitmentHash:
+                    ethers.constants.HashZero,
                 })
                 await bridge.setWalletMainUtxo(
                   data.wallet.pubKeyHash,
@@ -5489,7 +5528,7 @@ describe("Bridge", () => {
 
               it("should not set the wallet's move funds requested timestamp", async () => {
                 const wallet = await bridge.getWallet(data.wallet.pubKeyHash)
-                expect(wallet.moveFundsRequestedAt).to.be.equal(0)
+                expect(wallet.movingFundsRequestedAt).to.be.equal(0)
               })
 
               it("should not emit WalletMovingFunds events", async () => {
@@ -5549,8 +5588,10 @@ describe("Bridge", () => {
                   mainUtxoHash: ethers.constants.HashZero,
                   pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
                   createdAt: await lastBlockTime(),
-                  moveFundsRequestedAt: 0,
+                  movingFundsRequestedAt: 0,
                   state: walletState.Live,
+                  movingFundsTargetWalletsCommitmentHash:
+                    ethers.constants.HashZero,
                 })
                 await bridge.setWalletMainUtxo(
                   data.wallet.pubKeyHash,
@@ -5680,7 +5721,7 @@ describe("Bridge", () => {
 
               it("should set the wallet's move funds requested timestamp", async () => {
                 const wallet = await bridge.getWallet(data.wallet.pubKeyHash)
-                expect(wallet.moveFundsRequestedAt).to.be.equal(
+                expect(wallet.movingFundsRequestedAt).to.be.equal(
                   await lastBlockTime()
                 )
               })
@@ -5733,8 +5774,10 @@ describe("Bridge", () => {
                 mainUtxoHash: ethers.constants.HashZero,
                 pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
                 createdAt: await lastBlockTime(),
-                moveFundsRequestedAt: 0,
+                movingFundsRequestedAt: 0,
                 state: walletState.Live,
+                movingFundsTargetWalletsCommitmentHash:
+                  ethers.constants.HashZero,
               })
               await bridge.setWalletMainUtxo(
                 data.wallet.pubKeyHash,
@@ -5813,10 +5856,11 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               // Initially set the state to Live, so that the redemption
               // request can be made
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
             await bridge.setWalletMainUtxo(
               data.wallet.pubKeyHash,
@@ -5852,8 +5896,9 @@ describe("Bridge", () => {
               mainUtxoHash: wallet.mainUtxoHash,
               pendingRedemptionsValue: wallet.pendingRedemptionsValue,
               createdAt: wallet.createdAt,
-              moveFundsRequestedAt: wallet.moveFundsRequestedAt,
+              movingFundsRequestedAt: wallet.movingFundsRequestedAt,
               state: walletState.MovingFunds,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
 
             await increaseTime(await bridge.redemptionTimeout())
@@ -5988,10 +6033,11 @@ describe("Bridge", () => {
               mainUtxoHash: ethers.constants.HashZero,
               pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
               createdAt: await lastBlockTime(),
-              moveFundsRequestedAt: 0,
+              movingFundsRequestedAt: 0,
               // Initially set the state to Live, so that the redemption
               // request can be made
               state: walletState.Live,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
             await bridge.setWalletMainUtxo(
               data.wallet.pubKeyHash,
@@ -6027,8 +6073,9 @@ describe("Bridge", () => {
               mainUtxoHash: wallet.mainUtxoHash,
               pendingRedemptionsValue: wallet.pendingRedemptionsValue,
               createdAt: wallet.createdAt,
-              moveFundsRequestedAt: wallet.moveFundsRequestedAt,
+              movingFundsRequestedAt: wallet.movingFundsRequestedAt,
               state: walletState.Terminated,
+              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
 
             await increaseTime(await bridge.redemptionTimeout())
@@ -6166,8 +6213,10 @@ describe("Bridge", () => {
                   mainUtxoHash: ethers.constants.HashZero,
                   pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
                   createdAt: await lastBlockTime(),
-                  moveFundsRequestedAt: 0,
+                  movingFundsRequestedAt: 0,
                   state: data.wallet.state,
+                  movingFundsTargetWalletsCommitmentHash:
+                    ethers.constants.HashZero,
                 })
                 await bridge.setWalletMainUtxo(
                   data.wallet.pubKeyHash,
@@ -6203,8 +6252,10 @@ describe("Bridge", () => {
                   mainUtxoHash: wallet.mainUtxoHash,
                   pendingRedemptionsValue: wallet.pendingRedemptionsValue,
                   createdAt: wallet.createdAt,
-                  moveFundsRequestedAt: wallet.moveFundsRequestedAt,
+                  movingFundsRequestedAt: wallet.movingFundsRequestedAt,
                   state: test.walletState,
+                  movingFundsTargetWalletsCommitmentHash:
+                    ethers.constants.HashZero,
                 })
 
                 await increaseTime(await bridge.redemptionTimeout())
@@ -6242,8 +6293,9 @@ describe("Bridge", () => {
             mainUtxoHash: ethers.constants.HashZero,
             pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
             createdAt: await lastBlockTime(),
-            moveFundsRequestedAt: 0,
+            movingFundsRequestedAt: 0,
             state: data.wallet.state,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
           await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
 
@@ -6350,8 +6402,9 @@ describe("Bridge", () => {
       mainUtxoHash: ethers.constants.HashZero,
       pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
       createdAt: await lastBlockTime(),
-      moveFundsRequestedAt: 0,
+      movingFundsRequestedAt: 0,
       state: data.wallet.state,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
     // Simulate the prepared main UTXO belongs to the wallet.
     await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
