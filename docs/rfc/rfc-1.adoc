@@ -661,7 +661,7 @@ Governable Parameters:
 
 When a wallet fails a <<heartbeat,heartbeat>> `consecutive_failed_heartbeats`
 times, ends a <<redemption,redemption>> with less than `wallet_min_closure_btc`
-remaining, or exceeds the `wallet_max_age`, the a few different parties can
+remaining, or exceeds the `wallet_max_age`, then a few different parties can
 begin the process of closing it.
 
 If the wallet failed a heartbeat, then the then the <<operator-only,first
