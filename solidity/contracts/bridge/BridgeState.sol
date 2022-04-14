@@ -89,11 +89,10 @@ library BridgeState {
         view
         returns (BitcoinTx.ProofDifficulty memory proofDifficulty)
     {
-        proofDifficulty.currentEpochDifficulty = self
-            .relay
+        IRelay relay = self.relay;
+        proofDifficulty.currentEpochDifficulty = relay
             .getCurrentEpochDifficulty();
-        proofDifficulty.previousEpochDifficulty = self
-            .relay
+        proofDifficulty.previousEpochDifficulty = relay
             .getPrevEpochDifficulty();
         proofDifficulty.difficultyFactor = self.txProofDifficultyFactor;
 
