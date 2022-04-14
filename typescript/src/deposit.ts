@@ -29,6 +29,12 @@ export interface DepositData {
   amount: BigNumber
 
   /**
+   * Compressed (33 bytes long with 02 or 03 prefix) Bitcoin public key of
+   * the wallet that is meant to receive the deposit.
+   */
+  walletPublicKey: string
+
+  /**
    * Compressed (33 bytes long with 02 or 03 prefix) Bitcoin public key that
    * is meant to be used during deposit refund after the locktime passes.
    */
@@ -162,10 +168,9 @@ export async function createDepositScript(
     throw new Error("Blinding factor must be an 8 bytes number")
   }
 
-  // Get the active wallet public key and use it as signing group public key.
-  const signingGroupPublicKey = await getActiveWalletPublicKey()
-  if (!isCompressedPublicKey(signingGroupPublicKey)) {
-    throw new Error("Signing group public key must be compressed")
+  const walletPublicKey = depositData.walletPublicKey
+  if (!isCompressedPublicKey(walletPublicKey)) {
+    throw new Error("Wallet public key must be compressed")
   }
 
   const refundPublicKey = depositData.refundPublicKey
@@ -186,7 +191,7 @@ export async function createDepositScript(
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(hash160.digest(Buffer.from(signingGroupPublicKey, "hex")))
+  script.pushData(hash160.digest(Buffer.from(walletPublicKey, "hex")))
   script.pushOp(opcodes.OP_EQUAL)
   script.pushOp(opcodes.OP_IF)
   script.pushOp(opcodes.OP_CHECKSIG)
@@ -248,12 +253,6 @@ export async function createDepositAddress(
     ? bcoin.Address.fromWitnessScripthash(scriptHash)
     : bcoin.Address.fromScripthash(scriptHash)
   return address.toString(network)
-}
-
-// TODO: Dummy key is returned for now. Remove this function and add
-// `walletPublicKey` to `DepositData`.
-export async function getActiveWalletPublicKey(): Promise<string> {
-  return "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
 }
 
 /**

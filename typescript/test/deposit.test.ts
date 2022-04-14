@@ -19,6 +19,8 @@ describe("Deposit", () => {
   const depositData = {
     ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
     amount: BigNumber.from(10000), // 0.0001 BTC
+    walletPublicKey:
+      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
     refundPublicKey:
       "0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
     blindingFactor: BigNumber.from("0xf9f0c90d00039523"), // 18010115967526606115
@@ -334,13 +336,13 @@ describe("Deposit", () => {
       // OP_HASH160 opcode is 0xa9.
       expect(script.substring(66, 68)).to.be.equal("a9")
 
-      // Assert the signing group public key hash is encoded correctly.
+      // Assert the wallet public key hash is encoded correctly.
       // The first byte (0x14) before the public key is this byte length.
       // In this case it's 20 bytes which is a correct length for a HASH160.
       expect(script.substring(68, 70)).to.be.equal("14")
       expect(script.substring(70, 110)).to.be.equal(
         hash160
-          .digest(Buffer.from(await TBTC.getActiveWalletPublicKey(), "hex"))
+          .digest(Buffer.from(depositData.walletPublicKey, "hex"))
           .toString("hex")
       )
 
