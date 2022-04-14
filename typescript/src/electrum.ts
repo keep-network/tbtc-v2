@@ -192,7 +192,7 @@ export class Client implements BitcoinClient {
     return this.withElectrum<string>(async (electrum: Electrum) => {
       const headersChain = await electrum.blockchain_block_headers(
         blockHeight,
-        chainLength
+        chainLength + 1
       )
 
       return headersChain.hex
