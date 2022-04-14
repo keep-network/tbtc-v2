@@ -126,7 +126,8 @@ export class Client implements BitcoinClient {
       const outputs = transaction.vout.map(
         (output: any): TransactionOutput => ({
           outputIndex: output.n,
-          value: output.value,
+          // The `output.value` is in BTC so it must be converted to satoshis.
+          value: parseFloat(output.value) * 1e8,
           scriptPubKey: output.scriptPubKey,
         })
       )
