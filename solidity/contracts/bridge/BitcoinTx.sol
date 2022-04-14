@@ -161,8 +161,8 @@ library BitcoinTx {
     function validateProof(
         Info calldata txInfo,
         Proof calldata proof,
-        ProofDifficulty calldata proofDifficulty
-    ) external view returns (bytes32 txHash) {
+        ProofDifficulty memory proofDifficulty
+    ) internal view returns (bytes32 txHash) {
         require(
             txInfo.inputVector.validateVin(),
             "Invalid input vector provided"
@@ -203,7 +203,7 @@ library BitcoinTx {
     /// @param proofDifficulty Bitcoin proof difficulty context.
     function evaluateProofDifficulty(
         bytes memory bitcoinHeaders,
-        ProofDifficulty calldata proofDifficulty
+        ProofDifficulty memory proofDifficulty
     ) internal view {
         uint256 requestedDiff = 0;
         uint256 firstHeaderDiff = bitcoinHeaders
