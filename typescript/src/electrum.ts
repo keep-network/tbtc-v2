@@ -132,7 +132,7 @@ export class Client implements BitcoinClient {
       )
 
       return {
-        transactionHash: transaction.hash,
+        transactionHash: transaction.txid,
         inputs: inputs,
         outputs: outputs,
       }
