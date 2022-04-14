@@ -1231,69 +1231,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                 info.changeIndex = uint32(i);
                 info.changeValue = outputValue;
             } else {
-                // If we entered here, that the means the given output is
-                // supposed to represent a redemption. Build the redemption key
-                // to perform that check.
-                uint256 redemptionKey = uint256(
-                    keccak256(abi.encodePacked(walletPubKeyHash, outputScript))
-                );
-
-                if (pendingRedemptions[redemptionKey].requestedAt != 0) {
-                    // If we entered here, that means the output was identified
-                    // as a pending redemption request.
-                    RedemptionRequest storage request = pendingRedemptions[
-                        redemptionKey
-                    ];
-                    // Compute the request's redeemable amount as the requested
-                    // amount reduced by the treasury fee. The request's
-                    // minimal amount is then the redeemable amount reduced by
-                    // the maximum transaction fee.
-                    uint64 redeemableAmount = request.requestedAmount -
-                        request.treasuryFee;
-                    // Output value must fit between the request's redeemable
-                    // and minimal amounts to be deemed valid.
-                    require(
-                        redeemableAmount - request.txMaxFee <= outputValue &&
-                            outputValue <= redeemableAmount,
-                        "Output value is not within the acceptable range of the pending request"
+                (
+                    uint64 burnableValue,
+                    uint64 treasuryFee
+                ) = processNonChangeRedemptionTxOutput(
+                        walletPubKeyHash,
+                        outputScript,
+                        outputValue
                     );
-                    // Add the redeemable amount to the total burnable value
-                    // the Bridge will use to decrease its balance in the Bank.
-                    info.totalBurnableValue += redeemableAmount;
-                    // Add the request's treasury fee to the total treasury fee
-                    // value the Bridge will transfer to the treasury.
-                    info.totalTreasuryFee += request.treasuryFee;
-                    // Request was properly handled so remove its redemption
-                    // key from the mapping to make it reusable for further
-                    // requests.
-                    delete pendingRedemptions[redemptionKey];
-                } else {
-                    // If we entered here, the output is not a redemption
-                    // request but there is still a chance the given output is
-                    // related to a reported timed out redemption request.
-                    // If so, check if the output value matches the request
-                    // amount to confirm this is an overdue request fulfillment
-                    // then bypass this output and process the subsequent
-                    // ones. That also means the wallet was already punished
-                    // for the inactivity. Otherwise, just revert.
-                    RedemptionRequest storage request = timedOutRedemptions[
-                        redemptionKey
-                    ];
-
-                    require(
-                        request.requestedAt != 0,
-                        "Output is a non-requested redemption"
-                    );
-
-                    uint64 redeemableAmount = request.requestedAmount -
-                        request.treasuryFee;
-
-                    require(
-                        redeemableAmount - request.txMaxFee <= outputValue &&
-                            outputValue <= redeemableAmount,
-                        "Output value is not within the acceptable range of the timed out request"
-                    );
-                }
+                info.totalBurnableValue += burnableValue;
+                info.totalTreasuryFee += treasuryFee;
 
                 processedRedemptionsCount++;
             }
@@ -1312,6 +1259,87 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
 
         return info;
+    }
+
+    /// @notice Processes a single redemption transaction output. Tries to
+    ///         identify output as a pending redemption request or reported
+    ///         timeout. Output script passed to this function must not be
+    ///         the change output. Such output needs to be identified separately
+    ///         before calling this function.
+    ///         Reverts if outut is neither requested pending redemption nor
+    ///         requested and reported timed-out redemption.
+    ///         This function also marks each request as processed by removing
+    ///         them from `pendingRedemptions` mapping.
+    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
+    //         HASH160 over the compressed ECDSA public key) of the wallet which
+    ///        performed the redemption transaction.
+    /// @param outputScript Non-change output script to be processed
+    /// @param outputValue Value of the output being processed
+    function processNonChangeRedemptionTxOutput(
+        bytes20 walletPubKeyHash,
+        bytes memory outputScript,
+        uint64 outputValue
+    ) internal returns (uint64 burnableValue, uint64 treasuryFee) {
+        uint256 redemptionKey = uint256(
+            keccak256(abi.encodePacked(walletPubKeyHash, outputScript))
+        );
+
+        if (pendingRedemptions[redemptionKey].requestedAt != 0) {
+            // If we entered here, that means the output was identified
+            // as a pending redemption request.
+            RedemptionRequest storage request = pendingRedemptions[
+                redemptionKey
+            ];
+            // Compute the request's redeemable amount as the requested
+            // amount reduced by the treasury fee. The request's
+            // minimal amount is then the redeemable amount reduced by
+            // the maximum transaction fee.
+            uint64 redeemableAmount = request.requestedAmount -
+                request.treasuryFee;
+            // Output value must fit between the request's redeemable
+            // and minimal amounts to be deemed valid.
+            require(
+                redeemableAmount - request.txMaxFee <= outputValue &&
+                    outputValue <= redeemableAmount,
+                "Output value is not within the acceptable range of the pending request"
+            );
+            // Add the redeemable amount to the total burnable value
+            // the Bridge will use to decrease its balance in the Bank.
+            burnableValue = redeemableAmount;
+            // Add the request's treasury fee to the total treasury fee
+            // value the Bridge will transfer to the treasury.
+            treasuryFee = request.treasuryFee;
+            // Request was properly handled so remove its redemption
+            // key from the mapping to make it reusable for further
+            // requests.
+            delete pendingRedemptions[redemptionKey];
+        } else {
+            // If we entered here, the output is not a redemption
+            // request but there is still a chance the given output is
+            // related to a reported timed out redemption request.
+            // If so, check if the output value matches the request
+            // amount to confirm this is an overdue request fulfillment
+            // then bypass this output and process the subsequent
+            // ones. That also means the wallet was already punished
+            // for the inactivity. Otherwise, just revert.
+            RedemptionRequest storage request = timedOutRedemptions[
+                redemptionKey
+            ];
+
+            require(
+                request.requestedAt != 0,
+                "Output is a non-requested redemption"
+            );
+
+            uint64 redeemableAmount = request.requestedAmount -
+                request.treasuryFee;
+
+            require(
+                redeemableAmount - request.txMaxFee <= outputValue &&
+                    outputValue <= redeemableAmount,
+                "Output value is not within the acceptable range of the timed out request"
+            );
+        }
     }
 
     /// @notice Notifies that there is a pending redemption request associated
