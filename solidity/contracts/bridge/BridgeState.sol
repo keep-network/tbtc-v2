@@ -33,7 +33,7 @@ library BridgeState {
         ///         difficulty.
         IRelay relay;
         /// TODO: Revisit whether it should be governable or not.
-        /// @notice Address where the deposit and redemption treasury fees will 
+        /// @notice Address where the deposit and redemption treasury fees will
         ///         be sent to. Treasury takes part in the operators rewarding
         ///         process.
         address treasury;
