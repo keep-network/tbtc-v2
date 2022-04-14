@@ -17,7 +17,7 @@ import sha256 from "bcrypto/lib/sha256-browser.js"
 /**
  * Represents a set of credentials required to establish an Electrum connection.
  */
-interface Credentials {
+export interface Credentials {
   /**
    * Host pointing to the Electrum server.
    */
