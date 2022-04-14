@@ -1,8 +1,8 @@
 :toc: macro
 
-= `tbtc-ts`
+= tBTC v2 TypeScript bindings
 
-`tbtc-ts` provides TypeScript bindings to the tBTC v2 system.
+This package provides TypeScript bindings to the tBTC v2 system.
 
 toc::[]
 

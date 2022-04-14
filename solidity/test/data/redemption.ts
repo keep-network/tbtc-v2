@@ -1,6 +1,13 @@
 import type { BigNumber, BigNumberish, BytesLike } from "ethers"
 import { walletState } from "../fixtures"
 
+// TODO: All explanatory comments regarding redemption math assumes the
+//       `redemptionTxMaxFee` is 1000 satoshi. It has been changed to 10000
+//       so all comments need to be adjusted accordingly. Preferably, in a
+//       way that will eliminate the need of adjustments in case this parameter
+//       is changed again (e.g. it can be expressed as a parameter
+//       not a specific value).
+
 /**
  * Represents a set of data used for given redemption scenario.
  */
