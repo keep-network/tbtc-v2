@@ -29,11 +29,13 @@ library BridgeState {
         /// @notice Address of the Bank this Bridge belongs to.
         Bank bank;
         /// TODO: Make it governable.
-        /// @notice Handle to the Bitcoin relay.
+        /// @notice Bitcoin relay providing the current Bitcoin network
+        ///         difficulty.
         IRelay relay;
         /// TODO: Revisit whether it should be governable or not.
-        /// @notice Address where the redemptions treasury fees will be sent to.
-        ///         Treasury takes part in the operators rewarding process.
+        /// @notice Address where the deposit and redemption treasury fees will 
+        ///         be sent to. Treasury takes part in the operators rewarding
+        ///         process.
         address treasury;
         /// TODO: Make it governable.
         /// @notice The minimal amount that can be requested to deposit.
