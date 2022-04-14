@@ -97,6 +97,6 @@ contract BridgeStub is Bridge {
     function setMovingFundsTxMaxTotalFee(uint64 _movingFundsTxMaxTotalFee)
         external
     {
-        movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
+        self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
     }
 }
