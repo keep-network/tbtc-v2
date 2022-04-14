@@ -1,4 +1,4 @@
-name: tbtc-ts
+name: TypeScript bindings
 
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
     branches:
       - main
     paths:
-      - "tbtc-ts/**"
+      - "typescript/**"
   pull_request:
   workflow_dispatch:
 
@@ -26,7 +26,7 @@ jobs:
         with:
           filters: |
             path-filter:
-              - './tbtc-ts/**'
+              - './typescript/**'
 
   build-and-test:
     needs: detect-changes
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./tbtc-ts
+        working-directory: ./typescript
     steps:
       - uses: actions/checkout@v2
 
@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
-          cache-dependency-path: tbtc-ts/yarn.lock
+          cache-dependency-path: typescript/yarn.lock
 
       - name: Install dependencies
         run: yarn install
@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./tbtc-ts
+        working-directory: ./typescript
     steps:
       - uses: actions/checkout@v2
 
@@ -71,7 +71,7 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
-          cache-dependency-path: tbtc-ts/yarn.lock
+          cache-dependency-path: typescript/yarn.lock
 
       - name: Install dependencies
         run: yarn install
