@@ -1267,8 +1267,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                     // key from the mapping to make it reusable for further
                     // requests.
                     delete pendingRedemptions[redemptionKey];
-
-                    processedRedemptionsCount++;
                 } else {
                     // If we entered here, the output is not a redemption
                     // request but there is still a chance the given output is
@@ -1295,9 +1293,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                             outputValue <= redeemableAmount,
                         "Output value is not within the acceptable range of the timed out request"
                     );
-
-                    processedRedemptionsCount++;
                 }
+
+                processedRedemptionsCount++;
             }
 
             // Make the `outputStartingIndex` pointing to the next output by
