@@ -1283,8 +1283,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                 resultInfo.changeValue = outputValue;
             } else {
                 // If we entered here, that the means the given output is
-                // supposed to represent a redemption. Build the redemption key
-                // to perform that check.
+                // supposed to represent a redemption.
                 (
                     uint64 burnableValue,
                     uint64 treasuryFee
@@ -1317,20 +1316,33 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         redemption timeout. Output script passed to this function must
     ///         not be the change output. Such output needs to be identified
     ///         separately before calling this function.
-    ///         Reverts if outut is neither requested pending redemption nor
+    ///         Reverts if output is neither requested pending redemption nor
     ///         requested and reported timed-out redemption.
-    ///         This function also marks each request as processed by removing
-    ///         them from `pendingRedemptions` mapping.
+    ///         This function also marks each pending request as processed by 
+    ///         removing it from `pendingRedemptions` mapping.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
     //         HASH160 over the compressed ECDSA public key) of the wallet which
     ///        performed the redemption transaction.
     /// @param outputScript Non-change output script to be processed
     /// @param outputValue Value of the output being processed
+    /// @return burnableValue The value burnable as a result of processing this
+    ///         single redemption output. This value needs to be summed up with
+    ///         burnable values of all other outputs to evaluate total burnable
+    ///         value for the entire redemption transaction. This value is 0
+    ///         for a timed-out redemption request.
+    /// @return treasuryFee The treasury fee from this single redemption output.
+    ///         This value needs to be summed up with treasury fees of all other
+    ///         outputs to evaluate the total treasury fee for the entire 
+    ///         redemption transaction. This value is 0 for a timed-out
+    ///         redemption request.
     function processNonChangeRedemptionTxOutput(
         bytes20 walletPubKeyHash,
         bytes memory outputScript,
         uint64 outputValue
     ) internal returns (uint64 burnableValue, uint64 treasuryFee) {
+        // This function should be called only if the given output is
+        // supposed to represent a redemption. Build the redemption key
+        // to perform that check.
         uint256 redemptionKey = uint256(
             keccak256(abi.encodePacked(walletPubKeyHash, outputScript))
         );
