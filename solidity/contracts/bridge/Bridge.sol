@@ -1318,7 +1318,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         separately before calling this function.
     ///         Reverts if output is neither requested pending redemption nor
     ///         requested and reported timed-out redemption.
-    ///         This function also marks each pending request as processed by 
+    ///         This function also marks each pending request as processed by
     ///         removing it from `pendingRedemptions` mapping.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
     //         HASH160 over the compressed ECDSA public key) of the wallet which
@@ -1332,7 +1332,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         for a timed-out redemption request.
     /// @return treasuryFee The treasury fee from this single redemption output.
     ///         This value needs to be summed up with treasury fees of all other
-    ///         outputs to evaluate the total treasury fee for the entire 
+    ///         outputs to evaluate the total treasury fee for the entire
     ///         redemption transaction. This value is 0 for a timed-out
     ///         redemption request.
     function processNonChangeRedemptionTxOutput(
