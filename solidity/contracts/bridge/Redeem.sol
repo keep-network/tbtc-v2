@@ -141,6 +141,7 @@ library OutboundTx {
     }
 }
 
+// TODO: Rename to Redemption. All library names are nouns.
 library Redeem {
     using BridgeState for BridgeState.Storage;
     using Wallets for Wallets.Data;
