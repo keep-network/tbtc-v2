@@ -417,7 +417,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      deposit script unlocks to receive their BTC back.
     function revealDeposit(
         BitcoinTx.Info calldata fundingTx,
-        Deposit.RevealInfo calldata reveal
+        Deposit.DepositRevealInfo calldata reveal
     ) external {
         self.revealDeposit(wallets, fundingTx, reveal);
     }
@@ -971,7 +971,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function deposits(uint256 depositKey)
         external
         view
-        returns (Deposit.Request memory)
+        returns (Deposit.DepositRequest memory)
     {
         return self.deposits[depositKey];
     }

@@ -67,7 +67,7 @@ library BridgeState {
         ///         and fundingOutputIndex an uint32. This mapping may contain valid
         ///         and invalid deposits and the wallet is responsible for
         ///         validating them before attempting to execute a sweep.
-        mapping(uint256 => Deposit.Request) deposits;
+        mapping(uint256 => Deposit.DepositRequest) deposits;
         /// @notice Indicates if the vault with the given address is trusted or not.
         ///         Depositors can route their revealed deposits only to trusted
         ///         vaults and have trusted vaults notified about new deposits as
