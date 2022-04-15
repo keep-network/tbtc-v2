@@ -15,11 +15,7 @@ import {
 export interface RedemptionRequest {
   /**
    * The address that is the recipient of the redeemed Bitcoins.
-   * The type of the address may be:
-   *  - public key hash,
-   *  - script hash,
-   *  - witness public key hash,
-   *  - witness script hash.
+   * The type of the address must be P2PKH, P2WPKH, P2SH or P2WSH.
    */
   address: string
 
@@ -41,14 +37,13 @@ export interface RedemptionRequest {
   outputFee: BigNumber
 }
 
+// TODO: Description
 export async function redeemDeposits(
   bitcoinClient: BitcoinClient,
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput,
   redemptionRequests: RedemptionRequest[]
 ): Promise<void> {
-  console.log("redeemDeposits called")
-
   const rawTransaction = await bitcoinClient.getRawTransaction(
     mainUtxo.transactionHash
   )
@@ -70,6 +65,7 @@ export async function redeemDeposits(
   await bitcoinClient.broadcast(transaction)
 }
 
+// TODO: Description
 export async function createRedemptionTransaction(
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput & RawTransaction,
@@ -102,15 +98,29 @@ export async function createRedemptionTransaction(
 
   let txFee = 0
   for (const request of redemptionRequests) {
-    // TODO: Check the address is one of the four supported types
-    // (PKH, SH, WPKH, WSH)
+    // Add the fee for this particular request to the overall transaction fee
     txFee += request.outputFee.toNumber()
+
+    // Calculate the value of the output by subtracting fee for this particular
+    // output from the requested amount
     const outputValue = request.amount.sub(request.outputFee)
 
-    transaction.addOutput({
-      script: bcoin.Script.fromAddress(request.address),
-      value: outputValue.toNumber(),
-    })
+    const address = bcoin.Address.fromString(request.address)
+
+    // Only allow standard address type to receive the redeemed Bitcoins
+    if (
+      address.isPubkeyhash() ||
+      address.isWitnessPubkeyhash() ||
+      address.isScripthash() ||
+      address.isWitnessScripthash()
+    ) {
+      transaction.addOutput({
+        script: bcoin.Script.fromAddress(address),
+        value: outputValue.toNumber(),
+      })
+    } else {
+      throw new Error("Redemption address must be P2PKH, P2WPKH, P2SH or P2WSH")
+    }
   }
 
   await transaction.fund(inputCoins, {

@@ -5,8 +5,8 @@ import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
   testnetWalletPrivateKey,
-  singlePKHAddressRedemption,
-  singleWPKHAddressRedemption,
+  singleP2PKHAddressRedemption,
+  singleP2WPKHAddressRedemption,
   RedemptionTestData,
 } from "./data/redemption"
 import * as chai from "chai"
@@ -24,8 +24,8 @@ describe("Redemption", () => {
     })
 
     context("when the there is a single redeemer", () => {
-      context("when the redeemer address is public key hash", () => {
-        const data: RedemptionTestData = singlePKHAddressRedemption
+      context("when the redeemer address type is P2PKH", () => {
+        const data: RedemptionTestData = singleP2PKHAddressRedemption
 
         beforeEach(async () => {
           const rawTransactions = new Map<string, RawTransaction>()
@@ -50,37 +50,37 @@ describe("Redemption", () => {
         })
       })
 
-      context("when the redeemer address is script hash", () => {
+      context("when the redeemer address type is P2WPKH", () => {
+        const data: RedemptionTestData = singleP2WPKHAddressRedemption
+
+        beforeEach(async () => {
+          const rawTransactions = new Map<string, RawTransaction>()
+          rawTransactions.set(data.mainUtxo.transactionHash, {
+            transactionHex: data.mainUtxo.transactionHex,
+          })
+          bitcoinClient.rawTransactions = rawTransactions
+
+          await TBTC.redeemDeposits(
+            bitcoinClient,
+            testnetWalletPrivateKey,
+            data.mainUtxo,
+            data.redemptionRequests
+          )
+        })
+
+        it("should broadcast redemption transaction with proper structure", () => {
+          expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+          expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+            data.expectedRedemption.transaction
+          )
+        })
+      })
+
+      context("when the redeemer address is P2SH", () => {
         // TODO: Implement
       })
 
-      context("when the redeemer address is witness public key hash", () => {
-        const data: RedemptionTestData = singleWPKHAddressRedemption
-
-        beforeEach(async () => {
-          const rawTransactions = new Map<string, RawTransaction>()
-          rawTransactions.set(data.mainUtxo.transactionHash, {
-            transactionHex: data.mainUtxo.transactionHex,
-          })
-          bitcoinClient.rawTransactions = rawTransactions
-
-          await TBTC.redeemDeposits(
-            bitcoinClient,
-            testnetWalletPrivateKey,
-            data.mainUtxo,
-            data.redemptionRequests
-          )
-        })
-
-        it("should broadcast redemption transaction with proper structure", () => {
-          expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
-          expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-            data.expectedRedemption.transaction
-          )
-        })
-      })
-
-      context("when the redeemer address is witness script hash", () => {
+      context("when the redeemer address is P2WSH", () => {
         // TODO: Implement
       })
     })
