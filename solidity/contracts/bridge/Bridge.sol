@@ -750,6 +750,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
+    /// @dev Requirements:
+    ///     - Sweeping wallet must be either in Live or MovingFunds state.
+    ///     - If the main UTXO of the sweeping wallet exists in the storage,
+    ///       the passed `mainUTXO` parameter must be equal to the stored one.
     function resolveSweepingWallet(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
