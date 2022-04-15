@@ -43,7 +43,7 @@ contract BridgeStub is Bridge {
                     abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
                 )
             );
-            spentMainUTXOs[utxoKey] = true;
+            self.spentMainUTXOs[utxoKey] = true;
         }
     }
 
@@ -79,7 +79,7 @@ contract BridgeStub is Bridge {
     }
 
     function setDepositTxMaxFee(uint64 _depositTxMaxFee) external {
-        depositTxMaxFee = _depositTxMaxFee;
+        self.depositTxMaxFee = _depositTxMaxFee;
     }
 
     function setRedemptionDustThreshold(uint64 _redemptionDustThreshold)

@@ -17,6 +17,7 @@ import type {
   BridgeStub,
   BridgeStub__factory,
   Deposit__factory,
+  Sweep__factory,
   TestRelay,
   TestRelay__factory,
   IWalletRegistry,
@@ -95,6 +96,14 @@ const fixture = async () => {
   const deposit = await Deposit.deploy()
   await deposit.deployed()
 
+  const Sweep = await ethers.getContractFactory<Sweep__factory>("Sweep", {
+    libraries: {
+      BitcoinTx: bitcoinTx.address,
+    },
+  })
+  const sweep = await Sweep.deploy()
+  await sweep.deployed()
+
   const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
   const wallets = await Wallets.deploy()
   await wallets.deployed()
@@ -109,6 +118,7 @@ const fixture = async () => {
       libraries: {
         BitcoinTx: bitcoinTx.address,
         Deposit: deposit.address,
+        Sweep: sweep.address,
         Wallets: wallets.address,
         Frauds: frauds.address,
       },
