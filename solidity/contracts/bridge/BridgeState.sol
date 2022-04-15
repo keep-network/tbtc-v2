@@ -21,8 +21,6 @@ import "./Redeem.sol";
 
 import "../bank/Bank.sol";
 
-import "../bank/Bank.sol";
-
 library BridgeState {
     struct Storage {
         /// @notice The number of confirmations on the Bitcoin chain required to
