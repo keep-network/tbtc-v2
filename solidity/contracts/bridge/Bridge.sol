@@ -850,6 +850,22 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         relay = self.relay;
     }
 
+    /// @notice Address where the deposit treasury fees will be sent to.
+    ///         Treasury takes part in the operators rewarding process.
+    function treasury() external view returns (address treasury) {
+        treasury = self.treasury;
+    }
+
+    /// @notice The number of confirmations on the Bitcoin chain required to
+    ///         successfully evaluate an SPV proof.
+    function txProofDifficultyFactor()
+        external
+        view
+        returns (uint256 txProofDifficultyFactor)
+    {
+        txProofDifficultyFactor = self.txProofDifficultyFactor;
+    }
+
     /// @notice Returns the current values of Bridge deposit parameters.
     /// @return depositDustThreshold The minimal amount that can be requested
     ///         to deposit. Value of this parameter must take into account the
@@ -867,26 +883,18 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         be incurred by each swept deposit being part of the given sweep
     ///         transaction. If the maximum BTC transaction fee is exceeded,
     ///         such transaction is considered a fraud.
-    /// @return treasury Address where the deposit treasury fees will be
-    ///         sent to. Treasury takes part in the operators rewarding process.
-    /// @return txProofDifficultyFactor The number of confirmations on the
-    ///         Bitcoin chain required to successfully evaluate an SPV proof.
     function depositParameters()
         external
         view
         returns (
             uint64 depositDustThreshold,
             uint64 depositTreasuryFeeDivisor,
-            uint64 depositTxMaxFee,
-            address treasury,
-            uint256 txProofDifficultyFactor
+            uint64 depositTxMaxFee
         )
     {
         depositDustThreshold = self.depositDustThreshold;
         depositTreasuryFeeDivisor = self.depositTreasuryFeeDivisor;
         depositTxMaxFee = self.depositTxMaxFee;
-        treasury = self.treasury;
-        txProofDifficultyFactor = self.txProofDifficultyFactor;
     }
 
     /// @notice Returns the current values of Bridge redemption parameters.
@@ -912,10 +920,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         redemption request was created via `requestRedemption` call.
     ///         Reported  timed out requests are cancelled and locked TBTC is
     ///         returned to the redeemer in full amount.
-    /// @return treasury Address where the redemption treasury fees will be
-    ///         sent to. Treasury takes part in the operators rewarding process.
-    /// @return txProofDifficultyFactor The number of confirmations on the
-    ///         Bitcoin chain required to successfully evaluate an SPV proof.
     function redemptionParameters()
         external
         view
@@ -932,8 +936,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         redemptionTreasuryFeeDivisor = self.redemptionTreasuryFeeDivisor;
         redemptionTxMaxFee = self.redemptionTxMaxFee;
         redemptionTimeout = self.redemptionTimeout;
-        treasury = self.treasury;
-        txProofDifficultyFactor = self.txProofDifficultyFactor;
     }
 
     /// @notice Returns the current values of Bridge moving funds between
