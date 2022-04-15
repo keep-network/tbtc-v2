@@ -65,7 +65,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using Sweep for BridgeState.Storage;
     using Redeem for BridgeState.Storage;
     using MovingFunds for BridgeState.Storage;
-    using Frauds for Frauds.Data;
+    using Frauds for BridgeState.Storage;
     using Wallets for Wallets.Data;
 
     using BTCUtils for bytes;
@@ -73,10 +73,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using BytesLib for bytes;
 
     BridgeState.Storage internal self;
-
-    /// @notice Contains parameters related to frauds and the collection of all
-    ///         submitted fraud challenges.
-    Frauds.Data internal frauds;
 
     /// @notice State related with wallets.
     Wallets.Data internal wallets;
@@ -208,12 +204,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.redemptionTxMaxFee = 10000; // 10000 satoshi
         self.redemptionTimeout = 172800; // 48 hours
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
-
-        // TODO: Revisit initial values.
-        frauds.setSlashingAmount(10000 * 1e18); // 10000 T
-        frauds.setNotifierRewardMultiplier(100); // 100%
-        frauds.setChallengeDefeatTimeout(7 days);
-        frauds.setChallengeDepositAmount(2 ether);
+        self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
+        self.fraudNotifierRewardMultiplier = 100; // 100%
+        self.fraudChallengeDefeatTimeout = 7 days;
+        self.fraudChallengeDepositAmount = 2 ether;
 
         // TODO: Revisit initial values.
         wallets.init(_ecdsaWalletRegistry);
@@ -519,7 +513,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "Wallet is neither in Live nor MovingFunds state"
         );
 
-        frauds.submitChallenge(
+        self.submitChallenge(
             walletPublicKey,
             walletPubKeyHash,
             sighash,
@@ -560,7 +554,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes calldata preimage,
         bool witness
     ) external {
-        uint256 utxoKey = frauds.unwrapChallenge(
+        uint256 utxoKey = self.unwrapChallenge(
             walletPublicKey,
             preimage,
             witness
@@ -572,7 +566,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             "Spent UTXO not found among correctly spent UTXOs"
         );
 
-        frauds.defeatChallenge(walletPublicKey, preimage, self.treasury);
+        self.defeatChallenge(walletPublicKey, preimage, self.treasury);
     }
 
     /// @notice Notifies about defeat timeout for the given fraud challenge.
@@ -602,7 +596,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes calldata walletPublicKey,
         bytes32 sighash
     ) external {
-        frauds.notifyChallengeDefeatTimeout(walletPublicKey, sighash);
+        self.notifyChallengeDefeatTimeout(walletPublicKey, sighash);
     }
 
     /// @notice Returns parameters used by the `Frauds` library.
@@ -620,10 +614,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             uint256 challengeDepositAmount
         )
     {
-        slashingAmount = frauds.slashingAmount;
-        notifierRewardMultiplier = frauds.notifierRewardMultiplier;
-        challengeDefeatTimeout = frauds.challengeDefeatTimeout;
-        challengeDepositAmount = frauds.challengeDepositAmount;
+        slashingAmount = self.fraudSlashingAmount;
+        notifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
+        challengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
+        challengeDepositAmount = self.fraudChallengeDepositAmount;
 
         return (
             slashingAmount,
@@ -640,7 +634,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         view
         returns (Frauds.FraudChallenge memory)
     {
-        return frauds.challenges[challengeKey];
+        return self.fraudChallenges[challengeKey];
     }
 
     /// @notice Requests redemption of the given amount from the specified

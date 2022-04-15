@@ -18,31 +18,16 @@ pragma solidity ^0.8.9;
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {CheckBitcoinSigs} from "@keep-network/bitcoin-spv-sol/contracts/CheckBitcoinSigs.sol";
+
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
-import "./Bridge.sol";
+import "./BridgeState.sol";
 
 library Frauds {
     using BytesLib for bytes;
     using BTCUtils for bytes;
     using BTCUtils for uint32;
     using EcdsaLib for bytes;
-
-    struct Data {
-        ///  The amount of stake slashed from each member of a wallet for a fraud.
-        uint256 slashingAmount;
-        /// The percentage of the notifier reward from the staking contract
-        /// the notifier of a fraud receives. The value is in the range [0, 100].
-        uint256 notifierRewardMultiplier;
-        /// The amount of time the wallet has to defeat a fraud challenge.
-        uint256 challengeDefeatTimeout;
-        /// The amount of ETH in wei the party challenging the wallet for fraud
-        /// needs to deposit.
-        uint256 challengeDepositAmount;
-        /// Collection of all submitted fraud challenges indexed by challenge
-        /// key built as keccak256(walletPublicKey|sighash).
-        mapping(uint256 => FraudChallenge) challenges;
-    }
 
     struct FraudChallenge {
         // The address of the party challenging the wallet.
@@ -117,14 +102,14 @@ library Frauds {
     ///        the wallet behind `walletPubKey` during signing of `sighash`
     ///      - Wallet can be challenged for the given signature only once
     function submitChallenge(
-        Data storage self,
+        BridgeState.Storage storage self,
         bytes calldata walletPublicKey,
         bytes20 walletPubKeyHash,
         bytes32 sighash,
         BitcoinTx.RSVSignature calldata signature
     ) external {
         require(
-            msg.value >= self.challengeDepositAmount,
+            msg.value >= self.fraudChallengeDepositAmount,
             "The amount of ETH deposited is too low"
         );
 
@@ -143,7 +128,7 @@ library Frauds {
             keccak256(abi.encodePacked(walletPublicKey, sighash))
         );
 
-        FraudChallenge storage challenge = self.challenges[challengeKey];
+        FraudChallenge storage challenge = self.fraudChallenges[challengeKey];
         require(challenge.reportedAt == 0, "Fraud challenge already exists");
 
         challenge.challenger = msg.sender;
@@ -179,7 +164,7 @@ library Frauds {
     ///      - the preimage must be a valid preimage of a transaction generated
     ///        according to the protocol rules and already proved in the Bridge
     function unwrapChallenge(
-        Data storage self,
+        BridgeState.Storage storage self,
         bytes calldata walletPublicKey,
         bytes calldata preimage,
         bool witness
@@ -190,7 +175,7 @@ library Frauds {
             keccak256(abi.encodePacked(walletPublicKey, sighash))
         );
 
-        FraudChallenge storage challenge = self.challenges[challengeKey];
+        FraudChallenge storage challenge = self.fraudChallenges[challengeKey];
 
         require(challenge.reportedAt > 0, "Fraud challenge does not exist");
         require(
@@ -231,7 +216,7 @@ library Frauds {
     ///      - before a defeat attempt is made the transaction that spends the
     ///        given UTXO must be proven in the Bridge
     function defeatChallenge(
-        Data storage self,
+        BridgeState.Storage storage self,
         bytes calldata walletPublicKey,
         bytes calldata preimage,
         address treasury
@@ -242,7 +227,7 @@ library Frauds {
             keccak256(abi.encodePacked(walletPublicKey, sighash))
         );
 
-        FraudChallenge storage challenge = self.challenges[challengeKey];
+        FraudChallenge storage challenge = self.fraudChallenges[challengeKey];
 
         // Mark the challenge as resolved as it was successfully defeated
         challenge.resolved = true;
@@ -286,7 +271,7 @@ library Frauds {
     ///      - the amount of time indicated by `challengeDefeatTimeout` must pass
     ///        after the challenge was reported
     function notifyChallengeDefeatTimeout(
-        Data storage self,
+        BridgeState.Storage storage self,
         bytes calldata walletPublicKey,
         bytes32 sighash
     ) external {
@@ -294,7 +279,7 @@ library Frauds {
             keccak256(abi.encodePacked(walletPublicKey, sighash))
         );
 
-        FraudChallenge storage challenge = self.challenges[challengeKey];
+        FraudChallenge storage challenge = self.fraudChallenges[challengeKey];
         require(challenge.reportedAt > 0, "Fraud challenge does not exist");
         require(
             !challenge.resolved,
@@ -303,7 +288,7 @@ library Frauds {
         require(
             /* solhint-disable-next-line not-rely-on-time */
             block.timestamp >=
-                challenge.reportedAt + self.challengeDefeatTimeout,
+                challenge.reportedAt + self.fraudChallengeDefeatTimeout,
             "Fraud challenge defeat period did not time out yet"
         );
 
@@ -327,60 +312,6 @@ library Frauds {
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
 
         emit FraudChallengeDefeatTimedOut(walletPubKeyHash, sighash);
-    }
-
-    /// @notice Sets the new value for the `slashingAmount` parameter.
-    /// @param _newSlashingAmount the new value for `slashingAmount`
-    function setSlashingAmount(Data storage self, uint256 _newSlashingAmount)
-        external
-    {
-        self.slashingAmount = _newSlashingAmount;
-        emit FraudSlashingAmountUpdated(_newSlashingAmount);
-    }
-
-    /// @notice Sets the new value for the `notifierRewardMultiplier` parameter.
-    /// @param _newNotifierRewardMultiplier the new value for `notifierRewardMultiplier`
-    /// @dev The value of `notifierRewardMultiplier` must be <= 100.
-    function setNotifierRewardMultiplier(
-        Data storage self,
-        uint256 _newNotifierRewardMultiplier
-    ) external {
-        require(
-            _newNotifierRewardMultiplier <= 100,
-            "Fraud notifier reward multiplier must be <= 100"
-        );
-        self.notifierRewardMultiplier = _newNotifierRewardMultiplier;
-        emit FraudNotifierRewardMultiplierUpdated(_newNotifierRewardMultiplier);
-    }
-
-    /// @notice Sets the new value for the `challengeDefeatTimeout` parameter.
-    /// @param _newChallengeDefeatTimeout the new value for `challengeDefeatTimeout`
-    /// @dev The value of `challengeDefeatTimeout` must be > 0.
-    function setChallengeDefeatTimeout(
-        Data storage self,
-        uint256 _newChallengeDefeatTimeout
-    ) external {
-        require(
-            _newChallengeDefeatTimeout > 0,
-            "Fraud challenge defeat timeout must be > 0"
-        );
-        self.challengeDefeatTimeout = _newChallengeDefeatTimeout;
-        emit FraudChallengeDefeatTimeoutUpdated(_newChallengeDefeatTimeout);
-    }
-
-    /// @notice Sets the new value for the `challengeDepositAmount` parameter.
-    /// @param _newChallengeDepositAmount the new value for `challengeDepositAmount`
-    /// @dev The value of `challengeDepositAmount` must be > 0.
-    function setChallengeDepositAmount(
-        Data storage self,
-        uint256 _newChallengeDepositAmount
-    ) external {
-        require(
-            _newChallengeDepositAmount > 0,
-            "Fraud challenge deposit amount must be > 0"
-        );
-        self.challengeDepositAmount = _newChallengeDepositAmount;
-        emit FraudChallengeDepositAmountUpdated(_newChallengeDepositAmount);
     }
 
     /// @notice Extracts the UTXO keys from the given preimage used during

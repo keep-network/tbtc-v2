@@ -18,6 +18,7 @@ pragma solidity ^0.8.9;
 import "./IRelay.sol";
 import "./Deposit.sol";
 import "./Redeem.sol";
+import "./Frauds.sol";
 
 import "../bank/Bank.sol";
 
@@ -134,6 +135,19 @@ library BridgeState {
         //    mapping basing on a timed out request stored previously in
         //    `pendingRedemptions` mapping.
         mapping(uint256 => Redeem.RedemptionRequest) timedOutRedemptions;
+        // The amount of stake slashed from each member of a wallet for a fraud.
+        uint256 fraudSlashingAmount;
+        // The percentage of the notifier reward from the staking contract
+        // the notifier of a fraud receives. The value is in the range [0, 100].
+        uint256 fraudNotifierRewardMultiplier;
+        // The amount of time the wallet has to defeat a fraud challenge.
+        uint256 fraudChallengeDefeatTimeout;
+        // The amount of ETH in wei the party challenging the wallet for fraud
+        // needs to deposit.
+        uint256 fraudChallengeDepositAmount;
+        // Collection of all submitted fraud challenges indexed by challenge
+        // key built as `keccak256(walletPublicKey|sighash)`.
+        mapping(uint256 => Frauds.FraudChallenge) fraudChallenges;
         // Collection of main UTXOs that are honestly spent indexed by
         // `keccak256(fundingTxHash | fundingOutputIndex)`. The `fundingTxHash`
         // is `bytes32` (ordered as in Bitcoin internally) and
