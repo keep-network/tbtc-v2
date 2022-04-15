@@ -122,7 +122,7 @@ library Sweep {
         (
             Wallets.Wallet storage wallet,
             BitcoinTx.UTXO memory resolvedMainUtxo
-        ) = resolveWallet(wallets, walletPubKeyHash, mainUtxo);
+        ) = resolveSweepingWallet(wallets, walletPubKeyHash, mainUtxo);
 
         // Process sweep transaction inputs and extract all information needed
         // to perform deposit bookkeeping.
@@ -203,7 +203,11 @@ library Sweep {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
-    function resolveWallet(
+    /// @dev Requirements:
+    ///     - Sweeping wallet must be either in Live or MovingFunds state.
+    ///     - If the main UTXO of the sweeping wallet exists in the storage,
+    ///       the passed `mainUTXO` parameter must be equal to the stored one.
+    function resolveSweepingWallet(
         Wallets.Data storage wallets,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
