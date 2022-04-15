@@ -599,34 +599,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.notifyChallengeDefeatTimeout(walletPublicKey, sighash);
     }
 
-    /// @notice Returns parameters used by the `Frauds` library.
-    /// @return slashingAmount Value of the slashing amount
-    /// @return notifierRewardMultiplier Value of the notifier reward multiplier
-    /// @return challengeDefeatTimeout Value of the challenge defeat timeout
-    /// @return challengeDepositAmount Value of the challenge deposit amount
-    function getFraudParameters()
-        external
-        view
-        returns (
-            uint256 slashingAmount,
-            uint256 notifierRewardMultiplier,
-            uint256 challengeDefeatTimeout,
-            uint256 challengeDepositAmount
-        )
-    {
-        slashingAmount = self.fraudSlashingAmount;
-        notifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
-        challengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
-        challengeDepositAmount = self.fraudChallengeDepositAmount;
-
-        return (
-            slashingAmount,
-            notifierRewardMultiplier,
-            challengeDefeatTimeout,
-            challengeDepositAmount
-        );
-    }
-
     /// @notice Returns the fraud challenge identified by the given key built
     ///         as keccak256(walletPublicKey|sighash).
     function fraudChallenges(uint256 challengeKey)
@@ -945,6 +917,27 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     {
         // TODO: we will have more parameters here, for example moving funds timeout
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
+    }
+
+    /// @notice Returns the current values of Bridge fraud parameters.
+    /// @return fraudSlashingAmount Value of the fraud slashing amount
+    /// @return fraudNotifierRewardMultiplier Value of the fraud notifier reward multiplier
+    /// @return fraudChallengeDefeatTimeout Value of the fraud challenge defeat timeout
+    /// @return fraudChallengeDepositAmount Value of the fraud challenge deposit amount
+    function fraudParameters()
+        external
+        view
+        returns (
+            uint256 fraudSlashingAmount,
+            uint256 fraudNotifierRewardMultiplier,
+            uint256 fraudChallengeDefeatTimeout,
+            uint256 fraudChallengeDepositAmount
+        )
+    {
+        fraudSlashingAmount = self.fraudSlashingAmount;
+        fraudNotifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
+        fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
+        fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
     }
 
     /// @notice Indicates if the vault with the given address is trusted or not.

@@ -32,9 +32,16 @@ describe("Bridge - Frauds", () => {
   let treasury: SignerWithAddress
   let bridge: Bridge & BridgeStub
 
+  let fraudChallengeDefeatTimeout
+  let fraudChallengeDepositAmount
+
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, treasury, bridge } = await waffle.loadFixture(fixture))
+    ;({
+      fraudChallengeDefeatTimeout,
+      fraudChallengeDepositAmount,
+    } = await bridge.fraudParameters())
   })
 
   describe("submitFraudChallenge", () => {
@@ -69,9 +76,7 @@ describe("Bridge - Frauds", () => {
                     data.sighash,
                     data.signature,
                     {
-                      value: (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount,
+                      value: fraudChallengeDepositAmount,
                     }
                   )
               })
@@ -83,15 +88,11 @@ describe("Bridge - Frauds", () => {
               it("should transfer ether from the caller to the bridge", async () => {
                 await expect(tx).to.changeEtherBalance(
                   thirdParty,
-                  (
-                    await bridge.getFraudParameters()
-                  ).challengeDepositAmount.mul(-1)
+                  fraudChallengeDepositAmount.mul(-1)
                 )
                 await expect(tx).to.changeEtherBalance(
                   bridge,
-                  (
-                    await bridge.getFraudParameters()
-                  ).challengeDepositAmount
+                  fraudChallengeDepositAmount
                 )
               })
 
@@ -109,7 +110,7 @@ describe("Bridge - Frauds", () => {
                   await thirdParty.getAddress()
                 )
                 expect(fraudChallenge.depositAmount).to.equal(
-                  (await bridge.getFraudParameters()).challengeDepositAmount
+                  fraudChallengeDepositAmount
                 )
                 expect(fraudChallenge.reportedAt).to.equal(
                   await lastBlockTime()
@@ -152,9 +153,7 @@ describe("Bridge - Frauds", () => {
                     data.sighash,
                     data.signature,
                     {
-                      value: (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount,
+                      value: fraudChallengeDepositAmount,
                     }
                   )
               })
@@ -172,9 +171,7 @@ describe("Bridge - Frauds", () => {
                       data.sighash,
                       data.signature,
                       {
-                        value: (
-                          await bridge.getFraudParameters()
-                        ).challengeDepositAmount,
+                        value: fraudChallengeDepositAmount,
                       }
                     )
                 ).to.be.revertedWith("Fraud challenge already exists")
@@ -218,9 +215,7 @@ describe("Bridge - Frauds", () => {
                   data.sighash,
                   data.signature,
                   {
-                    value: (
-                      await bridge.getFraudParameters()
-                    ).challengeDepositAmount,
+                    value: fraudChallengeDepositAmount,
                   }
                 )
             ).to.be.revertedWith("Signature verification failure")
@@ -258,9 +253,7 @@ describe("Bridge - Frauds", () => {
                   incorrectSighash,
                   data.signature,
                   {
-                    value: (
-                      await bridge.getFraudParameters()
-                    ).challengeDepositAmount,
+                    value: fraudChallengeDepositAmount,
                   }
                 )
             ).to.be.revertedWith("Signature verification failure")
@@ -299,9 +292,7 @@ describe("Bridge - Frauds", () => {
                   v: incorrectV,
                 },
                 {
-                  value: (
-                    await bridge.getFraudParameters()
-                  ).challengeDepositAmount,
+                  value: fraudChallengeDepositAmount,
                 }
               )
             ).to.be.revertedWith("Signature verification failure")
@@ -341,9 +332,7 @@ describe("Bridge - Frauds", () => {
                   v: data.signature.v,
                 },
                 {
-                  value: (
-                    await bridge.getFraudParameters()
-                  ).challengeDepositAmount,
+                  value: fraudChallengeDepositAmount,
                 }
               )
             ).to.be.revertedWith("Signature verification failure")
@@ -378,9 +367,7 @@ describe("Bridge - Frauds", () => {
                 data.sighash,
                 data.signature,
                 {
-                  value: (
-                    await bridge.getFraudParameters()
-                  ).challengeDepositAmount.sub(1),
+                  value: fraudChallengeDepositAmount.sub(1),
                 }
               )
           ).to.be.revertedWith("The amount of ETH deposited is too low")
@@ -415,9 +402,7 @@ describe("Bridge - Frauds", () => {
               data.sighash,
               data.signature,
               {
-                value: (
-                  await bridge.getFraudParameters()
-                ).challengeDepositAmount,
+                value: fraudChallengeDepositAmount,
               }
             )
         ).to.not.be.reverted
@@ -468,9 +453,7 @@ describe("Bridge - Frauds", () => {
                   data.sighash,
                   data.signature,
                   {
-                    value: (
-                      await bridge.getFraudParameters()
-                    ).challengeDepositAmount,
+                    value: fraudChallengeDepositAmount,
                   }
                 )
             ).to.be.revertedWith(
@@ -517,9 +500,7 @@ describe("Bridge - Frauds", () => {
                         data.sighash,
                         data.signature,
                         {
-                          value: (
-                            await bridge.getFraudParameters()
-                          ).challengeDepositAmount,
+                          value: fraudChallengeDepositAmount,
                         }
                       )
 
@@ -552,15 +533,11 @@ describe("Bridge - Frauds", () => {
                   it("should send the ether deposited by the challenger to the treasury", async () => {
                     await expect(tx).to.changeEtherBalance(
                       bridge,
-                      (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount.mul(-1)
+                      fraudChallengeDepositAmount.mul(-1)
                     )
                     await expect(tx).to.changeEtherBalance(
                       treasury,
-                      (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount
+                      fraudChallengeDepositAmount
                     )
                   })
 
@@ -598,9 +575,7 @@ describe("Bridge - Frauds", () => {
                         data.sighash,
                         data.signature,
                         {
-                          value: (
-                            await bridge.getFraudParameters()
-                          ).challengeDepositAmount,
+                          value: fraudChallengeDepositAmount,
                         }
                       )
                   })
@@ -656,9 +631,7 @@ describe("Bridge - Frauds", () => {
                         data.sighash,
                         data.signature,
                         {
-                          value: (
-                            await bridge.getFraudParameters()
-                          ).challengeDepositAmount,
+                          value: fraudChallengeDepositAmount,
                         }
                       )
 
@@ -691,15 +664,11 @@ describe("Bridge - Frauds", () => {
                   it("should send the ether deposited by the challenger to the treasury", async () => {
                     await expect(tx).to.changeEtherBalance(
                       bridge,
-                      (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount.mul(-1)
+                      fraudChallengeDepositAmount.mul(-1)
                     )
                     await expect(tx).to.changeEtherBalance(
                       treasury,
-                      (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount
+                      fraudChallengeDepositAmount
                     )
                   })
 
@@ -737,9 +706,7 @@ describe("Bridge - Frauds", () => {
                         data.sighash,
                         data.signature,
                         {
-                          value: (
-                            await bridge.getFraudParameters()
-                          ).challengeDepositAmount,
+                          value: fraudChallengeDepositAmount,
                         }
                       )
                   })
@@ -797,9 +764,7 @@ describe("Bridge - Frauds", () => {
                         data.sighash,
                         data.signature,
                         {
-                          value: (
-                            await bridge.getFraudParameters()
-                          ).challengeDepositAmount,
+                          value: fraudChallengeDepositAmount,
                         }
                       )
 
@@ -832,15 +797,11 @@ describe("Bridge - Frauds", () => {
                   it("should send the ether deposited by the challenger to the treasury", async () => {
                     await expect(tx).to.changeEtherBalance(
                       bridge,
-                      (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount.mul(-1)
+                      fraudChallengeDepositAmount.mul(-1)
                     )
                     await expect(tx).to.changeEtherBalance(
                       treasury,
-                      (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount
+                      fraudChallengeDepositAmount
                     )
                   })
 
@@ -878,9 +839,7 @@ describe("Bridge - Frauds", () => {
                         data.sighash,
                         data.signature,
                         {
-                          value: (
-                            await bridge.getFraudParameters()
-                          ).challengeDepositAmount,
+                          value: fraudChallengeDepositAmount,
                         }
                       )
                   })
@@ -936,9 +895,7 @@ describe("Bridge - Frauds", () => {
                         data.sighash,
                         data.signature,
                         {
-                          value: (
-                            await bridge.getFraudParameters()
-                          ).challengeDepositAmount,
+                          value: fraudChallengeDepositAmount,
                         }
                       )
 
@@ -971,15 +928,11 @@ describe("Bridge - Frauds", () => {
                   it("should send the ether deposited by the challenger to the treasury", async () => {
                     await expect(tx).to.changeEtherBalance(
                       bridge,
-                      (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount.mul(-1)
+                      fraudChallengeDepositAmount.mul(-1)
                     )
                     await expect(tx).to.changeEtherBalance(
                       treasury,
-                      (
-                        await bridge.getFraudParameters()
-                      ).challengeDepositAmount
+                      fraudChallengeDepositAmount
                     )
                   })
 
@@ -1017,9 +970,7 @@ describe("Bridge - Frauds", () => {
                         data.sighash,
                         data.signature,
                         {
-                          value: (
-                            await bridge.getFraudParameters()
-                          ).challengeDepositAmount,
+                          value: fraudChallengeDepositAmount,
                         }
                       )
                   })
@@ -1074,9 +1025,7 @@ describe("Bridge - Frauds", () => {
                 data.sighash,
                 data.signature,
                 {
-                  value: (
-                    await bridge.getFraudParameters()
-                  ).challengeDepositAmount,
+                  value: fraudChallengeDepositAmount,
                 }
               )
           })
@@ -1124,9 +1073,7 @@ describe("Bridge - Frauds", () => {
               data.sighash,
               data.signature,
               {
-                value: (
-                  await bridge.getFraudParameters()
-                ).challengeDepositAmount,
+                value: fraudChallengeDepositAmount,
               }
             )
 
@@ -1173,17 +1120,11 @@ describe("Bridge - Frauds", () => {
               data.sighash,
               data.signature,
               {
-                value: (
-                  await bridge.getFraudParameters()
-                ).challengeDepositAmount,
+                value: fraudChallengeDepositAmount,
               }
             )
 
-          await increaseTime(
-            (
-              await bridge.getFraudParameters()
-            ).challengeDefeatTimeout
-          )
+          await increaseTime(fraudChallengeDefeatTimeout)
 
           await bridge
             .connect(thirdParty)
@@ -1255,17 +1196,11 @@ describe("Bridge - Frauds", () => {
                 data.sighash,
                 data.signature,
                 {
-                  value: (
-                    await bridge.getFraudParameters()
-                  ).challengeDepositAmount,
+                  value: fraudChallengeDepositAmount,
                 }
               )
 
-            await increaseTime(
-              (
-                await bridge.getFraudParameters()
-              ).challengeDefeatTimeout
-            )
+            await increaseTime(fraudChallengeDefeatTimeout)
 
             tx = await bridge
               .connect(thirdParty)
@@ -1290,13 +1225,11 @@ describe("Bridge - Frauds", () => {
           it("should return the deposited ether to the challenger", async () => {
             await expect(tx).to.changeEtherBalance(
               bridge,
-              (await bridge.getFraudParameters()).challengeDepositAmount.mul(-1)
+              fraudChallengeDepositAmount.mul(-1)
             )
             await expect(tx).to.changeEtherBalance(
               thirdParty,
-              (
-                await bridge.getFraudParameters()
-              ).challengeDepositAmount
+              fraudChallengeDepositAmount
             )
           })
 
@@ -1330,15 +1263,11 @@ describe("Bridge - Frauds", () => {
                 data.sighash,
                 data.signature,
                 {
-                  value: (
-                    await bridge.getFraudParameters()
-                  ).challengeDepositAmount,
+                  value: fraudChallengeDepositAmount,
                 }
               )
 
-            await increaseTime(
-              (await bridge.getFraudParameters()).challengeDefeatTimeout.sub(2)
-            )
+            await increaseTime(fraudChallengeDefeatTimeout.sub(2))
           })
 
           after(async () => {
@@ -1383,9 +1312,7 @@ describe("Bridge - Frauds", () => {
               data.sighash,
               data.signature,
               {
-                value: (
-                  await bridge.getFraudParameters()
-                ).challengeDepositAmount,
+                value: fraudChallengeDepositAmount,
               }
             )
 
@@ -1430,17 +1357,11 @@ describe("Bridge - Frauds", () => {
               data.sighash,
               data.signature,
               {
-                value: (
-                  await bridge.getFraudParameters()
-                ).challengeDepositAmount,
+                value: fraudChallengeDepositAmount,
               }
             )
 
-          await increaseTime(
-            (
-              await bridge.getFraudParameters()
-            ).challengeDefeatTimeout
-          )
+          await increaseTime(fraudChallengeDefeatTimeout)
 
           await bridge
             .connect(thirdParty)
