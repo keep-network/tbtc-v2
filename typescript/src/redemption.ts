@@ -34,7 +34,7 @@ export interface RedemptionRequest {
    * The sum of all output fee values makes the total fee of the redemption
    * transaction.
    */
-  outputFee: BigNumber
+  fee: BigNumber
 }
 
 // TODO: Description
@@ -42,7 +42,8 @@ export async function redeemDeposits(
   bitcoinClient: BitcoinClient,
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput,
-  redemptionRequests: RedemptionRequest[]
+  redemptionRequests: RedemptionRequest[],
+  witness: boolean
 ): Promise<void> {
   const rawTransaction = await bitcoinClient.getRawTransaction(
     mainUtxo.transactionHash
@@ -56,7 +57,8 @@ export async function redeemDeposits(
   const transaction = await createRedemptionTransaction(
     walletPrivateKey,
     mainUtxoWithRaw,
-    redemptionRequests
+    redemptionRequests,
+    witness
   )
 
   // Note that `broadcast` may fail silently (i.e. no error will be returned,
@@ -69,7 +71,8 @@ export async function redeemDeposits(
 export async function createRedemptionTransaction(
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput & RawTransaction,
-  redemptionRequests: RedemptionRequest[]
+  redemptionRequests: RedemptionRequest[],
+  witness: boolean
 ): Promise<RawTransaction> {
   if (redemptionRequests.length < 1) {
     throw new Error("There must be at least one request to redeem")
@@ -78,7 +81,7 @@ export async function createRedemptionTransaction(
   const decodedWalletPrivateKey = wif.decode(walletPrivateKey)
 
   const walletKeyRing = new bcoin.KeyRing({
-    witness: true,
+    witness: witness,
     privateKey: decodedWalletPrivateKey.privateKey,
     compressed: decodedWalletPrivateKey.compressed,
   })
@@ -99,11 +102,11 @@ export async function createRedemptionTransaction(
   let txFee = 0
   for (const request of redemptionRequests) {
     // Add the fee for this particular request to the overall transaction fee
-    txFee += request.outputFee.toNumber()
+    txFee += request.fee.toNumber()
 
     // Calculate the value of the output by subtracting fee for this particular
     // output from the requested amount
-    const outputValue = request.amount.sub(request.outputFee)
+    const outputValue = request.amount.sub(request.fee)
 
     const address = bcoin.Address.fromString(request.address)
 

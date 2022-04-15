@@ -166,7 +166,8 @@ export interface TBTC {
     bitcoinClient: BitcoinClient,
     walletPrivateKey: string,
     mainUtxo: UnspentTransactionOutput,
-    redemptionRequests: RedemptionRequest[]
+    redemptionRequests: RedemptionRequest[],
+    witness: boolean
   ): Promise<void>
 }
 
