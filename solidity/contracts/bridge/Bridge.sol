@@ -920,10 +920,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     }
 
     /// @notice Returns the current values of Bridge fraud parameters.
-    /// @return fraudSlashingAmount Value of the fraud slashing amount
-    /// @return fraudNotifierRewardMultiplier Value of the fraud notifier reward multiplier
-    /// @return fraudChallengeDefeatTimeout Value of the fraud challenge defeat timeout
-    /// @return fraudChallengeDepositAmount Value of the fraud challenge deposit amount
+    /// @return fraudSlashingAmount The amount slashed from each wallet member
+    ///         for committing a fraud.
+    /// @return fraudNotifierRewardMultiplier The percentage of the notifier
+    ///         reward from the staking contract the notifier of a fraud
+    ///         receives. The value is in the range [0, 100].
+    /// @return fraudChallengeDefeatTimeout The amount of time the wallet has to
+    ///         defeat a fraud challenge.
+    /// @return fraudChallengeDepositAmount The amount of ETH in wei the party
+    ///         challenging the wallet for fraud needs to deposit.
     function fraudParameters()
         external
         view
