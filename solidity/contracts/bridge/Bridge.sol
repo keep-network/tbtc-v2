@@ -135,20 +135,20 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     /// @notice The number of confirmations on the Bitcoin chain required to
     ///         successfully evaluate an SPV proof.
-    uint256 public immutable txProofDifficultyFactor;
+    uint256 public txProofDifficultyFactor;
 
     /// TODO: Revisit whether it should be governable or not.
     /// @notice Address of the Bank this Bridge belongs to.
-    Bank public immutable bank;
+    Bank public bank;
 
     /// TODO: Make it governable.
     /// @notice Handle to the Bitcoin relay.
-    IRelay public immutable relay;
+    IRelay public relay;
 
     /// TODO: Revisit whether it should be governable or not.
     /// @notice Address where the redemptions treasury fees will be sent to.
     ///         Treasury takes part in the operators rewarding process.
-    address public immutable treasury;
+    address public treasury;
 
     BridgeState.Storage internal self;
 
@@ -667,39 +667,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             uint64 sweepTxOutputValue
         ) = processSweepTxOutput(sweepTx.outputVector);
 
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        Wallets.WalletState walletState = wallet.state;
-        require(
-            walletState == Wallets.WalletState.Live ||
-                walletState == Wallets.WalletState.MovingFunds,
-            "Wallet must be in Live or MovingFunds state"
-        );
-
-        // Check if the main UTXO for given wallet exists. If so, validate
-        // passed main UTXO data against the stored hash and use them for
-        // further processing. If no main UTXO exists, use empty data.
-        BitcoinTx.UTXO memory resolvedMainUtxo = BitcoinTx.UTXO(
-            bytes32(0),
-            0,
-            0
-        );
-        bytes32 mainUtxoHash = wallet.mainUtxoHash;
-        if (mainUtxoHash != bytes32(0)) {
-            require(
-                keccak256(
-                    abi.encodePacked(
-                        mainUtxo.txHash,
-                        mainUtxo.txOutputIndex,
-                        mainUtxo.txOutputValue
-                    )
-                ) == mainUtxoHash,
-                "Invalid main UTXO data"
-            );
-            resolvedMainUtxo = mainUtxo;
-        }
+        (
+            Wallets.Wallet storage wallet,
+            BitcoinTx.UTXO memory resolvedMainUtxo
+        ) = resolveSweepingWallet(walletPubKeyHash, mainUtxo);
 
         // Process sweep transaction inputs and extract all information needed
         // to perform deposit bookkeeping.
@@ -769,6 +740,57 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bank.increaseBalance(treasury, totalTreasuryFee);
 
         // TODO: Handle deposits having `vault` set.
+    }
+
+    /// @notice Resolves sweeping wallet based on the provided wallet public key
+    ///         hash. Validates the wallet state and current main UTXO, as
+    ///         currently known on the Ethereum chain.
+    /// @param walletPubKeyHash public key hash of the wallet proving the sweep
+    ///        Bitcoin transaction.
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain. If no main UTXO exists for the given wallet,
+    ///        this parameter is ignored
+    /// @dev Requirements:
+    ///     - Sweeping wallet must be either in Live or MovingFunds state.
+    ///     - If the main UTXO of the sweeping wallet exists in the storage,
+    ///       the passed `mainUTXO` parameter must be equal to the stored one.
+    function resolveSweepingWallet(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata mainUtxo
+    )
+        internal
+        returns (
+            Wallets.Wallet storage wallet,
+            BitcoinTx.UTXO memory resolvedMainUtxo
+        )
+    {
+        wallet = wallets.registeredWallets[walletPubKeyHash];
+
+        Wallets.WalletState walletState = wallet.state;
+        require(
+            walletState == Wallets.WalletState.Live ||
+                walletState == Wallets.WalletState.MovingFunds,
+            "Wallet must be in Live or MovingFunds state"
+        );
+
+        // Check if the main UTXO for given wallet exists. If so, validate
+        // passed main UTXO data against the stored hash and use them for
+        // further processing. If no main UTXO exists, use empty data.
+        resolvedMainUtxo = BitcoinTx.UTXO(bytes32(0), 0, 0);
+        bytes32 mainUtxoHash = wallet.mainUtxoHash;
+        if (mainUtxoHash != bytes32(0)) {
+            require(
+                keccak256(
+                    abi.encodePacked(
+                        mainUtxo.txHash,
+                        mainUtxo.txOutputIndex,
+                        mainUtxo.txOutputValue
+                    )
+                ) == mainUtxoHash,
+                "Invalid main UTXO data"
+            );
+            resolvedMainUtxo = mainUtxo;
+        }
     }
 
     /// @notice Processes the Bitcoin sweep transaction output vector by
