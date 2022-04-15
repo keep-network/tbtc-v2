@@ -394,7 +394,7 @@ describe("Sweep", () => {
     })
 
     context(
-      "when the wallet private does not correspond to the signing group public key",
+      "when the wallet private does not correspond to the wallet public key",
       () => {
         const utxoWithRaw = sweepWithNoMainUtxo.deposits[0].utxo
         const depositData = sweepWithNoMainUtxo.deposits[0].data
@@ -410,7 +410,7 @@ describe("Sweep", () => {
               [depositData]
             )
           ).to.be.rejectedWith(
-            "Signing group public key does not correspond to wallet private key"
+            "Wallet public key does not correspond to wallet private key"
           )
         })
       }

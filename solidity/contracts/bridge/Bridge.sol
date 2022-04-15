@@ -22,6 +22,7 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
 import "../bank/Bank.sol";
+import "./BridgeState.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./Wallets.sol";
@@ -64,58 +65,14 @@ interface IRelay {
 ///       Examples of such operations are main UTXO or pending redemptions
 ///       value updates.
 contract Bridge is Ownable, EcdsaWalletOwner {
-    using BTCUtils for bytes;
-    using BTCUtils for uint256;
-    using BytesLib for bytes;
+    using BridgeState for BridgeState.Storage;
+    using Deposit for BridgeState.Storage;
     using Frauds for Frauds.Data;
     using Wallets for Wallets.Data;
 
-    /// @notice Represents data which must be revealed by the depositor during
-    ///         deposit reveal.
-    struct RevealInfo {
-        // Index of the funding output belonging to the funding transaction.
-        uint32 fundingOutputIndex;
-        // Ethereum depositor address.
-        address depositor;
-        // The blinding factor as 8 bytes. Byte endianness doesn't matter
-        // as this factor is not interpreted as uint.
-        bytes8 blindingFactor;
-        // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
-        // of the deposit's wallet hashed in the HASH160 Bitcoin opcode style.
-        bytes20 walletPubKeyHash;
-        // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
-        // that can be used to make the deposit refund after the refund
-        // locktime passes. Hashed in the HASH160 Bitcoin opcode style.
-        bytes20 refundPubKeyHash;
-        // The refund locktime (4-byte LE). Interpreted according to locktime
-        // parsing rules described in:
-        // https://developer.bitcoin.org/devguide/transactions.html#locktime-and-sequence-number
-        // and used with OP_CHECKLOCKTIMEVERIFY opcode as described in:
-        // https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki
-        bytes4 refundLocktime;
-        // Address of the Bank vault to which the deposit is routed to.
-        // Optional, can be 0x0. The vault must be trusted by the Bridge.
-        address vault;
-    }
-
-    /// @notice Represents tBTC deposit data.
-    struct DepositRequest {
-        // Ethereum depositor address.
-        address depositor;
-        // Deposit amount in satoshi.
-        uint64 amount;
-        // UNIX timestamp the deposit was revealed at.
-        uint32 revealedAt;
-        // Address of the Bank vault the deposit is routed to.
-        // Optional, can be 0x0.
-        address vault;
-        // Treasury TBTC fee in satoshi at the moment of deposit reveal.
-        uint64 treasuryFee;
-        // UNIX timestamp the deposit was swept at. Note this is not the
-        // time when the deposit was swept on the Bitcoin chain but actually
-        // the time when the sweep proof was delivered to the Ethereum chain.
-        uint32 sweptAt;
-    }
+    using BTCUtils for bytes;
+    using BTCUtils for uint256;
+    using BytesLib for bytes;
 
     /// @notice Represents an outcome of the sweep Bitcoin transaction
     ///         inputs processing.
@@ -178,38 +135,22 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     /// @notice The number of confirmations on the Bitcoin chain required to
     ///         successfully evaluate an SPV proof.
-    uint256 public immutable txProofDifficultyFactor;
+    uint256 public txProofDifficultyFactor;
 
     /// TODO: Revisit whether it should be governable or not.
     /// @notice Address of the Bank this Bridge belongs to.
-    Bank public immutable bank;
+    Bank public bank;
 
     /// TODO: Make it governable.
     /// @notice Handle to the Bitcoin relay.
-    IRelay public immutable relay;
+    IRelay public relay;
 
     /// TODO: Revisit whether it should be governable or not.
     /// @notice Address where the redemptions treasury fees will be sent to.
     ///         Treasury takes part in the operators rewarding process.
-    address public immutable treasury;
+    address public treasury;
 
-    /// TODO: Make it governable.
-    /// @notice The minimal amount that can be requested for deposit.
-    ///         Value of this parameter must take into account the value of
-    ///         `depositTreasuryFeeDivisor` and `depositTxMaxFee`
-    ///         parameters in order to make requests that can incur the
-    ///         treasury and transaction fee and still satisfy the depositor.
-    uint64 public depositDustThreshold;
-
-    /// TODO: Make it governable.
-    /// @notice Divisor used to compute the treasury fee taken from each
-    ///         deposit and transferred to the treasury upon sweep proof
-    ///         submission. That fee is computed as follows:
-    ///         `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
-    ///         For example, if the treasury fee needs to be 2% of each deposit,
-    ///         the `depositTreasuryFeeDivisor` should be set to `50`
-    ///         because `1/50 = 0.02 = 2%`.
-    uint64 public depositTreasuryFeeDivisor;
+    BridgeState.Storage internal self;
 
     /// TODO: Make it governable.
     /// @notice Maximum amount of BTC transaction fee that can be incurred by
@@ -261,23 +202,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      if per single redemption. `movingFundsTxMaxTotalFee` is a total fee
     ///      for the entire transaction.
     uint64 public movingFundsTxMaxTotalFee;
-
-    /// @notice Indicates if the vault with the given address is trusted or not.
-    ///         Depositors can route their revealed deposits only to trusted
-    ///         vaults and have trusted vaults notified about new deposits as
-    ///         soon as these deposits get swept. Vaults not trusted by the
-    ///         Bridge can still be used by Bank balance owners on their own
-    ///         responsibility - anyone can approve their Bank balance to any
-    ///         address.
-    mapping(address => bool) public isVaultTrusted;
-
-    /// @notice Collection of all revealed deposits indexed by
-    ///         keccak256(fundingTxHash | fundingOutputIndex).
-    ///         The fundingTxHash is bytes32 (ordered as in Bitcoin internally)
-    ///         and fundingOutputIndex an uint32. This mapping may contain valid
-    ///         and invalid deposits and the wallet is responsible for
-    ///         validating them before attempting to execute a sweep.
-    mapping(uint256 => DepositRequest) public deposits;
 
     /// @notice Collection of main UTXOs that are honestly spent indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex). The fundingTxHash
@@ -444,9 +368,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         txProofDifficultyFactor = _txProofDifficultyFactor;
 
         // TODO: Revisit initial values.
-        depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
+        self.depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         depositTxMaxFee = 10000; // 10000 satoshi
-        depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
+        self.depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         redemptionTxMaxFee = 10000; // 10000 satoshi
@@ -522,7 +446,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param isTrusted flag indicating whether the vault is trusted or not
     /// @dev Can only be called by the Governance.
     function setVaultStatus(address vault, bool isTrusted) external onlyOwner {
-        isVaultTrusted[vault] = isTrusted;
+        self.isVaultTrusted[vault] = isTrusted;
         emit VaultStatusUpdated(vault, isTrusted);
     }
 
@@ -677,124 +601,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      deposit script unlocks to receive their BTC back.
     function revealDeposit(
         BitcoinTx.Info calldata fundingTx,
-        RevealInfo calldata reveal
+        Deposit.RevealInfo calldata reveal
     ) external {
-        require(
-            wallets.registeredWallets[reveal.walletPubKeyHash].state ==
-                Wallets.WalletState.Live,
-            "Wallet is not in Live state"
-        );
-
-        require(
-            reveal.vault == address(0) || isVaultTrusted[reveal.vault],
-            "Vault is not trusted"
-        );
-
-        // TODO: Should we enforce a specific locktime at contract level?
-
-        bytes memory expectedScript = abi.encodePacked(
-            hex"14", // Byte length of depositor Ethereum address.
-            reveal.depositor,
-            hex"75", // OP_DROP
-            hex"08", // Byte length of blinding factor value.
-            reveal.blindingFactor,
-            hex"75", // OP_DROP
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            reveal.walletPubKeyHash,
-            hex"87", // OP_EQUAL
-            hex"63", // OP_IF
-            hex"ac", // OP_CHECKSIG
-            hex"67", // OP_ELSE
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            reveal.refundPubKeyHash,
-            hex"88", // OP_EQUALVERIFY
-            hex"04", // Byte length of refund locktime value.
-            reveal.refundLocktime,
-            hex"b1", // OP_CHECKLOCKTIMEVERIFY
-            hex"75", // OP_DROP
-            hex"ac", // OP_CHECKSIG
-            hex"68" // OP_ENDIF
-        );
-
-        bytes memory fundingOutput = fundingTx
-            .outputVector
-            .extractOutputAtIndex(reveal.fundingOutputIndex);
-        bytes memory fundingOutputHash = fundingOutput.extractHash();
-
-        if (fundingOutputHash.length == 20) {
-            // A 20-byte output hash is used by P2SH. That hash is constructed
-            // by applying OP_HASH160 on the locking script. A 20-byte output
-            // hash is used as well by P2PKH and P2WPKH (OP_HASH160 on the
-            // public key). However, since we compare the actual output hash
-            // with an expected locking script hash, this check will succeed only
-            // for P2SH transaction type with expected script hash value. For
-            // P2PKH and P2WPKH, it will fail on the output hash comparison with
-            // the expected locking script hash.
-            require(
-                fundingOutputHash.slice20(0) == expectedScript.hash160View(),
-                "Wrong 20-byte script hash"
-            );
-        } else if (fundingOutputHash.length == 32) {
-            // A 32-byte output hash is used by P2WSH. That hash is constructed
-            // by applying OP_SHA256 on the locking script.
-            require(
-                fundingOutputHash.toBytes32() == sha256(expectedScript),
-                "Wrong 32-byte script hash"
-            );
-        } else {
-            revert("Wrong script hash length");
-        }
-
-        // Resulting TX hash is in native Bitcoin little-endian format.
-        bytes32 fundingTxHash = abi
-            .encodePacked(
-                fundingTx.version,
-                fundingTx.inputVector,
-                fundingTx.outputVector,
-                fundingTx.locktime
-            )
-            .hash256View();
-
-        DepositRequest storage deposit = deposits[
-            uint256(
-                keccak256(
-                    abi.encodePacked(fundingTxHash, reveal.fundingOutputIndex)
-                )
-            )
-        ];
-        require(deposit.revealedAt == 0, "Deposit already revealed");
-
-        uint64 fundingOutputAmount = fundingOutput.extractValue();
-
-        require(
-            fundingOutputAmount >= depositDustThreshold,
-            "Deposit amount too small"
-        );
-
-        deposit.amount = fundingOutputAmount;
-        deposit.depositor = reveal.depositor;
-        /* solhint-disable-next-line not-rely-on-time */
-        deposit.revealedAt = uint32(block.timestamp);
-        deposit.vault = reveal.vault;
-        deposit.treasuryFee = depositTreasuryFeeDivisor > 0
-            ? fundingOutputAmount / depositTreasuryFeeDivisor
-            : 0;
-
-        emit DepositRevealed(
-            fundingTxHash,
-            reveal.fundingOutputIndex,
-            reveal.depositor,
-            fundingOutputAmount,
-            reveal.blindingFactor,
-            reveal.walletPubKeyHash,
-            reveal.refundPubKeyHash,
-            reveal.refundLocktime,
-            reveal.vault
-        );
+        self.revealDeposit(wallets, fundingTx, reveal);
     }
 
     /// @notice Used by the wallet to prove the BTC deposit sweep transaction
@@ -858,39 +667,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             uint64 sweepTxOutputValue
         ) = processSweepTxOutput(sweepTx.outputVector);
 
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        Wallets.WalletState walletState = wallet.state;
-        require(
-            walletState == Wallets.WalletState.Live ||
-                walletState == Wallets.WalletState.MovingFunds,
-            "Wallet must be in Live or MovingFunds state"
-        );
-
-        // Check if the main UTXO for given wallet exists. If so, validate
-        // passed main UTXO data against the stored hash and use them for
-        // further processing. If no main UTXO exists, use empty data.
-        BitcoinTx.UTXO memory resolvedMainUtxo = BitcoinTx.UTXO(
-            bytes32(0),
-            0,
-            0
-        );
-        bytes32 mainUtxoHash = wallet.mainUtxoHash;
-        if (mainUtxoHash != bytes32(0)) {
-            require(
-                keccak256(
-                    abi.encodePacked(
-                        mainUtxo.txHash,
-                        mainUtxo.txOutputIndex,
-                        mainUtxo.txOutputValue
-                    )
-                ) == mainUtxoHash,
-                "Invalid main UTXO data"
-            );
-            resolvedMainUtxo = mainUtxo;
-        }
+        (
+            Wallets.Wallet storage wallet,
+            BitcoinTx.UTXO memory resolvedMainUtxo
+        ) = resolveSweepingWallet(walletPubKeyHash, mainUtxo);
 
         // Process sweep transaction inputs and extract all information needed
         // to perform deposit bookkeeping.
@@ -960,6 +740,57 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bank.increaseBalance(treasury, totalTreasuryFee);
 
         // TODO: Handle deposits having `vault` set.
+    }
+
+    /// @notice Resolves sweeping wallet based on the provided wallet public key
+    ///         hash. Validates the wallet state and current main UTXO, as
+    ///         currently known on the Ethereum chain.
+    /// @param walletPubKeyHash public key hash of the wallet proving the sweep
+    ///        Bitcoin transaction.
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain. If no main UTXO exists for the given wallet,
+    ///        this parameter is ignored
+    /// @dev Requirements:
+    ///     - Sweeping wallet must be either in Live or MovingFunds state.
+    ///     - If the main UTXO of the sweeping wallet exists in the storage,
+    ///       the passed `mainUTXO` parameter must be equal to the stored one.
+    function resolveSweepingWallet(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata mainUtxo
+    )
+        internal
+        returns (
+            Wallets.Wallet storage wallet,
+            BitcoinTx.UTXO memory resolvedMainUtxo
+        )
+    {
+        wallet = wallets.registeredWallets[walletPubKeyHash];
+
+        Wallets.WalletState walletState = wallet.state;
+        require(
+            walletState == Wallets.WalletState.Live ||
+                walletState == Wallets.WalletState.MovingFunds,
+            "Wallet must be in Live or MovingFunds state"
+        );
+
+        // Check if the main UTXO for given wallet exists. If so, validate
+        // passed main UTXO data against the stored hash and use them for
+        // further processing. If no main UTXO exists, use empty data.
+        resolvedMainUtxo = BitcoinTx.UTXO(bytes32(0), 0, 0);
+        bytes32 mainUtxoHash = wallet.mainUtxoHash;
+        if (mainUtxoHash != bytes32(0)) {
+            require(
+                keccak256(
+                    abi.encodePacked(
+                        mainUtxo.txHash,
+                        mainUtxo.txOutputIndex,
+                        mainUtxo.txOutputValue
+                    )
+                ) == mainUtxoHash,
+                "Invalid main UTXO data"
+            );
+            resolvedMainUtxo = mainUtxo;
+        }
     }
 
     /// @notice Processes the Bitcoin sweep transaction output vector by
@@ -1077,7 +908,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
                 uint256 inputLength
             ) = parseTxInputAt(sweepTxInputVector, inputStartingIndex);
 
-            DepositRequest storage deposit = deposits[
+            Deposit.Request storage deposit = self.deposits[
                 uint256(
                     keccak256(abi.encodePacked(outpointTxHash, outpointIndex))
                 )
@@ -1324,7 +1155,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         // Check that the UTXO key identifies a correctly spent UTXO.
         require(
-            deposits[utxoKey].sweptAt > 0 || spentMainUTXOs[utxoKey],
+            self.deposits[utxoKey].sweptAt > 0 || spentMainUTXOs[utxoKey],
             "Spent UTXO not found among correctly spent UTXOs"
         );
 
@@ -2287,5 +2118,53 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         targetWalletsHash = keccak256(abi.encodePacked(targetWallets));
 
         return (targetWalletsHash, outputsTotalValue);
+    }
+
+    /// @notice Returns the current values of Bridge deposit parameters.
+    /// @return depositDustThreshold The minimal amount that can be requested
+    ///         to deposit. Value of this parameter must take into account the
+    ///         value of `depositTreasuryFeeDivisor` and `depositTxMaxFee`
+    ///         parameters in order to make requests that can incur the
+    ///         treasury and transaction fee and still satisfy the depositor.
+    /// @return depositTreasuryFeeDivisor Divisor used to compute the treasury
+    ///         fee taken from each deposit and transferred to the treasury upon
+    ///         sweep proof submission. That fee is computed as follows:
+    ///         `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
+    ///         For example, if the treasury fee needs to be 2% of each deposit,
+    ///         the `depositTreasuryFeeDivisor` should be set to `50`
+    ///         because `1/50 = 0.02 = 2%`.
+    function depositParameters()
+        external
+        view
+        returns (uint64 depositDustThreshold, uint64 depositTreasuryFeeDivisor)
+    {
+        depositDustThreshold = self.depositDustThreshold;
+        depositTreasuryFeeDivisor = self.depositTreasuryFeeDivisor;
+    }
+
+    /// @notice Indicates if the vault with the given address is trusted or not.
+    ///         Depositors can route their revealed deposits only to trusted
+    ///         vaults and have trusted vaults notified about new deposits as
+    ///         soon as these deposits get swept. Vaults not trusted by the
+    ///         Bridge can still be used by Bank balance owners on their own
+    ///         responsibility - anyone can approve their Bank balance to any
+    ///         address.
+    function isVaultTrusted(address vault) external view returns (bool) {
+        return self.isVaultTrusted[vault];
+    }
+
+    /// @notice Collection of all revealed deposits indexed by
+    ///         keccak256(fundingTxHash | fundingOutputIndex).
+    ///         The fundingTxHash is bytes32 (ordered as in Bitcoin internally)
+    ///         and fundingOutputIndex an uint32. This mapping may contain valid
+    ///         and invalid deposits and the wallet is responsible for
+    ///         validating them before attempting to execute a sweep.
+    function deposits(uint256 depositKey)
+        external
+        view
+        returns (Deposit.Request memory)
+    {
+        // TODO: rename to getDeposit?
+        return self.deposits[depositKey];
     }
 }
