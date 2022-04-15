@@ -670,7 +670,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         (
             Wallets.Wallet storage wallet,
             BitcoinTx.UTXO memory resolvedMainUtxo
-        ) = resolveWallet(walletPubKeyHash, mainUtxo);
+        ) = resolveSweepingWallet(walletPubKeyHash, mainUtxo);
 
         // Process sweep transaction inputs and extract all information needed
         // to perform deposit bookkeeping.
@@ -750,7 +750,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
-    function resolveWallet(
+    function resolveSweepingWallet(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
     )
