@@ -10,11 +10,7 @@ import {
   decomposeRawTransaction,
   isCompressedPublicKey,
 } from "./bitcoin"
-import {
-  createDepositScript,
-  getActiveWalletPublicKey,
-  DepositData,
-} from "./deposit"
+import { createDepositScript, DepositData } from "./deposit"
 import { Bridge } from "./bridge"
 import { createTransactionProof } from "./proof"
 
@@ -247,7 +243,7 @@ async function signMainUtxoInput(
 
 /**
  * Creates and sets `scriptSig` for the transaction input at the given index by
- * combining signature, signing group public key and deposit script.
+ * combining signature, wallet public key and deposit script.
  * @param transaction - Mutable transaction containing the input to be signed.
  * @param inputIndex - Index that points to the input to be signed.
  * @param depositData - Array of deposit data.
@@ -288,7 +284,7 @@ async function signP2SHDepositInput(
 
 /**
  * Creates and sets witness script for the transaction input at the given index
- * by combining signature, signing group public key and deposit script.
+ * by combining signature, wallet public key and deposit script.
  * @param transaction - Mutable transaction containing the input to be signed.
  * @param inputIndex - Index that points to the input to be signed.
  * @param depositData - Array of deposit data.
@@ -353,14 +349,14 @@ async function prepareInputSignData(
     throw new Error("Mismatch between amount in deposit data and deposit tx")
   }
 
-  const signingGroupPublicKey = await getActiveWalletPublicKey()
-  if (!isCompressedPublicKey(signingGroupPublicKey)) {
-    throw new Error("Signing group public key must be compressed")
+  const walletPublicKey = depositData.walletPublicKey
+  if (!isCompressedPublicKey(walletPublicKey)) {
+    throw new Error("Wallet public key must be compressed")
   }
 
-  if (walletKeyRing.getPublicKey("hex") != signingGroupPublicKey) {
+  if (walletKeyRing.getPublicKey("hex") != walletPublicKey) {
     throw new Error(
-      "Signing group public key does not correspond to wallet private key"
+      "Wallet public key does not correspond to wallet private key"
     )
   }
 
@@ -369,7 +365,7 @@ async function prepareInputSignData(
   )
 
   return {
-    walletPublicKey: signingGroupPublicKey,
+    walletPublicKey: walletPublicKey,
     depositScript: depositScript,
     previousOutputValue: previousOutput.value,
   }
