@@ -456,7 +456,7 @@ library Redeem {
         require(
             walletState == Wallets.WalletState.Live ||
                 walletState == Wallets.WalletState.MovingFunds,
-            "Wallet must be in Live or MovingFuds state"
+            "Wallet must be in Live or MovingFunds state"
         );
 
         // Process redemption transaction outputs to extract some info required

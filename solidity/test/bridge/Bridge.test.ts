@@ -4926,7 +4926,7 @@ describe("Bridge", () => {
 
                       it("should revert", async () => {
                         await expect(outcome).to.be.revertedWith(
-                          "'Wallet must be in Live or MovingFuds state"
+                          "'Wallet must be in Live or MovingFunds state"
                         )
                       })
                     })
@@ -4965,7 +4965,7 @@ describe("Bridge", () => {
 
                       it("should revert", async () => {
                         await expect(outcome).to.be.revertedWith(
-                          "'Wallet must be in Live or MovingFuds state"
+                          "'Wallet must be in Live or MovingFunds state"
                         )
                       })
                     })
@@ -5004,7 +5004,7 @@ describe("Bridge", () => {
 
                       it("should revert", async () => {
                         await expect(outcome).to.be.revertedWith(
-                          "'Wallet must be in Live or MovingFuds state"
+                          "'Wallet must be in Live or MovingFunds state"
                         )
                       })
                     })
