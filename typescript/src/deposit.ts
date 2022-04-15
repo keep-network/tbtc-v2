@@ -41,7 +41,7 @@ export interface DepositData {
   refundPublicKey: string
 
   /**
-   * An 8 bytes number. Must be unique for given Ethereum address, signing group
+   * An 8 bytes number. Must be unique for given Ethereum address, wallet
    * public key and refund public key.
    */
   blindingFactor: BigNumber
