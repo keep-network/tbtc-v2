@@ -7,6 +7,7 @@ import type {
   BitcoinTx__factory,
   Deposit__factory,
   Sweep__factory,
+  Redeem__factory,
   Wallets__factory,
   Bridge,
   BridgeStub,
@@ -43,6 +44,10 @@ const bridgeFixture = async () => {
   const bitcoinTx = await BitcoinTx.deploy()
   await bitcoinTx.deployed()
 
+  const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
+  const wallets = await Wallets.deploy()
+  await wallets.deployed()
+
   const Deposit = await ethers.getContractFactory<Deposit__factory>("Deposit")
   const deposit = await Deposit.deploy()
   await deposit.deployed()
@@ -55,9 +60,14 @@ const bridgeFixture = async () => {
   const sweep = await Sweep.deploy()
   await sweep.deployed()
 
-  const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
-  const wallets = await Wallets.deploy()
-  await wallets.deployed()
+  const Redeem = await ethers.getContractFactory<Redeem__factory>("Redeem", {
+    libraries: {
+      BitcoinTx: bitcoinTx.address,
+      Wallets: wallets.address,
+    },
+  })
+  const redeem = await Redeem.deploy()
+  await redeem.deployed()
 
   const Frauds = await ethers.getContractFactory<Frauds__factory>("Frauds")
   const frauds: Frauds = await Frauds.deploy()
@@ -70,6 +80,7 @@ const bridgeFixture = async () => {
         BitcoinTx: bitcoinTx.address,
         Deposit: deposit.address,
         Sweep: sweep.address,
+        Redeem: redeem.address,
         Wallets: wallets.address,
         Frauds: frauds.address,
       },
