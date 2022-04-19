@@ -108,7 +108,7 @@
   resolved "https://registry.yarnpkg.com/@celo/utils/-/utils-0.1.11.tgz#c35e3b385091fc6f0c0c355b73270f4a8559ad38"
   integrity sha512-i3oK1guBxH89AEBaVA1d5CHnANehL36gPIcSpPBWiYZrKTGGVvbwNmVoaDwaKFXih0N22vXQAf2Rul8w5VzC3w==
   dependencies:
-    "@umpirsky/country-list" "git+https://github.com/umpirsky/country-list#05fda51"
+    "@umpirsky/country-list" "git://github.com/umpirsky/country-list#05fda51"
     bigi "^1.1.0"
     bignumber.js "^9.0.0"
     bip32 "2.0.5"
@@ -1553,6 +1553,15 @@
   version "2.0.0-dev.0"
   resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.0.tgz#ea5f450256ea42c842c22fce39611fdb77b0bb49"
   integrity sha512-8bjljuCp9ZpGAuWtdVOkYT/HslAbnoI3DZdNbhCfp9BGPtWQa32XvOHHu25oqY9xj4IgKURoNqGhSbgb4+m5ww==
+  dependencies:
+    "@keep-network/sortition-pools" "1.2.0-dev.24"
+    "@openzeppelin/contracts" "^4.4.2"
+    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
+
+"@keep-network/random-beacon@development":
+  version "2.0.0-dev.9"
+  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.9.tgz#09815afa500f7f57d9b990c6de21fbdfacc37e24"
+  integrity sha512-qXtMGfkKvYvVmsCcNyyrBzbT28GZmZ0ucsDdkOFLB2vS+03msO7jWnJsrnYUWCvVvom6ewBVJM1njo8I+b0LrA==
   dependencies:
     "@keep-network/sortition-pools" "1.2.0-dev.24"
     "@openzeppelin/contracts" "^4.4.2"
