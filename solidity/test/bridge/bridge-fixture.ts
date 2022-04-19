@@ -55,12 +55,7 @@ const bridgeFixture = async () => {
   await redeem.deployed()
 
   const MovingFunds = await ethers.getContractFactory<MovingFunds__factory>(
-    "MovingFunds",
-    {
-      libraries: {
-        Wallets: wallets.address,
-      },
-    }
+    "MovingFunds"
   )
   const movingFunds = await MovingFunds.deploy()
   await movingFunds.deployed()

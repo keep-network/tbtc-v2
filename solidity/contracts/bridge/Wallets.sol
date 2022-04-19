@@ -476,7 +476,7 @@ library Wallets {
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         bytes32 targetWalletsHash
-    ) external {
+    ) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
         // Check that the wallet is in the MovingFunds state but don't check
         // if the moving funds timeout is exceeded. That should give a
