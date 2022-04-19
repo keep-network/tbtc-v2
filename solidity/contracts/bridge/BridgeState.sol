@@ -18,7 +18,7 @@ pragma solidity ^0.8.9;
 import "./IRelay.sol";
 import "./Deposit.sol";
 import "./Redeem.sol";
-import "./Frauds.sol";
+import "./Fraud.sol";
 
 import "../bank/Bank.sol";
 
@@ -147,7 +147,7 @@ library BridgeState {
         uint256 fraudChallengeDepositAmount;
         // Collection of all submitted fraud challenges indexed by challenge
         // key built as `keccak256(walletPublicKey|sighash)`.
-        mapping(uint256 => Frauds.FraudChallenge) fraudChallenges;
+        mapping(uint256 => Fraud.FraudChallenge) fraudChallenges;
         // Collection of main UTXOs that are honestly spent indexed by
         // `keccak256(fundingTxHash | fundingOutputIndex)`. The `fundingTxHash`
         // is `bytes32` (ordered as in Bitcoin internally) and

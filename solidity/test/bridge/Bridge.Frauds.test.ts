@@ -27,7 +27,7 @@ const { lastBlockTime, increaseTime } = helpers.time
 
 const fixture = async () => bridgeFixture()
 
-describe("Bridge - Frauds", () => {
+describe("Bridge - Fraud", () => {
   let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
   let bridge: Bridge & BridgeStub

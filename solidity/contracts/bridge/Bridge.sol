@@ -30,7 +30,7 @@ import "./Redeem.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./Wallets.sol";
-import "./Frauds.sol";
+import "./Fraud.sol";
 import "./MovingFunds.sol";
 
 import "../bank/Bank.sol";
@@ -65,7 +65,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using Sweep for BridgeState.Storage;
     using Redeem for BridgeState.Storage;
     using MovingFunds for BridgeState.Storage;
-    using Frauds for BridgeState.Storage;
+    using Fraud for BridgeState.Storage;
     using Wallets for Wallets.Data;
 
     using BTCUtils for bytes;
@@ -576,7 +576,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function fraudChallenges(uint256 challengeKey)
         external
         view
-        returns (Frauds.FraudChallenge memory)
+        returns (Fraud.FraudChallenge memory)
     {
         return self.fraudChallenges[challengeKey];
     }

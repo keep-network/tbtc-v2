@@ -24,7 +24,7 @@ import "./EcdsaLib.sol";
 import "./BridgeState.sol";
 import "./Wallets.sol";
 
-library Frauds {
+library Fraud {
     using BytesLib for bytes;
     using BTCUtils for bytes;
     using BTCUtils for uint32;
