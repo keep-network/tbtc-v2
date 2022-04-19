@@ -116,6 +116,8 @@ library Wallets {
 
     event WalletMaxAgeUpdated(uint32 newMaxAge);
 
+    event WalletMaxBtcTransferUpdated(uint64 newMaxBtcTransfer);
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -194,6 +196,21 @@ library Wallets {
         self.maxAge = maxAge;
 
         emit WalletMaxAgeUpdated(maxAge);
+    }
+
+    /// @notice Sets the maximum BTC transfer parameter.
+    /// @param maxBtcTransfer New value of the maximum BTC transfer
+    function setMaxBtcTransfer(Data storage self, uint64 maxBtcTransfer)
+        external
+    {
+        require(
+            maxBtcTransfer > 0,
+            "Maximum BTC transfer must be greater than zero"
+        );
+
+        self.maxBtcTransfer = maxBtcTransfer;
+
+        emit WalletMaxBtcTransferUpdated(maxBtcTransfer);
     }
 
     /// @notice Requests creation of a new wallet. This function just

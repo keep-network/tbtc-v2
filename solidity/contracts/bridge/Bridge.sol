@@ -90,6 +90,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     event WalletMaxAgeUpdated(uint32 newMaxAge);
 
+    event WalletMaxBtcTransferUpdated(uint64 newMaxBtcTransfer);
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -220,6 +222,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         wallets.setCreationPeriod(1 weeks);
         wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // [1 BTC, 10 BTC]
         wallets.setMaxAge(26 weeks); // ~6 months
+        wallets.setMaxBtcTransfer(10 * 1e8); // 10 BTC
     }
 
     /// @notice Updates parameters used by the `Wallets` library.
@@ -227,19 +230,23 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param minBtcBalance New value of the minimum BTC balance
     /// @param maxBtcBalance New value of the maximum BTC balance
     /// @param maxAge New value of the wallet maximum age
+    /// @param maxBtcTransfer New value of the maximum BTC transfer
     /// @dev Requirements:
     ///      - Caller must be the contract owner.
     ///      - Minimum BTC balance must be greater than zero
     ///      - Maximum BTC balance must be greater than minimum BTC balance
+    ///      - Maximum BTC transfer must be greater than zero
     function updateWalletsParameters(
         uint32 creationPeriod,
         uint64 minBtcBalance,
         uint64 maxBtcBalance,
-        uint32 maxAge
+        uint32 maxAge,
+        uint64 maxBtcTransfer
     ) external onlyOwner {
         wallets.setCreationPeriod(creationPeriod);
         wallets.setBtcBalanceRange(minBtcBalance, maxBtcBalance);
         wallets.setMaxAge(maxAge);
+        wallets.setMaxBtcTransfer(maxBtcTransfer);
     }
 
     /// @return creationPeriod Value of the wallet creation period
