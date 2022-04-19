@@ -12,7 +12,6 @@ import type {
   Bank,
   BankStub,
   BankStub__factory,
-  BitcoinTx__factory,
   Bridge,
   BridgeStub,
   BridgeStub__factory,
@@ -88,12 +87,6 @@ const fixture = async () => {
     value: ethers.utils.parseEther("1"),
   })
 
-  const BitcoinTx = await ethers.getContractFactory<BitcoinTx__factory>(
-    "BitcoinTx"
-  )
-  const bitcoinTx = await BitcoinTx.deploy()
-  await bitcoinTx.deployed()
-
   const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
   const wallets = await Wallets.deploy()
   await wallets.deployed()
@@ -102,17 +95,12 @@ const fixture = async () => {
   const deposit = await Deposit.deploy()
   await deposit.deployed()
 
-  const Sweep = await ethers.getContractFactory<Sweep__factory>("Sweep", {
-    libraries: {
-      BitcoinTx: bitcoinTx.address,
-    },
-  })
+  const Sweep = await ethers.getContractFactory<Sweep__factory>("Sweep")
   const sweep = await Sweep.deploy()
   await sweep.deployed()
 
   const Redeem = await ethers.getContractFactory<Redeem__factory>("Redeem", {
     libraries: {
-      BitcoinTx: bitcoinTx.address,
       Wallets: wallets.address,
     },
   })
@@ -123,7 +111,6 @@ const fixture = async () => {
     "MovingFunds",
     {
       libraries: {
-        BitcoinTx: bitcoinTx.address,
         Wallets: wallets.address,
       },
     }
