@@ -497,12 +497,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 sighash,
         BitcoinTx.RSVSignature calldata signature
     ) external payable {
-        self.submitFraudChallenge(
-            wallets,
-            walletPublicKey,
-            sighash,
-            signature
-        );
+        self.submitFraudChallenge(wallets, walletPublicKey, sighash, signature);
     }
 
     /// @notice Allows to defeat a pending fraud challenge against a wallet if
@@ -538,19 +533,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes calldata preimage,
         bool witness
     ) external {
-        uint256 utxoKey = self.unwrapChallenge(
+        self.defeatFraudChallenge(
             walletPublicKey,
             preimage,
-            witness
+            witness,
+            self.treasury
         );
-
-        // Check that the UTXO key identifies a correctly spent UTXO.
-        require(
-            self.deposits[utxoKey].sweptAt > 0 || self.spentMainUTXOs[utxoKey],
-            "Spent UTXO not found among correctly spent UTXOs"
-        );
-
-        self.defeatChallenge(walletPublicKey, preimage, self.treasury);
     }
 
     /// @notice Notifies about defeat timeout for the given fraud challenge.

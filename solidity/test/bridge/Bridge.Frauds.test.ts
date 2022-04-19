@@ -38,10 +38,8 @@ describe("Bridge - Frauds", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, treasury, bridge } = await waffle.loadFixture(fixture))
-    ;({
-      fraudChallengeDefeatTimeout,
-      fraudChallengeDepositAmount,
-    } = await bridge.fraudParameters())
+    ;({ fraudChallengeDefeatTimeout, fraudChallengeDepositAmount } =
+      await bridge.fraudParameters())
   })
 
   describe("submitFraudChallenge", () => {
