@@ -238,53 +238,6 @@ library Frauds {
         emit FraudChallengeDefeated(walletPubKeyHash, sighash);
     }
 
-    /// @notice Unwraps the fraud challenge by verifying the given challenge
-    ///         and returns the UTXO key extracted from the preimage.
-    /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes)
-    /// @param preimage The preimage which produces sighash used to generate the
-    ///        ECDSA signature that is the subject of the fraud claim. It is a
-    ///        serialized subset of the transaction. The exact subset used as
-    ///        the preimage depends on the transaction input the signature is
-    ///        produced for. See BIP-143 for reference
-    /// @param witness Flag indicating whether the preimage was produced for a
-    ///        witness input. True for witness, false for non-witness input.
-    /// @return utxoKey UTXO key that identifies spent input.
-    /// @dev Requirements:
-    ///      - `walletPublicKey` and `sighash` calculated as `hash256(preimage)`
-    ///        must identify an open fraud challenge
-    ///      - the preimage must be a valid preimage of a transaction generated
-    ///        according to the protocol rules and already proved in the Bridge
-    function unwrapChallenge(
-        BridgeState.Storage storage self,
-        bytes calldata walletPublicKey,
-        bytes calldata preimage,
-        bool witness
-    ) internal returns (uint256 utxoKey) {
-        bytes32 sighash = preimage.hash256();
-
-        uint256 challengeKey = uint256(
-            keccak256(abi.encodePacked(walletPublicKey, sighash))
-        );
-
-        FraudChallenge storage challenge = self.fraudChallenges[challengeKey];
-
-        require(challenge.reportedAt > 0, "Fraud challenge does not exist");
-        require(
-            !challenge.resolved,
-            "Fraud challenge has already been resolved"
-        );
-
-        // Ensure SIGHASH_ALL type was used during signing, which is represented
-        // by type value `1`.
-        require(extractSighashType(preimage) == 1, "Wrong sighash type");
-
-        return
-            witness
-                ? extractUtxoKeyFromWitnessPreimage(preimage)
-                : extractUtxoKeyFromNonWitnessPreimage(preimage);
-    }
-
     /// @notice Notifies about defeat timeout for the given fraud challenge.
     ///         Can be called only if there was a fraud challenge identified by
     ///         the provided `walletPublicKey` and `sighash` and it was not
@@ -350,6 +303,53 @@ library Frauds {
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
 
         emit FraudChallengeDefeatTimedOut(walletPubKeyHash, sighash);
+    }
+
+    /// @notice Unwraps the fraud challenge by verifying the given challenge
+    ///         and returns the UTXO key extracted from the preimage.
+    /// @param walletPublicKey The public key of the wallet in the uncompressed
+    ///        and unprefixed format (64 bytes)
+    /// @param preimage The preimage which produces sighash used to generate the
+    ///        ECDSA signature that is the subject of the fraud claim. It is a
+    ///        serialized subset of the transaction. The exact subset used as
+    ///        the preimage depends on the transaction input the signature is
+    ///        produced for. See BIP-143 for reference
+    /// @param witness Flag indicating whether the preimage was produced for a
+    ///        witness input. True for witness, false for non-witness input.
+    /// @return utxoKey UTXO key that identifies spent input.
+    /// @dev Requirements:
+    ///      - `walletPublicKey` and `sighash` calculated as `hash256(preimage)`
+    ///        must identify an open fraud challenge
+    ///      - the preimage must be a valid preimage of a transaction generated
+    ///        according to the protocol rules and already proved in the Bridge
+    function unwrapChallenge(
+        BridgeState.Storage storage self,
+        bytes calldata walletPublicKey,
+        bytes calldata preimage,
+        bool witness
+    ) internal returns (uint256 utxoKey) {
+        bytes32 sighash = preimage.hash256();
+
+        uint256 challengeKey = uint256(
+            keccak256(abi.encodePacked(walletPublicKey, sighash))
+        );
+
+        FraudChallenge storage challenge = self.fraudChallenges[challengeKey];
+
+        require(challenge.reportedAt > 0, "Fraud challenge does not exist");
+        require(
+            !challenge.resolved,
+            "Fraud challenge has already been resolved"
+        );
+
+        // Ensure SIGHASH_ALL type was used during signing, which is represented
+        // by type value `1`.
+        require(extractSighashType(preimage) == 1, "Wrong sighash type");
+
+        return
+            witness
+                ? extractUtxoKeyFromWitnessPreimage(preimage)
+                : extractUtxoKeyFromNonWitnessPreimage(preimage);
     }
 
     /// @notice Extracts the UTXO keys from the given preimage used during
