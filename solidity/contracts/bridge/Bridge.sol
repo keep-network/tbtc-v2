@@ -497,25 +497,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 sighash,
         BitcoinTx.RSVSignature calldata signature
     ) external payable {
-        bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
-            walletPublicKey.slice32(0),
-            walletPublicKey.slice32(32)
-        );
-        bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
-
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        require(
-            wallet.state == Wallets.WalletState.Live ||
-                wallet.state == Wallets.WalletState.MovingFunds,
-            "Wallet is neither in Live nor MovingFunds state"
-        );
-
         self.submitFraudChallenge(
+            wallets,
             walletPublicKey,
-            walletPubKeyHash,
             sighash,
             signature
         );
