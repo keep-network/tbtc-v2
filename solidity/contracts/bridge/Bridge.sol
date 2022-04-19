@@ -245,7 +245,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @return creationPeriod Value of the wallet creation period
     /// @return minBtcBalance Value of the minimum BTC balance
     /// @return maxBtcBalance Value of the maximum BTC balance
-    /// @return maxAge Value of the wallet max age
+    /// @return maxAge Value of the wallet maximum age
+    /// @return maxBtcTransfer Value of the maximum BTC transfer
     function getWalletsParameters()
         external
         view
@@ -253,15 +254,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             uint32 creationPeriod,
             uint64 minBtcBalance,
             uint64 maxBtcBalance,
-            uint32 maxAge
+            uint32 maxAge,
+            uint64 maxBtcTransfer
         )
     {
         creationPeriod = wallets.creationPeriod;
         minBtcBalance = wallets.minBtcBalance;
         maxBtcBalance = wallets.maxBtcBalance;
         maxAge = wallets.maxAge;
-
-        return (creationPeriod, minBtcBalance, maxBtcBalance, maxAge);
+        maxBtcTransfer = wallets.maxBtcTransfer;
     }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
