@@ -381,6 +381,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return wallets.activeWalletPubKeyHash;
     }
 
+    /// @return Current count of wallets being in the Live state.
+    function getLiveWalletsCount() external view returns (uint32) {
+        return wallets.liveWalletsCount;
+    }
+
     /// @notice Used by the depositor to reveal information about their P2(W)SH
     ///         Bitcoin deposit to the Bridge on Ethereum chain. The off-chain
     ///         wallet listens for revealed deposit events and may decide to
