@@ -48,14 +48,14 @@ contract BridgeStub is Bridge {
     }
 
     function setActiveWallet(bytes20 activeWalletPubKeyHash) external {
-        wallets.activeWalletPubKeyHash = activeWalletPubKeyHash;
+        self.activeWalletPubKeyHash = activeWalletPubKeyHash;
     }
 
     function setWalletMainUtxo(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
-        wallets.registeredWallets[walletPubKeyHash].mainUtxoHash = keccak256(
+        self.registeredWallets[walletPubKeyHash].mainUtxoHash = keccak256(
             abi.encodePacked(
                 utxo.txHash,
                 utxo.txOutputIndex,
@@ -65,13 +65,13 @@ contract BridgeStub is Bridge {
     }
 
     function unsetWalletMainUtxo(bytes20 walletPubKeyHash) external {
-        delete wallets.registeredWallets[walletPubKeyHash].mainUtxoHash;
+        delete self.registeredWallets[walletPubKeyHash].mainUtxoHash;
     }
 
     function setWallet(bytes20 walletPubKeyHash, Wallets.Wallet calldata wallet)
         external
     {
-        wallets.registeredWallets[walletPubKeyHash] = wallet;
+        self.registeredWallets[walletPubKeyHash] = wallet;
     }
 
     function setDepositDustThreshold(uint64 _depositDustThreshold) external {

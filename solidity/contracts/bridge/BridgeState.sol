@@ -19,19 +19,22 @@ import "./IRelay.sol";
 import "./Deposit.sol";
 import "./Redeem.sol";
 import "./Fraud.sol";
+import "./Wallets.sol";
 
 import "../bank/Bank.sol";
 
 library BridgeState {
     // TODO: Make parameters governable
     struct Storage {
-        // The number of confirmations on the Bitcoin chain required to
-        // successfully evaluate an SPV proof.
-        uint256 txProofDifficultyFactor;
-        // Address of the Bank this Bridge belongs to.
+        // Address of the Bank the Bridge belongs to.
         Bank bank;
         // Bitcoin relay providing the current Bitcoin network difficulty.
         IRelay relay;
+        // ECDSA Wallet Registry contract handle.
+        EcdsaWalletRegistry ecdsaWalletRegistry;
+        // The number of confirmations on the Bitcoin chain required to
+        // successfully evaluate an SPV proof.
+        uint256 txProofDifficultyFactor;
         // Address where the deposit and redemption treasury fees will be sent
         // to. Treasury takes part in the operators rewarding process.
         address treasury;
@@ -155,6 +158,71 @@ library BridgeState {
         // spent if it was used as an input of a transaction that have been
         // proven in the Bridge.
         mapping(uint256 => bool) spentMainUTXOs;
+        // Determines how frequently a new wallet creation can be requested.
+        // Value in seconds.
+        uint32 walletCreationPeriod;
+        // The minimum BTC threshold in satoshi that is used to decide about
+        // wallet creation or closing.
+        uint64 walletMinBtcBalance;
+        // The maximum BTC threshold in satoshi that is used to decide about
+        // wallet creation.
+        uint64 walletMaxBtcBalance;
+        // The maximum age of a wallet in seconds, after which the wallet
+        // moving funds process can be requested.
+        uint32 walletMaxAge;
+        // 20-byte wallet public key hash being reference to the currently
+        // active wallet. Can be unset to the zero value under certain
+        // circumstances.
+        bytes20 activeWalletPubKeyHash;
+        // Maps the 20-byte wallet public key hash (computed using Bitcoin
+        // HASH160 over the compressed ECDSA public key) to the basic wallet
+        // information like state and pending redemptions value.
+        mapping(bytes20 => Wallets.Wallet) registeredWallets;
+    }
+
+    event WalletParametersUpdated(
+        uint32 walletCreationPeriod,
+        uint64 walletMinBtcBalance,
+        uint64 walletMaxBtcBalance,
+        uint32 walletMaxAge
+    );
+
+    /// @notice Updates parameters of wallets.
+    /// @param _walletCreationPeriod New value of the wallet creation period
+    /// @param _walletMinBtcBalance New value of the wallet minimum BTC balance
+    /// @param _walletMaxBtcBalance New value of the wallet maximum BTC balance
+    /// @param _walletMaxAge New value of the wallet maximum age
+    /// @dev Requirements:
+    ///      - Wallet minimum BTC balance must be greater than zero
+    ///      - Wallet maximum BTC balance must be greater than the wallet
+    ///        minimum BTC balance
+    function updateWalletParameters(
+        Storage storage self,
+        uint32 _walletCreationPeriod,
+        uint64 _walletMinBtcBalance,
+        uint64 _walletMaxBtcBalance,
+        uint32 _walletMaxAge
+    ) internal {
+        require(
+            _walletMinBtcBalance > 0,
+            "Wallet minimum BTC balance must be greater than zero"
+        );
+        require(
+            _walletMaxBtcBalance > _walletMinBtcBalance,
+            "Wallet maximum BTC balance must be greater than the minimum"
+        );
+
+        self.walletCreationPeriod = _walletCreationPeriod;
+        self.walletMinBtcBalance = _walletMinBtcBalance;
+        self.walletMaxBtcBalance = _walletMaxBtcBalance;
+        self.walletMaxAge = _walletMaxAge;
+
+        emit WalletParametersUpdated(
+            _walletCreationPeriod,
+            _walletMinBtcBalance,
+            _walletMaxBtcBalance,
+            _walletMaxAge
+        );
     }
 
     // TODO: Is it the right place for this function? Should we move it to Bridge?

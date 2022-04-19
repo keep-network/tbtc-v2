@@ -104,7 +104,6 @@ library Fraud {
     ///      - Wallet can be challenged for the given signature only once
     function submitFraudChallenge(
         BridgeState.Storage storage self,
-        Wallets.Data storage wallets,
         bytes calldata walletPublicKey,
         bytes32 sighash,
         BitcoinTx.RSVSignature calldata signature
@@ -131,7 +130,7 @@ library Fraud {
         );
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
 
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
+        Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
         ];
 
