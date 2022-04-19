@@ -30,7 +30,7 @@ import "./Redeem.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./Wallets.sol";
-import "./Frauds.sol";
+import "./Fraud.sol";
 import "./MovingFunds.sol";
 
 import "../bank/Bank.sol";
@@ -65,7 +65,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using Sweep for BridgeState.Storage;
     using Redeem for BridgeState.Storage;
     using MovingFunds for BridgeState.Storage;
-    using Frauds for Frauds.Data;
+    using Fraud for BridgeState.Storage;
     using Wallets for Wallets.Data;
 
     using BTCUtils for bytes;
@@ -73,10 +73,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using BytesLib for bytes;
 
     BridgeState.Storage internal self;
-
-    /// @notice Contains parameters related to frauds and the collection of all
-    ///         submitted fraud challenges.
-    Frauds.Data internal frauds;
 
     /// @notice State related with wallets.
     Wallets.Data internal wallets;
@@ -208,12 +204,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.redemptionTxMaxFee = 10000; // 10000 satoshi
         self.redemptionTimeout = 172800; // 48 hours
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
-
-        // TODO: Revisit initial values.
-        frauds.setSlashingAmount(10000 * 1e18); // 10000 T
-        frauds.setNotifierRewardMultiplier(100); // 100%
-        frauds.setChallengeDefeatTimeout(7 days);
-        frauds.setChallengeDepositAmount(2 ether);
+        self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
+        self.fraudNotifierRewardMultiplier = 100; // 100%
+        self.fraudChallengeDefeatTimeout = 7 days;
+        self.fraudChallengeDepositAmount = 2 ether;
 
         // TODO: Revisit initial values.
         wallets.init(_ecdsaWalletRegistry);
@@ -503,28 +497,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 sighash,
         BitcoinTx.RSVSignature calldata signature
     ) external payable {
-        bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(
-            walletPublicKey.slice32(0),
-            walletPublicKey.slice32(32)
-        );
-        bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
-
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        require(
-            wallet.state == Wallets.WalletState.Live ||
-                wallet.state == Wallets.WalletState.MovingFunds,
-            "Wallet is neither in Live nor MovingFunds state"
-        );
-
-        frauds.submitChallenge(
-            walletPublicKey,
-            walletPubKeyHash,
-            sighash,
-            signature
-        );
+        self.submitFraudChallenge(wallets, walletPublicKey, sighash, signature);
     }
 
     /// @notice Allows to defeat a pending fraud challenge against a wallet if
@@ -560,19 +533,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes calldata preimage,
         bool witness
     ) external {
-        uint256 utxoKey = frauds.unwrapChallenge(
-            walletPublicKey,
-            preimage,
-            witness
-        );
-
-        // Check that the UTXO key identifies a correctly spent UTXO.
-        require(
-            self.deposits[utxoKey].sweptAt > 0 || self.spentMainUTXOs[utxoKey],
-            "Spent UTXO not found among correctly spent UTXOs"
-        );
-
-        frauds.defeatChallenge(walletPublicKey, preimage, self.treasury);
+        self.defeatFraudChallenge(walletPublicKey, preimage, witness);
     }
 
     /// @notice Notifies about defeat timeout for the given fraud challenge.
@@ -602,35 +563,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes calldata walletPublicKey,
         bytes32 sighash
     ) external {
-        frauds.notifyChallengeDefeatTimeout(walletPublicKey, sighash);
-    }
-
-    /// @notice Returns parameters used by the `Frauds` library.
-    /// @return slashingAmount Value of the slashing amount
-    /// @return notifierRewardMultiplier Value of the notifier reward multiplier
-    /// @return challengeDefeatTimeout Value of the challenge defeat timeout
-    /// @return challengeDepositAmount Value of the challenge deposit amount
-    function getFraudParameters()
-        external
-        view
-        returns (
-            uint256 slashingAmount,
-            uint256 notifierRewardMultiplier,
-            uint256 challengeDefeatTimeout,
-            uint256 challengeDepositAmount
-        )
-    {
-        slashingAmount = frauds.slashingAmount;
-        notifierRewardMultiplier = frauds.notifierRewardMultiplier;
-        challengeDefeatTimeout = frauds.challengeDefeatTimeout;
-        challengeDepositAmount = frauds.challengeDepositAmount;
-
-        return (
-            slashingAmount,
-            notifierRewardMultiplier,
-            challengeDefeatTimeout,
-            challengeDepositAmount
-        );
+        self.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
     }
 
     /// @notice Returns the fraud challenge identified by the given key built
@@ -638,9 +571,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function fraudChallenges(uint256 challengeKey)
         external
         view
-        returns (Frauds.FraudChallenge memory)
+        returns (Fraud.FraudChallenge memory)
     {
-        return frauds.challenges[challengeKey];
+        return self.fraudChallenges[challengeKey];
     }
 
     /// @notice Requests redemption of the given amount from the specified
@@ -951,6 +884,32 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     {
         // TODO: we will have more parameters here, for example moving funds timeout
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
+    }
+
+    /// @notice Returns the current values of Bridge fraud parameters.
+    /// @return fraudSlashingAmount The amount slashed from each wallet member
+    ///         for committing a fraud.
+    /// @return fraudNotifierRewardMultiplier The percentage of the notifier
+    ///         reward from the staking contract the notifier of a fraud
+    ///         receives. The value is in the range [0, 100].
+    /// @return fraudChallengeDefeatTimeout The amount of time the wallet has to
+    ///         defeat a fraud challenge.
+    /// @return fraudChallengeDepositAmount The amount of ETH in wei the party
+    ///         challenging the wallet for fraud needs to deposit.
+    function fraudParameters()
+        external
+        view
+        returns (
+            uint256 fraudSlashingAmount,
+            uint256 fraudNotifierRewardMultiplier,
+            uint256 fraudChallengeDefeatTimeout,
+            uint256 fraudChallengeDepositAmount
+        )
+    {
+        fraudSlashingAmount = self.fraudSlashingAmount;
+        fraudNotifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
+        fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
+        fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
     }
 
     /// @notice Indicates if the vault with the given address is trusted or not.
