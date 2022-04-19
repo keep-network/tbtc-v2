@@ -661,29 +661,31 @@ Governable Parameters:
 
 When a wallet fails a <<heartbeat,heartbeat>> `consecutive_failed_heartbeats`
 times, ends a <<redemption,redemption>> with less than `wallet_min_closure_btc`
-remaining, or exceeds the `wallet_max_age`, the operators begin the process of
-closing it. If there are still funds remaining, and those funds are at least
-`wallet_dust_leftover`, then the <<operator-only,first operator>> posts a
-<<operator-only,reimbursable>> transaction to the ethereum chain declaring an
-intention to close the wallet. This transaction includes a timestamp hereby
-referred to as `move_funds_start_timestamp`. If the balance is less than
-`wallet_dust_leftover`, we simply close the wallet and abandon the funds. We
-can maintain the peg via a <<donate,donation>>.
+remaining, or exceeds the `wallet_max_age`, then a few different parties can
+begin the process of closing it.
+
+If the wallet failed a heartbeat, then the <<operator-only,first operator>>
+posts a <<operator-only,reimbursable>> transaction to the ethereum chain
+declaring an intention to close the wallet. If the wallet exceeds
+`wallet_max_age` or the funds fall under `wallet_min_closure_btc`, then
+<<public-knowledge,the public>> can post that transaction. If the wallet failed
+a redemption, then the public (probably the redeemer) can post a
+<<punishment,punishment>> transaction.
+
+If the balance is less than `wallet_dust_leftover`, we simply close the wallet
+and abandon the funds, signaling this with a <<public-knowledge, public>>
+transaction, and can maintain the peg via a <<donate,donation>>.
+Otherwise, we attempt to move the funds to other active wallet(s).
 
 The first operator posts a signed, <<operator-only,reimbursable>>
 `intention-to-move` transaction to the ethereum chain declaring which wallets
-the operators intend to move the funds to. This starts a challenge period in
-which <<public-knowledge,the public>> can challenge the destination wallets.
-They do so by showing there exists a live, valid wallet which was created
-before `move_funds_start_timestamp` that _wasn't_ chosen _and_ should have
-been. See <<wallet-closure-transaction,the dedicated section>> for how wallets
-are chosen.
-
-If the challenge period passes, that operator proposes a BTC fee (as in
-<<sweeping,sweeping>>) and the operators transfer the funds evenly between the
-wallets proposed in the `intention-to-move` transaction. They construct a P2PKH
-transaction moving the wallet's main UTXO to each of those wallets. For more
-details on exactly how a wallet is chosen and how the funds are split up see
+the operators intend to move the funds to. We trust the wallet to do this
+correctly, because if it was malicious, it has little reason to not just steal
+the funds. Then, that operator proposes a BTC fee (as in <<sweeping,sweeping>>)
+and the operators transfer the funds evenly between the wallets proposed in the
+`intention-to-move` transaction. They construct a P2PKH transaction moving the
+wallet's main UTXO to each of those wallets. For more details on exactly how a
+wallet is chosen and how the funds are split up see
 <<wallet-closure-transaction,the dedicated section>>.
 
 After this transaction is complete, <<public-knowledge,the public>> is able to
