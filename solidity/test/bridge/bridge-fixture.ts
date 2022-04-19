@@ -4,7 +4,11 @@ import type {
   Bank,
   BankStub,
   BankStub__factory,
-  BitcoinTx__factory,
+  Deposit__factory,
+  Sweep__factory,
+  Redeem__factory,
+  MovingFunds__factory,
+  Wallets__factory,
   Bridge,
   BridgeStub,
   BridgeStub__factory,
@@ -12,7 +16,6 @@ import type {
   Frauds,
   Frauds__factory,
   IRelay,
-  Wallets__factory,
 } from "../../typechain"
 
 /**
@@ -35,15 +38,36 @@ const bridgeFixture = async () => {
     value: ethers.utils.parseEther("1"),
   })
 
-  const BitcoinTx = await ethers.getContractFactory<BitcoinTx__factory>(
-    "BitcoinTx"
-  )
-  const bitcoinTx = await BitcoinTx.deploy()
-  await bitcoinTx.deployed()
-
   const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
   const wallets = await Wallets.deploy()
   await wallets.deployed()
+
+  const Deposit = await ethers.getContractFactory<Deposit__factory>("Deposit")
+  const deposit = await Deposit.deploy()
+  await deposit.deployed()
+
+  const Sweep = await ethers.getContractFactory<Sweep__factory>("Sweep")
+  const sweep = await Sweep.deploy()
+  await sweep.deployed()
+
+  const Redeem = await ethers.getContractFactory<Redeem__factory>("Redeem", {
+    libraries: {
+      Wallets: wallets.address,
+    },
+  })
+  const redeem = await Redeem.deploy()
+  await redeem.deployed()
+
+  const MovingFunds = await ethers.getContractFactory<MovingFunds__factory>(
+    "MovingFunds",
+    {
+      libraries: {
+        Wallets: wallets.address,
+      },
+    }
+  )
+  const movingFunds = await MovingFunds.deploy()
+  await movingFunds.deployed()
 
   const Frauds = await ethers.getContractFactory<Frauds__factory>("Frauds")
   const frauds: Frauds = await Frauds.deploy()
@@ -53,9 +77,12 @@ const bridgeFixture = async () => {
     "BridgeStub",
     {
       libraries: {
-        BitcoinTx: bitcoinTx.address,
+        Deposit: deposit.address,
+        Sweep: sweep.address,
+        Redeem: redeem.address,
         Wallets: wallets.address,
         Frauds: frauds.address,
+        MovingFunds: movingFunds.address,
       },
     }
   )

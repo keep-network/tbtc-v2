@@ -19,25 +19,21 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
+
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
-import "../bank/Bank.sol";
+import "./IRelay.sol";
+import "./BridgeState.sol";
+import "./Deposit.sol";
+import "./Sweep.sol";
+import "./Redeem.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./Wallets.sol";
 import "./Frauds.sol";
+import "./MovingFunds.sol";
 
-/// @title Interface for the Bitcoin relay
-/// @notice Contains only the methods needed by tBTC v2. The Bitcoin relay
-///         provides the difficulty of the previous and current epoch. One
-///         difficulty epoch spans 2016 blocks.
-interface IRelay {
-    /// @notice Returns the difficulty of the current epoch.
-    function getCurrentEpochDifficulty() external view returns (uint256);
-
-    /// @notice Returns the difficulty of the previous epoch.
-    function getPrevEpochDifficulty() external view returns (uint256);
-}
+import "../bank/Bank.sol";
 
 /// @title Bitcoin Bridge
 /// @notice Bridge manages BTC deposit and redemption flow and is increasing and
@@ -59,264 +55,24 @@ interface IRelay {
 ///         balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank.
 ///
-/// TODO: All wallets-related operations that are currently done directly
-///       by the Bridge can be probably delegated to the Wallets library.
-///       Examples of such operations are main UTXO or pending redemptions
-///       value updates.
+// TODO: All wallets-related operations that are currently done directly
+//       by the Bridge can be probably delegated to the Wallets library.
+//       Examples of such operations are main UTXO or pending redemptions
+//       value updates.
 contract Bridge is Ownable, EcdsaWalletOwner {
-    using BTCUtils for bytes;
-    using BTCUtils for uint256;
-    using BytesLib for bytes;
+    using BridgeState for BridgeState.Storage;
+    using Deposit for BridgeState.Storage;
+    using Sweep for BridgeState.Storage;
+    using Redeem for BridgeState.Storage;
+    using MovingFunds for BridgeState.Storage;
     using Frauds for Frauds.Data;
     using Wallets for Wallets.Data;
 
-    /// @notice Represents data which must be revealed by the depositor during
-    ///         deposit reveal.
-    struct RevealInfo {
-        // Index of the funding output belonging to the funding transaction.
-        uint32 fundingOutputIndex;
-        // Ethereum depositor address.
-        address depositor;
-        // The blinding factor as 8 bytes. Byte endianness doesn't matter
-        // as this factor is not interpreted as uint.
-        bytes8 blindingFactor;
-        // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
-        // of the deposit's wallet hashed in the HASH160 Bitcoin opcode style.
-        bytes20 walletPubKeyHash;
-        // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
-        // that can be used to make the deposit refund after the refund
-        // locktime passes. Hashed in the HASH160 Bitcoin opcode style.
-        bytes20 refundPubKeyHash;
-        // The refund locktime (4-byte LE). Interpreted according to locktime
-        // parsing rules described in:
-        // https://developer.bitcoin.org/devguide/transactions.html#locktime-and-sequence-number
-        // and used with OP_CHECKLOCKTIMEVERIFY opcode as described in:
-        // https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki
-        bytes4 refundLocktime;
-        // Address of the Bank vault to which the deposit is routed to.
-        // Optional, can be 0x0. The vault must be trusted by the Bridge.
-        address vault;
-    }
+    using BTCUtils for bytes;
+    using BTCUtils for uint256;
+    using BytesLib for bytes;
 
-    /// @notice Represents tBTC deposit data.
-    struct DepositRequest {
-        // Ethereum depositor address.
-        address depositor;
-        // Deposit amount in satoshi.
-        uint64 amount;
-        // UNIX timestamp the deposit was revealed at.
-        uint32 revealedAt;
-        // Address of the Bank vault the deposit is routed to.
-        // Optional, can be 0x0.
-        address vault;
-        // Treasury TBTC fee in satoshi at the moment of deposit reveal.
-        uint64 treasuryFee;
-        // UNIX timestamp the deposit was swept at. Note this is not the
-        // time when the deposit was swept on the Bitcoin chain but actually
-        // the time when the sweep proof was delivered to the Ethereum chain.
-        uint32 sweptAt;
-    }
-
-    /// @notice Represents an outcome of the sweep Bitcoin transaction
-    ///         inputs processing.
-    struct SweepTxInputsInfo {
-        // Sum of all inputs values i.e. all deposits and main UTXO value,
-        // if present.
-        uint256 inputsTotalValue;
-        // Addresses of depositors who performed processed deposits. Ordered in
-        // the same order as deposits inputs in the input vector. Size of this
-        // array is either equal to the number of inputs (main UTXO doesn't
-        // exist) or less by one (main UTXO exists and is pointed by one of
-        // the inputs).
-        address[] depositors;
-        // Amounts of deposits corresponding to processed deposits. Ordered in
-        // the same order as deposits inputs in the input vector. Size of this
-        // array is either equal to the number of inputs (main UTXO doesn't
-        // exist) or less by one (main UTXO exists and is pointed by one of
-        // the inputs).
-        uint256[] depositedAmounts;
-        // Values of the treasury fee corresponding to processed deposits.
-        // Ordered in the same order as deposits inputs in the input vector.
-        // Size of this array is either equal to the number of inputs (main
-        // UTXO doesn't exist) or less by one (main UTXO exists and is pointed
-        // by one of the inputs).
-        uint256[] treasuryFees;
-    }
-
-    /// @notice Represents a redemption request.
-    struct RedemptionRequest {
-        // ETH address of the redeemer who created the request.
-        address redeemer;
-        // Requested TBTC amount in satoshi.
-        uint64 requestedAmount;
-        // Treasury TBTC fee in satoshi at the moment of request creation.
-        uint64 treasuryFee;
-        // Transaction maximum BTC fee in satoshi at the moment of request
-        // creation.
-        uint64 txMaxFee;
-        // UNIX timestamp the request was created at.
-        uint32 requestedAt;
-    }
-
-    /// @notice Represents an outcome of the redemption Bitcoin transaction
-    ///         outputs processing.
-    struct RedemptionTxOutputsInfo {
-        // Total TBTC value in satoshi that should be burned by the Bridge.
-        // It includes the total amount of all BTC redeemed in the transaction
-        // and the fee paid to BTC miners for the redemption transaction.
-        uint64 totalBurnableValue;
-        // Total TBTC value in satoshi that should be transferred to
-        // the treasury. It is a sum of all treasury fees paid by all
-        // redeemers included in the redemption transaction.
-        uint64 totalTreasuryFee;
-        // Index of the change output. The change output becomes
-        // the new main wallet's UTXO.
-        uint32 changeIndex;
-        // Value in satoshi of the change output.
-        uint64 changeValue;
-    }
-
-    /// @notice The number of confirmations on the Bitcoin chain required to
-    ///         successfully evaluate an SPV proof.
-    uint256 public immutable txProofDifficultyFactor;
-
-    /// TODO: Revisit whether it should be governable or not.
-    /// @notice Address of the Bank this Bridge belongs to.
-    Bank public immutable bank;
-
-    /// TODO: Make it governable.
-    /// @notice Handle to the Bitcoin relay.
-    IRelay public immutable relay;
-
-    /// TODO: Revisit whether it should be governable or not.
-    /// @notice Address where the redemptions treasury fees will be sent to.
-    ///         Treasury takes part in the operators rewarding process.
-    address public immutable treasury;
-
-    /// TODO: Make it governable.
-    /// @notice The minimal amount that can be requested for deposit.
-    ///         Value of this parameter must take into account the value of
-    ///         `depositTreasuryFeeDivisor` and `depositTxMaxFee`
-    ///         parameters in order to make requests that can incur the
-    ///         treasury and transaction fee and still satisfy the depositor.
-    uint64 public depositDustThreshold;
-
-    /// TODO: Make it governable.
-    /// @notice Divisor used to compute the treasury fee taken from each
-    ///         deposit and transferred to the treasury upon sweep proof
-    ///         submission. That fee is computed as follows:
-    ///         `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
-    ///         For example, if the treasury fee needs to be 2% of each deposit,
-    ///         the `depositTreasuryFeeDivisor` should be set to `50`
-    ///         because `1/50 = 0.02 = 2%`.
-    uint64 public depositTreasuryFeeDivisor;
-
-    /// TODO: Make it governable.
-    /// @notice Maximum amount of BTC transaction fee that can be incurred by
-    ///         each swept deposit being part of the given sweep
-    ///         transaction. If the maximum BTC transaction fee is exceeded,
-    ///         such transaction is considered a fraud.
-    /// @dev This is a per-deposit input max fee for the sweep transaction.
-    uint64 public depositTxMaxFee;
-
-    /// TODO: Make it governable.
-    /// @notice The minimal amount that can be requested for redemption.
-    ///         Value of this parameter must take into account the value of
-    ///         `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
-    ///         parameters in order to make requests that can incur the
-    ///         treasury and transaction fee and still satisfy the redeemer.
-    uint64 public redemptionDustThreshold;
-
-    /// TODO: Make it governable.
-    /// @notice Divisor used to compute the treasury fee taken from each
-    ///         redemption request and transferred to the treasury upon
-    ///         successful request finalization. That fee is computed as follows:
-    ///         `treasuryFee = requestedAmount / redemptionTreasuryFeeDivisor`
-    ///         For example, if the treasury fee needs to be 2% of each
-    ///         redemption request, the `redemptionTreasuryFeeDivisor` should
-    ///         be set to `50` because `1/50 = 0.02 = 2%`.
-    uint64 public redemptionTreasuryFeeDivisor;
-
-    /// TODO: Make it governable.
-    /// @notice Maximum amount of BTC transaction fee that can be incurred by
-    ///         each redemption request being part of the given redemption
-    ///         transaction. If the maximum BTC transaction fee is exceeded, such
-    ///         transaction is considered a fraud.
-    /// @dev This is a per-redemption output max fee for the redemption transaction.
-    uint64 public redemptionTxMaxFee;
-
-    /// TODO: Make it governable.
-    /// @notice Time after which the redemption request can be reported as
-    ///         timed out. It is counted from the moment when the redemption
-    ///         request was created via `requestRedemption` call. Reported
-    ///         timed out requests are cancelled and locked TBTC is returned
-    ///         to the redeemer in full amount.
-    uint256 public redemptionTimeout;
-
-    /// TODO: Make it governable.
-    /// @notice Maximum amount of the total BTC transaction fee that is
-    ///         acceptable in a single moving funds transaction.
-    /// @dev This is a TOTAL max fee for the moving funds transaction. Note that
-    ///      `depositTxMaxFee` is per single deposit and `redemptionTxMaxFee`
-    ///      if per single redemption. `movingFundsTxMaxTotalFee` is a total fee
-    ///      for the entire transaction.
-    uint64 public movingFundsTxMaxTotalFee;
-
-    /// @notice Indicates if the vault with the given address is trusted or not.
-    ///         Depositors can route their revealed deposits only to trusted
-    ///         vaults and have trusted vaults notified about new deposits as
-    ///         soon as these deposits get swept. Vaults not trusted by the
-    ///         Bridge can still be used by Bank balance owners on their own
-    ///         responsibility - anyone can approve their Bank balance to any
-    ///         address.
-    mapping(address => bool) public isVaultTrusted;
-
-    /// @notice Collection of all revealed deposits indexed by
-    ///         keccak256(fundingTxHash | fundingOutputIndex).
-    ///         The fundingTxHash is bytes32 (ordered as in Bitcoin internally)
-    ///         and fundingOutputIndex an uint32. This mapping may contain valid
-    ///         and invalid deposits and the wallet is responsible for
-    ///         validating them before attempting to execute a sweep.
-    mapping(uint256 => DepositRequest) public deposits;
-
-    /// @notice Collection of main UTXOs that are honestly spent indexed by
-    ///         keccak256(fundingTxHash | fundingOutputIndex). The fundingTxHash
-    ///         is bytes32 (ordered as in Bitcoin internally) and
-    ///         fundingOutputIndex an uint32. A main UTXO is considered honestly
-    ///         spent if it was used as an input of a transaction that have been
-    ///         proven in the Bridge.
-    mapping(uint256 => bool) public spentMainUTXOs;
-
-    /// @notice Collection of all pending redemption requests indexed by
-    ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
-    ///         walletPubKeyHash is the 20-byte wallet's public key hash
-    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputScript is a Bitcoin script
-    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
-    ///         redeemed BTC as requested by the redeemer. Requests are added
-    ///         to this mapping by the `requestRedemption` method (duplicates
-    ///         not allowed) and are removed by one of the following methods:
-    ///         - `submitRedemptionProof` in case the request was handled
-    ///           successfully
-    ///         - `notifyRedemptionTimeout` in case the request was reported
-    ///           to be timed out
-    mapping(uint256 => RedemptionRequest) public pendingRedemptions;
-
-    /// @notice Collection of all timed out redemptions requests indexed by
-    ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
-    ///         walletPubKeyHash is the 20-byte wallet's public key hash
-    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputScript is the Bitcoin script
-    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed
-    ///         out request. Timed out requests are stored in this mapping to
-    ///         avoid slashing the wallets multiple times for the same timeout.
-    ///         Only one method can add to this mapping:
-    ///         - `notifyRedemptionTimeout` which puts the redemption key
-    ///           to this mapping basing on a timed out request stored
-    ///           previously in `pendingRedemptions` mapping.
-    mapping(uint256 => RedemptionRequest) public timedOutRedemptions;
+    BridgeState.Storage internal self;
 
     /// @notice Contains parameters related to frauds and the collection of all
     ///         submitted fraud challenges.
@@ -433,25 +189,25 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint256 _txProofDifficultyFactor
     ) {
         require(_bank != address(0), "Bank address cannot be zero");
-        bank = Bank(_bank);
+        self.bank = Bank(_bank);
 
         require(_relay != address(0), "Relay address cannot be zero");
-        relay = IRelay(_relay);
+        self.relay = IRelay(_relay);
 
         require(_treasury != address(0), "Treasury address cannot be zero");
-        treasury = _treasury;
+        self.treasury = _treasury;
 
-        txProofDifficultyFactor = _txProofDifficultyFactor;
+        self.txProofDifficultyFactor = _txProofDifficultyFactor;
 
         // TODO: Revisit initial values.
-        depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
-        depositTxMaxFee = 10000; // 10000 satoshi
-        depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
-        redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
-        redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
-        redemptionTxMaxFee = 10000; // 10000 satoshi
-        redemptionTimeout = 172800; // 48 hours
-        movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
+        self.depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
+        self.depositTxMaxFee = 10000; // 10000 satoshi
+        self.depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
+        self.redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
+        self.redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
+        self.redemptionTxMaxFee = 10000; // 10000 satoshi
+        self.redemptionTimeout = 172800; // 48 hours
+        self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
 
         // TODO: Revisit initial values.
         frauds.setSlashingAmount(10000 * 1e18); // 10000 T
@@ -522,7 +278,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param isTrusted flag indicating whether the vault is trusted or not
     /// @dev Can only be called by the Governance.
     function setVaultStatus(address vault, bool isTrusted) external onlyOwner {
-        isVaultTrusted[vault] = isTrusted;
+        self.isVaultTrusted[vault] = isTrusted;
         emit VaultStatusUpdated(vault, isTrusted);
     }
 
@@ -625,22 +381,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return wallets.activeWalletPubKeyHash;
     }
 
-    /// @notice Determines the current Bitcoin SPV proof difficulty context.
-    /// @return proofDifficulty Bitcoin proof difficulty context.
-    function proofDifficultyContext()
-        internal
-        view
-        returns (BitcoinTx.ProofDifficulty memory proofDifficulty)
-    {
-        proofDifficulty.currentEpochDifficulty = relay
-            .getCurrentEpochDifficulty();
-        proofDifficulty.previousEpochDifficulty = relay
-            .getPrevEpochDifficulty();
-        proofDifficulty.difficultyFactor = txProofDifficultyFactor;
-
-        return proofDifficulty;
-    }
-
     /// @notice Used by the depositor to reveal information about their P2(W)SH
     ///         Bitcoin deposit to the Bridge on Ethereum chain. The off-chain
     ///         wallet listens for revealed deposit events and may decide to
@@ -677,124 +417,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      deposit script unlocks to receive their BTC back.
     function revealDeposit(
         BitcoinTx.Info calldata fundingTx,
-        RevealInfo calldata reveal
+        Deposit.DepositRevealInfo calldata reveal
     ) external {
-        require(
-            wallets.registeredWallets[reveal.walletPubKeyHash].state ==
-                Wallets.WalletState.Live,
-            "Wallet is not in Live state"
-        );
-
-        require(
-            reveal.vault == address(0) || isVaultTrusted[reveal.vault],
-            "Vault is not trusted"
-        );
-
-        // TODO: Should we enforce a specific locktime at contract level?
-
-        bytes memory expectedScript = abi.encodePacked(
-            hex"14", // Byte length of depositor Ethereum address.
-            reveal.depositor,
-            hex"75", // OP_DROP
-            hex"08", // Byte length of blinding factor value.
-            reveal.blindingFactor,
-            hex"75", // OP_DROP
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            reveal.walletPubKeyHash,
-            hex"87", // OP_EQUAL
-            hex"63", // OP_IF
-            hex"ac", // OP_CHECKSIG
-            hex"67", // OP_ELSE
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            reveal.refundPubKeyHash,
-            hex"88", // OP_EQUALVERIFY
-            hex"04", // Byte length of refund locktime value.
-            reveal.refundLocktime,
-            hex"b1", // OP_CHECKLOCKTIMEVERIFY
-            hex"75", // OP_DROP
-            hex"ac", // OP_CHECKSIG
-            hex"68" // OP_ENDIF
-        );
-
-        bytes memory fundingOutput = fundingTx
-            .outputVector
-            .extractOutputAtIndex(reveal.fundingOutputIndex);
-        bytes memory fundingOutputHash = fundingOutput.extractHash();
-
-        if (fundingOutputHash.length == 20) {
-            // A 20-byte output hash is used by P2SH. That hash is constructed
-            // by applying OP_HASH160 on the locking script. A 20-byte output
-            // hash is used as well by P2PKH and P2WPKH (OP_HASH160 on the
-            // public key). However, since we compare the actual output hash
-            // with an expected locking script hash, this check will succeed only
-            // for P2SH transaction type with expected script hash value. For
-            // P2PKH and P2WPKH, it will fail on the output hash comparison with
-            // the expected locking script hash.
-            require(
-                fundingOutputHash.slice20(0) == expectedScript.hash160View(),
-                "Wrong 20-byte script hash"
-            );
-        } else if (fundingOutputHash.length == 32) {
-            // A 32-byte output hash is used by P2WSH. That hash is constructed
-            // by applying OP_SHA256 on the locking script.
-            require(
-                fundingOutputHash.toBytes32() == sha256(expectedScript),
-                "Wrong 32-byte script hash"
-            );
-        } else {
-            revert("Wrong script hash length");
-        }
-
-        // Resulting TX hash is in native Bitcoin little-endian format.
-        bytes32 fundingTxHash = abi
-            .encodePacked(
-                fundingTx.version,
-                fundingTx.inputVector,
-                fundingTx.outputVector,
-                fundingTx.locktime
-            )
-            .hash256View();
-
-        DepositRequest storage deposit = deposits[
-            uint256(
-                keccak256(
-                    abi.encodePacked(fundingTxHash, reveal.fundingOutputIndex)
-                )
-            )
-        ];
-        require(deposit.revealedAt == 0, "Deposit already revealed");
-
-        uint64 fundingOutputAmount = fundingOutput.extractValue();
-
-        require(
-            fundingOutputAmount >= depositDustThreshold,
-            "Deposit amount too small"
-        );
-
-        deposit.amount = fundingOutputAmount;
-        deposit.depositor = reveal.depositor;
-        /* solhint-disable-next-line not-rely-on-time */
-        deposit.revealedAt = uint32(block.timestamp);
-        deposit.vault = reveal.vault;
-        deposit.treasuryFee = depositTreasuryFeeDivisor > 0
-            ? fundingOutputAmount / depositTreasuryFeeDivisor
-            : 0;
-
-        emit DepositRevealed(
-            fundingTxHash,
-            reveal.fundingOutputIndex,
-            reveal.depositor,
-            fundingOutputAmount,
-            reveal.blindingFactor,
-            reveal.walletPubKeyHash,
-            reveal.refundPubKeyHash,
-            reveal.refundLocktime,
-            reveal.vault
-        );
+        self.revealDeposit(wallets, fundingTx, reveal);
     }
 
     /// @notice Used by the wallet to prove the BTC deposit sweep transaction
@@ -838,388 +463,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
-        // TODO: Fail early if the function call gets frontrunned. See discussion:
-        //       https://github.com/keep-network/tbtc-v2/pull/106#discussion_r801745204
-
-        // The actual transaction proof is performed here. After that point, we
-        // can assume the transaction happened on Bitcoin chain and has
-        // a sufficient number of confirmations as determined by
-        // `txProofDifficultyFactor` constant.
-        bytes32 sweepTxHash = BitcoinTx.validateProof(
-            sweepTx,
-            sweepProof,
-            proofDifficultyContext()
-        );
-
-        // Process sweep transaction output and extract its target wallet
-        // public key hash and value.
-        (
-            bytes20 walletPubKeyHash,
-            uint64 sweepTxOutputValue
-        ) = processSweepTxOutput(sweepTx.outputVector);
-
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        Wallets.WalletState walletState = wallet.state;
-        require(
-            walletState == Wallets.WalletState.Live ||
-                walletState == Wallets.WalletState.MovingFunds,
-            "Wallet must be in Live or MovingFunds state"
-        );
-
-        // Check if the main UTXO for given wallet exists. If so, validate
-        // passed main UTXO data against the stored hash and use them for
-        // further processing. If no main UTXO exists, use empty data.
-        BitcoinTx.UTXO memory resolvedMainUtxo = BitcoinTx.UTXO(
-            bytes32(0),
-            0,
-            0
-        );
-        bytes32 mainUtxoHash = wallet.mainUtxoHash;
-        if (mainUtxoHash != bytes32(0)) {
-            require(
-                keccak256(
-                    abi.encodePacked(
-                        mainUtxo.txHash,
-                        mainUtxo.txOutputIndex,
-                        mainUtxo.txOutputValue
-                    )
-                ) == mainUtxoHash,
-                "Invalid main UTXO data"
-            );
-            resolvedMainUtxo = mainUtxo;
-        }
-
-        // Process sweep transaction inputs and extract all information needed
-        // to perform deposit bookkeeping.
-        SweepTxInputsInfo memory inputsInfo = processSweepTxInputs(
-            sweepTx.inputVector,
-            resolvedMainUtxo
-        );
-
-        // Helper variable that will hold the sum of treasury fees paid by
-        // all deposits.
-        uint256 totalTreasuryFee = 0;
-
-        // Determine the transaction fee that should be incurred by each deposit
-        // and the indivisible remainder that should be additionally incurred
-        // by the last deposit.
-        (
-            uint256 depositTxFee,
-            uint256 depositTxFeeRemainder
-        ) = sweepTxFeeDistribution(
-                inputsInfo.inputsTotalValue,
-                sweepTxOutputValue,
-                inputsInfo.depositedAmounts.length
-            );
-
-        // Make sure the highest value of the deposit transaction fee does not
-        // exceed the maximum value limited by the governable parameter.
-        require(
-            depositTxFee + depositTxFeeRemainder <= depositTxMaxFee,
-            "Transaction fee is too high"
-        );
-
-        // Reduce each deposit amount by treasury fee and transaction fee.
-        for (uint256 i = 0; i < inputsInfo.depositedAmounts.length; i++) {
-            // The last deposit should incur the deposit transaction fee
-            // remainder.
-            uint256 depositTxFeeIncurred = i ==
-                inputsInfo.depositedAmounts.length - 1
-                ? depositTxFee + depositTxFeeRemainder
-                : depositTxFee;
-
-            // There is no need to check whether
-            // `inputsInfo.depositedAmounts[i] - inputsInfo.treasuryFees[i] - txFee > 0`
-            // since the `depositDustThreshold` should force that condition
-            // to be always true.
-            inputsInfo.depositedAmounts[i] =
-                inputsInfo.depositedAmounts[i] -
-                inputsInfo.treasuryFees[i] -
-                depositTxFeeIncurred;
-            totalTreasuryFee += inputsInfo.treasuryFees[i];
-        }
-
-        // Record this sweep data and assign them to the wallet public key hash
-        // as new main UTXO. Transaction output index is always 0 as sweep
-        // transaction always contains only one output.
-        wallet.mainUtxoHash = keccak256(
-            abi.encodePacked(sweepTxHash, uint32(0), sweepTxOutputValue)
-        );
-
-        emit DepositsSwept(walletPubKeyHash, sweepTxHash);
-
-        // Update depositors balances in the Bank.
-        bank.increaseBalances(
-            inputsInfo.depositors,
-            inputsInfo.depositedAmounts
-        );
-        // Pass the treasury fee to the treasury address.
-        bank.increaseBalance(treasury, totalTreasuryFee);
-
-        // TODO: Handle deposits having `vault` set.
-    }
-
-    /// @notice Processes the Bitcoin sweep transaction output vector by
-    ///         extracting the single output and using it to gain additional
-    ///         information required for further processing (e.g. value and
-    ///         wallet public key hash).
-    /// @param sweepTxOutputVector Bitcoin sweep transaction output vector.
-    ///        This function assumes vector's structure is valid so it must be
-    ///        validated using e.g. `BTCUtils.validateVout` function before
-    ///        it is passed here
-    /// @return walletPubKeyHash 20-byte wallet public key hash.
-    /// @return value 8-byte sweep transaction output value.
-    function processSweepTxOutput(bytes memory sweepTxOutputVector)
-        internal
-        pure
-        returns (bytes20 walletPubKeyHash, uint64 value)
-    {
-        // To determine the total number of sweep transaction outputs, we need to
-        // parse the compactSize uint (VarInt) the output vector is prepended by.
-        // That compactSize uint encodes the number of vector elements using the
-        // format presented in:
-        // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
-        // We don't need asserting the compactSize uint is parseable since it
-        // was already checked during `validateVout` validation.
-        // See `BitcoinTx.outputVector` docs for more details.
-        (, uint256 outputsCount) = sweepTxOutputVector.parseVarInt();
-        require(
-            outputsCount == 1,
-            "Sweep transaction must have a single output"
-        );
-
-        bytes memory output = sweepTxOutputVector.extractOutputAtIndex(0);
-        value = output.extractValue();
-        bytes memory walletPubKeyHashBytes = output.extractHash();
-        // The sweep transaction output should always be P2PKH or P2WPKH.
-        // In both cases, the wallet public key hash should be 20 bytes length.
-        require(
-            walletPubKeyHashBytes.length == 20,
-            "Wallet public key hash should have 20 bytes"
-        );
-        /* solhint-disable-next-line no-inline-assembly */
-        assembly {
-            walletPubKeyHash := mload(add(walletPubKeyHashBytes, 32))
-        }
-
-        return (walletPubKeyHash, value);
-    }
-
-    /// @notice Processes the Bitcoin sweep transaction input vector. It
-    ///         extracts each input and tries to obtain associated deposit or
-    ///         main UTXO data, depending on the input type. Reverts
-    ///         if one of the inputs cannot be recognized as a pointer to a
-    ///         revealed deposit or expected main UTXO.
-    ///         This function also marks each processed deposit as swept.
-    /// @param sweepTxInputVector Bitcoin sweep transaction input vector.
-    ///        This function assumes vector's structure is valid so it must be
-    ///        validated using e.g. `BTCUtils.validateVin` function before
-    ///        it is passed here
-    /// @param mainUtxo Data of the wallet's main UTXO. If no main UTXO
-    ///        exists for the given the wallet, this parameter's fields should
-    ///        be zeroed to bypass the main UTXO validation
-    /// @return info Outcomes of the processing.
-    function processSweepTxInputs(
-        bytes memory sweepTxInputVector,
-        BitcoinTx.UTXO memory mainUtxo
-    ) internal returns (SweepTxInputsInfo memory info) {
-        // If the passed `mainUtxo` parameter's values are zeroed, the main UTXO
-        // for the given wallet doesn't exist and it is not expected to be
-        // included in the sweep transaction input vector.
-        bool mainUtxoExpected = mainUtxo.txHash != bytes32(0);
-        bool mainUtxoFound = false;
-
-        // Determining the total number of sweep transaction inputs in the same
-        // way as for number of outputs. See `BitcoinTx.inputVector` docs for
-        // more details.
-        (
-            uint256 inputsCompactSizeUintLength,
-            uint256 inputsCount
-        ) = sweepTxInputVector.parseVarInt();
-
-        // To determine the first input starting index, we must jump over
-        // the compactSize uint which prepends the input vector. One byte
-        // must be added because `BtcUtils.parseVarInt` does not include
-        // compactSize uint tag in the returned length.
-        //
-        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
-        // returns `0`, so we jump over one byte of compactSize uint.
-        //
-        // For >= 253 && <= 0xffff there is `0xfd` tag,
-        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
-        // tag byte included) so we need to jump over 1+2 bytes of
-        // compactSize uint.
-        //
-        // Please refer `BTCUtils` library and compactSize uint
-        // docs in `BitcoinTx` library for more details.
-        uint256 inputStartingIndex = 1 + inputsCompactSizeUintLength;
-
-        // Determine the swept deposits count. If main UTXO is NOT expected,
-        // all inputs should be deposits. If main UTXO is expected, one input
-        // should point to that main UTXO.
-        info.depositors = new address[](
-            !mainUtxoExpected ? inputsCount : inputsCount - 1
-        );
-        info.depositedAmounts = new uint256[](info.depositors.length);
-        info.treasuryFees = new uint256[](info.depositors.length);
-
-        // Initialize helper variables.
-        uint256 processedDepositsCount = 0;
-
-        // Inputs processing loop.
-        for (uint256 i = 0; i < inputsCount; i++) {
-            (
-                bytes32 outpointTxHash,
-                uint32 outpointIndex,
-                uint256 inputLength
-            ) = parseTxInputAt(sweepTxInputVector, inputStartingIndex);
-
-            DepositRequest storage deposit = deposits[
-                uint256(
-                    keccak256(abi.encodePacked(outpointTxHash, outpointIndex))
-                )
-            ];
-
-            if (deposit.revealedAt != 0) {
-                // If we entered here, that means the input was identified as
-                // a revealed deposit.
-                require(deposit.sweptAt == 0, "Deposit already swept");
-
-                if (processedDepositsCount == info.depositors.length) {
-                    // If this condition is true, that means a deposit input
-                    // took place of an expected main UTXO input.
-                    // In other words, there is no expected main UTXO
-                    // input and all inputs come from valid, revealed deposits.
-                    revert(
-                        "Expected main UTXO not present in sweep transaction inputs"
-                    );
-                }
-
-                /* solhint-disable-next-line not-rely-on-time */
-                deposit.sweptAt = uint32(block.timestamp);
-
-                info.depositors[processedDepositsCount] = deposit.depositor;
-                info.depositedAmounts[processedDepositsCount] = deposit.amount;
-                info.inputsTotalValue += info.depositedAmounts[
-                    processedDepositsCount
-                ];
-                info.treasuryFees[processedDepositsCount] = deposit.treasuryFee;
-
-                processedDepositsCount++;
-            } else if (
-                mainUtxoExpected != mainUtxoFound &&
-                mainUtxo.txHash == outpointTxHash
-            ) {
-                // If we entered here, that means the input was identified as
-                // the expected main UTXO.
-                info.inputsTotalValue += mainUtxo.txOutputValue;
-                mainUtxoFound = true;
-
-                // Main UTXO used as an input, mark it as spent.
-                spentMainUTXOs[
-                    uint256(
-                        keccak256(
-                            abi.encodePacked(outpointTxHash, outpointIndex)
-                        )
-                    )
-                ] = true;
-            } else {
-                revert("Unknown input type");
-            }
-
-            // Make the `inputStartingIndex` pointing to the next input by
-            // increasing it by current input's length.
-            inputStartingIndex += inputLength;
-        }
-
-        // Construction of the input processing loop guarantees that:
-        // `processedDepositsCount == info.depositors.length == info.depositedAmounts.length`
-        // is always true at this point. We just use the first variable
-        // to assert the total count of swept deposit is bigger than zero.
-        require(
-            processedDepositsCount > 0,
-            "Sweep transaction must process at least one deposit"
-        );
-
-        // Assert the main UTXO was used as one of current sweep's inputs if
-        // it was actually expected.
-        require(
-            mainUtxoExpected == mainUtxoFound,
-            "Expected main UTXO not present in sweep transaction inputs"
-        );
-
-        return info;
-    }
-
-    /// @notice Parses a Bitcoin transaction input starting at the given index.
-    /// @param inputVector Bitcoin transaction input vector
-    /// @param inputStartingIndex Index the given input starts at
-    /// @return outpointTxHash 32-byte hash of the Bitcoin transaction which is
-    ///         pointed in the given input's outpoint.
-    /// @return outpointIndex 4-byte index of the Bitcoin transaction output
-    ///         which is pointed in the given input's outpoint.
-    /// @return inputLength Byte length of the given input.
-    /// @dev This function assumes vector's structure is valid so it must be
-    ///      validated using e.g. `BTCUtils.validateVin` function before it
-    ///      is passed here.
-    function parseTxInputAt(
-        bytes memory inputVector,
-        uint256 inputStartingIndex
-    )
-        internal
-        pure
-        returns (
-            bytes32 outpointTxHash,
-            uint32 outpointIndex,
-            uint256 inputLength
-        )
-    {
-        outpointTxHash = inputVector.extractInputTxIdLeAt(inputStartingIndex);
-
-        outpointIndex = BTCUtils.reverseUint32(
-            uint32(inputVector.extractTxIndexLeAt(inputStartingIndex))
-        );
-
-        inputLength = inputVector.determineInputLengthAt(inputStartingIndex);
-
-        return (outpointTxHash, outpointIndex, inputLength);
-    }
-
-    /// @notice Determines the distribution of the sweep transaction fee
-    ///         over swept deposits.
-    /// @param sweepTxInputsTotalValue Total value of all sweep transaction inputs.
-    /// @param sweepTxOutputValue Value of the sweep transaction output.
-    /// @param depositsCount Count of the deposits swept by the sweep transaction.
-    /// @return depositTxFee Transaction fee per deposit determined by evenly
-    ///         spreading the divisible part of the sweep transaction fee
-    ///         over all deposits.
-    /// @return depositTxFeeRemainder The indivisible part of the sweep
-    ///         transaction fee than cannot be distributed over all deposits.
-    /// @dev It is up to the caller to decide how the remainder should be
-    ///      counted in. This function only computes its value.
-    function sweepTxFeeDistribution(
-        uint256 sweepTxInputsTotalValue,
-        uint256 sweepTxOutputValue,
-        uint256 depositsCount
-    )
-        internal
-        pure
-        returns (uint256 depositTxFee, uint256 depositTxFeeRemainder)
-    {
-        // The sweep transaction fee is just the difference between inputs
-        // amounts sum and the output amount.
-        uint256 sweepTxFee = sweepTxInputsTotalValue - sweepTxOutputValue;
-        // Compute the indivisible remainder that remains after dividing the
-        // sweep transaction fee over all deposits evenly.
-        depositTxFeeRemainder = sweepTxFee % depositsCount;
-        // Compute the transaction fee per deposit by dividing the sweep
-        // transaction fee (reduced by the remainder) by the number of deposits.
-        depositTxFee = (sweepTxFee - depositTxFeeRemainder) / depositsCount;
-
-        return (depositTxFee, depositTxFeeRemainder);
+        self.submitSweepProof(wallets, sweepTx, sweepProof, mainUtxo);
     }
 
     /// @notice Submits a fraud challenge indicating that a UTXO being under
@@ -1324,11 +568,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
         // Check that the UTXO key identifies a correctly spent UTXO.
         require(
-            deposits[utxoKey].sweptAt > 0 || spentMainUTXOs[utxoKey],
+            self.deposits[utxoKey].sweptAt > 0 || self.spentMainUTXOs[utxoKey],
             "Spent UTXO not found among correctly spent UTXOs"
         );
 
-        frauds.defeatChallenge(walletPublicKey, preimage, treasury);
+        frauds.defeatChallenge(walletPublicKey, preimage, self.treasury);
     }
 
     /// @notice Notifies about defeat timeout for the given fraud challenge.
@@ -1434,123 +678,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes calldata redeemerOutputScript,
         uint64 amount
     ) external {
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        require(
-            wallet.state == Wallets.WalletState.Live,
-            "Wallet must be in Live state"
-        );
-
-        bytes32 mainUtxoHash = wallet.mainUtxoHash;
-        require(
-            mainUtxoHash != bytes32(0),
-            "No main UTXO for the given wallet"
-        );
-        require(
-            keccak256(
-                abi.encodePacked(
-                    mainUtxo.txHash,
-                    mainUtxo.txOutputIndex,
-                    mainUtxo.txOutputValue
-                )
-            ) == mainUtxoHash,
-            "Invalid main UTXO data"
-        );
-
-        // TODO: Confirm if `walletPubKeyHash` should be validated by checking
-        //       if it is the oldest one who can handle the request. This will
-        //       be suggested by the dApp but may not be respected by users who
-        //       interact directly with the contract. Do we need to enforce it
-        //       here? One option is not to enforce it, to save on gas, but if
-        //       we see this rule is not respected, upgrade Bridge contract to
-        //       require it.
-
-        // Validate if redeemer output script is a correct standard type
-        // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by building a stub
-        // output with 0 as value and using `BTCUtils.extractHash` on it. Such
-        // a function extracts the payload properly only from standard outputs
-        // so if it succeeds, we have a guarantee the redeemer output script
-        // is proper. Worth to note `extractHash` ignores the value at all
-        // so this is why we can use 0 safely. This way of validation is the
-        // same as in tBTC v1.
-        bytes memory redeemerOutputScriptPayload = abi
-            .encodePacked(bytes8(0), redeemerOutputScript)
-            .extractHash();
-        require(
-            redeemerOutputScriptPayload.length > 0,
-            "Redeemer output script must be a standard type"
-        );
-        // Check if the redeemer output script payload does not point to the
-        // wallet public key hash.
-        require(
-            keccak256(abi.encodePacked(walletPubKeyHash)) !=
-                keccak256(redeemerOutputScriptPayload),
-            "Redeemer output script must not point to the wallet PKH"
-        );
-
-        require(
-            amount >= redemptionDustThreshold,
-            "Redemption amount too small"
-        );
-
-        // The redemption key is built on top of the wallet public key hash
-        // and redeemer output script pair. That means there can be only one
-        // request asking for redemption from the given wallet to the given
-        // BTC script at the same time.
-        uint256 redemptionKey = uint256(
-            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
-        );
-
-        // Check if given redemption key is not used by a pending redemption.
-        // There is no need to check for existence in `timedOutRedemptions`
-        // since the wallet's state is changed to other than Live after
-        // first time out is reported so making new requests is not possible.
-        // slither-disable-next-line incorrect-equality
-        require(
-            pendingRedemptions[redemptionKey].requestedAt == 0,
-            "There is a pending redemption request from this wallet to the same address"
-        );
-
-        // No need to check whether `amount - treasuryFee - txMaxFee > 0`
-        // since the `redemptionDustThreshold` should force that condition
-        // to be always true.
-        uint64 treasuryFee = redemptionTreasuryFeeDivisor > 0
-            ? amount / redemptionTreasuryFeeDivisor
-            : 0;
-        uint64 txMaxFee = redemptionTxMaxFee;
-
-        // The main wallet UTXO's value doesn't include all pending redemptions.
-        // To determine if the requested redemption can be performed by the
-        // wallet we need to subtract the total value of all pending redemptions
-        // from that wallet's main UTXO value. Given that the treasury fee is
-        // not redeemed from the wallet, we are subtracting it.
-        wallet.pendingRedemptionsValue += amount - treasuryFee;
-        require(
-            mainUtxo.txOutputValue >= wallet.pendingRedemptionsValue,
-            "Insufficient wallet funds"
-        );
-
-        pendingRedemptions[redemptionKey] = RedemptionRequest(
-            msg.sender,
-            amount,
-            treasuryFee,
-            txMaxFee,
-            /* solhint-disable-next-line not-rely-on-time */
-            uint32(block.timestamp)
-        );
-
-        emit RedemptionRequested(
+        self.requestRedemption(
+            wallets,
             walletPubKeyHash,
+            mainUtxo,
             redeemerOutputScript,
-            msg.sender,
-            amount,
-            treasuryFee,
-            txMaxFee
+            amount
         );
-
-        bank.transferBalanceFrom(msg.sender, address(this), amount);
     }
 
     /// @notice Used by the wallet to prove the BTC redemption transaction
@@ -1603,370 +737,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) external {
-        // TODO: Just as for `submitSweepProof`, fail early if the function
-        //       call gets frontrunned. See discussion:
-        //       https://github.com/keep-network/tbtc-v2/pull/106#discussion_r801745204
-
-        // The actual transaction proof is performed here. After that point, we
-        // can assume the transaction happened on Bitcoin chain and has
-        // a sufficient number of confirmations as determined by
-        // `txProofDifficultyFactor` constant.
-        bytes32 redemptionTxHash = BitcoinTx.validateProof(
+        self.submitRedemptionProof(
+            wallets,
             redemptionTx,
             redemptionProof,
-            proofDifficultyContext()
-        );
-
-        // Process the redemption transaction input. Specifically, check if it
-        // refers to the expected wallet's main UTXO.
-        processWalletOutboundTxInput(
-            redemptionTx.inputVector,
             mainUtxo,
             walletPubKeyHash
         );
-
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        Wallets.WalletState walletState = wallet.state;
-        require(
-            walletState == Wallets.WalletState.Live ||
-                walletState == Wallets.WalletState.MovingFunds,
-            "Wallet must be in Live or MovingFuds state"
-        );
-
-        // Process redemption transaction outputs to extract some info required
-        // for further processing.
-        RedemptionTxOutputsInfo memory outputsInfo = processRedemptionTxOutputs(
-            redemptionTx.outputVector,
-            walletPubKeyHash
-        );
-
-        if (outputsInfo.changeValue > 0) {
-            // If the change value is grater than zero, it means the change
-            // output exists and can be used as new wallet's main UTXO.
-            wallet.mainUtxoHash = keccak256(
-                abi.encodePacked(
-                    redemptionTxHash,
-                    outputsInfo.changeIndex,
-                    outputsInfo.changeValue
-                )
-            );
-        } else {
-            // If the change value is zero, it means the change output doesn't
-            // exists and no funds left on the wallet. Delete the main UTXO
-            // for that wallet to represent that state in a proper way.
-            delete wallet.mainUtxoHash;
-        }
-
-        wallet.pendingRedemptionsValue -= outputsInfo.totalBurnableValue;
-
-        emit RedemptionsCompleted(walletPubKeyHash, redemptionTxHash);
-
-        bank.decreaseBalance(outputsInfo.totalBurnableValue);
-        bank.transferBalance(treasury, outputsInfo.totalTreasuryFee);
-    }
-
-    /// @notice Checks whether an outbound Bitcoin transaction performed from
-    ///         the given wallet has an input vector that contains a single
-    ///         input referring to the wallet's main UTXO. Marks that main UTXO
-    ///         as correctly spent if the validation succeeds. Reverts otherwise.
-    ///         There are two outbound transactions from a wallet possible: a
-    ///         redemption transaction or a moving funds to another wallet
-    ///         transaction.
-    /// @param walletOutboundTxInputVector Bitcoin outbound transaction's input
-    ///        vector. This function assumes vector's structure is valid so it
-    ///        must be validated using e.g. `BTCUtils.validateVin` function
-    ///        before it is passed here
-    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
-    ///        the Ethereum chain.
-    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the outbound transaction.
-    function processWalletOutboundTxInput(
-        bytes memory walletOutboundTxInputVector,
-        BitcoinTx.UTXO calldata mainUtxo,
-        bytes20 walletPubKeyHash
-    ) internal {
-        // Assert that main UTXO for passed wallet exists in storage.
-        bytes32 mainUtxoHash = wallets
-            .registeredWallets[walletPubKeyHash]
-            .mainUtxoHash;
-        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
-
-        // Assert that passed main UTXO parameter is the same as in storage and
-        // can be used for further processing.
-        require(
-            keccak256(
-                abi.encodePacked(
-                    mainUtxo.txHash,
-                    mainUtxo.txOutputIndex,
-                    mainUtxo.txOutputValue
-                )
-            ) == mainUtxoHash,
-            "Invalid main UTXO data"
-        );
-
-        // Assert that the single outbound transaction input actually
-        // refers to the wallet's main UTXO.
-        (
-            bytes32 outpointTxHash,
-            uint32 outpointIndex
-        ) = parseWalletOutboundTxInput(walletOutboundTxInputVector);
-        require(
-            mainUtxo.txHash == outpointTxHash &&
-                mainUtxo.txOutputIndex == outpointIndex,
-            "Outbound transaction input must point to the wallet's main UTXO"
-        );
-
-        // Main UTXO used as an input, mark it as spent.
-        spentMainUTXOs[
-            uint256(
-                keccak256(
-                    abi.encodePacked(mainUtxo.txHash, mainUtxo.txOutputIndex)
-                )
-            )
-        ] = true;
-    }
-
-    /// @notice Parses the input vector of an outbound Bitcoin transaction
-    ///         performed from the given wallet. It extracts the single input
-    ///         then the transaction hash and output index from its outpoint.
-    ///         There are two outbound transactions from a wallet possible: a
-    ///         redemption transaction or a moving funds to another wallet
-    ///         transaction.
-    /// @param walletOutboundTxInputVector Bitcoin outbound transaction input
-    ///        vector. This function assumes vector's structure is valid so it
-    ///        must be validated using e.g. `BTCUtils.validateVin` function
-    ///        before it is passed here
-    /// @return outpointTxHash 32-byte hash of the Bitcoin transaction which is
-    ///         pointed in the input's outpoint.
-    /// @return outpointIndex 4-byte index of the Bitcoin transaction output
-    ///         which is pointed in the input's outpoint.
-    function parseWalletOutboundTxInput(
-        bytes memory walletOutboundTxInputVector
-    ) internal pure returns (bytes32 outpointTxHash, uint32 outpointIndex) {
-        // To determine the total number of Bitcoin transaction inputs,
-        // we need to parse the compactSize uint (VarInt) the input vector is
-        // prepended by. That compactSize uint encodes the number of vector
-        // elements using the format presented in:
-        // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
-        // We don't need asserting the compactSize uint is parseable since it
-        // was already checked during `validateVin` validation.
-        // See `BitcoinTx.inputVector` docs for more details.
-        (, uint256 inputsCount) = walletOutboundTxInputVector.parseVarInt();
-        require(
-            inputsCount == 1,
-            "Outbound transaction must have a single input"
-        );
-
-        bytes memory input = walletOutboundTxInputVector.extractInputAtIndex(0);
-
-        outpointTxHash = input.extractInputTxIdLE();
-
-        outpointIndex = BTCUtils.reverseUint32(
-            uint32(input.extractTxIndexLE())
-        );
-
-        // There is only one input in the transaction. Input has an outpoint
-        // field that is a reference to the transaction being spent (see
-        // `BitcoinTx` docs). The outpoint contains the hash of the transaction
-        // to spend (`outpointTxHash`) and the index of the specific output
-        // from that transaction (`outpointIndex`).
-        return (outpointTxHash, outpointIndex);
-    }
-
-    /// @notice Processes the Bitcoin redemption transaction output vector.
-    ///         It extracts each output and tries to identify it as a pending
-    ///         redemption request, reported timed out request, or change.
-    ///         Reverts if one of the outputs cannot be recognized properly.
-    ///         This function also marks each request as processed by removing
-    ///         them from `pendingRedemptions` mapping.
-    /// @param redemptionTxOutputVector Bitcoin redemption transaction output
-    ///        vector. This function assumes vector's structure is valid so it
-    ///        must be validated using e.g. `BTCUtils.validateVout` function
-    ///        before it is passed here
-    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the redemption transaction.
-    /// @return info Outcomes of the processing.
-    function processRedemptionTxOutputs(
-        bytes memory redemptionTxOutputVector,
-        bytes20 walletPubKeyHash
-    ) internal returns (RedemptionTxOutputsInfo memory info) {
-        // Determining the total number of redemption transaction outputs in
-        // the same way as for number of inputs. See `BitcoinTx.outputVector`
-        // docs for more details.
-        (
-            uint256 outputsCompactSizeUintLength,
-            uint256 outputsCount
-        ) = redemptionTxOutputVector.parseVarInt();
-
-        // To determine the first output starting index, we must jump over
-        // the compactSize uint which prepends the output vector. One byte
-        // must be added because `BtcUtils.parseVarInt` does not include
-        // compactSize uint tag in the returned length.
-        //
-        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
-        // returns `0`, so we jump over one byte of compactSize uint.
-        //
-        // For >= 253 && <= 0xffff there is `0xfd` tag,
-        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
-        // tag byte included) so we need to jump over 1+2 bytes of
-        // compactSize uint.
-        //
-        // Please refer `BTCUtils` library and compactSize uint
-        // docs in `BitcoinTx` library for more details.
-        uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
-
-        // Calculate the keccak256 for two possible wallet's P2PKH or P2WPKH
-        // scripts that can be used to lock the change. This is done upfront to
-        // save on gas. Both scripts have a strict format defined by Bitcoin.
-        //
-        // The P2PKH script has the byte format: <0x1976a914> <20-byte PKH> <0x88ac>.
-        // According to https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-        // - 0x19: Byte length of the entire script
-        // - 0x76: OP_DUP
-        // - 0xa9: OP_HASH160
-        // - 0x14: Byte length of the public key hash
-        // - 0x88: OP_EQUALVERIFY
-        // - 0xac: OP_CHECKSIG
-        // which matches the P2PKH structure as per:
-        // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
-        bytes32 walletP2PKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"1976a914", walletPubKeyHash, hex"88ac")
-        );
-        // The P2WPKH script has the byte format: <0x160014> <20-byte PKH>.
-        // According to https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-        // - 0x16: Byte length of the entire script
-        // - 0x00: OP_0
-        // - 0x14: Byte length of the public key hash
-        // which matches the P2WPKH structure as per:
-        // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
-        bytes32 walletP2WPKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"160014", walletPubKeyHash)
-        );
-
-        // Helper variable that counts the number of processed redemption
-        // outputs. Redemptions can be either pending or reported as timed out.
-        // TODO: Revisit the approach with redemptions count according to
-        //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r808237765
-        uint256 processedRedemptionsCount = 0;
-
-        // Outputs processing loop.
-        for (uint256 i = 0; i < outputsCount; i++) {
-            // TODO: Check if we can optimize gas costs by adding
-            //       `extractValueAt` and `extractHashAt` in `bitcoin-spv-sol`
-            //       in order to avoid allocating bytes in memory.
-            uint256 outputLength = redemptionTxOutputVector
-                .determineOutputLengthAt(outputStartingIndex);
-            bytes memory output = redemptionTxOutputVector.slice(
-                outputStartingIndex,
-                outputLength
-            );
-
-            // Extract the value from given output.
-            uint64 outputValue = output.extractValue();
-            // The output consists of an 8-byte value and a variable length
-            // script. To extract that script we slice the output starting from
-            // 9th byte until the end.
-            bytes memory outputScript = output.slice(8, output.length - 8);
-
-            if (
-                info.changeValue == 0 &&
-                (keccak256(outputScript) == walletP2PKHScriptKeccak ||
-                    keccak256(outputScript) == walletP2WPKHScriptKeccak) &&
-                outputValue > 0
-            ) {
-                // If we entered here, that means the change output with a
-                // proper non-zero value was found.
-                info.changeIndex = uint32(i);
-                info.changeValue = outputValue;
-            } else {
-                // If we entered here, that the means the given output is
-                // supposed to represent a redemption. Build the redemption key
-                // to perform that check.
-                uint256 redemptionKey = uint256(
-                    keccak256(abi.encodePacked(walletPubKeyHash, outputScript))
-                );
-
-                if (pendingRedemptions[redemptionKey].requestedAt != 0) {
-                    // If we entered here, that means the output was identified
-                    // as a pending redemption request.
-                    RedemptionRequest storage request = pendingRedemptions[
-                        redemptionKey
-                    ];
-                    // Compute the request's redeemable amount as the requested
-                    // amount reduced by the treasury fee. The request's
-                    // minimal amount is then the redeemable amount reduced by
-                    // the maximum transaction fee.
-                    uint64 redeemableAmount = request.requestedAmount -
-                        request.treasuryFee;
-                    // Output value must fit between the request's redeemable
-                    // and minimal amounts to be deemed valid.
-                    require(
-                        redeemableAmount - request.txMaxFee <= outputValue &&
-                            outputValue <= redeemableAmount,
-                        "Output value is not within the acceptable range of the pending request"
-                    );
-                    // Add the redeemable amount to the total burnable value
-                    // the Bridge will use to decrease its balance in the Bank.
-                    info.totalBurnableValue += redeemableAmount;
-                    // Add the request's treasury fee to the total treasury fee
-                    // value the Bridge will transfer to the treasury.
-                    info.totalTreasuryFee += request.treasuryFee;
-                    // Request was properly handled so remove its redemption
-                    // key from the mapping to make it reusable for further
-                    // requests.
-                    delete pendingRedemptions[redemptionKey];
-
-                    processedRedemptionsCount++;
-                } else {
-                    // If we entered here, the output is not a redemption
-                    // request but there is still a chance the given output is
-                    // related to a reported timed out redemption request.
-                    // If so, check if the output value matches the request
-                    // amount to confirm this is an overdue request fulfillment
-                    // then bypass this output and process the subsequent
-                    // ones. That also means the wallet was already punished
-                    // for the inactivity. Otherwise, just revert.
-                    RedemptionRequest storage request = timedOutRedemptions[
-                        redemptionKey
-                    ];
-
-                    require(
-                        request.requestedAt != 0,
-                        "Output is a non-requested redemption"
-                    );
-
-                    uint64 redeemableAmount = request.requestedAmount -
-                        request.treasuryFee;
-
-                    require(
-                        redeemableAmount - request.txMaxFee <= outputValue &&
-                            outputValue <= redeemableAmount,
-                        "Output value is not within the acceptable range of the timed out request"
-                    );
-
-                    processedRedemptionsCount++;
-                }
-            }
-
-            // Make the `outputStartingIndex` pointing to the next output by
-            // increasing it by current output's length.
-            outputStartingIndex += outputLength;
-        }
-
-        // Protect against the cases when there is only a single change output
-        // referring back to the wallet PKH and just burning main UTXO value
-        // for transaction fees.
-        require(
-            processedRedemptionsCount > 0,
-            "Redemption transaction must process at least one redemption"
-        );
-
-        return info;
     }
 
     /// @notice Notifies that there is a pending redemption request associated
@@ -1997,56 +774,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 walletPubKeyHash,
         bytes calldata redeemerOutputScript
     ) external {
-        uint256 redemptionKey = uint256(
-            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
+        self.notifyRedemptionTimeout(
+            wallets,
+            walletPubKeyHash,
+            redeemerOutputScript
         );
-        RedemptionRequest memory request = pendingRedemptions[redemptionKey];
-
-        require(request.requestedAt > 0, "Redemption request does not exist");
-        require(
-            /* solhint-disable-next-line not-rely-on-time */
-            request.requestedAt + redemptionTimeout < block.timestamp,
-            "Redemption request has not timed out"
-        );
-
-        // Update the wallet's pending redemptions value
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
-            walletPubKeyHash
-        ];
-        wallet.pendingRedemptionsValue -=
-            request.requestedAmount -
-            request.treasuryFee;
-
-        require(
-            // TODO: Allow the wallets in `Closing` state when the state is added
-            wallet.state == Wallets.WalletState.Live ||
-                wallet.state == Wallets.WalletState.MovingFunds ||
-                wallet.state == Wallets.WalletState.Terminated,
-            "The wallet must be in Live, MovingFunds or Terminated state"
-        );
-
-        // It is worth noting that there is no need to check if
-        // `timedOutRedemption` mapping already contains the given redemption
-        // key. There is no possibility to re-use a key of a reported timed-out
-        // redemption because the wallet responsible for causing the timeout is
-        // moved to a state that prevents it to receive new redemption requests.
-
-        // Move the redemption from pending redemptions to timed-out redemptions
-        timedOutRedemptions[redemptionKey] = request;
-        delete pendingRedemptions[redemptionKey];
-
-        if (
-            wallet.state == Wallets.WalletState.Live ||
-            wallet.state == Wallets.WalletState.MovingFunds
-        ) {
-            // Propagate timeout consequences to the wallet
-            wallets.notifyRedemptionTimedOut(walletPubKeyHash);
-        }
-
-        emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
-
-        // Return the requested amount of tokens to the redeemer
-        bank.transferBalance(request.redeemer, request.requestedAmount);
     }
 
     /// @notice Used by the wallet to prove the BTC moving funds transaction
@@ -2100,192 +832,202 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) external {
-        // The actual transaction proof is performed here. After that point, we
-        // can assume the transaction happened on Bitcoin chain and has
-        // a sufficient number of confirmations as determined by
-        // `txProofDifficultyFactor` constant.
-        bytes32 movingFundsTxHash = BitcoinTx.validateProof(
+        self.submitMovingFundsProof(
+            wallets,
             movingFundsTx,
             movingFundsProof,
-            proofDifficultyContext()
-        );
-
-        // Process the moving funds transaction input. Specifically, check if
-        // it refers to the expected wallet's main UTXO.
-        processWalletOutboundTxInput(
-            movingFundsTx.inputVector,
             mainUtxo,
             walletPubKeyHash
         );
-
-        (
-            bytes32 targetWalletsHash,
-            uint256 outputsTotalValue
-        ) = processMovingFundsTxOutputs(movingFundsTx.outputVector);
-
-        require(
-            mainUtxo.txOutputValue - outputsTotalValue <=
-                movingFundsTxMaxTotalFee,
-            "Transaction fee is too high"
-        );
-
-        wallets.notifyFundsMoved(walletPubKeyHash, targetWalletsHash);
-
-        emit MovingFundsCompleted(walletPubKeyHash, movingFundsTxHash);
     }
 
-    /// @notice Processes the moving funds Bitcoin transaction output vector
-    ///         and extracts information required for further processing.
-    /// @param movingFundsTxOutputVector Bitcoin moving funds transaction output
-    ///        vector. This function assumes vector's structure is valid so it
-    ///        must be validated using e.g. `BTCUtils.validateVout` function
-    ///        before it is passed here
-    /// @return targetWalletsHash keccak256 hash over the list of actual
-    ///         target wallets used in the transaction.
-    /// @return outputsTotalValue Sum of all outputs values.
-    /// @dev Requirements:
-    ///      - The `movingFundsTxOutputVector` must be parseable, i.e. must
-    ///        be validated by the caller as stated in their parameter doc.
-    ///      - Each output must refer to a 20-byte public key hash.
-    ///      - The total outputs value must be evenly divided over all outputs.
-    function processMovingFundsTxOutputs(bytes memory movingFundsTxOutputVector)
-        internal
+    /// @notice Returns the addresses of contracts Bridge is interacting with.
+    /// @return bank Address of the Bank the Bridge belongs to.
+    /// @return relay Address of the Bitcoin relay providing the current Bitcoin
+    ///         network difficulty.
+    function getContracts() external view returns (Bank bank, IRelay relay) {
+        bank = self.bank;
+        relay = self.relay;
+    }
+
+    /// @notice Address where the deposit treasury fees will be sent to.
+    ///         Treasury takes part in the operators rewarding process.
+    function treasury() external view returns (address treasury) {
+        treasury = self.treasury;
+    }
+
+    /// @notice The number of confirmations on the Bitcoin chain required to
+    ///         successfully evaluate an SPV proof.
+    function txProofDifficultyFactor()
+        external
         view
-        returns (bytes32 targetWalletsHash, uint256 outputsTotalValue)
+        returns (uint256 txProofDifficultyFactor)
     {
-        // Determining the total number of Bitcoin transaction outputs in
-        // the same way as for number of inputs. See `BitcoinTx.outputVector`
-        // docs for more details.
-        (
-            uint256 outputsCompactSizeUintLength,
-            uint256 outputsCount
-        ) = movingFundsTxOutputVector.parseVarInt();
+        txProofDifficultyFactor = self.txProofDifficultyFactor;
+    }
 
-        // To determine the first output starting index, we must jump over
-        // the compactSize uint which prepends the output vector. One byte
-        // must be added because `BtcUtils.parseVarInt` does not include
-        // compactSize uint tag in the returned length.
-        //
-        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
-        // returns `0`, so we jump over one byte of compactSize uint.
-        //
-        // For >= 253 && <= 0xffff there is `0xfd` tag,
-        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
-        // tag byte included) so we need to jump over 1+2 bytes of
-        // compactSize uint.
-        //
-        // Please refer `BTCUtils` library and compactSize uint
-        // docs in `BitcoinTx` library for more details.
-        uint256 outputStartingIndex = 1 + outputsCompactSizeUintLength;
+    /// @notice Returns the current values of Bridge deposit parameters.
+    /// @return depositDustThreshold The minimal amount that can be requested
+    ///         to deposit. Value of this parameter must take into account the
+    ///         value of `depositTreasuryFeeDivisor` and `depositTxMaxFee`
+    ///         parameters in order to make requests that can incur the
+    ///         treasury and transaction fee and still satisfy the depositor.
+    /// @return depositTreasuryFeeDivisor Divisor used to compute the treasury
+    ///         fee taken from each deposit and transferred to the treasury upon
+    ///         sweep proof submission. That fee is computed as follows:
+    ///         `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
+    ///         For example, if the treasury fee needs to be 2% of each deposit,
+    ///         the `depositTreasuryFeeDivisor` should be set to `50`
+    ///         because `1/50 = 0.02 = 2%`.
+    /// @return depositTxMaxFee Maximum amount of BTC transaction fee that can
+    ///         be incurred by each swept deposit being part of the given sweep
+    ///         transaction. If the maximum BTC transaction fee is exceeded,
+    ///         such transaction is considered a fraud.
+    function depositParameters()
+        external
+        view
+        returns (
+            uint64 depositDustThreshold,
+            uint64 depositTreasuryFeeDivisor,
+            uint64 depositTxMaxFee
+        )
+    {
+        depositDustThreshold = self.depositDustThreshold;
+        depositTreasuryFeeDivisor = self.depositTreasuryFeeDivisor;
+        depositTxMaxFee = self.depositTxMaxFee;
+    }
 
-        bytes20[] memory targetWallets = new bytes20[](outputsCount);
-        uint64[] memory outputsValues = new uint64[](outputsCount);
+    /// @notice Returns the current values of Bridge redemption parameters.
+    /// @return redemptionDustThreshold The minimal amount that can be requested
+    ///         for redemption. Value of this parameter must take into account
+    ///         the value of `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
+    ///         parameters in order to make requests that can incur the
+    ///         treasury and transaction fee and still satisfy the redeemer.
+    /// @return redemptionTreasuryFeeDivisor Divisor used to compute the treasury
+    ///         fee taken from each redemption request and transferred to the
+    ///         treasury upon successful request finalization. That fee is
+    ///         computed as follows:
+    ///         `treasuryFee = requestedAmount / redemptionTreasuryFeeDivisor`
+    ///         For example, if the treasury fee needs to be 2% of each
+    ///         redemption request, the `redemptionTreasuryFeeDivisor` should
+    ///         be set to `50` because `1/50 = 0.02 = 2%`.
+    /// @return redemptionTxMaxFee Maximum amount of BTC transaction fee that
+    ///         can be incurred by each redemption request being part of the
+    ///         given redemption transaction. If the maximum BTC transaction
+    ///         fee is exceeded, such transaction is considered a fraud.
+    /// @return redemptionTimeout Time after which the redemption request can be
+    ///         reported as timed out. It is counted from the moment when the
+    ///         redemption request was created via `requestRedemption` call.
+    ///         Reported  timed out requests are cancelled and locked TBTC is
+    ///         returned to the redeemer in full amount.
+    function redemptionParameters()
+        external
+        view
+        returns (
+            uint64 redemptionDustThreshold,
+            uint64 redemptionTreasuryFeeDivisor,
+            uint64 redemptionTxMaxFee,
+            uint256 redemptionTimeout,
+            address treasury,
+            uint256 txProofDifficultyFactor
+        )
+    {
+        redemptionDustThreshold = self.redemptionDustThreshold;
+        redemptionTreasuryFeeDivisor = self.redemptionTreasuryFeeDivisor;
+        redemptionTxMaxFee = self.redemptionTxMaxFee;
+        redemptionTimeout = self.redemptionTimeout;
+    }
 
-        // Outputs processing loop.
-        for (uint256 i = 0; i < outputsCount; i++) {
-            uint256 outputLength = movingFundsTxOutputVector
-                .determineOutputLengthAt(outputStartingIndex);
+    /// @notice Returns the current values of Bridge moving funds between
+    ///         wallets parameters.
+    /// @return movingFundsTxMaxTotalFee Maximum amount of the total BTC
+    ///         transaction fee that is acceptable in a single moving funds
+    ///         transaction. This is a _total_ max fee for the entire moving
+    ///         funds transaction.
+    function movingFundsParameters()
+        external
+        view
+        returns (uint64 movingFundsTxMaxTotalFee)
+    {
+        // TODO: we will have more parameters here, for example moving funds timeout
+        movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
+    }
 
-            bytes memory output = movingFundsTxOutputVector.slice(
-                outputStartingIndex,
-                outputLength
-            );
+    /// @notice Indicates if the vault with the given address is trusted or not.
+    ///         Depositors can route their revealed deposits only to trusted
+    ///         vaults and have trusted vaults notified about new deposits as
+    ///         soon as these deposits get swept. Vaults not trusted by the
+    ///         Bridge can still be used by Bank balance owners on their own
+    ///         responsibility - anyone can approve their Bank balance to any
+    ///         address.
+    function isVaultTrusted(address vault) external view returns (bool) {
+        return self.isVaultTrusted[vault];
+    }
 
-            // Extract the output script payload.
-            bytes memory targetWalletPubKeyHashBytes = output.extractHash();
-            // Output script payload must refer to a known wallet public key
-            // hash which is always 20-byte.
-            require(
-                targetWalletPubKeyHashBytes.length == 20,
-                "Target wallet public key hash must have 20 bytes"
-            );
+    /// @notice Collection of all revealed deposits indexed by
+    ///         keccak256(fundingTxHash | fundingOutputIndex).
+    ///         The fundingTxHash is bytes32 (ordered as in Bitcoin internally)
+    ///         and fundingOutputIndex an uint32. This mapping may contain valid
+    ///         and invalid deposits and the wallet is responsible for
+    ///         validating them before attempting to execute a sweep.
+    function deposits(uint256 depositKey)
+        external
+        view
+        returns (Deposit.DepositRequest memory)
+    {
+        return self.deposits[depositKey];
+    }
 
-            bytes20 targetWalletPubKeyHash = targetWalletPubKeyHashBytes
-                .slice20(0);
+    /// @notice Collection of main UTXOs that are honestly spent indexed by
+    ///         keccak256(fundingTxHash | fundingOutputIndex). The fundingTxHash
+    ///         is bytes32 (ordered as in Bitcoin internally) and
+    ///         fundingOutputIndex an uint32. A main UTXO is considered honestly
+    ///         spent if it was used as an input of a transaction that have been
+    ///         proven in the Bridge.
+    function spentMainUTXOs(uint256 utxoKey) external view returns (bool) {
+        return self.spentMainUTXOs[utxoKey];
+    }
 
-            // The next step is making sure that the 20-byte public key hash
-            // is actually used in the right context of a P2PKH or P2WPKH
-            // output. To do so, we must extract the full script from the output
-            // and compare with the expected P2PKH and P2WPKH scripts
-            // referring to that 20-byte public key hash. The output consists
-            // of an 8-byte value and a variable length script. To extract the
-            // script we slice the output starting from 9th byte until the end.
-            bytes32 outputScriptKeccak = keccak256(
-                output.slice(8, output.length - 8)
-            );
-            // Build the expected P2PKH script which has the following byte
-            // format: <0x1976a914> <20-byte PKH> <0x88ac>. According to
-            // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-            // - 0x19: Byte length of the entire script
-            // - 0x76: OP_DUP
-            // - 0xa9: OP_HASH160
-            // - 0x14: Byte length of the public key hash
-            // - 0x88: OP_EQUALVERIFY
-            // - 0xac: OP_CHECKSIG
-            // which matches the P2PKH structure as per:
-            // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
-            bytes32 targetWalletP2PKHScriptKeccak = keccak256(
-                abi.encodePacked(
-                    hex"1976a914",
-                    targetWalletPubKeyHash,
-                    hex"88ac"
-                )
-            );
-            // Build the expected P2WPKH script which has the following format:
-            // <0x160014> <20-byte PKH>. According to
-            // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-            // - 0x16: Byte length of the entire script
-            // - 0x00: OP_0
-            // - 0x14: Byte length of the public key hash
-            // which matches the P2WPKH structure as per:
-            // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
-            bytes32 targetWalletP2WPKHScriptKeccak = keccak256(
-                abi.encodePacked(hex"160014", targetWalletPubKeyHash)
-            );
-            // Make sure the actual output script matches either the P2PKH
-            // or P2WPKH format.
-            require(
-                outputScriptKeccak == targetWalletP2PKHScriptKeccak ||
-                    outputScriptKeccak == targetWalletP2WPKHScriptKeccak,
-                "Output must be P2PKH or P2WPKH"
-            );
+    /// @notice Collection of all pending redemption requests indexed by
+    ///         redemption key built as
+    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
+    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
+    ///         public key) and redeemerOutputScript is a Bitcoin script
+    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
+    ///         redeemed BTC as requested by the redeemer. Requests are added
+    ///         to this mapping by the `requestRedemption` method (duplicates
+    ///         not allowed) and are removed by one of the following methods:
+    ///         - `submitRedemptionProof` in case the request was handled
+    ///           successfully
+    ///         - `notifyRedemptionTimeout` in case the request was reported
+    ///           to be timed out
+    function pendingRedemptions(uint256 redemptionKey)
+        external
+        view
+        returns (Redeem.RedemptionRequest memory)
+    {
+        return self.pendingRedemptions[redemptionKey];
+    }
 
-            // Add the wallet public key hash to the list that will be used
-            // to build the result list hash. There is no need to check if
-            // given output is a change here because the actual target wallet
-            // list must be exactly the same as the pre-committed target wallet
-            // list which is guaranteed to be valid.
-            targetWallets[i] = targetWalletPubKeyHash;
-
-            // Extract the value from given output.
-            outputsValues[i] = output.extractValue();
-            outputsTotalValue += outputsValues[i];
-
-            // Make the `outputStartingIndex` pointing to the next output by
-            // increasing it by current output's length.
-            outputStartingIndex += outputLength;
-        }
-
-        // Compute the indivisible remainder that remains after dividing the
-        // outputs total value over all outputs evenly.
-        uint256 outputsTotalValueRemainder = outputsTotalValue % outputsCount;
-        // Compute the minimum allowed output value by dividing the outputs
-        // total value (reduced by the remainder) by the number of outputs.
-        uint256 minOutputValue = (outputsTotalValue -
-            outputsTotalValueRemainder) / outputsCount;
-        // Maximum possible value is the minimum value with the remainder included.
-        uint256 maxOutputValue = minOutputValue + outputsTotalValueRemainder;
-
-        for (uint256 i = 0; i < outputsCount; i++) {
-            require(
-                minOutputValue <= outputsValues[i] &&
-                    outputsValues[i] <= maxOutputValue,
-                "Transaction amount is not distributed evenly"
-            );
-        }
-
-        targetWalletsHash = keccak256(abi.encodePacked(targetWallets));
-
-        return (targetWalletsHash, outputsTotalValue);
+    /// @notice Collection of all timed out redemptions requests indexed by
+    ///         redemption key built as
+    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
+    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
+    ///         public key) and redeemerOutputScript is the Bitcoin script
+    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed
+    ///         out request. Timed out requests are stored in this mapping to
+    ///         avoid slashing the wallets multiple times for the same timeout.
+    ///         Only one method can add to this mapping:
+    ///         - `notifyRedemptionTimeout` which puts the redemption key
+    ///           to this mapping basing on a timed out request stored
+    ///           previously in `pendingRedemptions` mapping.
+    function timedOutRedemptions(uint256 redemptionKey)
+        external
+        view
+        returns (Redeem.RedemptionRequest memory)
+    {
+        return self.timedOutRedemptions[redemptionKey];
     }
 }

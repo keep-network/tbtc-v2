@@ -32,7 +32,7 @@ contract BridgeStub is Bridge {
                     abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
                 )
             );
-            deposits[utxoKey].sweptAt = 1641650400;
+            self.deposits[utxoKey].sweptAt = 1641650400;
         }
     }
 
@@ -43,7 +43,7 @@ contract BridgeStub is Bridge {
                     abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
                 )
             );
-            spentMainUTXOs[utxoKey] = true;
+            self.spentMainUTXOs[utxoKey] = true;
         }
     }
 
@@ -75,28 +75,28 @@ contract BridgeStub is Bridge {
     }
 
     function setDepositDustThreshold(uint64 _depositDustThreshold) external {
-        depositDustThreshold = _depositDustThreshold;
+        self.depositDustThreshold = _depositDustThreshold;
     }
 
     function setDepositTxMaxFee(uint64 _depositTxMaxFee) external {
-        depositTxMaxFee = _depositTxMaxFee;
+        self.depositTxMaxFee = _depositTxMaxFee;
     }
 
     function setRedemptionDustThreshold(uint64 _redemptionDustThreshold)
         external
     {
-        redemptionDustThreshold = _redemptionDustThreshold;
+        self.redemptionDustThreshold = _redemptionDustThreshold;
     }
 
     function setRedemptionTreasuryFeeDivisor(
         uint64 _redemptionTreasuryFeeDivisor
     ) external {
-        redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
+        self.redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
     }
 
     function setMovingFundsTxMaxTotalFee(uint64 _movingFundsTxMaxTotalFee)
         external
     {
-        movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
+        self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
     }
 }
