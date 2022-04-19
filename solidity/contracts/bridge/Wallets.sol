@@ -411,7 +411,7 @@ library Wallets {
     function notifyWalletFraud(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
-    ) external {
+    ) internal {
         WalletState walletState = self
             .registeredWallets[walletPubKeyHash]
             .state;
