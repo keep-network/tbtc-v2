@@ -77,6 +77,14 @@ library BridgeState {
         ///         address.
         mapping(address => bool) isVaultTrusted;
         /// TODO: Make it governable.
+        /// @notice Maximum amount of the total BTC transaction fee that is
+        ///         acceptable in a single moving funds transaction.
+        /// @dev This is a TOTAL max fee for the moving funds transaction. Note
+        ///      that `depositTxMaxFee` is per single deposit and `redemptionTxMaxFee`
+        ///      if per single redemption. `movingFundsTxMaxTotalFee` is a total
+        ///      fee for the entire transaction.
+        uint64 movingFundsTxMaxTotalFee;
+        /// TODO: Make it governable.
         /// @notice The minimal amount that can be requested for redemption.
         ///         Value of this parameter must take into account the value of
         ///         `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`

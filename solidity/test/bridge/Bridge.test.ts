@@ -19,6 +19,7 @@ import type {
   Deposit__factory,
   Sweep__factory,
   Redeem__factory,
+  MovingFunds__factory,
   TestRelay,
   TestRelay__factory,
   IWalletRegistry,
@@ -118,6 +119,18 @@ const fixture = async () => {
   const redeem = await Redeem.deploy()
   await redeem.deployed()
 
+  const MovingFunds = await ethers.getContractFactory<MovingFunds__factory>(
+    "MovingFunds",
+    {
+      libraries: {
+        BitcoinTx: bitcoinTx.address,
+        Wallets: wallets.address,
+      },
+    }
+  )
+  const movingFunds = await MovingFunds.deploy()
+  await movingFunds.deployed()
+
   const Frauds = await ethers.getContractFactory<Frauds__factory>("Frauds")
   const frauds: Frauds = await Frauds.deploy()
   await frauds.deployed()
@@ -126,12 +139,12 @@ const fixture = async () => {
     "BridgeStub",
     {
       libraries: {
-        BitcoinTx: bitcoinTx.address,
         Deposit: deposit.address,
         Sweep: sweep.address,
         Redeem: redeem.address,
         Wallets: wallets.address,
         Frauds: frauds.address,
+        MovingFunds: movingFunds.address,
       },
     }
   )
