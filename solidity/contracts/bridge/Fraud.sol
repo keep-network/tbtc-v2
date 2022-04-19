@@ -184,7 +184,6 @@ library Fraud {
     ///        produced for. See BIP-143 for reference
     /// @param witness Flag indicating whether the preimage was produced for a
     ///        witness input. True for witness, false for non-witness input.
-    /// @param treasury Treasury associated with the Bridge
     /// @dev Requirements:
     ///      - `walletPublicKey` and `sighash` calculated as `hash256(preimage)`
     ///        must identify an open fraud challenge
@@ -196,8 +195,7 @@ library Fraud {
         BridgeState.Storage storage self,
         bytes calldata walletPublicKey,
         bytes calldata preimage,
-        bool witness,
-        address treasury
+        bool witness
     ) external {
         uint256 utxoKey = unwrapChallenge(
             self,
@@ -226,7 +224,7 @@ library Fraud {
         // Send the ether deposited by the challenger to the treasury
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls
-        treasury.call{gas: 100000, value: challenge.depositAmount}("");
+        self.treasury.call{gas: 100000, value: challenge.depositAmount}("");
         /* solhint-enable avoid-low-level-calls */
 
         bytes memory compressedWalletPublicKey = EcdsaLib.compressPublicKey(

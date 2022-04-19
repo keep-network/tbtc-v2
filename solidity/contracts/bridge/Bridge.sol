@@ -533,12 +533,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes calldata preimage,
         bool witness
     ) external {
-        self.defeatFraudChallenge(
-            walletPublicKey,
-            preimage,
-            witness,
-            self.treasury
-        );
+        self.defeatFraudChallenge(walletPublicKey, preimage, witness);
     }
 
     /// @notice Notifies about defeat timeout for the given fraud challenge.
