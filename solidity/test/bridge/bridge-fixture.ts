@@ -80,6 +80,7 @@ const bridgeFixture = async () => {
     walletRegistry,
     Bridge,
     bridge,
+    deployer,
   }
 }
 
