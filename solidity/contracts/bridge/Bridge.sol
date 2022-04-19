@@ -54,11 +54,6 @@ import "../bank/Bank.sol";
 ///         wallet informs the Bridge about the sweep increasing appropriate
 ///         balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank.
-///
-// TODO: All wallets-related operations that are currently done directly
-//       by the Bridge can be probably delegated to the Wallets library.
-//       Examples of such operations are main UTXO or pending redemptions
-//       value updates.
 contract Bridge is Ownable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
