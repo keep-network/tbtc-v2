@@ -30,7 +30,7 @@ library Deposit {
 
     /// @notice Represents data which must be revealed by the depositor during
     ///         deposit reveal.
-    struct RevealInfo {
+    struct DepositRevealInfo {
         // Index of the funding output belonging to the funding transaction.
         uint32 fundingOutputIndex;
         // Ethereum depositor address.
@@ -57,7 +57,7 @@ library Deposit {
     }
 
     /// @notice Represents tBTC deposit request data.
-    struct Request {
+    struct DepositRequest {
         // Ethereum depositor address.
         address depositor;
         // Deposit amount in satoshi.
@@ -125,7 +125,7 @@ library Deposit {
         BridgeState.Storage storage self,
         Wallets.Data storage wallets,
         BitcoinTx.Info calldata fundingTx,
-        RevealInfo calldata reveal
+        DepositRevealInfo calldata reveal
     ) external {
         require(
             wallets.registeredWallets[reveal.walletPubKeyHash].state ==
@@ -207,7 +207,7 @@ library Deposit {
             )
             .hash256View();
 
-        Request storage deposit = self.deposits[
+        DepositRequest storage deposit = self.deposits[
             uint256(
                 keccak256(
                     abi.encodePacked(fundingTxHash, reveal.fundingOutputIndex)

@@ -363,7 +363,7 @@ library Sweep {
                 uint256 inputLength
             ) = parseTxInputAt(sweepTxInputVector, inputStartingIndex);
 
-            Deposit.Request storage deposit = self.deposits[
+            Deposit.DepositRequest storage deposit = self.deposits[
                 uint256(
                     keccak256(abi.encodePacked(outpointTxHash, outpointIndex))
                 )
