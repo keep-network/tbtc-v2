@@ -8,6 +8,7 @@ export const testnetWalletPrivateKey =
 export interface RedemptionTestData {
   mainUtxo: UnspentTransactionOutput & RawTransaction
   redemptionRequests: RedemptionRequest[]
+  witness: boolean
   expectedRedemption: {
     transactionHash: string
     transaction: RawTransaction
@@ -38,6 +39,7 @@ export const singleP2PKHAddressRedemption: RedemptionTestData = {
       treasuryFee: BigNumber.from(1000),
     },
   ],
+  witness: true,
   expectedRedemption: {
     transactionHash:
       "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20",
@@ -78,6 +80,7 @@ export const singleP2WPKHAddressRedemption: RedemptionTestData = {
       treasuryFee: BigNumber.from(1100),
     },
   ],
+  witness: true,
   expectedRedemption: {
     transactionHash:
       "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110",
@@ -118,6 +121,7 @@ export const singleP2SHAddressRedemption: RedemptionTestData = {
       treasuryFee: BigNumber.from(800),
     },
   ],
+  witness: true,
   expectedRedemption: {
     transactionHash:
       "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521",
@@ -158,6 +162,7 @@ export const singleP2WSHAddressRedemption: RedemptionTestData = {
       treasuryFee: BigNumber.from(1000),
     },
   ],
+  witness: true,
   expectedRedemption: {
     transactionHash:
       "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
@@ -170,6 +175,163 @@ export const singleP2WSHAddressRedemption: RedemptionTestData = {
         "72f434248271cf5d18c1ce6add52dcf533ddda215240a858cb63cd070220016a68c" +
         "457f84f01108e1b001e8f81a9b073a3e08511265614318fa0d395ef4d012103989d" +
         "253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
+    },
+  },
+}
+
+export const multipleAddressesRedemption: RedemptionTestData = {
+  mainUtxo: {
+    transactionHash:
+      "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
+    outputIndex: 1,
+    value: 1429580,
+    transactionHex:
+      "0100000000010121c5c291a50190106866a5943c0b03908c2780180c5c03ef3d67d" +
+      "ff4c8c925ef0100000000ffffffff02f03c00000000000022002086a303cdd2e2ea" +
+      "b1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca964cd01500000000001" +
+      "600148db50eb52063ea9d98b3eac91489a90f738986f602483045022100bef6177f" +
+      "72f434248271cf5d18c1ce6add52dcf533ddda215240a858cb63cd070220016a68c" +
+      "457f84f01108e1b001e8f81a9b073a3e08511265614318fa0d395ef4d012103989d" +
+      "253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
+  },
+  redemptionRequests: [
+    {
+      // P2PKH address
+      address: "mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5",
+      amount: BigNumber.from(18000),
+      feeShare: BigNumber.from(1100),
+      treasuryFee: BigNumber.from(1000),
+    },
+    {
+      // P2WPKH address
+      address: "tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l",
+      amount: BigNumber.from(13000),
+      feeShare: BigNumber.from(900),
+      treasuryFee: BigNumber.from(800),
+    },
+    {
+      // P2SH address
+      address: "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C",
+      amount: BigNumber.from(12000),
+      feeShare: BigNumber.from(1000),
+      treasuryFee: BigNumber.from(1100),
+    },
+    {
+      // P2WSH address
+      address: "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y",
+      amount: BigNumber.from(15000),
+      feeShare: BigNumber.from(1400),
+      treasuryFee: BigNumber.from(700),
+    },
+  ],
+  witness: true,
+  expectedRedemption: {
+    transactionHash:
+      "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7",
+    transaction: {
+      transactionHex:
+        "01000000000101e30b907d077893bd0ed819c66644027b1dd30e4d3f68bc51da793" +
+        "3f75bbb283d0100000000ffffffff051c3e0000000000001976a9144130879211c5" +
+        "4df460e484ddf9aac009cb38ee7488ac242c0000000000001600144130879211c54" +
+        "df460e484ddf9aac009cb38ee74ac2600000000000017a9143ec459d0f3c29286ae" +
+        "5df5fcc421e2786024277e87643200000000000022002086a303cdd2e2eab1d1679" +
+        "f1a813835dc5a1b65321077cdccaf08f98cbf04ca96ccfb1400000000001600148d" +
+        "b50eb52063ea9d98b3eac91489a90f738986f602483045022100adc5b0cffc65444" +
+        "cf16873eb57cb702414ee36ca907ad3cf57676abe83c0f80502204a206d9b55eeee" +
+        "05d9647e95d15ed5143eaad6cc8c5bc2c1919b69addc18db29012103989d253b17a" +
+        "6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
+    },
+  },
+}
+
+export const noChangeRedemption: RedemptionTestData = {
+  mainUtxo: {
+    transactionHash:
+      "7dd38b48cb626580d317871c5b716eaf4a952ceb67ba3aa4ca76e3dc7cdcc65b",
+    outputIndex: 1,
+    value: 10000,
+    transactionHex:
+      "02000000000101c17208c443a3d3d2223884ef11ac83dadb1a3abe4d3474694414c8d" +
+      "cd3c697510100000000feffffff0224d38a5b0000000016001414c829f9d1770ebab9" +
+      "8bd1acb39e428cffe7580310270000000000001600148db50eb52063ea9d98b3eac91" +
+      "489a90f738986f60247304402205d71cd954aa20b9c04266999baa8b2e1f04b7ecf41" +
+      "9d48775ec78b81c3dbf6d5022076eb8cfc0f2fbd6178fdec4039570a1404c76fca4b7" +
+      "2f6a34706b9c9c801ff7b0121033483097979eaff12af144dde368235592893fc2cb7" +
+      "477c3c4e34a0770f01f4e071832100",
+  },
+  redemptionRequests: [
+    {
+      // P2PKH
+      address: "mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5",
+      amount: BigNumber.from(6000),
+      feeShare: BigNumber.from(800),
+      treasuryFee: BigNumber.from(0),
+    },
+    {
+      // P2WPKH
+      address: "tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx",
+      amount: BigNumber.from(4000),
+      feeShare: BigNumber.from(900),
+      treasuryFee: BigNumber.from(0),
+    },
+  ],
+  witness: true,
+  expectedRedemption: {
+    transactionHash:
+      "afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb",
+    transaction: {
+      transactionHex:
+        "010000000001015bc6dc7cdce376caa43aba67eb2c954aaf6e715b1c8717d380656" +
+        "2cb488bd37d0100000000ffffffff0250140000000000001976a9144130879211c5" +
+        "4df460e484ddf9aac009cb38ee7488ac1c0c0000000000001600144bf9ffb7ae0f8" +
+        "b0f5a622b154aca829126f6e76902473044022077174ae4d0a8e9d802f45b1a67cb" +
+        "4079abbbc4f110919b2e6b67fc991326e0ca02206efb3d36a58f48d123e845fd868" +
+        "593af27e905adecb261d0120ba5b05ccc96fd012103989d253b17a6a0f41838b84f" +
+        "f0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
+    },
+  },
+}
+
+export const p2PKHChangeRedemption: RedemptionTestData = {
+  mainUtxo: {
+    transactionHash:
+      "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7",
+    outputIndex: 4,
+    value: 1375180,
+    transactionHex:
+      "01000000000101e30b907d077893bd0ed819c66644027b1dd30e4d3f68bc51da7933f" +
+      "75bbb283d0100000000ffffffff051c3e0000000000001976a9144130879211c54df4" +
+      "60e484ddf9aac009cb38ee7488ac242c0000000000001600144130879211c54df460e" +
+      "484ddf9aac009cb38ee74ac2600000000000017a9143ec459d0f3c29286ae5df5fcc4" +
+      "21e2786024277e87643200000000000022002086a303cdd2e2eab1d1679f1a813835d" +
+      "c5a1b65321077cdccaf08f98cbf04ca96ccfb1400000000001600148db50eb52063ea" +
+      "9d98b3eac91489a90f738986f602483045022100adc5b0cffc65444cf16873eb57cb7" +
+      "02414ee36ca907ad3cf57676abe83c0f80502204a206d9b55eeee05d9647e95d15ed5" +
+      "143eaad6cc8c5bc2c1919b69addc18db29012103989d253b17a6a0f41838b84ff0d20" +
+      "e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
+  },
+  redemptionRequests: [
+    {
+      // P2SH
+      address: "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C",
+      amount: BigNumber.from(12000),
+      feeShare: BigNumber.from(1200),
+      treasuryFee: BigNumber.from(1000),
+    },
+  ],
+  witness: false, // False will result in a P2PKH output
+  expectedRedemption: {
+    transactionHash:
+      "afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb",
+    transaction: {
+      transactionHex:
+        "01000000000101b772d923456fb61a15c6a0dcd15df057f4f0c53c14b8e4836122b" +
+        "6d29ff80ff70400000000ffffffff02482600000000000017a9143ec459d0f3c292" +
+        "86ae5df5fcc421e2786024277e87d4d01400000000001976a9148db50eb52063ea9" +
+        "d98b3eac91489a90f738986f688ac02473044022007fe551170700fa35bda9362d3" +
+        "c9d340a674e1ae3300b266c5c10a283aa703b9022067910d6bfe4c62b14bd2f3244" +
+        "47d65bddf732db3d3074e40910d51964c072e6d012103989d253b17a6a0f41838b8" +
+        "4ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
     },
   },
 }
