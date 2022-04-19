@@ -50,11 +50,7 @@ const bridgeFixture = async () => {
   const sweep = await Sweep.deploy()
   await sweep.deployed()
 
-  const Redeem = await ethers.getContractFactory<Redeem__factory>("Redeem", {
-    libraries: {
-      Wallets: wallets.address,
-    },
-  })
+  const Redeem = await ethers.getContractFactory<Redeem__factory>("Redeem")
   const redeem = await Redeem.deploy()
   await redeem.deployed()
 
