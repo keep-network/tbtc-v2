@@ -351,6 +351,8 @@ library Wallets {
         // Set the freshly created wallet as the new active wallet.
         self.activeWalletPubKeyHash = walletPubKeyHash;
 
+        self.liveWalletsCount++;
+
         emit NewWalletRegistered(ecdsaWalletID, walletPubKeyHash);
     }
 
@@ -491,6 +493,8 @@ library Wallets {
             // possible in order to get a new healthy active wallet.
             delete self.activeWalletPubKeyHash;
         }
+
+        self.liveWalletsCount--;
     }
 
     /// @notice Closes the given wallet and notifies the ECDSA registry
@@ -545,6 +549,10 @@ library Wallets {
         internal
     {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        if (wallet.state == WalletState.Live) {
+            self.liveWalletsCount--;
+        }
 
         wallet.state = WalletState.Terminated;
 
