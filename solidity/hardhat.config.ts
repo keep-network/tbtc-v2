@@ -42,6 +42,10 @@ const config: HardhatUserConfig = {
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK, 10),
       },
       tags: ["local"],
+      // we use higher gas price for tests to obtain more realistic results
+      // for gas refund tests than when the default hardhat ~1 gwei gas price is
+      // used
+      gasPrice: 200000000000, // 200 gwei
     },
     development: {
       url: "http://localhost:8545",
