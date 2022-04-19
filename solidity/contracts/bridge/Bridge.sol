@@ -862,10 +862,14 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
     }
 
-    /// @return walletCreationPeriod Value of the wallet creation period
-    /// @return walletMinBtcBalance Value of the minimum BTC balance
-    /// @return walletMaxBtcBalance Value of the maximum BTC balance
-    /// @return walletMaxAge Value of the wallet max age
+    /// @return walletCreationPeriod Determines how frequently a new wallet
+    ///         creation can be requested. Value in seconds.
+    /// @return walletMinBtcBalance The minimum BTC threshold in satoshi that is
+    ///         used to decide about wallet creation or closing.
+    /// @return walletMaxBtcBalance The maximum BTC threshold in satoshi that is
+    ///         used to decide about wallet creation.
+    /// @return walletMaxAge The maximum age of a wallet in seconds, after which
+    ///         the wallet moving funds process can be requested.
     function walletParameters()
         external
         view
@@ -883,10 +887,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     }
 
     /// @notice Updates parameters of wallets.
-    /// @param walletCreationPeriod New value of the wallet creation period
+    /// @param walletCreationPeriod New value of the wallet creation period in
+    ///        seconds, determines how frequently a new wallet creation can be
+    ///        requested
     /// @param walletMinBtcBalance New value of the wallet minimum BTC balance
+    ///        in sathoshis, used to decide about wallet creation or closing
     /// @param walletMaxBtcBalance New value of the wallet maximum BTC balance
-    /// @param walletMaxAge New value of the wallet maximum age
+    ///        in sathoshis, used to decide about wallet creation
+    /// @param walletMaxAge New value of the wallet maximum age in seconds,
+    ///        indicates the maximum age of a wallet in seconds, after which
+    ///        the wallet moving funds process can be requested
     /// @dev Requirements:
     ///      - Wallet minimum BTC balance must be greater than zero
     ///      - Wallet maximum BTC balance must be greater than the wallet

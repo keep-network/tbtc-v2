@@ -188,10 +188,16 @@ library BridgeState {
     );
 
     /// @notice Updates parameters of wallets.
-    /// @param _walletCreationPeriod New value of the wallet creation period
+    /// @param _walletCreationPeriod New value of the wallet creation period in
+    ///        seconds, determines how frequently a new wallet creation can be
+    ///        requested
     /// @param _walletMinBtcBalance New value of the wallet minimum BTC balance
+    ///        in sathoshis, used to decide about wallet creation or closing
     /// @param _walletMaxBtcBalance New value of the wallet maximum BTC balance
-    /// @param _walletMaxAge New value of the wallet maximum age
+    ///        in sathoshis, used to decide about wallet creation
+    /// @param _walletMaxAge New value of the wallet maximum age in seconds,
+    ///        indicates the maximum age of a wallet in seconds, after which
+    ///        the wallet moving funds process can be requested
     /// @dev Requirements:
     ///      - Wallet minimum BTC balance must be greater than zero
     ///      - Wallet maximum BTC balance must be greater than the wallet
