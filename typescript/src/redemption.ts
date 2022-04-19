@@ -22,7 +22,7 @@ export interface RedemptionRequest {
   /**
    * The amount of Bitcoins in satoshis that is requested to be redeemed.
    * The actual value of the output in the Bitcoin transaction will be decreased
-   * by the fee.
+   * by the sum of the fee share and the treasury fee for this particular output.
    */
   amount: BigNumber
 
@@ -34,7 +34,15 @@ export interface RedemptionRequest {
    * The sum of all output fee values makes the total fee of the redemption
    * transaction.
    */
-  fee: BigNumber
+  feeShare: BigNumber
+
+  /**
+   * The amount of Bitcoins in satoshis that is subtracted from the amount in
+   * redemption request and used to pay the treasury fee.
+   * The value should be equal exactly the value of treasury fee in the Bridge
+   * on-chain contract at the time the redemption request was made.
+   */
+  treasuryFee: BigNumber
 }
 
 // TODO: Description
@@ -102,11 +110,13 @@ export async function createRedemptionTransaction(
   let txFee = 0
   for (const request of redemptionRequests) {
     // Add the fee for this particular request to the overall transaction fee
-    txFee += request.fee.toNumber()
+    txFee += request.feeShare.toNumber()
 
-    // Calculate the value of the output by subtracting fee for this particular
-    // output from the requested amount
-    const outputValue = request.amount.sub(request.fee)
+    // Calculate the value of the output by subtracting fee share and treasury
+    // fee for this particular output from the requested amount
+    const outputValue = request.amount
+      .sub(request.feeShare)
+      .sub(request.treasuryFee)
 
     const address = bcoin.Address.fromString(request.address)
 
