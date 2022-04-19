@@ -568,7 +568,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes calldata walletPublicKey,
         bytes32 sighash
     ) external {
-        self.notifyChallengeDefeatTimeout(walletPublicKey, sighash);
+        self.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
     }
 
     /// @notice Returns the fraud challenge identified by the given key built

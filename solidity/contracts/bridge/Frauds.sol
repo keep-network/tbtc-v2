@@ -308,7 +308,7 @@ library Frauds {
     ///        challenge
     ///      - the amount of time indicated by `challengeDefeatTimeout` must pass
     ///        after the challenge was reported
-    function notifyChallengeDefeatTimeout(
+    function notifyFraudChallengeDefeatTimeout(
         BridgeState.Storage storage self,
         bytes calldata walletPublicKey,
         bytes32 sighash
