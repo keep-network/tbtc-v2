@@ -17,7 +17,7 @@ pragma solidity ^0.8.9;
 
 import "./IRelay.sol";
 import "./Deposit.sol";
-import "./Redeem.sol";
+import "./Redemption.sol";
 import "./Fraud.sol";
 import "./Wallets.sol";
 
@@ -123,7 +123,7 @@ library BridgeState {
         //    successfully
         // - `notifyRedemptionTimeout` in case the request was reported
         //    to be timed out
-        mapping(uint256 => Redeem.RedemptionRequest) pendingRedemptions;
+        mapping(uint256 => Redemption.RedemptionRequest) pendingRedemptions;
         // Collection of all timed out redemptions requests indexed by
         // redemption key built as
         // `keccak256(walletPubKeyHash | redeemerOutputScript)`. The
@@ -137,7 +137,7 @@ library BridgeState {
         // - `notifyRedemptionTimeout` which puts the redemption key to this
         //    mapping basing on a timed out request stored previously in
         //    `pendingRedemptions` mapping.
-        mapping(uint256 => Redeem.RedemptionRequest) timedOutRedemptions;
+        mapping(uint256 => Redemption.RedemptionRequest) timedOutRedemptions;
         // The amount of stake slashed from each member of a wallet for a fraud.
         uint256 fraudSlashingAmount;
         // The percentage of the notifier reward from the staking contract

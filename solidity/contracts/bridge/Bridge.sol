@@ -26,7 +26,7 @@ import "./IRelay.sol";
 import "./BridgeState.sol";
 import "./Deposit.sol";
 import "./Sweep.sol";
-import "./Redeem.sol";
+import "./Redemption.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./Wallets.sol";
@@ -58,7 +58,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
     using Sweep for BridgeState.Storage;
-    using Redeem for BridgeState.Storage;
+    using Redemption for BridgeState.Storage;
     using MovingFunds for BridgeState.Storage;
     using Fraud for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
@@ -962,7 +962,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function pendingRedemptions(uint256 redemptionKey)
         external
         view
-        returns (Redeem.RedemptionRequest memory)
+        returns (Redemption.RedemptionRequest memory)
     {
         return self.pendingRedemptions[redemptionKey];
     }
@@ -983,7 +983,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function timedOutRedemptions(uint256 redemptionKey)
         external
         view
-        returns (Redeem.RedemptionRequest memory)
+        returns (Redemption.RedemptionRequest memory)
     {
         return self.timedOutRedemptions[redemptionKey];
     }

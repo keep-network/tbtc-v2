@@ -140,8 +140,7 @@ library OutboundTx {
     }
 }
 
-// TODO: Rename to Redemption. All library names are nouns.
-library Redeem {
+library Redemption {
     using BridgeState for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
 
@@ -791,7 +790,7 @@ library Redeem {
         uint256 redemptionKey = uint256(
             keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
         );
-        Redeem.RedemptionRequest memory request = self.pendingRedemptions[
+        Redemption.RedemptionRequest memory request = self.pendingRedemptions[
             redemptionKey
         ];
 

@@ -20,7 +20,7 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 
 import "./BitcoinTx.sol";
 import "./BridgeState.sol";
-import "./Redeem.sol";
+import "./Redemption.sol";
 
 library MovingFunds {
     using BridgeState for BridgeState.Storage;

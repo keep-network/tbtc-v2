@@ -17,7 +17,7 @@ import type {
   BridgeStub__factory,
   Deposit__factory,
   Sweep__factory,
-  Redeem__factory,
+  Redemption__factory,
   MovingFunds__factory,
   TestRelay,
   TestRelay__factory,
@@ -99,9 +99,11 @@ const fixture = async () => {
   const sweep = await Sweep.deploy()
   await sweep.deployed()
 
-  const Redeem = await ethers.getContractFactory<Redeem__factory>("Redeem")
-  const redeem = await Redeem.deploy()
-  await redeem.deployed()
+  const Redemption = await ethers.getContractFactory<Redemption__factory>(
+    "Redemption"
+  )
+  const redemption = await Redemption.deploy()
+  await redemption.deployed()
 
   const MovingFunds = await ethers.getContractFactory<MovingFunds__factory>(
     "MovingFunds"
@@ -119,7 +121,7 @@ const fixture = async () => {
       libraries: {
         Deposit: deposit.address,
         Sweep: sweep.address,
-        Redeem: redeem.address,
+        Redemption: redemption.address,
         Wallets: wallets.address,
         Fraud: fraud.address,
         MovingFunds: movingFunds.address,
