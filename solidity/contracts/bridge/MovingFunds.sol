@@ -29,10 +29,31 @@ library MovingFunds {
     using BTCUtils for bytes;
     using BytesLib for bytes;
 
+    event MovingFundsCommitmentSubmitted(
+        bytes20 walletPubKeyHash,
+        bytes20[] targetWallets
+    );
+
     event MovingFundsCompleted(
         bytes20 walletPubKeyHash,
         bytes32 movingFundsTxHash
     );
+
+    function submitMovingFundsCommitment(
+        BridgeState.Storage storage,
+        Wallets.Data storage wallets,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata walletMainUtxo,
+        bytes20[] calldata targetWallets
+    ) external {
+        wallets.submitMovingFundsCommitment(
+            walletPubKeyHash,
+            walletMainUtxo,
+            targetWallets
+        );
+
+        emit MovingFundsCommitmentSubmitted(walletPubKeyHash, targetWallets);
+    }
 
     /// @notice Used by the wallet to prove the BTC moving funds transaction
     ///         and to make the necessary state changes. Moving funds is only

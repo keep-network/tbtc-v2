@@ -781,6 +781,19 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
     }
 
+    function submitMovingFundsCommitment(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata walletMainUtxo,
+        bytes20[] calldata targetWallets
+    ) external {
+        self.submitMovingFundsCommitment(
+            wallets,
+            walletPubKeyHash,
+            walletMainUtxo,
+            targetWallets
+        );
+    }
+
     /// @notice Used by the wallet to prove the BTC moving funds transaction
     ///         and to make the necessary state changes. Moving funds is only
     ///         accepted if it satisfies SPV proof.

@@ -18,6 +18,7 @@ pragma solidity ^0.8.9;
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
 import {EcdsaDkg} from "@keep-network/ecdsa/contracts/libraries/EcdsaDkg.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
@@ -48,6 +49,11 @@ library Wallets {
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
         bytes20 activeWalletPubKeyHash;
+        // Current live wallets count;
+        uint32 liveWalletsCount;
+        // The maximum BTC transfer than can be sent to a single target wallet
+        // during the moving funds process.
+        uint64 maxBtcTransfer;
         // Maps the 20-byte wallet public key hash (computed using Bitcoin
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
@@ -535,6 +541,68 @@ library Wallets {
         }
 
         self.registry.closeWallet(wallet.ecdsaWalletID);
+    }
+
+    function submitMovingFundsCommitment(
+        Data storage self,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata walletMainUtxo,
+        bytes20[] calldata targetWallets
+    ) external {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        require(
+            wallet.state == WalletState.MovingFunds,
+            "Source wallet must be in MovingFunds state"
+        );
+
+        require(
+            wallet.pendingRedemptionsValue == 0,
+            "Source wallet must handle all pending redemptions first"
+        );
+
+        require(
+            wallet.movingFundsTargetWalletsCommitmentHash == bytes32(0),
+            "Target wallets commitment already submitted"
+        );
+
+        // TODO: Assert the sender is a source wallet operator.
+
+        uint64 walletBtcBalance = getWalletBtcBalance(
+            self,
+            walletPubKeyHash,
+            walletMainUtxo
+        );
+        uint256 expectedTargetWalletsCount = Math.min(
+            self.liveWalletsCount,
+            Math.ceilDiv(walletBtcBalance, self.maxBtcTransfer)
+        );
+
+        // This requirement fails only when `liveWalletsCount` is zero. In
+        // that case, the system cannot accept the commitment and must provide
+        // new wallets first.
+        require(expectedTargetWalletsCount > 0, "No target wallets available");
+
+        require(
+            targetWallets.length == expectedTargetWalletsCount,
+            "Submitted target wallets count is other than expected"
+        );
+
+        for (uint256 i = 0; i < targetWallets.length; i++) {
+            require(
+                targetWallets[i] != walletPubKeyHash,
+                "Submitted target wallet cannot be equal to the source wallet"
+            );
+            require(
+                self.registeredWallets[targetWallets[i]].state ==
+                    WalletState.Live,
+                "Submitted target wallet must be in Live state"
+            );
+        }
+
+        wallet.movingFundsTargetWalletsCommitmentHash = keccak256(
+            abi.encodePacked(targetWallets)
+        );
     }
 
     /// @notice Notifies that the wallet completed the moving funds process
