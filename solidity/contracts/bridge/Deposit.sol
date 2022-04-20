@@ -22,6 +22,27 @@ import "./BitcoinTx.sol";
 import "./BridgeState.sol";
 import "./Wallets.sol";
 
+/// @notice The library handles the logic for revealing Bitcoin deposits to
+///         the Bridge.
+/// @dev The depositor puts together a P2SH or P2WSH address to deposit the
+///      funds. This script is unique to each depositor and looks like this:
+///
+///      ```
+///      <depositorAddress> DROP
+///      <blindingFactor> DROP
+///      DUP HASH160 <walletPubKeyHash> EQUAL
+///      IF
+///        CHECKSIG
+///      ELSE
+///        DUP HASH160 <refundPubkeyHash> EQUALVERIFY
+///        <refundLocktime> CHECKLOCKTIMEVERIFY DROP
+///        CHECKSIG
+///      ENDIF
+///      ```
+///
+///      Since each depositor has their own Ethereum address and their own
+///      secret blinding factor, each depositor’s script is unique, and the hash
+///      of each depositor’s script is unique.
 library Deposit {
     using BTCUtils for bytes;
     using BytesLib for bytes;
