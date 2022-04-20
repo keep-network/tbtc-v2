@@ -16,7 +16,6 @@
 pragma solidity ^0.8.9;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
-import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
 import {EcdsaDkg} from "@keep-network/ecdsa/contracts/libraries/EcdsaDkg.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -469,6 +468,8 @@ library Wallets {
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo,
+        uint32[] calldata walletMembersIDs,
+        uint256 walletMemberIndex,
         bytes20[] calldata targetWallets
     ) external {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
@@ -488,7 +489,15 @@ library Wallets {
             "Target wallets commitment already submitted"
         );
 
-        // TODO: Assert the sender is a source wallet operator.
+        require(
+            self.ecdsaWalletRegistry.isWalletMember(
+                wallet.ecdsaWalletID,
+                walletMembersIDs,
+                msg.sender,
+                walletMemberIndex
+            ),
+            "Caller is not a member of the source wallet"
+        );
 
         uint64 walletBtcBalance = getWalletBtcBalance(
             self,

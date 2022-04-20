@@ -15,6 +15,8 @@
 
 pragma solidity ^0.8.9;
 
+import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
+
 import "./IRelay.sol";
 import "./Deposit.sol";
 import "./Redeem.sol";

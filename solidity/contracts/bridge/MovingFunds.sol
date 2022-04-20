@@ -43,11 +43,15 @@ library MovingFunds {
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo,
+        uint32[] calldata walletMembersIDs,
+        uint256 walletMemberIndex,
         bytes20[] calldata targetWallets
     ) external {
         self.notifyWalletMovingFundsCommitmentSubmitted(
             walletPubKeyHash,
             walletMainUtxo,
+            walletMembersIDs,
+            walletMemberIndex,
             targetWallets
         );
 

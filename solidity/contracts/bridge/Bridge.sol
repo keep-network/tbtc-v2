@@ -675,11 +675,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function submitMovingFundsCommitment(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo,
+        uint32[] calldata walletMembersIDs,
+        uint256 walletMemberIndex,
         bytes20[] calldata targetWallets
     ) external {
         self.submitMovingFundsCommitment(
             walletPubKeyHash,
             walletMainUtxo,
+            walletMembersIDs,
+            walletMemberIndex,
             targetWallets
         );
     }
