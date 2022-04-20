@@ -23,8 +23,6 @@ import "./BridgeState.sol";
 import "./Wallets.sol";
 
 library Deposit {
-    using Wallets for Wallets.Data;
-
     using BTCUtils for bytes;
     using BytesLib for bytes;
 
@@ -123,12 +121,11 @@ library Deposit {
     ///      deposit script unlocks to receive their BTC back.
     function revealDeposit(
         BridgeState.Storage storage self,
-        Wallets.Data storage wallets,
         BitcoinTx.Info calldata fundingTx,
         DepositRevealInfo calldata reveal
     ) external {
         require(
-            wallets.registeredWallets[reveal.walletPubKeyHash].state ==
+            self.registeredWallets[reveal.walletPubKeyHash].state ==
                 Wallets.WalletState.Live,
             "Wallet is not in Live state"
         );

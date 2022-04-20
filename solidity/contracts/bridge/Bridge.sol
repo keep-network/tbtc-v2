@@ -66,7 +66,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using Redeem for BridgeState.Storage;
     using MovingFunds for BridgeState.Storage;
     using Fraud for BridgeState.Storage;
-    using Wallets for Wallets.Data;
+    using Wallets for BridgeState.Storage;
 
     using BTCUtils for bytes;
     using BTCUtils for uint256;
@@ -74,17 +74,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     BridgeState.Storage internal self;
 
-    /// @notice State related with wallets.
-    Wallets.Data internal wallets;
-
-    event WalletCreationPeriodUpdated(uint32 newCreationPeriod);
-
-    event WalletBtcBalanceRangeUpdated(
-        uint64 newMinBtcBalance,
-        uint64 newMaxBtcBalance
+    event WalletParametersUpdated(
+        uint32 walletCreationPeriod,
+        uint64 walletMinBtcBalance,
+        uint64 walletMaxBtcBalance,
+        uint32 walletMaxAge
     );
-
-    event WalletMaxAgeUpdated(uint32 newMaxAge);
 
     event NewWalletRequested();
 
@@ -190,6 +185,12 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         require(_relay != address(0), "Relay address cannot be zero");
         self.relay = IRelay(_relay);
 
+        require(
+            _ecdsaWalletRegistry != address(0),
+            "ECDSA Wallet Registry address cannot be zero"
+        );
+        self.ecdsaWalletRegistry = EcdsaWalletRegistry(_ecdsaWalletRegistry);
+
         require(_treasury != address(0), "Treasury address cannot be zero");
         self.treasury = _treasury;
 
@@ -208,54 +209,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.fraudChallengeDefeatTimeout = 7 days;
         self.fraudChallengeDepositAmount = 2 ether;
-
-        // TODO: Revisit initial values.
-        wallets.init(_ecdsaWalletRegistry);
-        wallets.setCreationPeriod(1 weeks);
-        wallets.setBtcBalanceRange(1 * 1e8, 10 * 1e8); // [1 BTC, 10 BTC]
-        wallets.setMaxAge(26 weeks); // ~6 months
-    }
-
-    /// @notice Updates parameters used by the `Wallets` library.
-    /// @param creationPeriod New value of the wallet creation period
-    /// @param minBtcBalance New value of the minimum BTC balance
-    /// @param maxBtcBalance New value of the maximum BTC balance
-    /// @param maxAge New value of the wallet maximum age
-    /// @dev Requirements:
-    ///      - Caller must be the contract owner.
-    ///      - Minimum BTC balance must be greater than zero
-    ///      - Maximum BTC balance must be greater than minimum BTC balance
-    function updateWalletsParameters(
-        uint32 creationPeriod,
-        uint64 minBtcBalance,
-        uint64 maxBtcBalance,
-        uint32 maxAge
-    ) external onlyOwner {
-        wallets.setCreationPeriod(creationPeriod);
-        wallets.setBtcBalanceRange(minBtcBalance, maxBtcBalance);
-        wallets.setMaxAge(maxAge);
-    }
-
-    /// @return creationPeriod Value of the wallet creation period
-    /// @return minBtcBalance Value of the minimum BTC balance
-    /// @return maxBtcBalance Value of the maximum BTC balance
-    /// @return maxAge Value of the wallet max age
-    function getWalletsParameters()
-        external
-        view
-        returns (
-            uint32 creationPeriod,
-            uint64 minBtcBalance,
-            uint64 maxBtcBalance,
-            uint32 maxAge
-        )
-    {
-        creationPeriod = wallets.creationPeriod;
-        minBtcBalance = wallets.minBtcBalance;
-        maxBtcBalance = wallets.maxBtcBalance;
-        maxAge = wallets.maxAge;
-
-        return (creationPeriod, minBtcBalance, maxBtcBalance, maxAge);
+        self.walletCreationPeriod = 1 weeks;
+        self.walletMinBtcBalance = 1e8; // 1 BTC
+        self.walletMaxBtcBalance = 10e8; // 10 BTC
+        self.walletMaxAge = 26 weeks; // ~6 months
     }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
@@ -299,7 +256,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function requestNewWallet(BitcoinTx.UTXO calldata activeWalletMainUtxo)
         external
     {
-        wallets.requestNewWallet(activeWalletMainUtxo);
+        self.requestNewWallet(activeWalletMainUtxo);
     }
 
     /// @notice A callback function that is called by the ECDSA Wallet Registry
@@ -315,7 +272,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 publicKeyX,
         bytes32 publicKeyY
     ) external override {
-        wallets.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
+        self.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
     }
 
     /// @notice A callback function that is called by the ECDSA Wallet Registry
@@ -330,7 +287,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 publicKeyX,
         bytes32 publicKeyY
     ) external override {
-        wallets.notifyWalletHeartbeatFailed(publicKeyX, publicKeyY);
+        self.notifyWalletHeartbeatFailed(publicKeyX, publicKeyY);
     }
 
     /// @notice Notifies that the wallet is either old enough or has too few
@@ -352,7 +309,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
     ) external {
-        wallets.notifyCloseableWallet(walletPubKeyHash, walletMainUtxo);
+        self.notifyCloseableWallet(walletPubKeyHash, walletMainUtxo);
     }
 
     /// @notice Gets details about a registered wallet.
@@ -364,7 +321,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         view
         returns (Wallets.Wallet memory)
     {
-        return wallets.registeredWallets[walletPubKeyHash];
+        return self.registeredWallets[walletPubKeyHash];
     }
 
     /// @notice Gets the public key hash of the active wallet.
@@ -372,7 +329,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         over the compressed ECDSA public key) of the active wallet.
     ///         Returns bytes20(0) if there is no active wallet at the moment.
     function getActiveWalletPubKeyHash() external view returns (bytes20) {
-        return wallets.activeWalletPubKeyHash;
+        return self.activeWalletPubKeyHash;
     }
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
@@ -413,7 +370,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         BitcoinTx.Info calldata fundingTx,
         Deposit.DepositRevealInfo calldata reveal
     ) external {
-        self.revealDeposit(wallets, fundingTx, reveal);
+        self.revealDeposit(fundingTx, reveal);
     }
 
     /// @notice Used by the wallet to prove the BTC deposit sweep transaction
@@ -457,7 +414,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
-        self.submitSweepProof(wallets, sweepTx, sweepProof, mainUtxo);
+        self.submitSweepProof(sweepTx, sweepProof, mainUtxo);
     }
 
     /// @notice Submits a fraud challenge indicating that a UTXO being under
@@ -497,7 +454,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 sighash,
         BitcoinTx.RSVSignature calldata signature
     ) external payable {
-        self.submitFraudChallenge(wallets, walletPublicKey, sighash, signature);
+        self.submitFraudChallenge(walletPublicKey, sighash, signature);
     }
 
     /// @notice Allows to defeat a pending fraud challenge against a wallet if
@@ -612,7 +569,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint64 amount
     ) external {
         self.requestRedemption(
-            wallets,
             walletPubKeyHash,
             mainUtxo,
             redeemerOutputScript,
@@ -671,7 +627,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 walletPubKeyHash
     ) external {
         self.submitRedemptionProof(
-            wallets,
             redemptionTx,
             redemptionProof,
             mainUtxo,
@@ -707,11 +662,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 walletPubKeyHash,
         bytes calldata redeemerOutputScript
     ) external {
-        self.notifyRedemptionTimeout(
-            wallets,
-            walletPubKeyHash,
-            redeemerOutputScript
-        );
+        self.notifyRedemptionTimeout(walletPubKeyHash, redeemerOutputScript);
     }
 
     /// @notice Used by the wallet to prove the BTC moving funds transaction
@@ -766,7 +717,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 walletPubKeyHash
     ) external {
         self.submitMovingFundsProof(
-            wallets,
             movingFundsTx,
             movingFundsProof,
             mainUtxo,
@@ -910,6 +860,59 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         fraudNotifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
         fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
         fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
+    }
+
+    /// @return walletCreationPeriod Determines how frequently a new wallet
+    ///         creation can be requested. Value in seconds.
+    /// @return walletMinBtcBalance The minimum BTC threshold in satoshi that is
+    ///         used to decide about wallet creation or closing.
+    /// @return walletMaxBtcBalance The maximum BTC threshold in satoshi that is
+    ///         used to decide about wallet creation.
+    /// @return walletMaxAge The maximum age of a wallet in seconds, after which
+    ///         the wallet moving funds process can be requested.
+    function walletParameters()
+        external
+        view
+        returns (
+            uint32 walletCreationPeriod,
+            uint64 walletMinBtcBalance,
+            uint64 walletMaxBtcBalance,
+            uint32 walletMaxAge
+        )
+    {
+        walletCreationPeriod = self.walletCreationPeriod;
+        walletMinBtcBalance = self.walletMinBtcBalance;
+        walletMaxBtcBalance = self.walletMaxBtcBalance;
+        walletMaxAge = self.walletMaxAge;
+    }
+
+    /// @notice Updates parameters of wallets.
+    /// @param walletCreationPeriod New value of the wallet creation period in
+    ///        seconds, determines how frequently a new wallet creation can be
+    ///        requested
+    /// @param walletMinBtcBalance New value of the wallet minimum BTC balance
+    ///        in sathoshis, used to decide about wallet creation or closing
+    /// @param walletMaxBtcBalance New value of the wallet maximum BTC balance
+    ///        in sathoshis, used to decide about wallet creation
+    /// @param walletMaxAge New value of the wallet maximum age in seconds,
+    ///        indicates the maximum age of a wallet in seconds, after which
+    ///        the wallet moving funds process can be requested
+    /// @dev Requirements:
+    ///      - Wallet minimum BTC balance must be greater than zero
+    ///      - Wallet maximum BTC balance must be greater than the wallet
+    ///        minimum BTC balance
+    function updateWalletParameters(
+        uint32 walletCreationPeriod,
+        uint64 walletMinBtcBalance,
+        uint64 walletMaxBtcBalance,
+        uint32 walletMaxAge
+    ) external onlyOwner {
+        self.updateWalletParameters(
+            walletCreationPeriod,
+            walletMinBtcBalance,
+            walletMaxBtcBalance,
+            walletMaxAge
+        );
     }
 
     /// @notice Indicates if the vault with the given address is trusted or not.

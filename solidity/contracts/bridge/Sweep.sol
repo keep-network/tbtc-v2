@@ -94,7 +94,6 @@ library Sweep {
     ///        If there is no main UTXO, this parameter is ignored.
     function submitSweepProof(
         BridgeState.Storage storage self,
-        Wallets.Data storage wallets,
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
@@ -122,7 +121,7 @@ library Sweep {
         (
             Wallets.Wallet storage wallet,
             BitcoinTx.UTXO memory resolvedMainUtxo
-        ) = resolveSweepingWallet(wallets, walletPubKeyHash, mainUtxo);
+        ) = resolveSweepingWallet(self, walletPubKeyHash, mainUtxo);
 
         // Process sweep transaction inputs and extract all information needed
         // to perform deposit bookkeeping.
@@ -208,7 +207,7 @@ library Sweep {
     ///     - If the main UTXO of the sweeping wallet exists in the storage,
     ///       the passed `mainUTXO` parameter must be equal to the stored one.
     function resolveSweepingWallet(
-        Wallets.Data storage wallets,
+        BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
     )
@@ -218,7 +217,7 @@ library Sweep {
             BitcoinTx.UTXO memory resolvedMainUtxo
         )
     {
-        wallet = wallets.registeredWallets[walletPubKeyHash];
+        wallet = self.registeredWallets[walletPubKeyHash];
 
         Wallets.WalletState walletState = wallet.state;
         require(
