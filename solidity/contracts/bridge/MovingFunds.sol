@@ -25,6 +25,7 @@ import "./Redemption.sol";
 library MovingFunds {
     using BridgeState for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
+    using BitcoinTx for BridgeState.Storage;
 
     using BTCUtils for bytes;
     using BytesLib for bytes;
@@ -90,10 +91,9 @@ library MovingFunds {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 movingFundsTxHash = BitcoinTx.validateProof(
+        bytes32 movingFundsTxHash = self.validateProof(
             movingFundsTx,
-            movingFundsProof,
-            self.proofDifficultyContext()
+            movingFundsProof
         );
 
         // Process the moving funds transaction input. Specifically, check if

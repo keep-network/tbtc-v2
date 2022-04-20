@@ -25,6 +25,7 @@ import "../bank/Bank.sol";
 
 library Sweep {
     using BridgeState for BridgeState.Storage;
+    using BitcoinTx for BridgeState.Storage;
 
     using BTCUtils for bytes;
 
@@ -105,11 +106,7 @@ library Sweep {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 sweepTxHash = BitcoinTx.validateProof(
-            sweepTx,
-            sweepProof,
-            self.proofDifficultyContext()
-        );
+        bytes32 sweepTxHash = self.validateProof(sweepTx, sweepProof);
 
         // Process sweep transaction output and extract its target wallet
         // public key hash and value.

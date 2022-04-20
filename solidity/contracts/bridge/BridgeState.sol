@@ -230,22 +230,4 @@ library BridgeState {
             _walletMaxAge
         );
     }
-
-    // TODO: Is it the right place for this function? Should we move it to Bridge?
-    /// @notice Determines the current Bitcoin SPV proof difficulty context.
-    /// @return proofDifficulty Bitcoin proof difficulty context.
-    function proofDifficultyContext(Storage storage self)
-        internal
-        view
-        returns (BitcoinTx.ProofDifficulty memory proofDifficulty)
-    {
-        IRelay relay = self.relay;
-        proofDifficulty.currentEpochDifficulty = relay
-            .getCurrentEpochDifficulty();
-        proofDifficulty.previousEpochDifficulty = relay
-            .getPrevEpochDifficulty();
-        proofDifficulty.difficultyFactor = self.txProofDifficultyFactor;
-
-        return proofDifficulty;
-    }
 }

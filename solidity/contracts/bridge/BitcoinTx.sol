@@ -18,6 +18,8 @@ pragma solidity ^0.8.9;
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
 
+import "./BridgeState.sol";
+
 /// @title Bitcoin transaction
 /// @notice Allows to reference Bitcoin raw transaction in Solidity.
 /// @dev See https://developer.bitcoin.org/reference/transactions.html#raw-transaction-format
@@ -120,17 +122,6 @@ library BitcoinTx {
         bytes bitcoinHeaders;
     }
 
-    /// @notice Determines the difficulty context for a Bitcoin SPV proof.
-    struct ProofDifficulty {
-        /// @notice Difficulty of the current epoch.
-        uint256 currentEpochDifficulty;
-        /// @notice Difficulty of the previous epoch.
-        uint256 previousEpochDifficulty;
-        /// @notice The number of confirmations on the Bitcoin chain required
-        ///         to successfully evaluate an SPV proof.
-        uint256 difficultyFactor;
-    }
-
     /// @notice Represents info about an unspent transaction output.
     struct UTXO {
         /// @notice Hash of the transaction the output belongs to.
@@ -156,12 +147,11 @@ library BitcoinTx {
     ///         Reverts in case the validation or proof verification fail.
     /// @param txInfo Bitcoin transaction data
     /// @param proof Bitcoin proof data
-    /// @param proofDifficulty Bitcoin proof difficulty context.
     /// @return txHash Proven 32-byte transaction hash.
     function validateProof(
+        BridgeState.Storage storage self,
         Info calldata txInfo,
-        Proof calldata proof,
-        ProofDifficulty memory proofDifficulty
+        Proof calldata proof
     ) internal view returns (bytes32 txHash) {
         require(
             txInfo.inputVector.validateVin(),
@@ -190,7 +180,7 @@ library BitcoinTx {
             "Tx merkle proof is not valid for provided header and tx hash"
         );
 
-        evaluateProofDifficulty(proof.bitcoinHeaders, proofDifficulty);
+        evaluateProofDifficulty(self, proof.bitcoinHeaders);
 
         return txHash;
     }
@@ -200,20 +190,23 @@ library BitcoinTx {
     ///         Reverts in case the evaluation fails.
     /// @param bitcoinHeaders Bitcoin headers chain being part of the SPV
     ///        proof. Used to extract the observed proof difficulty
-    /// @param proofDifficulty Bitcoin proof difficulty context.
     function evaluateProofDifficulty(
-        bytes memory bitcoinHeaders,
-        ProofDifficulty memory proofDifficulty
+        BridgeState.Storage storage self,
+        bytes memory bitcoinHeaders
     ) internal view {
+        IRelay relay = self.relay;
+        uint256 currentEpochDifficulty = relay.getCurrentEpochDifficulty();
+        uint256 previousEpochDifficulty = relay.getPrevEpochDifficulty();
+
         uint256 requestedDiff = 0;
         uint256 firstHeaderDiff = bitcoinHeaders
             .extractTarget()
             .calculateDifficulty();
 
-        if (firstHeaderDiff == proofDifficulty.currentEpochDifficulty) {
-            requestedDiff = proofDifficulty.currentEpochDifficulty;
-        } else if (firstHeaderDiff == proofDifficulty.previousEpochDifficulty) {
-            requestedDiff = proofDifficulty.previousEpochDifficulty;
+        if (firstHeaderDiff == currentEpochDifficulty) {
+            requestedDiff = currentEpochDifficulty;
+        } else if (firstHeaderDiff == previousEpochDifficulty) {
+            requestedDiff = previousEpochDifficulty;
         } else {
             revert("Not at current or previous difficulty");
         }
@@ -234,7 +227,7 @@ library BitcoinTx {
         );
 
         require(
-            observedDiff >= requestedDiff * proofDifficulty.difficultyFactor,
+            observedDiff >= requestedDiff * self.txProofDifficultyFactor,
             "Insufficient accumulated difficulty in header chain"
         );
     }
