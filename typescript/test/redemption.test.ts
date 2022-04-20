@@ -11,8 +11,9 @@ import {
   singleP2WSHAddressRedemption,
   multipleAddressesRedemption,
   noChangeRedemption,
-  RedemptionTestData,
   p2PKHChangeRedemption,
+  nonStandardAddressRedemption,
+  RedemptionTestData,
 } from "./data/redemption"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
@@ -31,66 +32,87 @@ describe("Redemption", () => {
     context("when there are redemption requests provided", () => {
       context("when there is a change UTXO is created", () => {
         context("when the change output is P2WPKH", () => {
-          context("when there is a single redeemer", () => {
-            context("when the redeemer address type is P2PKH", () => {
-              const data: RedemptionTestData = singleP2PKHAddressRedemption
+          context("when the redeemer address is standard", () => {
+            context("when there is a single redeemer", () => {
+              context("when the redeemer address type is P2PKH", () => {
+                const data: RedemptionTestData = singleP2PKHAddressRedemption
 
-              beforeEach(async () => {
-                await runRedemptionScenario(
-                  testnetWalletPrivateKey,
-                  bitcoinClient,
-                  data
-                )
+                beforeEach(async () => {
+                  await runRedemptionScenario(
+                    testnetWalletPrivateKey,
+                    bitcoinClient,
+                    data
+                  )
+                })
+
+                it("should broadcast redemption transaction with proper structure", () => {
+                  expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+                  expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+                    data.expectedRedemption.transaction
+                  )
+                })
               })
 
-              it("should broadcast redemption transaction with proper structure", () => {
-                expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
-                expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-                  data.expectedRedemption.transaction
-                )
+              context("when the redeemer address type is P2WPKH", () => {
+                const data: RedemptionTestData = singleP2WPKHAddressRedemption
+
+                beforeEach(async () => {
+                  await runRedemptionScenario(
+                    testnetWalletPrivateKey,
+                    bitcoinClient,
+                    data
+                  )
+                })
+
+                it("should broadcast redemption transaction with proper structure", () => {
+                  expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+                  expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+                    data.expectedRedemption.transaction
+                  )
+                })
+              })
+
+              context("when the redeemer address is P2SH", () => {
+                const data: RedemptionTestData = singleP2SHAddressRedemption
+
+                beforeEach(async () => {
+                  await runRedemptionScenario(
+                    testnetWalletPrivateKey,
+                    bitcoinClient,
+                    data
+                  )
+                })
+
+                it("should broadcast redemption transaction with proper structure", () => {
+                  expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+                  expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+                    data.expectedRedemption.transaction
+                  )
+                })
+              })
+
+              context("when the redeemer address is P2WSH", () => {
+                const data: RedemptionTestData = singleP2WSHAddressRedemption
+
+                beforeEach(async () => {
+                  await runRedemptionScenario(
+                    testnetWalletPrivateKey,
+                    bitcoinClient,
+                    data
+                  )
+                })
+
+                it("should broadcast redemption transaction with proper structure", () => {
+                  expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+                  expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+                    data.expectedRedemption.transaction
+                  )
+                })
               })
             })
 
-            context("when the redeemer address type is P2WPKH", () => {
-              const data: RedemptionTestData = singleP2WPKHAddressRedemption
-
-              beforeEach(async () => {
-                await runRedemptionScenario(
-                  testnetWalletPrivateKey,
-                  bitcoinClient,
-                  data
-                )
-              })
-
-              it("should broadcast redemption transaction with proper structure", () => {
-                expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
-                expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-                  data.expectedRedemption.transaction
-                )
-              })
-            })
-
-            context("when the redeemer address is P2SH", () => {
-              const data: RedemptionTestData = singleP2SHAddressRedemption
-
-              beforeEach(async () => {
-                await runRedemptionScenario(
-                  testnetWalletPrivateKey,
-                  bitcoinClient,
-                  data
-                )
-              })
-
-              it("should broadcast redemption transaction with proper structure", () => {
-                expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
-                expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-                  data.expectedRedemption.transaction
-                )
-              })
-            })
-
-            context("when the redeemer address is P2WSH", () => {
-              const data: RedemptionTestData = singleP2WSHAddressRedemption
+            context("when there are multiple redeemers", () => {
+              const data: RedemptionTestData = multipleAddressesRedemption
 
               beforeEach(async () => {
                 await runRedemptionScenario(
@@ -109,21 +131,28 @@ describe("Redemption", () => {
             })
           })
 
-          context("when there are multiple redeemers", () => {
-            const data: RedemptionTestData = multipleAddressesRedemption
+          context("when the redeemer address is nonstandard", () => {
+            const data: RedemptionTestData = nonStandardAddressRedemption
 
             beforeEach(async () => {
-              await runRedemptionScenario(
-                testnetWalletPrivateKey,
-                bitcoinClient,
-                data
-              )
+              const rawTransactions = new Map<string, RawTransaction>()
+              rawTransactions.set(data.mainUtxo.transactionHash, {
+                transactionHex: data.mainUtxo.transactionHex,
+              })
+              bitcoinClient.rawTransactions = rawTransactions
             })
 
-            it("should broadcast redemption transaction with proper structure", () => {
-              expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
-              expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-                data.expectedRedemption.transaction
+            it("should revert", async () => {
+              await expect(
+                TBTC.redeemDeposits(
+                  bitcoinClient,
+                  testnetWalletPrivateKey,
+                  data.mainUtxo,
+                  data.redemptionRequests,
+                  data.witness
+                )
+              ).to.be.rejectedWith(
+                "Redemption address must be P2PKH, P2WPKH, P2SH or P2WSH"
               )
             })
           })

@@ -335,3 +335,37 @@ export const p2PKHChangeRedemption: RedemptionTestData = {
     },
   },
 }
+
+export const nonStandardAddressRedemption: RedemptionTestData = {
+  mainUtxo: {
+    transactionHash:
+      "523e4bfb71804e5ed3b76c8933d733339563e560311c1bf835934ee7aae5db20",
+    outputIndex: 1,
+    value: 1481680,
+    transactionHex:
+      "0100000000010160d264b34e51e6567254bcaf4cc67e1e069483f4249dc50784eae68" +
+      "2645fd11d0100000000ffffffff02d84000000000000022002086a303cdd2e2eab1d1" +
+      "679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96d09b1600000000001600148" +
+      "db50eb52063ea9d98b3eac91489a90f738986f602483045022100ed5fa06ea5e9d4a9" +
+      "f0cf0df86a2cd473f693e5bda3d808ba82b04ee26d72b73f0220648f4d7bb25be7819" +
+      "22349d382cf0f32ffcbbf89c483776472c2d15644a48d67012103989d253b17a6a0f4" +
+      "1838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
+  },
+  redemptionRequests: [
+    {
+      // testnet P2TR address taken from
+      // https://live.blockcypher.com/btc-testnet/tx/2035ead4a9d0c8e2da1184924abc9034d26f2a7093371183ef12891623b235d1/
+      address: "tb1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqp3mvzv",
+      amount: BigNumber.from(10000),
+      feeShare: BigNumber.from(1600),
+      treasuryFee: BigNumber.from(1000),
+    },
+  ],
+  witness: true,
+  expectedRedemption: {
+    transactionHash: "",
+    transaction: {
+      transactionHex: "",
+    },
+  },
+}

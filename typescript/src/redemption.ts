@@ -146,7 +146,7 @@ export async function createRedemptionTransaction(
   // anyway during funding, but if the value of the change output was very low,
   // the library would consider it "dust" and add it to the fee rather than
   // create a new output.
-  let changeOutputValue = mainUtxo.value - totalOutputValue - txFee
+  const changeOutputValue = mainUtxo.value - totalOutputValue - txFee
   if (changeOutputValue > 0) {
     transaction.addOutput({
       script: bcoin.Script.fromAddress(walletAddress),
