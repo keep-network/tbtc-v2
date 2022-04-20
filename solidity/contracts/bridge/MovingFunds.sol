@@ -40,13 +40,12 @@ library MovingFunds {
     );
 
     function submitMovingFundsCommitment(
-        BridgeState.Storage storage,
-        Wallets.Data storage wallets,
+        BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo,
         bytes20[] calldata targetWallets
     ) external {
-        wallets.submitMovingFundsCommitment(
+        self.notifyWalletMovingFundsCommitmentSubmitted(
             walletPubKeyHash,
             walletMainUtxo,
             targetWallets

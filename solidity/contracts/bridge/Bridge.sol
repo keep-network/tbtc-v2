@@ -679,7 +679,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20[] calldata targetWallets
     ) external {
         self.submitMovingFundsCommitment(
-            wallets,
             walletPubKeyHash,
             walletMainUtxo,
             targetWallets

@@ -465,7 +465,7 @@ library Wallets {
         self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
     }
 
-    function submitMovingFundsCommitment(
+    function notifyWalletMovingFundsCommitmentSubmitted(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo,
@@ -497,7 +497,7 @@ library Wallets {
         );
         uint256 expectedTargetWalletsCount = Math.min(
             self.liveWalletsCount,
-            Math.ceilDiv(walletBtcBalance, self.maxBtcTransfer)
+            Math.ceilDiv(walletBtcBalance, self.walletMaxBtcTransfer)
         );
 
         // This requirement fails only when `liveWalletsCount` is zero. In
