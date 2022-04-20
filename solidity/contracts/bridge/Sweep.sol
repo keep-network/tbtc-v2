@@ -23,6 +23,16 @@ import "./Wallets.sol";
 
 import "../bank/Bank.sol";
 
+/// @title Bridge deposit sweep
+/// @notice The library handles the logic for sweeping transactions revealed to
+///         the Bridge
+/// @dev Bridge active wallet periodically signs a transaction that unlocks all
+///      of the valid, revealed deposits above the dust threshold, combines them
+///      into a single UTXO with the existing main wallet UTXO, and relocks
+///      those transactions without a 30-day refund clause to the same wallet.
+///      This has two main effects: it consolidates the UTXO set and it disables
+///      the refund. Balances of depositors in the Bank are increased when the
+///      sweep proof is submitted to the Bridge.
 library Sweep {
     using BridgeState for BridgeState.Storage;
     using BitcoinTx for BridgeState.Storage;
