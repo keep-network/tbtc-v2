@@ -17,8 +17,6 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
-import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
 import "./IRelay.sol";
@@ -61,10 +59,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     using MovingFunds for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
     using Fraud for BridgeState.Storage;
-
-    using BTCUtils for bytes;
-    using BTCUtils for uint256;
-    using BytesLib for bytes;
 
     BridgeState.Storage internal self;
 
