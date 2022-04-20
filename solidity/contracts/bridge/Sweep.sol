@@ -32,7 +32,7 @@ import "../bank/Bank.sol";
 ///      those transactions without a 30-day refund clause to the same wallet.
 ///      This has two main effects: it consolidates the UTXO set and it disables
 ///      the refund. Balances of depositors in the Bank are increased when the
-///      sweep proof is submitted to the Bridge.
+///      SPV sweep proof is submitted to the Bridge.
 library Sweep {
     using BridgeState for BridgeState.Storage;
     using BitcoinTx for BridgeState.Storage;

@@ -140,6 +140,14 @@ library OutboundTx {
     }
 }
 
+/// @title Bridge redemption
+/// @notice The library handles the logic for redeeming Bitcoin balances from
+///         the Bridge.
+/// @dev To initiate a redemption, a user with a Bank balance supplies
+///      a Bitcoin address. Then, the system calculates the redemption fee, and
+///      releases balance to the provided Bitcoin address. Just like in case of
+///      sweeps of revealed deposits, redemption requests are processed in
+///      batches and require SPV proof to be submitted to the Bridge.
 library Redemption {
     using BridgeState for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
