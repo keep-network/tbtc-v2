@@ -81,8 +81,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint32 walletMaxAge
     );
 
-    event WalletMaxBtcTransferUpdated(uint64 newMaxBtcTransfer);
-
     event NewWalletRequested();
 
     event NewWalletRegistered(
