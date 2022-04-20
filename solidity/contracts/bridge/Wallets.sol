@@ -508,7 +508,7 @@ library Wallets {
         uint32[] calldata walletMembersIDs,
         uint256 walletMemberIndex,
         bytes20[] calldata targetWallets
-    ) external {
+    ) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
 
         require(
