@@ -677,9 +677,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        seconds, determines how frequently a new wallet creation can be
     ///        requested
     /// @param walletMinBtcBalance New value of the wallet minimum BTC balance
-    ///        in sathoshis, used to decide about wallet creation or closing
+    ///        in satoshis, used to decide about wallet creation or closing
     /// @param walletMaxBtcBalance New value of the wallet maximum BTC balance
-    ///        in sathoshis, used to decide about wallet creation
+    ///        in satoshis, used to decide about wallet creation
     /// @param walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
     ///        the wallet moving funds process can be requested
