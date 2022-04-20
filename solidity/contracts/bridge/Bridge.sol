@@ -805,9 +805,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout,
-            address treasury,
-            uint256 txProofDifficultyFactor
+            uint256 redemptionTimeout
         )
     {
         redemptionDustThreshold = self.redemptionDustThreshold;
