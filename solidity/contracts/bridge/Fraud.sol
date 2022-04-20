@@ -287,8 +287,8 @@ library Fraud {
             "Fraud challenge defeat period did not time out yet"
         );
 
-        // TODO: Call notifyFraud from Wallets library
-        // TODO: Reward the challenger
+        // TODO: Call `notifyWalletFraud` from `Wallets` library.
+        // TODO: Reward the challenger.
 
         challenge.resolved = true;
 

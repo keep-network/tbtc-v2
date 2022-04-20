@@ -5421,6 +5421,7 @@ describe("Bridge", () => {
                   movingFundsTargetWalletsCommitmentHash:
                     ethers.constants.HashZero,
                 })
+                await bridge.setLiveWalletsCount(1)
                 await bridge.setWalletMainUtxo(
                   data.wallet.pubKeyHash,
                   data.mainUtxo
@@ -5591,6 +5592,10 @@ describe("Bridge", () => {
                     data.redemptionRequests[0].redeemerOutputScript
                   )
               })
+
+              it("should decrease the live wallets counter", async () => {
+                expect(await bridge.liveWalletsCount()).to.be.equal(0)
+              })
             })
 
             context("when the wallet has the main UTXO set", () => {
@@ -5619,6 +5624,7 @@ describe("Bridge", () => {
                   movingFundsTargetWalletsCommitmentHash:
                     ethers.constants.HashZero,
                 })
+                await bridge.setLiveWalletsCount(1)
                 await bridge.setWalletMainUtxo(
                   data.wallet.pubKeyHash,
                   data.mainUtxo
@@ -5783,6 +5789,10 @@ describe("Bridge", () => {
                     data.redemptionRequests[0].redeemerOutputScript
                   )
               })
+
+              it("should decrease the live wallets counter", async () => {
+                expect(await bridge.liveWalletsCount()).to.be.equal(0)
+              })
             })
           })
 
@@ -5805,6 +5815,7 @@ describe("Bridge", () => {
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
               })
+              await bridge.setLiveWalletsCount(1)
               await bridge.setWalletMainUtxo(
                 data.wallet.pubKeyHash,
                 data.mainUtxo
@@ -6432,8 +6443,13 @@ describe("Bridge", () => {
       state: data.wallet.state,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
+
     // Simulate the prepared main UTXO belongs to the wallet.
     await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+
+    if (data.wallet.state === walletState.Live) {
+      await bridge.setLiveWalletsCount(1)
+    }
 
     for (let i = 0; i < data.redemptionRequests.length; i++) {
       const { redeemer, redeemerOutputScript, amount } =

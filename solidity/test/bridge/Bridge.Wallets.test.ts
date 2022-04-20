@@ -227,6 +227,8 @@ describe("Bridge - Wallets", () => {
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
+
+            await bridge.setLiveWalletsCount(1)
           })
 
           after(async () => {
@@ -577,6 +579,10 @@ describe("Bridge - Wallets", () => {
               ecdsaWalletTestData.pubKeyHash160
             )
         })
+
+        it("should increase the live wallets counter", async () => {
+          expect(await bridge.liveWalletsCount()).to.be.equal(1)
+        })
       })
 
       context(
@@ -695,6 +701,8 @@ describe("Bridge - Wallets", () => {
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
+
+          await bridge.setLiveWalletsCount(1)
         })
 
         after(async () => {
@@ -755,6 +763,10 @@ describe("Bridge - Wallets", () => {
                 "0x0000000000000000000000000000000000000000"
               )
             })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            })
           })
 
           context("when wallet is not the active one", () => {
@@ -811,6 +823,10 @@ describe("Bridge - Wallets", () => {
               expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
                 ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
               )
+            })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
             })
           })
         })
@@ -890,6 +906,10 @@ describe("Bridge - Wallets", () => {
                 "0x0000000000000000000000000000000000000000"
               )
             })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            })
           })
 
           context("when wallet is not the active one", () => {
@@ -952,6 +972,10 @@ describe("Bridge - Wallets", () => {
               expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
                 ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
               )
+            })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
             })
           })
         })
@@ -1046,6 +1070,8 @@ describe("Bridge - Wallets", () => {
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
+
+          await bridge.setLiveWalletsCount(1)
         })
 
         after(async () => {
@@ -1105,6 +1131,10 @@ describe("Bridge - Wallets", () => {
               expect(walletRegistry.closeWallet).to.have.been.calledOnceWith(
                 ecdsaWalletTestData.walletID
               )
+            })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
             })
           })
 
@@ -1169,6 +1199,10 @@ describe("Bridge - Wallets", () => {
               // eslint-disable-next-line @typescript-eslint/no-unused-expressions
               expect(walletRegistry.closeWallet).to.not.have.been.called
             })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            })
           })
         })
 
@@ -1217,6 +1251,10 @@ describe("Bridge - Wallets", () => {
                 expect(walletRegistry.closeWallet).to.have.been.calledOnceWith(
                   ecdsaWalletTestData.walletID
                 )
+              })
+
+              it("should decrease the live wallets counter", async () => {
+                expect(await bridge.liveWalletsCount()).to.be.equal(0)
               })
             })
 
@@ -1282,6 +1320,10 @@ describe("Bridge - Wallets", () => {
               it("should not call ECDSA Wallet Registry's closeWallet function", async () => {
                 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                 expect(walletRegistry.closeWallet).to.not.have.been.called
+              })
+
+              it("should decrease the live wallets counter", async () => {
+                expect(await bridge.liveWalletsCount()).to.be.equal(0)
               })
             })
           }
@@ -1439,6 +1481,8 @@ describe("Bridge - Wallets", () => {
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
+
+        await bridge.setLiveWalletsCount(1)
       })
 
       after(async () => {
