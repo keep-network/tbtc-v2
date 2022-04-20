@@ -59,6 +59,7 @@ import "../bank/Bank.sol";
 //       by the Bridge can be probably delegated to the Wallets library.
 //       Examples of such operations are main UTXO or pending redemptions
 //       value updates.
+// TODO: Revisit all events and look which parameters should be indexed.
 contract Bridge is Ownable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
