@@ -22,6 +22,14 @@ import "./BitcoinTx.sol";
 import "./BridgeState.sol";
 import "./Redemption.sol";
 
+/// @title Moving Bridge wallet funds
+/// @notice The library handles the logic for moving Bitcoin between Bridge
+///         wallets.
+/// @dev A wallet that failed a heartbeat, did not process requested redemption
+///      on time, or qualifies to be closed, begins the procedure of moving
+///      funds to other wallets in the Bridge. The wallet needs to commit to
+///      which other Live wallets it is moving the funds to and then, provide an
+///      SPV proof of moving funds to the previously committed wallets.
 library MovingFunds {
     using BridgeState for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
