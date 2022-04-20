@@ -32,7 +32,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     // TODO: make it upgradable
     uint256 public requestNewWalletGasOffset = 3000;
     // TODO: make it upgradable
-    uint256 public submitSweepProofGasOffset = 21000;
+    uint256 public submitSweepProofGasOffset = 26500;
     // TODO: make it upgradable
     uint256 public submitRedemptionProofGasOffset = 9750;
 

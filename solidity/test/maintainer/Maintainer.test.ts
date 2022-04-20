@@ -3,7 +3,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ContractTransaction, BigNumber, BigNumberish } from "ethers"
 import type { FakeContract } from "@defi-wonderland/smock"
-import { NO_MAIN_UTXO, SweepTestData, SingleP2SHDeposit } from "../data/sweep"
 
 import { BridgeStub } from "../../typechain/BridgeStub"
 
@@ -24,6 +23,15 @@ import {
   MultiplePendingRequestedRedemptions,
   MultiplePendingRequestedRedemptionsWithP2WPKHChange,
 } from "../data/redemption"
+
+import {
+  MultipleDepositsNoMainUtxo,
+  MultipleDepositsWithMainUtxo,
+  NO_MAIN_UTXO,
+  SingleP2SHDeposit,
+  SingleP2WSHDeposit,
+  SweepTestData,
+} from "../data/sweep"
 
 import bridgeFixture from "../bridge/bridge-fixture"
 import { constants, walletState } from "../fixtures"
@@ -155,25 +163,296 @@ describe("Maintainer", () => {
   })
 
   describe("submitSweepProof", () => {
-    const data: SweepTestData = SingleP2SHDeposit
+    context("when the wallet state is Live", () => {
+      context("when transaction proof is valid", () => {
+        context("when there is only one output", () => {
+          context("when wallet public key hash length is 20 bytes", () => {
+            context("when main UTXO data are valid", () => {
+              context(
+                "when transaction fee does not exceed the deposit transaction maximum fee",
+                () => {
+                  context("when there is only one input", () => {
+                    context(
+                      "when the single input is a revealed unswept P2SH deposit",
+                      () => {
+                        let tx: ContractTransaction
+                        const data: SweepTestData = SingleP2SHDeposit
+                        // Take wallet public key hash from first deposit. All
+                        // deposits in same sweep batch should have the same value
+                        // of that field.
+                        const { walletPubKeyHash } = data.deposits[0].reveal
+                        let initThirdPartyBalance: BigNumber
 
-    describe("when called by an unauthorized third party", async () => {
-      it("should revert", async () => {
-        await expect(
-          maintainerProxy
-            .connect(thirdParty)
-            .submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
-        ).to.be.revertedWith("Caller is not authorized")
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
+                          // the initial value in the Bridge in order to save test Bitcoins.
+                          await bridge.setDepositDustThreshold(10000)
+
+                          // Simulate the wallet is an Live one and is known in
+                          // the system.
+                          await bridge.setWallet(walletPubKeyHash, {
+                            ecdsaWalletID: ethers.constants.HashZero,
+                            mainUtxoHash: ethers.constants.HashZero,
+                            pendingRedemptionsValue: 0,
+                            createdAt: await lastBlockTime(),
+                            movingFundsRequestedAt: 0,
+                            state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
+                          })
+
+                          initThirdPartyBalance = await provider.getBalance(
+                            thirdParty.address
+                          )
+                          tx = await runSweepScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
+                        it("should emit DepositsSwept event", async () => {
+                          await expect(tx)
+                            .to.emit(bridge, "DepositsSwept")
+                            .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                        })
+
+                        it("should refund ETH", async () => {
+                          const postNotifyThirdPartyBalance =
+                            await provider.getBalance(thirdParty.address)
+                          const diff = postNotifyThirdPartyBalance.sub(
+                            initThirdPartyBalance
+                          )
+
+                          expect(diff).to.be.gt(0)
+                          expect(diff).to.be.lt(
+                            ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+                          )
+                        })
+                      }
+                    )
+
+                    context(
+                      "when the single input is a revealed unswept P2WSH deposit",
+                      () => {
+                        let tx: ContractTransaction
+                        const data: SweepTestData = SingleP2WSHDeposit
+                        // Take wallet public key hash from first deposit. All
+                        // deposits in same sweep batch should have the same value
+                        // of that field.
+                        const { walletPubKeyHash } = data.deposits[0].reveal
+                        let initThirdPartyBalance: BigNumber
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
+                          // the initial value in the Bridge in order to save test Bitcoins.
+                          await bridge.setDepositDustThreshold(10000)
+
+                          // Simulate the wallet is an Live one and is known in
+                          // the system.
+                          await bridge.setWallet(walletPubKeyHash, {
+                            ecdsaWalletID: ethers.constants.HashZero,
+                            mainUtxoHash: ethers.constants.HashZero,
+                            pendingRedemptionsValue: 0,
+                            createdAt: await lastBlockTime(),
+                            movingFundsRequestedAt: 0,
+                            state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
+                          })
+
+                          initThirdPartyBalance = await provider.getBalance(
+                            thirdParty.address
+                          )
+                          tx = await runSweepScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
+                        it("should emit DepositsSwept event", async () => {
+                          await expect(tx)
+                            .to.emit(bridge, "DepositsSwept")
+                            .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                        })
+
+                        it("should refund ETH", async () => {
+                          const postNotifyThirdPartyBalance =
+                            await provider.getBalance(thirdParty.address)
+                          const diff = postNotifyThirdPartyBalance.sub(
+                            initThirdPartyBalance
+                          )
+
+                          expect(diff).to.be.gt(0)
+                          expect(diff).to.be.lt(
+                            ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+                          )
+                        })
+                      }
+                    )
+                  })
+
+                  context("when there are multiple inputs", () => {
+                    context(
+                      "when input vector consists only of revealed unswept " +
+                        "deposits and the expected main UTXO",
+                      () => {
+                        let tx: ContractTransaction
+                        const previousData: SweepTestData =
+                          MultipleDepositsNoMainUtxo
+                        const data: SweepTestData = MultipleDepositsWithMainUtxo
+                        // Take wallet public key hash from first deposit. All
+                        // deposits in same sweep batch should have the same value
+                        // of that field.
+                        const { walletPubKeyHash } = data.deposits[0].reveal
+                        let initThirdPartyBalance: BigNumber
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
+                          // the initial value in the Bridge in order to save test Bitcoins.
+                          await bridge.setDepositDustThreshold(10000)
+
+                          // Simulate the wallet is an Live one and is known in
+                          // the system.
+                          await bridge.setWallet(walletPubKeyHash, {
+                            ecdsaWalletID: ethers.constants.HashZero,
+                            mainUtxoHash: ethers.constants.HashZero,
+                            pendingRedemptionsValue: 0,
+                            createdAt: await lastBlockTime(),
+                            movingFundsRequestedAt: 0,
+                            state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
+                          })
+
+                          // Make the first sweep which is actually the predecessor
+                          // of the sweep tested within this scenario.
+                          await runSweepScenario(previousData)
+
+                          initThirdPartyBalance = await provider.getBalance(
+                            thirdParty.address
+                          )
+                          tx = await runSweepScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
+                        it("should emit DepositsSwept event", async () => {
+                          await expect(tx)
+                            .to.emit(bridge, "DepositsSwept")
+                            .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                        })
+
+                        it("should refund ETH", async () => {
+                          const postNotifyThirdPartyBalance =
+                            await provider.getBalance(thirdParty.address)
+                          const diff = postNotifyThirdPartyBalance.sub(
+                            initThirdPartyBalance
+                          )
+
+                          expect(diff).to.be.gt(0)
+                          expect(diff).to.be.lt(
+                            ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+                          )
+                        })
+                      }
+                    )
+
+                    context(
+                      "when input vector consists only of revealed unswept " +
+                        "deposits but there is no main UTXO since it is not expected",
+                      () => {
+                        let tx: ContractTransaction
+                        const data: SweepTestData = MultipleDepositsNoMainUtxo
+                        // Take wallet public key hash from first deposit. All
+                        // deposits in same sweep batch should have the same value
+                        // of that field.
+                        const { walletPubKeyHash } = data.deposits[0].reveal
+                        let initThirdPartyBalance: BigNumber
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
+                          // the initial value in the Bridge in order to save test Bitcoins.
+                          await bridge.setDepositDustThreshold(10000)
+
+                          // Simulate the wallet is an Live one and is known in
+                          // the system.
+                          await bridge.setWallet(walletPubKeyHash, {
+                            ecdsaWalletID: ethers.constants.HashZero,
+                            mainUtxoHash: ethers.constants.HashZero,
+                            pendingRedemptionsValue: 0,
+                            createdAt: await lastBlockTime(),
+                            movingFundsRequestedAt: 0,
+                            state: walletState.Live,
+                            movingFundsTargetWalletsCommitmentHash:
+                              ethers.constants.HashZero,
+                          })
+
+                          initThirdPartyBalance = await provider.getBalance(
+                            thirdParty.address
+                          )
+
+                          tx = await runSweepScenario(data)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
+                        it("should emit DepositsSwept event", async () => {
+                          await expect(tx)
+                            .to.emit(bridge, "DepositsSwept")
+                            .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                        })
+
+                        it("should refund ETH", async () => {
+                          const postNotifyThirdPartyBalance =
+                            await provider.getBalance(thirdParty.address)
+                          const diff = postNotifyThirdPartyBalance.sub(
+                            initThirdPartyBalance
+                          )
+
+                          expect(diff).to.be.gt(0)
+                          expect(diff).to.be.lt(
+                            ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+                          )
+                        })
+                      }
+                    )
+                  })
+                }
+              )
+            })
+          })
+        })
       })
     })
 
-    describe("when called by an authorized third party", async () => {
+    context("when the wallet state is MovingFunds", () => {
+      // The execution of `submitSweepProof` is the same for wallets in
+      // `MovingFunds` state as for the ones in `Live` state. Therefore the
+      // testing of `MovingFunds` state is limited to just one simple test case
+      // (sweeping single P2SH deposit).
+      const data: SweepTestData = SingleP2SHDeposit
+      const { fundingTx, reveal } = data.deposits[0]
+
       let tx: Promise<ContractTransaction>
       let initThirdPartyBalance: BigNumber
 
       before(async () => {
         await createSnapshot()
-        const { fundingTx, reveal } = data.deposits[0]
+
         // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
         // the initial value in the Bridge in order to save test Bitcoins.
         await bridge.setDepositDustThreshold(10000)
@@ -827,6 +1106,28 @@ describe("Maintainer", () => {
     await bank
       .connect(redeemer)
       .increaseBalanceAllowance(bridge.address, amount)
+  }
+
+  async function runSweepScenario(
+    data: SweepTestData
+  ): Promise<ContractTransaction> {
+    relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+    relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+
+    await maintainerProxy.connect(governance).authorize(thirdParty.address)
+    await reimbursementPool
+      .connect(governance)
+      .authorize(maintainerProxy.address)
+
+    for (let i = 0; i < data.deposits.length; i++) {
+      const { fundingTx, reveal } = data.deposits[i]
+      // eslint-disable-next-line no-await-in-loop
+      await bridge.revealDeposit(fundingTx, reveal)
+    }
+
+    return maintainerProxy
+      .connect(thirdParty)
+      .submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
   }
 
   async function runRedemptionScenario(
