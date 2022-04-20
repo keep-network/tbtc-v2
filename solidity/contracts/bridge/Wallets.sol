@@ -464,6 +464,43 @@ library Wallets {
         self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
     }
 
+    /// @notice Notifies about the submission of the moving funds target
+    ///         wallets commitment. Once all requirements are met, that
+    ///         function registers the target wallets commitment and opens
+    ///         the way for moving funds proof submission.
+    /// @param walletPubKeyHash 20-byte public key hash of the source wallet
+    /// @param walletMainUtxo Data of the source wallet's main UTXO, as
+    ///        currently known on the Ethereum chain.
+    /// @param walletMembersIDs Identifiers of the source wallet signing group
+    ///        members
+    /// @param walletMemberIndex Position of the caller in the source wallet
+    ///        signing group members list
+    /// @param targetWallets List of 20-byte public key hashes of the target
+    ///        wallets that the source wallet commits to
+    /// @dev Requirements:
+    ///      - The source wallet must be in the MovingFunds state
+    ///      - The source wallet must not have pending redemption requests
+    ///      - The source wallet must not have prior commitments submitted earlier
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given source wallet in the ECDSA registry. Those IDs are
+    ///        not directly stored in the contract for gas efficiency purposes
+    ///        but they can be read from appropriate `DkgResultSubmitted`
+    ///        and `DkgResultApproved` events.
+    ///      - The `walletMemberIndex` must be in range [1, walletMembersIDs.length]
+    ///      - The caller must be the member of the source wallet signing group
+    ///        at the position indicated by `walletMemberIndex` parameter
+    ///      - The `walletMainUtxo` components must point to the recent main
+    ///        UTXO of the source wallet, as currently known on the Ethereum
+    ///        chain. If the source wallet has no main UTXO, this parameter
+    ///        can be empty as it is ignored since the wallet balance is
+    ///        assumed to be zero.
+    ///      - At least one Live wallet must exist in the system
+    ///      - Submitted target wallets count must match the expected count
+    ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
+    ///        where `N > 0`
+    ///      - Each target wallet must be not equal to the source wallet
+    ///      - Each target wallet must be in Live state
     function notifyWalletMovingFundsCommitmentSubmitted(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
