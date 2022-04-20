@@ -780,7 +780,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
     ///        using Bitcoin HASH160 over the compressed ECDSA public key)
     /// @return Wallet details.
-    function getWallet(bytes20 walletPubKeyHash)
+    function wallets(bytes20 walletPubKeyHash)
         external
         view
         returns (Wallets.Wallet memory)
@@ -792,7 +792,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @return The 20-byte public key hash (computed using Bitcoin HASH160
     ///         over the compressed ECDSA public key) of the active wallet.
     ///         Returns bytes20(0) if there is no active wallet at the moment.
-    function getActiveWalletPubKeyHash() external view returns (bytes20) {
+    function activeWalletPubKeyHash() external view returns (bytes20) {
         return self.activeWalletPubKeyHash;
     }
 
@@ -956,24 +956,24 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @return bank Address of the Bank the Bridge belongs to.
     /// @return relay Address of the Bitcoin relay providing the current Bitcoin
     ///         network difficulty.
-    function getContracts() external view returns (Bank bank, IRelay relay) {
+    function contractReferences()
+        external
+        view
+        returns (Bank bank, IRelay relay)
+    {
         bank = self.bank;
         relay = self.relay;
     }
 
     /// @notice Address where the deposit treasury fees will be sent to.
     ///         Treasury takes part in the operators rewarding process.
-    function treasury() external view returns (address treasury) {
-        treasury = self.treasury;
+    function treasury() external view returns (address) {
+        return self.treasury;
     }
 
     /// @notice The number of confirmations on the Bitcoin chain required to
     ///         successfully evaluate an SPV proof.
-    function txProofDifficultyFactor()
-        external
-        view
-        returns (uint256 txProofDifficultyFactor)
-    {
-        txProofDifficultyFactor = self.txProofDifficultyFactor;
+    function txProofDifficultyFactor() external view returns (uint256) {
+        return self.txProofDifficultyFactor;
     }
 }
