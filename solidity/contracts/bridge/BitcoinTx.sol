@@ -22,7 +22,7 @@ import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.s
 /// @notice Allows to reference Bitcoin raw transaction in Solidity.
 /// @dev See https://developer.bitcoin.org/reference/transactions.html#raw-transaction-format
 ///
-///      Raw Bitcon transaction data:
+///      Raw Bitcoin transaction data:
 ///
 ///      | Bytes  |     Name     |        BTC type        |        Description        |
 ///      |--------|--------------|------------------------|---------------------------|
@@ -80,12 +80,12 @@ library BitcoinTx {
     /// @notice Represents Bitcoin transaction data.
     struct Info {
         /// @notice Bitcoin transaction version
-        /// @dev `version` from raw Bitcon transaction data.
+        /// @dev `version` from raw Bitcoin transaction data.
         ///      Encoded as 4-bytes signed integer, little endian.
         bytes4 version;
         /// @notice All Bitcoin transaction inputs, prepended by the number of
         ///         transaction inputs.
-        /// @dev `tx_in_count | tx_in` from raw Bitcon transaction data.
+        /// @dev `tx_in_count | tx_in` from raw Bitcoin transaction data.
         ///
         ///      The number of transaction inputs encoded as compactSize
         ///      unsigned integer, little-endian.
