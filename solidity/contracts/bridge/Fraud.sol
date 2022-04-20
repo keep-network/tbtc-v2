@@ -24,6 +24,23 @@ import "./EcdsaLib.sol";
 import "./BridgeState.sol";
 import "./Wallets.sol";
 
+/// @title Bridge fraud
+/// @notice The library handles the logic for challenging Bridge wallets that
+///         committed fraud.
+/// @dev Anyone can submit a fraud challenge indicating that a UTXO being under
+///      the wallet control was unlocked by the wallet but was not used
+///      according to the protocol rules. That means the wallet signed
+///      a transaction input pointing to that UTXO and there is a unique
+///      sighash and signature pair associated with that input.
+///
+///      In order to defeat the challenge, the same wallet public key and
+///      signature must be provided as were used to calculate the sighash during
+///      the challenge. The wallet provides the preimage which produces sighash
+///      used to generate the ECDSA signature that is the subject of the fraud
+///      claim. The fraud challenge defeat attempt will only succeed if the
+///      inputs in the preimage are considered honestly spent by the wallet.
+///      Therefore the transaction spending the UTXO must be proven in the
+///      Bridge before a challenge defeat is called.
 library Fraud {
     using BytesLib for bytes;
     using BTCUtils for bytes;

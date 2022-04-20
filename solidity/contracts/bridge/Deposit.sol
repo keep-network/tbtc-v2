@@ -22,6 +22,7 @@ import "./BitcoinTx.sol";
 import "./BridgeState.sol";
 import "./Wallets.sol";
 
+/// @title Bridge deposit
 /// @notice The library handles the logic for revealing Bitcoin deposits to
 ///         the Bridge.
 /// @dev The depositor puts together a P2SH or P2WSH address to deposit the
