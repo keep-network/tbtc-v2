@@ -26,6 +26,9 @@ import {
   SingleTargetWallet,
   SingleTargetWalletButP2SH,
 } from "../data/moving-funds"
+import { ecdsaWalletTestData } from "../data/ecdsa"
+import { NO_MAIN_UTXO } from "../data/sweep"
+import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 chai.use(smock.matchers)
 
@@ -35,6 +38,7 @@ const { lastBlockTime } = helpers.time
 const fixture = async () => bridgeFixture()
 
 describe("Bridge - Moving funds", () => {
+  let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
 
   let bank: Bank & BankStub
@@ -45,8 +49,499 @@ describe("Bridge - Moving funds", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ treasury, bank, relay, walletRegistry, Bridge, bridge } =
+    ;({ thirdParty, treasury, bank, relay, walletRegistry, Bridge, bridge } =
       await waffle.loadFixture(fixture))
+  })
+
+  describe("submitMovingFundsCommitment", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when source wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.MovingFunds,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when source wallet has no pending redemptions", () => {
+        // The wallet created using the `walletDraft` has no pending redemptions
+        // by default. No need to do anything here.
+
+        context("when the commitment was not submitted yet", () => {
+          // The wallet created using the `walletDraft` has no commitment
+          // submitted by default. No need to do anything here.
+
+          context("when the caller is a member of the source wallet", () => {
+            const walletMembersIDs = [1, 2, 3, 4, 5]
+            const walletMemberIndex = 2
+
+            let caller
+
+            before(async () => {
+              await createSnapshot()
+
+              caller = thirdParty
+
+              walletRegistry.isWalletMember
+                .whenCalledWith(
+                  ecdsaWalletTestData.walletID,
+                  walletMembersIDs,
+                  caller.address,
+                  walletMemberIndex
+                )
+                .returns(true)
+            })
+
+            after(async () => {
+              walletRegistry.isWalletMember.reset()
+
+              await restoreSnapshot()
+            })
+
+            context("when passed wallet main UTXO is valid", () => {
+              // Just an arbitrary main UTXO with value of 26 BTC.
+              const mainUtxo = {
+                txHash:
+                  "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                txOutputIndex: 0,
+                txOutputValue: to1ePrecision(26, 8),
+              }
+
+              before(async () => {
+                await createSnapshot()
+
+                // Set up a main UTXO for the source wallet.
+                await bridge.setWalletMainUtxo(
+                  ecdsaWalletTestData.pubKeyHash160,
+                  mainUtxo
+                )
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              context(
+                "when the expected target wallets count is greater than zero",
+                () => {
+                  // Just some arbitrary 20-byte hashes to simulate live
+                  // wallets PKHs.
+                  const liveWallets = [
+                    "0xffb9e05013f5cd126915bc03d340cc5c1be81862",
+                    "0x4b440cb29c80c3f256212d8fdd4f2125366f3c91",
+                    "0x888f01315e0268bfa05d5e522f8d63f6824d9a96",
+                    "0xbf198e8fff0f90af01024153701da99b9bc08dc5",
+                    "0xb2a89e53a4227dbe530a52a1c419040735fa636c",
+                  ]
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    for (let i = 0; i < liveWallets.length; i++) {
+                      // eslint-disable-next-line no-await-in-loop
+                      await bridge.setWallet(liveWallets[i], {
+                        ...walletDraft,
+                        state: walletState.Live,
+                      })
+                    }
+
+                    await bridge.setLiveWalletsCount(liveWallets.length)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  context(
+                    "when the submitted target wallets count is same as the expected",
+                    () => {
+                      // The source wallet has a main UTXO with value of 26 BTC,
+                      // the max BTC transfer is 10 BTC by default (see
+                      // `constants.walletMaxBtcTransfer`) and the count of
+                      // live wallets is `5`. We compute the expected target
+                      // wallets count as:
+                      // `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
+                      // so we have `N = min(5, 26 / 10) = min(5, 3) = 3`
+                      const expectedTargetWalletsCount = 3
+
+                      context(
+                        "when all target wallets are different than the source wallet",
+                        () => {
+                          context(
+                            "when all target wallets are in the Live state",
+                            () => {
+                              let tx: ContractTransaction
+
+                              const targetWallets = liveWallets.slice(
+                                0,
+                                expectedTargetWalletsCount
+                              )
+
+                              before(async () => {
+                                await createSnapshot()
+
+                                tx = await bridge
+                                  .connect(caller)
+                                  .submitMovingFundsCommitment(
+                                    ecdsaWalletTestData.pubKeyHash160,
+                                    mainUtxo,
+                                    walletMembersIDs,
+                                    walletMemberIndex,
+                                    targetWallets
+                                  )
+                              })
+
+                              after(async () => {
+                                await restoreSnapshot()
+                              })
+
+                              it("should store the target wallets commitment for given wallet", async () => {
+                                expect(
+                                  (
+                                    await bridge.getWallet(
+                                      ecdsaWalletTestData.pubKeyHash160
+                                    )
+                                  ).movingFundsTargetWalletsCommitmentHash
+                                ).to.be.equal(
+                                  ethers.utils.solidityKeccak256(
+                                    ["bytes20[]"],
+                                    [targetWallets]
+                                  )
+                                )
+                              })
+
+                              it("should emit the MovingFundsCommitmentSubmitted event", async () => {
+                                await expect(tx)
+                                  .to.emit(
+                                    bridge,
+                                    "MovingFundsCommitmentSubmitted"
+                                  )
+                                  .withArgs(
+                                    ecdsaWalletTestData.pubKeyHash160,
+                                    targetWallets,
+                                    caller.address
+                                  )
+                              })
+                            }
+                          )
+
+                          context(
+                            "when one of the target wallets is not in the Live state",
+                            () => {
+                              it("should revert", async () => {
+                                // Put an Unknown wallet into the mix.
+                                const targetWallets = [
+                                  liveWallets[0],
+                                  "0x2313e29d08e6b5e0d3cda040ed7f664ce9c840c4",
+                                  liveWallets[1],
+                                ]
+
+                                await expect(
+                                  bridge
+                                    .connect(caller)
+                                    .submitMovingFundsCommitment(
+                                      ecdsaWalletTestData.pubKeyHash160,
+                                      mainUtxo,
+                                      walletMembersIDs,
+                                      walletMemberIndex,
+                                      targetWallets
+                                    )
+                                ).to.be.revertedWith(
+                                  "Submitted target wallet must be in Live state"
+                                )
+                              })
+                            }
+                          )
+                        }
+                      )
+
+                      context(
+                        "when one of the target wallets is same as the source wallet",
+                        () => {
+                          it("should revert", async () => {
+                            const targetWallets = [
+                              liveWallets[0],
+                              ecdsaWalletTestData.pubKeyHash160,
+                              liveWallets[1],
+                            ]
+
+                            await expect(
+                              bridge
+                                .connect(caller)
+                                .submitMovingFundsCommitment(
+                                  ecdsaWalletTestData.pubKeyHash160,
+                                  mainUtxo,
+                                  walletMembersIDs,
+                                  walletMemberIndex,
+                                  targetWallets
+                                )
+                            ).to.be.revertedWith(
+                              "Submitted target wallet cannot be equal to the source wallet"
+                            )
+                          })
+                        }
+                      )
+                    }
+                  )
+
+                  context(
+                    "when the submitted target wallets count is other as the expected",
+                    () => {
+                      it("should revert", async () => {
+                        await expect(
+                          bridge
+                            .connect(caller)
+                            .submitMovingFundsCommitment(
+                              ecdsaWalletTestData.pubKeyHash160,
+                              mainUtxo,
+                              walletMembersIDs,
+                              walletMemberIndex,
+                              [liveWallets[0], liveWallets[1]]
+                            )
+                        ).to.be.revertedWith(
+                          "Submitted target wallets count is other than expected"
+                        )
+                      })
+                    }
+                  )
+                }
+              )
+
+              context("when the expected target wallets count is zero", () => {
+                it("should revert", async () => {
+                  await expect(
+                    // The last parameter doesn't matter in this scenario.
+                    bridge
+                      .connect(caller)
+                      .submitMovingFundsCommitment(
+                        ecdsaWalletTestData.pubKeyHash160,
+                        mainUtxo,
+                        walletMembersIDs,
+                        walletMemberIndex,
+                        []
+                      )
+                  ).to.be.revertedWith("No target wallets available")
+                })
+              })
+            })
+
+            context("when passed wallet main UTXO is invalid", () => {
+              const mainUtxo = {
+                txHash:
+                  "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                txOutputIndex: 0,
+                txOutputValue: to1ePrecision(26, 8), // 26 BTC
+              }
+
+              before(async () => {
+                await createSnapshot()
+
+                await bridge.setWalletMainUtxo(
+                  ecdsaWalletTestData.pubKeyHash160,
+                  mainUtxo
+                )
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                // Changing the `txOutputValue` to a value other than `0` will
+                // make that scenario happen.
+                const corruptedMainUtxo = {
+                  ...mainUtxo,
+                  txOutputValue: 1,
+                }
+
+                await expect(
+                  // The last parameter doesn't matter in this scenario.
+                  bridge
+                    .connect(caller)
+                    .submitMovingFundsCommitment(
+                      ecdsaWalletTestData.pubKeyHash160,
+                      corruptedMainUtxo,
+                      walletMembersIDs,
+                      walletMemberIndex,
+                      []
+                    )
+                ).to.be.revertedWith("Invalid wallet main UTXO data")
+              })
+            })
+          })
+
+          context(
+            "when the caller is not a member of the source wallet",
+            () => {
+              const walletMembersIDs = [1, 2, 3, 4, 5]
+              const walletMemberIndex = 2
+
+              before(async () => {
+                await createSnapshot()
+
+                // That's the default behavior, but we just make it explicit.
+                walletRegistry.isWalletMember.returns(false)
+              })
+
+              after(async () => {
+                walletRegistry.isWalletMember.reset()
+
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  // The last parameter doesn't matter in this scenario.
+                  bridge
+                    .connect(thirdParty)
+                    .submitMovingFundsCommitment(
+                      ecdsaWalletTestData.pubKeyHash160,
+                      NO_MAIN_UTXO,
+                      walletMembersIDs,
+                      walletMemberIndex,
+                      []
+                    )
+                ).to.be.revertedWith(
+                  "Caller is not a member of the source wallet"
+                )
+              })
+            }
+          )
+        })
+
+        context("when the commitment was already submitted", () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: walletState.MovingFunds,
+              // Set a non-zero commitment to make this scenario work.
+              movingFundsTargetWalletsCommitmentHash:
+                "0x959e95e0bd83d34878f77ead61cb4e955bf5e3bdc9e16cdfbd51c4c20ab7e6b4",
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              // Parameters others than the first doesn't matter in this scenario.
+              bridge.submitMovingFundsCommitment(
+                ecdsaWalletTestData.pubKeyHash160,
+                NO_MAIN_UTXO,
+                [],
+                0,
+                []
+              )
+            ).to.be.revertedWith("Target wallets commitment already submitted")
+          })
+        })
+      })
+
+      context("when source wallet has pending redemptions", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+            ...walletDraft,
+            state: walletState.MovingFunds,
+            // Set non-zero pending redemptions value to make this scenario work.
+            pendingRedemptionsValue: 10000,
+          })
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            // Parameters others than the first doesn't matter in this scenario.
+            bridge.submitMovingFundsCommitment(
+              ecdsaWalletTestData.pubKeyHash160,
+              NO_MAIN_UTXO,
+              [],
+              0,
+              []
+            )
+          ).to.be.revertedWith(
+            "Source wallet must handle all pending redemptions first"
+          )
+        })
+      })
+    })
+
+    context("when source wallet is not in the MovingFunds state", () => {
+      const testData: {
+        testName: string
+        state: number
+      }[] = [
+        {
+          testName: "when the source wallet is in the Unknown state",
+          state: walletState.Unknown,
+        },
+        {
+          testName: "when the source wallet is in the Live state",
+          state: walletState.Live,
+        },
+        {
+          testName: "when the source wallet is in the Closed state",
+          state: walletState.Closed,
+        },
+        {
+          testName: "when the source wallet is in the Terminated state",
+          state: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: test.state,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              // Parameters other than the first doesn't matter in this scenario.
+              bridge.submitMovingFundsCommitment(
+                ecdsaWalletTestData.pubKeyHash160,
+                NO_MAIN_UTXO,
+                [],
+                0,
+                []
+              )
+            ).to.be.revertedWith("Source wallet must be in MovingFunds state")
+          })
+        })
+      })
+    })
   })
 
   describe("submitMovingFundsProof", () => {

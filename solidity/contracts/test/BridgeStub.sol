@@ -99,4 +99,8 @@ contract BridgeStub is Bridge {
     {
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
     }
+
+    function setLiveWalletsCount(uint32 liveWalletsCount) external {
+        self.liveWalletsCount = liveWalletsCount;
+    }
 }
