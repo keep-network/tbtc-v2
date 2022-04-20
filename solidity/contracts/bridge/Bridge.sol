@@ -152,20 +152,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint32 walletMaxAge
     );
 
-    event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
-
-    event FraudNotifierRewardMultiplierUpdated(
-        uint256 newFraudNotifierRewardMultiplier
-    );
-
-    event FraudChallengeDefeatTimeoutUpdated(
-        uint256 newFraudChallengeDefeatTimeout
-    );
-
-    event FraudChallengeDepositAmountUpdated(
-        uint256 newFraudChallengeDepositAmount
-    );
-
     constructor(
         address _bank,
         address _relay,

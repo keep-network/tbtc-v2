@@ -41,20 +41,6 @@ library Fraud {
         bool resolved;
     }
 
-    event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
-
-    event FraudNotifierRewardMultiplierUpdated(
-        uint256 newFraudNotifierRewardMultiplier
-    );
-
-    event FraudChallengeDefeatTimeoutUpdated(
-        uint256 newFraudChallengeDefeatTimeout
-    );
-
-    event FraudChallengeDepositAmountUpdated(
-        uint256 newFraudChallengeDepositAmount
-    );
-
     event FraudChallengeSubmitted(
         bytes20 walletPublicKeyHash,
         bytes32 sighash,
