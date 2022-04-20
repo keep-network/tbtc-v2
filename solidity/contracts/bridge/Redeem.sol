@@ -47,13 +47,12 @@ library OutboundTx {
     ///        performed the outbound transaction.
     function processWalletOutboundTxInput(
         BridgeState.Storage storage self,
-        Wallets.Data storage wallets,
         bytes memory walletOutboundTxInputVector,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) internal {
         // Assert that main UTXO for passed wallet exists in storage.
-        bytes32 mainUtxoHash = wallets
+        bytes32 mainUtxoHash = self
             .registeredWallets[walletPubKeyHash]
             .mainUtxoHash;
         require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
@@ -144,7 +143,7 @@ library OutboundTx {
 // TODO: Rename to Redemption. All library names are nouns.
 library Redeem {
     using BridgeState for BridgeState.Storage;
-    using Wallets for Wallets.Data;
+    using Wallets for BridgeState.Storage;
 
     using BTCUtils for bytes;
     using BytesLib for bytes;
@@ -248,13 +247,12 @@ library Redeem {
     ///        contract can spend the given `amount`.
     function requestRedemption(
         BridgeState.Storage storage self,
-        Wallets.Data storage wallets,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes calldata redeemerOutputScript,
         uint64 amount
     ) external {
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
+        Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
         ];
 
@@ -419,7 +417,6 @@ library Redeem {
     ///        is identified, that check is omitted in further iterations.
     function submitRedemptionProof(
         BridgeState.Storage storage self,
-        Wallets.Data storage wallets,
         BitcoinTx.Info calldata redemptionTx,
         BitcoinTx.Proof calldata redemptionProof,
         BitcoinTx.UTXO calldata mainUtxo,
@@ -443,13 +440,12 @@ library Redeem {
         // refers to the expected wallet's main UTXO.
         OutboundTx.processWalletOutboundTxInput(
             self,
-            wallets,
             redemptionTx.inputVector,
             mainUtxo,
             walletPubKeyHash
         );
 
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
+        Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
         ];
 
@@ -789,7 +785,6 @@ library Redeem {
     ///        timed-out).
     function notifyRedemptionTimeout(
         BridgeState.Storage storage self,
-        Wallets.Data storage wallets,
         bytes20 walletPubKeyHash,
         bytes calldata redeemerOutputScript
     ) external {
@@ -808,7 +803,7 @@ library Redeem {
         );
 
         // Update the wallet's pending redemptions value
-        Wallets.Wallet storage wallet = wallets.registeredWallets[
+        Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
         ];
         wallet.pendingRedemptionsValue -=
@@ -838,7 +833,7 @@ library Redeem {
             wallet.state == Wallets.WalletState.MovingFunds
         ) {
             // Propagate timeout consequences to the wallet
-            wallets.notifyRedemptionTimedOut(walletPubKeyHash);
+            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
         }
 
         emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);

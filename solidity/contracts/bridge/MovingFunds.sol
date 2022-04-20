@@ -24,7 +24,7 @@ import "./Redeem.sol";
 
 library MovingFunds {
     using BridgeState for BridgeState.Storage;
-    using Wallets for Wallets.Data;
+    using Wallets for BridgeState.Storage;
 
     using BTCUtils for bytes;
     using BytesLib for bytes;
@@ -102,7 +102,6 @@ library MovingFunds {
     ///        to `movingFundsTxMaxTotalFee` governable parameter.
     function submitMovingFundsProof(
         BridgeState.Storage storage self,
-        Wallets.Data storage wallets,
         BitcoinTx.Info calldata movingFundsTx,
         BitcoinTx.Proof calldata movingFundsProof,
         BitcoinTx.UTXO calldata mainUtxo,
@@ -122,7 +121,6 @@ library MovingFunds {
         // it refers to the expected wallet's main UTXO.
         OutboundTx.processWalletOutboundTxInput(
             self,
-            wallets,
             movingFundsTx.inputVector,
             mainUtxo,
             walletPubKeyHash
@@ -139,7 +137,7 @@ library MovingFunds {
             "Transaction fee is too high"
         );
 
-        wallets.notifyFundsMoved(walletPubKeyHash, targetWalletsHash);
+        self.notifyWalletFundsMoved(walletPubKeyHash, targetWalletsHash);
 
         emit MovingFundsCompleted(walletPubKeyHash, movingFundsTxHash);
     }

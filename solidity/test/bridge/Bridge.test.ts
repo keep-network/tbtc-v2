@@ -22,8 +22,8 @@ import type {
   TestRelay,
   TestRelay__factory,
   IWalletRegistry,
-  Frauds,
-  Frauds__factory,
+  Fraud,
+  Fraud__factory,
 } from "../../typechain"
 import {
   MultipleDepositsNoMainUtxo,
@@ -99,28 +99,19 @@ const fixture = async () => {
   const sweep = await Sweep.deploy()
   await sweep.deployed()
 
-  const Redeem = await ethers.getContractFactory<Redeem__factory>("Redeem", {
-    libraries: {
-      Wallets: wallets.address,
-    },
-  })
+  const Redeem = await ethers.getContractFactory<Redeem__factory>("Redeem")
   const redeem = await Redeem.deploy()
   await redeem.deployed()
 
   const MovingFunds = await ethers.getContractFactory<MovingFunds__factory>(
-    "MovingFunds",
-    {
-      libraries: {
-        Wallets: wallets.address,
-      },
-    }
+    "MovingFunds"
   )
   const movingFunds = await MovingFunds.deploy()
   await movingFunds.deployed()
 
-  const Frauds = await ethers.getContractFactory<Frauds__factory>("Frauds")
-  const frauds: Frauds = await Frauds.deploy()
-  await frauds.deployed()
+  const Fraud = await ethers.getContractFactory<Fraud__factory>("Fraud")
+  const fraud: Fraud = await Fraud.deploy()
+  await fraud.deployed()
 
   const Bridge = await ethers.getContractFactory<BridgeStub__factory>(
     "BridgeStub",
@@ -130,7 +121,7 @@ const fixture = async () => {
         Sweep: sweep.address,
         Redeem: redeem.address,
         Wallets: wallets.address,
-        Frauds: frauds.address,
+        Fraud: fraud.address,
         MovingFunds: movingFunds.address,
       },
     }
