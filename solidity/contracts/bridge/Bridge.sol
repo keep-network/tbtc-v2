@@ -335,7 +335,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     }
 
     /// @return Current count of wallets being in the Live state.
-    function getLiveWalletsCount() external view returns (uint32) {
+    function liveWalletsCount() external view returns (uint32) {
         return self.liveWalletsCount;
     }
 
