@@ -145,7 +145,7 @@ library MovingFunds {
     ///      - The total outputs value must be evenly divided over all outputs.
     function processMovingFundsTxOutputs(bytes memory movingFundsTxOutputVector)
         internal
-        view
+        pure
         returns (bytes32 targetWalletsHash, uint256 outputsTotalValue)
     {
         // Determining the total number of Bitcoin transaction outputs in

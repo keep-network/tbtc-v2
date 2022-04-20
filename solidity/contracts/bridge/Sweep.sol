@@ -219,6 +219,7 @@ library Sweep {
         BitcoinTx.UTXO calldata mainUtxo
     )
         internal
+        view
         returns (
             Wallets.Wallet storage wallet,
             BitcoinTx.UTXO memory resolvedMainUtxo
