@@ -108,19 +108,24 @@ export async function createRedemptionTransaction(
   const transaction = new bcoin.MTX()
 
   let txFee = 0
-  for (const request of redemptionRequests) {
-    // Add the fee for this particular request to the overall transaction fee
-    txFee += request.feeShare.toNumber()
+  let totalOutputValue = 0
 
+  // Process the requests
+  for (const request of redemptionRequests) {
     // Calculate the value of the output by subtracting fee share and treasury
     // fee for this particular output from the requested amount
     const outputValue = request.amount
       .sub(request.feeShare)
       .sub(request.treasuryFee)
 
-    const address = bcoin.Address.fromString(request.address)
+    // Add the output value to the total output value
+    totalOutputValue += outputValue.toNumber()
+
+    // Add the fee for this particular request to the overall transaction fee
+    txFee += request.feeShare.toNumber()
 
     // Only allow standard address type to receive the redeemed Bitcoins
+    const address = bcoin.Address.fromString(request.address)
     if (
       address.isPubkeyhash() ||
       address.isWitnessPubkeyhash() ||
@@ -134,6 +139,19 @@ export async function createRedemptionTransaction(
     } else {
       throw new Error("Redemption address must be P2PKH, P2WPKH, P2SH or P2WSH")
     }
+  }
+
+  // If there is a change output, add it explicitly to the transaction.
+  // If we did not add this output explicitly, the bcoin library would add it
+  // anyway during funding, but if the value of the change output was very low,
+  // the library would consider it "dust" and add it to the fee rather than
+  // create a new output.
+  let changeOutputValue = mainUtxo.value - totalOutputValue - txFee
+  if (changeOutputValue > 0) {
+    transaction.addOutput({
+      script: bcoin.Script.fromAddress(walletAddress),
+      value: changeOutputValue,
+    })
   }
 
   await transaction.fund(inputCoins, {

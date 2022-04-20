@@ -322,7 +322,7 @@ export const p2PKHChangeRedemption: RedemptionTestData = {
   witness: false, // False will result in a P2PKH output
   expectedRedemption: {
     transactionHash:
-      "afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb",
+      "0fec22d0fecd6607a0429210d04e9465681507d514f3edf0f07def96eda0f89d",
     transaction: {
       transactionHex:
         "01000000000101b772d923456fb61a15c6a0dcd15df057f4f0c53c14b8e4836122b" +
