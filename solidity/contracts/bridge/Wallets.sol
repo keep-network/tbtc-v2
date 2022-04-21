@@ -624,4 +624,28 @@ library Wallets {
 
         closeWallet(self, walletPubKeyHash);
     }
+
+    function notifyWalletMovingFundsTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        require(
+            wallet.state == WalletState.MovingFunds,
+            "ECDSA wallet must be in MovingFunds state"
+        );
+
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp >
+                wallet.movingFundsRequestedAt + self.walletMovingFundsTimeout,
+            "Moving funds has not timed out"
+        );
+
+        terminateWallet(self, walletPubKeyHash);
+
+        // TODO: Perform slashing of wallet operators, reward the notifier
+        //       using seized amount, and add unit tests for that.
+    }
 }

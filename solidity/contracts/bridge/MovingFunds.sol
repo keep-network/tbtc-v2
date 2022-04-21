@@ -49,6 +49,8 @@ library MovingFunds {
         bytes32 movingFundsTxHash
     );
 
+    event MovingFundsTimedOut(bytes20 walletPubKeyHash);
+
     /// @notice Submits the moving funds target wallets commitment.
     ///         Once all requirements are met, that function registers the
     ///         target wallets commitment and opens the way for moving funds
@@ -348,5 +350,14 @@ library MovingFunds {
         targetWalletsHash = keccak256(abi.encodePacked(targetWallets));
 
         return (targetWalletsHash, outputsTotalValue);
+    }
+
+    function notifyMovingFundsTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) external {
+        self.notifyWalletMovingFundsTimeout(walletPubKeyHash);
+
+        emit MovingFundsTimedOut(walletPubKeyHash);
     }
 }

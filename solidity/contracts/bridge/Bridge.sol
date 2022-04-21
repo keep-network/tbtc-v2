@@ -115,6 +115,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 movingFundsTxHash
     );
 
+    event MovingFundsTimedOut(bytes20 walletPubKeyHash);
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -528,6 +530,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             mainUtxo,
             walletPubKeyHash
         );
+    }
+
+    function notifyMovingFundsTimeout(bytes20 walletPubKeyHash) external {
+        self.notifyMovingFundsTimeout(walletPubKeyHash);
     }
 
     /// @notice Requests creation of a new wallet. This function just

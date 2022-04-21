@@ -181,6 +181,11 @@ library BridgeState {
         // The maximum BTC transfer than can be sent to a single target wallet
         // during the moving funds process.
         uint64 walletMaxBtcTransfer;
+        // Time after which the moving funds process can be reported as
+        // timed out. It is counted from the moment when the wallet
+        // was requested to move their funds and switched to the MovingFunds
+        // state.
+        uint32 walletMovingFundsTimeout;
         // Maps the 20-byte wallet public key hash (computed using Bitcoin
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
