@@ -352,6 +352,12 @@ library MovingFunds {
         return (targetWalletsHash, outputsTotalValue);
     }
 
+    /// @notice Notifies about a timed out moving funds process. Terminates
+    ///         the wallet in result.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state
+    ///      - The moving funds timeout must be actually exceeded
     function notifyMovingFundsTimeout(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
