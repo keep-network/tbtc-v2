@@ -90,7 +90,7 @@ describe("Bridge - Moving funds", () => {
             const walletMembersIDs = [1, 2, 3, 4, 5]
             const walletMemberIndex = 2
 
-            let caller
+            let caller: SignerWithAddress
 
             before(async () => {
               await createSnapshot()
