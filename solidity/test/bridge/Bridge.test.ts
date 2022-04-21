@@ -17,7 +17,7 @@ import type {
   BridgeStub__factory,
   Deposit__factory,
   Sweep__factory,
-  Redeem__factory,
+  Redemption__factory,
   MovingFunds__factory,
   TestRelay,
   TestRelay__factory,
@@ -99,9 +99,11 @@ const fixture = async () => {
   const sweep = await Sweep.deploy()
   await sweep.deployed()
 
-  const Redeem = await ethers.getContractFactory<Redeem__factory>("Redeem")
-  const redeem = await Redeem.deploy()
-  await redeem.deployed()
+  const Redemption = await ethers.getContractFactory<Redemption__factory>(
+    "Redemption"
+  )
+  const redemption = await Redemption.deploy()
+  await redemption.deployed()
 
   const MovingFunds = await ethers.getContractFactory<MovingFunds__factory>(
     "MovingFunds"
@@ -119,7 +121,7 @@ const fixture = async () => {
       libraries: {
         Deposit: deposit.address,
         Sweep: sweep.address,
-        Redeem: redeem.address,
+        Redemption: redemption.address,
         Wallets: wallets.address,
         Fraud: fraud.address,
         MovingFunds: movingFunds.address,
@@ -788,7 +790,7 @@ describe("Bridge", () => {
                         })
 
                         it("should update main UTXO for the given wallet", async () => {
-                          const { mainUtxoHash } = await bridge.getWallet(
+                          const { mainUtxoHash } = await bridge.wallets(
                             walletPubKeyHash
                           )
 
@@ -884,7 +886,7 @@ describe("Bridge", () => {
                         })
 
                         it("should update main UTXO for the given wallet", async () => {
-                          const { mainUtxoHash } = await bridge.getWallet(
+                          const { mainUtxoHash } = await bridge.wallets(
                             walletPubKeyHash
                           )
 
@@ -1144,7 +1146,7 @@ describe("Bridge", () => {
                         })
 
                         it("should update main UTXO for the given wallet", async () => {
-                          const { mainUtxoHash } = await bridge.getWallet(
+                          const { mainUtxoHash } = await bridge.wallets(
                             walletPubKeyHash
                           )
 
@@ -1297,7 +1299,7 @@ describe("Bridge", () => {
                         })
 
                         it("should update main UTXO for the given wallet", async () => {
-                          const { mainUtxoHash } = await bridge.getWallet(
+                          const { mainUtxoHash } = await bridge.wallets(
                             walletPubKeyHash
                           )
 
@@ -2139,7 +2141,7 @@ describe("Bridge", () => {
         await bridge.revealDeposit(fundingTx, reveal)
 
         // Simulate the wallet's state has changed to MovingFunds
-        const wallet = await bridge.getWallet(reveal.walletPubKeyHash)
+        const wallet = await bridge.wallets(reveal.walletPubKeyHash)
         await bridge.setWallet(reveal.walletPubKeyHash, {
           ...wallet,
           state: walletState.MovingFunds,
@@ -2198,7 +2200,7 @@ describe("Bridge", () => {
             await bridge.revealDeposit(fundingTx, reveal)
 
             // Simulate the wallet's state has changed
-            const wallet = await bridge.getWallet(reveal.walletPubKeyHash)
+            const wallet = await bridge.wallets(reveal.walletPubKeyHash)
             await bridge.setWallet(reveal.walletPubKeyHash, {
               ecdsaWalletID: wallet.ecdsaWalletID,
               mainUtxoHash: wallet.mainUtxoHash,
@@ -2353,7 +2355,7 @@ describe("Bridge", () => {
                                   // Capture the initial pending redemptions value
                                   // for the given wallet.
                                   initialWalletPendingRedemptionValue = (
-                                    await bridge.getWallet(walletPubKeyHash)
+                                    await bridge.wallets(walletPubKeyHash)
                                   ).pendingRedemptionsValue
 
                                   // Perform the redemption request.
@@ -2373,7 +2375,7 @@ describe("Bridge", () => {
 
                                 it("should increase the wallet's pending redemptions value", async () => {
                                   const walletPendingRedemptionValue = (
-                                    await bridge.getWallet(walletPubKeyHash)
+                                    await bridge.wallets(walletPubKeyHash)
                                   ).pendingRedemptionsValue
 
                                   expect(
@@ -2961,7 +2963,7 @@ describe("Bridge", () => {
                           // output so the wallet's main UTXO should be
                           // deleted on the Bridge side.
                           expect(
-                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                            (await bridge.wallets(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(ethers.constants.HashZero)
                         })
@@ -3096,7 +3098,7 @@ describe("Bridge", () => {
                           // output so the wallet's main UTXO should be
                           // deleted on the Bridge side.
                           expect(
-                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                            (await bridge.wallets(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(ethers.constants.HashZero)
                         })
@@ -3239,7 +3241,7 @@ describe("Bridge", () => {
                           // the only redemption handled by the transaction
                           // is reported as timed out.
                           expect(
-                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                            (await bridge.wallets(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(ethers.constants.HashZero)
                         })
@@ -3640,7 +3642,7 @@ describe("Bridge", () => {
                           // output so the wallet's main UTXO should be
                           // deleted on the Bridge side.
                           expect(
-                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                            (await bridge.wallets(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(ethers.constants.HashZero)
                         })
@@ -3783,7 +3785,7 @@ describe("Bridge", () => {
                           )
 
                           expect(
-                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                            (await bridge.wallets(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(expectedMainUtxoHash)
                         })
@@ -3953,7 +3955,7 @@ describe("Bridge", () => {
                           // that all redemptions handled by the transaction
                           // are reported as timed out.
                           expect(
-                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                            (await bridge.wallets(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(ethers.constants.HashZero)
                         })
@@ -4117,7 +4119,7 @@ describe("Bridge", () => {
                           )
 
                           expect(
-                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                            (await bridge.wallets(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(expectedMainUtxoHash)
                         })
@@ -4303,7 +4305,7 @@ describe("Bridge", () => {
                           // output so the wallet's main UTXO should be
                           // deleted on the Bridge side.
                           expect(
-                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                            (await bridge.wallets(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(ethers.constants.HashZero)
                         })
@@ -4500,7 +4502,7 @@ describe("Bridge", () => {
                           )
 
                           expect(
-                            (await bridge.getWallet(data.wallet.pubKeyHash))
+                            (await bridge.wallets(data.wallet.pubKeyHash))
                               .mainUtxoHash
                           ).to.be.equal(expectedMainUtxoHash)
                         })
@@ -4857,7 +4859,7 @@ describe("Bridge", () => {
                     // just before proof submission since requests should
                     // be made against a Live wallet.
                     const beforeProofActions = async () => {
-                      const wallet = await bridge.getWallet(
+                      const wallet = await bridge.wallets(
                         data.wallet.pubKeyHash
                       )
                       await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -4896,7 +4898,7 @@ describe("Bridge", () => {
                         // just before proof submission since requests should
                         // be made against a Live wallet.
                         const beforeProofActions = async () => {
-                          const wallet = await bridge.getWallet(
+                          const wallet = await bridge.wallets(
                             data.wallet.pubKeyHash
                           )
                           await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -4935,7 +4937,7 @@ describe("Bridge", () => {
                         // just before proof submission since requests should
                         // be made against a Live wallet.
                         const beforeProofActions = async () => {
-                          const wallet = await bridge.getWallet(
+                          const wallet = await bridge.wallets(
                             data.wallet.pubKeyHash
                           )
                           await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -4974,7 +4976,7 @@ describe("Bridge", () => {
                         // just before proof submission since requests should
                         // be made against a Live wallet.
                         const beforeProofActions = async () => {
-                          const wallet = await bridge.getWallet(
+                          const wallet = await bridge.wallets(
                             data.wallet.pubKeyHash
                           )
                           await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -5455,7 +5457,7 @@ describe("Bridge", () => {
                 await increaseTime(redemptionTimeout)
 
                 initialPendingRedemptionsValue = (
-                  await bridge.getWallet(data.wallet.pubKeyHash)
+                  await bridge.wallets(data.wallet.pubKeyHash)
                 ).pendingRedemptionsValue
 
                 initialRedeemerBalance = await bank.balanceOf(
@@ -5492,7 +5494,7 @@ describe("Bridge", () => {
                     .add(redemptionRequest.treasuryFee)
 
                 const currentPendingRedemptionsValue = (
-                  await bridge.getWallet(data.wallet.pubKeyHash)
+                  await bridge.wallets(data.wallet.pubKeyHash)
                 ).pendingRedemptionsValue
 
                 expect(currentPendingRedemptionsValue).to.be.equal(
@@ -5548,12 +5550,12 @@ describe("Bridge", () => {
               })
 
               it("should change the wallet's state to Closed", async () => {
-                const wallet = await bridge.getWallet(data.wallet.pubKeyHash)
+                const wallet = await bridge.wallets(data.wallet.pubKeyHash)
                 expect(wallet.state).to.be.equal(walletState.Closed)
               })
 
               it("should not set the wallet's move funds requested timestamp", async () => {
-                const wallet = await bridge.getWallet(data.wallet.pubKeyHash)
+                const wallet = await bridge.wallets(data.wallet.pubKeyHash)
                 expect(wallet.movingFundsRequestedAt).to.be.equal(0)
               })
 
@@ -5574,7 +5576,7 @@ describe("Bridge", () => {
               })
 
               it("should delete the active wallet public key hash", async () => {
-                expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
+                expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
                   "0x0000000000000000000000000000000000000000"
                 )
               })
@@ -5650,7 +5652,7 @@ describe("Bridge", () => {
                 await increaseTime(redemptionTimeout)
 
                 initialPendingRedemptionsValue = (
-                  await bridge.getWallet(data.wallet.pubKeyHash)
+                  await bridge.wallets(data.wallet.pubKeyHash)
                 ).pendingRedemptionsValue
 
                 initialRedeemerBalance = await bank.balanceOf(
@@ -5685,7 +5687,7 @@ describe("Bridge", () => {
                     .add(redemptionRequest.treasuryFee)
 
                 const currentPendingRedemptionsValue = (
-                  await bridge.getWallet(data.wallet.pubKeyHash)
+                  await bridge.wallets(data.wallet.pubKeyHash)
                 ).pendingRedemptionsValue
 
                 expect(currentPendingRedemptionsValue).to.be.equal(
@@ -5741,12 +5743,12 @@ describe("Bridge", () => {
               })
 
               it("should change the wallet's state to MovingFunds", async () => {
-                const wallet = await bridge.getWallet(data.wallet.pubKeyHash)
+                const wallet = await bridge.wallets(data.wallet.pubKeyHash)
                 expect(wallet.state).to.be.equal(walletState.MovingFunds)
               })
 
               it("should set the wallet's move funds requested timestamp", async () => {
-                const wallet = await bridge.getWallet(data.wallet.pubKeyHash)
+                const wallet = await bridge.wallets(data.wallet.pubKeyHash)
                 expect(wallet.movingFundsRequestedAt).to.be.equal(
                   await lastBlockTime()
                 )
@@ -5766,7 +5768,7 @@ describe("Bridge", () => {
               })
 
               it("should delete the active wallet public key hash", async () => {
-                expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
+                expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
                   "0x0000000000000000000000000000000000000000"
                 )
               })
@@ -5854,7 +5856,7 @@ describe("Bridge", () => {
             // the active wallet and they should not be repeated here.
             it("should not delete the active wallet public key hash", async () => {
               // Check that the active wallet has not changed
-              expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
+              expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
                 anotherWalletPublicKeyHash
               )
             })
@@ -5916,7 +5918,7 @@ describe("Bridge", () => {
               )
 
             // Simulate the wallet's state has changed to MovingFunds
-            const wallet = await bridge.getWallet(data.wallet.pubKeyHash)
+            const wallet = await bridge.wallets(data.wallet.pubKeyHash)
             await bridge.setWallet(data.wallet.pubKeyHash, {
               ecdsaWalletID: wallet.ecdsaWalletID,
               mainUtxoHash: wallet.mainUtxoHash,
@@ -5930,7 +5932,7 @@ describe("Bridge", () => {
             await increaseTime(redemptionTimeout)
 
             initialPendingRedemptionsValue = (
-              await bridge.getWallet(data.wallet.pubKeyHash)
+              await bridge.wallets(data.wallet.pubKeyHash)
             ).pendingRedemptionsValue
 
             initialRedeemerBalance = await bank.balanceOf(
@@ -5963,7 +5965,7 @@ describe("Bridge", () => {
                 .add(redemptionRequest.treasuryFee)
 
             const currentPendingRedemptionsValue = (
-              await bridge.getWallet(data.wallet.pubKeyHash)
+              await bridge.wallets(data.wallet.pubKeyHash)
             ).pendingRedemptionsValue
 
             expect(currentPendingRedemptionsValue).to.be.equal(
@@ -6093,7 +6095,7 @@ describe("Bridge", () => {
               )
 
             // Simulate the wallet's state has changed to Terminated
-            const wallet = await bridge.getWallet(data.wallet.pubKeyHash)
+            const wallet = await bridge.wallets(data.wallet.pubKeyHash)
             await bridge.setWallet(data.wallet.pubKeyHash, {
               ecdsaWalletID: wallet.ecdsaWalletID,
               mainUtxoHash: wallet.mainUtxoHash,
@@ -6107,7 +6109,7 @@ describe("Bridge", () => {
             await increaseTime(redemptionTimeout)
 
             initialPendingRedemptionsValue = (
-              await bridge.getWallet(data.wallet.pubKeyHash)
+              await bridge.wallets(data.wallet.pubKeyHash)
             ).pendingRedemptionsValue
 
             initialRedeemerBalance = await bank.balanceOf(
@@ -6140,7 +6142,7 @@ describe("Bridge", () => {
                 .add(redemptionRequest.treasuryFee)
 
             const currentPendingRedemptionsValue = (
-              await bridge.getWallet(data.wallet.pubKeyHash)
+              await bridge.wallets(data.wallet.pubKeyHash)
             ).pendingRedemptionsValue
 
             expect(currentPendingRedemptionsValue).to.be.equal(
@@ -6272,7 +6274,7 @@ describe("Bridge", () => {
                   )
 
                 // Simulate the wallet's state has changed
-                const wallet = await bridge.getWallet(data.wallet.pubKeyHash)
+                const wallet = await bridge.wallets(data.wallet.pubKeyHash)
                 await bridge.setWallet(data.wallet.pubKeyHash, {
                   ecdsaWalletID: wallet.ecdsaWalletID,
                   mainUtxoHash: wallet.mainUtxoHash,
@@ -6464,7 +6466,7 @@ describe("Bridge", () => {
 
     const bridgeBalanceBeforeProof = await bank.balanceOf(bridge.address)
     const walletPendingRedemptionsValueBeforeProof = (
-      await bridge.getWallet(data.wallet.pubKeyHash)
+      await bridge.wallets(data.wallet.pubKeyHash)
     ).pendingRedemptionsValue
     const treasuryBalanceBeforeProof = await bank.balanceOf(treasury.address)
 
@@ -6484,7 +6486,7 @@ describe("Bridge", () => {
 
     const bridgeBalanceAfterProof = await bank.balanceOf(bridge.address)
     const walletPendingRedemptionsValueAfterProof = (
-      await bridge.getWallet(data.wallet.pubKeyHash)
+      await bridge.wallets(data.wallet.pubKeyHash)
     ).pendingRedemptionsValue
     const treasuryBalanceAfterProof = await bank.balanceOf(treasury.address)
 
