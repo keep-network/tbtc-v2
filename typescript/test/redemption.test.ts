@@ -227,6 +227,30 @@ describe("Redemption", () => {
       })
     })
   })
+
+  describe("createRedemptionTransaction", () => {
+    describe("when the change output is P2WPKH", () => {
+      const data: RedemptionTestData = multipleAddressesRedemption
+      let transaction: RawTransaction
+
+      beforeEach(async () => {
+        transaction = await TBTC.createRedemptionTransaction(
+          testnetWalletPrivateKey,
+          data.mainUtxo,
+          data.redemptionRequests,
+          data.witness
+        )
+      })
+
+      it("should return transaction with proper structure", async () => {
+        //TODO: Implement
+      })
+    })
+
+    describe("when the change output is P2PKH", () => {
+      // TODO: Implement
+    })
+  })
 })
 
 async function runRedemptionScenario(

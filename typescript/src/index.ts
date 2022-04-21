@@ -9,7 +9,11 @@ import {
   revealDeposit,
 } from "./deposit"
 import { createSweepTransaction, sweepDeposits, proveSweep } from "./sweep"
-import { redeemDeposits, RedemptionRequest } from "./redemption"
+import {
+  createRedemptionTransaction,
+  redeemDeposits,
+  RedemptionRequest,
+} from "./redemption"
 import { Bridge } from "./bridge"
 import {
   Client as BitcoinClient,
@@ -162,6 +166,7 @@ export interface TBTC {
     bitcoinClient: BitcoinClient
   ): Promise<void>
 
+  // TODO: Description
   redeemDeposits(
     bitcoinClient: BitcoinClient,
     walletPrivateKey: string,
@@ -169,6 +174,14 @@ export interface TBTC {
     redemptionRequests: RedemptionRequest[],
     witness: boolean
   ): Promise<void>
+
+  // TODO: Description
+  createRedemptionTransaction(
+    walletPrivateKey: string,
+    mainUtxo: UnspentTransactionOutput & RawTransaction,
+    redemptionRequests: RedemptionRequest[],
+    witness: boolean
+  ): Promise<RawTransaction>
 }
 
 const tbtc: TBTC = {
@@ -183,6 +196,7 @@ const tbtc: TBTC = {
   sweepDeposits,
   proveSweep,
   redeemDeposits,
+  createRedemptionTransaction,
 }
 
 export default tbtc
