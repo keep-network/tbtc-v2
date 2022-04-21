@@ -50,7 +50,9 @@ import "../bank/Bank.sol";
 ///         the sweep operation is confirmed on the Bitcoin network, the ECDSA
 ///         wallet informs the Bridge about the sweep increasing appropriate
 ///         balances in the Bank.
-/// @dev Bridge is an upgradeable component of the Bank.
+/// @dev Bridge is an upgradeable component of the Bank. The order of
+///      functionalities in this contract is: deposit, sweep, redemption,
+///      moving funds, wallet lifecycle, frauds, parameters.
 contract Bridge is Ownable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
