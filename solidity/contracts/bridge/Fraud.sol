@@ -59,17 +59,17 @@ library Fraud {
     }
 
     event FraudChallengeSubmitted(
-        bytes20 walletPublicKeyHash,
+        bytes20 walletPubKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
         bytes32 s
     );
 
-    event FraudChallengeDefeated(bytes20 walletPublicKeyHash, bytes32 sighash);
+    event FraudChallengeDefeated(bytes20 walletPubKeyHash, bytes32 sighash);
 
     event FraudChallengeDefeatTimedOut(
-        bytes20 walletPublicKeyHash,
+        bytes20 walletPubKeyHash,
         bytes32 sighash
     );
 
