@@ -213,7 +213,7 @@ describe("Bridge - Moving funds", () => {
                               it("should store the target wallets commitment for given wallet", async () => {
                                 expect(
                                   (
-                                    await bridge.getWallet(
+                                    await bridge.wallets(
                                       ecdsaWalletTestData.pubKeyHash160
                                     )
                                   ).movingFundsTargetWalletsCommitmentHash
