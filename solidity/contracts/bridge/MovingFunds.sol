@@ -20,11 +20,20 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 
 import "./BitcoinTx.sol";
 import "./BridgeState.sol";
-import "./Redeem.sol";
+import "./Redemption.sol";
 
+/// @title Moving Bridge wallet funds
+/// @notice The library handles the logic for moving Bitcoin between Bridge
+///         wallets.
+/// @dev A wallet that failed a heartbeat, did not process requested redemption
+///      on time, or qualifies to be closed, begins the procedure of moving
+///      funds to other wallets in the Bridge. The wallet needs to commit to
+///      which other Live wallets it is moving the funds to and then, provide an
+///      SPV proof of moving funds to the previously committed wallets.
 library MovingFunds {
     using BridgeState for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
+    using BitcoinTx for BridgeState.Storage;
 
     using BTCUtils for bytes;
     using BytesLib for bytes;
@@ -156,10 +165,9 @@ library MovingFunds {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 movingFundsTxHash = BitcoinTx.validateProof(
+        bytes32 movingFundsTxHash = self.validateProof(
             movingFundsTx,
-            movingFundsProof,
-            self.proofDifficultyContext()
+            movingFundsProof
         );
 
         // Process the moving funds transaction input. Specifically, check if
@@ -203,7 +211,7 @@ library MovingFunds {
     ///      - The total outputs value must be evenly divided over all outputs.
     function processMovingFundsTxOutputs(bytes memory movingFundsTxOutputVector)
         internal
-        view
+        pure
         returns (bytes32 targetWalletsHash, uint256 outputsTotalValue)
     {
         // Determining the total number of Bitcoin transaction outputs in

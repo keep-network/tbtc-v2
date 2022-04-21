@@ -636,7 +636,7 @@ describe("Bridge - Moving funds", () => {
                                                 it("should unset the main UTXO for the source wallet", async () => {
                                                   expect(
                                                     (
-                                                      await bridge.getWallet(
+                                                      await bridge.wallets(
                                                         test.data.wallet
                                                           .pubKeyHash
                                                       )
@@ -649,7 +649,7 @@ describe("Bridge - Moving funds", () => {
                                                 it("should put the source wallet in the Closed state", async () => {
                                                   expect(
                                                     (
-                                                      await bridge.getWallet(
+                                                      await bridge.wallets(
                                                         test.data.wallet
                                                           .pubKeyHash
                                                       )

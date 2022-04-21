@@ -17,16 +17,13 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
-import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
-
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
 import "./IRelay.sol";
 import "./BridgeState.sol";
 import "./Deposit.sol";
 import "./Sweep.sol";
-import "./Redeem.sol";
+import "./Redemption.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./Wallets.sol";
@@ -53,73 +50,21 @@ import "../bank/Bank.sol";
 ///         the sweep operation is confirmed on the Bitcoin network, the ECDSA
 ///         wallet informs the Bridge about the sweep increasing appropriate
 ///         balances in the Bank.
-/// @dev Bridge is an upgradeable component of the Bank.
+/// @dev Bridge is an upgradeable component of the Bank. The order of
+///      functionalities in this contract is: deposit, sweep, redemption,
+///      moving funds, wallet lifecycle, frauds, parameters.
 ///
-// TODO: All wallets-related operations that are currently done directly
-//       by the Bridge can be probably delegated to the Wallets library.
-//       Examples of such operations are main UTXO or pending redemptions
-//       value updates.
-// TODO: Revisit all events and look which parameters should be indexed.
+/// TODO: Revisit all events and look which parameters should be indexed.
 contract Bridge is Ownable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
     using Sweep for BridgeState.Storage;
-    using Redeem for BridgeState.Storage;
+    using Redemption for BridgeState.Storage;
     using MovingFunds for BridgeState.Storage;
-    using Fraud for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
-
-    using BTCUtils for bytes;
-    using BTCUtils for uint256;
-    using BytesLib for bytes;
+    using Fraud for BridgeState.Storage;
 
     BridgeState.Storage internal self;
-
-    event WalletParametersUpdated(
-        uint32 walletCreationPeriod,
-        uint64 walletMinBtcBalance,
-        uint64 walletMaxBtcBalance,
-        uint32 walletMaxAge,
-        uint64 walletMaxBtcTransfer
-    );
-
-    event NewWalletRequested();
-
-    event NewWalletRegistered(
-        bytes32 indexed ecdsaWalletID,
-        bytes20 indexed walletPubKeyHash
-    );
-
-    event WalletMovingFunds(
-        bytes32 indexed ecdsaWalletID,
-        bytes20 indexed walletPubKeyHash
-    );
-
-    event WalletClosed(
-        bytes32 indexed ecdsaWalletID,
-        bytes20 indexed walletPubKeyHash
-    );
-
-    event WalletTerminated(
-        bytes32 indexed ecdsaWalletID,
-        bytes20 indexed walletPubKeyHash
-    );
-
-    event VaultStatusUpdated(address indexed vault, bool isTrusted);
-
-    event FraudSlashingAmountUpdated(uint256 newFraudSlashingAmount);
-
-    event FraudNotifierRewardMultiplierUpdated(
-        uint256 newFraudNotifierRewardMultiplier
-    );
-
-    event FraudChallengeDefeatTimeoutUpdated(
-        uint256 newFraudChallengeDefeatTimeout
-    );
-
-    event FraudChallengeDepositAmountUpdated(
-        uint256 newFraudChallengeDepositAmount
-    );
 
     event DepositRevealed(
         bytes32 fundingTxHash,
@@ -154,6 +99,39 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes redeemerOutputScript
     );
 
+    event WalletMovingFunds(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
+    event MovingFundsCommitmentSubmitted(
+        bytes20 walletPubKeyHash,
+        bytes20[] targetWallets,
+        address submitter
+    );
+
+    event MovingFundsCompleted(
+        bytes20 walletPubKeyHash,
+        bytes32 movingFundsTxHash
+    );
+
+    event NewWalletRequested();
+
+    event NewWalletRegistered(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
+    event WalletClosed(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
+    event WalletTerminated(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
     event FraudChallengeSubmitted(
         bytes20 walletPublicKeyHash,
         bytes32 sighash,
@@ -169,15 +147,14 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes32 sighash
     );
 
-    event MovingFundsCommitmentSubmitted(
-        bytes20 walletPubKeyHash,
-        bytes20[] targetWallets,
-        address submitter
-    );
+    event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
-    event MovingFundsCompleted(
-        bytes20 walletPubKeyHash,
-        bytes32 movingFundsTxHash
+    event WalletParametersUpdated(
+        uint32 walletCreationPeriod,
+        uint64 walletMinBtcBalance,
+        uint64 walletMaxBtcBalance,
+        uint32 walletMaxAge,
+        uint64 walletMaxBtcTransfer
     );
 
     constructor(
@@ -222,128 +199,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.walletMaxBtcBalance = 10e8; // 10 BTC
         self.walletMaxAge = 26 weeks; // ~6 months
         self.walletMaxBtcTransfer = 10e8; // 10 BTC
-    }
-
-    /// @notice Allows the Governance to mark the given vault address as trusted
-    ///         or no longer trusted. Vaults are not trusted by default.
-    ///         Trusted vault must meet the following criteria:
-    ///         - `IVault.receiveBalanceIncrease` must have a known, low gas
-    ///           cost.
-    ///         - `IVault.receiveBalanceIncrease` must never revert.
-    /// @dev Without restricting reveal only to trusted vaults, malicious
-    ///      vaults not meeting the criteria would be able to nuke sweep proof
-    ///      transactions executed by ECDSA wallet with  deposits routed to
-    ///      them.
-    /// @param vault The address of the vault
-    /// @param isTrusted flag indicating whether the vault is trusted or not
-    /// @dev Can only be called by the Governance.
-    function setVaultStatus(address vault, bool isTrusted) external onlyOwner {
-        self.isVaultTrusted[vault] = isTrusted;
-        emit VaultStatusUpdated(vault, isTrusted);
-    }
-
-    /// @notice Requests creation of a new wallet. This function just
-    ///         forms a request and the creation process is performed
-    ///         asynchronously. Once a wallet is created, the ECDSA Wallet
-    ///         Registry will notify this contract by calling the
-    ///         `__ecdsaWalletCreatedCallback` function.
-    /// @param activeWalletMainUtxo Data of the active wallet's main UTXO, as
-    ///        currently known on the Ethereum chain.
-    /// @dev Requirements:
-    ///      - `activeWalletMainUtxo` components must point to the recent main
-    ///        UTXO of the given active wallet, as currently known on the
-    ///        Ethereum chain. If there is no active wallet at the moment, or
-    ///        the active wallet has no main UTXO, this parameter can be
-    ///        empty as it is ignored.
-    ///      - Wallet creation must not be in progress
-    ///      - If the active wallet is set, one of the following
-    ///        conditions must be true:
-    ///        - The active wallet BTC balance is above the minimum threshold
-    ///          and the active wallet is old enough, i.e. the creation period
-    ///          was elapsed since its creation time
-    ///        - The active wallet BTC balance is above the maximum threshold
-    function requestNewWallet(BitcoinTx.UTXO calldata activeWalletMainUtxo)
-        external
-    {
-        self.requestNewWallet(activeWalletMainUtxo);
-    }
-
-    /// @notice A callback function that is called by the ECDSA Wallet Registry
-    ///         once a new ECDSA wallet is created.
-    /// @param ecdsaWalletID Wallet's unique identifier.
-    /// @param publicKeyX Wallet's public key's X coordinate.
-    /// @param publicKeyY Wallet's public key's Y coordinate.
-    /// @dev Requirements:
-    ///      - The only caller authorized to call this function is `registry`
-    ///      - Given wallet data must not belong to an already registered wallet
-    function __ecdsaWalletCreatedCallback(
-        bytes32 ecdsaWalletID,
-        bytes32 publicKeyX,
-        bytes32 publicKeyY
-    ) external override {
-        self.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
-    }
-
-    /// @notice A callback function that is called by the ECDSA Wallet Registry
-    ///         once a wallet heartbeat failure is detected.
-    /// @param publicKeyX Wallet's public key's X coordinate
-    /// @param publicKeyY Wallet's public key's Y coordinate
-    /// @dev Requirements:
-    ///      - The only caller authorized to call this function is `registry`
-    ///      - Wallet must be in Live state
-    function __ecdsaWalletHeartbeatFailedCallback(
-        bytes32,
-        bytes32 publicKeyX,
-        bytes32 publicKeyY
-    ) external override {
-        self.notifyWalletHeartbeatFailed(publicKeyX, publicKeyY);
-    }
-
-    /// @notice Notifies that the wallet is either old enough or has too few
-    ///         satoshis left and qualifies to be closed.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
-    /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
-    ///        known on the Ethereum chain.
-    /// @dev Requirements:
-    ///      - Wallet must not be set as the current active wallet
-    ///      - Wallet must exceed the wallet maximum age OR the wallet BTC
-    ///        balance must be lesser than the minimum threshold. If the latter
-    ///        case is true, the `walletMainUtxo` components must point to the
-    ///        recent main UTXO of the given wallet, as currently known on the
-    ///        Ethereum chain. If the wallet has no main UTXO, this parameter
-    ///        can be empty as it is ignored since the wallet balance is
-    ///        assumed to be zero.
-    ///      - Wallet must be in Live state
-    function notifyCloseableWallet(
-        bytes20 walletPubKeyHash,
-        BitcoinTx.UTXO calldata walletMainUtxo
-    ) external {
-        self.notifyCloseableWallet(walletPubKeyHash, walletMainUtxo);
-    }
-
-    /// @notice Gets details about a registered wallet.
-    /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
-    ///        using Bitcoin HASH160 over the compressed ECDSA public key)
-    /// @return Wallet details.
-    function getWallet(bytes20 walletPubKeyHash)
-        external
-        view
-        returns (Wallets.Wallet memory)
-    {
-        return self.registeredWallets[walletPubKeyHash];
-    }
-
-    /// @notice Gets the public key hash of the active wallet.
-    /// @return The 20-byte public key hash (computed using Bitcoin HASH160
-    ///         over the compressed ECDSA public key) of the active wallet.
-    ///         Returns bytes20(0) if there is no active wallet at the moment.
-    function getActiveWalletPubKeyHash() external view returns (bytes20) {
-        return self.activeWalletPubKeyHash;
-    }
-
-    /// @return Current count of wallets being in the Live state.
-    function liveWalletsCount() external view returns (uint32) {
-        return self.liveWalletsCount;
     }
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
@@ -429,122 +284,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
         self.submitSweepProof(sweepTx, sweepProof, mainUtxo);
-    }
-
-    /// @notice Submits a fraud challenge indicating that a UTXO being under
-    ///         wallet control was unlocked by the wallet but was not used
-    ///         according to the protocol rules. That means the wallet signed
-    ///         a transaction input pointing to that UTXO and there is a unique
-    ///         sighash and signature pair associated with that input. This
-    ///         function uses those parameters to create a fraud accusation that
-    ///         proves a given transaction input unlocking the given UTXO was
-    ///         actually signed by the wallet. This function cannot determine
-    ///         whether the transaction was actually broadcast and the input was
-    ///         consumed in a fraudulent way so it just opens a challenge period
-    ///         during which the wallet can defeat the challenge by submitting
-    ///         proof of a transaction that consumes the given input according
-    ///         to protocol rules. To prevent spurious allegations, the caller
-    ///         must deposit ETH that is returned back upon justified fraud
-    ///         challenge or confiscated otherwise.
-    ///@param walletPublicKey The public key of the wallet in the uncompressed
-    ///       and unprefixed format (64 bytes)
-    /// @param sighash The hash that was used to produce the ECDSA signature
-    ///        that is the subject of the fraud claim. This hash is constructed
-    ///        by applying double SHA-256 over a serialized subset of the
-    ///        transaction. The exact subset used as hash preimage depends on
-    ///        the transaction input the signature is produced for. See BIP-143
-    ///        for reference
-    /// @param signature Bitcoin signature in the R/S/V format
-    /// @dev Requirements:
-    ///      - Wallet behind `walletPubKey` must be in `Live` or `MovingFunds`
-    ///        state
-    ///      - The challenger must send appropriate amount of ETH used as
-    ///        fraud challenge deposit
-    ///      - The signature (represented by r, s and v) must be generated by
-    ///        the wallet behind `walletPubKey` during signing of `sighash`
-    ///      - Wallet can be challenged for the given signature only once
-    function submitFraudChallenge(
-        bytes calldata walletPublicKey,
-        bytes32 sighash,
-        BitcoinTx.RSVSignature calldata signature
-    ) external payable {
-        self.submitFraudChallenge(walletPublicKey, sighash, signature);
-    }
-
-    /// @notice Allows to defeat a pending fraud challenge against a wallet if
-    ///         the transaction that spends the UTXO follows the protocol rules.
-    ///         In order to defeat the challenge the same `walletPublicKey` and
-    ///         signature (represented by `r`, `s` and `v`) must be provided as
-    ///         were used to calculate the sighash during input signing.
-    ///         The fraud challenge defeat attempt will only succeed if the
-    ///         inputs in the preimage are considered honestly spent by the
-    ///         wallet. Therefore the transaction spending the UTXO must be
-    ///         proven in the Bridge before a challenge defeat is called.
-    ///         If successfully defeated, the fraud challenge is marked as
-    ///         resolved and the amount of ether deposited by the challenger is
-    ///         sent to the treasury.
-    /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes)
-    /// @param preimage The preimage which produces sighash used to generate the
-    ///        ECDSA signature that is the subject of the fraud claim. It is a
-    ///        serialized subset of the transaction. The exact subset used as
-    ///        the preimage depends on the transaction input the signature is
-    ///        produced for. See BIP-143 for reference
-    /// @param witness Flag indicating whether the preimage was produced for a
-    ///        witness input. True for witness, false for non-witness input
-    /// @dev Requirements:
-    ///      - `walletPublicKey` and `sighash` calculated as `hash256(preimage)`
-    ///        must identify an open fraud challenge
-    ///      - the preimage must be a valid preimage of a transaction generated
-    ///        according to the protocol rules and already proved in the Bridge
-    ///      - before a defeat attempt is made the transaction that spends the
-    ///        given UTXO must be proven in the Bridge
-    function defeatFraudChallenge(
-        bytes calldata walletPublicKey,
-        bytes calldata preimage,
-        bool witness
-    ) external {
-        self.defeatFraudChallenge(walletPublicKey, preimage, witness);
-    }
-
-    /// @notice Notifies about defeat timeout for the given fraud challenge.
-    ///         Can be called only if there was a fraud challenge identified by
-    ///         the provided `walletPublicKey` and `sighash` and it was not
-    ///         defeated on time. The amount of time that needs to pass after
-    ///         a fraud challenge is reported is indicated by the
-    ///         `challengeDefeatTimeout`. After a successful fraud challenge
-    ///         defeat timeout notification the fraud challenge is marked as
-    ///         resolved, the stake of each operator is slashed, the ether
-    ///         deposited is returned to the challenger and the challenger is
-    ///         rewarded.
-    /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes)
-    /// @param sighash The hash that was used to produce the ECDSA signature
-    ///        that is the subject of the fraud claim. This hash is constructed
-    ///        by applying double SHA-256 over a serialized subset of the
-    ///        transaction. The exact subset used as hash preimage depends on
-    ///        the transaction input the signature is produced for. See BIP-143
-    ///        for reference
-    /// @dev Requirements:
-    ///      - `walletPublicKey`and `sighash` must identify an open fraud
-    ///        challenge
-    ///      - the amount of time indicated by `challengeDefeatTimeout` must
-    ///        pass after the challenge was reported
-    function notifyFraudChallengeDefeatTimeout(
-        bytes calldata walletPublicKey,
-        bytes32 sighash
-    ) external {
-        self.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
-    }
-
-    /// @notice Returns the fraud challenge identified by the given key built
-    ///         as keccak256(walletPublicKey|sighash).
-    function fraudChallenges(uint256 challengeKey)
-        external
-        view
-        returns (Fraud.FraudChallenge memory)
-    {
-        return self.fraudChallenges[challengeKey];
     }
 
     /// @notice Requests redemption of the given amount from the specified
@@ -791,29 +530,361 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
     }
 
-    /// @notice Returns the addresses of contracts Bridge is interacting with.
-    /// @return bank Address of the Bank the Bridge belongs to.
-    /// @return relay Address of the Bitcoin relay providing the current Bitcoin
-    ///         network difficulty.
-    function getContracts() external view returns (Bank bank, IRelay relay) {
-        bank = self.bank;
-        relay = self.relay;
+    /// @notice Requests creation of a new wallet. This function just
+    ///         forms a request and the creation process is performed
+    ///         asynchronously. Once a wallet is created, the ECDSA Wallet
+    ///         Registry will notify this contract by calling the
+    ///         `__ecdsaWalletCreatedCallback` function.
+    /// @param activeWalletMainUtxo Data of the active wallet's main UTXO, as
+    ///        currently known on the Ethereum chain.
+    /// @dev Requirements:
+    ///      - `activeWalletMainUtxo` components must point to the recent main
+    ///        UTXO of the given active wallet, as currently known on the
+    ///        Ethereum chain. If there is no active wallet at the moment, or
+    ///        the active wallet has no main UTXO, this parameter can be
+    ///        empty as it is ignored.
+    ///      - Wallet creation must not be in progress
+    ///      - If the active wallet is set, one of the following
+    ///        conditions must be true:
+    ///        - The active wallet BTC balance is above the minimum threshold
+    ///          and the active wallet is old enough, i.e. the creation period
+    ///          was elapsed since its creation time
+    ///        - The active wallet BTC balance is above the maximum threshold
+    function requestNewWallet(BitcoinTx.UTXO calldata activeWalletMainUtxo)
+        external
+    {
+        self.requestNewWallet(activeWalletMainUtxo);
     }
 
-    /// @notice Address where the deposit treasury fees will be sent to.
-    ///         Treasury takes part in the operators rewarding process.
-    function treasury() external view returns (address treasury) {
-        treasury = self.treasury;
+    /// @notice A callback function that is called by the ECDSA Wallet Registry
+    ///         once a new ECDSA wallet is created.
+    /// @param ecdsaWalletID Wallet's unique identifier.
+    /// @param publicKeyX Wallet's public key's X coordinate.
+    /// @param publicKeyY Wallet's public key's Y coordinate.
+    /// @dev Requirements:
+    ///      - The only caller authorized to call this function is `registry`
+    ///      - Given wallet data must not belong to an already registered wallet
+    function __ecdsaWalletCreatedCallback(
+        bytes32 ecdsaWalletID,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY
+    ) external override {
+        self.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
     }
 
-    /// @notice The number of confirmations on the Bitcoin chain required to
-    ///         successfully evaluate an SPV proof.
-    function txProofDifficultyFactor()
+    /// @notice A callback function that is called by the ECDSA Wallet Registry
+    ///         once a wallet heartbeat failure is detected.
+    /// @param publicKeyX Wallet's public key's X coordinate
+    /// @param publicKeyY Wallet's public key's Y coordinate
+    /// @dev Requirements:
+    ///      - The only caller authorized to call this function is `registry`
+    ///      - Wallet must be in Live state
+    function __ecdsaWalletHeartbeatFailedCallback(
+        bytes32,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY
+    ) external override {
+        self.notifyWalletHeartbeatFailed(publicKeyX, publicKeyY);
+    }
+
+    /// @notice Notifies that the wallet is either old enough or has too few
+    ///         satoshis left and qualifies to be closed.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
+    ///        known on the Ethereum chain.
+    /// @dev Requirements:
+    ///      - Wallet must not be set as the current active wallet
+    ///      - Wallet must exceed the wallet maximum age OR the wallet BTC
+    ///        balance must be lesser than the minimum threshold. If the latter
+    ///        case is true, the `walletMainUtxo` components must point to the
+    ///        recent main UTXO of the given wallet, as currently known on the
+    ///        Ethereum chain. If the wallet has no main UTXO, this parameter
+    ///        can be empty as it is ignored since the wallet balance is
+    ///        assumed to be zero.
+    ///      - Wallet must be in Live state
+    function notifyCloseableWallet(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata walletMainUtxo
+    ) external {
+        self.notifyCloseableWallet(walletPubKeyHash, walletMainUtxo);
+    }
+
+    /// @notice Submits a fraud challenge indicating that a UTXO being under
+    ///         wallet control was unlocked by the wallet but was not used
+    ///         according to the protocol rules. That means the wallet signed
+    ///         a transaction input pointing to that UTXO and there is a unique
+    ///         sighash and signature pair associated with that input. This
+    ///         function uses those parameters to create a fraud accusation that
+    ///         proves a given transaction input unlocking the given UTXO was
+    ///         actually signed by the wallet. This function cannot determine
+    ///         whether the transaction was actually broadcast and the input was
+    ///         consumed in a fraudulent way so it just opens a challenge period
+    ///         during which the wallet can defeat the challenge by submitting
+    ///         proof of a transaction that consumes the given input according
+    ///         to protocol rules. To prevent spurious allegations, the caller
+    ///         must deposit ETH that is returned back upon justified fraud
+    ///         challenge or confiscated otherwise.
+    ///@param walletPublicKey The public key of the wallet in the uncompressed
+    ///       and unprefixed format (64 bytes)
+    /// @param sighash The hash that was used to produce the ECDSA signature
+    ///        that is the subject of the fraud claim. This hash is constructed
+    ///        by applying double SHA-256 over a serialized subset of the
+    ///        transaction. The exact subset used as hash preimage depends on
+    ///        the transaction input the signature is produced for. See BIP-143
+    ///        for reference
+    /// @param signature Bitcoin signature in the R/S/V format
+    /// @dev Requirements:
+    ///      - Wallet behind `walletPubKey` must be in `Live` or `MovingFunds`
+    ///        state
+    ///      - The challenger must send appropriate amount of ETH used as
+    ///        fraud challenge deposit
+    ///      - The signature (represented by r, s and v) must be generated by
+    ///        the wallet behind `walletPubKey` during signing of `sighash`
+    ///      - Wallet can be challenged for the given signature only once
+    function submitFraudChallenge(
+        bytes calldata walletPublicKey,
+        bytes32 sighash,
+        BitcoinTx.RSVSignature calldata signature
+    ) external payable {
+        self.submitFraudChallenge(walletPublicKey, sighash, signature);
+    }
+
+    /// @notice Allows to defeat a pending fraud challenge against a wallet if
+    ///         the transaction that spends the UTXO follows the protocol rules.
+    ///         In order to defeat the challenge the same `walletPublicKey` and
+    ///         signature (represented by `r`, `s` and `v`) must be provided as
+    ///         were used to calculate the sighash during input signing.
+    ///         The fraud challenge defeat attempt will only succeed if the
+    ///         inputs in the preimage are considered honestly spent by the
+    ///         wallet. Therefore the transaction spending the UTXO must be
+    ///         proven in the Bridge before a challenge defeat is called.
+    ///         If successfully defeated, the fraud challenge is marked as
+    ///         resolved and the amount of ether deposited by the challenger is
+    ///         sent to the treasury.
+    /// @param walletPublicKey The public key of the wallet in the uncompressed
+    ///        and unprefixed format (64 bytes)
+    /// @param preimage The preimage which produces sighash used to generate the
+    ///        ECDSA signature that is the subject of the fraud claim. It is a
+    ///        serialized subset of the transaction. The exact subset used as
+    ///        the preimage depends on the transaction input the signature is
+    ///        produced for. See BIP-143 for reference
+    /// @param witness Flag indicating whether the preimage was produced for a
+    ///        witness input. True for witness, false for non-witness input
+    /// @dev Requirements:
+    ///      - `walletPublicKey` and `sighash` calculated as `hash256(preimage)`
+    ///        must identify an open fraud challenge
+    ///      - the preimage must be a valid preimage of a transaction generated
+    ///        according to the protocol rules and already proved in the Bridge
+    ///      - before a defeat attempt is made the transaction that spends the
+    ///        given UTXO must be proven in the Bridge
+    function defeatFraudChallenge(
+        bytes calldata walletPublicKey,
+        bytes calldata preimage,
+        bool witness
+    ) external {
+        self.defeatFraudChallenge(walletPublicKey, preimage, witness);
+    }
+
+    /// @notice Notifies about defeat timeout for the given fraud challenge.
+    ///         Can be called only if there was a fraud challenge identified by
+    ///         the provided `walletPublicKey` and `sighash` and it was not
+    ///         defeated on time. The amount of time that needs to pass after
+    ///         a fraud challenge is reported is indicated by the
+    ///         `challengeDefeatTimeout`. After a successful fraud challenge
+    ///         defeat timeout notification the fraud challenge is marked as
+    ///         resolved, the stake of each operator is slashed, the ether
+    ///         deposited is returned to the challenger and the challenger is
+    ///         rewarded.
+    /// @param walletPublicKey The public key of the wallet in the uncompressed
+    ///        and unprefixed format (64 bytes)
+    /// @param sighash The hash that was used to produce the ECDSA signature
+    ///        that is the subject of the fraud claim. This hash is constructed
+    ///        by applying double SHA-256 over a serialized subset of the
+    ///        transaction. The exact subset used as hash preimage depends on
+    ///        the transaction input the signature is produced for. See BIP-143
+    ///        for reference
+    /// @dev Requirements:
+    ///      - `walletPublicKey`and `sighash` must identify an open fraud
+    ///        challenge
+    ///      - the amount of time indicated by `challengeDefeatTimeout` must
+    ///        pass after the challenge was reported
+    function notifyFraudChallengeDefeatTimeout(
+        bytes calldata walletPublicKey,
+        bytes32 sighash
+    ) external {
+        self.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
+    }
+
+    /// @notice Allows the Governance to mark the given vault address as trusted
+    ///         or no longer trusted. Vaults are not trusted by default.
+    ///         Trusted vault must meet the following criteria:
+    ///         - `IVault.receiveBalanceIncrease` must have a known, low gas
+    ///           cost.
+    ///         - `IVault.receiveBalanceIncrease` must never revert.
+    /// @dev Without restricting reveal only to trusted vaults, malicious
+    ///      vaults not meeting the criteria would be able to nuke sweep proof
+    ///      transactions executed by ECDSA wallet with  deposits routed to
+    ///      them.
+    /// @param vault The address of the vault
+    /// @param isTrusted flag indicating whether the vault is trusted or not
+    /// @dev Can only be called by the Governance.
+    function setVaultStatus(address vault, bool isTrusted) external onlyOwner {
+        self.isVaultTrusted[vault] = isTrusted;
+        emit VaultStatusUpdated(vault, isTrusted);
+    }
+
+    // TODO: updateDepositParameters
+    // TODO: updateRedemptionParameters
+    // TODO: updateMovingFundsParameters
+
+    /// @notice Updates parameters of wallets.
+    /// @param walletCreationPeriod New value of the wallet creation period in
+    ///        seconds, determines how frequently a new wallet creation can be
+    ///        requested
+    /// @param walletMinBtcBalance New value of the wallet minimum BTC balance
+    ///        in satoshis, used to decide about wallet creation or closing
+    /// @param walletMaxBtcBalance New value of the wallet maximum BTC balance
+    ///        in satoshis, used to decide about wallet creation
+    /// @param walletMaxAge New value of the wallet maximum age in seconds,
+    ///        indicates the maximum age of a wallet in seconds, after which
+    ///        the wallet moving funds process can be requested
+    /// @param walletMaxBtcTransfer New value of the wallet maximum BTC
+    ///        transfer in satoshi, than can be sent  to a single target wallet
+    //         during the moving funds process.
+    /// @dev Requirements:
+    ///      - Wallet minimum BTC balance must be greater than zero
+    ///      - Wallet maximum BTC balance must be greater than the wallet
+    ///        minimum BTC balance
+    ///      - Wallet maximum BTC transfer must be greater than zero
+    function updateWalletParameters(
+        uint32 walletCreationPeriod,
+        uint64 walletMinBtcBalance,
+        uint64 walletMaxBtcBalance,
+        uint32 walletMaxAge,
+        uint64 walletMaxBtcTransfer
+    ) external onlyOwner {
+        self.updateWalletParameters(
+            walletCreationPeriod,
+            walletMinBtcBalance,
+            walletMaxBtcBalance,
+            walletMaxAge,
+            walletMaxBtcTransfer
+        );
+    }
+
+    // TODO: updateFraudParameters
+
+    /// @notice Collection of all revealed deposits indexed by
+    ///         keccak256(fundingTxHash | fundingOutputIndex).
+    ///         The fundingTxHash is bytes32 (ordered as in Bitcoin internally)
+    ///         and fundingOutputIndex an uint32. This mapping may contain valid
+    ///         and invalid deposits and the wallet is responsible for
+    ///         validating them before attempting to execute a sweep.
+    function deposits(uint256 depositKey)
         external
         view
-        returns (uint256 txProofDifficultyFactor)
+        returns (Deposit.DepositRequest memory)
     {
-        txProofDifficultyFactor = self.txProofDifficultyFactor;
+        return self.deposits[depositKey];
+    }
+
+    /// @notice Collection of all pending redemption requests indexed by
+    ///         redemption key built as
+    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
+    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
+    ///         public key) and redeemerOutputScript is a Bitcoin script
+    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
+    ///         redeemed BTC as requested by the redeemer. Requests are added
+    ///         to this mapping by the `requestRedemption` method (duplicates
+    ///         not allowed) and are removed by one of the following methods:
+    ///         - `submitRedemptionProof` in case the request was handled
+    ///           successfully
+    ///         - `notifyRedemptionTimeout` in case the request was reported
+    ///           to be timed out
+    function pendingRedemptions(uint256 redemptionKey)
+        external
+        view
+        returns (Redemption.RedemptionRequest memory)
+    {
+        return self.pendingRedemptions[redemptionKey];
+    }
+
+    /// @notice Collection of all timed out redemptions requests indexed by
+    ///         redemption key built as
+    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
+    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
+    ///         public key) and redeemerOutputScript is the Bitcoin script
+    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed
+    ///         out request. Timed out requests are stored in this mapping to
+    ///         avoid slashing the wallets multiple times for the same timeout.
+    ///         Only one method can add to this mapping:
+    ///         - `notifyRedemptionTimeout` which puts the redemption key
+    ///           to this mapping basing on a timed out request stored
+    ///           previously in `pendingRedemptions` mapping.
+    function timedOutRedemptions(uint256 redemptionKey)
+        external
+        view
+        returns (Redemption.RedemptionRequest memory)
+    {
+        return self.timedOutRedemptions[redemptionKey];
+    }
+
+    /// @notice Collection of main UTXOs that are honestly spent indexed by
+    ///         keccak256(fundingTxHash | fundingOutputIndex). The fundingTxHash
+    ///         is bytes32 (ordered as in Bitcoin internally) and
+    ///         fundingOutputIndex an uint32. A main UTXO is considered honestly
+    ///         spent if it was used as an input of a transaction that have been
+    ///         proven in the Bridge.
+    function spentMainUTXOs(uint256 utxoKey) external view returns (bool) {
+        return self.spentMainUTXOs[utxoKey];
+    }
+
+    /// @notice Gets details about a registered wallet.
+    /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key)
+    /// @return Wallet details.
+    function wallets(bytes20 walletPubKeyHash)
+        external
+        view
+        returns (Wallets.Wallet memory)
+    {
+        return self.registeredWallets[walletPubKeyHash];
+    }
+
+    /// @notice Gets the public key hash of the active wallet.
+    /// @return The 20-byte public key hash (computed using Bitcoin HASH160
+    ///         over the compressed ECDSA public key) of the active wallet.
+    ///         Returns bytes20(0) if there is no active wallet at the moment.
+    function activeWalletPubKeyHash() external view returns (bytes20) {
+        return self.activeWalletPubKeyHash;
+    }
+
+    /// @return Current count of wallets being in the Live state.
+    function liveWalletsCount() external view returns (uint32) {
+        return self.liveWalletsCount;
+    }
+
+    /// @notice Returns the fraud challenge identified by the given key built
+    ///         as keccak256(walletPublicKey|sighash).
+    function fraudChallenges(uint256 challengeKey)
+        external
+        view
+        returns (Fraud.FraudChallenge memory)
+    {
+        return self.fraudChallenges[challengeKey];
+    }
+
+    /// @notice Indicates if the vault with the given address is trusted or not.
+    ///         Depositors can route their revealed deposits only to trusted
+    ///         vaults and have trusted vaults notified about new deposits as
+    ///         soon as these deposits get swept. Vaults not trusted by the
+    ///         Bridge can still be used by Bank balance owners on their own
+    ///         responsibility - anyone can approve their Bank balance to any
+    ///         address.
+    function isVaultTrusted(address vault) external view returns (bool) {
+        return self.isVaultTrusted[vault];
     }
 
     /// @notice Returns the current values of Bridge deposit parameters.
@@ -877,9 +948,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout,
-            address treasury,
-            uint256 txProofDifficultyFactor
+            uint256 redemptionTimeout
         )
     {
         redemptionDustThreshold = self.redemptionDustThreshold;
@@ -901,32 +970,6 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     {
         // TODO: we will have more parameters here, for example moving funds timeout
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
-    }
-
-    /// @notice Returns the current values of Bridge fraud parameters.
-    /// @return fraudSlashingAmount The amount slashed from each wallet member
-    ///         for committing a fraud.
-    /// @return fraudNotifierRewardMultiplier The percentage of the notifier
-    ///         reward from the staking contract the notifier of a fraud
-    ///         receives. The value is in the range [0, 100].
-    /// @return fraudChallengeDefeatTimeout The amount of time the wallet has to
-    ///         defeat a fraud challenge.
-    /// @return fraudChallengeDepositAmount The amount of ETH in wei the party
-    ///         challenging the wallet for fraud needs to deposit.
-    function fraudParameters()
-        external
-        view
-        returns (
-            uint256 fraudSlashingAmount,
-            uint256 fraudNotifierRewardMultiplier,
-            uint256 fraudChallengeDefeatTimeout,
-            uint256 fraudChallengeDepositAmount
-        )
-    {
-        fraudSlashingAmount = self.fraudSlashingAmount;
-        fraudNotifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
-        fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
-        fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet
@@ -958,116 +1001,54 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         walletMaxBtcTransfer = self.walletMaxBtcTransfer;
     }
 
-    /// @notice Updates parameters of wallets.
-    /// @param walletCreationPeriod New value of the wallet creation period in
-    ///        seconds, determines how frequently a new wallet creation can be
-    ///        requested
-    /// @param walletMinBtcBalance New value of the wallet minimum BTC balance
-    ///        in sathoshis, used to decide about wallet creation or closing
-    /// @param walletMaxBtcBalance New value of the wallet maximum BTC balance
-    ///        in sathoshis, used to decide about wallet creation
-    /// @param walletMaxAge New value of the wallet maximum age in seconds,
-    ///        indicates the maximum age of a wallet in seconds, after which
-    ///        the wallet moving funds process can be requested
-    /// @param walletMaxBtcTransfer New value of the wallet maximum BTC
-    ///        transfer in satoshi, than can be sent  to a single target wallet
-    //         during the moving funds process.
-    /// @dev Requirements:
-    ///      - Wallet minimum BTC balance must be greater than zero
-    ///      - Wallet maximum BTC balance must be greater than the wallet
-    ///        minimum BTC balance
-    ///      - Wallet maximum BTC transfer must be greater than zero
-    function updateWalletParameters(
-        uint32 walletCreationPeriod,
-        uint64 walletMinBtcBalance,
-        uint64 walletMaxBtcBalance,
-        uint32 walletMaxAge,
-        uint64 walletMaxBtcTransfer
-    ) external onlyOwner {
-        self.updateWalletParameters(
-            walletCreationPeriod,
-            walletMinBtcBalance,
-            walletMaxBtcBalance,
-            walletMaxAge,
-            walletMaxBtcTransfer
-        );
-    }
-
-    /// @notice Indicates if the vault with the given address is trusted or not.
-    ///         Depositors can route their revealed deposits only to trusted
-    ///         vaults and have trusted vaults notified about new deposits as
-    ///         soon as these deposits get swept. Vaults not trusted by the
-    ///         Bridge can still be used by Bank balance owners on their own
-    ///         responsibility - anyone can approve their Bank balance to any
-    ///         address.
-    function isVaultTrusted(address vault) external view returns (bool) {
-        return self.isVaultTrusted[vault];
-    }
-
-    /// @notice Collection of all revealed deposits indexed by
-    ///         keccak256(fundingTxHash | fundingOutputIndex).
-    ///         The fundingTxHash is bytes32 (ordered as in Bitcoin internally)
-    ///         and fundingOutputIndex an uint32. This mapping may contain valid
-    ///         and invalid deposits and the wallet is responsible for
-    ///         validating them before attempting to execute a sweep.
-    function deposits(uint256 depositKey)
+    /// @notice Returns the current values of Bridge fraud parameters.
+    /// @return fraudSlashingAmount The amount slashed from each wallet member
+    ///         for committing a fraud.
+    /// @return fraudNotifierRewardMultiplier The percentage of the notifier
+    ///         reward from the staking contract the notifier of a fraud
+    ///         receives. The value is in the range [0, 100].
+    /// @return fraudChallengeDefeatTimeout The amount of time the wallet has to
+    ///         defeat a fraud challenge.
+    /// @return fraudChallengeDepositAmount The amount of ETH in wei the party
+    ///         challenging the wallet for fraud needs to deposit.
+    function fraudParameters()
         external
         view
-        returns (Deposit.DepositRequest memory)
+        returns (
+            uint256 fraudSlashingAmount,
+            uint256 fraudNotifierRewardMultiplier,
+            uint256 fraudChallengeDefeatTimeout,
+            uint256 fraudChallengeDepositAmount
+        )
     {
-        return self.deposits[depositKey];
+        fraudSlashingAmount = self.fraudSlashingAmount;
+        fraudNotifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
+        fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
+        fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
     }
 
-    /// @notice Collection of main UTXOs that are honestly spent indexed by
-    ///         keccak256(fundingTxHash | fundingOutputIndex). The fundingTxHash
-    ///         is bytes32 (ordered as in Bitcoin internally) and
-    ///         fundingOutputIndex an uint32. A main UTXO is considered honestly
-    ///         spent if it was used as an input of a transaction that have been
-    ///         proven in the Bridge.
-    function spentMainUTXOs(uint256 utxoKey) external view returns (bool) {
-        return self.spentMainUTXOs[utxoKey];
-    }
-
-    /// @notice Collection of all pending redemption requests indexed by
-    ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
-    ///         walletPubKeyHash is the 20-byte wallet's public key hash
-    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputScript is a Bitcoin script
-    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
-    ///         redeemed BTC as requested by the redeemer. Requests are added
-    ///         to this mapping by the `requestRedemption` method (duplicates
-    ///         not allowed) and are removed by one of the following methods:
-    ///         - `submitRedemptionProof` in case the request was handled
-    ///           successfully
-    ///         - `notifyRedemptionTimeout` in case the request was reported
-    ///           to be timed out
-    function pendingRedemptions(uint256 redemptionKey)
+    /// @notice Returns the addresses of contracts Bridge is interacting with.
+    /// @return bank Address of the Bank the Bridge belongs to.
+    /// @return relay Address of the Bitcoin relay providing the current Bitcoin
+    ///         network difficulty.
+    function contractReferences()
         external
         view
-        returns (Redeem.RedemptionRequest memory)
+        returns (Bank bank, IRelay relay)
     {
-        return self.pendingRedemptions[redemptionKey];
+        bank = self.bank;
+        relay = self.relay;
     }
 
-    /// @notice Collection of all timed out redemptions requests indexed by
-    ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
-    ///         walletPubKeyHash is the 20-byte wallet's public key hash
-    ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputScript is the Bitcoin script
-    ///         (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed
-    ///         out request. Timed out requests are stored in this mapping to
-    ///         avoid slashing the wallets multiple times for the same timeout.
-    ///         Only one method can add to this mapping:
-    ///         - `notifyRedemptionTimeout` which puts the redemption key
-    ///           to this mapping basing on a timed out request stored
-    ///           previously in `pendingRedemptions` mapping.
-    function timedOutRedemptions(uint256 redemptionKey)
-        external
-        view
-        returns (Redeem.RedemptionRequest memory)
-    {
-        return self.timedOutRedemptions[redemptionKey];
+    /// @notice Address where the deposit treasury fees will be sent to.
+    ///         Treasury takes part in the operators rewarding process.
+    function treasury() external view returns (address) {
+        return self.treasury;
+    }
+
+    /// @notice The number of confirmations on the Bitcoin chain required to
+    ///         successfully evaluate an SPV proof.
+    function txProofDifficultyFactor() external view returns (uint256) {
+        return self.txProofDifficultyFactor;
     }
 }

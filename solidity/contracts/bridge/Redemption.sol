@@ -140,10 +140,18 @@ library OutboundTx {
     }
 }
 
-// TODO: Rename to Redemption. All library names are nouns.
-library Redeem {
+/// @title Bridge redemption
+/// @notice The library handles the logic for redeeming Bitcoin balances from
+///         the Bridge.
+/// @dev To initiate a redemption, a user with a Bank balance supplies
+///      a Bitcoin address. Then, the system calculates the redemption fee, and
+///      releases balance to the provided Bitcoin address. Just like in case of
+///      sweeps of revealed deposits, redemption requests are processed in
+///      batches and require SPV proof to be submitted to the Bridge.
+library Redemption {
     using BridgeState for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
+    using BitcoinTx for BridgeState.Storage;
 
     using BTCUtils for bytes;
     using BytesLib for bytes;
@@ -430,10 +438,9 @@ library Redeem {
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 redemptionTxHash = BitcoinTx.validateProof(
+        bytes32 redemptionTxHash = self.validateProof(
             redemptionTx,
-            redemptionProof,
-            self.proofDifficultyContext()
+            redemptionProof
         );
 
         // Process the redemption transaction input. Specifically, check if it
@@ -791,7 +798,7 @@ library Redeem {
         uint256 redemptionKey = uint256(
             keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
         );
-        Redeem.RedemptionRequest memory request = self.pendingRedemptions[
+        Redemption.RedemptionRequest memory request = self.pendingRedemptions[
             redemptionKey
         ];
 

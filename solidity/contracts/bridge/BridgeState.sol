@@ -19,7 +19,7 @@ import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contra
 
 import "./IRelay.sol";
 import "./Deposit.sol";
-import "./Redeem.sol";
+import "./Redemption.sol";
 import "./Fraud.sol";
 import "./Wallets.sol";
 
@@ -125,7 +125,7 @@ library BridgeState {
         //    successfully
         // - `notifyRedemptionTimeout` in case the request was reported
         //    to be timed out
-        mapping(uint256 => Redeem.RedemptionRequest) pendingRedemptions;
+        mapping(uint256 => Redemption.RedemptionRequest) pendingRedemptions;
         // Collection of all timed out redemptions requests indexed by
         // redemption key built as
         // `keccak256(walletPubKeyHash | redeemerOutputScript)`. The
@@ -139,7 +139,7 @@ library BridgeState {
         // - `notifyRedemptionTimeout` which puts the redemption key to this
         //    mapping basing on a timed out request stored previously in
         //    `pendingRedemptions` mapping.
-        mapping(uint256 => Redeem.RedemptionRequest) timedOutRedemptions;
+        mapping(uint256 => Redemption.RedemptionRequest) timedOutRedemptions;
         // The amount of stake slashed from each member of a wallet for a fraud.
         uint256 fraudSlashingAmount;
         // The percentage of the notifier reward from the staking contract
@@ -200,9 +200,9 @@ library BridgeState {
     ///        seconds, determines how frequently a new wallet creation can be
     ///        requested
     /// @param _walletMinBtcBalance New value of the wallet minimum BTC balance
-    ///        in sathoshis, used to decide about wallet creation or closing
+    ///        in satoshis, used to decide about wallet creation or closing
     /// @param _walletMaxBtcBalance New value of the wallet maximum BTC balance
-    ///        in sathoshis, used to decide about wallet creation
+    ///        in satoshis, used to decide about wallet creation
     /// @param _walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
     ///        the wallet moving funds process can be requested
@@ -248,23 +248,5 @@ library BridgeState {
             _walletMaxAge,
             _walletMaxBtcTransfer
         );
-    }
-
-    // TODO: Is it the right place for this function? Should we move it to Bridge?
-    /// @notice Determines the current Bitcoin SPV proof difficulty context.
-    /// @return proofDifficulty Bitcoin proof difficulty context.
-    function proofDifficultyContext(Storage storage self)
-        internal
-        view
-        returns (BitcoinTx.ProofDifficulty memory proofDifficulty)
-    {
-        IRelay relay = self.relay;
-        proofDifficulty.currentEpochDifficulty = relay
-            .getCurrentEpochDifficulty();
-        proofDifficulty.previousEpochDifficulty = relay
-            .getPrevEpochDifficulty();
-        proofDifficulty.difficultyFactor = self.txProofDifficultyFactor;
-
-        return proofDifficulty;
     }
 }

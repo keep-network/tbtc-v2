@@ -547,26 +547,25 @@ describe("Bridge - Wallets", () => {
 
         it("should register ECDSA wallet reference", async () => {
           expect(
-            (await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160))
+            (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160))
               .ecdsaWalletID
           ).equals(ecdsaWalletTestData.walletID)
         })
 
         it("should transition wallet to Live state", async () => {
           expect(
-            (await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160)).state
+            (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)).state
           ).equals(walletState.Live)
         })
 
         it("should set the created at timestamp", async () => {
           expect(
-            (await bridge.getWallet(ecdsaWalletTestData.pubKeyHash160))
-              .createdAt
+            (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)).createdAt
           ).equals(await lastBlockTime())
         })
 
         it("should set the wallet as the active one", async () => {
-          expect(await bridge.getActiveWalletPubKeyHash()).equals(
+          expect(await bridge.activeWalletPubKeyHash()).equals(
             ecdsaWalletTestData.pubKeyHash160
           )
         })
@@ -735,7 +734,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should change wallet's state to Closed", async () => {
-              const { state } = await bridge.getWallet(
+              const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
@@ -759,7 +758,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should unset the active wallet", async () => {
-              expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
+              expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
                 "0x0000000000000000000000000000000000000000"
               )
             })
@@ -796,7 +795,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should change wallet's state to Closed", async () => {
-              const { state } = await bridge.getWallet(
+              const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
@@ -820,7 +819,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should not unset the active wallet", async () => {
-              expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
+              expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
                 ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
               )
             })
@@ -872,7 +871,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should change wallet's state to MovingFunds", async () => {
-              const { state } = await bridge.getWallet(
+              const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
@@ -880,7 +879,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should set move funds requested at timestamp", async () => {
-              const { movingFundsRequestedAt } = await bridge.getWallet(
+              const { movingFundsRequestedAt } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
@@ -902,7 +901,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should unset the active wallet", async () => {
-              expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
+              expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
                 "0x0000000000000000000000000000000000000000"
               )
             })
@@ -939,7 +938,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should change wallet's state to MovingFunds", async () => {
-              const { state } = await bridge.getWallet(
+              const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
@@ -947,7 +946,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should set move funds requested at timestamp", async () => {
-              const { movingFundsRequestedAt } = await bridge.getWallet(
+              const { movingFundsRequestedAt } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
@@ -969,7 +968,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should not unset the active wallet", async () => {
-              expect(await bridge.getActiveWalletPubKeyHash()).to.be.equal(
+              expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
                 ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
               )
             })
@@ -1110,7 +1109,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should change wallet's state to Closed", async () => {
-              const { state } = await bridge.getWallet(
+              const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
@@ -1171,7 +1170,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should change wallet's state to MovingFunds", async () => {
-              const { state } = await bridge.getWallet(
+              const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
@@ -1179,7 +1178,7 @@ describe("Bridge - Wallets", () => {
             })
 
             it("should set move funds requested at timestamp", async () => {
-              const { movingFundsRequestedAt } = await bridge.getWallet(
+              const { movingFundsRequestedAt } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
@@ -1230,7 +1229,7 @@ describe("Bridge - Wallets", () => {
               })
 
               it("should change wallet's state to Closed", async () => {
-                const { state } = await bridge.getWallet(
+                const { state } = await bridge.wallets(
                   ecdsaWalletTestData.pubKeyHash160
                 )
 
@@ -1291,7 +1290,7 @@ describe("Bridge - Wallets", () => {
               })
 
               it("should change wallet's state to MovingFunds", async () => {
-                const { state } = await bridge.getWallet(
+                const { state } = await bridge.wallets(
                   ecdsaWalletTestData.pubKeyHash160
                 )
 
@@ -1299,7 +1298,7 @@ describe("Bridge - Wallets", () => {
               })
 
               it("should set move funds requested at timestamp", async () => {
-                const { movingFundsRequestedAt } = await bridge.getWallet(
+                const { movingFundsRequestedAt } = await bridge.wallets(
                   ecdsaWalletTestData.pubKeyHash160
                 )
 
