@@ -192,6 +192,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.redemptionTxMaxFee = 10000; // 10000 satoshi
         self.redemptionTimeout = 172800; // 48 hours
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
+        self.movingFundsTimeout = 7 days;
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.fraudChallengeDefeatTimeout = 7 days;
@@ -969,13 +970,17 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         transaction fee that is acceptable in a single moving funds
     ///         transaction. This is a _total_ max fee for the entire moving
     ///         funds transaction.
+    /// @return movingFundsTimeout Time after which the moving funds process
+    ///         can be reported as timed out. It is counted from the moment
+    ///         when the wallet was requested to move their funds and switched
+    ///         to the MovingFunds state.
     function movingFundsParameters()
         external
         view
-        returns (uint64 movingFundsTxMaxTotalFee)
+        returns (uint64 movingFundsTxMaxTotalFee, uint32 movingFundsTimeout)
     {
-        // TODO: we will have more parameters here, for example moving funds timeout
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
+        movingFundsTimeout = self.movingFundsTimeout;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet

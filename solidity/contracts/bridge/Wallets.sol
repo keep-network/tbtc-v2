@@ -639,7 +639,7 @@ library Wallets {
         require(
             /* solhint-disable-next-line not-rely-on-time */
             block.timestamp >
-                wallet.movingFundsRequestedAt + self.walletMovingFundsTimeout,
+                wallet.movingFundsRequestedAt + self.movingFundsTimeout,
             "Moving funds has not timed out"
         );
 
