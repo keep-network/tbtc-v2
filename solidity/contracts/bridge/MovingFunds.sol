@@ -55,13 +55,13 @@ library MovingFunds {
     ///         proof submission.
     /// @param walletPubKeyHash 20-byte public key hash of the source wallet
     /// @param walletMainUtxo Data of the source wallet's main UTXO, as
-    ///        currently known on the Ethereum chain.
+    ///        currently known on the Ethereum chain
     /// @param walletMembersIDs Identifiers of the source wallet signing group
     ///        members
     /// @param walletMemberIndex Position of the caller in the source wallet
     ///        signing group members list
     /// @param targetWallets List of 20-byte public key hashes of the target
-    ///        wallets that the source wallet commits to
+    ///        wallets that the source wallet commits to move the funds to
     /// @dev Requirements:
     ///      - The source wallet must be in the MovingFunds state
     ///      - The source wallet must not have pending redemption requests
