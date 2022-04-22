@@ -32,7 +32,7 @@ contract BridgeStub is Bridge {
                     abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
                 )
             );
-            deposits[utxoKey].sweptAt = 1641650400;
+            self.deposits[utxoKey].sweptAt = 1641650400;
         }
     }
 
@@ -43,19 +43,19 @@ contract BridgeStub is Bridge {
                     abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
                 )
             );
-            spentMainUTXOs[utxoKey] = true;
+            self.spentMainUTXOs[utxoKey] = true;
         }
     }
 
     function setActiveWallet(bytes20 activeWalletPubKeyHash) external {
-        wallets.activeWalletPubKeyHash = activeWalletPubKeyHash;
+        self.activeWalletPubKeyHash = activeWalletPubKeyHash;
     }
 
     function setWalletMainUtxo(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
-        wallets.registeredWallets[walletPubKeyHash].mainUtxoHash = keccak256(
+        self.registeredWallets[walletPubKeyHash].mainUtxoHash = keccak256(
             abi.encodePacked(
                 utxo.txHash,
                 utxo.txOutputIndex,
@@ -65,38 +65,38 @@ contract BridgeStub is Bridge {
     }
 
     function unsetWalletMainUtxo(bytes20 walletPubKeyHash) external {
-        delete wallets.registeredWallets[walletPubKeyHash].mainUtxoHash;
+        delete self.registeredWallets[walletPubKeyHash].mainUtxoHash;
     }
 
     function setWallet(bytes20 walletPubKeyHash, Wallets.Wallet calldata wallet)
         external
     {
-        wallets.registeredWallets[walletPubKeyHash] = wallet;
+        self.registeredWallets[walletPubKeyHash] = wallet;
     }
 
     function setDepositDustThreshold(uint64 _depositDustThreshold) external {
-        depositDustThreshold = _depositDustThreshold;
+        self.depositDustThreshold = _depositDustThreshold;
     }
 
     function setDepositTxMaxFee(uint64 _depositTxMaxFee) external {
-        depositTxMaxFee = _depositTxMaxFee;
+        self.depositTxMaxFee = _depositTxMaxFee;
     }
 
     function setRedemptionDustThreshold(uint64 _redemptionDustThreshold)
         external
     {
-        redemptionDustThreshold = _redemptionDustThreshold;
+        self.redemptionDustThreshold = _redemptionDustThreshold;
     }
 
     function setRedemptionTreasuryFeeDivisor(
         uint64 _redemptionTreasuryFeeDivisor
     ) external {
-        redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
+        self.redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
     }
 
     function setMovingFundsTxMaxTotalFee(uint64 _movingFundsTxMaxTotalFee)
         external
     {
-        movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
+        self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
     }
 }

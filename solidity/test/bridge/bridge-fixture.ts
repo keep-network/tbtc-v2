@@ -4,15 +4,18 @@ import type {
   Bank,
   BankStub,
   BankStub__factory,
-  BitcoinTx__factory,
+  Deposit__factory,
+  Sweep__factory,
+  Redemption__factory,
+  MovingFunds__factory,
+  Wallets__factory,
   Bridge,
   BridgeStub,
   BridgeStub__factory,
   IWalletRegistry,
-  Frauds,
-  Frauds__factory,
+  Fraud,
+  Fraud__factory,
   IRelay,
-  Wallets__factory,
 } from "../../typechain"
 
 /**
@@ -35,27 +38,44 @@ const bridgeFixture = async () => {
     value: ethers.utils.parseEther("1"),
   })
 
-  const BitcoinTx = await ethers.getContractFactory<BitcoinTx__factory>(
-    "BitcoinTx"
-  )
-  const bitcoinTx = await BitcoinTx.deploy()
-  await bitcoinTx.deployed()
-
   const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
   const wallets = await Wallets.deploy()
   await wallets.deployed()
 
-  const Frauds = await ethers.getContractFactory<Frauds__factory>("Frauds")
-  const frauds: Frauds = await Frauds.deploy()
-  await frauds.deployed()
+  const Deposit = await ethers.getContractFactory<Deposit__factory>("Deposit")
+  const deposit = await Deposit.deploy()
+  await deposit.deployed()
+
+  const Sweep = await ethers.getContractFactory<Sweep__factory>("Sweep")
+  const sweep = await Sweep.deploy()
+  await sweep.deployed()
+
+  const Redemption = await ethers.getContractFactory<Redemption__factory>(
+    "Redemption"
+  )
+  const redemption = await Redemption.deploy()
+  await redemption.deployed()
+
+  const MovingFunds = await ethers.getContractFactory<MovingFunds__factory>(
+    "MovingFunds"
+  )
+  const movingFunds = await MovingFunds.deploy()
+  await movingFunds.deployed()
+
+  const Fraud = await ethers.getContractFactory<Fraud__factory>("Fraud")
+  const fraud: Fraud = await Fraud.deploy()
+  await fraud.deployed()
 
   const Bridge = await ethers.getContractFactory<BridgeStub__factory>(
     "BridgeStub",
     {
       libraries: {
-        BitcoinTx: bitcoinTx.address,
+        Deposit: deposit.address,
+        Sweep: sweep.address,
+        Redemption: redemption.address,
         Wallets: wallets.address,
-        Frauds: frauds.address,
+        Fraud: fraud.address,
+        MovingFunds: movingFunds.address,
       },
     }
   )

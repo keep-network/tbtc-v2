@@ -21,38 +21,13 @@ import {EcdsaDkg} from "@keep-network/ecdsa/contracts/libraries/EcdsaDkg.sol";
 
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
+import "./BridgeState.sol";
 
 /// @title Wallet library
 /// @notice Library responsible for handling integration between Bridge
 ///         contract and ECDSA wallets.
 library Wallets {
     using BTCUtils for bytes;
-
-    /// @notice Struct that groups the state managed by the library.
-    struct Data {
-        // ECDSA Wallet Registry contract handle.
-        EcdsaWalletRegistry registry;
-        // Determines how frequently a new wallet creation can be requested.
-        // Value in seconds.
-        uint32 creationPeriod;
-        // The minimum BTC threshold in satoshi that is used to decide about
-        // wallet creation or closing.
-        uint64 minBtcBalance;
-        // The maximum BTC threshold in satoshi that is used to decide about
-        // wallet creation.
-        uint64 maxBtcBalance;
-        // The maximum age of a wallet in seconds, after which the wallet
-        // moving funds process can be requested.
-        uint32 maxAge;
-        // 20-byte wallet public key hash being reference to the currently
-        // active wallet. Can be unset to the zero value under certain
-        // circumstances.
-        bytes20 activeWalletPubKeyHash;
-        // Maps the 20-byte wallet public key hash (computed using Bitcoin
-        // HASH160 over the compressed ECDSA public key) to the basic wallet
-        // information like state and pending redemptions value.
-        mapping(bytes20 => Wallet) registeredWallets;
-    }
 
     /// @notice Represents wallet state:
     enum WalletState {
@@ -101,15 +76,6 @@ library Wallets {
         bytes32 movingFundsTargetWalletsCommitmentHash;
     }
 
-    event WalletCreationPeriodUpdated(uint32 newCreationPeriod);
-
-    event WalletBtcBalanceRangeUpdated(
-        uint64 newMinBtcBalance,
-        uint64 newMaxBtcBalance
-    );
-
-    event WalletMaxAgeUpdated(uint32 newMaxAge);
-
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -132,64 +98,6 @@ library Wallets {
         bytes20 indexed walletPubKeyHash
     );
 
-    /// @notice Initializes state invariants.
-    /// @param registry ECDSA Wallet Registry reference
-    /// @dev Requirements:
-    ///      - ECDSA Wallet Registry address must not be initialized
-    function init(Data storage self, address registry) external {
-        require(
-            registry != address(0),
-            "ECDSA Wallet Registry address cannot be zero"
-        );
-        require(
-            address(self.registry) == address(0),
-            "ECDSA Wallet Registry address already set"
-        );
-
-        self.registry = EcdsaWalletRegistry(registry);
-    }
-
-    /// @notice Sets the wallet creation period.
-    /// @param creationPeriod New value of the wallet creation period
-    function setCreationPeriod(Data storage self, uint32 creationPeriod)
-        external
-    {
-        self.creationPeriod = creationPeriod;
-
-        emit WalletCreationPeriodUpdated(creationPeriod);
-    }
-
-    /// @notice Sets the minimum and maximum BTC balance parameters.
-    /// @param minBtcBalance New value of the minimum BTC balance
-    /// @param maxBtcBalance New value of the maximum BTC balance
-    /// @dev Requirements:
-    ///      - Minimum BTC balance must be greater than zero
-    ///      - Maximum BTC balance must be greater than minimum BTC balance
-    function setBtcBalanceRange(
-        Data storage self,
-        uint64 minBtcBalance,
-        uint64 maxBtcBalance
-    ) external {
-        require(minBtcBalance > 0, "Minimum must be greater than zero");
-        require(
-            maxBtcBalance > minBtcBalance,
-            "Maximum must be greater than the minimum"
-        );
-
-        self.minBtcBalance = minBtcBalance;
-        self.maxBtcBalance = maxBtcBalance;
-
-        emit WalletBtcBalanceRangeUpdated(minBtcBalance, maxBtcBalance);
-    }
-
-    /// @notice Sets the wallet maximum age.
-    /// @param maxAge New value of the wallet maximum age
-    function setMaxAge(Data storage self, uint32 maxAge) external {
-        self.maxAge = maxAge;
-
-        emit WalletMaxAgeUpdated(maxAge);
-    }
-
     /// @notice Requests creation of a new wallet. This function just
     ///         forms a request and the creation process is performed
     ///         asynchronously. Outcome of that process should be delivered
@@ -210,11 +118,12 @@ library Wallets {
     ///           was elapsed since its creation time
     ///        - The active wallet BTC balance is above the maximum threshold
     function requestNewWallet(
-        Data storage self,
+        BridgeState.Storage storage self,
         BitcoinTx.UTXO calldata activeWalletMainUtxo
     ) external {
         require(
-            self.registry.getWalletCreationState() == EcdsaDkg.State.IDLE,
+            self.ecdsaWalletRegistry.getWalletCreationState() ==
+                EcdsaDkg.State.IDLE,
             "Wallet creation already in progress"
         );
 
@@ -235,19 +144,19 @@ library Wallets {
                 .createdAt;
             /* solhint-disable-next-line not-rely-on-time */
             bool activeWalletOldEnough = block.timestamp >=
-                activeWalletCreatedAt + self.creationPeriod;
+                activeWalletCreatedAt + self.walletCreationPeriod;
 
             require(
                 (activeWalletOldEnough &&
-                    activeWalletBtcBalance >= self.minBtcBalance) ||
-                    activeWalletBtcBalance >= self.maxBtcBalance,
+                    activeWalletBtcBalance >= self.walletMinBtcBalance) ||
+                    activeWalletBtcBalance >= self.walletMaxBtcBalance,
                 "Wallet creation conditions are not met"
             );
         }
 
         emit NewWalletRequested();
 
-        self.registry.requestNewWallet();
+        self.ecdsaWalletRegistry.requestNewWallet();
     }
 
     /// @notice Gets BTC balance for given the wallet.
@@ -261,7 +170,7 @@ library Wallets {
     ///        If the wallet has no main UTXO, this parameter can be empty as it
     ///        is ignored.
     function getWalletBtcBalance(
-        Data storage self,
+        BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
     ) internal view returns (uint64 walletBtcBalance) {
@@ -300,13 +209,13 @@ library Wallets {
     ///      - The only caller authorized to call this function is `registry`
     ///      - Given wallet data must not belong to an already registered wallet
     function registerNewWallet(
-        Data storage self,
+        BridgeState.Storage storage self,
         bytes32 ecdsaWalletID,
         bytes32 publicKeyX,
         bytes32 publicKeyY
     ) external {
         require(
-            msg.sender == address(self.registry),
+            msg.sender == address(self.ecdsaWalletRegistry),
             "Caller is not the ECDSA Wallet Registry"
         );
 
@@ -339,12 +248,12 @@ library Wallets {
     ///      - The only caller authorized to call this function is `registry`
     ///      - Wallet must be in Live state
     function notifyWalletHeartbeatFailed(
-        Data storage self,
+        BridgeState.Storage storage self,
         bytes32 publicKeyX,
         bytes32 publicKeyY
     ) external {
         require(
-            msg.sender == address(self.registry),
+            msg.sender == address(self.ecdsaWalletRegistry),
             "Caller is not the ECDSA Wallet Registry"
         );
 
@@ -370,10 +279,10 @@ library Wallets {
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - The wallet must be in the `Live` or `MovingFunds` state
-    function notifyRedemptionTimedOut(
-        Data storage self,
+    function notifyWalletTimedOutRedemption(
+        BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
-    ) external {
+    ) internal {
         WalletState walletState = self
             .registeredWallets[walletPubKeyHash]
             .state;
@@ -408,7 +317,7 @@ library Wallets {
     ///        assumed to be zero.
     ///      - Wallet must be in Live state
     function notifyCloseableWallet(
-        Data storage self,
+        BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
     ) external {
@@ -425,12 +334,12 @@ library Wallets {
 
         /* solhint-disable-next-line not-rely-on-time */
         bool walletOldEnough = block.timestamp >=
-            wallet.createdAt + self.maxAge;
+            wallet.createdAt + self.walletMaxAge;
 
         require(
             walletOldEnough ||
                 getWalletBtcBalance(self, walletPubKeyHash, walletMainUtxo) <
-                self.minBtcBalance,
+                self.walletMinBtcBalance,
             "Wallet needs to be old enough or have too few satoshis"
         );
 
@@ -446,7 +355,10 @@ library Wallets {
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the Live state
-    function moveFunds(Data storage self, bytes20 walletPubKeyHash) internal {
+    function moveFunds(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
 
         if (wallet.mainUtxoHash == bytes32(0)) {
@@ -476,14 +388,17 @@ library Wallets {
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the
     ///        Live or MovingFunds state.
-    function closeWallet(Data storage self, bytes20 walletPubKeyHash) internal {
+    function closeWallet(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
 
         wallet.state = WalletState.Closed;
 
         emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
 
-        self.registry.closeWallet(wallet.ecdsaWalletID);
+        self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
     }
 
     /// @notice Reports about a fraud committed by the given wallet. This
@@ -493,7 +408,10 @@ library Wallets {
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - Wallet must be in Live or MovingFunds state
-    function notifyFraud(Data storage self, bytes20 walletPubKeyHash) external {
+    function notifyWalletFraud(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
         WalletState walletState = self
             .registeredWallets[walletPubKeyHash]
             .state;
@@ -518,9 +436,10 @@ library Wallets {
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the
     ///        Live or MovingFunds state.
-    function terminateWallet(Data storage self, bytes20 walletPubKeyHash)
-        internal
-    {
+    function terminateWallet(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
 
         wallet.state = WalletState.Terminated;
@@ -534,7 +453,7 @@ library Wallets {
             delete self.activeWalletPubKeyHash;
         }
 
-        self.registry.closeWallet(wallet.ecdsaWalletID);
+        self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
     }
 
     /// @notice Notifies that the wallet completed the moving funds process
@@ -553,11 +472,11 @@ library Wallets {
     ///        wallet.
     ///      - The actual target wallets used in the moving funds transaction
     ///        must be exactly the same as the target wallets commitment.
-    function notifyFundsMoved(
-        Data storage self,
+    function notifyWalletFundsMoved(
+        BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         bytes32 targetWalletsHash
-    ) external {
+    ) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
         // Check that the wallet is in the MovingFunds state but don't check
         // if the moving funds timeout is exceeded. That should give a
