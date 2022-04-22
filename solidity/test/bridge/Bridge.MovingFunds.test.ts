@@ -504,6 +504,10 @@ describe("Bridge - Moving funds", () => {
           state: walletState.Live,
         },
         {
+          testName: "when the source wallet is in the Closing state",
+          state: walletState.Closing,
+        },
+        {
           testName: "when the source wallet is in the Closed state",
           state: walletState.Closed,
         },
@@ -609,8 +613,6 @@ describe("Bridge - Moving funds", () => {
                                                 })
 
                                                 after(async () => {
-                                                  walletRegistry.closeWallet.reset()
-
                                                   await restoreSnapshot()
                                                 })
 
@@ -647,7 +649,7 @@ describe("Bridge - Moving funds", () => {
                                                   )
                                                 })
 
-                                                it("should put the source wallet in the Closed state", async () => {
+                                                it("should put the source wallet in the Closing state", async () => {
                                                   expect(
                                                     (
                                                       await bridge.wallets(
@@ -656,15 +658,28 @@ describe("Bridge - Moving funds", () => {
                                                       )
                                                     ).state
                                                   ).to.be.equal(
-                                                    walletState.Closed
+                                                    walletState.Closing
                                                   )
                                                 })
 
-                                                it("should emit the WalletClosed event", async () => {
+                                                it("should set the closing started timestamp", async () => {
+                                                  expect(
+                                                    (
+                                                      await bridge.wallets(
+                                                        test.data.wallet
+                                                          .pubKeyHash
+                                                      )
+                                                    ).closingStartedAt
+                                                  ).to.be.equal(
+                                                    await lastBlockTime()
+                                                  )
+                                                })
+
+                                                it("should emit the WalletClosing event", async () => {
                                                   await expect(tx)
                                                     .to.emit(
                                                       bridge,
-                                                      "WalletClosed"
+                                                      "WalletClosing"
                                                     )
                                                     .withArgs(
                                                       test.data.wallet
@@ -686,16 +701,6 @@ describe("Bridge - Moving funds", () => {
                                                       test.data.movingFundsTx
                                                         .hash
                                                     )
-                                                })
-
-                                                it("should call ECDSA Wallet Registry's closeWallet function", async () => {
-                                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                                                  expect(
-                                                    walletRegistry.closeWallet
-                                                  ).to.have.been.calledOnceWith(
-                                                    test.data.wallet
-                                                      .ecdsaWalletID
-                                                  )
                                                 })
                                               })
                                             })
@@ -894,6 +899,11 @@ describe("Bridge - Moving funds", () => {
                                       {
                                         testName: "when wallet state is Live",
                                         state: walletState.Live,
+                                      },
+                                      {
+                                        testName:
+                                          "when wallet state is Closing",
+                                        state: walletState.Closing,
                                       },
                                       {
                                         testName: "when wallet state is Closed",
@@ -1564,6 +1574,10 @@ describe("Bridge - Moving funds", () => {
         {
           testName: "when the source wallet is in the Live state",
           state: walletState.Live,
+        },
+        {
+          testName: "when the source wallet is in the Closing state",
+          state: walletState.Closing,
         },
         {
           testName: "when the source wallet is in the Closed state",

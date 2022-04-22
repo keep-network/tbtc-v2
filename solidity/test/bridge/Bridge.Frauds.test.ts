@@ -422,6 +422,10 @@ describe("Bridge - Fraud", () => {
           walletState: walletState.Unknown,
         },
         {
+          testName: "when wallet state is Closing",
+          walletState: walletState.Closing,
+        },
+        {
           testName: "when wallet state is Closed",
           walletState: walletState.Closed,
         },
