@@ -124,6 +124,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         bytes20 indexed walletPubKeyHash
     );
 
+    event WalletClosing(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
     event WalletClosed(
         bytes32 indexed ecdsaWalletID,
         bytes20 indexed walletPubKeyHash
