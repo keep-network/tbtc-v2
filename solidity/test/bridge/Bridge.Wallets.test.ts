@@ -224,6 +224,7 @@ describe("Bridge - Wallets", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -697,6 +698,7 @@ describe("Bridge - Wallets", () => {
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -1011,6 +1013,7 @@ describe("Bridge - Wallets", () => {
                 pendingRedemptionsValue: 0,
                 createdAt: 0,
                 movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
                 state: test.walletState,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -1066,6 +1069,7 @@ describe("Bridge - Wallets", () => {
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -1439,6 +1443,7 @@ describe("Bridge - Wallets", () => {
                 pendingRedemptionsValue: 0,
                 createdAt: 0,
                 movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
                 state: test.walletState,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -1477,6 +1482,7 @@ describe("Bridge - Wallets", () => {
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })

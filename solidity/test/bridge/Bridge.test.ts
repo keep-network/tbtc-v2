@@ -318,6 +318,7 @@ describe("Bridge", () => {
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -710,6 +711,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: test.walletState,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -760,6 +762,7 @@ describe("Bridge", () => {
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
                             movingFundsRequestedAt: 0,
+                            closingStartedAt: 0,
                             state: walletState.Live,
                             movingFundsTargetWalletsCommitmentHash:
                               ethers.constants.HashZero,
@@ -856,6 +859,7 @@ describe("Bridge", () => {
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
                             movingFundsRequestedAt: 0,
+                            closingStartedAt: 0,
                             state: walletState.Live,
                             movingFundsTargetWalletsCommitmentHash:
                               ethers.constants.HashZero,
@@ -953,6 +957,7 @@ describe("Bridge", () => {
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
                             movingFundsRequestedAt: 0,
+                            closingStartedAt: 0,
                             state: walletState.Live,
                             movingFundsTargetWalletsCommitmentHash:
                               ethers.constants.HashZero,
@@ -997,6 +1002,7 @@ describe("Bridge", () => {
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
                             movingFundsRequestedAt: 0,
+                            closingStartedAt: 0,
                             state: walletState.Live,
                             movingFundsTargetWalletsCommitmentHash:
                               ethers.constants.HashZero,
@@ -1049,6 +1055,7 @@ describe("Bridge", () => {
                           pendingRedemptionsValue: 0,
                           createdAt: await lastBlockTime(),
                           movingFundsRequestedAt: 0,
+                          closingStartedAt: 0,
                           state: walletState.Live,
                           movingFundsTargetWalletsCommitmentHash:
                             ethers.constants.HashZero,
@@ -1107,6 +1114,7 @@ describe("Bridge", () => {
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
                             movingFundsRequestedAt: 0,
+                            closingStartedAt: 0,
                             state: walletState.Live,
                             movingFundsTargetWalletsCommitmentHash:
                               ethers.constants.HashZero,
@@ -1264,6 +1272,7 @@ describe("Bridge", () => {
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
                             movingFundsRequestedAt: 0,
+                            closingStartedAt: 0,
                             state: walletState.Live,
                             movingFundsTargetWalletsCommitmentHash:
                               ethers.constants.HashZero,
@@ -1393,6 +1402,7 @@ describe("Bridge", () => {
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
                             movingFundsRequestedAt: 0,
+                            closingStartedAt: 0,
                             state: walletState.Live,
                             movingFundsTargetWalletsCommitmentHash:
                               ethers.constants.HashZero,
@@ -1447,6 +1457,7 @@ describe("Bridge", () => {
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
                             movingFundsRequestedAt: 0,
+                            closingStartedAt: 0,
                             state: walletState.Live,
                             movingFundsTargetWalletsCommitmentHash:
                               ethers.constants.HashZero,
@@ -1502,6 +1513,7 @@ describe("Bridge", () => {
                             pendingRedemptionsValue: 0,
                             createdAt: await lastBlockTime(),
                             movingFundsRequestedAt: 0,
+                            closingStartedAt: 0,
                             state: walletState.Live,
                             movingFundsTargetWalletsCommitmentHash:
                               ethers.constants.HashZero,
@@ -1546,6 +1558,7 @@ describe("Bridge", () => {
                       pendingRedemptionsValue: 0,
                       createdAt: await lastBlockTime(),
                       movingFundsRequestedAt: 0,
+                      closingStartedAt: 0,
                       state: walletState.Live,
                       movingFundsTargetWalletsCommitmentHash:
                         ethers.constants.HashZero,
@@ -1590,6 +1603,7 @@ describe("Bridge", () => {
                   pendingRedemptionsValue: 0,
                   createdAt: await lastBlockTime(),
                   movingFundsRequestedAt: 0,
+                  closingStartedAt: 0,
                   state: walletState.Live,
                   movingFundsTargetWalletsCommitmentHash:
                     ethers.constants.HashZero,
@@ -1752,6 +1766,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -1801,6 +1816,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -1843,6 +1859,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -1883,6 +1900,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -1924,6 +1942,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -1970,6 +1989,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -2019,6 +2039,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -2069,6 +2090,7 @@ describe("Bridge", () => {
                 pendingRedemptionsValue: 0,
                 createdAt: await lastBlockTime(),
                 movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
                 state: walletState.Live,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -2131,6 +2153,7 @@ describe("Bridge", () => {
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -2190,6 +2213,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -2207,6 +2231,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: wallet.pendingRedemptionsValue,
               createdAt: wallet.createdAt,
               movingFundsRequestedAt: wallet.movingFundsRequestedAt,
+              closingStartedAt: 0,
               state: test.walletState,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -2244,6 +2269,7 @@ describe("Bridge", () => {
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -2808,6 +2834,7 @@ describe("Bridge", () => {
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
             state: walletState.MovingFunds,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -2841,6 +2868,7 @@ describe("Bridge", () => {
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
             state: walletState.Closed,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -2874,6 +2902,7 @@ describe("Bridge", () => {
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
             state: walletState.Terminated,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -5419,6 +5448,7 @@ describe("Bridge", () => {
                   pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
                   createdAt: await lastBlockTime(),
                   movingFundsRequestedAt: 0,
+                  closingStartedAt: 0,
                   state: walletState.Live,
                   movingFundsTargetWalletsCommitmentHash:
                     ethers.constants.HashZero,
@@ -5622,6 +5652,7 @@ describe("Bridge", () => {
                   pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
                   createdAt: await lastBlockTime(),
                   movingFundsRequestedAt: 0,
+                  closingStartedAt: 0,
                   state: walletState.Live,
                   movingFundsTargetWalletsCommitmentHash:
                     ethers.constants.HashZero,
@@ -5813,6 +5844,7 @@ describe("Bridge", () => {
                 pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
                 createdAt: await lastBlockTime(),
                 movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
                 state: walletState.Live,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -5896,6 +5928,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               // Initially set the state to Live, so that the redemption
               // request can be made
               state: walletState.Live,
@@ -5936,6 +5969,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: wallet.pendingRedemptionsValue,
               createdAt: wallet.createdAt,
               movingFundsRequestedAt: wallet.movingFundsRequestedAt,
+              closingStartedAt: wallet.closingStartedAt,
               state: walletState.MovingFunds,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -6073,6 +6107,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               // Initially set the state to Live, so that the redemption
               // request can be made
               state: walletState.Live,
@@ -6113,6 +6148,7 @@ describe("Bridge", () => {
               pendingRedemptionsValue: wallet.pendingRedemptionsValue,
               createdAt: wallet.createdAt,
               movingFundsRequestedAt: wallet.movingFundsRequestedAt,
+              closingStartedAt: wallet.closingStartedAt,
               state: walletState.Terminated,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -6253,6 +6289,7 @@ describe("Bridge", () => {
                   pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
                   createdAt: await lastBlockTime(),
                   movingFundsRequestedAt: 0,
+                  closingStartedAt: 0,
                   state: data.wallet.state,
                   movingFundsTargetWalletsCommitmentHash:
                     ethers.constants.HashZero,
@@ -6292,6 +6329,7 @@ describe("Bridge", () => {
                   pendingRedemptionsValue: wallet.pendingRedemptionsValue,
                   createdAt: wallet.createdAt,
                   movingFundsRequestedAt: wallet.movingFundsRequestedAt,
+                  closingStartedAt: wallet.closingStartedAt,
                   state: test.walletState,
                   movingFundsTargetWalletsCommitmentHash:
                     ethers.constants.HashZero,
@@ -6333,6 +6371,7 @@ describe("Bridge", () => {
             pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
             state: data.wallet.state,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -6442,6 +6481,7 @@ describe("Bridge", () => {
       pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
       createdAt: await lastBlockTime(),
       movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
       state: data.wallet.state,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })

@@ -60,6 +60,7 @@ describe("Bridge - Moving funds", () => {
       pendingRedemptionsValue: 0,
       createdAt: 0,
       movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
       state: walletState.Unknown,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     }
@@ -1462,6 +1463,7 @@ describe("Bridge - Moving funds", () => {
       pendingRedemptionsValue: 0,
       createdAt: 0,
       movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
       state: walletState.Unknown,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     }
@@ -1612,6 +1614,7 @@ describe("Bridge - Moving funds", () => {
       pendingRedemptionsValue: 0,
       createdAt: await lastBlockTime(),
       movingFundsRequestedAt: await lastBlockTime(),
+      closingStartedAt: 0,
       state: data.wallet.state,
       movingFundsTargetWalletsCommitmentHash:
         data.targetWalletsCommitment.length > 0

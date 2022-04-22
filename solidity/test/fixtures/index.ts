@@ -23,8 +23,9 @@ export const walletState = {
   Unknown: 0,
   Live: 1,
   MovingFunds: 2,
-  Closed: 3,
-  Terminated: 4,
+  Closing: 3,
+  Closed: 4,
+  Terminated: 5,
 }
 
 export const ecdsaDkgState = {
