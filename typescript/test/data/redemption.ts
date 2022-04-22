@@ -1,13 +1,17 @@
-import { BigNumber } from "ethers"
+import { BigNumber, BytesLike } from "ethers"
 import { RawTransaction, UnspentTransactionOutput } from "../../src/bitcoin"
-import { RedemptionRequest } from "../redemption"
+import { PendingRedemption } from "../bridge"
 
-export const testnetWalletPrivateKey =
+// Private key (testnet) of the wallet
+export const walletPrivateKey =
   "cRk1zdau3jp2X3XsrRKDdviYLuC32fHfyU186wLBEbZWx4uQWW3v"
-
 export interface RedemptionTestData {
   mainUtxo: UnspentTransactionOutput & RawTransaction
-  redemptionRequests: RedemptionRequest[]
+  pendingRedemptions: {
+    redemptionKey: BytesLike
+    pendingRedemption: PendingRedemption
+  }[]
+  redeemerAddresses: string[]
   witness: boolean
   expectedRedemption: {
     transactionHash: string
@@ -30,14 +34,22 @@ export const singleP2PKHAddressRedemption: RedemptionTestData = {
       "22349d382cf0f32ffcbbf89c483776472c2d15644a48d67012103989d253b17a6a0f4" +
       "1838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
   },
-  redemptionRequests: [
+  pendingRedemptions: [
     {
-      // testnet P2PKH address
-      address: "mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5",
-      amount: BigNumber.from(10000),
-      feeShare: BigNumber.from(1600),
-      treasuryFee: BigNumber.from(1000),
+      redemptionKey:
+        "0xe7a0e8b724c3ee7708701137cb57f0a742e284b4ad0b21cc16a3b3fbe733521a",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(10000),
+        treasuryFee: BigNumber.from(1000),
+        txMaxFee: BigNumber.from(1600),
+        requestedAt: 1650623240,
+      },
     },
+  ],
+  redeemerAddresses: [
+    // testnet P2PKH address
+    "mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5",
   ],
   witness: true,
   expectedRedemption: {
@@ -71,14 +83,22 @@ export const singleP2WPKHAddressRedemption: RedemptionTestData = {
       "91f5fe874c73c8f44acdd06c25d33012103989d253b17a6a0f41838b84ff0d20e8898" +
       "f9d7b1a98f2564da4cc29dcf8581d900000000",
   },
-  redemptionRequests: [
+  pendingRedemptions: [
     {
-      // testnet P2WPKH address
-      address: "tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l",
-      amount: BigNumber.from(15000),
-      feeShare: BigNumber.from(1700),
-      treasuryFee: BigNumber.from(1100),
+      redemptionKey:
+        "0xbd6593f81039fe17735ef62f15a6532f5df31cd641400c45218cfbefcb9625e7",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(15000),
+        treasuryFee: BigNumber.from(1100),
+        txMaxFee: BigNumber.from(1700),
+        requestedAt: 1650623240,
+      },
     },
+  ],
+  redeemerAddresses: [
+    // testnet P2WPKH address
+    "tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l",
   ],
   witness: true,
   expectedRedemption: {
@@ -112,14 +132,22 @@ export const singleP2SHAddressRedemption: RedemptionTestData = {
       "d87c0bd32bc53a786971776e7b45012103989d253b17a6a0f41838b84ff0d20e8898" +
       "f9d7b1a98f2564da4cc29dcf8581d900000000",
   },
-  redemptionRequests: [
+  pendingRedemptions: [
     {
-      // testnet P2SH address
-      address: "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C",
-      amount: BigNumber.from(13000),
-      feeShare: BigNumber.from(1700),
-      treasuryFee: BigNumber.from(800),
+      redemptionKey:
+        "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(13000),
+        treasuryFee: BigNumber.from(800),
+        txMaxFee: BigNumber.from(1700),
+        requestedAt: 1650623240,
+      },
     },
+  ],
+  redeemerAddresses: [
+    // testnet P2SH address
+    "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C",
   ],
   witness: true,
   expectedRedemption: {
@@ -153,14 +181,22 @@ export const singleP2WSHAddressRedemption: RedemptionTestData = {
       "8bbfe0a2b67682be6dadfa8e07d3b7ba04d012103989d253b17a6a0f41838b84ff0" +
       "d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
   },
-  redemptionRequests: [
+  pendingRedemptions: [
     {
-      // testnet P2WSH address
-      address: "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y",
-      amount: BigNumber.from(18000),
-      feeShare: BigNumber.from(1400),
-      treasuryFee: BigNumber.from(1000),
+      redemptionKey:
+        "0xbc985c5ef4dec86ae1eba229623636f405e873ad5b154d294ec18f8cabc16185",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(18000),
+        treasuryFee: BigNumber.from(1000),
+        txMaxFee: BigNumber.from(1400),
+        requestedAt: 1650623240,
+      },
     },
+  ],
+  redeemerAddresses: [
+    // testnet P2WSH address
+    "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y",
   ],
   witness: true,
   expectedRedemption: {
@@ -194,34 +230,60 @@ export const multipleAddressesRedemption: RedemptionTestData = {
       "457f84f01108e1b001e8f81a9b073a3e08511265614318fa0d395ef4d012103989d" +
       "253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
   },
-  redemptionRequests: [
+  redeemerAddresses: [
+    // P2PKH address
+    "mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5",
+    // P2WPKH address
+    "tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l",
+    // P2SH address
+    "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C",
+    // P2WSH address
+    "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y",
+  ],
+  pendingRedemptions: [
     {
-      // P2PKH address
-      address: "mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5",
-      amount: BigNumber.from(18000),
-      feeShare: BigNumber.from(1100),
-      treasuryFee: BigNumber.from(1000),
+      redemptionKey:
+        "0xe7a0e8b724c3ee7708701137cb57f0a742e284b4ad0b21cc16a3b3fbe733521a",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(18000),
+        treasuryFee: BigNumber.from(1000),
+        txMaxFee: BigNumber.from(1100),
+        requestedAt: 1650623240,
+      },
     },
     {
-      // P2WPKH address
-      address: "tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l",
-      amount: BigNumber.from(13000),
-      feeShare: BigNumber.from(900),
-      treasuryFee: BigNumber.from(800),
+      redemptionKey:
+        "0xbd6593f81039fe17735ef62f15a6532f5df31cd641400c45218cfbefcb9625e7",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(13000),
+        treasuryFee: BigNumber.from(800),
+        txMaxFee: BigNumber.from(900),
+        requestedAt: 1650623240,
+      },
     },
     {
-      // P2SH address
-      address: "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C",
-      amount: BigNumber.from(12000),
-      feeShare: BigNumber.from(1000),
-      treasuryFee: BigNumber.from(1100),
+      redemptionKey:
+        "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(12000),
+        treasuryFee: BigNumber.from(1100),
+        txMaxFee: BigNumber.from(1000),
+        requestedAt: 1650623240,
+      },
     },
     {
-      // P2WSH address
-      address: "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y",
-      amount: BigNumber.from(15000),
-      feeShare: BigNumber.from(1400),
-      treasuryFee: BigNumber.from(700),
+      redemptionKey:
+        "0xbc985c5ef4dec86ae1eba229623636f405e873ad5b154d294ec18f8cabc16185",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(15000),
+        treasuryFee: BigNumber.from(700),
+        txMaxFee: BigNumber.from(1400),
+        requestedAt: 1650623240,
+      },
     },
   ],
   witness: true,
@@ -259,20 +321,34 @@ export const noChangeRedemption: RedemptionTestData = {
       "2f6a34706b9c9c801ff7b0121033483097979eaff12af144dde368235592893fc2cb7" +
       "477c3c4e34a0770f01f4e071832100",
   },
-  redemptionRequests: [
+  redeemerAddresses: [
+    // P2PKH
+    "mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5",
+    // P2WPKH
+    "tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx",
+  ],
+  pendingRedemptions: [
     {
-      // P2PKH
-      address: "mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5",
-      amount: BigNumber.from(6000),
-      feeShare: BigNumber.from(800),
-      treasuryFee: BigNumber.from(0),
+      redemptionKey:
+        "0xe7a0e8b724c3ee7708701137cb57f0a742e284b4ad0b21cc16a3b3fbe733521a",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(6000),
+        treasuryFee: BigNumber.from(0),
+        txMaxFee: BigNumber.from(800),
+        requestedAt: 1650623240,
+      },
     },
     {
-      // P2WPKH
-      address: "tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx",
-      amount: BigNumber.from(4000),
-      feeShare: BigNumber.from(900),
-      treasuryFee: BigNumber.from(0),
+      redemptionKey:
+        "0xddd0fd5d4e471ff4573eb0906088a53e8b8dbb3f1ce2f1b33b285a1c104b59a1",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(4000),
+        treasuryFee: BigNumber.from(0),
+        txMaxFee: BigNumber.from(900),
+        requestedAt: 1650623240,
+      },
     },
   ],
   witness: true,
@@ -310,13 +386,21 @@ export const p2PKHChangeRedemption: RedemptionTestData = {
       "143eaad6cc8c5bc2c1919b69addc18db29012103989d253b17a6a0f41838b84ff0d20" +
       "e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
   },
-  redemptionRequests: [
+  redeemerAddresses: [
+    // P2SH
+    "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C",
+  ],
+  pendingRedemptions: [
     {
-      // P2SH
-      address: "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C",
-      amount: BigNumber.from(12000),
-      feeShare: BigNumber.from(1200),
-      treasuryFee: BigNumber.from(1000),
+      redemptionKey:
+        "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820",
+      pendingRedemption: {
+        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        requestedAmount: BigNumber.from(12000),
+        treasuryFee: BigNumber.from(1000),
+        txMaxFee: BigNumber.from(1200),
+        requestedAt: 1650623240,
+      },
     },
   ],
   witness: false, // False will result in a P2PKH output
@@ -351,16 +435,12 @@ export const nonStandardAddressRedemption: RedemptionTestData = {
       "22349d382cf0f32ffcbbf89c483776472c2d15644a48d67012103989d253b17a6a0f4" +
       "1838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
   },
-  redemptionRequests: [
-    {
-      // testnet P2TR address taken from
-      // https://live.blockcypher.com/btc-testnet/tx/2035ead4a9d0c8e2da1184924abc9034d26f2a7093371183ef12891623b235d1/
-      address: "tb1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqp3mvzv",
-      amount: BigNumber.from(10000),
-      feeShare: BigNumber.from(1600),
-      treasuryFee: BigNumber.from(1000),
-    },
+  redeemerAddresses: [
+    // testnet P2TR address taken from
+    // https://live.blockcypher.com/btc-testnet/tx/2035ead4a9d0c8e2da1184924abc9034d26f2a7093371183ef12891623b235d1/
+    "tb1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqp3mvzv",
   ],
+  pendingRedemptions: [],
   witness: true,
   expectedRedemption: {
     transactionHash: "",

@@ -4,6 +4,16 @@ import {
   DecomposedRawTransaction,
 } from "./bitcoin"
 
+import { BigNumberish, BigNumber } from "ethers"
+
+export interface PendingRedemption {
+  redeemer: string
+  requestedAmount: BigNumber
+  treasuryFee: BigNumber
+  txMaxFee: BigNumber
+  requestedAt: number
+}
+
 /**
  * Interface for communication with the Bridge on-chain contract.
  */
@@ -27,4 +37,6 @@ export interface Bridge {
    * @returns Proof difficulty factor.
    */
   txProofDifficultyFactor(): Promise<number>
+
+  getPendingRedemptions(redemptionKey: BigNumberish): Promise<PendingRedemption>
 }

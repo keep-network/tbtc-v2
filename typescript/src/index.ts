@@ -169,9 +169,10 @@ export interface TBTC {
   // TODO: Description
   redeemDeposits(
     bitcoinClient: BitcoinClient,
+    bridge: Bridge,
     walletPrivateKey: string,
     mainUtxo: UnspentTransactionOutput,
-    redemptionRequests: RedemptionRequest[],
+    redeemerAddresses: string[],
     witness: boolean
   ): Promise<void>
 

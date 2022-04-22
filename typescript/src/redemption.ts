@@ -2,12 +2,15 @@
 import bcoin from "bcoin"
 // @ts-ignore
 import wif from "wif"
-import { BigNumber } from "ethers"
+// @ts-ignore
+import hash160 from "bcrypto/lib/hash160"
+import { BigNumber, utils } from "ethers"
 import {
   RawTransaction,
   UnspentTransactionOutput,
   Client as BitcoinClient,
 } from "./bitcoin"
+import { Bridge } from "./bridge"
 
 /**
  * Contains information needed to fulfill a redemption request.
@@ -48,9 +51,10 @@ export interface RedemptionRequest {
 // TODO: Description
 export async function redeemDeposits(
   bitcoinClient: BitcoinClient,
+  bridge: Bridge,
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput,
-  redemptionRequests: RedemptionRequest[],
+  redeemerAddresses: string[],
   witness: boolean
 ): Promise<void> {
   const rawTransaction = await bitcoinClient.getRawTransaction(
@@ -61,6 +65,12 @@ export async function redeemDeposits(
     ...mainUtxo,
     transactionHex: rawTransaction.transactionHex,
   }
+
+  const redemptionRequests = await prepareRedemptionRequests(
+    bridge,
+    walletPrivateKey,
+    redeemerAddresses
+  )
 
   const transaction = await createRedemptionTransaction(
     walletPrivateKey,
@@ -165,4 +175,61 @@ export async function createRedemptionTransaction(
   return {
     transactionHex: transaction.toRaw().toString("hex"),
   }
+}
+
+function buildOutputScript(address: string): string {
+  const script = bcoin.Script.fromAddress(address)
+  const scriptAsStr = script.toRaw().toString("hex")
+  const scriptLength = scriptAsStr.length / 2 // get length in bytes
+
+  return "0x" + scriptLength.toString(16) + scriptAsStr
+}
+
+function getWalletPublicKey(walletPrivateKey: string): string {
+  const decodedWalletPrivateKey = wif.decode(walletPrivateKey)
+
+  const walletKeyRing = new bcoin.KeyRing({
+    privateKey: decodedWalletPrivateKey.privateKey,
+    compressed: decodedWalletPrivateKey.compressed,
+  })
+
+  return walletKeyRing.getPublicKey().toString("hex")
+}
+
+async function prepareRedemptionRequests(
+  bridge: Bridge,
+  walletPrivateKey: string,
+  redeemerAddresses: string[]
+): Promise<RedemptionRequest[]> {
+  const walletPublicKey = getWalletPublicKey(walletPrivateKey)
+
+  const walletPubKeyHash =
+    "0x" + hash160.digest(Buffer.from(walletPublicKey, "hex")).toString("hex")
+
+  const redemptionRequests: RedemptionRequest[] = []
+
+  for (const redeemerAddress of redeemerAddresses) {
+    const redeemerOutputScript = buildOutputScript(redeemerAddress)
+
+    const redemptionKey = utils.solidityKeccak256(
+      ["bytes20", "bytes"],
+      [walletPubKeyHash, redeemerOutputScript]
+    )
+
+    const pendingRedemption = await bridge.getPendingRedemptions(redemptionKey)
+    if (pendingRedemption.requestedAt > 0) {
+      redemptionRequests.push({
+        address: redeemerAddress,
+        amount: pendingRedemption.requestedAmount,
+        // TODO: Use max fee for now.
+        // In the future we could use a smaller amount if we know if the
+        // transaction will be picked by the miners.
+        feeShare: pendingRedemption.txMaxFee,
+        treasuryFee: pendingRedemption.treasuryFee,
+      })
+    }
+    // TODO: What should we do if the redemption is not found?
+  }
+
+  return redemptionRequests
 }
