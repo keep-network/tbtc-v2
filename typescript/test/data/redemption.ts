@@ -2,9 +2,15 @@ import { BigNumber, BytesLike } from "ethers"
 import { RawTransaction, UnspentTransactionOutput } from "../../src/bitcoin"
 import { PendingRedemption } from "../bridge"
 
-// Private key (testnet) of the wallet
+/**
+ * Private key (testnet) of the wallet.
+ */
 export const walletPrivateKey =
   "cRk1zdau3jp2X3XsrRKDdviYLuC32fHfyU186wLBEbZWx4uQWW3v"
+
+/**
+ * Represents a set of data used for given sweep scenario.
+ */
 export interface RedemptionTestData {
   mainUtxo: UnspentTransactionOutput & RawTransaction
   pendingRedemptions: {
@@ -19,6 +25,11 @@ export interface RedemptionTestData {
   }
 }
 
+/**
+ * Test data that is based on a Bitcoin redemption transaction with a single
+ * P2PKH redeemer address:
+ * https://live.blockcypher.com/btc-testnet/tx/c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20/
+ */
 export const singleP2PKHAddressRedemption: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
@@ -68,6 +79,11 @@ export const singleP2PKHAddressRedemption: RedemptionTestData = {
   },
 }
 
+/**
+ * Test data that is based on a Bitcoin redemption transaction with a single
+ * P2WPKH redeemer address:
+ * https://live.blockcypher.com/btc-testnet/tx/925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110/
+ */
 export const singleP2WPKHAddressRedemption: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
@@ -117,6 +133,11 @@ export const singleP2WPKHAddressRedemption: RedemptionTestData = {
   },
 }
 
+/**
+ * Test data that is based on a Bitcoin redemption transaction with a single
+ * P2SH redeemer address:
+ * https://live.blockcypher.com/btc-testnet/tx/ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521/
+ */
 export const singleP2SHAddressRedemption: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
@@ -166,6 +187,11 @@ export const singleP2SHAddressRedemption: RedemptionTestData = {
   },
 }
 
+/**
+ * Test data that is based on a Bitcoin redemption transaction with a single
+ * P2SH redeemer address:
+ * https://live.blockcypher.com/btc-testnet/tx/3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3/
+ */
 export const singleP2WSHAddressRedemption: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
@@ -215,6 +241,11 @@ export const singleP2WSHAddressRedemption: RedemptionTestData = {
   },
 }
 
+/**
+ * Test data that is based on a Bitcoin redemption transaction with multiple
+ * redeemer addresses (P2PKH, P2WPKH, P2SH and P2WSH):
+ * https://live.blockcypher.com/btc-testnet/tx/f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7/
+ */
 export const multipleAddressesRedemption: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
@@ -306,6 +337,11 @@ export const multipleAddressesRedemption: RedemptionTestData = {
   },
 }
 
+/**
+ * Test data that is based on a Bitcoin redemption transaction with a two
+ * redeemer addresses and has no change:
+ * https://live.blockcypher.com/btc-testnet/tx/afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb/
+ */
 export const noChangeRedemption: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
@@ -368,6 +404,11 @@ export const noChangeRedemption: RedemptionTestData = {
   },
 }
 
+/**
+ * Test data that is based on a Bitcoin redemption transaction with one
+ * redeemer address and P2PKH change:
+ * https://live.blockcypher.com/btc-testnet/tx/0fec22d0fecd6607a0429210d04e9465681507d514f3edf0f07def96eda0f89d/
+ */
 export const p2PKHChangeRedemption: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
@@ -420,6 +461,9 @@ export const p2PKHChangeRedemption: RedemptionTestData = {
   },
 }
 
+/**
+ *Test data that contains a P2TR (pay-to-taproot) address
+ */
 export const nonStandardAddressRedemption: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
@@ -443,6 +487,7 @@ export const nonStandardAddressRedemption: RedemptionTestData = {
   pendingRedemptions: [],
   witness: true,
   expectedRedemption: {
+    // there is no result as there is an exception thrown
     transactionHash: "",
     transaction: {
       transactionHex: "",

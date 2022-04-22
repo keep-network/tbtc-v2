@@ -166,7 +166,22 @@ export interface TBTC {
     bitcoinClient: BitcoinClient
   ): Promise<void>
 
-  // TODO: Description
+  /**
+   * Redeems deposited tBTC by creating a redemption transaction transferring
+   * Bitcoins from the wallet's main UTXO to the redeemer addresses and
+   * broadcasting it. The change UTXO resulting from the transaction becomes
+   * the new main UTXO of the wallet.
+   * @dev It is up to the caller to ensure the wallet key and each of the redeemer
+   *      addresses represent a valid pending redemption request in the Bridge.
+   * @param bitcoinClient - The Bitcoin client used to interact with the network.
+   * @param bridge - The Interface used to interact with the Bridge on-chain contract.
+   * @param walletPrivateKey = The private kay of the wallet in the WIF format.
+   * @param mainUtxo - The main UTXO of the wallet.
+   * @param redeemerAddresses - The list of redeemer addresses.
+   * @param witness - The parameter used to decide the type of the change output.
+   *                  P2WPKH if `true`, P2PKH if `false`.
+   * @returns Empty promise.
+   */
   redeemDeposits(
     bitcoinClient: BitcoinClient,
     bridge: Bridge,
@@ -176,7 +191,25 @@ export interface TBTC {
     witness: boolean
   ): Promise<void>
 
-  // TODO: Description
+  /**
+   * Creates a Bitcoin redemption transaction.
+   * The transaction will have a single input (main UTXO) and an output for each
+   * redemption request provided and a change output if the redemption requests
+   * do not consume all the Bitcoins from the main UTXO.
+   * @dev The caller is responsible for ensuring the redemption request list is
+   *      correctly formed:
+   *        - there is at least one redemption
+   *        - the `requestedAmount` in each redemption request is greater than
+   *          the sum of its `feeShare` and `treasuryFee`.
+   *        - the redeemer address in each redemption request is of a standard
+   *          type (P2PKH, P2WPKH, P2SH, P2WSH).
+   * @param walletPrivateKey  - The private key of the wallet in the WIF format.
+   * @param mainUtxo - The main UTXO of the wallet.
+   * @param redemptionRequests - The list of redemption requests
+   * @param witness - The parameter used to decide the type of the change output.
+   *                  P2WPKH if `true`, P2PKH if `false`.
+   * @returns Bitcoin redemption transaction in the raw format.
+   */
   createRedemptionTransaction(
     walletPrivateKey: string,
     mainUtxo: UnspentTransactionOutput & RawTransaction,
