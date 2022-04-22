@@ -32,7 +32,7 @@ const bridgeFixture = async () => {
   // from it.
   await deployer.sendTransaction({
     to: walletRegistry.address,
-    value: ethers.utils.parseEther("1"),
+    value: ethers.utils.parseEther("10"),
   })
 
   const BitcoinTx = await ethers.getContractFactory<BitcoinTx__factory>(
