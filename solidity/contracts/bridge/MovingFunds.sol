@@ -21,6 +21,7 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import "./BitcoinTx.sol";
 import "./BridgeState.sol";
 import "./Redemption.sol";
+import "./Wallets.sol";
 
 /// @title Moving Bridge wallet funds
 /// @notice The library handles the logic for moving Bitcoin between Bridge
@@ -38,10 +39,152 @@ library MovingFunds {
     using BTCUtils for bytes;
     using BytesLib for bytes;
 
+    event MovingFundsCommitmentSubmitted(
+        bytes20 walletPubKeyHash,
+        bytes20[] targetWallets,
+        address submitter
+    );
+
     event MovingFundsCompleted(
         bytes20 walletPubKeyHash,
         bytes32 movingFundsTxHash
     );
+
+    /// @notice Submits the moving funds target wallets commitment.
+    ///         Once all requirements are met, that function registers the
+    ///         target wallets commitment and opens the way for moving funds
+    ///         proof submission.
+    /// @param walletPubKeyHash 20-byte public key hash of the source wallet
+    /// @param walletMainUtxo Data of the source wallet's main UTXO, as
+    ///        currently known on the Ethereum chain
+    /// @param walletMembersIDs Identifiers of the source wallet signing group
+    ///        members
+    /// @param walletMemberIndex Position of the caller in the source wallet
+    ///        signing group members list
+    /// @param targetWallets List of 20-byte public key hashes of the target
+    ///        wallets that the source wallet commits to move the funds to
+    /// @dev Requirements:
+    ///      - The source wallet must be in the MovingFunds state
+    ///      - The source wallet must not have pending redemption requests
+    ///      - The source wallet must not have submitted its commitment already
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given source wallet in the ECDSA registry. Those IDs are
+    ///        not directly stored in the contract for gas efficiency purposes
+    ///        but they can be read from appropriate `DkgResultSubmitted`
+    ///        and `DkgResultApproved` events.
+    ///      - The `walletMemberIndex` must be in range [1, walletMembersIDs.length]
+    ///      - The caller must be the member of the source wallet signing group
+    ///        at the position indicated by `walletMemberIndex` parameter
+    ///      - The `walletMainUtxo` components must point to the recent main
+    ///        UTXO of the source wallet, as currently known on the Ethereum
+    ///        chain.
+    ///      - Source wallet BTC balance must be greater than zero
+    ///      - At least one Live wallet must exist in the system
+    ///      - Submitted target wallets count must match the expected count
+    ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
+    ///        where `N > 0`
+    ///      - Each target wallet must be not equal to the source wallet
+    ///      - Each target wallet must follow the expected order i.e. all
+    ///        target wallets 20-byte public key hashes represented as numbers
+    ///        must form a strictly increasing sequence without duplicates.
+    ///      - Each target wallet must be in Live state
+    function submitMovingFundsCommitment(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata walletMainUtxo,
+        uint32[] calldata walletMembersIDs,
+        uint256 walletMemberIndex,
+        bytes20[] calldata targetWallets
+    ) external {
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        require(
+            wallet.state == Wallets.WalletState.MovingFunds,
+            "Source wallet must be in MovingFunds state"
+        );
+
+        require(
+            wallet.pendingRedemptionsValue == 0,
+            "Source wallet must handle all pending redemptions first"
+        );
+
+        require(
+            wallet.movingFundsTargetWalletsCommitmentHash == bytes32(0),
+            "Target wallets commitment already submitted"
+        );
+
+        require(
+            self.ecdsaWalletRegistry.isWalletMember(
+                wallet.ecdsaWalletID,
+                walletMembersIDs,
+                msg.sender,
+                walletMemberIndex
+            ),
+            "Caller is not a member of the source wallet"
+        );
+
+        uint64 walletBtcBalance = self.getWalletBtcBalance(
+            walletPubKeyHash,
+            walletMainUtxo
+        );
+
+        require(walletBtcBalance > 0, "Wallet BTC balance is zero");
+
+        uint256 expectedTargetWalletsCount = Math.min(
+            self.liveWalletsCount,
+            Math.ceilDiv(walletBtcBalance, self.walletMaxBtcTransfer)
+        );
+
+        // This requirement fails only when `liveWalletsCount` is zero. In
+        // that case, the system cannot accept the commitment and must provide
+        // new wallets first.
+        //
+        // TODO: Expose separate function to reset the moving funds timeout
+        //       if no Live wallets exist in the system.
+        require(expectedTargetWalletsCount > 0, "No target wallets available");
+
+        require(
+            targetWallets.length == expectedTargetWalletsCount,
+            "Submitted target wallets count is other than expected"
+        );
+
+        uint160 lastProcessedTargetWallet = 0;
+
+        for (uint256 i = 0; i < targetWallets.length; i++) {
+            bytes20 targetWallet = targetWallets[i];
+
+            require(
+                targetWallet != walletPubKeyHash,
+                "Submitted target wallet cannot be equal to the source wallet"
+            );
+
+            require(
+                uint160(targetWallet) > lastProcessedTargetWallet,
+                "Submitted target wallet breaks the expected order"
+            );
+
+            require(
+                self.registeredWallets[targetWallet].state ==
+                    Wallets.WalletState.Live,
+                "Submitted target wallet must be in Live state"
+            );
+
+            lastProcessedTargetWallet = uint160(targetWallet);
+        }
+
+        wallet.movingFundsTargetWalletsCommitmentHash = keccak256(
+            abi.encodePacked(targetWallets)
+        );
+
+        emit MovingFundsCommitmentSubmitted(
+            walletPubKeyHash,
+            targetWallets,
+            msg.sender
+        );
+    }
 
     /// @notice Used by the wallet to prove the BTC moving funds transaction
     ///         and to make the necessary state changes. Moving funds is only
