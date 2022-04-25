@@ -176,7 +176,7 @@ library BridgeState {
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
         bytes20 activeWalletPubKeyHash;
-        // Current live wallets count;
+        // The current number of wallets in the Live state.
         uint32 liveWalletsCount;
         // The maximum BTC amount in satoshi than can be transferred to a single
         // target wallet during the moving funds process.

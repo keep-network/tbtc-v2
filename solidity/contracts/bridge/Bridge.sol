@@ -436,7 +436,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @dev Requirements:
     ///      - The source wallet must be in the MovingFunds state
     ///      - The source wallet must not have pending redemption requests
-    ///      - The source wallet must not have prior commitments submitted earlier
+    ///      - The source wallet must not have submitted its commitment already
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given source wallet in the ECDSA registry. Those IDs are
@@ -863,6 +863,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return self.activeWalletPubKeyHash;
     }
 
+    /// @notice Gets the live wallets count.
     /// @return The current count of wallets being in the Live state.
     function liveWalletsCount() external view returns (uint32) {
         return self.liveWalletsCount;
