@@ -141,13 +141,15 @@ describe("Bridge - Moving funds", () => {
                   "when the expected target wallets count is greater than zero",
                   () => {
                     // Just some arbitrary 20-byte hashes to simulate live
-                    // wallets PKHs.
+                    // wallets PKHs. They are ordered in the expected way, i.e.
+                    // the hashes represented as numbers form a strictly
+                    // increasing sequence.
                     const liveWallets = [
-                      "0xffb9e05013f5cd126915bc03d340cc5c1be81862",
                       "0x4b440cb29c80c3f256212d8fdd4f2125366f3c91",
                       "0x888f01315e0268bfa05d5e522f8d63f6824d9a96",
-                      "0xbf198e8fff0f90af01024153701da99b9bc08dc5",
                       "0xb2a89e53a4227dbe530a52a1c419040735fa636c",
+                      "0xbf198e8fff0f90af01024153701da99b9bc08dc5",
+                      "0xffb9e05013f5cd126915bc03d340cc5c1be81862",
                     ]
 
                     before(async () => {
@@ -182,71 +184,103 @@ describe("Bridge - Moving funds", () => {
                           "when all target wallets are different than the source wallet",
                           () => {
                             context(
-                              "when all target wallets are in the Live state",
+                              "when all target wallets follow the expected order",
                               () => {
-                                let tx: ContractTransaction
+                                context(
+                                  "when all target wallets are in the Live state",
+                                  () => {
+                                    let tx: ContractTransaction
 
-                                const targetWallets = liveWallets.slice(
-                                  0,
-                                  expectedTargetWalletsCount
+                                    const targetWallets = liveWallets.slice(
+                                      0,
+                                      expectedTargetWalletsCount
+                                    )
+
+                                    before(async () => {
+                                      await createSnapshot()
+
+                                      tx = await bridge
+                                        .connect(caller)
+                                        .submitMovingFundsCommitment(
+                                          ecdsaWalletTestData.pubKeyHash160,
+                                          mainUtxo,
+                                          walletMembersIDs,
+                                          walletMemberIndex,
+                                          targetWallets
+                                        )
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should store the target wallets commitment for the given wallet", async () => {
+                                      expect(
+                                        (
+                                          await bridge.wallets(
+                                            ecdsaWalletTestData.pubKeyHash160
+                                          )
+                                        ).movingFundsTargetWalletsCommitmentHash
+                                      ).to.be.equal(
+                                        ethers.utils.solidityKeccak256(
+                                          ["bytes20[]"],
+                                          [targetWallets]
+                                        )
+                                      )
+                                    })
+
+                                    it("should emit the MovingFundsCommitmentSubmitted event", async () => {
+                                      await expect(tx)
+                                        .to.emit(
+                                          bridge,
+                                          "MovingFundsCommitmentSubmitted"
+                                        )
+                                        .withArgs(
+                                          ecdsaWalletTestData.pubKeyHash160,
+                                          targetWallets,
+                                          caller.address
+                                        )
+                                    })
+                                  }
                                 )
 
-                                before(async () => {
-                                  await createSnapshot()
+                                context(
+                                  "when one of the target wallets is not in the Live state",
+                                  () => {
+                                    it("should revert", async () => {
+                                      // Put an Unknown wallet into the mix.
+                                      const targetWallets = [
+                                        "0x2313e29d08e6b5e0d3cda040ed7f664ce9c840c4",
+                                        liveWallets[0],
+                                        liveWallets[1],
+                                      ]
 
-                                  tx = await bridge
-                                    .connect(caller)
-                                    .submitMovingFundsCommitment(
-                                      ecdsaWalletTestData.pubKeyHash160,
-                                      mainUtxo,
-                                      walletMembersIDs,
-                                      walletMemberIndex,
-                                      targetWallets
-                                    )
-                                })
-
-                                after(async () => {
-                                  await restoreSnapshot()
-                                })
-
-                                it("should store the target wallets commitment for the given wallet", async () => {
-                                  expect(
-                                    (
-                                      await bridge.wallets(
-                                        ecdsaWalletTestData.pubKeyHash160
+                                      await expect(
+                                        bridge
+                                          .connect(caller)
+                                          .submitMovingFundsCommitment(
+                                            ecdsaWalletTestData.pubKeyHash160,
+                                            mainUtxo,
+                                            walletMembersIDs,
+                                            walletMemberIndex,
+                                            targetWallets
+                                          )
+                                      ).to.be.revertedWith(
+                                        "Submitted target wallet must be in Live state"
                                       )
-                                    ).movingFundsTargetWalletsCommitmentHash
-                                  ).to.be.equal(
-                                    ethers.utils.solidityKeccak256(
-                                      ["bytes20[]"],
-                                      [targetWallets]
-                                    )
-                                  )
-                                })
-
-                                it("should emit the MovingFundsCommitmentSubmitted event", async () => {
-                                  await expect(tx)
-                                    .to.emit(
-                                      bridge,
-                                      "MovingFundsCommitmentSubmitted"
-                                    )
-                                    .withArgs(
-                                      ecdsaWalletTestData.pubKeyHash160,
-                                      targetWallets,
-                                      caller.address
-                                    )
-                                })
+                                    })
+                                  }
+                                )
                               }
                             )
 
                             context(
-                              "when one of the target wallets is not in the Live state",
+                              "when one of the target wallets break the expected order",
                               () => {
                                 it("should revert", async () => {
-                                  // Put an Unknown wallet into the mix.
                                   const targetWallets = [
                                     liveWallets[0],
-                                    "0x2313e29d08e6b5e0d3cda040ed7f664ce9c840c4",
+                                    liveWallets[1],
                                     liveWallets[1],
                                   ]
 
@@ -261,7 +295,7 @@ describe("Bridge - Moving funds", () => {
                                         targetWallets
                                       )
                                   ).to.be.revertedWith(
-                                    "Submitted target wallet must be in Live state"
+                                    "Submitted target wallet breaks the expected order"
                                   )
                                 })
                               }

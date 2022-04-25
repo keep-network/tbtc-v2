@@ -84,6 +84,9 @@ library MovingFunds {
     ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
     ///        where `N > 0`
     ///      - Each target wallet must be not equal to the source wallet
+    ///      - Each target wallet must follow the expected order i.e. all
+    ///        target wallets 20-byte public key hashes represented as numbers
+    ///        must form a strictly increasing sequence without duplicates.
     ///      - Each target wallet must be in Live state
     function submitMovingFundsCommitment(
         BridgeState.Storage storage self,

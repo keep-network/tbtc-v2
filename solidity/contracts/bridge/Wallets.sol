@@ -499,6 +499,9 @@ library Wallets {
     ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
     ///        where `N > 0`
     ///      - Each target wallet must be not equal to the source wallet
+    ///      - Each target wallet must follow the expected order i.e. all
+    ///        target wallets 20-byte public key hashes represented as numbers
+    ///        must form a strictly increasing sequence without duplicates.
     ///      - Each target wallet must be in Live state
     function notifyWalletMovingFundsCommitmentSubmitted(
         BridgeState.Storage storage self,
@@ -561,16 +564,27 @@ library Wallets {
             "Submitted target wallets count is other than expected"
         );
 
+        uint160 lastProcessedTargetWallet = 0;
+
         for (uint256 i = 0; i < targetWallets.length; i++) {
+            bytes20 targetWallet = targetWallets[i];
+
             require(
-                targetWallets[i] != walletPubKeyHash,
+                targetWallet != walletPubKeyHash,
                 "Submitted target wallet cannot be equal to the source wallet"
             );
+
             require(
-                self.registeredWallets[targetWallets[i]].state ==
-                    WalletState.Live,
+                uint160(targetWallet) > lastProcessedTargetWallet,
+                "Submitted target wallet breaks the expected order"
+            );
+
+            require(
+                self.registeredWallets[targetWallet].state == WalletState.Live,
                 "Submitted target wallet must be in Live state"
             );
+
+            lastProcessedTargetWallet = uint160(targetWallet);
         }
 
         wallet.movingFundsTargetWalletsCommitmentHash = keccak256(
