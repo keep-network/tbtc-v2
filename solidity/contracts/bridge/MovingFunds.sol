@@ -430,7 +430,7 @@ library MovingFunds {
     }
 
     /// @notice Notifies about a timed out moving funds process. Terminates
-    ///         the wallet in result.
+    ///         the wallet and slashes signing group members as a result.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - The wallet must be in the MovingFunds state
@@ -452,7 +452,7 @@ library MovingFunds {
             /* solhint-disable-next-line not-rely-on-time */
             block.timestamp >
                 wallet.movingFundsRequestedAt + self.movingFundsTimeout,
-            "Moving funds has not timed out"
+            "Moving funds has not timed out yet"
         );
 
         self.terminateWallet(walletPubKeyHash);

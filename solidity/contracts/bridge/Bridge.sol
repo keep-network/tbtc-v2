@@ -538,7 +538,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     }
 
     /// @notice Notifies about a timed out moving funds process. Terminates
-    ///         the wallet in result.
+    ///         the wallet and slashes signing group members as a result.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - The wallet must be in the MovingFunds state
@@ -984,7 +984,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @return movingFundsTimeout Time after which the moving funds process
     ///         can be reported as timed out. It is counted from the moment
     ///         when the wallet was requested to move their funds and switched
-    ///         to the MovingFunds state.
+    ///         to the MovingFunds state. Value in seconds.
     function movingFundsParameters()
         external
         view

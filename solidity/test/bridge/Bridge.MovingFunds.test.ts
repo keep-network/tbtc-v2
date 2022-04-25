@@ -1597,7 +1597,7 @@ describe("Bridge - Moving funds", () => {
         it("should revert", async () => {
           await expect(
             bridge.notifyMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
-          ).to.be.revertedWith("Moving funds has not timed out")
+          ).to.be.revertedWith("Moving funds has not timed out yet")
         })
       })
     })

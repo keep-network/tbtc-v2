@@ -86,7 +86,7 @@ library BridgeState {
         // Time after which the moving funds process can be reported as
         // timed out. It is counted from the moment when the wallet
         // was requested to move their funds and switched to the MovingFunds
-        // state.
+        // state. Value in seconds.
         uint32 movingFundsTimeout;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
