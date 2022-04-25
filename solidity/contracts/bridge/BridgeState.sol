@@ -15,6 +15,8 @@
 
 pragma solidity ^0.8.9;
 
+import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
+
 import "./IRelay.sol";
 import "./Deposit.sol";
 import "./Redemption.sol";
@@ -174,6 +176,11 @@ library BridgeState {
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
         bytes20 activeWalletPubKeyHash;
+        // The current number of wallets in the Live state.
+        uint32 liveWalletsCount;
+        // The maximum BTC amount in satoshi than can be transferred to a single
+        // target wallet during the moving funds process.
+        uint64 walletMaxBtcTransfer;
         // Maps the 20-byte wallet public key hash (computed using Bitcoin
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
@@ -184,7 +191,8 @@ library BridgeState {
         uint32 walletCreationPeriod,
         uint64 walletMinBtcBalance,
         uint64 walletMaxBtcBalance,
-        uint32 walletMaxAge
+        uint32 walletMaxAge,
+        uint64 walletMaxBtcTransfer
     );
 
     /// @notice Updates parameters of wallets.
@@ -192,22 +200,27 @@ library BridgeState {
     ///        seconds, determines how frequently a new wallet creation can be
     ///        requested
     /// @param _walletMinBtcBalance New value of the wallet minimum BTC balance
-    ///        in satoshis, used to decide about wallet creation or closing
+    ///        in satoshi, used to decide about wallet creation or closing
     /// @param _walletMaxBtcBalance New value of the wallet maximum BTC balance
-    ///        in satoshis, used to decide about wallet creation
+    ///        in satoshi, used to decide about wallet creation
     /// @param _walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
     ///        the wallet moving funds process can be requested
+    /// @param _walletMaxBtcTransfer New value of the wallet maximum BTC transfer
+    ///        in satoshi, determines the maximum amount that can be transferred
+    //         to a single target wallet during the moving funds process
     /// @dev Requirements:
     ///      - Wallet minimum BTC balance must be greater than zero
     ///      - Wallet maximum BTC balance must be greater than the wallet
     ///        minimum BTC balance
+    ///      - Wallet maximum BTC transfer must be greater than zero
     function updateWalletParameters(
         Storage storage self,
         uint32 _walletCreationPeriod,
         uint64 _walletMinBtcBalance,
         uint64 _walletMaxBtcBalance,
-        uint32 _walletMaxAge
+        uint32 _walletMaxAge,
+        uint64 _walletMaxBtcTransfer
     ) internal {
         require(
             _walletMinBtcBalance > 0,
@@ -217,17 +230,23 @@ library BridgeState {
             _walletMaxBtcBalance > _walletMinBtcBalance,
             "Wallet maximum BTC balance must be greater than the minimum"
         );
+        require(
+            _walletMaxBtcTransfer > 0,
+            "Wallet maximum BTC transfer must be greater than zero"
+        );
 
         self.walletCreationPeriod = _walletCreationPeriod;
         self.walletMinBtcBalance = _walletMinBtcBalance;
         self.walletMaxBtcBalance = _walletMaxBtcBalance;
         self.walletMaxAge = _walletMaxAge;
+        self.walletMaxBtcTransfer = _walletMaxBtcTransfer;
 
         emit WalletParametersUpdated(
             _walletCreationPeriod,
             _walletMinBtcBalance,
             _walletMaxBtcBalance,
-            _walletMaxAge
+            _walletMaxAge,
+            _walletMaxBtcTransfer
         );
     }
 }

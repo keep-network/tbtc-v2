@@ -16,8 +16,8 @@
 pragma solidity ^0.8.9;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
-import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
 import {EcdsaDkg} from "@keep-network/ecdsa/contracts/libraries/EcdsaDkg.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
@@ -237,6 +237,8 @@ library Wallets {
         // Set the freshly created wallet as the new active wallet.
         self.activeWalletPubKeyHash = walletPubKeyHash;
 
+        self.liveWalletsCount++;
+
         emit NewWalletRegistered(ecdsaWalletID, walletPubKeyHash);
     }
 
@@ -380,6 +382,8 @@ library Wallets {
             // possible in order to get a new healthy active wallet.
             delete self.activeWalletPubKeyHash;
         }
+
+        self.liveWalletsCount--;
     }
 
     /// @notice Closes the given wallet and notifies the ECDSA registry
@@ -441,6 +445,10 @@ library Wallets {
         bytes20 walletPubKeyHash
     ) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        if (wallet.state == WalletState.Live) {
+            self.liveWalletsCount--;
+        }
 
         wallet.state = WalletState.Terminated;
 

@@ -15,7 +15,8 @@ export const constants = {
   walletCreationPeriod: 604800, // 1 week
   walletMinBtcBalance: to1ePrecision(1, 8), // 1 BTC
   walletMaxBtcBalance: to1ePrecision(10, 8), // 10 BTC
-  walletMaxAge: 8 * 604800, // 8 weeks
+  walletMaxAge: 8 * 604800, // 8 weeks,
+  walletMaxBtcTransfer: to1ePrecision(10, 8), // 10 BTC
 }
 
 export const walletState = {
