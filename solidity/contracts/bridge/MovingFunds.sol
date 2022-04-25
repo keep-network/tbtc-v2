@@ -455,7 +455,7 @@ library MovingFunds {
             "Moving funds has not timed out"
         );
 
-        self.terminateWallet(self, walletPubKeyHash);
+        self.terminateWallet(walletPubKeyHash);
 
         // TODO: Perform slashing of wallet operators, reward the notifier
         //       using seized amount, and add unit tests for that.
