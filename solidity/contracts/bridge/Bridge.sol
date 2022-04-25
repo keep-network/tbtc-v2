@@ -55,7 +55,7 @@ import "../bank/Bank.sol";
 ///      moving funds, wallet lifecycle, frauds, parameters.
 ///
 /// TODO: Revisit all events and look which parameters should be indexed.
-/// TODO: Align the convention around `@param` and `@dev` endings. They should
+/// TODO: Align the convention around `param` and `dev` endings. They should
 ///       not have a punctuation mark.
 contract Bridge is Ownable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
