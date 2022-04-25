@@ -72,6 +72,10 @@ contract BridgeStub is Bridge {
         external
     {
         self.registeredWallets[walletPubKeyHash] = wallet;
+
+        if (wallet.state == Wallets.WalletState.Live) {
+            self.liveWalletsCount++;
+        }
     }
 
     function setDepositDustThreshold(uint64 _depositDustThreshold) external {
@@ -98,9 +102,5 @@ contract BridgeStub is Bridge {
         external
     {
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
-    }
-
-    function setLiveWalletsCount(uint32 liveWalletsCount) external {
-        self.liveWalletsCount = liveWalletsCount;
     }
 }
