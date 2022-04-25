@@ -210,7 +210,7 @@ describe("Bridge - Moving funds", () => {
                                 await restoreSnapshot()
                               })
 
-                              it("should store the target wallets commitment for given wallet", async () => {
+                              it("should store the target wallets commitment for the given wallet", async () => {
                                 expect(
                                   (
                                     await bridge.wallets(
@@ -300,7 +300,7 @@ describe("Bridge - Moving funds", () => {
                   )
 
                   context(
-                    "when the submitted target wallets count is other as the expected",
+                    "when the submitted target wallets count is other than the expected",
                     () => {
                       it("should revert", async () => {
                         await expect(
