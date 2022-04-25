@@ -159,8 +159,6 @@ describe("Bridge - Moving funds", () => {
                         state: walletState.Live,
                       })
                     }
-
-                    await bridge.setLiveWalletsCount(liveWallets.length)
                   })
 
                   after(async () => {

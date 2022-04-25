@@ -227,8 +227,6 @@ describe("Bridge - Wallets", () => {
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
-
-            await bridge.setLiveWalletsCount(1)
           })
 
           after(async () => {
@@ -700,8 +698,6 @@ describe("Bridge - Wallets", () => {
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
-
-          await bridge.setLiveWalletsCount(1)
         })
 
         after(async () => {
@@ -1069,8 +1065,6 @@ describe("Bridge - Wallets", () => {
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
-
-          await bridge.setLiveWalletsCount(1)
         })
 
         after(async () => {
@@ -1480,8 +1474,6 @@ describe("Bridge - Wallets", () => {
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
-
-        await bridge.setLiveWalletsCount(1)
       })
 
       after(async () => {
