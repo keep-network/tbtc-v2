@@ -1236,6 +1236,8 @@ describe("Bridge - Fraud", () => {
               .to.emit(bridge, "FraudChallengeDefeatTimedOut")
               .withArgs(walletPublicKeyHash, data.sighash)
           })
+
+          // TODO: Assert all side-effects from the `notifyWalletFraud` call.
         })
 
         describe("when the fraud challenge has not timed out yet", () => {

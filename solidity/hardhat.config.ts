@@ -71,6 +71,16 @@ const config: HardhatUserConfig = {
       {
         artifacts: "node_modules/@keep-network/tbtc/artifacts",
       },
+      {
+        artifacts:
+          "node_modules/@threshold-network/solidity-contracts/export/artifacts",
+        deploy:
+          "node_modules/@threshold-network/solidity-contracts/export/deploy",
+      },
+      {
+        artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
+        deploy: "node_modules/@keep-network/ecdsa/export/deploy",
+      },
     ],
     deployments: {
       // For development environment we expect the local dependencies to be
@@ -83,7 +93,13 @@ const config: HardhatUserConfig = {
 
   namedAccounts: {
     deployer: {
-      default: 0, // take the first account as deployer
+      default: 1,
+    },
+    treasury: {
+      default: 2,
+    },
+    governance: {
+      default: 3,
     },
     keepTechnicalWalletTeam: {
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
