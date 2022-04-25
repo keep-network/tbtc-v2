@@ -1524,7 +1524,8 @@ describe("Bridge - Moving funds", () => {
 
         await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
           ...walletDraft,
-          movingFundsRequestedAt: await lastBlockTime(),
+          // Set the timestamp to be at the same block that the `setWallet` transaction.
+          movingFundsRequestedAt: (await lastBlockTime()) + 1,
           state: walletState.MovingFunds,
         })
       })
@@ -1594,6 +1595,18 @@ describe("Bridge - Moving funds", () => {
       })
 
       context("when the moving funds process has not timed out", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(
+            (await bridge.movingFundsParameters()).movingFundsTimeout - 1
+          )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
           await expect(
             bridge.notifyMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
