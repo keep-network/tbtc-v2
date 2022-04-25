@@ -448,9 +448,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        at the position indicated by `walletMemberIndex` parameter
     ///      - The `walletMainUtxo` components must point to the recent main
     ///        UTXO of the source wallet, as currently known on the Ethereum
-    ///        chain. If the source wallet has no main UTXO, this parameter
-    ///        can be empty as it is ignored since the wallet balance is
-    ///        assumed to be zero.
+    ///        chain.
+    ///      - Source wallet BTC balance must be greater than zero
     ///      - At least one Live wallet must exist in the system
     ///      - Submitted target wallets count must match the expected count
     ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`

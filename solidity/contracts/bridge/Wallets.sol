@@ -492,9 +492,8 @@ library Wallets {
     ///        at the position indicated by `walletMemberIndex` parameter
     ///      - The `walletMainUtxo` components must point to the recent main
     ///        UTXO of the source wallet, as currently known on the Ethereum
-    ///        chain. If the source wallet has no main UTXO, this parameter
-    ///        can be empty as it is ignored since the wallet balance is
-    ///        assumed to be zero.
+    ///        chain.
+    ///      - Source wallet BTC balance must be greater than zero
     ///      - At least one Live wallet must exist in the system
     ///      - Submitted target wallets count must match the expected count
     ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
@@ -541,6 +540,9 @@ library Wallets {
             walletPubKeyHash,
             walletMainUtxo
         );
+
+        require(walletBtcBalance > 0, "Wallet BTC balance is zero");
+
         uint256 expectedTargetWalletsCount = Math.min(
             self.liveWalletsCount,
             Math.ceilDiv(walletBtcBalance, self.walletMaxBtcTransfer)
