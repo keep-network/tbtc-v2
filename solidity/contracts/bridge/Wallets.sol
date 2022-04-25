@@ -549,6 +549,9 @@ library Wallets {
         // This requirement fails only when `liveWalletsCount` is zero. In
         // that case, the system cannot accept the commitment and must provide
         // new wallets first.
+        //
+        // TODO: Expose separate function to reset the moving funds timeout
+        //       if no Live wallets exist in the system.
         require(expectedTargetWalletsCount > 0, "No target wallets available");
 
         require(
