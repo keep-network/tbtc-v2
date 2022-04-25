@@ -21,6 +21,7 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import "./BitcoinTx.sol";
 import "./BridgeState.sol";
 import "./Redemption.sol";
+import "./Wallets.sol";
 
 /// @title Moving Bridge wallet funds
 /// @notice The library handles the logic for moving Bitcoin between Bridge
@@ -96,12 +97,86 @@ library MovingFunds {
         uint256 walletMemberIndex,
         bytes20[] calldata targetWallets
     ) external {
-        self.notifyWalletMovingFundsCommitmentSubmitted(
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        require(
+            wallet.state == Wallets.WalletState.MovingFunds,
+            "Source wallet must be in MovingFunds state"
+        );
+
+        require(
+            wallet.pendingRedemptionsValue == 0,
+            "Source wallet must handle all pending redemptions first"
+        );
+
+        require(
+            wallet.movingFundsTargetWalletsCommitmentHash == bytes32(0),
+            "Target wallets commitment already submitted"
+        );
+
+        require(
+            self.ecdsaWalletRegistry.isWalletMember(
+                wallet.ecdsaWalletID,
+                walletMembersIDs,
+                msg.sender,
+                walletMemberIndex
+            ),
+            "Caller is not a member of the source wallet"
+        );
+
+        uint64 walletBtcBalance = self.getWalletBtcBalance(
             walletPubKeyHash,
-            walletMainUtxo,
-            walletMembersIDs,
-            walletMemberIndex,
-            targetWallets
+            walletMainUtxo
+        );
+
+        require(walletBtcBalance > 0, "Wallet BTC balance is zero");
+
+        uint256 expectedTargetWalletsCount = Math.min(
+            self.liveWalletsCount,
+            Math.ceilDiv(walletBtcBalance, self.walletMaxBtcTransfer)
+        );
+
+        // This requirement fails only when `liveWalletsCount` is zero. In
+        // that case, the system cannot accept the commitment and must provide
+        // new wallets first.
+        //
+        // TODO: Expose separate function to reset the moving funds timeout
+        //       if no Live wallets exist in the system.
+        require(expectedTargetWalletsCount > 0, "No target wallets available");
+
+        require(
+            targetWallets.length == expectedTargetWalletsCount,
+            "Submitted target wallets count is other than expected"
+        );
+
+        uint160 lastProcessedTargetWallet = 0;
+
+        for (uint256 i = 0; i < targetWallets.length; i++) {
+            bytes20 targetWallet = targetWallets[i];
+
+            require(
+                targetWallet != walletPubKeyHash,
+                "Submitted target wallet cannot be equal to the source wallet"
+            );
+
+            require(
+                uint160(targetWallet) > lastProcessedTargetWallet,
+                "Submitted target wallet breaks the expected order"
+            );
+
+            require(
+                self.registeredWallets[targetWallet].state ==
+                    Wallets.WalletState.Live,
+                "Submitted target wallet must be in Live state"
+            );
+
+            lastProcessedTargetWallet = uint160(targetWallet);
+        }
+
+        wallet.movingFundsTargetWalletsCommitmentHash = keccak256(
+            abi.encodePacked(targetWallets)
         );
 
         emit MovingFundsCommitmentSubmitted(
