@@ -447,9 +447,7 @@ library Wallets {
     ///         was confirmed.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
-    ///      - Wallet must be in Live or MovingFunds state
-    ///
-    // slither-disable-next-line dead-code
+    ///      - Wallet must be in Live or MovingFunds or Closing state
     function notifyWalletFraud(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -460,8 +458,9 @@ library Wallets {
 
         require(
             walletState == WalletState.Live ||
-                walletState == WalletState.MovingFunds,
-            "ECDSA wallet must be in Live or MovingFunds state"
+                walletState == WalletState.MovingFunds ||
+                walletState == WalletState.Closing,
+            "Wallet must be in Live or MovingFunds or Closing state"
         );
 
         terminateWallet(self, walletPubKeyHash);
@@ -478,8 +477,6 @@ library Wallets {
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the
     ///        Live or MovingFunds state.
-    ///
-    // slither-disable-next-line dead-code
     function terminateWallet(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash

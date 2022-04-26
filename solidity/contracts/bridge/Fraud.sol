@@ -42,6 +42,8 @@ import "./Wallets.sol";
 ///      Therefore the transaction spending the UTXO must be proven in the
 ///      Bridge before a challenge defeat is called.
 library Fraud {
+    using Wallets for BridgeState.Storage;
+
     using BytesLib for bytes;
     using BTCUtils for bytes;
     using BTCUtils for uint32;
@@ -265,9 +267,10 @@ library Fraud {
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference
     /// @dev Requirements:
-    ///      - `walletPublicKey` and `sighash` must identify an open fraud
+    ///      - The wallet must be in Live or MovingFunds or Closing state
+    ///      - The `walletPublicKey` and `sighash` must identify an open fraud
     ///        challenge
-    ///      - the amount of time indicated by `challengeDefeatTimeout` must pass
+    ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
     ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(
         BridgeState.Storage storage self,
@@ -279,11 +282,14 @@ library Fraud {
         );
 
         FraudChallenge storage challenge = self.fraudChallenges[challengeKey];
+
         require(challenge.reportedAt > 0, "Fraud challenge does not exist");
+
         require(
             !challenge.resolved,
             "Fraud challenge has already been resolved"
         );
+
         require(
             /* solhint-disable-next-line not-rely-on-time */
             block.timestamp >=
@@ -291,11 +297,7 @@ library Fraud {
             "Fraud challenge defeat period did not time out yet"
         );
 
-        // TODO: Call `notifyWalletFraud` from `Wallets` library.
-        // TODO: Reward the challenger.
-
         challenge.resolved = true;
-
         // Return the ether deposited by the challenger
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls,unchecked-lowlevel
@@ -309,6 +311,11 @@ library Fraud {
             walletPublicKey.slice32(32)
         );
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
+
+        self.notifyWalletFraud(walletPubKeyHash);
+
+        // TODO: Reward the challenger.
+
         // slither-disable-next-line reentrancy-events
         emit FraudChallengeDefeatTimedOut(walletPubKeyHash, sighash);
     }
