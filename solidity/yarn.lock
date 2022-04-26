@@ -1508,13 +1508,13 @@
   resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.3.0-solc-0.8.tgz#5dfd552f9437e865038c1e97a2d27967c399dcbc"
   integrity sha512-AG2fJqqniXVzwitHQcYQK5dZIyUPDo5xS1RZzW+LngcIuKA/f0cvTDEjWxgjf4D5MbStJNFWaCTtWwAJUCzsIw==
 
-"@keep-network/ecdsa@2.0.0-dev.4":
-  version "2.0.0-dev.4"
-  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0-dev.4.tgz#5fe1c06079ab9449805c7816e1674fd4109b070e"
-  integrity sha512-3qCzhuNt9gClQrDpdUVG5i1NVSQNOqu7Xbz7sV+r/eTEedHhfNJDrHIiVo15KH18wPUFlvVPtc+6Sio9TGriFQ==
+"@keep-network/ecdsa@2.0.0-dev.17":
+  version "2.0.0-dev.17"
+  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0-dev.17.tgz#a5e3a93fba324f2b4f8459d56b224633eed1d9f8"
+  integrity sha512-UtCPfUGb5LLQGX6GQ3nxbGJ101Hc6w2HOglebS3xyRYLygmxS29E77JH3BzwjmI9h12VEvPnepI6Eqmq0YctVg==
   dependencies:
-    "@keep-network/random-beacon" ">2.0.0-dev <2.0.0-ropsten"
-    "@keep-network/sortition-pools" "^2.0.0-dev.0"
+    "@keep-network/random-beacon" "^2.0.0-dev.9"
+    "@keep-network/sortition-pools" "^2.0.0-pre.6"
     "@openzeppelin/contracts" "^4.4.1"
     "@threshold-network/solidity-contracts" ">1.1.0-dev <1.1.0-ropsten"
 
@@ -1549,14 +1549,15 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
 
-"@keep-network/random-beacon@>2.0.0-dev <2.0.0-ropsten":
-  version "2.0.0-dev.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.0.tgz#ea5f450256ea42c842c22fce39611fdb77b0bb49"
-  integrity sha512-8bjljuCp9ZpGAuWtdVOkYT/HslAbnoI3DZdNbhCfp9BGPtWQa32XvOHHu25oqY9xj4IgKURoNqGhSbgb4+m5ww==
+"@keep-network/random-beacon@^2.0.0-dev.9":
+  version "2.0.0-dev.13"
+  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.13.tgz#6ca0aeb424d757fde103f581787913023c47261c"
+  integrity sha512-yWYWHtNM40rWkX2UQg0wzCVq3Z43RZAn0cQnvT+XRky9n4TtQbLc2ZtJu/vmWhDA+nHj5lvwEt2aZ5hgM4Pckw==
   dependencies:
-    "@keep-network/sortition-pools" "1.2.0-dev.24"
+    "@keep-network/sortition-pools" "^2.0.0-pre.7"
     "@openzeppelin/contracts" "^4.4.2"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
+    "@threshold-network/solidity-contracts" ">1.1.0-dev <1.1.0-ropsten"
 
 "@keep-network/sortition-pools@1.2.0-dev.1":
   version "1.2.0-dev.1"
@@ -1565,18 +1566,10 @@
   dependencies:
     "@openzeppelin/contracts" "^2.4.0"
 
-"@keep-network/sortition-pools@1.2.0-dev.24":
-  version "1.2.0-dev.24"
-  resolved "https://registry.yarnpkg.com/@keep-network/sortition-pools/-/sortition-pools-1.2.0-dev.24.tgz#ed2bd34297ba3832d8981f2f5705489caece2115"
-  integrity sha512-k6PgZ3Svv4nCAP3bE3jfPoz7V6WUf9f8qKSrlMUGB6TkrgoSwg7I9mrC5UCawTrd3QL86FI/3hZt+4FJvZt74w==
-  dependencies:
-    "@openzeppelin/contracts" "^4.3.2"
-    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
-
-"@keep-network/sortition-pools@^2.0.0-dev.0":
-  version "2.0.0-dev.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/sortition-pools/-/sortition-pools-2.0.0-dev.0.tgz#c1ec90962ab809e224338c8501aee4ed6c3c4a4f"
-  integrity sha512-zOyIQ2g5n0wCFlyKktyrGxNAgMGw9KgGYOEz1e93+n+Hs/3wl2olbW6xI5ZJ4lTETkBq3gO+KtkQysHc8rglBg==
+"@keep-network/sortition-pools@^2.0.0-pre.6", "@keep-network/sortition-pools@^2.0.0-pre.7":
+  version "2.0.0-pre.7"
+  resolved "https://registry.yarnpkg.com/@keep-network/sortition-pools/-/sortition-pools-2.0.0-pre.7.tgz#07ce8d645bbb45855718680b0679fc5dd329e34a"
+  integrity sha512-X5/QeEBAsz0v9QfBZ9YVgP/L5TkQHwW1fuyVIirVuR+Wf5zdsWopixk/yC5fL4BSapNaf4KJeIueMF7Eq8Kv/A==
   dependencies:
     "@openzeppelin/contracts" "^4.3.2"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"

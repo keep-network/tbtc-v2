@@ -31,7 +31,6 @@ const config: HardhatUserConfig = {
 
   networks: {
     hardhat: {
-      allowUnlimitedContractSize: true, // TODO: Remove it once the problem of BridgeStub's size is solved
       forking: {
         // forking is enabled only if FORKING_URL env is provided
         enabled: !!process.env.FORKING_URL,
@@ -71,6 +70,16 @@ const config: HardhatUserConfig = {
       {
         artifacts: "node_modules/@keep-network/tbtc/artifacts",
       },
+      {
+        artifacts:
+          "node_modules/@threshold-network/solidity-contracts/export/artifacts",
+        deploy:
+          "node_modules/@threshold-network/solidity-contracts/export/deploy",
+      },
+      {
+        artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
+        deploy: "node_modules/@keep-network/ecdsa/export/deploy",
+      },
     ],
     deployments: {
       // For development environment we expect the local dependencies to be
@@ -83,7 +92,13 @@ const config: HardhatUserConfig = {
 
   namedAccounts: {
     deployer: {
-      default: 0, // take the first account as deployer
+      default: 1,
+    },
+    treasury: {
+      default: 2,
+    },
+    governance: {
+      default: 3,
     },
     keepTechnicalWalletTeam: {
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
@@ -101,7 +116,6 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
-    except: ["BridgeStub$"], // TODO: Remove it once the problem of contracts' size is solved
   },
   typechain: {
     outDir: "typechain",
