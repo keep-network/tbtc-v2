@@ -232,7 +232,7 @@ library Fraud {
 
         // Send the ether deposited by the challenger to the treasury
         /* solhint-disable avoid-low-level-calls */
-        // slither-disable-next-line low-level-calls arbitrary-send
+        // slither-disable-next-line low-level-calls unchecked-lowlevel arbitrary-send
         self.treasury.call{gas: 100000, value: challenge.depositAmount}("");
         /* solhint-enable avoid-low-level-calls */
 
