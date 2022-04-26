@@ -426,6 +426,8 @@ library Wallets {
     ///
     /// TODO: Make this function callable from the Bridge contract if
     ///       `block.timestamp > wallet.closingStartedAt + self.walletClosingPeriod`.
+    ///
+    // slither-disable-next-line dead-code
     function finalizeWalletClosing(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
