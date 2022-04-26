@@ -83,6 +83,11 @@ library BridgeState {
         // if per single redemption. `movingFundsTxMaxTotalFee` is a total
         // fee for the entire transaction.
         uint64 movingFundsTxMaxTotalFee;
+        // Time after which the moving funds process can be reported as
+        // timed out. It is counted from the moment when the wallet
+        // was requested to move their funds and switched to the MovingFunds
+        // state. Value in seconds.
+        uint32 movingFundsTimeout;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`

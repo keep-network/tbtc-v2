@@ -33,7 +33,7 @@ import { to1ePrecision } from "../helpers/contract-test-helpers"
 chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const { lastBlockTime } = helpers.time
+const { lastBlockTime, increaseTime } = helpers.time
 
 const fixture = async () => bridgeFixture()
 
@@ -1504,6 +1504,177 @@ describe("Bridge - Moving funds", () => {
           })
         }
       )
+    })
+  })
+
+  describe("notifyMovingFundsTimeout", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when source wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.Live,
+        })
+
+        // Wallet must have funds to be not closed immediately by
+        // the following `__ecdsaWalletHeartbeatFailedCallback` call.
+        await bridge.setWalletMainUtxo(ecdsaWalletTestData.pubKeyHash160, {
+          txHash: ethers.constants.HashZero,
+          txOutputIndex: 0,
+          txOutputValue: to1ePrecision(10, 8),
+        })
+
+        // Switches the wallet to moving funds.
+        await bridge
+          .connect(walletRegistry.wallet)
+          .__ecdsaWalletHeartbeatFailedCallback(
+            ecdsaWalletTestData.walletID,
+            ecdsaWalletTestData.publicKeyX,
+            ecdsaWalletTestData.publicKeyY
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the moving funds process has timed out", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(
+            (
+              await bridge.movingFundsParameters()
+            ).movingFundsTimeout
+          )
+
+          tx = await bridge.notifyMovingFundsTimeout(
+            ecdsaWalletTestData.pubKeyHash160
+          )
+        })
+
+        after(async () => {
+          walletRegistry.closeWallet.reset()
+
+          await restoreSnapshot()
+        })
+
+        it("should switch the wallet to Terminated state", async () => {
+          expect(
+            (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)).state
+          ).to.be.equal(walletState.Terminated)
+        })
+
+        it("should emit WalletTerminated event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "WalletTerminated")
+            .withArgs(
+              ecdsaWalletTestData.walletID,
+              ecdsaWalletTestData.pubKeyHash160
+            )
+        })
+
+        it("should call ECDSA Wallet Registry's closeWallet function", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(walletRegistry.closeWallet).to.have.been.calledOnceWith(
+            ecdsaWalletTestData.walletID
+          )
+        })
+
+        it("should emit MovingFundsTimedOut event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "MovingFundsTimedOut")
+            .withArgs(ecdsaWalletTestData.pubKeyHash160)
+        })
+
+        it("should slash wallet operators", async () => {
+          // TODO: Implementation once slashing is integrated.
+        })
+
+        it("should reward the notifier", async () => {
+          // TODO: Implementation once slashing is integrated.
+        })
+      })
+
+      context("when the moving funds process has not timed out", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(
+            (await bridge.movingFundsParameters()).movingFundsTimeout - 1
+          )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge.notifyMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+          ).to.be.revertedWith("Moving funds has not timed out yet")
+        })
+      })
+    })
+
+    context("when source wallet is not in the MovingFunds state", () => {
+      const testData: {
+        testName: string
+        state: number
+      }[] = [
+        {
+          testName: "when the source wallet is in the Unknown state",
+          state: walletState.Unknown,
+        },
+        {
+          testName: "when the source wallet is in the Live state",
+          state: walletState.Live,
+        },
+        {
+          testName: "when the source wallet is in the Closed state",
+          state: walletState.Closed,
+        },
+        {
+          testName: "when the source wallet is in the Terminated state",
+          state: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: test.state,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.notifyMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+            ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
+          })
+        })
+      })
     })
   })
 

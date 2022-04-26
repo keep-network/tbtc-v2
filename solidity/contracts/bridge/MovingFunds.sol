@@ -50,6 +50,8 @@ library MovingFunds {
         bytes32 movingFundsTxHash
     );
 
+    event MovingFundsTimedOut(bytes20 walletPubKeyHash);
+
     /// @notice Submits the moving funds target wallets commitment.
     ///         Once all requirements are met, that function registers the
     ///         target wallets commitment and opens the way for moving funds
@@ -425,5 +427,39 @@ library MovingFunds {
         targetWalletsHash = keccak256(abi.encodePacked(targetWallets));
 
         return (targetWalletsHash, outputsTotalValue);
+    }
+
+    /// @notice Notifies about a timed out moving funds process. Terminates
+    ///         the wallet and slashes signing group members as a result.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state
+    ///      - The moving funds timeout must be actually exceeded
+    function notifyMovingFundsTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) external {
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        require(
+            wallet.state == Wallets.WalletState.MovingFunds,
+            "ECDSA wallet must be in MovingFunds state"
+        );
+
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp >
+                wallet.movingFundsRequestedAt + self.movingFundsTimeout,
+            "Moving funds has not timed out yet"
+        );
+
+        self.terminateWallet(walletPubKeyHash);
+
+        // TODO: Perform slashing of wallet operators, reward the notifier
+        //       using seized amount, and add unit tests for that.
+
+        emit MovingFundsTimedOut(walletPubKeyHash);
     }
 }
