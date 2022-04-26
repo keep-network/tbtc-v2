@@ -15,7 +15,7 @@ import type {
   IWalletRegistry,
 } from "../../typechain"
 import bridgeFixture from "./bridge-fixture"
-import { ecdsaDkgState, walletState } from "../fixtures"
+import { walletState } from "../fixtures"
 import {
   MovingFundsTestData,
   MultipleInputs,
@@ -1524,10 +1524,25 @@ describe("Bridge - Moving funds", () => {
 
         await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
           ...walletDraft,
-          // Set the timestamp to be at the same block that the `setWallet` transaction.
-          movingFundsRequestedAt: (await lastBlockTime()) + 1,
-          state: walletState.MovingFunds,
+          state: walletState.Live,
         })
+
+        // Wallet must have funds to be not closed immediately by
+        // the following `__ecdsaWalletHeartbeatFailedCallback` call.
+        await bridge.setWalletMainUtxo(ecdsaWalletTestData.pubKeyHash160, {
+          txHash: ethers.constants.HashZero,
+          txOutputIndex: 0,
+          txOutputValue: to1ePrecision(10, 8),
+        })
+
+        // Switches the wallet to moving funds.
+        await bridge
+          .connect(walletRegistry.wallet)
+          .__ecdsaWalletHeartbeatFailedCallback(
+            ecdsaWalletTestData.walletID,
+            ecdsaWalletTestData.publicKeyX,
+            ecdsaWalletTestData.publicKeyY
+          )
       })
 
       after(async () => {
