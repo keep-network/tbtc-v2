@@ -297,7 +297,7 @@ library Fraud {
 
         // Return the ether deposited by the challenger
         /* solhint-disable avoid-low-level-calls */
-        // slither-disable-next-line low-level-calls
+        // slither-disable-next-line low-level-calls unchecked-lowlevel
         challenge.challenger.call{gas: 100000, value: challenge.depositAmount}(
             ""
         );
