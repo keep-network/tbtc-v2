@@ -158,6 +158,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
+    event MovingFundsParametersUpdated(
+        uint64 movingFundsTxMaxTotalFee,
+        uint32 movingFundsTimeout
+    );
+
     event WalletParametersUpdated(
         uint32 walletCreationPeriod,
         uint64 walletMinBtcBalance,
@@ -757,7 +762,29 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     // TODO: updateDepositParameters
     // TODO: updateRedemptionParameters
-    // TODO: updateMovingFundsParameters
+
+    /// @notice Updates parameters of moving funds.
+    /// @param movingFundsTxMaxTotalFee New value of the moving funds transaction
+    ///        max total fee in satoshis. It is the maximum amount of the total
+    ///        BTC transaction fee that is acceptable in a single moving funds
+    ///        transaction. This is a _total_ max fee for the entire moving
+    ///        funds transaction.
+    /// @param movingFundsTimeout New value of the moving funds timeout in
+    ///        seconds. It is the time after which the moving funds process can
+    ///        be reported as timed out. It is counted from the moment when the
+    ///        wallet was requested to move their funds and switched to the
+    ///        MovingFunds state.
+    /// @dev Requirements:
+    ///      - Moving funds timeout must be greater than zero
+    function updateMovingFundsParameters(
+        uint64 movingFundsTxMaxTotalFee,
+        uint32 movingFundsTimeout
+    ) external onlyOwner {
+        self.updateMovingFundsParameters(
+            movingFundsTxMaxTotalFee,
+            movingFundsTimeout
+        );
+    }
 
     /// @notice Updates parameters of wallets.
     /// @param walletCreationPeriod New value of the wallet creation period in

@@ -17,6 +17,8 @@ export const constants = {
   walletMaxBtcBalance: to1ePrecision(10, 8), // 10 BTC
   walletMaxAge: 8 * 604800, // 8 weeks,
   walletMaxBtcTransfer: to1ePrecision(10, 8), // 10 BTC
+  movingFundsTxMaxTotalFee: 10000, // 10000 satoshi
+  movingFundsTimeout: 604800, // 1 week
 }
 
 export const walletState = {
