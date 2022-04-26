@@ -149,7 +149,7 @@ library Deposit {
         require(
             self.registeredWallets[reveal.walletPubKeyHash].state ==
                 Wallets.WalletState.Live,
-            "Wallet is not in Live state"
+            "Wallet must be in Live state"
         );
 
         require(

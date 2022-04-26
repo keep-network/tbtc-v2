@@ -728,7 +728,7 @@ describe("Bridge", () => {
           it("should revert", async () => {
             await expect(
               bridge.revealDeposit(P2SHFundingTx, reveal)
-            ).to.be.revertedWith("Wallet is not in Live state")
+            ).to.be.revertedWith("Wallet must be in Live state")
           })
         })
       })
