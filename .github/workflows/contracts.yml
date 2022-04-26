@@ -284,11 +284,9 @@ jobs:
 
   contracts-slither:
     needs: contracts-detect-changes
-    # TODO: remove 'pull_request' condition before merging PR to main
     if: |
       github.event_name == 'push'
         || needs.contracts-detect-changes.outputs.path-filter == 'true'
-        || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     defaults:
       run:
