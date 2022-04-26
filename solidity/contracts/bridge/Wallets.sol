@@ -40,8 +40,15 @@ library Wallets {
         ///      fulfill their pending redemption requests although new
         ///      redemption requests and new deposit reveals are not accepted.
         MovingFunds,
-        /// @dev The wallet moved or redeemed all their funds and cannot
-        ///      perform any action.
+        /// @dev The wallet moved or redeemed all their funds and is in the
+        ///      closing period where they can be subject of fraud challenges
+        ///      and must defend against them. This state is needed to protect
+        ///      against deposit frauds on deposits revealed but not swept.
+        ///      The closing period must be greater that the deposit refund
+        ///      time plus some time margin.
+        Closing,
+        /// @dev The wallet finalized the closing period successfully and
+        ///      cannot perform any action in the Bridge.
         Closed,
         /// @dev The wallet committed a fraud that was reported. The wallet is
         ///      blocked and can not perform any actions in the Bridge.
@@ -68,6 +75,9 @@ library Wallets {
         // UNIX timestamp indicating the moment the wallet was requested to
         // move their funds.
         uint32 movingFundsRequestedAt;
+        // UNIX timestamp indicating the moment the wallet's closing period
+        // started.
+        uint32 closingStartedAt;
         // Current state of the wallet.
         WalletState state;
         // Moving funds target wallet commitment submitted by the wallet. It
@@ -84,6 +94,11 @@ library Wallets {
     );
 
     event WalletMovingFunds(
+        bytes32 indexed ecdsaWalletID,
+        bytes20 indexed walletPubKeyHash
+    );
+
+    event WalletClosing(
         bytes32 indexed ecdsaWalletID,
         bytes20 indexed walletPubKeyHash
     );
@@ -349,9 +364,8 @@ library Wallets {
     }
 
     /// @notice Requests a wallet to move their funds. If the wallet balance
-    ///         is zero, the wallet is closed immediately and the ECDSA
-    ///         registry is notified about this fact. If the move funds
-    ///         request refers to the current active wallet, such a wallet
+    ///         is zero, the wallet closing begins immediately. If the move
+    ///         funds request refers to the current active wallet, such a wallet
     ///         is no longer considered active and the active wallet slot
     ///         is unset allowing to trigger a new wallet creation immediately.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
@@ -365,8 +379,8 @@ library Wallets {
 
         if (wallet.mainUtxoHash == bytes32(0)) {
             // If the wallet has no main UTXO, that means its BTC balance
-            // is zero and it should be closed immediately.
-            closeWallet(self, walletPubKeyHash);
+            // is zero and the wallet closing should begin immediately.
+            beginWalletClosing(self, walletPubKeyHash);
         } else {
             // Otherwise, initialize the moving funds process.
             wallet.state = WalletState.MovingFunds;
@@ -386,13 +400,35 @@ library Wallets {
         self.liveWalletsCount--;
     }
 
-    /// @notice Closes the given wallet and notifies the ECDSA registry
-    ///         about this fact.
+    /// @notice Begins the closing period of the given wallet.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the
-    ///        Live or MovingFunds state.
-    function closeWallet(
+    ///        MovingFunds state
+    function beginWalletClosing(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        // Initialize the closing period.
+        wallet.state = WalletState.Closing;
+        /* solhint-disable-next-line not-rely-on-time */
+        wallet.closingStartedAt = uint32(block.timestamp);
+
+        emit WalletClosing(wallet.ecdsaWalletID, walletPubKeyHash);
+    }
+
+    /// @notice Finalizes the closing period of the given wallet and notifies
+    ///         the ECDSA registry about this fact.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - The caller must make sure that the wallet is in the Closing state
+    ///
+    /// TODO: Make this function callable from the Bridge contract if
+    ///       `block.timestamp > wallet.closingStartedAt + self.walletClosingPeriod`.
+    ///
+    // slither-disable-next-line dead-code
+    function finalizeWalletClosing(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
     ) internal {
@@ -517,6 +553,6 @@ library Wallets {
         // If funds were moved, the wallet has no longer a main UTXO.
         delete wallet.mainUtxoHash;
 
-        closeWallet(self, walletPubKeyHash);
+        beginWalletClosing(self, walletPubKeyHash);
     }
 }

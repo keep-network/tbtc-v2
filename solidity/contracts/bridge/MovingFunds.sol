@@ -460,6 +460,7 @@ library MovingFunds {
         // TODO: Perform slashing of wallet operators, reward the notifier
         //       using seized amount, and add unit tests for that.
 
+        // slither-disable-next-line reentrancy-events
         emit MovingFundsTimedOut(walletPubKeyHash);
     }
 }

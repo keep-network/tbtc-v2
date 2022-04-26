@@ -224,6 +224,7 @@ describe("Bridge - Wallets", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -695,6 +696,7 @@ describe("Bridge - Wallets", () => {
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -724,33 +726,31 @@ describe("Bridge - Wallets", () => {
             })
 
             after(async () => {
-              walletRegistry.closeWallet.reset()
-
               await restoreSnapshot()
             })
 
-            it("should change wallet's state to Closed", async () => {
+            it("should change wallet's state to Closing", async () => {
               const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
-              expect(state).to.be.equal(walletState.Closed)
+              expect(state).to.be.equal(walletState.Closing)
             })
 
-            it("should emit WalletClosed event", async () => {
+            it("should set the wallet's closing started timestamp", async () => {
+              const wallet = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+              expect(wallet.closingStartedAt).to.be.equal(await lastBlockTime())
+            })
+
+            it("should emit WalletClosing event", async () => {
               await expect(tx)
-                .to.emit(bridge, "WalletClosed")
+                .to.emit(bridge, "WalletClosing")
                 .withArgs(
                   ecdsaWalletTestData.walletID,
                   ecdsaWalletTestData.pubKeyHash160
                 )
-            })
-
-            it("should call ECDSA Wallet Registry's closeWallet function", async () => {
-              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-              expect(walletRegistry.closeWallet).to.have.been.calledOnceWith(
-                ecdsaWalletTestData.walletID
-              )
             })
 
             it("should unset the active wallet", async () => {
@@ -785,33 +785,31 @@ describe("Bridge - Wallets", () => {
             })
 
             after(async () => {
-              walletRegistry.closeWallet.reset()
-
               await restoreSnapshot()
             })
 
-            it("should change wallet's state to Closed", async () => {
+            it("should change wallet's state to Closing", async () => {
               const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
-              expect(state).to.be.equal(walletState.Closed)
+              expect(state).to.be.equal(walletState.Closing)
             })
 
-            it("should emit WalletClosed event", async () => {
+            it("should set the wallet's closing started timestamp", async () => {
+              const wallet = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+              expect(wallet.closingStartedAt).to.be.equal(await lastBlockTime())
+            })
+
+            it("should emit WalletClosing event", async () => {
               await expect(tx)
-                .to.emit(bridge, "WalletClosed")
+                .to.emit(bridge, "WalletClosing")
                 .withArgs(
                   ecdsaWalletTestData.walletID,
                   ecdsaWalletTestData.pubKeyHash160
                 )
-            })
-
-            it("should call ECDSA Wallet Registry's closeWallet function", async () => {
-              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-              expect(walletRegistry.closeWallet).to.have.been.calledOnceWith(
-                ecdsaWalletTestData.walletID
-              )
             })
 
             it("should not unset the active wallet", async () => {
@@ -861,8 +859,6 @@ describe("Bridge - Wallets", () => {
             })
 
             after(async () => {
-              walletRegistry.closeWallet.reset()
-
               await restoreSnapshot()
             })
 
@@ -889,11 +885,6 @@ describe("Bridge - Wallets", () => {
                   ecdsaWalletTestData.walletID,
                   ecdsaWalletTestData.pubKeyHash160
                 )
-            })
-
-            it("should not call ECDSA Wallet Registry's closeWallet function", async () => {
-              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-              expect(walletRegistry.closeWallet).to.not.have.been.called
             })
 
             it("should unset the active wallet", async () => {
@@ -928,8 +919,6 @@ describe("Bridge - Wallets", () => {
             })
 
             after(async () => {
-              walletRegistry.closeWallet.reset()
-
               await restoreSnapshot()
             })
 
@@ -958,11 +947,6 @@ describe("Bridge - Wallets", () => {
                 )
             })
 
-            it("should not call ECDSA Wallet Registry's closeWallet function", async () => {
-              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-              expect(walletRegistry.closeWallet).to.not.have.been.called
-            })
-
             it("should not unset the active wallet", async () => {
               expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
                 ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
@@ -987,6 +971,10 @@ describe("Bridge - Wallets", () => {
             walletState: walletState.MovingFunds,
           },
           {
+            testName: "when wallet state is Closing",
+            walletState: walletState.Closing,
+          },
+          {
             testName: "when wallet state is Closed",
             walletState: walletState.Closed,
           },
@@ -1007,6 +995,7 @@ describe("Bridge - Wallets", () => {
                 pendingRedemptionsValue: 0,
                 createdAt: 0,
                 movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
                 state: test.walletState,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -1062,6 +1051,7 @@ describe("Bridge - Wallets", () => {
             pendingRedemptionsValue: 0,
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -1097,33 +1087,31 @@ describe("Bridge - Wallets", () => {
             })
 
             after(async () => {
-              walletRegistry.closeWallet.reset()
-
               await restoreSnapshot()
             })
 
-            it("should change wallet's state to Closed", async () => {
+            it("should change wallet's state to Closing", async () => {
               const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
 
-              expect(state).to.be.equal(walletState.Closed)
+              expect(state).to.be.equal(walletState.Closing)
             })
 
-            it("should emit WalletClosed event", async () => {
+            it("should set the wallet's closing started timestamp", async () => {
+              const wallet = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+              expect(wallet.closingStartedAt).to.be.equal(await lastBlockTime())
+            })
+
+            it("should emit WalletClosing event", async () => {
               await expect(tx)
-                .to.emit(bridge, "WalletClosed")
+                .to.emit(bridge, "WalletClosing")
                 .withArgs(
                   ecdsaWalletTestData.walletID,
                   ecdsaWalletTestData.pubKeyHash160
                 )
-            })
-
-            it("should call ECDSA Wallet Registry's closeWallet function", async () => {
-              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-              expect(walletRegistry.closeWallet).to.have.been.calledOnceWith(
-                ecdsaWalletTestData.walletID
-              )
             })
 
             it("should decrease the live wallets counter", async () => {
@@ -1158,8 +1146,6 @@ describe("Bridge - Wallets", () => {
             })
 
             after(async () => {
-              walletRegistry.closeWallet.reset()
-
               await restoreSnapshot()
             })
 
@@ -1188,11 +1174,6 @@ describe("Bridge - Wallets", () => {
                 )
             })
 
-            it("should not call ECDSA Wallet Registry's closeWallet function", async () => {
-              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-              expect(walletRegistry.closeWallet).to.not.have.been.called
-            })
-
             it("should decrease the live wallets counter", async () => {
               expect(await bridge.liveWalletsCount()).to.be.equal(0)
             })
@@ -1217,33 +1198,33 @@ describe("Bridge - Wallets", () => {
               })
 
               after(async () => {
-                walletRegistry.closeWallet.reset()
-
                 await restoreSnapshot()
               })
 
-              it("should change wallet's state to Closed", async () => {
+              it("should change wallet's state to Closing", async () => {
                 const { state } = await bridge.wallets(
                   ecdsaWalletTestData.pubKeyHash160
                 )
 
-                expect(state).to.be.equal(walletState.Closed)
+                expect(state).to.be.equal(walletState.Closing)
               })
 
-              it("should emit WalletClosed event", async () => {
+              it("should set the wallet's closing started timestamp", async () => {
+                const wallet = await bridge.wallets(
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+                expect(wallet.closingStartedAt).to.be.equal(
+                  await lastBlockTime()
+                )
+              })
+
+              it("should emit WalletClosing event", async () => {
                 await expect(tx)
-                  .to.emit(bridge, "WalletClosed")
+                  .to.emit(bridge, "WalletClosing")
                   .withArgs(
                     ecdsaWalletTestData.walletID,
                     ecdsaWalletTestData.pubKeyHash160
                   )
-              })
-
-              it("should call ECDSA Wallet Registry's closeWallet function", async () => {
-                // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                expect(walletRegistry.closeWallet).to.have.been.calledOnceWith(
-                  ecdsaWalletTestData.walletID
-                )
               })
 
               it("should decrease the live wallets counter", async () => {
@@ -1278,8 +1259,6 @@ describe("Bridge - Wallets", () => {
               })
 
               after(async () => {
-                walletRegistry.closeWallet.reset()
-
                 await restoreSnapshot()
               })
 
@@ -1308,11 +1287,6 @@ describe("Bridge - Wallets", () => {
                     ecdsaWalletTestData.walletID,
                     ecdsaWalletTestData.pubKeyHash160
                   )
-              })
-
-              it("should not call ECDSA Wallet Registry's closeWallet function", async () => {
-                // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                expect(walletRegistry.closeWallet).to.not.have.been.called
               })
 
               it("should decrease the live wallets counter", async () => {
@@ -1413,6 +1387,10 @@ describe("Bridge - Wallets", () => {
             walletState: walletState.MovingFunds,
           },
           {
+            testName: "when wallet state is Closing",
+            walletState: walletState.Closing,
+          },
+          {
             testName: "when wallet state is Closed",
             walletState: walletState.Closed,
           },
@@ -1433,6 +1411,7 @@ describe("Bridge - Wallets", () => {
                 pendingRedemptionsValue: 0,
                 createdAt: 0,
                 movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
                 state: test.walletState,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -1471,6 +1450,7 @@ describe("Bridge - Wallets", () => {
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
