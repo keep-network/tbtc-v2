@@ -710,121 +710,256 @@ describe("Bridge - Wallets", () => {
           await restoreSnapshot()
         })
 
-        context("when wallet is the active one", () => {
-          let tx: ContractTransaction
+        context("when wallet balance is zero", () => {
+          context("when wallet is the active one", () => {
+            let tx: ContractTransaction
 
-          before(async () => {
-            await createSnapshot()
+            before(async () => {
+              await createSnapshot()
 
-            // Set the tested wallet as the active one.
-            await bridge.setActiveWallet(ecdsaWalletTestData.pubKeyHash160)
+              // Set the tested wallet as the active one.
+              await bridge.setActiveWallet(ecdsaWalletTestData.pubKeyHash160)
 
-            tx = await bridge
-              .connect(walletRegistry.wallet)
-              .__ecdsaWalletHeartbeatFailedCallback(
-                ecdsaWalletTestData.walletID,
-                ecdsaWalletTestData.publicKeyX,
-                ecdsaWalletTestData.publicKeyY
-              )
-          })
+              tx = await bridge
+                .connect(walletRegistry.wallet)
+                .__ecdsaWalletHeartbeatFailedCallback(
+                  ecdsaWalletTestData.walletID,
+                  ecdsaWalletTestData.publicKeyX,
+                  ecdsaWalletTestData.publicKeyY
+                )
+            })
 
-          after(async () => {
-            await restoreSnapshot()
-          })
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-          it("should change wallet's state to MovingFunds", async () => {
-            const { state } = await bridge.wallets(
-              ecdsaWalletTestData.pubKeyHash160
-            )
-
-            expect(state).to.be.equal(walletState.MovingFunds)
-          })
-
-          it("should set move funds requested at timestamp", async () => {
-            const { movingFundsRequestedAt } = await bridge.wallets(
-              ecdsaWalletTestData.pubKeyHash160
-            )
-
-            expect(movingFundsRequestedAt).to.be.equal(await lastBlockTime())
-          })
-
-          it("should emit WalletMovingFunds event", async () => {
-            await expect(tx)
-              .to.emit(bridge, "WalletMovingFunds")
-              .withArgs(
-                ecdsaWalletTestData.walletID,
+            it("should change wallet's state to Closing", async () => {
+              const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
+
+              expect(state).to.be.equal(walletState.Closing)
+            })
+
+            it("should set the wallet's closing started timestamp", async () => {
+              const wallet = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+              expect(wallet.closingStartedAt).to.be.equal(await lastBlockTime())
+            })
+
+            it("should emit WalletClosing event", async () => {
+              await expect(tx)
+                .to.emit(bridge, "WalletClosing")
+                .withArgs(
+                  ecdsaWalletTestData.walletID,
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+            })
+
+            it("should unset the active wallet", async () => {
+              expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
+                "0x0000000000000000000000000000000000000000"
+              )
+            })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            })
           })
 
-          it("should unset the active wallet", async () => {
-            expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
-              "0x0000000000000000000000000000000000000000"
-            )
-          })
+          context("when wallet is not the active one", () => {
+            let tx: ContractTransaction
 
-          it("should decrease the live wallets counter", async () => {
-            expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            before(async () => {
+              await createSnapshot()
+
+              // Set the active wallet to be different than the tested one.
+              await bridge.setActiveWallet(
+                ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
+              )
+
+              tx = await bridge
+                .connect(walletRegistry.wallet)
+                .__ecdsaWalletHeartbeatFailedCallback(
+                  ecdsaWalletTestData.walletID,
+                  ecdsaWalletTestData.publicKeyX,
+                  ecdsaWalletTestData.publicKeyY
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should change wallet's state to Closing", async () => {
+              const { state } = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+
+              expect(state).to.be.equal(walletState.Closing)
+            })
+
+            it("should set the wallet's closing started timestamp", async () => {
+              const wallet = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+              expect(wallet.closingStartedAt).to.be.equal(await lastBlockTime())
+            })
+
+            it("should emit WalletClosing event", async () => {
+              await expect(tx)
+                .to.emit(bridge, "WalletClosing")
+                .withArgs(
+                  ecdsaWalletTestData.walletID,
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+            })
+
+            it("should not unset the active wallet", async () => {
+              expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
+                ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
+              )
+            })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            })
           })
         })
 
-        context("when wallet is not the active one", () => {
-          let tx: ContractTransaction
-
+        context("when wallet balance is greater than zero", () => {
           before(async () => {
             await createSnapshot()
 
-            // Set the active wallet to be different than the tested one.
-            await bridge.setActiveWallet(
-              ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
-            )
-
-            tx = await bridge
-              .connect(walletRegistry.wallet)
-              .__ecdsaWalletHeartbeatFailedCallback(
-                ecdsaWalletTestData.walletID,
-                ecdsaWalletTestData.publicKeyX,
-                ecdsaWalletTestData.publicKeyY
-              )
+            await bridge.setWalletMainUtxo(ecdsaWalletTestData.pubKeyHash160, {
+              txHash:
+                "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+              txOutputIndex: 0,
+              txOutputValue: 1,
+            })
           })
 
           after(async () => {
             await restoreSnapshot()
           })
 
-          it("should change wallet's state to MovingFunds", async () => {
-            const { state } = await bridge.wallets(
-              ecdsaWalletTestData.pubKeyHash160
-            )
+          context("when wallet is the active one", () => {
+            let tx: ContractTransaction
 
-            expect(state).to.be.equal(walletState.MovingFunds)
-          })
+            before(async () => {
+              await createSnapshot()
 
-          it("should set move funds requested at timestamp", async () => {
-            const { movingFundsRequestedAt } = await bridge.wallets(
-              ecdsaWalletTestData.pubKeyHash160
-            )
+              // Set the tested wallet as the active one.
+              await bridge.setActiveWallet(ecdsaWalletTestData.pubKeyHash160)
 
-            expect(movingFundsRequestedAt).to.be.equal(await lastBlockTime())
-          })
+              tx = await bridge
+                .connect(walletRegistry.wallet)
+                .__ecdsaWalletHeartbeatFailedCallback(
+                  ecdsaWalletTestData.walletID,
+                  ecdsaWalletTestData.publicKeyX,
+                  ecdsaWalletTestData.publicKeyY
+                )
+            })
 
-          it("should emit WalletMovingFunds event", async () => {
-            await expect(tx)
-              .to.emit(bridge, "WalletMovingFunds")
-              .withArgs(
-                ecdsaWalletTestData.walletID,
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should change wallet's state to MovingFunds", async () => {
+              const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
+
+              expect(state).to.be.equal(walletState.MovingFunds)
+            })
+
+            it("should set move funds requested at timestamp", async () => {
+              const { movingFundsRequestedAt } = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+
+              expect(movingFundsRequestedAt).to.be.equal(await lastBlockTime())
+            })
+
+            it("should emit WalletMovingFunds event", async () => {
+              await expect(tx)
+                .to.emit(bridge, "WalletMovingFunds")
+                .withArgs(
+                  ecdsaWalletTestData.walletID,
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+            })
+
+            it("should unset the active wallet", async () => {
+              expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
+                "0x0000000000000000000000000000000000000000"
+              )
+            })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            })
           })
 
-          it("should not unset the active wallet", async () => {
-            expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
-              ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
-            )
-          })
+          context("when wallet is not the active one", () => {
+            let tx: ContractTransaction
 
-          it("should decrease the live wallets counter", async () => {
-            expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            before(async () => {
+              await createSnapshot()
+
+              // Set the active wallet to be different than the tested one.
+              await bridge.setActiveWallet(
+                ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
+              )
+
+              tx = await bridge
+                .connect(walletRegistry.wallet)
+                .__ecdsaWalletHeartbeatFailedCallback(
+                  ecdsaWalletTestData.walletID,
+                  ecdsaWalletTestData.publicKeyX,
+                  ecdsaWalletTestData.publicKeyY
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should change wallet's state to MovingFunds", async () => {
+              const { state } = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+
+              expect(state).to.be.equal(walletState.MovingFunds)
+            })
+
+            it("should set move funds requested at timestamp", async () => {
+              const { movingFundsRequestedAt } = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+
+              expect(movingFundsRequestedAt).to.be.equal(await lastBlockTime())
+            })
+
+            it("should emit WalletMovingFunds event", async () => {
+              await expect(tx)
+                .to.emit(bridge, "WalletMovingFunds")
+                .withArgs(
+                  ecdsaWalletTestData.walletID,
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+            })
+
+            it("should not unset the active wallet", async () => {
+              expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
+                ethers.utils.ripemd160(ecdsaWalletTestData.pubKeyHash160)
+              )
+            })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            })
           })
         })
       })
@@ -933,78 +1068,69 @@ describe("Bridge - Wallets", () => {
         })
 
         context("when wallet reached the maximum age", () => {
-          // The main UTXO value equals to the minimum threshold so the age
-          // condition is the only thing responsible to make this scenario
-          // happen.
-          const walletMainUtxo = {
-            txHash:
-              "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
-            txOutputIndex: 0,
-            txOutputValue: constants.walletMinBtcBalance,
-          }
-
-          let tx: ContractTransaction
-
           before(async () => {
             await createSnapshot()
 
             await increaseTime((await bridge.walletParameters()).walletMaxAge)
-
-            await bridge.setWalletMainUtxo(
-              ecdsaWalletTestData.pubKeyHash160,
-              walletMainUtxo
-            )
-
-            tx = await bridge
-              .connect(walletRegistry.wallet)
-              .notifyCloseableWallet(
-                ecdsaWalletTestData.pubKeyHash160,
-                walletMainUtxo
-              )
           })
 
           after(async () => {
             await restoreSnapshot()
           })
 
-          it("should change wallet's state to MovingFunds", async () => {
-            const { state } = await bridge.wallets(
-              ecdsaWalletTestData.pubKeyHash160
-            )
+          context("when wallet balance is zero", () => {
+            let tx: ContractTransaction
 
-            expect(state).to.be.equal(walletState.MovingFunds)
-          })
+            before(async () => {
+              await createSnapshot()
 
-          it("should set move funds requested at timestamp", async () => {
-            const { movingFundsRequestedAt } = await bridge.wallets(
-              ecdsaWalletTestData.pubKeyHash160
-            )
+              tx = await bridge
+                .connect(walletRegistry.wallet)
+                .notifyCloseableWallet(
+                  ecdsaWalletTestData.pubKeyHash160,
+                  NO_MAIN_UTXO
+                )
+            })
 
-            expect(movingFundsRequestedAt).to.be.equal(await lastBlockTime())
-          })
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-          it("should emit WalletMovingFunds event", async () => {
-            await expect(tx)
-              .to.emit(bridge, "WalletMovingFunds")
-              .withArgs(
-                ecdsaWalletTestData.walletID,
+            it("should change wallet's state to Closing", async () => {
+              const { state } = await bridge.wallets(
                 ecdsaWalletTestData.pubKeyHash160
               )
+
+              expect(state).to.be.equal(walletState.Closing)
+            })
+
+            it("should set the wallet's closing started timestamp", async () => {
+              const wallet = await bridge.wallets(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+              expect(wallet.closingStartedAt).to.be.equal(await lastBlockTime())
+            })
+
+            it("should emit WalletClosing event", async () => {
+              await expect(tx)
+                .to.emit(bridge, "WalletClosing")
+                .withArgs(
+                  ecdsaWalletTestData.walletID,
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+            })
+
+            it("should decrease the live wallets counter", async () => {
+              expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            })
           })
 
-          it("should decrease the live wallets counter", async () => {
-            expect(await bridge.liveWalletsCount()).to.be.equal(0)
-          })
-        })
-
-        context(
-          "when wallet did not reach the maximum age but their balance is lesser than the minimum threshold",
-          () => {
+          context("when wallet balance is greater than zero", () => {
             const walletMainUtxo = {
               txHash:
                 "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
               txOutputIndex: 0,
-              txOutputValue: constants.walletMinBtcBalance.sub(1),
+              txOutputValue: 1,
             }
 
             let tx: ContractTransaction
@@ -1056,6 +1182,122 @@ describe("Bridge - Wallets", () => {
 
             it("should decrease the live wallets counter", async () => {
               expect(await bridge.liveWalletsCount()).to.be.equal(0)
+            })
+          })
+        })
+
+        context(
+          "when wallet did not reach the maximum age but their balance is lesser than the minimum threshold",
+          () => {
+            context("when wallet balance is zero", () => {
+              let tx: ContractTransaction
+
+              before(async () => {
+                await createSnapshot()
+
+                tx = await bridge
+                  .connect(walletRegistry.wallet)
+                  .notifyCloseableWallet(
+                    ecdsaWalletTestData.pubKeyHash160,
+                    NO_MAIN_UTXO
+                  )
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should change wallet's state to Closing", async () => {
+                const { state } = await bridge.wallets(
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+
+                expect(state).to.be.equal(walletState.Closing)
+              })
+
+              it("should set the wallet's closing started timestamp", async () => {
+                const wallet = await bridge.wallets(
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+                expect(wallet.closingStartedAt).to.be.equal(
+                  await lastBlockTime()
+                )
+              })
+
+              it("should emit WalletClosing event", async () => {
+                await expect(tx)
+                  .to.emit(bridge, "WalletClosing")
+                  .withArgs(
+                    ecdsaWalletTestData.walletID,
+                    ecdsaWalletTestData.pubKeyHash160
+                  )
+              })
+
+              it("should decrease the live wallets counter", async () => {
+                expect(await bridge.liveWalletsCount()).to.be.equal(0)
+              })
+            })
+
+            context("when wallet balance is greater than zero", () => {
+              const walletMainUtxo = {
+                txHash:
+                  "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                txOutputIndex: 0,
+                txOutputValue: constants.walletMinBtcBalance.sub(1),
+              }
+
+              let tx: ContractTransaction
+
+              before(async () => {
+                await createSnapshot()
+
+                await bridge.setWalletMainUtxo(
+                  ecdsaWalletTestData.pubKeyHash160,
+                  walletMainUtxo
+                )
+
+                tx = await bridge
+                  .connect(walletRegistry.wallet)
+                  .notifyCloseableWallet(
+                    ecdsaWalletTestData.pubKeyHash160,
+                    walletMainUtxo
+                  )
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should change wallet's state to MovingFunds", async () => {
+                const { state } = await bridge.wallets(
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+
+                expect(state).to.be.equal(walletState.MovingFunds)
+              })
+
+              it("should set move funds requested at timestamp", async () => {
+                const { movingFundsRequestedAt } = await bridge.wallets(
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+
+                expect(movingFundsRequestedAt).to.be.equal(
+                  await lastBlockTime()
+                )
+              })
+
+              it("should emit WalletMovingFunds event", async () => {
+                await expect(tx)
+                  .to.emit(bridge, "WalletMovingFunds")
+                  .withArgs(
+                    ecdsaWalletTestData.walletID,
+                    ecdsaWalletTestData.pubKeyHash160
+                  )
+              })
+
+              it("should decrease the live wallets counter", async () => {
+                expect(await bridge.liveWalletsCount()).to.be.equal(0)
+              })
             })
           }
         )

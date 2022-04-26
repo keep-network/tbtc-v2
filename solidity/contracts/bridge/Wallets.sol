@@ -360,8 +360,9 @@ library Wallets {
         moveFunds(self, walletPubKeyHash);
     }
 
-    /// @notice Requests a wallet to move their funds. If the move funds
-    ///         request refers to the current active wallet, such a wallet
+    /// @notice Requests a wallet to move their funds. If the wallet balance
+    ///         is zero, the wallet closing begins immediately. If the move
+    ///         funds request refers to the current active wallet, such a wallet
     ///         is no longer considered active and the active wallet slot
     ///         is unset allowing to trigger a new wallet creation immediately.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
@@ -372,12 +373,19 @@ library Wallets {
         bytes20 walletPubKeyHash
     ) internal {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-        // Initialize the moving funds process.
-        wallet.state = WalletState.MovingFunds;
-        /* solhint-disable-next-line not-rely-on-time */
-        wallet.movingFundsRequestedAt = uint32(block.timestamp);
 
-        emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
+        if (wallet.mainUtxoHash == bytes32(0)) {
+            // If the wallet has no main UTXO, that means its BTC balance
+            // is zero and the wallet closing should begin immediately.
+            beginWalletClosing(self, walletPubKeyHash);
+        } else {
+            // Otherwise, initialize the moving funds process.
+            wallet.state = WalletState.MovingFunds;
+            /* solhint-disable-next-line not-rely-on-time */
+            wallet.movingFundsRequestedAt = uint32(block.timestamp);
+
+            emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
+        }
 
         if (self.activeWalletPubKeyHash == walletPubKeyHash) {
             // If the move funds request refers to the current active wallet,
