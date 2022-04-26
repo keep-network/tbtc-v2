@@ -1194,6 +1194,8 @@ describe("Bridge - Fraud", () => {
         })
 
         after(async () => {
+          walletRegistry.closeWallet.reset()
+
           await restoreSnapshot()
         })
 
