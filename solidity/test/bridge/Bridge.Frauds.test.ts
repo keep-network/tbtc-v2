@@ -415,65 +415,101 @@ describe("Bridge - Fraud", () => {
       })
     })
 
-    context("when the wallet is in neither Live nor MovingFunds state", () => {
-      const testData = [
-        {
-          testName: "when wallet state is Unknown",
-          walletState: walletState.Unknown,
-        },
-        {
-          testName: "when wallet state is Closing",
-          walletState: walletState.Closing,
-        },
-        {
-          testName: "when wallet state is Closed",
-          walletState: walletState.Closed,
-        },
-        {
-          testName: "when wallet state is Terminated",
-          walletState: walletState.Terminated,
-        },
-      ]
+    context("when the wallet is in Closing state", () => {
+      before(async () => {
+        await createSnapshot()
 
-      testData.forEach((test) => {
-        context(test.testName, () => {
-          before(async () => {
-            await createSnapshot()
-            await bridge.setWallet(walletPublicKeyHash, {
-              ecdsaWalletID: ethers.constants.HashZero,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              state: test.walletState,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
-            })
-          })
-
-          after(async () => {
-            await restoreSnapshot()
-          })
-
-          it("should revert", async () => {
-            await expect(
-              bridge
-                .connect(thirdParty)
-                .submitFraudChallenge(
-                  walletPublicKey,
-                  data.sighash,
-                  data.signature,
-                  {
-                    value: fraudChallengeDepositAmount,
-                  }
-                )
-            ).to.be.revertedWith(
-              "Wallet is neither in Live nor MovingFunds state"
-            )
-          })
+        await bridge.setWallet(walletPublicKeyHash, {
+          ecdsaWalletID: ethers.constants.HashZero,
+          mainUtxoHash: ethers.constants.HashZero,
+          pendingRedemptionsValue: 0,
+          createdAt: await lastBlockTime(),
+          movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
+          state: walletState.Closing,
+          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
       })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should succeed", async () => {
+        await expect(
+          bridge
+            .connect(thirdParty)
+            .submitFraudChallenge(
+              walletPublicKey,
+              data.sighash,
+              data.signature,
+              {
+                value: fraudChallengeDepositAmount,
+              }
+            )
+        ).to.not.be.reverted
+      })
     })
+
+    context(
+      "when the wallet is in neither Live nor MovingFunds nor Closing state",
+      () => {
+        const testData = [
+          {
+            testName: "when wallet state is Unknown",
+            walletState: walletState.Unknown,
+          },
+          {
+            testName: "when wallet state is Closed",
+            walletState: walletState.Closed,
+          },
+          {
+            testName: "when wallet state is Terminated",
+            walletState: walletState.Terminated,
+          },
+        ]
+
+        testData.forEach((test) => {
+          context(test.testName, () => {
+            before(async () => {
+              await createSnapshot()
+              await bridge.setWallet(walletPublicKeyHash, {
+                ecdsaWalletID: ethers.constants.HashZero,
+                mainUtxoHash: ethers.constants.HashZero,
+                pendingRedemptionsValue: 0,
+                createdAt: await lastBlockTime(),
+                movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
+                state: test.walletState,
+                movingFundsTargetWalletsCommitmentHash:
+                  ethers.constants.HashZero,
+              })
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge
+                  .connect(thirdParty)
+                  .submitFraudChallenge(
+                    walletPublicKey,
+                    data.sighash,
+                    data.signature,
+                    {
+                      value: fraudChallengeDepositAmount,
+                    }
+                  )
+              ).to.be.revertedWith(
+                "Wallet must be in Live or MovingFunds or Closing state"
+              )
+            })
+          })
+        })
+      }
+    )
   })
 
   describe("defeatFraudChallenge", () => {
