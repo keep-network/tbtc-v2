@@ -17,6 +17,9 @@ export const constants = {
   walletMaxBtcBalance: to1ePrecision(10, 8), // 10 BTC
   walletMaxAge: 8 * 604800, // 8 weeks,
   walletMaxBtcTransfer: to1ePrecision(10, 8), // 10 BTC
+  depositDustThreshold: 1000000, // 1000000 satoshi = 0.01 BTC
+  depositTreasuryFeeDivisor: 2000, // 1/2000 == 5bps == 0.05% == 0.0005
+  depositTxMaxFee: 10000, // 10000 satoshi
 }
 
 export const walletState = {
