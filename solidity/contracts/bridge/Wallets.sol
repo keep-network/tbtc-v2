@@ -441,33 +441,6 @@ library Wallets {
         self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
     }
 
-    /// @notice Reports about a fraud committed by the given wallet. This
-    ///         function performs slashing and wallet termination in reaction
-    ///         to a proven fraud and it should only be called when the fraud
-    ///         was confirmed.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
-    /// @dev Requirements:
-    ///      - Wallet must be in Live or MovingFunds or Closing state
-    function notifyWalletFraud(
-        BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash
-    ) internal {
-        WalletState walletState = self
-            .registeredWallets[walletPubKeyHash]
-            .state;
-
-        require(
-            walletState == WalletState.Live ||
-                walletState == WalletState.MovingFunds ||
-                walletState == WalletState.Closing,
-            "Wallet must be in Live or MovingFunds or Closing state"
-        );
-
-        terminateWallet(self, walletPubKeyHash);
-
-        // TODO: Perform slashing of wallet operators and add unit tests for that.
-    }
-
     /// @notice Terminates the given wallet and notifies the ECDSA registry
     ///         about this fact. If the wallet termination refers to the current
     ///         active wallet, such a wallet is no longer considered active and
@@ -476,7 +449,7 @@ library Wallets {
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the
-    ///        Live or MovingFunds state.
+    ///        Live or MovingFunds or Closing state.
     function terminateWallet(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash

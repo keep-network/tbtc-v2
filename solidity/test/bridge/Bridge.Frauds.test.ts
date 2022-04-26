@@ -1228,7 +1228,7 @@ describe("Bridge - Fraud", () => {
     })
   })
 
-  describe.only("notifyFraudChallengeDefeatTimeout", () => {
+  describe("notifyFraudChallengeDefeatTimeout", () => {
     const data = nonWitnessSignSingleInputTx
 
     context("when the fraud challenge exists", () => {
@@ -1323,9 +1323,6 @@ describe("Bridge - Fraud", () => {
                       state: test.walletState,
                     })
 
-                    await bridge.setSweptDeposits(data.deposits)
-                    await bridge.setSpentMainUtxos(data.spentMainUtxos)
-
                     await bridge
                       .connect(thirdParty)
                       .submitFraudChallenge(
@@ -1385,7 +1382,11 @@ describe("Bridge - Fraud", () => {
                       .withArgs(walletPublicKeyHash, data.sighash)
                   })
 
-                  it("should emit change wallet state to Terminated", async () => {})
+                  it("should change the wallet state to Terminated", async () => {
+                    expect(
+                      (await bridge.wallets(walletPublicKeyHash)).state
+                    ).to.be.equal(walletState.Terminated)
+                  })
 
                   it("should emit WalletTerminated event", async () => {
                     await expect(tx)
@@ -1406,7 +1407,83 @@ describe("Bridge - Fraud", () => {
           )
 
           context("when the wallet is in the Terminated state", () => {
-            // TODO: Implementation
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              // First, the wallet must be Live to make fraud challenge
+              // submission possible.
+              await bridge.setWallet(walletPublicKeyHash, {
+                ...walletDraft,
+                state: walletState.Live,
+              })
+
+              await bridge
+                .connect(thirdParty)
+                .submitFraudChallenge(
+                  walletPublicKey,
+                  data.sighash,
+                  data.signature,
+                  {
+                    value: fraudChallengeDepositAmount,
+                  }
+                )
+
+              await increaseTime(fraudChallengeDefeatTimeout)
+
+              // Then, the state of the wallet changes to the Terminated
+              // state.
+              await bridge.setWallet(walletPublicKeyHash, {
+                ...walletDraft,
+                state: walletState.Terminated,
+              })
+
+              tx = await bridge
+                .connect(thirdParty)
+                .notifyFraudChallengeDefeatTimeout(
+                  walletPublicKey,
+                  data.sighash
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should mark the fraud challenge as resolved", async () => {
+              const challengeKey = buildChallengeKey(
+                walletPublicKey,
+                data.sighash
+              )
+
+              const fraudChallenge = await bridge.fraudChallenges(challengeKey)
+
+              expect(fraudChallenge.resolved).to.be.true
+            })
+
+            it("should return the deposited ether to the challenger", async () => {
+              await expect(tx).to.changeEtherBalance(
+                bridge,
+                fraudChallengeDepositAmount.mul(-1)
+              )
+              await expect(tx).to.changeEtherBalance(
+                thirdParty,
+                fraudChallengeDepositAmount
+              )
+            })
+
+            it("should emit FraudChallengeDefeatTimedOut event", async () => {
+              await expect(tx)
+                .to.emit(bridge, "FraudChallengeDefeatTimedOut")
+                .withArgs(walletPublicKeyHash, data.sighash)
+            })
+
+            it("should not change the wallet state", async () => {
+              expect(
+                (await bridge.wallets(walletPublicKeyHash)).state
+              ).to.be.equal(walletState.Terminated)
+            })
           })
 
           context(
@@ -1472,7 +1549,7 @@ describe("Bridge - Fraud", () => {
                           data.sighash
                         )
                     ).to.be.revertedWith(
-                      "Wallet must be in Live or MovingFunds or Closing state"
+                      "Wallet must be in Live or MovingFunds or Closing or Terminated state"
                     )
                   })
                 })

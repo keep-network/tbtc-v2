@@ -267,7 +267,8 @@ library Fraud {
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference
     /// @dev Requirements:
-    ///      - The wallet must be in Live or MovingFunds or Closing state
+    ///      - The wallet must be in the Live or MovingFunds or Closing or
+    ///        Terminated state
     ///      - The `walletPublicKey` and `sighash` must identify an open fraud
     ///        challenge
     ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
@@ -311,10 +312,31 @@ library Fraud {
             walletPublicKey.slice32(32)
         );
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
+        Wallets.WalletState walletState = self
+            .registeredWallets[walletPubKeyHash]
+            .state;
 
-        self.notifyWalletFraud(walletPubKeyHash);
+        if (
+            walletState == Wallets.WalletState.Live ||
+            walletState == Wallets.WalletState.MovingFunds ||
+            walletState == Wallets.WalletState.Closing
+        ) {
+            self.terminateWallet(walletPubKeyHash);
 
-        // TODO: Reward the challenger.
+            // TODO: Perform slashing of the wallet operators, reward the
+            //       challenger, and add unit tests for that.
+        } else if (walletState == Wallets.WalletState.Terminated) {
+            // This is a special case when the wallet was already terminated
+            // due to a previous deliberate protocol violation. In that
+            // case, this function should be still callable for other fraud
+            // challenges timeouts in order to let the challenger unlock its
+            // ETH deposit back. However, the wallet termination logic is
+            // not called and the challenger is not rewarded.
+        } else {
+            revert(
+                "Wallet must be in Live or MovingFunds or Closing or Terminated state"
+            );
+        }
 
         // slither-disable-next-line reentrancy-events
         emit FraudChallengeDefeatTimedOut(walletPubKeyHash, sighash);
