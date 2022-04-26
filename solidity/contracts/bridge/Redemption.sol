@@ -430,10 +430,6 @@ library Redemption {
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) external {
-        // TODO: Just as for `submitSweepProof`, fail early if the function
-        //       call gets frontrunned. See discussion:
-        //       https://github.com/keep-network/tbtc-v2/pull/106#discussion_r801745204
-
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -603,11 +599,10 @@ library Redemption {
         bytes20 walletPubKeyHash,
         RedemptionTxOutputsProcessingInfo memory processInfo
     ) internal returns (RedemptionTxOutputsInfo memory resultInfo) {
-        // Helper variable that counts the number of processed redemption
-        // outputs. Redemptions can be either pending or reported as timed out.
-        // TODO: Revisit the approach with redemptions count according to
-        //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r808237765
-        uint256 processedRedemptionsCount = 0;
+        // Helper flag indicating whether there was at least one redemption
+        // output present (redemption must be either pending or reported as
+        // timed out).
+        bool redemptionPresent = false;
 
         // Outputs processing loop.
         for (uint256 i = 0; i < processInfo.outputsCount; i++) {
@@ -654,7 +649,7 @@ library Redemption {
                     );
                 resultInfo.totalBurnableValue += burnableValue;
                 resultInfo.totalTreasuryFee += treasuryFee;
-                processedRedemptionsCount++;
+                redemptionPresent = true;
             }
 
             // Make the `outputStartingIndex` pointing to the next output by
@@ -666,7 +661,7 @@ library Redemption {
         // referring back to the wallet PKH and just burning main UTXO value
         // for transaction fees.
         require(
-            processedRedemptionsCount > 0,
+            redemptionPresent,
             "Redemption transaction must process at least one redemption"
         );
     }
@@ -842,7 +837,7 @@ library Redemption {
             // Propagate timeout consequences to the wallet
             self.notifyWalletTimedOutRedemption(walletPubKeyHash);
         }
-
+        // slither-disable-next-line reentrancy-events
         emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
 
         // Return the requested amount of tokens to the redeemer

@@ -86,7 +86,7 @@ library BridgeState {
         // Time after which the moving funds process can be reported as
         // timed out. It is counted from the moment when the wallet
         // was requested to move their funds and switched to the MovingFunds
-        // state.
+        // state. Value in seconds.
         uint32 movingFundsTimeout;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
@@ -181,10 +181,10 @@ library BridgeState {
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
         bytes20 activeWalletPubKeyHash;
-        // Current live wallets count;
+        // The current number of wallets in the Live state.
         uint32 liveWalletsCount;
-        // The maximum BTC transfer than can be sent to a single target wallet
-        // during the moving funds process.
+        // The maximum BTC amount in satoshi than can be transferred to a single
+        // target wallet during the moving funds process.
         uint64 walletMaxBtcTransfer;
         // Maps the 20-byte wallet public key hash (computed using Bitcoin
         // HASH160 over the compressed ECDSA public key) to the basic wallet
@@ -205,15 +205,15 @@ library BridgeState {
     ///        seconds, determines how frequently a new wallet creation can be
     ///        requested
     /// @param _walletMinBtcBalance New value of the wallet minimum BTC balance
-    ///        in satoshis, used to decide about wallet creation or closing
+    ///        in satoshi, used to decide about wallet creation or closing
     /// @param _walletMaxBtcBalance New value of the wallet maximum BTC balance
-    ///        in satoshis, used to decide about wallet creation
+    ///        in satoshi, used to decide about wallet creation
     /// @param _walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
     ///        the wallet moving funds process can be requested
-    /// @param _walletMaxBtcTransfer New value of the wallet maximum BTC
-    ///        transfer in satoshi, than can be sent  to a single target wallet
-    //         during the moving funds process.
+    /// @param _walletMaxBtcTransfer New value of the wallet maximum BTC transfer
+    ///        in satoshi, determines the maximum amount that can be transferred
+    //         to a single target wallet during the moving funds process
     /// @dev Requirements:
     ///      - Wallet minimum BTC balance must be greater than zero
     ///      - Wallet maximum BTC balance must be greater than the wallet

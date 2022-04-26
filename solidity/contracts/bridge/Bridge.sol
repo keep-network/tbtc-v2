@@ -55,6 +55,8 @@ import "../bank/Bank.sol";
 ///      moving funds, wallet lifecycle, frauds, parameters.
 ///
 /// TODO: Revisit all events and look which parameters should be indexed.
+/// TODO: Align the convention around `param` and `dev` endings. They should
+///       not have a punctuation mark.
 contract Bridge is Ownable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
@@ -140,17 +142,17 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     );
 
     event FraudChallengeSubmitted(
-        bytes20 walletPublicKeyHash,
+        bytes20 walletPubKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
         bytes32 s
     );
 
-    event FraudChallengeDefeated(bytes20 walletPublicKeyHash, bytes32 sighash);
+    event FraudChallengeDefeated(bytes20 walletPubKeyHash, bytes32 sighash);
 
     event FraudChallengeDefeatTimedOut(
-        bytes20 walletPublicKeyHash,
+        bytes20 walletPubKeyHash,
         bytes32 sighash
     );
 
@@ -432,17 +434,17 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         proof submission.
     /// @param walletPubKeyHash 20-byte public key hash of the source wallet
     /// @param walletMainUtxo Data of the source wallet's main UTXO, as
-    ///        currently known on the Ethereum chain.
+    ///        currently known on the Ethereum chain
     /// @param walletMembersIDs Identifiers of the source wallet signing group
     ///        members
     /// @param walletMemberIndex Position of the caller in the source wallet
     ///        signing group members list
     /// @param targetWallets List of 20-byte public key hashes of the target
-    ///        wallets that the source wallet commits to
+    ///        wallets that the source wallet commits to move the funds to
     /// @dev Requirements:
     ///      - The source wallet must be in the MovingFunds state
     ///      - The source wallet must not have pending redemption requests
-    ///      - The source wallet must not have prior commitments submitted earlier
+    ///      - The source wallet must not have submitted its commitment already
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given source wallet in the ECDSA registry. Those IDs are
@@ -454,14 +456,16 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        at the position indicated by `walletMemberIndex` parameter
     ///      - The `walletMainUtxo` components must point to the recent main
     ///        UTXO of the source wallet, as currently known on the Ethereum
-    ///        chain. If the source wallet has no main UTXO, this parameter
-    ///        can be empty as it is ignored since the wallet balance is
-    ///        assumed to be zero.
+    ///        chain.
+    ///      - Source wallet BTC balance must be greater than zero
     ///      - At least one Live wallet must exist in the system
     ///      - Submitted target wallets count must match the expected count
     ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
     ///        where `N > 0`
     ///      - Each target wallet must be not equal to the source wallet
+    ///      - Each target wallet must follow the expected order i.e. all
+    ///        target wallets 20-byte public key hashes represented as numbers
+    ///        must form a strictly increasing sequence without duplicates.
     ///      - Each target wallet must be in Live state
     function submitMovingFundsCommitment(
         bytes20 walletPubKeyHash,
@@ -539,7 +543,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     }
 
     /// @notice Notifies about a timed out moving funds process. Terminates
-    ///         the wallet in result.
+    ///         the wallet and slashes signing group members as a result.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - The wallet must be in the MovingFunds state
@@ -606,7 +610,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     }
 
     /// @notice Notifies that the wallet is either old enough or has too few
-    ///         satoshis left and qualifies to be closed.
+    ///         satoshi left and qualifies to be closed.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
     ///        known on the Ethereum chain.
@@ -760,15 +764,15 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        seconds, determines how frequently a new wallet creation can be
     ///        requested
     /// @param walletMinBtcBalance New value of the wallet minimum BTC balance
-    ///        in satoshis, used to decide about wallet creation or closing
+    ///        in satoshi, used to decide about wallet creation or closing
     /// @param walletMaxBtcBalance New value of the wallet maximum BTC balance
-    ///        in satoshis, used to decide about wallet creation
+    ///        in satoshi, used to decide about wallet creation
     /// @param walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
     ///        the wallet moving funds process can be requested
-    /// @param walletMaxBtcTransfer New value of the wallet maximum BTC
-    ///        transfer in satoshi, than can be sent  to a single target wallet
-    //         during the moving funds process.
+    /// @param walletMaxBtcTransfer New value of the wallet maximum BTC transfer
+    ///        in satoshi, determines the maximum amount that can be transferred
+    //         to a single target wallet during the moving funds process
     /// @dev Requirements:
     ///      - Wallet minimum BTC balance must be greater than zero
     ///      - Wallet maximum BTC balance must be greater than the wallet
@@ -879,7 +883,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         return self.activeWalletPubKeyHash;
     }
 
-    /// @return Current count of wallets being in the Live state.
+    /// @notice Gets the live wallets count.
+    /// @return The current count of wallets being in the Live state.
     function liveWalletsCount() external view returns (uint32) {
         return self.liveWalletsCount;
     }
@@ -984,7 +989,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @return movingFundsTimeout Time after which the moving funds process
     ///         can be reported as timed out. It is counted from the moment
     ///         when the wallet was requested to move their funds and switched
-    ///         to the MovingFunds state.
+    ///         to the MovingFunds state. Value in seconds.
     function movingFundsParameters()
         external
         view
@@ -1002,8 +1007,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         used to decide about wallet creation.
     /// @return walletMaxAge The maximum age of a wallet in seconds, after which
     ///         the wallet moving funds process can be requested.
-    /// @return walletMaxBtcTransfer The maximum BTC transfer in satoshi than
-    ///         can be sent  to a single target wallet during the moving
+    /// @return walletMaxBtcTransfer The maximum BTC amount in satoshi than
+    ///         can be transferred to a single target wallet during the moving
     ///         funds process.
     function walletParameters()
         external

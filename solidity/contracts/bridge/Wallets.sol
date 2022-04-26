@@ -446,6 +446,8 @@ library Wallets {
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - Wallet must be in Live or MovingFunds state
+    ///
+    // slither-disable-next-line dead-code
     function notifyWalletFraud(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -474,6 +476,8 @@ library Wallets {
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the
     ///        Live or MovingFunds state.
+    ///
+    // slither-disable-next-line dead-code
     function terminateWallet(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -496,115 +500,6 @@ library Wallets {
         }
 
         self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
-    }
-
-    /// @notice Notifies about the submission of the moving funds target
-    ///         wallets commitment. Once all requirements are met, that
-    ///         function registers the target wallets commitment and opens
-    ///         the way for moving funds proof submission.
-    /// @param walletPubKeyHash 20-byte public key hash of the source wallet
-    /// @param walletMainUtxo Data of the source wallet's main UTXO, as
-    ///        currently known on the Ethereum chain.
-    /// @param walletMembersIDs Identifiers of the source wallet signing group
-    ///        members
-    /// @param walletMemberIndex Position of the caller in the source wallet
-    ///        signing group members list
-    /// @param targetWallets List of 20-byte public key hashes of the target
-    ///        wallets that the source wallet commits to
-    /// @dev Requirements:
-    ///      - The source wallet must be in the MovingFunds state
-    ///      - The source wallet must not have pending redemption requests
-    ///      - The source wallet must not have prior commitments submitted earlier
-    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
-    ///        be exactly the same as the hash stored under `membersIdsHash`
-    ///        for the given source wallet in the ECDSA registry. Those IDs are
-    ///        not directly stored in the contract for gas efficiency purposes
-    ///        but they can be read from appropriate `DkgResultSubmitted`
-    ///        and `DkgResultApproved` events.
-    ///      - The `walletMemberIndex` must be in range [1, walletMembersIDs.length]
-    ///      - The caller must be the member of the source wallet signing group
-    ///        at the position indicated by `walletMemberIndex` parameter
-    ///      - The `walletMainUtxo` components must point to the recent main
-    ///        UTXO of the source wallet, as currently known on the Ethereum
-    ///        chain. If the source wallet has no main UTXO, this parameter
-    ///        can be empty as it is ignored since the wallet balance is
-    ///        assumed to be zero.
-    ///      - At least one Live wallet must exist in the system
-    ///      - Submitted target wallets count must match the expected count
-    ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
-    ///        where `N > 0`
-    ///      - Each target wallet must be not equal to the source wallet
-    ///      - Each target wallet must be in Live state
-    function notifyWalletMovingFundsCommitmentSubmitted(
-        BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash,
-        BitcoinTx.UTXO calldata walletMainUtxo,
-        uint32[] calldata walletMembersIDs,
-        uint256 walletMemberIndex,
-        bytes20[] calldata targetWallets
-    ) internal {
-        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-
-        require(
-            wallet.state == WalletState.MovingFunds,
-            "Source wallet must be in MovingFunds state"
-        );
-
-        require(
-            wallet.pendingRedemptionsValue == 0,
-            "Source wallet must handle all pending redemptions first"
-        );
-
-        require(
-            wallet.movingFundsTargetWalletsCommitmentHash == bytes32(0),
-            "Target wallets commitment already submitted"
-        );
-
-        require(
-            self.ecdsaWalletRegistry.isWalletMember(
-                wallet.ecdsaWalletID,
-                walletMembersIDs,
-                msg.sender,
-                walletMemberIndex
-            ),
-            "Caller is not a member of the source wallet"
-        );
-
-        uint64 walletBtcBalance = getWalletBtcBalance(
-            self,
-            walletPubKeyHash,
-            walletMainUtxo
-        );
-        uint256 expectedTargetWalletsCount = Math.min(
-            self.liveWalletsCount,
-            Math.ceilDiv(walletBtcBalance, self.walletMaxBtcTransfer)
-        );
-
-        // This requirement fails only when `liveWalletsCount` is zero. In
-        // that case, the system cannot accept the commitment and must provide
-        // new wallets first.
-        require(expectedTargetWalletsCount > 0, "No target wallets available");
-
-        require(
-            targetWallets.length == expectedTargetWalletsCount,
-            "Submitted target wallets count is other than expected"
-        );
-
-        for (uint256 i = 0; i < targetWallets.length; i++) {
-            require(
-                targetWallets[i] != walletPubKeyHash,
-                "Submitted target wallet cannot be equal to the source wallet"
-            );
-            require(
-                self.registeredWallets[targetWallets[i]].state ==
-                    WalletState.Live,
-                "Submitted target wallet must be in Live state"
-            );
-        }
-
-        wallet.movingFundsTargetWalletsCommitmentHash = keccak256(
-            abi.encodePacked(targetWallets)
-        );
     }
 
     /// @notice Notifies that the wallet completed the moving funds process
@@ -657,35 +552,5 @@ library Wallets {
         delete wallet.mainUtxoHash;
 
         beginWalletClosing(self, walletPubKeyHash);
-    }
-
-    /// @notice Notifies about a timed out moving funds process. Terminates
-    ///         the wallet in result.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
-    /// @dev Requirements:
-    ///      - The wallet must be in the MovingFunds state
-    ///      - The moving funds timeout must be actually exceeded
-    function notifyWalletMovingFundsTimeout(
-        BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash
-    ) internal {
-        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-
-        require(
-            wallet.state == WalletState.MovingFunds,
-            "ECDSA wallet must be in MovingFunds state"
-        );
-
-        require(
-            /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp >
-                wallet.movingFundsRequestedAt + self.movingFundsTimeout,
-            "Moving funds has not timed out"
-        );
-
-        terminateWallet(self, walletPubKeyHash);
-
-        // TODO: Perform slashing of wallet operators, reward the notifier
-        //       using seized amount, and add unit tests for that.
     }
 }
