@@ -155,7 +155,7 @@ library Fraud {
         /* solhint-disable-next-line not-rely-on-time */
         challenge.reportedAt = uint32(block.timestamp);
         challenge.resolved = false;
-
+        // slither-disable-next-line reentrancy-events
         emit FraudChallengeSubmitted(
             walletPubKeyHash,
             sighash,
@@ -232,7 +232,7 @@ library Fraud {
 
         // Send the ether deposited by the challenger to the treasury
         /* solhint-disable avoid-low-level-calls */
-        // slither-disable-next-line low-level-calls
+        // slither-disable-next-line low-level-calls,unchecked-lowlevel,arbitrary-send
         self.treasury.call{gas: 100000, value: challenge.depositAmount}("");
         /* solhint-enable avoid-low-level-calls */
 
@@ -241,7 +241,7 @@ library Fraud {
             walletPublicKey.slice32(32)
         );
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
-
+        // slither-disable-next-line reentrancy-events
         emit FraudChallengeDefeated(walletPubKeyHash, sighash);
     }
 
@@ -297,7 +297,7 @@ library Fraud {
 
         // Return the ether deposited by the challenger
         /* solhint-disable avoid-low-level-calls */
-        // slither-disable-next-line low-level-calls
+        // slither-disable-next-line low-level-calls,unchecked-lowlevel
         challenge.challenger.call{gas: 100000, value: challenge.depositAmount}(
             ""
         );
@@ -308,7 +308,7 @@ library Fraud {
             walletPublicKey.slice32(32)
         );
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
-
+        // slither-disable-next-line reentrancy-events
         emit FraudChallengeDefeatTimedOut(walletPubKeyHash, sighash);
     }
 

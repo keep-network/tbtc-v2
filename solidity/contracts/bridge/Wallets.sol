@@ -412,6 +412,8 @@ library Wallets {
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - Wallet must be in Live or MovingFunds state
+    ///
+    // slither-disable-next-line dead-code
     function notifyWalletFraud(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -440,6 +442,8 @@ library Wallets {
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the
     ///        Live or MovingFunds state.
+    ///
+    // slither-disable-next-line dead-code
     function terminateWallet(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
