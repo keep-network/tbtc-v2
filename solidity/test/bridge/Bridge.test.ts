@@ -5760,8 +5760,6 @@ describe("Bridge", () => {
             })
 
             after(async () => {
-              walletRegistry.closeWallet.reset()
-
               await restoreSnapshot()
             })
 
