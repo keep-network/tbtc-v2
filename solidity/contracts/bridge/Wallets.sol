@@ -42,7 +42,10 @@ library Wallets {
         MovingFunds,
         /// @dev The wallet moved or redeemed all their funds and is in the
         ///      closing period where they can be subject of fraud challenges
-        ///      and must defend against them.
+        ///      and must defend against them. This state is needed to protect
+        ///      against deposit frauds on deposits revealed but not swept.
+        ///      The closing period must be greater that the deposit refund
+        ///      time plus some time margin.
         Closing,
         /// @dev The wallet finalized the closing period successfully and
         ///      cannot perform any action in the Bridge.
