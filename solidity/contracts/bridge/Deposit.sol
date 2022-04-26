@@ -250,7 +250,7 @@ library Deposit {
         deposit.treasuryFee = self.depositTreasuryFeeDivisor > 0
             ? fundingOutputAmount / self.depositTreasuryFeeDivisor
             : 0;
-
+        // slither-disable-next-line reentrancy-events
         emit DepositRevealed(
             fundingTxHash,
             reveal.fundingOutputIndex,

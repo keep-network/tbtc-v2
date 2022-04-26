@@ -837,7 +837,7 @@ library Redemption {
             // Propagate timeout consequences to the wallet
             self.notifyWalletTimedOutRedemption(walletPubKeyHash);
         }
-
+        // slither-disable-next-line reentrancy-events
         emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
 
         // Return the requested amount of tokens to the redeemer

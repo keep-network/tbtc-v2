@@ -270,7 +270,7 @@ library MovingFunds {
         );
 
         self.notifyWalletFundsMoved(walletPubKeyHash, targetWalletsHash);
-
+        // slither-disable-next-line reentrancy-events
         emit MovingFundsCompleted(walletPubKeyHash, movingFundsTxHash);
     }
 
