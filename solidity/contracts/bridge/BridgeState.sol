@@ -198,6 +198,13 @@ library BridgeState {
         uint64 depositTxMaxFee
     );
 
+    event RedemptionParametersUpdated(
+        uint64 redemptionDustThreshold,
+        uint64 redemptionTreasuryFeeDivisor,
+        uint64 redemptionTxMaxFee,
+        uint256 redemptionTimeout
+    );
+
     event WalletParametersUpdated(
         uint32 walletCreationPeriod,
         uint64 walletMinBtcBalance,
@@ -254,6 +261,67 @@ library BridgeState {
             _depositDustThreshold,
             _depositTreasuryFeeDivisor,
             _depositTxMaxFee
+        );
+    }
+
+    /// @notice Updates parameters of redemptions.
+    /// @param _redemptionDustThreshold New value of the redemption dust
+    ///        threshold in satoshis. It is the minimal amount that can be
+    ///        requested for redemption. Value of this parameter must take into
+    ///        account the value of `redemptionTreasuryFeeDivisor` and
+    ///        `redemptionTxMaxFee` parameters in order to make requests that
+    ///        can incur the treasury and transaction fee and still satisfy the
+    ///        redeemer.
+    /// @param _redemptionTreasuryFeeDivisor New value of the redemption
+    ///        treasury fee divisor. It is the divisor used to compute the
+    ///        treasury fee taken from each redemption request and transferred
+    ///        to the treasury upon successful request finalization. That fee is
+    ///        computed as follows:
+    ///        `treasuryFee = requestedAmount / redemptionTreasuryFeeDivisor`
+    ///        For example, if the treasury fee needs to be 2% of each
+    ///        redemption request, the `redemptionTreasuryFeeDivisor` should
+    ///        be set to `50` because `1/50 = 0.02 = 2%`.
+    /// @param _redemptionTxMaxFee New value of the redemption transaction max
+    ///        fee in satoshis. It is the maximum amount of BTC transaction fee
+    ///        that can be incurred by each redemption request being part of the
+    ///        given redemption transaction. If the maximum BTC transaction fee
+    ///        is exceeded, such transaction is considered a fraud.
+    /// @param _redemptionTimeout New value of the redemption timeout in seconds.
+    ///        It is the time after which the redemption request can be reported
+    ///        as timed out. It is counted from the moment when the redemption
+    ///        request was created via `requestRedemption` call. Reported  timed
+    ///        out requests are cancelled and locked TBTC is returned to the
+    ///        redeemer in full amount.
+    /// @dev Requirements:
+    ///      - Redemption treasury fee divisor must be greater than zero
+    ///      - Redemption timeout must be greater than zero
+    function updateRedemptionParameters(
+        Storage storage self,
+        uint64 _redemptionDustThreshold,
+        uint64 _redemptionTreasuryFeeDivisor,
+        uint64 _redemptionTxMaxFee,
+        uint256 _redemptionTimeout
+    ) internal {
+        require(
+            _redemptionTreasuryFeeDivisor > 0,
+            "Redemption treasury fee divisor must be greater than zero"
+        );
+
+        require(
+            _redemptionTimeout > 0,
+            "Redemption timeout must be greater than zero"
+        );
+
+        self.redemptionDustThreshold = _redemptionDustThreshold;
+        self.redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
+        self.redemptionTxMaxFee = _redemptionTxMaxFee;
+        self.redemptionTimeout = _redemptionTimeout;
+
+        emit RedemptionParametersUpdated(
+            _redemptionDustThreshold,
+            _redemptionTreasuryFeeDivisor,
+            _redemptionTxMaxFee,
+            _redemptionTimeout
         );
     }
 

@@ -269,6 +269,108 @@ describe("Bridge", () => {
     })
   })
 
+  describe("updateRedemptionParameters", () => {
+    context("when caller is the contract owner", () => {
+      context("when all new parameter values are correct", () => {
+        const newRedemptionDustThreshold = constants.redemptionDustThreshold * 2
+        const newRedemptionTreasuryFeeDivisor =
+          constants.redemptionTreasuryFeeDivisor / 2
+        const newRedemptionTxMaxFee = constants.redemptionTxMaxFee * 3
+        const newRedemptionTimeout = constants.redemptionTimeout * 4
+
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          tx = await bridge
+            .connect(governance)
+            .updateRedemptionParameters(
+              newRedemptionDustThreshold,
+              newRedemptionTreasuryFeeDivisor,
+              newRedemptionTxMaxFee,
+              newRedemptionTimeout
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should set correct values", async () => {
+          const params = await bridge.redemptionParameters()
+
+          expect(params.redemptionDustThreshold).to.be.equal(
+            newRedemptionDustThreshold
+          )
+          expect(params.redemptionTreasuryFeeDivisor).to.be.equal(
+            newRedemptionTreasuryFeeDivisor
+          )
+          expect(params.redemptionTxMaxFee).to.be.equal(newRedemptionTxMaxFee)
+          expect(params.redemptionTimeout).to.be.equal(newRedemptionTimeout)
+        })
+
+        it("should emit RedemptionParametersUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "RedemptionParametersUpdated")
+            .withArgs(
+              newRedemptionDustThreshold,
+              newRedemptionTreasuryFeeDivisor,
+              newRedemptionTxMaxFee,
+              newRedemptionTimeout
+            )
+        })
+      })
+
+      context("when new redemption treasury fee divisor is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateRedemptionParameters(
+                constants.redemptionDustThreshold,
+                0,
+                constants.redemptionTxMaxFee,
+                constants.redemptionTimeout
+              )
+          ).to.be.revertedWith(
+            "Redemption treasury fee divisor must be greater than zero"
+          )
+        })
+      })
+
+      context("when new redemption timeout is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateRedemptionParameters(
+                constants.redemptionDustThreshold,
+                constants.redemptionTreasuryFeeDivisor,
+                constants.redemptionTxMaxFee,
+                0
+              )
+          ).to.be.revertedWith("Redemption timeout must be greater than zero")
+        })
+      })
+    })
+
+    context("when caller is not the contract owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridge
+            .connect(thirdParty)
+            .updateRedemptionParameters(
+              constants.redemptionDustThreshold,
+              constants.redemptionTreasuryFeeDivisor,
+              constants.redemptionTxMaxFee,
+              constants.redemptionTimeout
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
   describe("isVaultTrusted", () => {
     const vault = "0x2553E09f832c9f5C656808bb7A24793818877732"
 
