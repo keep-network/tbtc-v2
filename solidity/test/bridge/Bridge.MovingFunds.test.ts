@@ -15,7 +15,7 @@ import type {
   IWalletRegistry,
 } from "../../typechain"
 import bridgeFixture from "./bridge-fixture"
-import { walletState } from "../fixtures"
+import { constants, walletState } from "../fixtures"
 import {
   MovingFundsTestData,
   MultipleInputs,
@@ -38,6 +38,7 @@ const { lastBlockTime, increaseTime } = helpers.time
 const fixture = async () => bridgeFixture()
 
 describe("Bridge - Moving funds", () => {
+  let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
 
@@ -49,8 +50,84 @@ describe("Bridge - Moving funds", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ thirdParty, treasury, bank, relay, walletRegistry, Bridge, bridge } =
-      await waffle.loadFixture(fixture))
+    ;({
+      governance,
+      thirdParty,
+      treasury,
+      bank,
+      relay,
+      walletRegistry,
+      Bridge,
+      bridge,
+    } = await waffle.loadFixture(fixture))
+  })
+
+  describe("updateMovingFundsParameters", () => {
+    context("when caller is the contract owner", () => {
+      context("when all new parameter values are correct", () => {
+        const newMovingFundsTxMaxTotalFee =
+          constants.movingFundsTxMaxTotalFee / 2
+        const newMovingFundsTimeout = constants.movingFundsTimeout * 2
+
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          tx = await bridge
+            .connect(governance)
+            .updateMovingFundsParameters(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsTimeout
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should set correct values", async () => {
+          const params = await bridge.movingFundsParameters()
+
+          expect(params.movingFundsTxMaxTotalFee).to.be.equal(
+            newMovingFundsTxMaxTotalFee
+          )
+          expect(params.movingFundsTimeout).to.be.equal(newMovingFundsTimeout)
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(newMovingFundsTxMaxTotalFee, newMovingFundsTimeout)
+        })
+      })
+
+      context("when new moving funds timeout is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateMovingFundsParameters(
+                constants.movingFundsTxMaxTotalFee,
+                0
+              )
+          ).to.be.revertedWith("Moving funds timeout must be greater than zero")
+        })
+      })
+    })
+
+    context("when caller is not the contract owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridge
+            .connect(thirdParty)
+            .updateMovingFundsParameters(
+              constants.movingFundsTxMaxTotalFee,
+              constants.movingFundsTimeout
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
   })
 
   describe("submitMovingFundsCommitment", () => {
