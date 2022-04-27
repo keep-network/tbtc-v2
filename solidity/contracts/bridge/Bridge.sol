@@ -651,6 +651,19 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.notifyCloseableWallet(walletPubKeyHash, walletMainUtxo);
     }
 
+    /// @notice Notifies about the end of the closing period for the given wallet.
+    ///         Closes the wallet ultimately and notifies the ECDSA registry
+    ///         about this fact.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - The wallet must be in the Closing state
+    ///      - The wallet closing period must have elapsed
+    function notifyWalletClosingPeriodElapsed(bytes20 walletPubKeyHash)
+        external
+    {
+        self.notifyWalletClosingPeriodElapsed(walletPubKeyHash);
+    }
+
     /// @notice Submits a fraud challenge indicating that a UTXO being under
     ///         wallet control was unlocked by the wallet but was not used
     ///         according to the protocol rules. That means the wallet signed
