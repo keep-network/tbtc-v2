@@ -1,36 +1,31 @@
-import { ethers } from "hardhat"
+import { deployments, ethers } from "hardhat"
 import { smock } from "@defi-wonderland/smock"
 import type {
   Bank,
   BankStub,
-  BankStub__factory,
-  Deposit__factory,
-  Sweep__factory,
-  Redemption__factory,
-  MovingFunds__factory,
-  Wallets__factory,
   Bridge,
   BridgeStub,
-  BridgeStub__factory,
   IWalletRegistry,
-  Fraud,
-  Fraud__factory,
-  IRelay,
+  BridgeStub__factory,
+  TestRelay,
 } from "../../typechain"
 
 /**
  * Common fixture for tests suites targeting the Bridge contract.
  */
 const bridgeFixture = async () => {
-  const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
+  await deployments.fixture()
 
-  const Bank = await ethers.getContractFactory<BankStub__factory>("BankStub")
-  const bank: Bank & BankStub = await Bank.deploy()
-  await bank.deployed()
+  const { deployer, governance, treasury } = await ethers.getNamedSigners()
+  const [thirdParty] = await ethers.getUnnamedSigners()
 
-  const relay = await smock.fake<IRelay>("IRelay")
+  const bank: Bank & BankStub = await ethers.getContract("Bank")
 
-  const walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry")
+  const bridge: Bridge & BridgeStub = await ethers.getContract("Bridge")
+
+  const walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry", {
+    address: await (await bridge.contractReferences()).ecdsaWalletRegistry,
+  })
   // Fund the `walletRegistry` account so it's possible to mock sending requests
   // from it.
   await deployer.sendTransaction({
@@ -38,58 +33,25 @@ const bridgeFixture = async () => {
     value: ethers.utils.parseEther("1"),
   })
 
-  const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
-  const wallets = await Wallets.deploy()
-  await wallets.deployed()
+  const relay = await smock.fake<TestRelay>("TestRelay", {
+    address: await (await bridge.contractReferences()).relay,
+  })
 
-  const Deposit = await ethers.getContractFactory<Deposit__factory>("Deposit")
-  const deposit = await Deposit.deploy()
-  await deposit.deployed()
+  await bank.connect(governance).updateBridge(bridge.address)
 
-  const Sweep = await ethers.getContractFactory<Sweep__factory>("Sweep")
-  const sweep = await Sweep.deploy()
-  await sweep.deployed()
-
-  const Redemption = await ethers.getContractFactory<Redemption__factory>(
-    "Redemption"
-  )
-  const redemption = await Redemption.deploy()
-  await redemption.deployed()
-
-  const MovingFunds = await ethers.getContractFactory<MovingFunds__factory>(
-    "MovingFunds"
-  )
-  const movingFunds = await MovingFunds.deploy()
-  await movingFunds.deployed()
-
-  const Fraud = await ethers.getContractFactory<Fraud__factory>("Fraud")
-  const fraud: Fraud = await Fraud.deploy()
-  await fraud.deployed()
-
-  const Bridge = await ethers.getContractFactory<BridgeStub__factory>(
+  const BridgeFactory = await ethers.getContractFactory<BridgeStub__factory>(
     "BridgeStub",
     {
       libraries: {
-        Deposit: deposit.address,
-        Sweep: sweep.address,
-        Redemption: redemption.address,
-        Wallets: wallets.address,
-        Fraud: fraud.address,
-        MovingFunds: movingFunds.address,
+        Deposit: (await ethers.getContract("Deposit")).address,
+        Sweep: (await ethers.getContract("Sweep")).address,
+        Redemption: (await ethers.getContract("Redemption")).address,
+        Wallets: (await ethers.getContract("Wallets")).address,
+        Fraud: (await ethers.getContract("Fraud")).address,
+        MovingFunds: (await ethers.getContract("MovingFunds")).address,
       },
     }
   )
-  const bridge: Bridge & BridgeStub = await Bridge.deploy(
-    bank.address,
-    relay.address,
-    treasury.address,
-    walletRegistry.address,
-    1
-  )
-  await bridge.deployed()
-
-  await bank.updateBridge(bridge.address)
-  await bridge.connect(deployer).transferGovernance(governance.address)
 
   return {
     governance,
@@ -98,8 +60,8 @@ const bridgeFixture = async () => {
     bank,
     relay,
     walletRegistry,
-    Bridge,
     bridge,
+    BridgeFactory,
   }
 }
 
