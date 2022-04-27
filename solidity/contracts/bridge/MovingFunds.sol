@@ -52,6 +52,8 @@ library MovingFunds {
 
     event MovingFundsTimedOut(bytes20 walletPubKeyHash);
 
+    event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
+
     /// @notice Submits the moving funds target wallets commitment.
     ///         Once all requirements are met, that function registers the
     ///         target wallets commitment and opens the way for moving funds

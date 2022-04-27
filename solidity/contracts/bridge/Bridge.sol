@@ -119,6 +119,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     event MovingFundsTimedOut(bytes20 walletPubKeyHash);
 
+    event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
