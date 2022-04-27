@@ -595,8 +595,11 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        If the wallet has no main UTXO, this parameter can be empty as it
     ///        is ignored.
     ///      - The wallet BTC balance must be below the moving funds threshold
-    function notifyMovingFundsBelowDust(bytes20 walletPubKeyHash) external {
-        self.notifyMovingFundsBelowDust(walletPubKeyHash);
+    function notifyMovingFundsBelowDust(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata mainUtxo
+    ) external {
+        self.notifyMovingFundsBelowDust(walletPubKeyHash, mainUtxo);
     }
 
     /// @notice Requests creation of a new wallet. This function just
