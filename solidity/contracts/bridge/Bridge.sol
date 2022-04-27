@@ -15,7 +15,7 @@
 
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@keep-network/random-beacon/contracts/Governable.sol";
 
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
@@ -57,7 +57,7 @@ import "../bank/Bank.sol";
 /// TODO: Revisit all events and look which parameters should be indexed.
 /// TODO: Align the convention around `param` and `dev` endings. They should
 ///       not have a punctuation mark.
-contract Bridge is Ownable, EcdsaWalletOwner {
+contract Bridge is Governable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
     using Sweep for BridgeState.Storage;
@@ -234,6 +234,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.walletMaxBtcBalance = 10e8; // 10 BTC
         self.walletMaxAge = 26 weeks; // ~6 months
         self.walletMaxBtcTransfer = 10e8; // 10 BTC
+
+        _transferGovernance(msg.sender);
     }
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
@@ -775,7 +777,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param vault The address of the vault
     /// @param isTrusted flag indicating whether the vault is trusted or not
     /// @dev Can only be called by the Governance.
-    function setVaultStatus(address vault, bool isTrusted) external onlyOwner {
+    function setVaultStatus(address vault, bool isTrusted)
+        external
+        onlyGovernance
+    {
         self.isVaultTrusted[vault] = isTrusted;
         emit VaultStatusUpdated(vault, isTrusted);
     }
@@ -806,7 +811,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint64 depositDustThreshold,
         uint64 depositTreasuryFeeDivisor,
         uint64 depositTxMaxFee
-    ) external onlyOwner {
+    ) external onlyGovernance {
         self.updateDepositParameters(
             depositDustThreshold,
             depositTreasuryFeeDivisor,
@@ -850,7 +855,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
         uint256 redemptionTimeout
-    ) external onlyOwner {
+    ) external onlyGovernance {
         self.updateRedemptionParameters(
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
@@ -875,7 +880,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
         uint32 movingFundsTimeout
-    ) external onlyOwner {
+    ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsTimeout
@@ -907,7 +912,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint64 walletMaxBtcBalance,
         uint32 walletMaxAge,
         uint64 walletMaxBtcTransfer
-    ) external onlyOwner {
+    ) external onlyGovernance {
         self.updateWalletParameters(
             walletCreationPeriod,
             walletMinBtcBalance,
@@ -939,7 +944,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint256 fraudNotifierRewardMultiplier,
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
-    ) external onlyOwner {
+    ) external onlyGovernance {
         self.updateFraudParameters(
             fraudSlashingAmount,
             fraudNotifierRewardMultiplier,
