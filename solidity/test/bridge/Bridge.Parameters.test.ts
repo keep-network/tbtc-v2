@@ -202,6 +202,23 @@ describe("Bridge - Parameters", () => {
         })
       })
 
+      context("when new redemption transaction max fee is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateRedemptionParameters(
+                constants.redemptionDustThreshold,
+                constants.redemptionTreasuryFeeDivisor,
+                0,
+                constants.redemptionTimeout
+              )
+          ).to.be.revertedWith(
+            "Redemption transaction max fee must be greater than zero"
+          )
+        })
+      })
+
       context("when new redemption timeout is zero", () => {
         it("should revert", async () => {
           await expect(

@@ -311,6 +311,7 @@ library BridgeState {
     ///        redeemer in full amount.
     /// @dev Requirements:
     ///      - Redemption treasury fee divisor must be greater than zero
+    ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
     function updateRedemptionParameters(
         Storage storage self,
@@ -322,6 +323,11 @@ library BridgeState {
         require(
             _redemptionTreasuryFeeDivisor > 0,
             "Redemption treasury fee divisor must be greater than zero"
+        );
+
+        require(
+            _redemptionTxMaxFee > 0,
+            "Redemption transaction max fee must be greater than zero"
         );
 
         require(

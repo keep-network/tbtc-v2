@@ -846,6 +846,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        redeemer in full amount.
     /// @dev Requirements:
     ///      - Redemption treasury fee divisor must be greater than zero
+    ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
     function updateRedemptionParameters(
         uint64 redemptionDustThreshold,
