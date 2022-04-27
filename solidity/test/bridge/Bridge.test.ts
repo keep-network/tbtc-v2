@@ -188,6 +188,87 @@ describe("Bridge", () => {
     redemptionTimeout = (await bridge.redemptionParameters()).redemptionTimeout
   })
 
+  describe("updateDepositParameters", () => {
+    context("when caller is the contract owner", () => {
+      context("when all new parameter values are correct", () => {
+        const newDepositDustThreshold = constants.depositDustThreshold * 2
+        const newDepositTreasuryFeeDivisor =
+          constants.depositTreasuryFeeDivisor * 2
+        const newDepositTxMaxFee = constants.depositTxMaxFee * 3
+
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          tx = await bridge
+            .connect(governance)
+            .updateDepositParameters(
+              newDepositDustThreshold,
+              newDepositTreasuryFeeDivisor,
+              newDepositTxMaxFee
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should set correct values", async () => {
+          const params = await bridge.depositParameters()
+
+          expect(params.depositDustThreshold).to.be.equal(
+            newDepositDustThreshold
+          )
+          expect(params.depositTreasuryFeeDivisor).to.be.equal(
+            newDepositTreasuryFeeDivisor
+          )
+          expect(params.depositTxMaxFee).to.be.equal(newDepositTxMaxFee)
+        })
+
+        it("should emit DepositParametersUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "DepositParametersUpdated")
+            .withArgs(
+              newDepositDustThreshold,
+              newDepositTreasuryFeeDivisor,
+              newDepositTxMaxFee
+            )
+        })
+      })
+
+      context("when new deposit treasury fee divisor is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateDepositParameters(
+                constants.depositDustThreshold,
+                0,
+                constants.depositTxMaxFee
+              )
+          ).to.be.revertedWith(
+            "Deposit treasury fee divisor must be greater than zero"
+          )
+        })
+      })
+    })
+
+    context("when caller is not the contract owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridge
+            .connect(thirdParty)
+            .updateDepositParameters(
+              constants.depositDustThreshold,
+              constants.depositTreasuryFeeDivisor,
+              constants.depositTxMaxFee
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
   describe.only("updateRedemptionParameters", () => {
     context("when caller is the contract owner", () => {
       context("when all new parameter values are correct", () => {
