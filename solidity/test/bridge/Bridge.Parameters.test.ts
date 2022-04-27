@@ -99,6 +99,22 @@ describe("Bridge - Parameters", () => {
           )
         })
       })
+
+      context("when new deposit transaction max fee is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateDepositParameters(
+                constants.depositDustThreshold,
+                constants.depositTreasuryFeeDivisor,
+                0
+              )
+          ).to.be.revertedWith(
+            "Deposit transaction max fee must be greater than zero"
+          )
+        })
+      })
     })
 
     context("when caller is not the contract owner", () => {

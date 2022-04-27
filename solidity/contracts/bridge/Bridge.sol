@@ -803,6 +803,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @dev Requirements:
     ///      - Deposit dust threshold must be greater than zero
     ///      - Deposit treasury fee divisor must be greater than zero
+    ///      - Deposit transaction max fee must be greater than zero
     function updateDepositParameters(
         uint64 depositDustThreshold,
         uint64 depositTreasuryFeeDivisor,

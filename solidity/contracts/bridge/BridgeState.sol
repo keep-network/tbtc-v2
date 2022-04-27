@@ -248,6 +248,7 @@ library BridgeState {
     /// @dev Requirements:
     ///      - Deposit dust threshold must be greater than zero
     ///      - Deposit treasury fee divisor must be greater than zero
+    ///      - Deposit transaction max fee must be greater than zero
     function updateDepositParameters(
         Storage storage self,
         uint64 _depositDustThreshold,
@@ -262,6 +263,11 @@ library BridgeState {
         require(
             _depositTreasuryFeeDivisor > 0,
             "Deposit treasury fee divisor must be greater than zero"
+        );
+
+        require(
+            _depositTxMaxFee > 0,
+            "Deposit transaction max fee must be greater than zero"
         );
 
         self.depositDustThreshold = _depositDustThreshold;
