@@ -1,6 +1,3 @@
-import { Contract } from "ethers"
-import { deployments, ethers } from "hardhat"
-import type { TestERC20, TBTC, VendingMachine } from "../../typechain"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 export const constants = {
@@ -40,27 +37,4 @@ export const ecdsaDkgState = {
   AWAITING_SEED: 1,
   AWAITING_RESULT: 2,
   CHALLENGE: 3,
-}
-
-export interface DeployedContracts {
-  [key: string]: Contract
-}
-
-export async function vendingMachineDeployment(): Promise<DeployedContracts> {
-  await deployments.fixture("VendingMachine")
-
-  const tbtcV1: TestERC20 = await ethers.getContract("TBTCToken")
-  const tbtcV2: TBTC = await ethers.getContract("TBTC")
-
-  const vendingMachine: VendingMachine = await ethers.getContract(
-    "VendingMachine"
-  )
-
-  const contracts: DeployedContracts = {
-    tbtcV1,
-    tbtcV2,
-    vendingMachine,
-  }
-
-  return contracts
 }

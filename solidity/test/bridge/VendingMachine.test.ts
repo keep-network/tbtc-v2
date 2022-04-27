@@ -1,7 +1,7 @@
 import { ethers, waffle, helpers } from "hardhat"
 import { expect } from "chai"
 import type { BigNumber, Signer } from "ethers"
-import { vendingMachineDeployment, constants } from "../fixtures"
+import { constants } from "../fixtures"
 import type { TestERC20, TBTC, VendingMachine } from "../../typechain"
 
 import {
@@ -9,6 +9,7 @@ import {
   to1ePrecision,
   getBlockTime,
 } from "../helpers/contract-test-helpers"
+import vendingMachineFixture from "../fixtures/vendingMachine"
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
@@ -40,10 +41,10 @@ describe("VendingMachine", () => {
       thirdParty,
     ] = await ethers.getUnnamedSigners()
 
-    const contracts = await waffle.loadFixture(vendingMachineDeployment)
-    tbtcV1 = contracts.tbtcV1 as TestERC20
-    tbtcV2 = contracts.tbtcV2 as TBTC
-    vendingMachine = contracts.vendingMachine as VendingMachine
+    // eslint-disable-next-line @typescript-eslint/no-extra-semi
+    ;({ tbtcV1, tbtcV2, vendingMachine } = await waffle.loadFixture(
+      vendingMachineFixture
+    ))
 
     await tbtcV1
       .connect(deployer)
