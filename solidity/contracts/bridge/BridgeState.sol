@@ -210,6 +210,11 @@ library BridgeState {
         uint256 redemptionTimeout
     );
 
+    event MovingFundsParametersUpdated(
+        uint64 movingFundsTxMaxTotalFee,
+        uint32 movingFundsTimeout
+    );
+
     event WalletParametersUpdated(
         uint32 walletCreationPeriod,
         uint64 walletMinBtcBalance,
@@ -328,6 +333,38 @@ library BridgeState {
             _redemptionTreasuryFeeDivisor,
             _redemptionTxMaxFee,
             _redemptionTimeout
+        );
+    }
+
+    /// @notice Updates parameters of moving funds.
+    /// @param _movingFundsTxMaxTotalFee New value of the moving funds transaction
+    ///        max total fee in satoshis. It is the maximum amount of the total
+    ///        BTC transaction fee that is acceptable in a single moving funds
+    ///        transaction. This is a _total_ max fee for the entire moving
+    ///        funds transaction.
+    /// @param _movingFundsTimeout New value of the moving funds timeout in
+    ///        seconds. It is the time after which the moving funds process can
+    ///        be reported as timed out. It is counted from the moment when the
+    ///        wallet was requested to move their funds and switched to the
+    ///        MovingFunds state.
+    /// @dev Requirements:
+    ///      - Moving funds timeout must be greater than zero
+    function updateMovingFundsParameters(
+        Storage storage self,
+        uint64 _movingFundsTxMaxTotalFee,
+        uint32 _movingFundsTimeout
+    ) internal {
+        require(
+            _movingFundsTimeout > 0,
+            "Moving funds timeout must be greater than zero"
+        );
+
+        self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
+        self.movingFundsTimeout = _movingFundsTimeout;
+
+        emit MovingFundsParametersUpdated(
+            _movingFundsTxMaxTotalFee,
+            _movingFundsTimeout
         );
     }
 
