@@ -269,7 +269,7 @@ describe("Bridge", () => {
     })
   })
 
-  describe.only("updateRedemptionParameters", () => {
+  describe("updateRedemptionParameters", () => {
     context("when caller is the contract owner", () => {
       context("when all new parameter values are correct", () => {
         const newRedemptionDustThreshold = constants.redemptionDustThreshold * 2
