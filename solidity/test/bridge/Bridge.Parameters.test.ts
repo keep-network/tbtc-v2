@@ -185,6 +185,23 @@ describe("Bridge - Parameters", () => {
         })
       })
 
+      context("when new redemption dust threshold is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateRedemptionParameters(
+                0,
+                constants.redemptionTreasuryFeeDivisor,
+                constants.redemptionTxMaxFee,
+                constants.redemptionTimeout
+              )
+          ).to.be.revertedWith(
+            "Redemption dust threshold must be greater than zero"
+          )
+        })
+      })
+
       context("when new redemption treasury fee divisor is zero", () => {
         it("should revert", async () => {
           await expect(

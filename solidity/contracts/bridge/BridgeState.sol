@@ -310,6 +310,7 @@ library BridgeState {
     ///        out requests are cancelled and locked TBTC is returned to the
     ///        redeemer in full amount.
     /// @dev Requirements:
+    ///      - Redemption dust threshold must be greater than zero
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
@@ -320,6 +321,11 @@ library BridgeState {
         uint64 _redemptionTxMaxFee,
         uint256 _redemptionTimeout
     ) internal {
+        require(
+            _redemptionDustThreshold > 0,
+            "Redemption dust threshold must be greater than zero"
+        );
+
         require(
             _redemptionTreasuryFeeDivisor > 0,
             "Redemption treasury fee divisor must be greater than zero"

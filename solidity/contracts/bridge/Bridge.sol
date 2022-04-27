@@ -845,6 +845,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        out requests are cancelled and locked TBTC is returned to the
     ///        redeemer in full amount.
     /// @dev Requirements:
+    ///      - Redemption dust threshold must be greater than zero
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
