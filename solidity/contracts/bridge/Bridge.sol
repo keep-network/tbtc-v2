@@ -181,8 +181,9 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event WalletParametersUpdated(
         uint32 walletCreationPeriod,
-        uint64 walletMinBtcBalance,
-        uint64 walletMaxBtcBalance,
+        uint64 walletCreationMinBtcBalance,
+        uint64 walletCreationMaxBtcBalance,
+        uint64 walletClosureMinBtcBalance,
         uint32 walletMaxAge,
         uint64 walletMaxBtcTransfer,
         uint32 walletClosingPeriod
@@ -235,8 +236,9 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.fraudChallengeDefeatTimeout = 7 days;
         self.fraudChallengeDepositAmount = 2 ether;
         self.walletCreationPeriod = 1 weeks;
-        self.walletMinBtcBalance = 1e8; // 1 BTC
-        self.walletMaxBtcBalance = 10e8; // 10 BTC
+        self.walletCreationMinBtcBalance = 1e8; // 1 BTC
+        self.walletCreationMaxBtcBalance = 10e8; // 10 BTC
+        self.walletClosureMinBtcBalance = 5 * 1e7; // 0.5 BTC
         self.walletMaxAge = 26 weeks; // ~6 months
         self.walletMaxBtcTransfer = 10e8; // 10 BTC
         self.walletClosingPeriod = 40 days;
@@ -946,10 +948,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @param walletCreationPeriod New value of the wallet creation period in
     ///        seconds, determines how frequently a new wallet creation can be
     ///        requested
-    /// @param walletMinBtcBalance New value of the wallet minimum BTC balance
-    ///        in satoshi, used to decide about wallet creation or closing
-    /// @param walletMaxBtcBalance New value of the wallet maximum BTC balance
-    ///        in satoshi, used to decide about wallet creation
+    /// @param walletCreationMinBtcBalance New value of the wallet minimum BTC
+    ///        balance in satoshi, used to decide about wallet creation
+    /// @param walletCreationMaxBtcBalance New value of the wallet maximum BTC
+    ///        balance in satoshi, used to decide about wallet creation
+    /// @param walletClosureMinBtcBalance New value of the wallet minimum BTC
+    ///        balance in satoshi, used to decide about wallet closure
     /// @param walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
     ///        the wallet moving funds process can be requested
@@ -968,16 +972,18 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///      - Wallet closing period must be greater than zero
     function updateWalletParameters(
         uint32 walletCreationPeriod,
-        uint64 walletMinBtcBalance,
-        uint64 walletMaxBtcBalance,
+        uint64 walletCreationMinBtcBalance,
+        uint64 walletCreationMaxBtcBalance,
+        uint64 walletClosureMinBtcBalance,
         uint32 walletMaxAge,
         uint64 walletMaxBtcTransfer,
         uint32 walletClosingPeriod
     ) external onlyGovernance {
         self.updateWalletParameters(
             walletCreationPeriod,
-            walletMinBtcBalance,
-            walletMaxBtcBalance,
+            walletCreationMinBtcBalance,
+            walletCreationMaxBtcBalance,
+            walletClosureMinBtcBalance,
             walletMaxAge,
             walletMaxBtcTransfer,
             walletClosingPeriod
@@ -1232,10 +1238,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     /// @return walletCreationPeriod Determines how frequently a new wallet
     ///         creation can be requested. Value in seconds.
-    /// @return walletMinBtcBalance The minimum BTC threshold in satoshi that is
-    ///         used to decide about wallet creation or closing.
-    /// @return walletMaxBtcBalance The maximum BTC threshold in satoshi that is
-    ///         used to decide about wallet creation.
+    /// @return walletCreationMinBtcBalance The minimum BTC threshold in satoshi
+    ///         that is used to decide about wallet creation.
+    /// @return walletCreationMaxBtcBalance The maximum BTC threshold in satoshi
+    ///         that is used to decide about wallet creation.
+    /// @return walletClosureMinBtcBalance The minimum BTC threshold in satoshi
+    ///         that is used to decide about wallet closure.
     /// @return walletMaxAge The maximum age of a wallet in seconds, after which
     ///         the wallet moving funds process can be requested.
     /// @return walletMaxBtcTransfer The maximum BTC amount in satoshi than
@@ -1250,16 +1258,18 @@ contract Bridge is Governable, EcdsaWalletOwner {
         view
         returns (
             uint32 walletCreationPeriod,
-            uint64 walletMinBtcBalance,
-            uint64 walletMaxBtcBalance,
+            uint64 walletCreationMinBtcBalance,
+            uint64 walletCreationMaxBtcBalance,
+            uint64 walletClosureMinBtcBalance,
             uint32 walletMaxAge,
             uint64 walletMaxBtcTransfer,
             uint32 walletClosingPeriod
         )
     {
         walletCreationPeriod = self.walletCreationPeriod;
-        walletMinBtcBalance = self.walletMinBtcBalance;
-        walletMaxBtcBalance = self.walletMaxBtcBalance;
+        walletCreationMinBtcBalance = self.walletCreationMinBtcBalance;
+        walletCreationMaxBtcBalance = self.walletCreationMaxBtcBalance;
+        walletClosureMinBtcBalance = self.walletClosureMinBtcBalance;
         walletMaxAge = self.walletMaxAge;
         walletMaxBtcTransfer = self.walletMaxBtcTransfer;
         walletClosingPeriod = self.walletClosingPeriod;
