@@ -218,7 +218,8 @@ library BridgeState {
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
-        uint32 movingFundsTimeout
+        uint32 movingFundsTimeout,
+        uint64 movingFundsDustThreshold
     );
 
     event WalletParametersUpdated(
@@ -379,13 +380,21 @@ library BridgeState {
     ///        be reported as timed out. It is counted from the moment when the
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
+    /// @param _movingFundsDustThreshold New value of the moving funds dust
+    ///        threshold. It is the minimal satoshi amount that makes sense to
+    //         be transferred during the moving funds process. Moving funds
+    //         wallets having their BTC balance below that value can begin
+    //         closing immediately as transferring such a low value may not be
+    //         possible due to BTC network fees.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
-        uint32 _movingFundsTimeout
+        uint32 _movingFundsTimeout,
+        uint64 _movingFundsDustThreshold
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
@@ -397,12 +406,19 @@ library BridgeState {
             "Moving funds timeout must be greater than zero"
         );
 
+        require(
+            _movingFundsDustThreshold > 0,
+            "Moving funds dust threshold must be greater than zero"
+        );
+
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
         self.movingFundsTimeout = _movingFundsTimeout;
+        self.movingFundsDustThreshold = _movingFundsDustThreshold;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
-            _movingFundsTimeout
+            _movingFundsTimeout,
+            _movingFundsDustThreshold
         );
     }
 

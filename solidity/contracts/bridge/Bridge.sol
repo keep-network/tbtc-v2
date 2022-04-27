@@ -175,7 +175,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
-        uint32 movingFundsTimeout
+        uint32 movingFundsTimeout,
+        uint64 movingFundsDustThreshold
     );
 
     event WalletParametersUpdated(
@@ -914,16 +915,25 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        be reported as timed out. It is counted from the moment when the
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
+    /// @param movingFundsDustThreshold New value of the moving funds dust
+    ///        threshold. It is the minimal satoshi amount that makes sense to
+    //         be transferred during the moving funds process. Moving funds
+    //         wallets having their BTC balance below that value can begin
+    //         closing immediately as transferring such a low value may not be
+    //         possible due to BTC network fees.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
-        uint32 movingFundsTimeout
+        uint32 movingFundsTimeout,
+        uint64 movingFundsDustThreshold
     ) external onlyOwner {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
-            movingFundsTimeout
+            movingFundsTimeout,
+            movingFundsDustThreshold
         );
     }
 
@@ -1196,13 +1206,19 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         can be reported as timed out. It is counted from the moment
     ///         when the wallet was requested to move their funds and switched
     ///         to the MovingFunds state. Value in seconds.
+    /// @return movingFundsDustThreshold The minimal satoshi amount that makes
+    //          sense to be transferred during the moving funds process. Moving
+    //          funds wallets having their BTC balance below that value can
+    //          begin closing immediately as transferring such a low value may
+    //          not be possible due to BTC network fees.
     function movingFundsParameters()
         external
         view
-        returns (uint64 movingFundsTxMaxTotalFee, uint32 movingFundsTimeout)
+        returns (uint64 movingFundsTxMaxTotalFee, uint32 movingFundsTimeout, uint64 movingFundsDustThreshold)
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
         movingFundsTimeout = self.movingFundsTimeout;
+        movingFundsDustThreshold = self.movingFundsDustThreshold;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet
