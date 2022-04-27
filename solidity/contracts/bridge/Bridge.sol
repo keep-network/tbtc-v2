@@ -801,7 +801,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        transaction. If the maximum BTC transaction fee is exceeded,
     ///        such transaction is considered a fraud
     /// @dev Requirements:
+    ///      - Deposit dust threshold must be greater than zero
     ///      - Deposit treasury fee divisor must be greater than zero
+    ///      - Deposit transaction max fee must be greater than zero
     function updateDepositParameters(
         uint64 depositDustThreshold,
         uint64 depositTreasuryFeeDivisor,
@@ -836,6 +838,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        that can be incurred by each redemption request being part of the
     ///        given redemption transaction. If the maximum BTC transaction fee
     ///        is exceeded, such transaction is considered a fraud.
+    ///        This is a per-redemption output max fee for the redemption
+    ///        transaction.
     /// @param redemptionTimeout New value of the redemption timeout in seconds.
     ///        It is the time after which the redemption request can be reported
     ///        as timed out. It is counted from the moment when the redemption
@@ -843,7 +847,9 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        out requests are cancelled and locked TBTC is returned to the
     ///        redeemer in full amount.
     /// @dev Requirements:
+    ///      - Redemption dust threshold must be greater than zero
     ///      - Redemption treasury fee divisor must be greater than zero
+    ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
     function updateRedemptionParameters(
         uint64 redemptionDustThreshold,
@@ -871,6 +877,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
     /// @dev Requirements:
+    ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
@@ -1111,6 +1118,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///         can be incurred by each redemption request being part of the
     ///         given redemption transaction. If the maximum BTC transaction
     ///         fee is exceeded, such transaction is considered a fraud.
+    ///         This is a per-redemption output max fee for the redemption
+    ///         transaction.
     /// @return redemptionTimeout Time after which the redemption request can be
     ///         reported as timed out. It is counted from the moment when the
     ///         redemption request was created via `requestRedemption` call.
