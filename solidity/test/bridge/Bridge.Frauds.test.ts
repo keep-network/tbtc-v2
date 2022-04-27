@@ -48,7 +48,7 @@ describe("Bridge - Fraud", () => {
   })
 
   describe("updateFraudParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newFraudSlashingAmount = constants.fraudSlashingAmount.mul(2)
         const newFraudNotifierRewardMultiplier =
@@ -142,7 +142,7 @@ describe("Bridge - Fraud", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -153,7 +153,7 @@ describe("Bridge - Fraud", () => {
               constants.fraudChallengeDefeatTimeout,
               constants.fraudChallengeDepositAmount
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })

@@ -63,7 +63,7 @@ describe("Bridge - Moving funds", () => {
   })
 
   describe("updateMovingFundsParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newMovingFundsTxMaxTotalFee =
           constants.movingFundsTxMaxTotalFee / 2
@@ -116,7 +116,7 @@ describe("Bridge - Moving funds", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -125,7 +125,7 @@ describe("Bridge - Moving funds", () => {
               constants.movingFundsTxMaxTotalFee,
               constants.movingFundsTimeout
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })

@@ -32,7 +32,7 @@ describe("Bridge - Wallets", () => {
   })
 
   describe("updateWalletParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newWalletCreationPeriod = constants.walletCreationPeriod * 2
         const newWalletMinBtcBalance = constants.walletMinBtcBalance.add(1000)
@@ -145,7 +145,7 @@ describe("Bridge - Wallets", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -157,7 +157,7 @@ describe("Bridge - Wallets", () => {
               constants.walletMaxAge,
               constants.walletMaxBtcTransfer
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })

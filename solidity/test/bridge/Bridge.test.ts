@@ -138,7 +138,7 @@ const fixture = async () => {
   await bridge.deployed()
 
   await bank.updateBridge(bridge.address)
-  await bridge.connect(deployer).transferOwnership(governance.address)
+  await bridge.connect(deployer).transferGovernance(governance.address)
 
   // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
   // the initial value in the Bridge in order to save test Bitcoins.
@@ -189,7 +189,7 @@ describe("Bridge", () => {
   })
 
   describe("updateDepositParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newDepositDustThreshold = constants.depositDustThreshold * 2
         const newDepositTreasuryFeeDivisor =
@@ -254,7 +254,7 @@ describe("Bridge", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -264,13 +264,13 @@ describe("Bridge", () => {
               constants.depositTreasuryFeeDivisor,
               constants.depositTxMaxFee
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })
 
   describe("updateRedemptionParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newRedemptionDustThreshold = constants.redemptionDustThreshold * 2
         const newRedemptionTreasuryFeeDivisor =
@@ -355,7 +355,7 @@ describe("Bridge", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -366,7 +366,7 @@ describe("Bridge", () => {
               constants.redemptionTxMaxFee,
               constants.redemptionTimeout
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })
@@ -387,7 +387,7 @@ describe("Bridge", () => {
       it("should revert", async () => {
         await expect(
           bridge.connect(thirdParty).setVaultStatus(vault, true)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
 

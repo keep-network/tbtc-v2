@@ -89,7 +89,7 @@ const bridgeFixture = async () => {
   await bridge.deployed()
 
   await bank.updateBridge(bridge.address)
-  await bridge.connect(deployer).transferOwnership(governance.address)
+  await bridge.connect(deployer).transferGovernance(governance.address)
 
   return {
     governance,
