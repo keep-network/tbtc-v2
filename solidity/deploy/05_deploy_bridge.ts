@@ -14,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // script from `@keep-network/ecdsa` is not invoked once again.
   const WalletRegistry = await deployments.get("WalletRegistry")
 
-  const txProofDifficultyFactor = 0 // TODO: Set initial value
+  const txProofDifficultyFactor = 6
 
   const Deposit = await deploy("Deposit", { from: deployer, log: true })
   const Sweep = await deploy("Sweep", { from: deployer, log: true })
