@@ -14,7 +14,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // script from `@keep-network/ecdsa` is not invoked once again.
   const WalletRegistry = await deployments.get("WalletRegistry")
 
-  const txProofDifficultyFactor = 6
+  // For local tests use `1`.
+  const txProofDifficultyFactor =
+    deployments.getNetworkName() === "hardhat" ? 1 : 6
 
   const Deposit = await deploy("Deposit", { from: deployer, log: true })
   const Sweep = await deploy("Sweep", { from: deployer, log: true })
@@ -27,6 +29,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   })
 
   const Bridge = await deploy("Bridge", {
+    contract:
+      deployments.getNetworkName() === "hardhat" ? "BridgeStub" : undefined,
     from: deployer,
     args: [
       Bank.address,
