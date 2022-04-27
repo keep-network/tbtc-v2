@@ -29,10 +29,10 @@ jobs:
               - './typescript/**'
 
   typescript-build-and-test:
-    needs: detect-changes
+    needs: typescript-detect-changes
     if: |
       github.event_name != 'pull_request'
-        || needs.detect-changes.outputs.path-filter == 'true'
+        || needs.typescript-detect-changes.outputs.path-filter == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,10 +56,10 @@ jobs:
         run: yarn test
 
   typescript-format:
-    needs: detect-changes
+    needs: typescript-detect-changes
     if: |
       github.event_name == 'push'
-        || needs.detect-changes.outputs.path-filter == 'true'
+        || needs.typescript-detect-changes.outputs.path-filter == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
