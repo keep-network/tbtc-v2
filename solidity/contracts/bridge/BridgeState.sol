@@ -88,6 +88,12 @@ library BridgeState {
         // was requested to move their funds and switched to the MovingFunds
         // state. Value in seconds.
         uint32 movingFundsTimeout;
+        // The minimal satoshi amount that makes sense to be transferred during
+        // the moving funds process. Moving funds wallets having their BTC
+        // balance below that value can begin closing immediately as
+        // transferring such a low value may not be possible due to
+        // BTC network fees.
+        uint64 movingFundsDustThreshold;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`

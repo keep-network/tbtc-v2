@@ -463,4 +463,45 @@ library MovingFunds {
         // slither-disable-next-line reentrancy-events
         emit MovingFundsTimedOut(walletPubKeyHash);
     }
+
+    /// @notice Notifies about a moving funds wallet whose BTC balance is
+    ///         below the moving funds dust threshold. Ends the moving funds
+    ///         process and begins wallet closing immediately.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known
+    ///        on the Ethereum chain.
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state
+    ///      - The `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///        If the wallet has no main UTXO, this parameter can be empty as it
+    ///        is ignored.
+    ///      - The wallet BTC balance must be below the moving funds threshold
+    function notifyMovingFundsBelowDust(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata mainUtxo
+    ) external {
+        Wallets.Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        require(
+            wallet.state == Wallets.WalletState.MovingFunds,
+            "ECDSA wallet must be in MovingFunds state"
+        );
+
+        uint64 walletBtcBalance = self.getWalletBtcBalance(
+            walletPubKeyHash,
+                mainUtxo
+        );
+
+        require(
+            walletBtcBalance < self.movingFundsDustThreshold,
+            "Wallet BTC balance must be below the moving funds dust threshold"
+        );
+
+        self.beginWalletClosing(walletPubKeyHash);
+
+        // slither-disable-next-line reentrancy-events
+        emit MovingFundsBelowDustReported(walletPubKeyHash);
+    }
 }

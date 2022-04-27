@@ -221,6 +221,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.redemptionTimeout = 172800; // 48 hours
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
         self.movingFundsTimeout = 7 days;
+        self.movingFundsDustThreshold = 1000; // 1000 satoshi
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.fraudChallengeDefeatTimeout = 7 days;
@@ -572,6 +573,23 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///      - The moving funds timeout must be actually exceeded
     function notifyMovingFundsTimeout(bytes20 walletPubKeyHash) external {
         self.notifyMovingFundsTimeout(walletPubKeyHash);
+    }
+
+    /// @notice Notifies about a moving funds wallet whose BTC balance is
+    ///         below the moving funds dust threshold. Ends the moving funds
+    ///         process and begins wallet closing immediately.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known
+    ///        on the Ethereum chain.
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state
+    ///      - The `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///        If the wallet has no main UTXO, this parameter can be empty as it
+    ///        is ignored.
+    ///      - The wallet BTC balance must be below the moving funds threshold
+    function notifyMovingFundsBelowDust(bytes20 walletPubKeyHash) external {
+        self.notifyMovingFundsBelowDust(walletPubKeyHash);
     }
 
     /// @notice Requests creation of a new wallet. This function just
