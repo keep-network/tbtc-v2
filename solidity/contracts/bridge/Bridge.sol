@@ -158,12 +158,32 @@ contract Bridge is Ownable, EcdsaWalletOwner {
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
+    event DepositParametersUpdated(
+        uint64 depositDustThreshold,
+        uint64 depositTreasuryFeeDivisor,
+        uint64 depositTxMaxFee
+    );
+
+    event RedemptionParametersUpdated(
+        uint64 redemptionDustThreshold,
+        uint64 redemptionTreasuryFeeDivisor,
+        uint64 redemptionTxMaxFee,
+        uint256 redemptionTimeout
+    );
+
     event WalletParametersUpdated(
         uint32 walletCreationPeriod,
         uint64 walletMinBtcBalance,
         uint64 walletMaxBtcBalance,
         uint32 walletMaxAge,
         uint64 walletMaxBtcTransfer
+    );
+
+    event FraudParametersUpdated(
+        uint256 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDefeatTimeout,
+        uint256 fraudChallengeDepositAmount
     );
 
     constructor(
@@ -755,8 +775,85 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         emit VaultStatusUpdated(vault, isTrusted);
     }
 
-    // TODO: updateDepositParameters
-    // TODO: updateRedemptionParameters
+    /// @notice Updates parameters of deposits.
+    /// @param depositDustThreshold New value of the deposit dust threshold in
+    ///        satoshis. It is the minimal amount that can be requested to
+    ////       deposit. Value of this parameter must take into account the value
+    ///        of `depositTreasuryFeeDivisor` and `depositTxMaxFee` parameters
+    ///        in order to make requests that can incur the treasury and
+    ///        transaction fee and still satisfy the depositor
+    /// @param depositTreasuryFeeDivisor New value of the treasury fee divisor.
+    ///        It is the divisor used to compute the treasury fee taken from
+    ///        each deposit and transferred to the treasury upon sweep proof
+    ///        submission. That fee is computed as follows:
+    ///        `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
+    ///        For example, if the treasury fee needs to be 2% of each deposit,
+    ///        the `depositTreasuryFeeDivisor` should be set to `50`
+    ///        because `1/50 = 0.02 = 2%`
+    /// @param depositTxMaxFee New value of the deposit tx max fee in satoshis.
+    ///        It is the maximum amount of BTC transaction fee that can
+    ///        be incurred by each swept deposit being part of the given sweep
+    ///        transaction. If the maximum BTC transaction fee is exceeded,
+    ///        such transaction is considered a fraud
+    /// @dev Requirements:
+    ///      - Deposit treasury fee divisor must be greater than zero
+    function updateDepositParameters(
+        uint64 depositDustThreshold,
+        uint64 depositTreasuryFeeDivisor,
+        uint64 depositTxMaxFee
+    ) external onlyOwner {
+        self.updateDepositParameters(
+            depositDustThreshold,
+            depositTreasuryFeeDivisor,
+            depositTxMaxFee
+        );
+    }
+
+    /// @notice Updates parameters of redemptions.
+    /// @param redemptionDustThreshold New value of the redemption dust
+    ///        threshold in satoshis. It is the minimal amount that can be
+    ///        requested for redemption. Value of this parameter must take into
+    ///        account the value of `redemptionTreasuryFeeDivisor` and
+    ///        `redemptionTxMaxFee` parameters in order to make requests that
+    ///        can incur the treasury and transaction fee and still satisfy the
+    ///        redeemer.
+    /// @param redemptionTreasuryFeeDivisor New value of the redemption
+    ///        treasury fee divisor. It is the divisor used to compute the
+    ///        treasury fee taken from each redemption request and transferred
+    ///        to the treasury upon successful request finalization. That fee is
+    ///        computed as follows:
+    ///        `treasuryFee = requestedAmount / redemptionTreasuryFeeDivisor`
+    ///        For example, if the treasury fee needs to be 2% of each
+    ///        redemption request, the `redemptionTreasuryFeeDivisor` should
+    ///        be set to `50` because `1/50 = 0.02 = 2%`.
+    /// @param redemptionTxMaxFee New value of the redemption transaction max
+    ///        fee in satoshis. It is the maximum amount of BTC transaction fee
+    ///        that can be incurred by each redemption request being part of the
+    ///        given redemption transaction. If the maximum BTC transaction fee
+    ///        is exceeded, such transaction is considered a fraud.
+    /// @param redemptionTimeout New value of the redemption timeout in seconds.
+    ///        It is the time after which the redemption request can be reported
+    ///        as timed out. It is counted from the moment when the redemption
+    ///        request was created via `requestRedemption` call. Reported  timed
+    ///        out requests are cancelled and locked TBTC is returned to the
+    ///        redeemer in full amount.
+    /// @dev Requirements:
+    ///      - Redemption treasury fee divisor must be greater than zero
+    ///      - Redemption timeout must be greater than zero
+    function updateRedemptionParameters(
+        uint64 redemptionDustThreshold,
+        uint64 redemptionTreasuryFeeDivisor,
+        uint64 redemptionTxMaxFee,
+        uint256 redemptionTimeout
+    ) external onlyOwner {
+        self.updateRedemptionParameters(
+            redemptionDustThreshold,
+            redemptionTreasuryFeeDivisor,
+            redemptionTxMaxFee,
+            redemptionTimeout
+        );
+    }
+
     // TODO: updateMovingFundsParameters
 
     /// @notice Updates parameters of wallets.
@@ -794,7 +891,36 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
     }
 
-    // TODO: updateFraudParameters
+    /// @notice Updates parameters related to frauds.
+    /// @param fraudSlashingAmount New value of the fraud slashing amount in T,
+    ///        it is the amount slashed from each wallet member for committing
+    ///        a fraud
+    /// @param fraudNotifierRewardMultiplier New value of the fraud notifier
+    ///        reward multiplier as percentage, it determines the percentage of
+    ///        the notifier reward from the staking contact the notifier of
+    ///        a fraud receives. The value must be in the range [0, 100]
+    /// @param fraudChallengeDefeatTimeout New value of the challenge defeat
+    ///        timeout in seconds, it is the amount of time the wallet has to
+    ///        defeat a fraud challenge. The value must be greater than zero
+    /// @param fraudChallengeDepositAmount New value of the fraud challenge
+    ///        deposit amount in wei, it is the amount of ETH the party
+    ///        challenging the wallet for fraud needs to deposit
+    /// @dev Requirements:
+    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
+    ///      - Fraud challenge defeat timeout must be greater than 0
+    function updateFraudParameters(
+        uint256 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDefeatTimeout,
+        uint256 fraudChallengeDepositAmount
+    ) external onlyOwner {
+        self.updateFraudParameters(
+            fraudSlashingAmount,
+            fraudNotifierRewardMultiplier,
+            fraudChallengeDefeatTimeout,
+            fraudChallengeDepositAmount
+        );
+    }
 
     /// @notice Collection of all revealed deposits indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex).
