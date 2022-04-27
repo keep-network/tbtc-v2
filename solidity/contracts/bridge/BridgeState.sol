@@ -303,6 +303,8 @@ library BridgeState {
     ///        that can be incurred by each redemption request being part of the
     ///        given redemption transaction. If the maximum BTC transaction fee
     ///        is exceeded, such transaction is considered a fraud.
+    ///        This is a per-redemption output max fee for the redemption
+    ///        transaction.
     /// @param _redemptionTimeout New value of the redemption timeout in seconds.
     ///        It is the time after which the redemption request can be reported
     ///        as timed out. It is counted from the moment when the redemption
