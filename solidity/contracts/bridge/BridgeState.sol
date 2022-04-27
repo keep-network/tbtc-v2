@@ -368,12 +368,18 @@ library BridgeState {
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
     /// @dev Requirements:
+    ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
         uint32 _movingFundsTimeout
     ) internal {
+        require(
+            _movingFundsTxMaxTotalFee > 0,
+            "Moving funds transaction max total fee must be greater than zero"
+        );
+
         require(
             _movingFundsTimeout > 0,
             "Moving funds timeout must be greater than zero"

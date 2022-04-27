@@ -877,6 +877,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
     /// @dev Requirements:
+    ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,

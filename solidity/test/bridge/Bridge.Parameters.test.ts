@@ -308,6 +308,18 @@ describe("Bridge - Parameters", () => {
         })
       })
 
+      context("when new moving funds transaction max total fee is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateMovingFundsParameters(0, constants.movingFundsTimeout)
+          ).to.be.revertedWith(
+            "Moving funds transaction max total fee must be greater than zero"
+          )
+        })
+      })
+
       context("when new moving funds timeout is zero", () => {
         it("should revert", async () => {
           await expect(
