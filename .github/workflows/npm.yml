@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - "solidity/contracts/**"
+      - "solidity/deploy/**"
+      - "solidity/hardhat.config.ts"
       - "solidity/package.json"
       - "solidity/yarn.lock"
   workflow_dispatch:
