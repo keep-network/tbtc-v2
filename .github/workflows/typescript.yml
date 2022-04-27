@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  detect-changes:
+  typescript-detect-changes:
     runs-on: ubuntu-latest
     outputs:
       path-filter: ${{ steps.filter.outputs.path-filter }}
@@ -28,11 +28,11 @@ jobs:
             path-filter:
               - './typescript/**'
 
-  build-and-test:
-    needs: detect-changes
+  typescript-build-and-test:
+    needs: typescript-detect-changes
     if: |
       github.event_name != 'pull_request'
-        || needs.detect-changes.outputs.path-filter == 'true'
+        || needs.typescript-detect-changes.outputs.path-filter == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -55,11 +55,11 @@ jobs:
       - name: Tests
         run: yarn test
 
-  format:
-    needs: detect-changes
+  typescript-format:
+    needs: typescript-detect-changes
     if: |
       github.event_name == 'push'
-        || needs.detect-changes.outputs.path-filter == 'true'
+        || needs.typescript-detect-changes.outputs.path-filter == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
