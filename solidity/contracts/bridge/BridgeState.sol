@@ -246,7 +246,9 @@ library BridgeState {
     ///        transaction. If the maximum BTC transaction fee is exceeded,
     ///        such transaction is considered a fraud
     /// @dev Requirements:
+    ///      - Deposit dust threshold must be greater than zero
     ///      - Deposit treasury fee divisor must be greater than zero
+    ///      - Deposit transaction max fee must be greater than zero
     function updateDepositParameters(
         Storage storage self,
         uint64 _depositDustThreshold,
@@ -254,8 +256,18 @@ library BridgeState {
         uint64 _depositTxMaxFee
     ) internal {
         require(
+            _depositDustThreshold > 0,
+            "Deposit dust threshold must be greater than zero"
+        );
+
+        require(
             _depositTreasuryFeeDivisor > 0,
             "Deposit treasury fee divisor must be greater than zero"
+        );
+
+        require(
+            _depositTxMaxFee > 0,
+            "Deposit transaction max fee must be greater than zero"
         );
 
         self.depositDustThreshold = _depositDustThreshold;
@@ -291,6 +303,8 @@ library BridgeState {
     ///        that can be incurred by each redemption request being part of the
     ///        given redemption transaction. If the maximum BTC transaction fee
     ///        is exceeded, such transaction is considered a fraud.
+    ///        This is a per-redemption output max fee for the redemption
+    ///        transaction.
     /// @param _redemptionTimeout New value of the redemption timeout in seconds.
     ///        It is the time after which the redemption request can be reported
     ///        as timed out. It is counted from the moment when the redemption
@@ -298,7 +312,9 @@ library BridgeState {
     ///        out requests are cancelled and locked TBTC is returned to the
     ///        redeemer in full amount.
     /// @dev Requirements:
+    ///      - Redemption dust threshold must be greater than zero
     ///      - Redemption treasury fee divisor must be greater than zero
+    ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
     function updateRedemptionParameters(
         Storage storage self,
@@ -308,8 +324,18 @@ library BridgeState {
         uint256 _redemptionTimeout
     ) internal {
         require(
+            _redemptionDustThreshold > 0,
+            "Redemption dust threshold must be greater than zero"
+        );
+
+        require(
             _redemptionTreasuryFeeDivisor > 0,
             "Redemption treasury fee divisor must be greater than zero"
+        );
+
+        require(
+            _redemptionTxMaxFee > 0,
+            "Redemption transaction max fee must be greater than zero"
         );
 
         require(
@@ -342,12 +368,18 @@ library BridgeState {
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
     /// @dev Requirements:
+    ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
         uint32 _movingFundsTimeout
     ) internal {
+        require(
+            _movingFundsTxMaxTotalFee > 0,
+            "Moving funds transaction max total fee must be greater than zero"
+        );
+
         require(
             _movingFundsTimeout > 0,
             "Moving funds timeout must be greater than zero"

@@ -17,7 +17,7 @@ import {
   witnessSignMultipleInputTx,
   wrongSighashType,
 } from "../data/fraud"
-import { constants, walletState } from "../fixtures"
+import { walletState } from "../fixtures"
 import bridgeFixture from "./bridge-fixture"
 import { ecdsaWalletTestData } from "../data/ecdsa"
 
@@ -29,7 +29,6 @@ const { lastBlockTime, increaseTime } = helpers.time
 const fixture = async () => bridgeFixture()
 
 describe("Bridge - Fraud", () => {
-  let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
 
@@ -41,121 +40,10 @@ describe("Bridge - Fraud", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, thirdParty, treasury, walletRegistry, bridge } =
+    ;({ thirdParty, treasury, walletRegistry, bridge } =
       await waffle.loadFixture(fixture))
     ;({ fraudChallengeDefeatTimeout, fraudChallengeDepositAmount } =
       await bridge.fraudParameters())
-  })
-
-  describe("updateFraudParameters", () => {
-    context("when caller is the contract owner", () => {
-      context("when all new parameter values are correct", () => {
-        const newFraudSlashingAmount = constants.fraudSlashingAmount.mul(2)
-        const newFraudNotifierRewardMultiplier =
-          constants.fraudNotifierRewardMultiplier / 4
-        const newFraudChallengeDefeatTimeout =
-          constants.fraudChallengeDefeatTimeout * 3
-        const newFraudChallengeDepositAmount =
-          constants.fraudChallengeDepositAmount.mul(4)
-
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          tx = await bridge
-            .connect(governance)
-            .updateFraudParameters(
-              newFraudSlashingAmount,
-              newFraudNotifierRewardMultiplier,
-              newFraudChallengeDefeatTimeout,
-              newFraudChallengeDepositAmount
-            )
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should set correct values", async () => {
-          const params = await bridge.fraudParameters()
-
-          expect(params.fraudSlashingAmount).to.be.equal(newFraudSlashingAmount)
-          expect(params.fraudNotifierRewardMultiplier).to.be.equal(
-            newFraudNotifierRewardMultiplier
-          )
-          expect(params.fraudChallengeDefeatTimeout).to.be.equal(
-            newFraudChallengeDefeatTimeout
-          )
-          expect(params.fraudChallengeDepositAmount).to.be.equal(
-            newFraudChallengeDepositAmount
-          )
-        })
-
-        it("should emit FraudParametersUpdated event", async () => {
-          await expect(tx)
-            .to.emit(bridge, "FraudParametersUpdated")
-            .withArgs(
-              newFraudSlashingAmount,
-              newFraudNotifierRewardMultiplier,
-              newFraudChallengeDefeatTimeout,
-              newFraudChallengeDepositAmount
-            )
-        })
-      })
-
-      context(
-        "when new fraud notifier reward multiplier is greater than 100",
-        () => {
-          it("should revert", async () => {
-            await expect(
-              bridge
-                .connect(governance)
-                .updateFraudParameters(
-                  constants.fraudSlashingAmount,
-                  101,
-                  constants.fraudChallengeDefeatTimeout,
-                  constants.fraudChallengeDepositAmount
-                )
-            ).to.be.revertedWith(
-              "Fraud notifier reward multiplier must be in the range [0, 100]"
-            )
-          })
-        }
-      )
-
-      context("when new fraud challenge defeat timeout is zero", () => {
-        it("should revert", async () => {
-          await expect(
-            bridge
-              .connect(governance)
-              .updateFraudParameters(
-                constants.fraudSlashingAmount,
-                constants.fraudNotifierRewardMultiplier,
-                0,
-                constants.fraudChallengeDepositAmount
-              )
-          ).to.be.revertedWith(
-            "Fraud challenge defeat timeout must be greater than zero"
-          )
-        })
-      })
-    })
-
-    context("when caller is not the contract owner", () => {
-      it("should revert", async () => {
-        await expect(
-          bridge
-            .connect(thirdParty)
-            .updateFraudParameters(
-              constants.fraudSlashingAmount,
-              constants.fraudNotifierRewardMultiplier,
-              constants.fraudChallengeDefeatTimeout,
-              constants.fraudChallengeDepositAmount
-            )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
   })
 
   describe("submitFraudChallenge", () => {
