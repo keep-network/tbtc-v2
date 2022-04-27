@@ -176,7 +176,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint64 walletMinBtcBalance,
         uint64 walletMaxBtcBalance,
         uint32 walletMaxAge,
-        uint64 walletMaxBtcTransfer
+        uint64 walletMaxBtcTransfer,
+        uint32 walletClosingPeriod
     );
 
     event FraudParametersUpdated(
@@ -229,6 +230,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         self.walletMaxBtcBalance = 10e8; // 10 BTC
         self.walletMaxAge = 26 weeks; // ~6 months
         self.walletMaxBtcTransfer = 10e8; // 10 BTC
+        self.walletClosingPeriod = 40 days;
     }
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
@@ -883,24 +885,31 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @param walletMaxBtcTransfer New value of the wallet maximum BTC transfer
     ///        in satoshi, determines the maximum amount that can be transferred
     //         to a single target wallet during the moving funds process
+    /// @param walletClosingPeriod New value of the wallet closing period in
+    ///        seconds, determines the length of the wallet closing period,
+    //         i.e. the period when the wallet remains in the Closing state
+    //         and can be subject of deposit fraud challenges
     /// @dev Requirements:
     ///      - Wallet minimum BTC balance must be greater than zero
     ///      - Wallet maximum BTC balance must be greater than the wallet
     ///        minimum BTC balance
     ///      - Wallet maximum BTC transfer must be greater than zero
+    ///      - Wallet closing period must be greater than zero
     function updateWalletParameters(
         uint32 walletCreationPeriod,
         uint64 walletMinBtcBalance,
         uint64 walletMaxBtcBalance,
         uint32 walletMaxAge,
-        uint64 walletMaxBtcTransfer
+        uint64 walletMaxBtcTransfer,
+        uint32 walletClosingPeriod
     ) external onlyOwner {
         self.updateWalletParameters(
             walletCreationPeriod,
             walletMinBtcBalance,
             walletMaxBtcBalance,
             walletMaxAge,
-            walletMaxBtcTransfer
+            walletMaxBtcTransfer,
+            walletClosingPeriod
         );
     }
 
@@ -1149,6 +1158,10 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     /// @return walletMaxBtcTransfer The maximum BTC amount in satoshi than
     ///         can be transferred to a single target wallet during the moving
     ///         funds process.
+    /// @return walletClosingPeriod Determines the length of the wallet closing
+    ///         period, i.e. the period when the wallet remains in the Closing
+    ///         state and can be subject of deposit fraud challenges. Value
+    ///         in seconds.
     function walletParameters()
         external
         view
@@ -1157,7 +1170,8 @@ contract Bridge is Ownable, EcdsaWalletOwner {
             uint64 walletMinBtcBalance,
             uint64 walletMaxBtcBalance,
             uint32 walletMaxAge,
-            uint64 walletMaxBtcTransfer
+            uint64 walletMaxBtcTransfer,
+            uint32 walletClosingPeriod
         )
     {
         walletCreationPeriod = self.walletCreationPeriod;
@@ -1165,6 +1179,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         walletMaxBtcBalance = self.walletMaxBtcBalance;
         walletMaxAge = self.walletMaxAge;
         walletMaxBtcTransfer = self.walletMaxBtcTransfer;
+        walletClosingPeriod = self.walletClosingPeriod;
     }
 
     /// @notice Returns the current values of Bridge fraud parameters.

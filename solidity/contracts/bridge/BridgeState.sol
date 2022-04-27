@@ -186,6 +186,11 @@ library BridgeState {
         // The maximum BTC amount in satoshi than can be transferred to a single
         // target wallet during the moving funds process.
         uint64 walletMaxBtcTransfer;
+        // Determines the length of the wallet closing period, i.e. the period
+        // when the wallet remains in the Closing state and can be subject
+        // of deposit fraud challenges. This value is in seconds and should be
+        // greater than the deposit refund time plus some time margin.
+        uint32 walletClosingPeriod;
         // Maps the 20-byte wallet public key hash (computed using Bitcoin
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
@@ -210,7 +215,8 @@ library BridgeState {
         uint64 walletMinBtcBalance,
         uint64 walletMaxBtcBalance,
         uint32 walletMaxAge,
-        uint64 walletMaxBtcTransfer
+        uint64 walletMaxBtcTransfer,
+        uint32 walletClosingPeriod
     );
 
     event FraudParametersUpdated(
@@ -338,19 +344,25 @@ library BridgeState {
     ///        the wallet moving funds process can be requested
     /// @param _walletMaxBtcTransfer New value of the wallet maximum BTC transfer
     ///        in satoshi, determines the maximum amount that can be transferred
-    //         to a single target wallet during the moving funds process
+    ///        to a single target wallet during the moving funds process
+    /// @param _walletClosingPeriod New value of the wallet closing period in
+    ///        seconds, determines the length of the wallet closing period,
+    //         i.e. the period when the wallet remains in the Closing state
+    //         and can be subject of deposit fraud challenges
     /// @dev Requirements:
     ///      - Wallet minimum BTC balance must be greater than zero
     ///      - Wallet maximum BTC balance must be greater than the wallet
     ///        minimum BTC balance
     ///      - Wallet maximum BTC transfer must be greater than zero
+    ///      - Wallet closing period must be greater than zero
     function updateWalletParameters(
         Storage storage self,
         uint32 _walletCreationPeriod,
         uint64 _walletMinBtcBalance,
         uint64 _walletMaxBtcBalance,
         uint32 _walletMaxAge,
-        uint64 _walletMaxBtcTransfer
+        uint64 _walletMaxBtcTransfer,
+        uint32 _walletClosingPeriod
     ) internal {
         require(
             _walletMinBtcBalance > 0,
@@ -364,19 +376,25 @@ library BridgeState {
             _walletMaxBtcTransfer > 0,
             "Wallet maximum BTC transfer must be greater than zero"
         );
+        require(
+            _walletClosingPeriod > 0,
+            "Wallet closing period must be greater than zero"
+        );
 
         self.walletCreationPeriod = _walletCreationPeriod;
         self.walletMinBtcBalance = _walletMinBtcBalance;
         self.walletMaxBtcBalance = _walletMaxBtcBalance;
         self.walletMaxAge = _walletMaxAge;
         self.walletMaxBtcTransfer = _walletMaxBtcTransfer;
+        self.walletClosingPeriod = _walletClosingPeriod;
 
         emit WalletParametersUpdated(
             _walletCreationPeriod,
             _walletMinBtcBalance,
             _walletMaxBtcBalance,
             _walletMaxAge,
-            _walletMaxBtcTransfer
+            _walletMaxBtcTransfer,
+            _walletClosingPeriod
         );
     }
 
