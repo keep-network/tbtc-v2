@@ -14,7 +14,7 @@ import type {
   IRelay,
   IWalletRegistry,
 } from "../../typechain"
-import bridgeFixture from "./bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 import { walletState } from "../fixtures"
 import {
   MovingFundsTestData,

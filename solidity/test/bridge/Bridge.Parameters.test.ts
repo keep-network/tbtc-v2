@@ -4,7 +4,7 @@ import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 import type { Bridge, BridgeStub } from "../../typechain"
 import { constants } from "../fixtures"
-import bridgeFixture from "./bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 

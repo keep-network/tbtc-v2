@@ -13,7 +13,7 @@ import type {
 /**
  * Common fixture for tests suites targeting the Bridge contract.
  */
-const bridgeFixture = async () => {
+export default async function bridgeFixture() {
   await deployments.fixture()
 
   const { deployer, governance, treasury } = await ethers.getNamedSigners()
@@ -64,5 +64,3 @@ const bridgeFixture = async () => {
     BridgeFactory,
   }
 }
-
-export default bridgeFixture
