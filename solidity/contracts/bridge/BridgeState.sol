@@ -192,6 +192,12 @@ library BridgeState {
         mapping(bytes20 => Wallets.Wallet) registeredWallets;
     }
 
+    event DepositParametersUpdated(
+        uint64 depositDustThreshold,
+        uint64 depositTreasuryFeeDivisor,
+        uint64 depositTxMaxFee
+    );
+
     event WalletParametersUpdated(
         uint32 walletCreationPeriod,
         uint64 walletMinBtcBalance,
@@ -206,6 +212,50 @@ library BridgeState {
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
     );
+
+    /// @notice Updates parameters of deposits.
+    /// @param _depositDustThreshold New value of the deposit dust threshold in
+    ///        satoshis. It is the minimal amount that can be requested to
+    ////       deposit. Value of this parameter must take into account the value
+    ///        of `depositTreasuryFeeDivisor` and `depositTxMaxFee` parameters
+    ///        in order to make requests that can incur the treasury and
+    ///        transaction fee and still satisfy the depositor
+    /// @param _depositTreasuryFeeDivisor New value of the treasury fee divisor.
+    ///        It is the divisor used to compute the treasury fee taken from
+    ///        each deposit and transferred to the treasury upon sweep proof
+    ///        submission. That fee is computed as follows:
+    ///        `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
+    ///        For example, if the treasury fee needs to be 2% of each deposit,
+    ///        the `depositTreasuryFeeDivisor` should be set to `50`
+    ///        because `1/50 = 0.02 = 2%`
+    /// @param _depositTxMaxFee New value of the deposit tx max fee in satoshis.
+    ///        It is the maximum amount of BTC transaction fee that can
+    ///        be incurred by each swept deposit being part of the given sweep
+    ///        transaction. If the maximum BTC transaction fee is exceeded,
+    ///        such transaction is considered a fraud
+    /// @dev Requirements:
+    ///      - Deposit treasury fee divisor must be greater than zero
+    function updateDepositParameters(
+        Storage storage self,
+        uint64 _depositDustThreshold,
+        uint64 _depositTreasuryFeeDivisor,
+        uint64 _depositTxMaxFee
+    ) internal {
+        require(
+            _depositTreasuryFeeDivisor > 0,
+            "Deposit treasury fee divisor must be greater than zero"
+        );
+
+        self.depositDustThreshold = _depositDustThreshold;
+        self.depositTreasuryFeeDivisor = _depositTreasuryFeeDivisor;
+        self.depositTxMaxFee = _depositTxMaxFee;
+
+        emit DepositParametersUpdated(
+            _depositDustThreshold,
+            _depositTreasuryFeeDivisor,
+            _depositTxMaxFee
+        );
+    }
 
     /// @notice Updates parameters of wallets.
     /// @param _walletCreationPeriod New value of the wallet creation period in
