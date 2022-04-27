@@ -1,13 +1,6 @@
 import { Contract } from "ethers"
-import { ethers } from "hardhat"
-import type {
-  TestERC20,
-  TBTC,
-  VendingMachine,
-  TestERC20__factory,
-  TBTC__factory,
-  VendingMachine__factory,
-} from "../../typechain"
+import { deployments, ethers } from "hardhat"
+import type { TestERC20, TBTC, VendingMachine } from "../../typechain"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 export const constants = {
@@ -54,24 +47,14 @@ export interface DeployedContracts {
 }
 
 export async function vendingMachineDeployment(): Promise<DeployedContracts> {
-  const TestERC20 = await ethers.getContractFactory<TestERC20__factory>(
-    "TestERC20"
-  )
-  const tbtcV1: TestERC20 = await TestERC20.deploy()
-  await tbtcV1.deployed()
+  await deployments.fixture("VendingMachine")
 
-  const TBTC = await ethers.getContractFactory<TBTC__factory>("TBTC")
-  const tbtcV2: TBTC = await TBTC.deploy()
-  await tbtcV2.deployed()
+  const tbtcV1: TestERC20 = await ethers.getContract("TBTCToken")
+  const tbtcV2: TBTC = await ethers.getContract("TBTC")
 
-  const VendingMachine =
-    await ethers.getContractFactory<VendingMachine__factory>("VendingMachine")
-  const vendingMachine: VendingMachine = await VendingMachine.deploy(
-    tbtcV1.address,
-    tbtcV2.address,
-    constants.unmintFee
+  const vendingMachine: VendingMachine = await ethers.getContract(
+    "VendingMachine"
   )
-  await vendingMachine.deployed()
 
   const contracts: DeployedContracts = {
     tbtcV1,
