@@ -384,8 +384,12 @@ describe("Bridge - Parameters", () => {
     context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newWalletCreationPeriod = constants.walletCreationPeriod * 2
-        const newWalletMinBtcBalance = constants.walletMinBtcBalance.add(1000)
-        const newWalletMaxBtcBalance = constants.walletMaxBtcBalance.add(2000)
+        const newWalletCreationMinBtcBalance =
+          constants.walletCreationMinBtcBalance.add(1000)
+        const newWalletCreationMaxBtcBalance =
+          constants.walletCreationMaxBtcBalance.add(2000)
+        const newWalletClosureMinBtcBalance =
+          constants.walletClosureMinBtcBalance.add(3000)
         const newWalletMaxAge = constants.walletMaxAge * 2
         const newWalletMaxBtcTransfer = constants.walletMaxBtcTransfer.add(1000)
         const newWalletClosingPeriod = constants.walletClosingPeriod * 2
@@ -399,8 +403,9 @@ describe("Bridge - Parameters", () => {
             .connect(governance)
             .updateWalletParameters(
               newWalletCreationPeriod,
-              newWalletMinBtcBalance,
-              newWalletMaxBtcBalance,
+              newWalletCreationMinBtcBalance,
+              newWalletCreationMaxBtcBalance,
+              newWalletClosureMinBtcBalance,
               newWalletMaxAge,
               newWalletMaxBtcTransfer,
               newWalletClosingPeriod
@@ -417,8 +422,15 @@ describe("Bridge - Parameters", () => {
           expect(params.walletCreationPeriod).to.be.equal(
             newWalletCreationPeriod
           )
-          expect(params.walletMinBtcBalance).to.be.equal(newWalletMinBtcBalance)
-          expect(params.walletMaxBtcBalance).to.be.equal(newWalletMaxBtcBalance)
+          expect(params.walletCreationMinBtcBalance).to.be.equal(
+            newWalletCreationMinBtcBalance
+          )
+          expect(params.walletCreationMaxBtcBalance).to.be.equal(
+            newWalletCreationMaxBtcBalance
+          )
+          expect(params.walletClosureMinBtcBalance).to.be.equal(
+            newWalletClosureMinBtcBalance
+          )
           expect(params.walletMaxAge).to.be.equal(newWalletMaxAge)
           expect(params.walletMaxBtcTransfer).to.be.equal(
             newWalletMaxBtcTransfer
@@ -431,8 +443,9 @@ describe("Bridge - Parameters", () => {
             .to.emit(bridge, "WalletParametersUpdated")
             .withArgs(
               newWalletCreationPeriod,
-              newWalletMinBtcBalance,
-              newWalletMaxBtcBalance,
+              newWalletCreationMinBtcBalance,
+              newWalletCreationMaxBtcBalance,
+              newWalletClosureMinBtcBalance,
               newWalletMaxAge,
               newWalletMaxBtcTransfer,
               newWalletClosingPeriod
@@ -440,7 +453,7 @@ describe("Bridge - Parameters", () => {
         })
       })
 
-      context("when new minimum BTC balance is zero", () => {
+      context("when new creation minimum BTC balance is zero", () => {
         it("should revert", async () => {
           await expect(
             bridge
@@ -448,19 +461,20 @@ describe("Bridge - Parameters", () => {
               .updateWalletParameters(
                 constants.walletCreationPeriod,
                 0,
-                constants.walletMaxBtcBalance,
+                constants.walletCreationMaxBtcBalance,
+                constants.walletClosureMinBtcBalance,
                 constants.walletMaxAge,
                 constants.walletMaxBtcTransfer,
                 constants.walletClosingPeriod
               )
           ).to.be.revertedWith(
-            "Wallet minimum BTC balance must be greater than zero"
+            "Wallet creation minimum BTC balance must be greater than zero"
           )
         })
       })
 
       context(
-        "when new maximum BTC balance is not greater than the minimum",
+        "when new creation maximum BTC balance is not greater than the creation minimum BTC balance",
         () => {
           it("should revert", async () => {
             await expect(
@@ -468,18 +482,39 @@ describe("Bridge - Parameters", () => {
                 .connect(governance)
                 .updateWalletParameters(
                   constants.walletCreationPeriod,
-                  constants.walletMinBtcBalance,
-                  constants.walletMinBtcBalance,
+                  constants.walletCreationMinBtcBalance,
+                  constants.walletCreationMinBtcBalance,
+                  constants.walletClosureMinBtcBalance,
                   constants.walletMaxAge,
                   constants.walletMaxBtcTransfer,
                   constants.walletClosingPeriod
                 )
             ).to.be.revertedWith(
-              "Wallet maximum BTC balance must be greater than the minimum"
+              "Wallet creation maximum BTC balance must be greater than the creation minimum BTC balance"
             )
           })
         }
       )
+
+      context("when new closure minimum BTC balance is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateWalletParameters(
+                constants.walletCreationPeriod,
+                constants.walletClosureMinBtcBalance,
+                constants.walletCreationMaxBtcBalance,
+                0,
+                constants.walletMaxAge,
+                constants.walletMaxBtcTransfer,
+                constants.walletClosingPeriod
+              )
+          ).to.be.revertedWith(
+            "Wallet closure minimum BTC balance must be greater than zero"
+          )
+        })
+      })
 
       context("when new maximum BTC transfer is zero", () => {
         it("should revert", async () => {
@@ -488,8 +523,9 @@ describe("Bridge - Parameters", () => {
               .connect(governance)
               .updateWalletParameters(
                 constants.walletCreationPeriod,
-                constants.walletMinBtcBalance,
-                constants.walletMaxBtcBalance,
+                constants.walletCreationMinBtcBalance,
+                constants.walletCreationMaxBtcBalance,
+                constants.walletClosureMinBtcBalance,
                 constants.walletMaxAge,
                 0,
                 constants.walletClosingPeriod
@@ -507,8 +543,9 @@ describe("Bridge - Parameters", () => {
               .connect(governance)
               .updateWalletParameters(
                 constants.walletCreationPeriod,
-                constants.walletMinBtcBalance,
-                constants.walletMaxBtcBalance,
+                constants.walletCreationMinBtcBalance,
+                constants.walletCreationMaxBtcBalance,
+                constants.walletClosureMinBtcBalance,
                 constants.walletMaxAge,
                 constants.walletMaxBtcTransfer,
                 0
@@ -527,8 +564,9 @@ describe("Bridge - Parameters", () => {
             .connect(thirdParty)
             .updateWalletParameters(
               constants.walletCreationPeriod,
-              constants.walletMinBtcBalance,
-              constants.walletMaxBtcBalance,
+              constants.walletCreationMinBtcBalance,
+              constants.walletCreationMaxBtcBalance,
+              constants.walletClosureMinBtcBalance,
               constants.walletMaxAge,
               constants.walletMaxBtcTransfer,
               constants.walletClosingPeriod

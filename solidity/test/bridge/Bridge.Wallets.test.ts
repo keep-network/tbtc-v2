@@ -124,7 +124,7 @@ describe("Bridge - Wallets", () => {
                         txHash:
                           "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                         txOutputIndex: 1,
-                        txOutputValue: constants.walletMinBtcBalance,
+                        txOutputValue: constants.walletCreationMinBtcBalance,
                       }
 
                       await bridge.setWalletMainUtxo(
@@ -169,7 +169,7 @@ describe("Bridge - Wallets", () => {
                         txHash:
                           "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                         txOutputIndex: 1,
-                        txOutputValue: constants.walletMaxBtcBalance,
+                        txOutputValue: constants.walletCreationMaxBtcBalance,
                       }
 
                       await bridge.setWalletMainUtxo(
@@ -214,7 +214,8 @@ describe("Bridge - Wallets", () => {
                       txHash:
                         "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                       txOutputIndex: 1,
-                      txOutputValue: constants.walletMaxBtcBalance.sub(1),
+                      txOutputValue:
+                        constants.walletCreationMaxBtcBalance.sub(1),
                     }
 
                     await bridge.setWalletMainUtxo(
@@ -255,7 +256,8 @@ describe("Bridge - Wallets", () => {
                       txHash:
                         "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                       txOutputIndex: 1,
-                      txOutputValue: constants.walletMinBtcBalance.sub(1),
+                      txOutputValue:
+                        constants.walletCreationMinBtcBalance.sub(1),
                     }
 
                     await bridge.setWalletMainUtxo(
@@ -284,7 +286,7 @@ describe("Bridge - Wallets", () => {
                 txHash:
                   "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                 txOutputIndex: 1,
-                txOutputValue: constants.walletMaxBtcBalance,
+                txOutputValue: constants.walletCreationMaxBtcBalance,
               }
 
               before(async () => {
@@ -1106,7 +1108,7 @@ describe("Bridge - Wallets", () => {
                 txHash:
                   "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                 txOutputIndex: 0,
-                txOutputValue: constants.walletMinBtcBalance.sub(1),
+                txOutputValue: constants.walletClosureMinBtcBalance.sub(1),
               }
 
               let tx: ContractTransaction
@@ -1172,7 +1174,7 @@ describe("Bridge - Wallets", () => {
               txHash:
                 "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
               txOutputIndex: 0,
-              txOutputValue: constants.walletMinBtcBalance,
+              txOutputValue: constants.walletClosureMinBtcBalance,
             }
 
             before(async () => {
@@ -1210,7 +1212,7 @@ describe("Bridge - Wallets", () => {
               txHash:
                 "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
               txOutputIndex: 0,
-              txOutputValue: constants.walletMinBtcBalance,
+              txOutputValue: constants.walletClosureMinBtcBalance,
             }
 
             before(async () => {
