@@ -356,6 +356,7 @@ describe("Bridge - Parameters", () => {
         const newWalletMaxBtcBalance = constants.walletMaxBtcBalance.add(2000)
         const newWalletMaxAge = constants.walletMaxAge * 2
         const newWalletMaxBtcTransfer = constants.walletMaxBtcTransfer.add(1000)
+        const newWalletClosingPeriod = constants.walletClosingPeriod * 2
 
         let tx: ContractTransaction
 
@@ -369,7 +370,8 @@ describe("Bridge - Parameters", () => {
               newWalletMinBtcBalance,
               newWalletMaxBtcBalance,
               newWalletMaxAge,
-              newWalletMaxBtcTransfer
+              newWalletMaxBtcTransfer,
+              newWalletClosingPeriod
             )
         })
 
@@ -389,6 +391,7 @@ describe("Bridge - Parameters", () => {
           expect(params.walletMaxBtcTransfer).to.be.equal(
             newWalletMaxBtcTransfer
           )
+          expect(params.walletClosingPeriod).to.be.equal(newWalletClosingPeriod)
         })
 
         it("should emit WalletParametersUpdated event", async () => {
@@ -399,7 +402,8 @@ describe("Bridge - Parameters", () => {
               newWalletMinBtcBalance,
               newWalletMaxBtcBalance,
               newWalletMaxAge,
-              newWalletMaxBtcTransfer
+              newWalletMaxBtcTransfer,
+              newWalletClosingPeriod
             )
         })
       })
@@ -414,7 +418,8 @@ describe("Bridge - Parameters", () => {
                 0,
                 constants.walletMaxBtcBalance,
                 constants.walletMaxAge,
-                constants.walletMaxBtcTransfer
+                constants.walletMaxBtcTransfer,
+                constants.walletClosingPeriod
               )
           ).to.be.revertedWith(
             "Wallet minimum BTC balance must be greater than zero"
@@ -434,7 +439,8 @@ describe("Bridge - Parameters", () => {
                   constants.walletMinBtcBalance,
                   constants.walletMinBtcBalance,
                   constants.walletMaxAge,
-                  constants.walletMaxBtcTransfer
+                  constants.walletMaxBtcTransfer,
+                  constants.walletClosingPeriod
                 )
             ).to.be.revertedWith(
               "Wallet maximum BTC balance must be greater than the minimum"
@@ -453,10 +459,30 @@ describe("Bridge - Parameters", () => {
                 constants.walletMinBtcBalance,
                 constants.walletMaxBtcBalance,
                 constants.walletMaxAge,
-                0
+                0,
+                constants.walletClosingPeriod
               )
           ).to.be.revertedWith(
             "Wallet maximum BTC transfer must be greater than zero"
+          )
+        })
+      })
+
+      context("when new closing period is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateWalletParameters(
+                constants.walletCreationPeriod,
+                constants.walletMinBtcBalance,
+                constants.walletMaxBtcBalance,
+                constants.walletMaxAge,
+                constants.walletMaxBtcTransfer,
+                0
+              )
+          ).to.be.revertedWith(
+            "Wallet closing period must be greater than zero"
           )
         })
       })
@@ -472,7 +498,8 @@ describe("Bridge - Parameters", () => {
               constants.walletMinBtcBalance,
               constants.walletMaxBtcBalance,
               constants.walletMaxAge,
-              constants.walletMaxBtcTransfer
+              constants.walletMaxBtcTransfer,
+              constants.walletClosingPeriod
             )
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
