@@ -20,7 +20,7 @@ describe("Bridge - Parameters", () => {
   })
 
   describe("updateDepositParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newDepositDustThreshold = constants.depositDustThreshold * 2
         const newDepositTreasuryFeeDivisor =
@@ -117,7 +117,7 @@ describe("Bridge - Parameters", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -127,13 +127,13 @@ describe("Bridge - Parameters", () => {
               constants.depositTreasuryFeeDivisor,
               constants.depositTxMaxFee
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })
 
   describe("updateRedemptionParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newRedemptionDustThreshold = constants.redemptionDustThreshold * 2
         const newRedemptionTreasuryFeeDivisor =
@@ -252,7 +252,7 @@ describe("Bridge - Parameters", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -263,13 +263,13 @@ describe("Bridge - Parameters", () => {
               constants.redemptionTxMaxFee,
               constants.redemptionTimeout
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })
 
   describe("updateMovingFundsParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newMovingFundsTxMaxTotalFee =
           constants.movingFundsTxMaxTotalFee / 2
@@ -365,7 +365,7 @@ describe("Bridge - Parameters", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -375,13 +375,13 @@ describe("Bridge - Parameters", () => {
               constants.movingFundsTimeout,
               constants.movingFundsDustThreshold
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })
 
   describe("updateWalletParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newWalletCreationPeriod = constants.walletCreationPeriod * 2
         const newWalletMinBtcBalance = constants.walletMinBtcBalance.add(1000)
@@ -520,7 +520,7 @@ describe("Bridge - Parameters", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -533,13 +533,13 @@ describe("Bridge - Parameters", () => {
               constants.walletMaxBtcTransfer,
               constants.walletClosingPeriod
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })
 
   describe("updateFraudParameters", () => {
-    context("when caller is the contract owner", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newFraudSlashingAmount = constants.fraudSlashingAmount.mul(2)
         const newFraudNotifierRewardMultiplier =
@@ -633,7 +633,7 @@ describe("Bridge - Parameters", () => {
       })
     })
 
-    context("when caller is not the contract owner", () => {
+    context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
           bridge
@@ -644,7 +644,7 @@ describe("Bridge - Parameters", () => {
               constants.fraudChallengeDefeatTimeout,
               constants.fraudChallengeDepositAmount
             )
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
   })

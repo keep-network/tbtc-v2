@@ -138,7 +138,7 @@ const fixture = async () => {
   await bridge.deployed()
 
   await bank.updateBridge(bridge.address)
-  await bridge.connect(deployer).transferOwnership(governance.address)
+  await bridge.connect(deployer).transferGovernance(governance.address)
 
   // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
   // the initial value in the Bridge in order to save test Bitcoins.
@@ -204,7 +204,7 @@ describe("Bridge", () => {
       it("should revert", async () => {
         await expect(
           bridge.connect(thirdParty).setVaultStatus(vault, true)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the governance")
       })
     })
 

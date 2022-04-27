@@ -484,7 +484,9 @@ library MovingFunds {
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
-        Wallets.Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
 
         require(
             wallet.state == Wallets.WalletState.MovingFunds,
@@ -493,7 +495,7 @@ library MovingFunds {
 
         uint64 walletBtcBalance = self.getWalletBtcBalance(
             walletPubKeyHash,
-                mainUtxo
+            mainUtxo
         );
 
         require(
