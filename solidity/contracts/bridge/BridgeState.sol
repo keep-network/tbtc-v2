@@ -246,6 +246,7 @@ library BridgeState {
     ///        transaction. If the maximum BTC transaction fee is exceeded,
     ///        such transaction is considered a fraud
     /// @dev Requirements:
+    ///      - Deposit dust threshold must be greater than zero
     ///      - Deposit treasury fee divisor must be greater than zero
     function updateDepositParameters(
         Storage storage self,
@@ -253,6 +254,11 @@ library BridgeState {
         uint64 _depositTreasuryFeeDivisor,
         uint64 _depositTxMaxFee
     ) internal {
+        require(
+            _depositDustThreshold > 0,
+            "Deposit dust threshold must be greater than zero"
+        );
+
         require(
             _depositTreasuryFeeDivisor > 0,
             "Deposit treasury fee divisor must be greater than zero"

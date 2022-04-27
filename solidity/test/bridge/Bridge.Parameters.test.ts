@@ -68,6 +68,22 @@ describe("Bridge - Parameters", () => {
         })
       })
 
+      context("when new deposit dust threshold is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateDepositParameters(
+                0,
+                constants.depositTreasuryFeeDivisor,
+                constants.depositTxMaxFee
+              )
+          ).to.be.revertedWith(
+            "Deposit dust threshold must be greater than zero"
+          )
+        })
+      })
+
       context("when new deposit treasury fee divisor is zero", () => {
         it("should revert", async () => {
           await expect(

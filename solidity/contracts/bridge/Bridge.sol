@@ -801,6 +801,7 @@ contract Bridge is Ownable, EcdsaWalletOwner {
     ///        transaction. If the maximum BTC transaction fee is exceeded,
     ///        such transaction is considered a fraud
     /// @dev Requirements:
+    ///      - Deposit dust threshold must be greater than zero
     ///      - Deposit treasury fee divisor must be greater than zero
     function updateDepositParameters(
         uint64 depositDustThreshold,
