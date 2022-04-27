@@ -228,10 +228,12 @@ jobs:
       - name: Install needed dependencies
         run: yarn install --frozen-lockfile
 
-      # If we don't remove the `tbtc` contracts from `node-modules`, the
-      # `etherscan-verify` plugins tries to verify them, which is not desired.
+      # If we don't remove the `ecdsa` and `tbtc` contracts from `node-modules`,
+      # the `etherscan-verify` plugins tries to verify them, which is not
+      # desired.
       - name: Prepare for verification on Etherscan
         run: |
+          rm -rf ./node_modules/@keep-network/ecdsa
           rm -rf ./node_modules/@keep-network/tbtc
 
       - name: Verify contracts on Etherscan
