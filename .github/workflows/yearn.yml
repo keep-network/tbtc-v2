@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  contracts-detect-changes:
+  yearn-detect-changes:
     runs-on: ubuntu-latest
     outputs:
       path-filter: ${{ steps.filter.outputs.path-filter }}
@@ -28,7 +28,7 @@ jobs:
             path-filter:
               - './yearn/**'
 
-  contracts-build-and-test:
+  yearn-build-and-test:
     needs: contracts-detect-changes
     if: |
       github.event_name != 'pull_request'
@@ -57,7 +57,7 @@ jobs:
           FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
         run: yarn test:system
 
-  contracts-format:
+  yearn-format:
     needs: contracts-detect-changes
     if: |
       github.event_name == 'push'
