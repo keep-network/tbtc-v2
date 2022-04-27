@@ -418,16 +418,39 @@ library Wallets {
         emit WalletClosing(wallet.ecdsaWalletID, walletPubKeyHash);
     }
 
+    /// @notice Notifies about the end of the closing period for the given wallet.
+    ///         Closes the wallet ultimately and notifies the ECDSA registry
+    ///         about this fact.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - The wallet must be in the Closing state
+    ///      - The wallet closing period must have elapsed
+    function notifyWalletClosingPeriodElapsed(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        require(
+            wallet.state == WalletState.Closing,
+            "ECDSA wallet must be in Closing state"
+        );
+
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp >
+                wallet.closingStartedAt + self.walletClosingPeriod,
+            "Closing period has not elapsed yet"
+        );
+
+        finalizeWalletClosing(self, walletPubKeyHash);
+    }
+
     /// @notice Finalizes the closing period of the given wallet and notifies
     ///         the ECDSA registry about this fact.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the Closing state
-    ///
-    /// TODO: Make this function callable from the Bridge contract if
-    ///       `block.timestamp > wallet.closingStartedAt + self.walletClosingPeriod`.
-    ///
-    // slither-disable-next-line dead-code
     function finalizeWalletClosing(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash

@@ -1341,4 +1341,159 @@ describe("Bridge - Wallets", () => {
       })
     })
   })
+
+  describe("notifyWalletClosingPeriodElapsed", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when the wallet is in the Closing state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.Live,
+        })
+
+        // Switches the wallet to Closing state because the wallet has
+        // no main UTXO set.
+        await bridge
+          .connect(walletRegistry.wallet)
+          .__ecdsaWalletHeartbeatFailedCallback(
+            ecdsaWalletTestData.walletID,
+            ecdsaWalletTestData.publicKeyX,
+            ecdsaWalletTestData.publicKeyY
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when closing period has elapsed", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(
+            (
+              await bridge.walletParameters()
+            ).walletClosingPeriod
+          )
+
+          tx = await bridge.notifyWalletClosingPeriodElapsed(
+            ecdsaWalletTestData.pubKeyHash160
+          )
+        })
+
+        after(async () => {
+          await walletRegistry.closeWallet.reset()
+
+          await restoreSnapshot()
+        })
+
+        it("should set wallet state to Closed", async () => {
+          expect(
+            (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)).state
+          ).to.be.equal(walletState.Closed)
+        })
+
+        it("should emit WalletClosed event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "WalletClosed")
+            .withArgs(
+              walletDraft.ecdsaWalletID,
+              ecdsaWalletTestData.pubKeyHash160
+            )
+        })
+
+        it("should call the ECDSA wallet registry's closeWallet function", async () => {
+          expect(walletRegistry.closeWallet).to.have.been.calledOnceWith(
+            walletDraft.ecdsaWalletID
+          )
+        })
+      })
+
+      context("when closing period has not elapsed yet", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(
+            (await bridge.walletParameters()).walletClosingPeriod - 1
+          )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge.notifyWalletClosingPeriodElapsed(
+              ecdsaWalletTestData.pubKeyHash160
+            )
+          ).to.be.revertedWith("Closing period has not elapsed yet")
+        })
+      })
+    })
+
+    context("when the wallet is not in the Closing state", () => {
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is Live",
+          walletState: walletState.Live,
+        },
+        {
+          testName: "when wallet state is MovingFunds",
+          walletState: walletState.MovingFunds,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: test.walletState,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.notifyWalletClosingPeriodElapsed(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+            ).to.be.revertedWith("ECDSA wallet must be in Closing state")
+          })
+        })
+      })
+    })
+  })
 })
