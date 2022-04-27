@@ -166,6 +166,13 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         uint64 walletMaxBtcTransfer
     );
 
+    event FraudParametersUpdated(
+        uint256 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDefeatTimeout,
+        uint256 fraudChallengeDepositAmount
+    );
+
     constructor(
         address _bank,
         address _relay,
@@ -794,7 +801,36 @@ contract Bridge is Ownable, EcdsaWalletOwner {
         );
     }
 
-    // TODO: updateFraudParameters
+    /// @notice Updates parameters related to frauds.
+    /// @param fraudSlashingAmount New value of the fraud slashing amount in T,
+    ///        it is the amount slashed from each wallet member for committing
+    ///        a fraud
+    /// @param fraudNotifierRewardMultiplier New value of the fraud notifier
+    ///        reward multiplier as percentage, it determines the percentage of
+    ///        the notifier reward from the staking contact the notifier of
+    ///        a fraud receives. The value must be in the range [0, 100]
+    /// @param fraudChallengeDefeatTimeout New value of the challenge defeat
+    ///        timeout in seconds, it is the amount of time the wallet has to
+    ///        defeat a fraud challenge. The value must be greater than zero
+    /// @param fraudChallengeDepositAmount New value of the fraud challenge
+    ///        deposit amount in wei, it is the amount of ETH the party
+    ///        challenging the wallet for fraud needs to deposit
+    /// @dev Requirements:
+    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
+    ///      - Fraud challenge defeat timeout must be greater than 0
+    function updateFraudParameters(
+        uint256 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDefeatTimeout,
+        uint256 fraudChallengeDepositAmount
+    ) external onlyOwner {
+        self.updateFraudParameters(
+            fraudSlashingAmount,
+            fraudNotifierRewardMultiplier,
+            fraudChallengeDefeatTimeout,
+            fraudChallengeDepositAmount
+        );
+    }
 
     /// @notice Collection of all revealed deposits indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex).
