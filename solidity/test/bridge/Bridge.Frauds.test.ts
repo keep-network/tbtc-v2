@@ -26,8 +26,6 @@ chai.use(smock.matchers)
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 
-const fixture = async () => bridgeFixture()
-
 describe("Bridge - Fraud", () => {
   let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
@@ -41,7 +39,7 @@ describe("Bridge - Fraud", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, treasury, walletRegistry, bridge } =
-      await waffle.loadFixture(fixture))
+      await waffle.loadFixture(bridgeFixture))
     ;({ fraudChallengeDefeatTimeout, fraudChallengeDepositAmount } =
       await bridge.fraudParameters())
   })
