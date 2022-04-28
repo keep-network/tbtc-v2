@@ -175,13 +175,19 @@ library BridgeState {
         // Value in seconds.
         uint32 walletCreationPeriod;
         // The minimum BTC threshold in satoshi that is used to decide about
-        // wallet creation.
+        // wallet creation. Specifically, we allow for the creation of a new
+        // wallet if the active wallet is old enough and their amount of BTC
+        // is greater than or equal this threshold.
         uint64 walletCreationMinBtcBalance;
         // The maximum BTC threshold in satoshi that is used to decide about
-        // wallet creation.
+        // wallet creation. Specifically, we allow for the creation of a new
+        // wallet if the active wallet's amount of BTC is greater than or equal
+        // this threshold, regardless of the active wallet's age.
         uint64 walletCreationMaxBtcBalance;
         // The minimum BTC threshold in satoshi that is used to decide about
-        // wallet closing.
+        // wallet closing. Specifically, we allow for the closure of the given
+        // wallet if their amount of BTC is lesser than this threshold,
+        // regardless of the wallet's age.
         uint64 walletClosureMinBtcBalance;
         // The maximum age of a wallet in seconds, after which the wallet
         // moving funds process can be requested.
