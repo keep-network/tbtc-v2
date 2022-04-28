@@ -229,7 +229,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.redemptionTimeout = 172800; // 48 hours
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
         self.movingFundsTimeout = 7 days;
-        self.movingFundsDustThreshold = 1000; // 1000 satoshi
+        self.movingFundsDustThreshold = 20000; // 20000 satoshi
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.fraudChallengeDefeatTimeout = 7 days;
