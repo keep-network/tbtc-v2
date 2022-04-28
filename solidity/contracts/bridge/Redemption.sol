@@ -777,6 +777,7 @@ library Redemption {
     ///         or absence of the wallet's main UTXO) and the wallet will no
     ///         longer be marked as the active wallet (if it was marked as such).
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param redeemerOutputScript  The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH)
     /// @dev Requirements:
@@ -788,6 +789,7 @@ library Redemption {
     function notifyRedemptionTimeout(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs,
         bytes calldata redeemerOutputScript
     ) external {
         uint256 redemptionKey = uint256(
@@ -836,7 +838,17 @@ library Redemption {
         ) {
             // Propagate timeout consequences to the wallet
             self.notifyWalletTimedOutRedemption(walletPubKeyHash);
+
+            // Slash the wallet operators and reward the notifier
+            self.ecdsaWalletRegistry.seize(
+                self.redemptionTimeoutSlashingAmount,
+                self.redemptionTimeoutNotifierRewardMultiplier,
+                msg.sender,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
         }
+
         // slither-disable-next-line reentrancy-events
         emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
 

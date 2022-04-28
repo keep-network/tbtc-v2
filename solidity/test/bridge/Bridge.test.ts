@@ -171,6 +171,8 @@ describe("Bridge", () => {
   let walletRegistry: FakeContract<IWalletRegistry>
 
   let redemptionTimeout: BigNumber
+  let redemptionTimeoutSlashingAmount: BigNumber
+  let redemptionTimeoutNotifierRewardMultiplier: BigNumber
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -184,8 +186,11 @@ describe("Bridge", () => {
       Bridge,
       bridge,
     } = await waffle.loadFixture(fixture))
-
-    redemptionTimeout = (await bridge.redemptionParameters()).redemptionTimeout
+    ;({
+      redemptionTimeout,
+      redemptionTimeoutSlashingAmount,
+      redemptionTimeoutNotifierRewardMultiplier,
+    } = await bridge.redemptionParameters())
   })
 
   describe("isVaultTrusted", () => {
@@ -3173,6 +3178,7 @@ describe("Bridge", () => {
                             await increaseTime(redemptionTimeout)
                             await bridge.notifyRedemptionTimeout(
                               data.wallet.pubKeyHash,
+                              [],
                               data.redemptionRequests[0].redeemerOutputScript
                             )
                           }
@@ -3191,6 +3197,8 @@ describe("Bridge", () => {
                         })
 
                         after(async () => {
+                          walletRegistry.seize.reset()
+
                           await restoreSnapshot()
                         })
 
@@ -3362,6 +3370,7 @@ describe("Bridge", () => {
                             await increaseTime(redemptionTimeout)
                             await bridge.notifyRedemptionTimeout(
                               data.wallet.pubKeyHash,
+                              [],
                               data.redemptionRequests[0].redeemerOutputScript
                             )
                           }
@@ -3373,6 +3382,8 @@ describe("Bridge", () => {
                         })
 
                         after(async () => {
+                          walletRegistry.seize.reset()
+
                           await restoreSnapshot()
                         })
 
@@ -3878,6 +3889,7 @@ describe("Bridge", () => {
                               // eslint-disable-next-line no-await-in-loop
                               await bridge.notifyRedemptionTimeout(
                                 data.wallet.pubKeyHash,
+                                [],
                                 data.redemptionRequests[i].redeemerOutputScript
                               )
                             }
@@ -3897,6 +3909,8 @@ describe("Bridge", () => {
                         })
 
                         after(async () => {
+                          walletRegistry.seize.reset()
+
                           await restoreSnapshot()
                         })
 
@@ -4038,6 +4052,7 @@ describe("Bridge", () => {
                               // eslint-disable-next-line no-await-in-loop
                               await bridge.notifyRedemptionTimeout(
                                 data.wallet.pubKeyHash,
+                                [],
                                 data.redemptionRequests[i].redeemerOutputScript
                               )
                             }
@@ -4057,6 +4072,8 @@ describe("Bridge", () => {
                         })
 
                         after(async () => {
+                          walletRegistry.seize.reset()
+
                           await restoreSnapshot()
                         })
 
@@ -4202,10 +4219,12 @@ describe("Bridge", () => {
 
                             await bridge.notifyRedemptionTimeout(
                               data.wallet.pubKeyHash,
+                              [],
                               data.redemptionRequests[0].redeemerOutputScript
                             )
                             await bridge.notifyRedemptionTimeout(
                               data.wallet.pubKeyHash,
+                              [],
                               data.redemptionRequests[1].redeemerOutputScript
                             )
                           }
@@ -4224,6 +4243,8 @@ describe("Bridge", () => {
                         })
 
                         after(async () => {
+                          walletRegistry.seize.reset()
+
                           await restoreSnapshot()
                         })
 
@@ -4393,10 +4414,12 @@ describe("Bridge", () => {
 
                             await bridge.notifyRedemptionTimeout(
                               data.wallet.pubKeyHash,
+                              [],
                               data.redemptionRequests[0].redeemerOutputScript
                             )
                             await bridge.notifyRedemptionTimeout(
                               data.wallet.pubKeyHash,
+                              [],
                               data.redemptionRequests[1].redeemerOutputScript
                             )
                           }
@@ -4415,6 +4438,8 @@ describe("Bridge", () => {
                         })
 
                         after(async () => {
+                          walletRegistry.seize.reset()
+
                           await restoreSnapshot()
                         })
 
@@ -4649,6 +4674,7 @@ describe("Bridge", () => {
                             await increaseTime(redemptionTimeout)
                             await bridge.notifyRedemptionTimeout(
                               data.wallet.pubKeyHash,
+                              [],
                               data.redemptionRequests[4].redeemerOutputScript
                             )
                           }
@@ -4660,6 +4686,8 @@ describe("Bridge", () => {
                         })
 
                         after(async () => {
+                          walletRegistry.seize.reset()
+
                           await restoreSnapshot()
                         })
 
@@ -5330,6 +5358,8 @@ describe("Bridge", () => {
                 requestedAt: number
               }
 
+              const walletMembersIDs = [1, 2, 3, 4, 5]
+
               before(async () => {
                 await createSnapshot()
 
@@ -5398,11 +5428,14 @@ describe("Bridge", () => {
                   .connect(thirdParty)
                   .notifyRedemptionTimeout(
                     data.wallet.pubKeyHash,
+                    walletMembersIDs,
                     data.redemptionRequests[0].redeemerOutputScript
                   )
               })
 
               after(async () => {
+                walletRegistry.seize.reset()
+
                 await restoreSnapshot()
               })
 
@@ -5492,8 +5525,14 @@ describe("Bridge", () => {
                 )
               })
 
-              it("should slash the wallet's operators", async () => {
-                // TODO: Add test when operator slashing is implemented
+              it("should call the ECDSA wallet registry's seize function", async () => {
+                expect(walletRegistry.seize).to.have.been.calledOnceWith(
+                  redemptionTimeoutSlashingAmount,
+                  redemptionTimeoutNotifierRewardMultiplier,
+                  await thirdParty.getAddress(),
+                  data.wallet.ecdsaWalletID,
+                  walletMembersIDs
+                )
               })
 
               it("should emit RedemptionTimedOut event", async () => {
@@ -5522,6 +5561,8 @@ describe("Bridge", () => {
                 txMaxFee: BigNumber
                 requestedAt: number
               }
+
+              const walletMembersIDs = [1, 2, 3, 4, 5]
 
               before(async () => {
                 await createSnapshot()
@@ -5588,11 +5629,14 @@ describe("Bridge", () => {
                   .connect(thirdParty)
                   .notifyRedemptionTimeout(
                     data.wallet.pubKeyHash,
+                    walletMembersIDs,
                     data.redemptionRequests[0].redeemerOutputScript
                   )
               })
 
               after(async () => {
+                walletRegistry.seize.reset()
+
                 await restoreSnapshot()
               })
 
@@ -5682,8 +5726,14 @@ describe("Bridge", () => {
                 )
               })
 
-              it("should slash the wallet's operators", async () => {
-                // TODO: Add test when operator slashing is implemented
+              it("should call the ECDSA wallet registry's seize function", async () => {
+                expect(walletRegistry.seize).to.have.been.calledOnceWith(
+                  redemptionTimeoutSlashingAmount,
+                  redemptionTimeoutNotifierRewardMultiplier,
+                  await thirdParty.getAddress(),
+                  data.wallet.ecdsaWalletID,
+                  walletMembersIDs
+                )
               })
 
               it("should emit RedemptionTimedOut event", async () => {
@@ -5755,11 +5805,14 @@ describe("Bridge", () => {
                 .connect(thirdParty)
                 .notifyRedemptionTimeout(
                   data.wallet.pubKeyHash,
+                  [],
                   data.redemptionRequests[0].redeemerOutputScript
                 )
             })
 
             after(async () => {
+              walletRegistry.seize.reset()
+
               await restoreSnapshot()
             })
 
@@ -5787,6 +5840,8 @@ describe("Bridge", () => {
             txMaxFee: BigNumber
             requestedAt: number
           }
+
+          const walletMembersIDs = [1, 2, 3, 4, 5]
 
           before(async () => {
             await createSnapshot()
@@ -5864,11 +5919,14 @@ describe("Bridge", () => {
               .connect(thirdParty)
               .notifyRedemptionTimeout(
                 data.wallet.pubKeyHash,
+                walletMembersIDs,
                 data.redemptionRequests[0].redeemerOutputScript
               )
           })
 
           after(async () => {
+            walletRegistry.seize.reset()
+
             await restoreSnapshot()
           })
 
@@ -5932,14 +5990,20 @@ describe("Bridge", () => {
             )
           })
 
-          it("should slash the wallet's operators", async () => {
-            // TODO: Add test when operator slashing is implemented
-          })
-
           it("should not change wallet state", async () => {
             expect(
               (await bridge.wallets(data.wallet.pubKeyHash)).state
             ).to.be.equal(walletState.MovingFunds)
+          })
+
+          it("should call the ECDSA wallet registry's seize function", async () => {
+            expect(walletRegistry.seize).to.have.been.calledOnceWith(
+              redemptionTimeoutSlashingAmount,
+              redemptionTimeoutNotifierRewardMultiplier,
+              await thirdParty.getAddress(),
+              data.wallet.ecdsaWalletID,
+              walletMembersIDs
+            )
           })
 
           it("should emit RedemptionTimedOut event", async () => {
@@ -6041,6 +6105,7 @@ describe("Bridge", () => {
               .connect(thirdParty)
               .notifyRedemptionTimeout(
                 data.wallet.pubKeyHash,
+                [],
                 data.redemptionRequests[0].redeemerOutputScript
               )
           })
@@ -6122,6 +6187,10 @@ describe("Bridge", () => {
               data.redemptionRequests[0].redeemer
             )
             expect(currentRedeemerBalance).to.be.equal(expectedRedeemerBalance)
+          })
+
+          it("should not call the ECDSA wallet registry's seize function", async () => {
+            expect(walletRegistry.seize).not.to.have.been.called
           })
         })
 
@@ -6217,6 +6286,7 @@ describe("Bridge", () => {
                       .connect(thirdParty)
                       .notifyRedemptionTimeout(
                         data.wallet.pubKeyHash,
+                        [],
                         data.redemptionRequests[0].redeemerOutputScript
                       )
                   ).to.be.revertedWith(
@@ -6282,6 +6352,7 @@ describe("Bridge", () => {
               .connect(thirdParty)
               .notifyRedemptionTimeout(
                 data.wallet.pubKeyHash,
+                [],
                 data.redemptionRequests[0].redeemerOutputScript
               )
           ).to.be.revertedWith("Redemption request has not timed out")
@@ -6307,6 +6378,7 @@ describe("Bridge", () => {
             .connect(thirdParty)
             .notifyRedemptionTimeout(
               data.wallet.pubKeyHash,
+              [],
               redemptionRequest.redeemerOutputScript
             )
         ).to.be.revertedWith("Redemption request does not exist")

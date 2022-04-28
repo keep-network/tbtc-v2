@@ -446,19 +446,31 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         or absence of the wallet's main UTXO) and the wallet will no
     ///         longer be marked as the active wallet (if it was marked as such).
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param redeemerOutputScript  The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH)
     /// @dev Requirements:
     ///      - The redemption request identified by `walletPubKeyHash` and
     ///        `redeemerOutputScript` must exist
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events.
     ///      - The amount of time defined by `redemptionTimeout` must have
     ///        passed since the redemption was requested (the request must be
     ///        timed-out).
     function notifyRedemptionTimeout(
         bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs,
         bytes calldata redeemerOutputScript
     ) external {
-        self.notifyRedemptionTimeout(walletPubKeyHash, redeemerOutputScript);
+        self.notifyRedemptionTimeout(
+            walletPubKeyHash,
+            walletMembersIDs,
+            redeemerOutputScript
+        );
     }
 
     /// @notice Submits the moving funds target wallets commitment.
