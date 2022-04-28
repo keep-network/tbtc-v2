@@ -578,11 +578,21 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @notice Notifies about a timed out moving funds process. Terminates
     ///         the wallet and slashes signing group members as a result.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @dev Requirements:
     ///      - The wallet must be in the MovingFunds state
     ///      - The moving funds timeout must be actually exceeded
-    function notifyMovingFundsTimeout(bytes20 walletPubKeyHash) external {
-        self.notifyMovingFundsTimeout(walletPubKeyHash);
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events.
+    function notifyMovingFundsTimeout(
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs
+    ) external {
+        self.notifyMovingFundsTimeout(walletPubKeyHash, walletMembersIDs);
     }
 
     /// @notice Requests creation of a new wallet. This function just

@@ -4,7 +4,7 @@ import chai, { expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { ContractTransaction } from "ethers"
+import { BigNumber, ContractTransaction } from "ethers"
 import type {
   Bank,
   BankStub,
@@ -47,10 +47,19 @@ describe("Bridge - Moving funds", () => {
   let Bridge: BridgeStub__factory
   let bridge: Bridge & BridgeStub
 
+  let movingFundsTimeout: number
+  let movingFundsTimeoutSlashingAmount: BigNumber
+  let movingFundsTimeoutNotifierRewardMultiplier: BigNumber
+
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, treasury, bank, relay, walletRegistry, Bridge, bridge } =
       await waffle.loadFixture(fixture))
+    ;({
+      movingFundsTimeout,
+      movingFundsTimeoutSlashingAmount,
+      movingFundsTimeoutNotifierRewardMultiplier,
+    } = await bridge.movingFundsParameters())
   })
 
   describe("submitMovingFundsCommitment", () => {
@@ -1563,23 +1572,24 @@ describe("Bridge - Moving funds", () => {
 
       context("when the moving funds process has timed out", () => {
         let tx: ContractTransaction
+        const walletMembersIDs = [1, 2, 3, 4, 5]
 
         before(async () => {
           await createSnapshot()
 
-          await increaseTime(
-            (
-              await bridge.movingFundsParameters()
-            ).movingFundsTimeout
-          )
+          await increaseTime(movingFundsTimeout)
 
-          tx = await bridge.notifyMovingFundsTimeout(
-            ecdsaWalletTestData.pubKeyHash160
-          )
+          tx = await bridge
+            .connect(thirdParty)
+            .notifyMovingFundsTimeout(
+              ecdsaWalletTestData.pubKeyHash160,
+              walletMembersIDs
+            )
         })
 
         after(async () => {
           walletRegistry.closeWallet.reset()
+          walletRegistry.seize.reset()
 
           await restoreSnapshot()
         })
@@ -1606,18 +1616,20 @@ describe("Bridge - Moving funds", () => {
           )
         })
 
+        it("should call the ECDSA wallet registry's seize function", async () => {
+          expect(walletRegistry.seize).to.have.been.calledOnceWith(
+            movingFundsTimeoutSlashingAmount,
+            movingFundsTimeoutNotifierRewardMultiplier,
+            await thirdParty.getAddress(),
+            ecdsaWalletTestData.walletID,
+            walletMembersIDs
+          )
+        })
+
         it("should emit MovingFundsTimedOut event", async () => {
           await expect(tx)
             .to.emit(bridge, "MovingFundsTimedOut")
             .withArgs(ecdsaWalletTestData.pubKeyHash160)
-        })
-
-        it("should slash wallet operators", async () => {
-          // TODO: Implementation once slashing is integrated.
-        })
-
-        it("should reward the notifier", async () => {
-          // TODO: Implementation once slashing is integrated.
         })
       })
 
@@ -1625,9 +1637,7 @@ describe("Bridge - Moving funds", () => {
         before(async () => {
           await createSnapshot()
 
-          await increaseTime(
-            (await bridge.movingFundsParameters()).movingFundsTimeout - 1
-          )
+          await increaseTime(movingFundsTimeout - 1)
         })
 
         after(async () => {
@@ -1636,7 +1646,10 @@ describe("Bridge - Moving funds", () => {
 
         it("should revert", async () => {
           await expect(
-            bridge.notifyMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+            bridge.notifyMovingFundsTimeout(
+              ecdsaWalletTestData.pubKeyHash160,
+              []
+            )
           ).to.be.revertedWith("Moving funds has not timed out yet")
         })
       })
@@ -1686,7 +1699,10 @@ describe("Bridge - Moving funds", () => {
 
           it("should revert", async () => {
             await expect(
-              bridge.notifyMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+              bridge.notifyMovingFundsTimeout(
+                ecdsaWalletTestData.pubKeyHash160,
+                []
+              )
             ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
           })
         })
