@@ -274,6 +274,10 @@ describe("Bridge - Parameters", () => {
         const newMovingFundsTxMaxTotalFee =
           constants.movingFundsTxMaxTotalFee / 2
         const newMovingFundsTimeout = constants.movingFundsTimeout * 2
+        const newMovingFundsTimeoutSlashingAmount =
+          constants.movingFundsTimeoutSlashingAmount.mul(3)
+        const newMovingFundsTimeoutNotifierRewardMultiplier =
+          constants.movingFundsTimeoutNotifierRewardMultiplier / 2
 
         let tx: ContractTransaction
 
@@ -284,7 +288,9 @@ describe("Bridge - Parameters", () => {
             .connect(governance)
             .updateMovingFundsParameters(
               newMovingFundsTxMaxTotalFee,
-              newMovingFundsTimeout
+              newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier
             )
         })
 
@@ -299,12 +305,23 @@ describe("Bridge - Parameters", () => {
             newMovingFundsTxMaxTotalFee
           )
           expect(params.movingFundsTimeout).to.be.equal(newMovingFundsTimeout)
+          expect(params.movingFundsTimeoutSlashingAmount).to.be.equal(
+            newMovingFundsTimeoutSlashingAmount
+          )
+          expect(params.movingFundsTimeoutNotifierRewardMultiplier).to.be.equal(
+            newMovingFundsTimeoutNotifierRewardMultiplier
+          )
         })
 
         it("should emit MovingFundsParametersUpdated event", async () => {
           await expect(tx)
             .to.emit(bridge, "MovingFundsParametersUpdated")
-            .withArgs(newMovingFundsTxMaxTotalFee, newMovingFundsTimeout)
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier
+            )
         })
       })
 
@@ -313,7 +330,12 @@ describe("Bridge - Parameters", () => {
           await expect(
             bridge
               .connect(governance)
-              .updateMovingFundsParameters(0, constants.movingFundsTimeout)
+              .updateMovingFundsParameters(
+                0,
+                constants.movingFundsTimeout,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier
+              )
           ).to.be.revertedWith(
             "Moving funds transaction max total fee must be greater than zero"
           )
@@ -327,11 +349,33 @@ describe("Bridge - Parameters", () => {
               .connect(governance)
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
-                0
+                0,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith("Moving funds timeout must be greater than zero")
         })
       })
+
+      context(
+        "when new moving funds timeout notifier reward multiplier is greater than 100",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateMovingFundsParameters(
+                  constants.movingFundsTxMaxTotalFee,
+                  constants.movingFundsTimeout,
+                  constants.movingFundsTimeoutSlashingAmount,
+                  101
+                )
+            ).to.be.revertedWith(
+              "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
+            )
+          })
+        }
+      )
     })
 
     context("when caller is not the contract guvnor", () => {
@@ -341,7 +385,9 @@ describe("Bridge - Parameters", () => {
             .connect(thirdParty)
             .updateMovingFundsParameters(
               constants.movingFundsTxMaxTotalFee,
-              constants.movingFundsTimeout
+              constants.movingFundsTimeout,
+              constants.movingFundsTimeoutSlashingAmount,
+              constants.movingFundsTimeoutNotifierRewardMultiplier
             )
         ).to.be.revertedWith("Caller is not the governance")
       })

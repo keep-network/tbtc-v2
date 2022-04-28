@@ -88,6 +88,13 @@ library BridgeState {
         // was requested to move their funds and switched to the MovingFunds
         // state. Value in seconds.
         uint32 movingFundsTimeout;
+        // The amount of stake slashed from each member of a wallet for a moving
+        // funds timeout.
+        uint96 movingFundsTimeoutSlashingAmount;
+        // The percentage of the notifier reward from the staking contract
+        // the notifier of a moving funds timeout receives. The value is in the
+        // range [0, 100].
+        uint256 movingFundsTimeoutNotifierRewardMultiplier;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
@@ -212,7 +219,9 @@ library BridgeState {
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
-        uint32 movingFundsTimeout
+        uint32 movingFundsTimeout,
+        uint96 movingFundsTimeoutSlashingAmount,
+        uint256 movingFundsTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -373,13 +382,25 @@ library BridgeState {
     ///        be reported as timed out. It is counted from the moment when the
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
+    /// @param _movingFundsTimeoutSlashingAmount New value of the moving funds
+    ///        timeout slashing amount in T, it is the amount slashed from each
+    ///        wallet member for moving funds timeout
+    /// @param _movingFundsTimeoutNotifierRewardMultiplier New value of the
+    ///        moving funds timeout notifier reward multiplier as percentage,
+    ///        it determines the percentage of the notifier reward from the
+    ///        staking contact the notifier of a moving funds timeout receives.
+    ///        The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
-        uint32 _movingFundsTimeout
+        uint32 _movingFundsTimeout,
+        uint96 _movingFundsTimeoutSlashingAmount,
+        uint256 _movingFundsTimeoutNotifierRewardMultiplier
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
@@ -391,12 +412,23 @@ library BridgeState {
             "Moving funds timeout must be greater than zero"
         );
 
+        require(
+            _movingFundsTimeoutNotifierRewardMultiplier <= 100,
+            "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
+        );
+
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
         self.movingFundsTimeout = _movingFundsTimeout;
+        self
+            .movingFundsTimeoutSlashingAmount = _movingFundsTimeoutSlashingAmount;
+        self
+            .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
-            _movingFundsTimeout
+            _movingFundsTimeout,
+            _movingFundsTimeoutSlashingAmount,
+            _movingFundsTimeoutNotifierRewardMultiplier
         );
     }
 

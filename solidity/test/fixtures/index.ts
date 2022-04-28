@@ -21,6 +21,8 @@ export const constants = {
   redemptionTimeout: 172800, // 48 hours
   movingFundsTxMaxTotalFee: 10000, // 10000 satoshi
   movingFundsTimeout: 604800, // 1 week
+  movingFundsTimeoutSlashingAmount: to1ePrecision(10000, 18), // 10000 T
+  movingFundsTimeoutNotifierRewardMultiplier: 100, // 100%
   walletCreationPeriod: 604800, // 1 week
   walletMinBtcBalance: to1ePrecision(1, 8), // 1 BTC
   walletMaxBtcBalance: to1ePrecision(10, 8), // 10 BTC
