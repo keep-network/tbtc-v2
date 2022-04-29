@@ -29,6 +29,8 @@ import "./EcdsaLib.sol";
 import "./Wallets.sol";
 import "./Fraud.sol";
 import "./MovingFunds.sol";
+import "./Donation.sol";
+import "./MergingFunds.sol";
 
 import "../bank/Bank.sol";
 
@@ -52,7 +54,7 @@ import "../bank/Bank.sol";
 ///         balances in the Bank.
 /// @dev Bridge is an upgradeable component of the Bank. The order of
 ///      functionalities in this contract is: deposit, sweep, redemption,
-///      moving funds, wallet lifecycle, frauds, parameters.
+///      moving funds, wallet lifecycle, frauds, donations, parameters.
 ///
 /// TODO: Revisit all events and look which parameters should be indexed.
 /// TODO: Align the convention around `param` and `dev` endings. They should
@@ -65,6 +67,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
     using MovingFunds for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
     using Fraud for BridgeState.Storage;
+    using Donation for BridgeState.Storage;
+    using MergingFunds for BridgeState.Storage;
 
     BridgeState.Storage internal self;
 
@@ -155,6 +159,14 @@ contract Bridge is Governable, EcdsaWalletOwner {
         bytes20 walletPubKeyHash,
         bytes32 sighash
     );
+
+    event DonationRevealed(
+        bytes20 walletPubKeyHash,
+        bytes32 donationTxHash,
+        uint32 donationOutputIndex
+    );
+
+    event MergingFundsRequested(bytes32 txHash, uint32 outputIndex);
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
@@ -777,6 +789,14 @@ contract Bridge is Governable, EcdsaWalletOwner {
         bytes32 sighash
     ) external {
         self.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
+    }
+
+    // TODO: Documentation.
+    function revealDonation(
+        BitcoinTx.Info calldata donationTx,
+        uint32 donationOutputIndex
+    ) external {
+        self.revealDonation(donationTx, donationOutputIndex);
     }
 
     /// @notice Allows the Governance to mark the given vault address as trusted

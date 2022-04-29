@@ -22,6 +22,7 @@ import "./Deposit.sol";
 import "./Redemption.sol";
 import "./Fraud.sol";
 import "./Wallets.sol";
+import "./MergingFunds.sol";
 
 import "../bank/Bank.sol";
 
@@ -195,6 +196,17 @@ library BridgeState {
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
         mapping(bytes20 => Wallets.Wallet) registeredWallets;
+        // Collection of all merging funds requests indexed by
+        // `keccak256(txHash | outputIndex)`. The `txHash` is `bytes32`
+        // (ordered as in Bitcoin internally) and `outputIndex` an `uint32`.
+        // Merging funds requests are effect of donations and moving funds
+        // transactions so the `txHash` and `outputIndex` determine the UTXO
+        // that must be merged by the recipient wallet with their own main UTXO.
+        // This mapping may contain valid and invalid requests and the wallet
+        // is responsible for validating them before attempting to execute a
+        // merge transaction.
+        // TODO: Expose an external getter.
+        mapping(uint256 => MergingFunds.MergingFundsRequest) mergingFundsRequests;
     }
 
     event DepositParametersUpdated(
