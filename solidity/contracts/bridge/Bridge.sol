@@ -794,7 +794,17 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
     }
 
-    // TODO: Documentation.
+    /// @notice Reveal an external BTC donation for the given wallet.
+    /// @param donationTx Bitcoin donation transaction data, see `BitcoinTx.Info`
+    /// @param donationOutputIndex Index of the donation output belonging to
+    ///        the donation transaction.
+    /// @dev Requirements:
+    ///      - The donation transaction output pointed by `donationOutputIndex`
+    ///        must be a P2(W)PKH output locking funds on the 20-byte public
+    ///        key hash of a known wallet
+    ///      - The recipient wallet must be in the Live state
+    ///      - The value of the donation output must be greater than or equal
+    ///        to the donation dust threshold
     function revealDonation(
         BitcoinTx.Info calldata donationTx,
         uint32 donationOutputIndex

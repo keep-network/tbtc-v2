@@ -22,7 +22,14 @@ import "./BridgeState.sol";
 import "./MergingFunds.sol";
 import "./Wallets.sol";
 
-// TODO: Documentation.
+/// @title Bridge donation
+/// @notice The library handles the logic for processing external BTC donations.
+/// @dev Donations mechanism can be used to re-balance the system through
+///      an external donation in those rare cases when the tBTC <-> BTC peg can
+///      be violated. Once a donation is made on BTC chain and revealed to
+///      the Bridge, the recipient wallet is supposed to merge the donated
+///      UTXO with their own main UTXO on BTC chain and submit the proof of
+///      that transaction to the Bridge.
 library Donation {
     using BridgeState for BridgeState.Storage;
     using MergingFunds for BridgeState.Storage;
@@ -36,7 +43,17 @@ library Donation {
         uint32 donationOutputIndex
     );
 
-    // TODO: Documentation.
+    /// @notice Reveal an external BTC donation for the given wallet.
+    /// @param donationTx Bitcoin donation transaction data, see `BitcoinTx.Info`
+    /// @param donationOutputIndex Index of the donation output belonging to
+    ///        the donation transaction.
+    /// @dev Requirements:
+    ///      - The donation transaction output pointed by `donationOutputIndex`
+    ///        must be a P2(W)PKH output locking funds on the 20-byte public
+    ///        key hash of a known wallet
+    ///      - The recipient wallet must be in the Live state
+    ///      - The value of the donation output must be greater than or equal
+    ///        to the donation dust threshold
     function revealDonation(
         BridgeState.Storage storage self,
         BitcoinTx.Info calldata donationTx,
