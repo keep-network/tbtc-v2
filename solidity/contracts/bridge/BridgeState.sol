@@ -531,7 +531,7 @@ library BridgeState {
     }
 
     /// @notice Updates parameters related to donation.
-    /// @param donationDustThreshold New value of the donation dust threshold,
+    /// @param _donationDustThreshold New value of the donation dust threshold,
     ///        the minimum BTC amount that can be subject of an external
     ///        donation, in satoshi.
     /// @dev Requirements:
