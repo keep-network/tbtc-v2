@@ -205,7 +205,6 @@ library BridgeState {
         // This mapping may contain valid and invalid requests and the wallet
         // is responsible for validating them before attempting to execute a
         // merge transaction.
-        // TODO: Expose an external getter.
         mapping(uint256 => MergingFunds.MergingFundsRequest) mergingFundsRequests;
     }
 
