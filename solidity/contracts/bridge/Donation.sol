@@ -106,6 +106,11 @@ library Donation {
             "Wallet must be in Live state"
         );
 
+        require(
+            donationOutput.extractValue() >= self.donationDustThreshold,
+            "Donation amount too small"
+        );
+
         bytes32 donationTxHash = abi
             .encodePacked(
                 donationTx.version,

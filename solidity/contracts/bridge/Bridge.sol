@@ -204,6 +204,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint256 fraudChallengeDepositAmount
     );
 
+    event DonationParametersUpdated(uint64 donationDustThreshold);
+
     constructor(
         address _bank,
         address _relay,
@@ -248,6 +250,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.walletMaxAge = 26 weeks; // ~6 months
         self.walletMaxBtcTransfer = 10e8; // 10 BTC
         self.walletClosingPeriod = 40 days;
+        self.donationDustThreshold = 10000; // 10000 satoshi = 0.0001 BTC;
 
         _transferGovernance(msg.sender);
     }
@@ -1002,6 +1005,16 @@ contract Bridge is Governable, EcdsaWalletOwner {
         );
     }
 
+    /// @notice Updates parameters related to frauds.
+    /// @param donationDustThreshold New value of the donation dust threshold,
+    ///        the minimum BTC amount that can be subject of an external
+    ///        donation, in satoshi.
+    /// @dev Requirements:
+    ///      - Donation dust threshold must be greater than zero
+    function updateDonationParameters(uint64 donationDustThreshold) external {
+        self.updateDonationParameters(donationDustThreshold);
+    }
+
     /// @notice Collection of all revealed deposits indexed by
     ///         keccak256(fundingTxHash | fundingOutputIndex).
     ///         The fundingTxHash is bytes32 (ordered as in Bitcoin internally)
@@ -1266,6 +1279,17 @@ contract Bridge is Governable, EcdsaWalletOwner {
         fraudNotifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
         fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
         fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
+    }
+
+    /// @notice Returns the current values of Bridge donation parameters.
+    /// @return donationDustThreshold The minimum BTC amount that can be
+    //          subject of an external donation, in satoshi.
+    function donationParameters()
+        external
+        view
+        returns (uint64 donationDustThreshold)
+    {
+        donationDustThreshold = self.donationDustThreshold;
     }
 
     /// @notice Returns the addresses of contracts Bridge is interacting with.

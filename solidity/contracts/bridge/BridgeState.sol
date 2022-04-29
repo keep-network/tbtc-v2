@@ -206,6 +206,9 @@ library BridgeState {
         // is responsible for validating them before attempting to execute a
         // merge transaction.
         mapping(uint256 => MergingFunds.MergingFundsRequest) mergingFundsRequests;
+        // The minimum BTC amount that can be subject of an external donation,
+        // in satoshi.
+        uint64 donationDustThreshold;
     }
 
     event DepositParametersUpdated(
@@ -241,6 +244,8 @@ library BridgeState {
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
     );
+
+    event DonationParametersUpdated(uint64 donationDustThreshold);
 
     /// @notice Updates parameters of deposits.
     /// @param _depositDustThreshold New value of the deposit dust threshold in
@@ -523,5 +528,25 @@ library BridgeState {
             _fraudChallengeDefeatTimeout,
             _fraudChallengeDepositAmount
         );
+    }
+
+    /// @notice Updates parameters related to frauds.
+    /// @param donationDustThreshold New value of the donation dust threshold,
+    ///        the minimum BTC amount that can be subject of an external
+    ///        donation, in satoshi.
+    /// @dev Requirements:
+    ///      - Donation dust threshold must be greater than zero
+    function updateDonationParameters(
+        Storage storage self,
+        uint64 _donationDustThreshold
+    ) internal {
+        require(
+            _donationDustThreshold > 0,
+            "Donation dust threshold must be greater than zero"
+        );
+
+        self.donationDustThreshold = _donationDustThreshold;
+
+        emit DonationParametersUpdated(_donationDustThreshold);
     }
 }
