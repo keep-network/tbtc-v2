@@ -1292,4 +1292,24 @@ contract Bridge is Governable, EcdsaWalletOwner {
     function txProofDifficultyFactor() external view returns (uint256) {
         return self.txProofDifficultyFactor;
     }
+
+    /// @notice Collection of all merging funds requests indexed by
+    ///         `keccak256(txHash | outputIndex)`. The `txHash` is `bytes32`
+    ///         (ordered as in Bitcoin internally) and `outputIndex` an `uint32`.
+    ///         Merging funds requests are effect of donations and moving funds
+    ///         transactions so the `txHash` and `outputIndex` determine the
+    ///         UTXO that must be merged by the recipient wallet with their own
+    ///         main UTXO. This mapping may contain valid and invalid requests
+    ///         and the wallet is responsible for validating them before
+    ///         attempting to execute a merge transaction.
+    /// @param requestKey Request key identifying the merging funds request
+    ///        built as `keccak256(txHash | outputIndex)`
+    /// @return Merging funds request details.
+    function mergingFundsRequests(uint256 requestKey)
+        external
+        view
+        returns (MergingFunds.MergingFundsRequest memory)
+    {
+        return self.mergingFundsRequests[requestKey];
+    }
 }
