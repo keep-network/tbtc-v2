@@ -36,11 +36,12 @@
   },
   "devDependencies": {
     "@defi-wonderland/smock": "^2.0.7",
-    "@keep-network/hardhat-helpers": "^0.4.1-pre.2",
+    "@keep-network/hardhat-helpers": "^0.5.0",
     "@keep-network/hardhat-local-networks-config": "^0.1.0-pre.4",
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
     "@nomiclabs/hardhat-etherscan": "^2.1.4",
     "@nomiclabs/hardhat-waffle": "^2.0.2",
+    "@openzeppelin/hardhat-upgrades": "^1.17.0",
     "@thesis-co/eslint-config": "github:thesis/eslint-config",
     "@typechain/ethers-v5": "^8.0.5",
     "@typechain/hardhat": "^4.0.0",

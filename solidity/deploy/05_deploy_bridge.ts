@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
+  const { ethers, helpers, deployments, getNamedAccounts } = hre
   const { deploy } = deployments
   const { deployer, treasury } = await getNamedAccounts()
 
@@ -28,32 +28,36 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
-  const Bridge = await deploy("Bridge", {
-    contract:
+  const bridge = await helpers.upgrades.deployProxy("Bridge", {
+    contractName:
       deployments.getNetworkName() === "hardhat" ? "BridgeStub" : undefined,
-    from: deployer,
-    args: [
+    initializerArgs: [
       Bank.address,
       Relay.address,
       treasury,
       WalletRegistry.address,
       txProofDifficultyFactor,
     ],
-    libraries: {
-      Deposit: Deposit.address,
-      Sweep: Sweep.address,
-      Redemption: Redemption.address,
-      Wallets: Wallets.address,
-      Fraud: Fraud.address,
-      MovingFunds: MovingFunds.address,
+    factoryOpts: {
+      signer: await ethers.getSigner(deployer),
+      libraries: {
+        Deposit: Deposit.address,
+        Sweep: Sweep.address,
+        Redemption: Redemption.address,
+        Wallets: Wallets.address,
+        Fraud: Fraud.address,
+        MovingFunds: MovingFunds.address,
+      },
     },
-    log: true,
+    proxyOpts: {
+      unsafeAllowLinkedLibraries: true,
+    },
   })
 
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
       name: "Bridge",
-      address: Bridge.address,
+      address: bridge.address,
     })
   }
 }

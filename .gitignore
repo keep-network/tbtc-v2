@@ -12,3 +12,6 @@ dist/
 
 */.hardhat/*
 !*/.hardhat/networks_TEMPLATE.ts
+
+# OpenZeppelin
+solidity/.openzeppelin/unknown-*.json
