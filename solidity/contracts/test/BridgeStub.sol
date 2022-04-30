@@ -7,22 +7,6 @@ import "../bridge/Bridge.sol";
 import "../bridge/Wallets.sol";
 
 contract BridgeStub is Bridge {
-    constructor(
-        address _bank,
-        address _relay,
-        address _treasury,
-        address _walletRegistry,
-        uint256 _txProofDifficultyFactor
-    )
-        Bridge(
-            _bank,
-            _relay,
-            _treasury,
-            _walletRegistry,
-            _txProofDifficultyFactor
-        )
-    {}
-
     function setSweptDeposits(BitcoinTx.UTXO[] calldata utxos) external {
         for (uint256 i = 0; i < utxos.length; i++) {
             uint256 utxoKey = uint256(

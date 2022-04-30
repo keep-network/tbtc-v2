@@ -19,6 +19,11 @@ import "@keep-network/random-beacon/contracts/Governable.sol";
 
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
+// TODO: We used RC version of @openzeppelin/contracts-upgradeable to use `reinitializer`
+// in upgrades. We should revisit this part before mainnet deployment and use
+// a final release package if it's ready.
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import "./IRelay.sol";
 import "./BridgeState.sol";
 import "./Deposit.sol";
@@ -57,7 +62,7 @@ import "../bank/Bank.sol";
 /// TODO: Revisit all events and look which parameters should be indexed.
 /// TODO: Align the convention around `param` and `dev` endings. They should
 ///       not have a punctuation mark.
-contract Bridge is Governable, EcdsaWalletOwner {
+contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
     using Sweep for BridgeState.Storage;
@@ -192,13 +197,14 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint256 fraudChallengeDepositAmount
     );
 
-    constructor(
+    /// @dev Initializes upgradable contract on deployment.
+    function initialize(
         address _bank,
         address _relay,
         address _treasury,
         address _ecdsaWalletRegistry,
         uint256 _txProofDifficultyFactor
-    ) {
+    ) external initializer {
         require(_bank != address(0), "Bank address cannot be zero");
         self.bank = Bank(_bank);
 

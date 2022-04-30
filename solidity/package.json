@@ -30,6 +30,7 @@
     "@keep-network/ecdsa": "development",
     "@keep-network/tbtc": ">1.1.2-dev <1.1.2-pre",
     "@openzeppelin/contracts": "^4.1.0",
+    "@openzeppelin/contracts-upgradeable": "^4.6.0-rc.0",
     "@tenderly/hardhat-tenderly": "^1.0.12",
     "@thesis/solidity-contracts": "github:thesis/solidity-contracts#4985bcf"
   },
