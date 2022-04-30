@@ -9,6 +9,7 @@ import "hardhat-contract-sizer"
 import "hardhat-deploy"
 import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
+import "hardhat-dependency-compiler"
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -109,7 +110,13 @@ const config: HardhatUserConfig = {
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
   },
-
+  dependencyCompiler: {
+    paths: [
+      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol",
+      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
+    ],
+    keep: true,
+  },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
