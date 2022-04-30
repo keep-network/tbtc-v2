@@ -1,6 +1,5 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types"
 import type { DeployFunction } from "hardhat-deploy/types"
-import type { ProxyAdmin } from "../typechain"
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   const { ethers, getNamedAccounts, upgrades, deployments } = hre
@@ -14,7 +13,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
   deployments.log(`transferring ProxyAdmin ownership to ${newProxyAdminOwner}`)
 
-  const proxyAdmin = (await upgrades.admin.getInstance()) as ProxyAdmin
+  const proxyAdmin = await upgrades.admin.getInstance()
   await proxyAdmin.connect(deployer).transferOwnership(newProxyAdminOwner)
 }
 
