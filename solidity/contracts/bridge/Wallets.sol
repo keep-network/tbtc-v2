@@ -84,6 +84,9 @@ library Wallets {
         // is built by applying the keccak256 hash over the list of 20-byte
         // public key hashes of the target wallets.
         bytes32 movingFundsTargetWalletsCommitmentHash;
+        // This struct doesn't contain `__gap` property as the structure is stored
+        // in a mapping, mappings store values in different slots and they are
+        // not contiguous with other values.
     }
 
     event NewWalletRequested();

@@ -58,6 +58,9 @@ library Fraud {
         uint32 reportedAt;
         // The flag indicating whether the challenge has been resolved.
         bool resolved;
+        // This struct doesn't contain `__gap` property as the structure is stored
+        // in a mapping, mappings store values in different slots and they are
+        // not contiguous with other values.
     }
 
     event FraudChallengeSubmitted(

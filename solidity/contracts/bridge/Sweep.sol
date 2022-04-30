@@ -63,6 +63,8 @@ library Sweep {
         // UTXO doesn't exist) or less by one (main UTXO exists and is pointed
         // by one of the inputs).
         uint256[] treasuryFees;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     event DepositsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
