@@ -43,7 +43,7 @@ describe("Bridge - Moving funds", () => {
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
-  let BridgeFactory: BridgeStub__factory
+  let BridgeFactory: BridgeStub__factory & BridgeStub__factory
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -1472,7 +1472,7 @@ describe("Bridge - Moving funds", () => {
       context(
         "when accumulated difficulty in headers chain is insufficient",
         () => {
-          let otherBridge: Bridge
+          let otherBridge: BridgeStub
           const data: MovingFundsTestData = JSON.parse(
             JSON.stringify(SingleTargetWallet)
           )
@@ -1489,14 +1489,14 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await BridgeFactory.deploy(
+            otherBridge = await BridgeFactory.deploy()
+            await otherBridge.initialize(
               bank.address,
               relay.address,
               treasury.address,
               walletRegistry.address,
               12
             )
-            await otherBridge.deployed()
           })
 
           after(async () => {

@@ -2015,14 +2015,14 @@ describe("Bridge", () => {
               // to deem transaction proof validity. This scenario uses test
               // data which has only 6 confirmations. That should force the
               // failure we expect within this scenario.
-              otherBridge = await BridgeFactory.deploy(
+              otherBridge = await BridgeFactory.deploy()
+              await otherBridge.initialize(
                 bank.address,
                 relay.address,
                 treasury.address,
                 ethers.utils.hexZeroPad("0x01", 20),
                 12
               )
-              await otherBridge.deployed()
             })
 
             after(async () => {
@@ -5187,14 +5187,14 @@ describe("Bridge", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await BridgeFactory.deploy(
+            otherBridge = await BridgeFactory.deploy()
+            await otherBridge.initialize(
               bank.address,
               relay.address,
               treasury.address,
               walletRegistry.address,
               12
             )
-            await otherBridge.deployed()
           })
 
           after(async () => {
