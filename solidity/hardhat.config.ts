@@ -101,9 +101,11 @@ const config: HardhatUserConfig = {
       default: 3,
     },
     keepTechnicalWalletTeam: {
+      default: 4,
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
+      default: 5,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
   },
