@@ -14,8 +14,8 @@ import type {
   IRelay,
   IWalletRegistry,
 } from "../../typechain"
-import bridgeFixture from "./bridge-fixture"
-import { walletState } from "../fixtures"
+import bridgeFixture from "../fixtures/bridge"
+import { constants, walletState } from "../fixtures"
 import {
   MovingFundsTestData,
   MultipleInputs,
@@ -35,8 +35,6 @@ chai.use(smock.matchers)
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 
-const fixture = async () => bridgeFixture()
-
 describe("Bridge - Moving funds", () => {
   let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
@@ -44,13 +42,20 @@ describe("Bridge - Moving funds", () => {
   let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
-  let Bridge: BridgeStub__factory
   let bridge: Bridge & BridgeStub
+  let BridgeFactory: BridgeStub__factory
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ thirdParty, treasury, bank, relay, walletRegistry, Bridge, bridge } =
-      await waffle.loadFixture(fixture))
+    ;({
+      thirdParty,
+      treasury,
+      bank,
+      relay,
+      walletRegistry,
+      bridge,
+      BridgeFactory,
+    } = await waffle.loadFixture(bridgeFixture))
   })
 
   describe("submitMovingFundsCommitment", () => {
@@ -1484,7 +1489,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await Bridge.deploy(
+            otherBridge = await BridgeFactory.deploy(
               bank.address,
               relay.address,
               treasury.address,
@@ -1566,6 +1571,8 @@ describe("Bridge - Moving funds", () => {
 
         before(async () => {
           await createSnapshot()
+
+          walletRegistry.closeWallet.reset()
 
           await increaseTime(
             (
@@ -1687,6 +1694,217 @@ describe("Bridge - Moving funds", () => {
           it("should revert", async () => {
             await expect(
               bridge.notifyMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+            ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
+          })
+        })
+      })
+    })
+  })
+
+  describe("notifyMovingFundsBelowDust", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when the wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.MovingFunds,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the main UTXO parameter is valid", () => {
+        context("when the balance is below the dust threshold", () => {
+          const mainUtxo = {
+            txHash: ethers.constants.HashZero,
+            txOutputIndex: 0,
+            txOutputValue: constants.movingFundsDustThreshold - 1,
+          }
+
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWalletMainUtxo(
+              ecdsaWalletTestData.pubKeyHash160,
+              mainUtxo
+            )
+
+            tx = await bridge.notifyMovingFundsBelowDust(
+              ecdsaWalletTestData.pubKeyHash160,
+              mainUtxo
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should change wallet's state to Closing", async () => {
+            const { state } = await bridge.wallets(
+              ecdsaWalletTestData.pubKeyHash160
+            )
+
+            expect(state).to.be.equal(walletState.Closing)
+          })
+
+          it("should set the wallet's closing started timestamp", async () => {
+            const wallet = await bridge.wallets(
+              ecdsaWalletTestData.pubKeyHash160
+            )
+            expect(wallet.closingStartedAt).to.be.equal(await lastBlockTime())
+          })
+
+          it("should emit WalletClosing event", async () => {
+            await expect(tx)
+              .to.emit(bridge, "WalletClosing")
+              .withArgs(
+                walletDraft.ecdsaWalletID,
+                ecdsaWalletTestData.pubKeyHash160
+              )
+          })
+
+          it("should emit MovingFundsBelowDustReported event", async () => {
+            await expect(tx)
+              .to.emit(bridge, "MovingFundsBelowDustReported")
+              .withArgs(ecdsaWalletTestData.pubKeyHash160)
+          })
+        })
+
+        context("when the balance is not below the dust threshold", () => {
+          const mainUtxo = {
+            txHash: ethers.constants.HashZero,
+            txOutputIndex: 0,
+            txOutputValue: constants.movingFundsDustThreshold,
+          }
+
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWalletMainUtxo(
+              ecdsaWalletTestData.pubKeyHash160,
+              mainUtxo
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.notifyMovingFundsBelowDust(
+                ecdsaWalletTestData.pubKeyHash160,
+                mainUtxo
+              )
+            ).to.be.revertedWith(
+              "Wallet BTC balance must be below the moving funds dust threshold"
+            )
+          })
+        })
+      })
+
+      context("when the main UTXO parameter is invalid", () => {
+        const mainUtxo = {
+          txHash: ethers.constants.HashZero,
+          txOutputIndex: 0,
+          txOutputValue: to1ePrecision(1, 8),
+        }
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+            ...walletDraft,
+            state: walletState.MovingFunds,
+          })
+
+          await bridge.setWalletMainUtxo(
+            ecdsaWalletTestData.pubKeyHash160,
+            mainUtxo
+          )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          const corruptedMainUtxo = {
+            ...mainUtxo,
+            txOutputIndex: 1,
+          }
+
+          await expect(
+            bridge.notifyMovingFundsBelowDust(
+              ecdsaWalletTestData.pubKeyHash160,
+              corruptedMainUtxo
+            )
+          ).to.be.revertedWith("Invalid wallet main UTXO data")
+        })
+      })
+    })
+
+    context("when the wallet is not in the MovingFunds state", () => {
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is Live",
+          walletState: walletState.Live,
+        },
+        {
+          testName: "when wallet state is Closing",
+          walletState: walletState.Closing,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: test.walletState,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.notifyMovingFundsBelowDust(
+                ecdsaWalletTestData.pubKeyHash160,
+                NO_MAIN_UTXO
+              )
             ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
           })
         })

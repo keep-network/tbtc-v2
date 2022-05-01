@@ -11,19 +11,11 @@ import type { FakeContract } from "@defi-wonderland/smock"
 import type {
   Bank,
   BankStub,
-  BankStub__factory,
   Bridge,
   BridgeStub,
   BridgeStub__factory,
-  Deposit__factory,
-  Sweep__factory,
-  Redemption__factory,
-  MovingFunds__factory,
-  TestRelay,
-  TestRelay__factory,
   IWalletRegistry,
-  Fraud,
-  Fraud__factory,
+  IRelay,
 } from "../../typechain"
 import {
   MultipleDepositsNoMainUtxo,
@@ -54,7 +46,7 @@ import {
   MultiplePendingRequestedRedemptionsWithMultipleInputs,
 } from "../data/redemption"
 import { walletState } from "../fixtures"
-import { Wallets__factory } from "../../typechain"
+import bridgeFixture from "../fixtures/bridge"
 
 chai.use(smock.matchers)
 
@@ -64,109 +56,14 @@ const { impersonateAccount } = helpers.account
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
-// TODO: Use the `bridgeFixture`.
-const fixture = async () => {
-  const [deployer, governance, thirdParty, treasury] = await ethers.getSigners()
-
-  const Bank = await ethers.getContractFactory<BankStub__factory>("BankStub")
-  const bank: Bank & BankStub = await Bank.deploy()
-  await bank.deployed()
-
-  // TODO: Use Smock fake and get rid of `TestRelay` contract.
-  const TestRelay = await ethers.getContractFactory<TestRelay__factory>(
-    "TestRelay"
-  )
-  const relay: TestRelay = await TestRelay.deploy()
-  await relay.deployed()
-
-  const walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry")
-  // Fund the `walletRegistry` account so it's possible to mock sending requests
-  // from it.
-  await deployer.sendTransaction({
-    to: walletRegistry.address,
-    value: ethers.utils.parseEther("1"),
-  })
-
-  const Wallets = await ethers.getContractFactory<Wallets__factory>("Wallets")
-  const wallets = await Wallets.deploy()
-  await wallets.deployed()
-
-  const Deposit = await ethers.getContractFactory<Deposit__factory>("Deposit")
-  const deposit = await Deposit.deploy()
-  await deposit.deployed()
-
-  const Sweep = await ethers.getContractFactory<Sweep__factory>("Sweep")
-  const sweep = await Sweep.deploy()
-  await sweep.deployed()
-
-  const Redemption = await ethers.getContractFactory<Redemption__factory>(
-    "Redemption"
-  )
-  const redemption = await Redemption.deploy()
-  await redemption.deployed()
-
-  const MovingFunds = await ethers.getContractFactory<MovingFunds__factory>(
-    "MovingFunds"
-  )
-  const movingFunds = await MovingFunds.deploy()
-  await movingFunds.deployed()
-
-  const Fraud = await ethers.getContractFactory<Fraud__factory>("Fraud")
-  const fraud: Fraud = await Fraud.deploy()
-  await fraud.deployed()
-
-  const Bridge = await ethers.getContractFactory<BridgeStub__factory>(
-    "BridgeStub",
-    {
-      libraries: {
-        Deposit: deposit.address,
-        Sweep: sweep.address,
-        Redemption: redemption.address,
-        Wallets: wallets.address,
-        Fraud: fraud.address,
-        MovingFunds: movingFunds.address,
-      },
-    }
-  )
-  const bridge: Bridge & BridgeStub = await Bridge.deploy(
-    bank.address,
-    relay.address,
-    treasury.address,
-    walletRegistry.address,
-    1
-  )
-  await bridge.deployed()
-
-  await bank.updateBridge(bridge.address)
-  await bridge.connect(deployer).transferGovernance(governance.address)
-
-  // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
-  // the initial value in the Bridge in order to save test Bitcoins.
-  await bridge.setDepositDustThreshold(10000)
-  // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
-  // the initial value in the Bridge in order to save test Bitcoins.
-  await bridge.setRedemptionDustThreshold(100000)
-
-  return {
-    governance,
-    thirdParty,
-    treasury,
-    bank,
-    relay,
-    walletRegistry,
-    Bridge,
-    bridge,
-  }
-}
-
 describe("Bridge", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
 
   let bank: Bank & BankStub
-  let relay: TestRelay
-  let Bridge: BridgeStub__factory
+  let relay: FakeContract<IRelay>
+  let BridgeFactory: BridgeStub__factory
   let bridge: Bridge & BridgeStub
   let walletRegistry: FakeContract<IWalletRegistry>
 
@@ -181,9 +78,16 @@ describe("Bridge", () => {
       bank,
       relay,
       walletRegistry,
-      Bridge,
       bridge,
-    } = await waffle.loadFixture(fixture))
+      BridgeFactory,
+    } = await waffle.loadFixture(bridgeFixture))
+
+    // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
+    // the initial value in the Bridge in order to save test Bitcoins.
+    await bridge.setDepositDustThreshold(10000)
+    // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
+    // the initial value in the Bridge in order to save test Bitcoins.
+    await bridge.setRedemptionDustThreshold(100000)
 
     redemptionTimeout = (await bridge.redemptionParameters()).redemptionTimeout
   })
@@ -1066,10 +970,12 @@ describe("Bridge", () => {
                         })
 
                         // Necessary to pass the proof validation.
-                        await relay.setCurrentEpochDifficulty(
+                        relay.getPrevEpochDifficulty.returns(
                           data.chainDifficulty
                         )
-                        await relay.setPrevEpochDifficulty(data.chainDifficulty)
+                        relay.getCurrentEpochDifficulty.returns(
+                          data.chainDifficulty
+                        )
                       })
 
                       after(async () => {
@@ -1640,8 +1546,8 @@ describe("Bridge", () => {
                 await createSnapshot()
 
                 // Necessary to pass the proof validation.
-                await relay.setCurrentEpochDifficulty(20870012)
-                await relay.setPrevEpochDifficulty(20870012)
+                relay.getPrevEpochDifficulty.returns(20870012)
+                relay.getCurrentEpochDifficulty.returns(20870012)
               })
 
               after(async () => {
@@ -1696,8 +1602,8 @@ describe("Bridge", () => {
             await createSnapshot()
 
             // Necessary to pass the proof validation.
-            await relay.setCurrentEpochDifficulty(1)
-            await relay.setPrevEpochDifficulty(1)
+            relay.getCurrentEpochDifficulty.returns(1)
+            relay.getPrevEpochDifficulty.returns(1)
           })
 
           after(async () => {
@@ -2074,7 +1980,7 @@ describe("Bridge", () => {
         context(
           "when accumulated difficulty in headers chain is insufficient",
           () => {
-            let otherBridge: Bridge
+            let otherBridge: Bridge & BridgeStub
             const data: SweepTestData = JSON.parse(
               JSON.stringify(SingleP2SHDeposit)
             )
@@ -2101,15 +2007,15 @@ describe("Bridge", () => {
               })
 
               // Necessary to pass the first part of proof validation.
-              await relay.setCurrentEpochDifficulty(data.chainDifficulty)
-              await relay.setPrevEpochDifficulty(data.chainDifficulty)
+              relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+              relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
               // Deploy another bridge which has higher `txProofDifficultyFactor`
               // than the original bridge. That means it will need 12 confirmations
               // to deem transaction proof validity. This scenario uses test
               // data which has only 6 confirmations. That should force the
               // failure we expect within this scenario.
-              otherBridge = await Bridge.deploy(
+              otherBridge = await BridgeFactory.deploy(
                 bank.address,
                 relay.address,
                 treasury.address,
@@ -2162,8 +2068,8 @@ describe("Bridge", () => {
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
 
-        await relay.setCurrentEpochDifficulty(data.chainDifficulty)
-        await relay.setPrevEpochDifficulty(data.chainDifficulty)
+        relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+        relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
         await bridge.revealDeposit(fundingTx, reveal)
 
@@ -2226,8 +2132,8 @@ describe("Bridge", () => {
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
 
-            await relay.setCurrentEpochDifficulty(data.chainDifficulty)
-            await relay.setPrevEpochDifficulty(data.chainDifficulty)
+            relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+            relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
             await bridge.revealDeposit(fundingTx, reveal)
 
@@ -4996,8 +4902,8 @@ describe("Bridge", () => {
             await createSnapshot()
 
             // Required for a successful SPV proof.
-            await relay.setPrevEpochDifficulty(data.chainDifficulty)
-            await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+            relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+            relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
             // Wallet main UTXO must be set on the Bridge side to make
             // that scenario happen.
@@ -5041,8 +4947,8 @@ describe("Bridge", () => {
           await createSnapshot()
 
           // Required for a successful SPV proof.
-          await relay.setPrevEpochDifficulty(data.chainDifficulty)
-          await relay.setCurrentEpochDifficulty(data.chainDifficulty)
+          relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+          relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
         })
 
         after(async () => {
@@ -5264,7 +5170,7 @@ describe("Bridge", () => {
       context(
         "when accumulated difficulty in headers chain is insufficient",
         () => {
-          let otherBridge: Bridge
+          let otherBridge: Bridge & BridgeStub
           const data: RedemptionTestData = JSON.parse(
             JSON.stringify(SinglePendingRequestedRedemption)
           )
@@ -5273,15 +5179,15 @@ describe("Bridge", () => {
             await createSnapshot()
 
             // Necessary to pass the first part of proof validation.
-            await relay.setCurrentEpochDifficulty(data.chainDifficulty)
-            await relay.setPrevEpochDifficulty(data.chainDifficulty)
+            relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+            relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
             // Deploy another bridge which has higher `txProofDifficultyFactor`
             // than the original bridge. That means it will need 12 confirmations
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await Bridge.deploy(
+            otherBridge = await BridgeFactory.deploy(
               bank.address,
               relay.address,
               treasury.address,
@@ -6317,8 +6223,8 @@ describe("Bridge", () => {
   async function runSweepScenario(
     data: SweepTestData
   ): Promise<ContractTransaction> {
-    await relay.setCurrentEpochDifficulty(data.chainDifficulty)
-    await relay.setPrevEpochDifficulty(data.chainDifficulty)
+    relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+    relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
     for (let i = 0; i < data.deposits.length; i++) {
       const { fundingTx, reveal } = data.deposits[i]
@@ -6341,8 +6247,8 @@ describe("Bridge", () => {
     data: RedemptionTestData,
     beforeProofActions?: () => Promise<void>
   ): Promise<RedemptionScenarioOutcome> {
-    await relay.setCurrentEpochDifficulty(data.chainDifficulty)
-    await relay.setPrevEpochDifficulty(data.chainDifficulty)
+    relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+    relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
     // Simulate the wallet is a registered one.
     await bridge.setWallet(data.wallet.pubKeyHash, {
