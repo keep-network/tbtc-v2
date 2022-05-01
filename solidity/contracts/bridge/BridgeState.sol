@@ -152,7 +152,7 @@ library BridgeState {
         //    `pendingRedemptions` mapping.
         mapping(uint256 => Redemption.RedemptionRequest) timedOutRedemptions;
         // The amount of stake slashed from each member of a wallet for a fraud.
-        uint256 fraudSlashingAmount;
+        uint96 fraudSlashingAmount;
         // The percentage of the notifier reward from the staking contract
         // the notifier of a fraud receives. The value is in the range [0, 100].
         uint256 fraudNotifierRewardMultiplier;
@@ -232,7 +232,7 @@ library BridgeState {
     );
 
     event FraudParametersUpdated(
-        uint256 fraudSlashingAmount,
+        uint96 fraudSlashingAmount,
         uint256 fraudNotifierRewardMultiplier,
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
@@ -508,7 +508,7 @@ library BridgeState {
     ///      - Fraud challenge defeat timeout must be greater than 0
     function updateFraudParameters(
         Storage storage self,
-        uint256 _fraudSlashingAmount,
+        uint96 _fraudSlashingAmount,
         uint256 _fraudNotifierRewardMultiplier,
         uint256 _fraudChallengeDefeatTimeout,
         uint256 _fraudChallengeDepositAmount

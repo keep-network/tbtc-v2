@@ -33,6 +33,8 @@ describe("Bridge - Fraud", () => {
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
 
+  let fraudSlashingAmount: BigNumber
+  let fraudNotifierRewardMultiplier: BigNumber
   let fraudChallengeDefeatTimeout: BigNumber
   let fraudChallengeDepositAmount: BigNumber
 
@@ -40,8 +42,12 @@ describe("Bridge - Fraud", () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, treasury, walletRegistry, bridge } =
       await waffle.loadFixture(bridgeFixture))
-    ;({ fraudChallengeDefeatTimeout, fraudChallengeDepositAmount } =
-      await bridge.fraudParameters())
+    ;({
+      fraudSlashingAmount,
+      fraudNotifierRewardMultiplier,
+      fraudChallengeDefeatTimeout,
+      fraudChallengeDepositAmount,
+    } = await bridge.fraudParameters())
   })
 
   describe("submitFraudChallenge", () => {
@@ -1188,11 +1194,16 @@ describe("Bridge - Fraud", () => {
 
           await bridge
             .connect(thirdParty)
-            .notifyFraudChallengeDefeatTimeout(walletPublicKey, data.sighash)
+            .notifyFraudChallengeDefeatTimeout(
+              walletPublicKey,
+              [],
+              data.sighash
+            )
         })
 
         after(async () => {
           walletRegistry.closeWallet.reset()
+          walletRegistry.seize.reset()
 
           await restoreSnapshot()
         })
@@ -1244,6 +1255,7 @@ describe("Bridge - Fraud", () => {
             state: walletState.Unknown,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           }
+          const walletMembersIDs = [1, 2, 3, 4, 5]
 
           context(
             "when the wallet is in the Live or MovingFunds or Closing state",
@@ -1252,7 +1264,7 @@ describe("Bridge - Fraud", () => {
                 testName: string
                 walletState: number
                 additionalSetup?: () => Promise<void>
-                additionalAssertions?: (args?: any) => Promise<void>
+                additionalAssertions?: () => Promise<void>
               }[] = [
                 {
                   testName:
@@ -1264,7 +1276,7 @@ describe("Bridge - Fraud", () => {
                       "0x0b9f85c224b0e018a5865392927b3f9e16cf5e79"
                     )
                   },
-                  additionalAssertions: async (args: any) => {
+                  additionalAssertions: async () => {
                     it("should decrease the live wallets count", async () => {
                       expect(await bridge.liveWalletsCount()).to.be.equal(0)
                     })
@@ -1285,7 +1297,7 @@ describe("Bridge - Fraud", () => {
                   additionalSetup: async () => {
                     await bridge.setActiveWallet(walletPublicKeyHash)
                   },
-                  additionalAssertions: async (args: any) => {
+                  additionalAssertions: async () => {
                     it("should decrease the live wallets count", async () => {
                       expect(await bridge.liveWalletsCount()).to.be.equal(0)
                     })
@@ -1342,12 +1354,14 @@ describe("Bridge - Fraud", () => {
                       .connect(thirdParty)
                       .notifyFraudChallengeDefeatTimeout(
                         walletPublicKey,
+                        walletMembersIDs,
                         data.sighash
                       )
                   })
 
                   after(async () => {
                     walletRegistry.closeWallet.reset()
+                    walletRegistry.seize.reset()
 
                     await restoreSnapshot()
                   })
@@ -1400,6 +1414,20 @@ describe("Bridge - Fraud", () => {
                     ).to.have.been.calledOnceWith(walletDraft.ecdsaWalletID)
                   })
 
+                  it("should call the ECDSA wallet registry's seize function", async () => {
+                    expect(walletRegistry.seize).to.have.been.calledOnceWith(
+                      fraudSlashingAmount,
+                      fraudNotifierRewardMultiplier,
+                      await thirdParty.getAddress(),
+                      ecdsaWalletTestData.walletID,
+                      walletMembersIDs
+                    )
+                  })
+
+                  // TODO: Check if the gas consumption of functions calling `seize`
+                  //       is not too high (use a real `staking` and `walletRegistry`).
+                  //       Perhaps add a separate deployment with the non-mocked contracts
+                  //       or test it in a system test?
                   await test.additionalAssertions()
                 })
               })
@@ -1443,6 +1471,7 @@ describe("Bridge - Fraud", () => {
                 .connect(thirdParty)
                 .notifyFraudChallengeDefeatTimeout(
                   walletPublicKey,
+                  walletMembersIDs,
                   data.sighash
                 )
             })
@@ -1483,6 +1512,10 @@ describe("Bridge - Fraud", () => {
               expect(
                 (await bridge.wallets(walletPublicKeyHash)).state
               ).to.be.equal(walletState.Terminated)
+            })
+
+            it("should not call the ECDSA wallet registry's seize function", async () => {
+              expect(walletRegistry.seize).not.to.have.been.called
             })
           })
 
@@ -1546,6 +1579,7 @@ describe("Bridge - Fraud", () => {
                         .connect(thirdParty)
                         .notifyFraudChallengeDefeatTimeout(
                           walletPublicKey,
+                          [],
                           data.sighash
                         )
                     ).to.be.revertedWith(
@@ -1599,6 +1633,7 @@ describe("Bridge - Fraud", () => {
                 .connect(thirdParty)
                 .notifyFraudChallengeDefeatTimeout(
                   walletPublicKey,
+                  [],
                   data.sighash
                 )
             ).to.be.revertedWith(
@@ -1653,6 +1688,7 @@ describe("Bridge - Fraud", () => {
                 .connect(thirdParty)
                 .notifyFraudChallengeDefeatTimeout(
                   walletPublicKey,
+                  [],
                   data.sighash
                 )
             ).to.be.revertedWith("Fraud challenge has already been resolved")
@@ -1694,7 +1730,11 @@ describe("Bridge - Fraud", () => {
 
             await bridge
               .connect(thirdParty)
-              .notifyFraudChallengeDefeatTimeout(walletPublicKey, data.sighash)
+              .notifyFraudChallengeDefeatTimeout(
+                walletPublicKey,
+                [],
+                data.sighash
+              )
           })
 
           after(async () => {
@@ -1707,6 +1747,7 @@ describe("Bridge - Fraud", () => {
                 .connect(thirdParty)
                 .notifyFraudChallengeDefeatTimeout(
                   walletPublicKey,
+                  [],
                   data.sighash
                 )
             ).to.be.revertedWith("Fraud challenge has already been resolved")
@@ -1728,7 +1769,11 @@ describe("Bridge - Fraud", () => {
         await expect(
           bridge
             .connect(thirdParty)
-            .notifyFraudChallengeDefeatTimeout(walletPublicKey, data.sighash)
+            .notifyFraudChallengeDefeatTimeout(
+              walletPublicKey,
+              [],
+              data.sighash
+            )
         ).to.be.revertedWith("Fraud challenge does not exist")
       })
     })

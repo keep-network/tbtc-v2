@@ -189,7 +189,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     );
 
     event FraudParametersUpdated(
-        uint256 fraudSlashingAmount,
+        uint96 fraudSlashingAmount,
         uint256 fraudNotifierRewardMultiplier,
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
@@ -785,6 +785,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         rewarded.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
@@ -792,15 +793,28 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference
     /// @dev Requirements:
-    ///      - `walletPublicKey`and `sighash` must identify an open fraud
+    ///      - The wallet must be in the Live or MovingFunds or Closing or
+    ///        Terminated state
+    ///      - The `walletPublicKey` and `sighash` must identify an open fraud
     ///        challenge
-    ///      - the amount of time indicated by `challengeDefeatTimeout` must
-    ///        pass after the challenge was reported
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events.
+    ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
+    ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(
         bytes calldata walletPublicKey,
+        uint32[] calldata walletMembersIDs,
         bytes32 sighash
     ) external {
-        self.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
+        self.notifyFraudChallengeDefeatTimeout(
+            walletPublicKey,
+            walletMembersIDs,
+            sighash
+        );
     }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
@@ -1002,7 +1016,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     ///      - Fraud challenge defeat timeout must be greater than 0
     function updateFraudParameters(
-        uint256 fraudSlashingAmount,
+        uint96 fraudSlashingAmount,
         uint256 fraudNotifierRewardMultiplier,
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
@@ -1279,7 +1293,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         external
         view
         returns (
-            uint256 fraudSlashingAmount,
+            uint96 fraudSlashingAmount,
             uint256 fraudNotifierRewardMultiplier,
             uint256 fraudChallengeDefeatTimeout,
             uint256 fraudChallengeDepositAmount
