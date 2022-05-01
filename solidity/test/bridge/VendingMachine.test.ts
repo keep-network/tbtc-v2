@@ -1,7 +1,7 @@
 import { ethers, waffle, helpers } from "hardhat"
 import { expect } from "chai"
-import type { Signer } from "ethers"
-import { vendingMachineDeployment, constants } from "../fixtures"
+import type { BigNumber, Signer } from "ethers"
+import { constants } from "../fixtures"
 import type { TestERC20, TBTC, VendingMachine } from "../../typechain"
 
 import {
@@ -9,8 +9,11 @@ import {
   to1ePrecision,
   getBlockTime,
 } from "../helpers/contract-test-helpers"
+import vendingMachineFixture from "../fixtures/vendingMachine"
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
+
+const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
 describe("VendingMachine", () => {
   let tbtcV1: TestERC20
@@ -18,9 +21,9 @@ describe("VendingMachine", () => {
   let vendingMachine: VendingMachine
 
   let deployer: Signer
+  let governance: Signer
   let unmintFeeUpdateInitiator: Signer
   let vendingMachineUpgradeInitiator: Signer
-  let governance: Signer
   let tokenHolder: Signer
   let thirdParty: Signer
 
@@ -28,23 +31,24 @@ describe("VendingMachine", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
+    ;({ deployer, governance } = await ethers.getNamedSigners())
+
+    // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[
-      deployer,
       unmintFeeUpdateInitiator,
       vendingMachineUpgradeInitiator,
-      governance,
       tokenHolder,
       thirdParty,
-    ] = await ethers.getSigners()
-  })
+    ] = await ethers.getUnnamedSigners()
 
-  beforeEach("load test fixture", async () => {
-    const contracts = await waffle.loadFixture(vendingMachineDeployment)
-    tbtcV1 = contracts.tbtcV1 as TestERC20
-    tbtcV2 = contracts.tbtcV2 as TBTC
-    vendingMachine = contracts.vendingMachine as VendingMachine
+    // eslint-disable-next-line @typescript-eslint/no-extra-semi
+    ;({ tbtcV1, tbtcV2, vendingMachine } = await waffle.loadFixture(
+      vendingMachineFixture
+    ))
 
-    await tbtcV1.mint(await tokenHolder.getAddress(), initialBalance)
+    await tbtcV1
+      .connect(deployer)
+      .mint(await tokenHolder.getAddress(), initialBalance)
 
     await vendingMachine
       .connect(deployer)
@@ -59,11 +63,16 @@ describe("VendingMachine", () => {
       .transferVendingMachineUpgradeInitiatorRole(
         await vendingMachineUpgradeInitiator.getAddress()
       )
-    await tbtcV2.connect(deployer).transferOwnership(vendingMachine.address)
 
     await tbtcV1
       .connect(tokenHolder)
       .approve(vendingMachine.address, initialBalance)
+
+    await vendingMachine
+      .connect(unmintFeeUpdateInitiator)
+      .initiateUnmintFeeUpdate(constants.unmintFee)
+    await helpers.time.increaseTime(604800) // +7 days contract governance delay
+    await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
   })
 
   describe("mint", () => {
@@ -85,8 +94,14 @@ describe("VendingMachine", () => {
       context("when minting entire allowance", () => {
         const amount = initialBalance
 
-        beforeEach(async () => {
+        before(async () => {
+          await createSnapshot()
+
           tx = await vendingMachine.connect(tokenHolder).mint(amount)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
         })
 
         it("should mint the same amount of TBTC v2", async () => {
@@ -111,8 +126,14 @@ describe("VendingMachine", () => {
       context("when minting part of the allowance", () => {
         const amount = initialBalance.sub(to1e18(1))
 
-        beforeEach(async () => {
+        before(async () => {
+          await createSnapshot()
+
           tx = await vendingMachine.connect(tokenHolder).mint(amount)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
         })
 
         it("should mint the same amount of TBTC v2", async () => {
@@ -171,10 +192,16 @@ describe("VendingMachine", () => {
       const amount = to1e18(2)
       let tx
 
-      beforeEach(async () => {
+      before(async () => {
+        await createSnapshot()
+
         tx = await tbtcV1
           .connect(tokenHolder)
           .approveAndCall(vendingMachine.address, amount, [])
+      })
+
+      after(async () => {
+        await restoreSnapshot()
       })
 
       it("should mint TBTC v2 to the caller", async () => {
@@ -196,20 +223,32 @@ describe("VendingMachine", () => {
   })
 
   describe("unmint", () => {
-    beforeEach(async () => {
+    before(async () => {
+      await createSnapshot()
+
       await vendingMachine.connect(tokenHolder).mint(initialBalance)
       await tbtcV2
         .connect(tokenHolder)
         .approve(vendingMachine.address, initialBalance)
     })
 
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when unmint fee is zero", () => {
-      beforeEach(async () => {
+      before(async () => {
+        await createSnapshot()
+
         await vendingMachine
           .connect(unmintFeeUpdateInitiator)
           .initiateUnmintFeeUpdate(0)
         await helpers.time.increaseTime(604800) // +7 days contract governance delay
         await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
       })
 
       context("when TBTC v2 owner has not enough tokens", () => {
@@ -227,7 +266,9 @@ describe("VendingMachine", () => {
           let v2StartBalance
           let tx
 
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             v1StartBalance = await tbtcV1.balanceOf(
               await tokenHolder.getAddress()
             )
@@ -235,6 +276,10 @@ describe("VendingMachine", () => {
               await tokenHolder.getAddress()
             )
             tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should transfer no TBTC v2 to the VendingMachine", async () => {
@@ -269,7 +314,9 @@ describe("VendingMachine", () => {
           let v2StartBalance
           let tx
 
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             v1StartBalance = await tbtcV1.balanceOf(
               await tokenHolder.getAddress()
             )
@@ -277,6 +324,10 @@ describe("VendingMachine", () => {
               await tokenHolder.getAddress()
             )
             tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should transfer no TBTC v2 to the VendingMachine", async () => {
@@ -311,7 +362,7 @@ describe("VendingMachine", () => {
       context("when TBTC v2 owner has not enough tokens", () => {
         it("should revert", async () => {
           await expect(
-            vendingMachine.connect(tokenHolder).unmint(initialBalance)
+            vendingMachine.connect(tokenHolder).unmint(initialBalance.add(1))
           ).to.be.revertedWith("Amount + fee exceeds TBTC v2 balance")
         })
       })
@@ -328,7 +379,9 @@ describe("VendingMachine", () => {
           let v2StartBalance
           let tx
 
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             v1StartBalance = await tbtcV1.balanceOf(
               await tokenHolder.getAddress()
             )
@@ -337,6 +390,10 @@ describe("VendingMachine", () => {
             )
             fee = await vendingMachine.unmintFeeFor(unmintAmount)
             tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should transfer TBTC v2 fee to the VendingMachine", async () => {
@@ -373,7 +430,9 @@ describe("VendingMachine", () => {
           let v2StartBalance
           let tx
 
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             v1StartBalance = await tbtcV1.balanceOf(
               await tokenHolder.getAddress()
             )
@@ -382,6 +441,10 @@ describe("VendingMachine", () => {
             )
             fee = await vendingMachine.unmintFeeFor(unmintAmount)
             tx = await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should transfer TBTC v2 fee to the VendingMachine", async () => {
@@ -415,15 +478,21 @@ describe("VendingMachine", () => {
 
   describe("withdrawFees", () => {
     const unmintAmount = to1e18(4)
-    let unmintFee
+    let unmintFee: BigNumber
 
-    beforeEach(async () => {
+    before(async () => {
+      await createSnapshot()
+
       await vendingMachine.connect(tokenHolder).mint(initialBalance)
       await tbtcV2
         .connect(tokenHolder)
         .approve(vendingMachine.address, initialBalance)
       unmintFee = await vendingMachine.unmintFeeFor(unmintAmount)
       await vendingMachine.connect(tokenHolder).unmint(unmintAmount)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
     })
 
     context("when caller is not the owner", () => {
@@ -437,14 +506,20 @@ describe("VendingMachine", () => {
     })
 
     context("when caller is the owner", () => {
-      let withdrawnFee
+      let withdrawnFee: BigNumber
 
-      beforeEach(async () => {
+      before(async () => {
+        await createSnapshot()
+
         withdrawnFee = unmintFee.sub(1)
 
         await vendingMachine
           .connect(governance)
           .withdrawFees(await thirdParty.getAddress(), withdrawnFee)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
       })
 
       it("should withdraw the provided amount of fees", async () => {
@@ -462,6 +537,14 @@ describe("VendingMachine", () => {
   })
 
   describe("initiateUnmintFeeUpdate", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when caller is a third party", () => {
       it("should revert", async () => {
         await expect(
@@ -483,10 +566,16 @@ describe("VendingMachine", () => {
 
       let tx
 
-      beforeEach(async () => {
+      before(async () => {
+        await createSnapshot()
+
         tx = await vendingMachine
           .connect(unmintFeeUpdateInitiator)
           .initiateUnmintFeeUpdate(newUnmintFee)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
       })
 
       it("should not update the unmint fee", async () => {
@@ -518,6 +607,14 @@ describe("VendingMachine", () => {
   })
 
   describe("finalizeUnmintFeeUpdate", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when caller is a third party", () => {
       it("should revert", async () => {
         await expect(
@@ -548,10 +645,16 @@ describe("VendingMachine", () => {
       context("when update process is initialized", () => {
         const newUnmintFee = 151511
 
-        beforeEach(async () => {
+        before(async () => {
+          await createSnapshot()
+
           await vendingMachine
             .connect(unmintFeeUpdateInitiator)
             .initiateUnmintFeeUpdate(newUnmintFee)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
         })
 
         context("when governance delay has not passed", () => {
@@ -566,11 +669,17 @@ describe("VendingMachine", () => {
         context("when governance delay passed", () => {
           let tx
 
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             await helpers.time.increaseTime(604800) // +7 days contract governance delay
             tx = await vendingMachine
               .connect(governance)
               .finalizeUnmintFeeUpdate()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should update the unmint fee", async () => {
@@ -606,7 +715,9 @@ describe("VendingMachine", () => {
   describe("initiateVendingMachineUpgrade", () => {
     let newVendingMachine
 
-    beforeEach(async () => {
+    before(async () => {
+      await createSnapshot()
+
       const VendingMachine = await ethers.getContractFactory("VendingMachine")
       newVendingMachine = await VendingMachine.deploy(
         tbtcV1.address,
@@ -614,6 +725,10 @@ describe("VendingMachine", () => {
         constants.unmintFee
       )
       await newVendingMachine.deployed()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
     })
 
     context("when caller is a third party", () => {
@@ -650,10 +765,16 @@ describe("VendingMachine", () => {
       context("when new vending machine address is non-zero", () => {
         let tx
 
-        beforeEach(async () => {
+        before(async () => {
+          await createSnapshot()
+
           tx = await vendingMachine
             .connect(vendingMachineUpgradeInitiator)
             .initiateVendingMachineUpgrade(newVendingMachine.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
         })
 
         it("should not transfer token ownership", async () => {
@@ -693,6 +814,14 @@ describe("VendingMachine", () => {
   })
 
   describe("finalizeVendingMachineUpgrade", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when caller is a third party", () => {
       it("should revert", async () => {
         await expect(
@@ -724,7 +853,9 @@ describe("VendingMachine", () => {
         const tbtcV1Amount = to1e18(3)
         let newVendingMachine
 
-        beforeEach(async () => {
+        before(async () => {
+          await createSnapshot()
+
           const VendingMachine = await ethers.getContractFactory(
             "VendingMachine"
           )
@@ -745,6 +876,10 @@ describe("VendingMachine", () => {
             .initiateVendingMachineUpgrade(newVendingMachine.address)
         })
 
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         context("when governance delay has not passed", () => {
           it("should revert", async () => {
             await helpers.time.increaseTime(601200) // +7days 23 hours
@@ -757,11 +892,17 @@ describe("VendingMachine", () => {
         context("when governance delay passed", () => {
           let tx
 
-          beforeEach(async () => {
+          before(async () => {
+            await createSnapshot()
+
             await helpers.time.increaseTime(604800) // +7 days contract governance delay
             tx = await vendingMachine
               .connect(governance)
               .finalizeVendingMachineUpgrade()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
           })
 
           it("should transfer token ownership to the new VendingMachine", async () => {
@@ -803,6 +944,14 @@ describe("VendingMachine", () => {
   })
 
   describe("transferUnmintFeeUpdateInitiatorRole", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when caller is the owner", () => {
       it("should revert", async () => {
         await expect(
@@ -824,13 +973,23 @@ describe("VendingMachine", () => {
     })
 
     context("when caller is the update initiator", () => {
-      it("should transfer the role", async () => {
-        await vendingMachine
-          .connect(unmintFeeUpdateInitiator)
-          .transferUnmintFeeUpdateInitiatorRole(await thirdParty.getAddress())
-        expect(await vendingMachine.unmintFeeUpdateInitiator()).to.equal(
-          await thirdParty.getAddress()
-        )
+      context("when new initiator is a valid address", () => {
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should transfer the role", async () => {
+          await vendingMachine
+            .connect(unmintFeeUpdateInitiator)
+            .transferUnmintFeeUpdateInitiatorRole(await thirdParty.getAddress())
+          expect(await vendingMachine.unmintFeeUpdateInitiator()).to.equal(
+            await thirdParty.getAddress()
+          )
+        })
       })
 
       context("when new initiator is zero address", () => {
@@ -846,6 +1005,14 @@ describe("VendingMachine", () => {
   })
 
   describe("transferVendingMachineUpgradeInitiatorRole", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when caller is the owner", () => {
       it("should revert", async () => {
         await expect(
@@ -871,31 +1038,49 @@ describe("VendingMachine", () => {
     })
 
     context("when caller is the update initiator", () => {
-      it("should transfer the role", async () => {
-        await vendingMachine
-          .connect(vendingMachineUpgradeInitiator)
-          .transferVendingMachineUpgradeInitiatorRole(
-            await thirdParty.getAddress()
-          )
-        expect(await vendingMachine.vendingMachineUpgradeInitiator()).to.equal(
-          await thirdParty.getAddress()
-        )
-      })
-    })
+      context("when new initiator is a valid address", () => {
+        before(async () => {
+          await createSnapshot()
+        })
 
-    context("when new initiator is zero address", () => {
-      it("should revert", async () => {
-        await expect(
-          vendingMachine
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should transfer the role", async () => {
+          await vendingMachine
             .connect(vendingMachineUpgradeInitiator)
-            .transferVendingMachineUpgradeInitiatorRole(ZERO_ADDRESS)
-        ).to.be.revertedWith("New initiator must not be zero address")
+            .transferVendingMachineUpgradeInitiatorRole(
+              await thirdParty.getAddress()
+            )
+          expect(
+            await vendingMachine.vendingMachineUpgradeInitiator()
+          ).to.equal(await thirdParty.getAddress())
+        })
+      })
+
+      context("when new initiator is zero address", () => {
+        it("should revert", async () => {
+          await expect(
+            vendingMachine
+              .connect(vendingMachineUpgradeInitiator)
+              .transferVendingMachineUpgradeInitiatorRole(ZERO_ADDRESS)
+          ).to.be.revertedWith("New initiator must not be zero address")
+        })
       })
     })
   })
 
   describe("unmintFeeFor", () => {
     const unmintAmount = to1e18(2)
+
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
 
     context("when unmint fee is non-zero", async () => {
       it("should return a correct portion of the amount to unmint", async () => {
@@ -907,12 +1092,18 @@ describe("VendingMachine", () => {
     })
 
     context("when unmint fee is zero", async () => {
-      beforeEach(async () => {
+      before(async () => {
+        await createSnapshot()
+
         await vendingMachine
           .connect(unmintFeeUpdateInitiator)
           .initiateUnmintFeeUpdate(0)
         await helpers.time.increaseTime(604800) // +7 days contract governance delay
         await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
       })
 
       it("should return zero", async () => {

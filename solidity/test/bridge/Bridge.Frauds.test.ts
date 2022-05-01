@@ -18,15 +18,13 @@ import {
   wrongSighashType,
 } from "../data/fraud"
 import { walletState } from "../fixtures"
-import bridgeFixture from "./bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 import { ecdsaWalletTestData } from "../data/ecdsa"
 
 chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
-
-const fixture = async () => bridgeFixture()
 
 describe("Bridge - Fraud", () => {
   let thirdParty: SignerWithAddress
@@ -41,7 +39,7 @@ describe("Bridge - Fraud", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, treasury, walletRegistry, bridge } =
-      await waffle.loadFixture(fixture))
+      await waffle.loadFixture(bridgeFixture))
     ;({ fraudChallengeDefeatTimeout, fraudChallengeDepositAmount } =
       await bridge.fraudParameters())
   })

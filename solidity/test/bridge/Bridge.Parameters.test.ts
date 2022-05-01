@@ -4,10 +4,9 @@ import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 import type { Bridge, BridgeStub } from "../../typechain"
 import { constants } from "../fixtures"
-import bridgeFixture from "./bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const fixture = async () => bridgeFixture()
 
 describe("Bridge - Parameters", () => {
   let governance: SignerWithAddress
@@ -16,7 +15,9 @@ describe("Bridge - Parameters", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, thirdParty, bridge } = await waffle.loadFixture(fixture))
+    ;({ governance, thirdParty, bridge } = await waffle.loadFixture(
+      bridgeFixture
+    ))
   })
 
   describe("updateDepositParameters", () => {

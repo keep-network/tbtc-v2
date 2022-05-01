@@ -1295,13 +1295,19 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @return bank Address of the Bank the Bridge belongs to.
     /// @return relay Address of the Bitcoin relay providing the current Bitcoin
     ///         network difficulty.
+    /// @return ecdsaWalletRegistry Address of the ECDSA Wallet Registry.
     function contractReferences()
         external
         view
-        returns (Bank bank, IRelay relay)
+        returns (
+            Bank bank,
+            IRelay relay,
+            EcdsaWalletRegistry ecdsaWalletRegistry
+        )
     {
         bank = self.bank;
         relay = self.relay;
+        ecdsaWalletRegistry = self.ecdsaWalletRegistry;
     }
 
     /// @notice Address where the deposit treasury fees will be sent to.
