@@ -14,7 +14,7 @@ import type {
   IRelay,
   IWalletRegistry,
 } from "../../typechain"
-import bridgeFixture from "./bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 import { walletState } from "../fixtures"
 import {
   MovingFundsTestData,
@@ -35,8 +35,6 @@ chai.use(smock.matchers)
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 
-const fixture = async () => bridgeFixture()
-
 describe("Bridge - Moving funds", () => {
   let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
@@ -44,13 +42,20 @@ describe("Bridge - Moving funds", () => {
   let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
-  let Bridge: BridgeStub__factory
   let bridge: Bridge & BridgeStub
+  let BridgeFactory: BridgeStub__factory
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ thirdParty, treasury, bank, relay, walletRegistry, Bridge, bridge } =
-      await waffle.loadFixture(fixture))
+    ;({
+      thirdParty,
+      treasury,
+      bank,
+      relay,
+      walletRegistry,
+      bridge,
+      BridgeFactory,
+    } = await waffle.loadFixture(bridgeFixture))
   })
 
   describe("submitMovingFundsCommitment", () => {
@@ -1484,7 +1489,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await Bridge.deploy(
+            otherBridge = await BridgeFactory.deploy(
               bank.address,
               relay.address,
               treasury.address,
@@ -1566,6 +1571,8 @@ describe("Bridge - Moving funds", () => {
 
         before(async () => {
           await createSnapshot()
+
+          walletRegistry.closeWallet.reset()
 
           await increaseTime(
             (
