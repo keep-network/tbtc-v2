@@ -31,6 +31,9 @@ import "./Wallets.sol";
 ///      funds to other wallets in the Bridge. The wallet needs to commit to
 ///      which other Live wallets it is moving the funds to and then, provide an
 ///      SPV proof of moving funds to the previously committed wallets.
+///      Once the proof is submitted, all target wallets are supposed to
+///      merge the received UTXOs with their own main UTXOs in order to
+///      update their BTC balances.
 library MovingFunds {
     using BridgeState for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
@@ -38,6 +41,32 @@ library MovingFunds {
 
     using BTCUtils for bytes;
     using BytesLib for bytes;
+
+    /// @notice Represents temporary information needed during the processing
+    ///         of the moving funds Bitcoin transaction outputs. This structure
+    ///         is an internal one and should not be exported outside of the
+    ///         moving funds transaction processing code.
+    /// @dev Allows to mitigate "stack too deep" errors on EVM.
+    struct MovingFundsTxOutputsProcessingInfo {
+        // 32-byte hash of the moving funds Bitcoin transaction.
+        bytes32 movingFundsTxHash;
+        // Output vector of the moving funds Bitcoin transaction. It is
+        // assumed the vector's structure is valid so it must be validated
+        // using e.g. `BTCUtils.validateVout` function before being used
+        // during the processing.
+        bytes movingFundsTxOutputVector;
+    }
+
+    /// @notice Represents a moved funds merge request.
+    struct MovedFundsMergeRequest {
+        // 20-byte public key hash of the wallet supposed to merge the UTXO
+        // representing the received funds with their own main UTXO
+        bytes20 walletPubKeyHash;
+        // UNIX timestamp the request was created at.
+        uint32 createdAt;
+        // UNIX timestamp the funds were merged at.
+        uint32 mergedAt;
+    }
 
     event MovingFundsCommitmentSubmitted(
         bytes20 walletPubKeyHash,
@@ -263,7 +292,13 @@ library MovingFunds {
         (
             bytes32 targetWalletsHash,
             uint256 outputsTotalValue
-        ) = processMovingFundsTxOutputs(movingFundsTx.outputVector);
+        ) = processMovingFundsTxOutputs(
+                self,
+                MovingFundsTxOutputsProcessingInfo(
+                    movingFundsTxHash,
+                    movingFundsTx.outputVector
+                )
+            );
 
         require(
             mainUtxo.txOutputValue - outputsTotalValue <=
@@ -278,10 +313,8 @@ library MovingFunds {
 
     /// @notice Processes the moving funds Bitcoin transaction output vector
     ///         and extracts information required for further processing.
-    /// @param movingFundsTxOutputVector Bitcoin moving funds transaction output
-    ///        vector. This function assumes vector's structure is valid so it
-    ///        must be validated using e.g. `BTCUtils.validateVout` function
-    ///        before it is passed here
+    /// @param processInfo Processing info containing the moving funds tx
+    ///        hash and output vector.
     /// @return targetWalletsHash keccak256 hash over the list of actual
     ///         target wallets used in the transaction.
     /// @return outputsTotalValue Sum of all outputs values.
@@ -290,18 +323,17 @@ library MovingFunds {
     ///        be validated by the caller as stated in their parameter doc.
     ///      - Each output must refer to a 20-byte public key hash.
     ///      - The total outputs value must be evenly divided over all outputs.
-    function processMovingFundsTxOutputs(bytes memory movingFundsTxOutputVector)
-        internal
-        pure
-        returns (bytes32 targetWalletsHash, uint256 outputsTotalValue)
-    {
+    function processMovingFundsTxOutputs(
+        BridgeState.Storage storage self,
+        MovingFundsTxOutputsProcessingInfo memory processInfo
+    ) internal returns (bytes32 targetWalletsHash, uint256 outputsTotalValue) {
         // Determining the total number of Bitcoin transaction outputs in
         // the same way as for number of inputs. See `BitcoinTx.outputVector`
         // docs for more details.
         (
             uint256 outputsCompactSizeUintLength,
             uint256 outputsCount
-        ) = movingFundsTxOutputVector.parseVarInt();
+        ) = processInfo.movingFundsTxOutputVector.parseVarInt();
 
         // To determine the first output starting index, we must jump over
         // the compactSize uint which prepends the output vector. One byte
@@ -325,10 +357,11 @@ library MovingFunds {
 
         // Outputs processing loop.
         for (uint256 i = 0; i < outputsCount; i++) {
-            uint256 outputLength = movingFundsTxOutputVector
+            uint256 outputLength = processInfo
+                .movingFundsTxOutputVector
                 .determineOutputLengthAt(outputStartingIndex);
 
-            bytes memory output = movingFundsTxOutputVector.slice(
+            bytes memory output = processInfo.movingFundsTxOutputVector.slice(
                 outputStartingIndex,
                 outputLength
             );
@@ -345,52 +378,7 @@ library MovingFunds {
             bytes20 targetWalletPubKeyHash = targetWalletPubKeyHashBytes
                 .slice20(0);
 
-            // The next step is making sure that the 20-byte public key hash
-            // is actually used in the right context of a P2PKH or P2WPKH
-            // output. To do so, we must extract the full script from the output
-            // and compare with the expected P2PKH and P2WPKH scripts
-            // referring to that 20-byte public key hash. The output consists
-            // of an 8-byte value and a variable length script. To extract the
-            // script we slice the output starting from 9th byte until the end.
-            bytes32 outputScriptKeccak = keccak256(
-                output.slice(8, output.length - 8)
-            );
-            // Build the expected P2PKH script which has the following byte
-            // format: <0x1976a914> <20-byte PKH> <0x88ac>. According to
-            // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-            // - 0x19: Byte length of the entire script
-            // - 0x76: OP_DUP
-            // - 0xa9: OP_HASH160
-            // - 0x14: Byte length of the public key hash
-            // - 0x88: OP_EQUALVERIFY
-            // - 0xac: OP_CHECKSIG
-            // which matches the P2PKH structure as per:
-            // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
-            bytes32 targetWalletP2PKHScriptKeccak = keccak256(
-                abi.encodePacked(
-                    hex"1976a914",
-                    targetWalletPubKeyHash,
-                    hex"88ac"
-                )
-            );
-            // Build the expected P2WPKH script which has the following format:
-            // <0x160014> <20-byte PKH>. According to
-            // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-            // - 0x16: Byte length of the entire script
-            // - 0x00: OP_0
-            // - 0x14: Byte length of the public key hash
-            // which matches the P2WPKH structure as per:
-            // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
-            bytes32 targetWalletP2WPKHScriptKeccak = keccak256(
-                abi.encodePacked(hex"160014", targetWalletPubKeyHash)
-            );
-            // Make sure the actual output script matches either the P2PKH
-            // or P2WPKH format.
-            require(
-                outputScriptKeccak == targetWalletP2PKHScriptKeccak ||
-                    outputScriptKeccak == targetWalletP2WPKHScriptKeccak,
-                "Output must be P2PKH or P2WPKH"
-            );
+            validateMovingFundsTxOutputType(output, targetWalletPubKeyHash);
 
             // Add the wallet public key hash to the list that will be used
             // to build the result list hash. There is no need to check if
@@ -402,6 +390,27 @@ library MovingFunds {
             // Extract the value from given output.
             outputsValues[i] = output.extractValue();
             outputsTotalValue += outputsValues[i];
+
+            // Register a moved funds merge request that must be handled
+            // by the target wallet. The target wallet must merge the
+            // received funds with their own main UTXO in order to update
+            // their BTC balance. Worth noting there is no need to check
+            // if the merge request already exists in the system because
+            // the moving funds wallet is moved to the Closing state after
+            // submitting the moving funds proof so there is no possibility
+            // to submit the proof again and register the merge request twice.
+            self.movedFundsMergeRequests[
+                uint256(
+                    keccak256(
+                        abi.encodePacked(processInfo.movingFundsTxHash, i)
+                    )
+                )
+            ] = MovedFundsMergeRequest(
+                targetWalletPubKeyHash,
+                /* solhint-disable-next-line not-rely-on-time */
+                uint32(block.timestamp),
+                0
+            );
 
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.
@@ -429,6 +438,62 @@ library MovingFunds {
         targetWalletsHash = keccak256(abi.encodePacked(targetWallets));
 
         return (targetWalletsHash, outputsTotalValue);
+    }
+
+    /// @notice Validates that the given output uses the target wallet public
+    ///         key hash in the right context of a P2PKH or P2WPKH output.
+    ///         Reverts if the validation fails.
+    /// @param output The moving funds transaction output
+    /// @param targetWalletPubKeyHash 20-byte public key hash of the target wallet
+    /// @dev Requirements:
+    ///      - The output must be of P2PKH or P2WPKH type and lock the funds
+    ///        on the 20-byte public key hash of the target wallet
+    function validateMovingFundsTxOutputType(
+        bytes memory output,
+        bytes20 targetWalletPubKeyHash
+    ) internal {
+        // The validation is about making sure that the 20-byte public key hash
+        // is actually used in the right context of a P2PKH or P2WPKH
+        // output. To do so, we must extract the full script from the output
+        // and compare with the expected P2PKH and P2WPKH scripts
+        // referring to that 20-byte public key hash. The output consists
+        // of an 8-byte value and a variable length script. To extract the
+        // script we slice the output starting from 9th byte until the end.
+        bytes32 outputScriptKeccak = keccak256(
+            output.slice(8, output.length - 8)
+        );
+        // Build the expected P2PKH script which has the following byte
+        // format: <0x1976a914> <20-byte PKH> <0x88ac>. According to
+        // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+        // - 0x19: Byte length of the entire script
+        // - 0x76: OP_DUP
+        // - 0xa9: OP_HASH160
+        // - 0x14: Byte length of the public key hash
+        // - 0x88: OP_EQUALVERIFY
+        // - 0xac: OP_CHECKSIG
+        // which matches the P2PKH structure as per:
+        // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
+        bytes32 targetWalletP2PKHScriptKeccak = keccak256(
+            abi.encodePacked(hex"1976a914", targetWalletPubKeyHash, hex"88ac")
+        );
+        // Build the expected P2WPKH script which has the following format:
+        // <0x160014> <20-byte PKH>. According to
+        // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+        // - 0x16: Byte length of the entire script
+        // - 0x00: OP_0
+        // - 0x14: Byte length of the public key hash
+        // which matches the P2WPKH structure as per:
+        // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
+        bytes32 targetWalletP2WPKHScriptKeccak = keccak256(
+            abi.encodePacked(hex"160014", targetWalletPubKeyHash)
+        );
+        // Make sure the actual output script matches either the P2PKH
+        // or P2WPKH format.
+        require(
+            outputScriptKeccak == targetWalletP2PKHScriptKeccak ||
+                outputScriptKeccak == targetWalletP2WPKHScriptKeccak,
+            "Output must be P2PKH or P2WPKH"
+        );
     }
 
     /// @notice Notifies about a timed out moving funds process. Terminates

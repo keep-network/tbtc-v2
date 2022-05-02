@@ -22,6 +22,7 @@ import "./Deposit.sol";
 import "./Redemption.sol";
 import "./Fraud.sol";
 import "./Wallets.sol";
+import "./MovingFunds.sol";
 
 import "../bank/Bank.sol";
 
@@ -94,6 +95,13 @@ library BridgeState {
         // transferring such a low value may not be possible due to
         // BTC network fees.
         uint64 movingFundsDustThreshold;
+        // Collection of all moved funds merge requests indexed by
+        // `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
+        // The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
+        // internally) and `movingFundsOutputIndex` an `uint32`. Each entry
+        // is actually an UTXO representing the moved funds and is supposed
+        // to be merged with the current main UTXO of the recipient wallet.
+        mapping(uint256 => MovingFunds.MovedFundsMergeRequest) movedFundsMergeRequests;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`

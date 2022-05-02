@@ -1138,6 +1138,23 @@ contract Bridge is Governable, EcdsaWalletOwner {
         return self.fraudChallenges[challengeKey];
     }
 
+    /// @notice Collection of all moved funds merge requests indexed by
+    ///         `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
+    ///         The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
+    ///         internally) and `movingFundsOutputIndex` an `uint32`. Each entry
+    ///         is actually an UTXO representing the moved funds and is supposed
+    ///         to be merged with the current main UTXO of the recipient wallet.
+    /// @param requestKey Request key built as
+    ///        `keccak256(movingFundsTxHash | movingFundsOutputIndex)`
+    /// @return Details of the moved funds merge request.
+    function movedFundsMergeRequests(uint256 requestKey)
+        external
+        view
+        returns (MovingFunds.MovedFundsMergeRequest memory)
+    {
+        return self.movedFundsMergeRequests[requestKey];
+    }
+
     /// @notice Indicates if the vault with the given address is trusted or not.
     ///         Depositors can route their revealed deposits only to trusted
     ///         vaults and have trusted vaults notified about new deposits as
