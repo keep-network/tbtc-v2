@@ -163,8 +163,9 @@ library Wallets {
 
             require(
                 (activeWalletOldEnough &&
-                    activeWalletBtcBalance >= self.walletMinBtcBalance) ||
-                    activeWalletBtcBalance >= self.walletMaxBtcBalance,
+                    activeWalletBtcBalance >=
+                    self.walletCreationMinBtcBalance) ||
+                    activeWalletBtcBalance >= self.walletCreationMaxBtcBalance,
                 "Wallet creation conditions are not met"
             );
         }
@@ -352,7 +353,7 @@ library Wallets {
         require(
             walletOldEnough ||
                 getWalletBtcBalance(self, walletPubKeyHash, walletMainUtxo) <
-                self.walletMinBtcBalance,
+                self.walletClosureMinBtcBalance,
             "Wallet needs to be old enough or have too few satoshis"
         );
 
