@@ -454,26 +454,6 @@ describe("Bridge - Parameters", () => {
         })
       })
 
-      context("when new creation minimum BTC balance is zero", () => {
-        it("should revert", async () => {
-          await expect(
-            bridge
-              .connect(governance)
-              .updateWalletParameters(
-                constants.walletCreationPeriod,
-                0,
-                constants.walletCreationMaxBtcBalance,
-                constants.walletClosureMinBtcBalance,
-                constants.walletMaxAge,
-                constants.walletMaxBtcTransfer,
-                constants.walletClosingPeriod
-              )
-          ).to.be.revertedWith(
-            "Wallet creation minimum BTC balance must be greater than zero"
-          )
-        })
-      })
-
       context(
         "when new creation maximum BTC balance is not greater than the creation minimum BTC balance",
         () => {

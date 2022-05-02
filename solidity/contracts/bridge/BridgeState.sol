@@ -469,10 +469,6 @@ library BridgeState {
         uint32 _walletClosingPeriod
     ) internal {
         require(
-            _walletCreationMinBtcBalance > 0,
-            "Wallet creation minimum BTC balance must be greater than zero"
-        );
-        require(
             _walletCreationMaxBtcBalance > _walletCreationMinBtcBalance,
             "Wallet creation maximum BTC balance must be greater than the creation minimum BTC balance"
         );
