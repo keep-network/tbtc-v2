@@ -170,7 +170,9 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout
+        uint256 redemptionTimeout,
+        uint96 redemptionTimeoutSlashingAmount,
+        uint256 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsParametersUpdated(
@@ -183,8 +185,9 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event WalletParametersUpdated(
         uint32 walletCreationPeriod,
-        uint64 walletMinBtcBalance,
-        uint64 walletMaxBtcBalance,
+        uint64 walletCreationMinBtcBalance,
+        uint64 walletCreationMaxBtcBalance,
+        uint64 walletClosureMinBtcBalance,
         uint32 walletMaxAge,
         uint64 walletMaxBtcTransfer,
         uint32 walletClosingPeriod
@@ -229,6 +232,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         self.redemptionTxMaxFee = 10000; // 10000 satoshi
         self.redemptionTimeout = 172800; // 48 hours
+        self.redemptionTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
         self.movingFundsTimeout = 7 days;
         self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
@@ -239,8 +244,9 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.fraudChallengeDefeatTimeout = 7 days;
         self.fraudChallengeDepositAmount = 2 ether;
         self.walletCreationPeriod = 1 weeks;
-        self.walletMinBtcBalance = 1e8; // 1 BTC
-        self.walletMaxBtcBalance = 10e8; // 10 BTC
+        self.walletCreationMinBtcBalance = 1e8; // 1 BTC
+        self.walletCreationMaxBtcBalance = 100e8; // 100 BTC
+        self.walletClosureMinBtcBalance = 5 * 1e7; // 0.5 BTC
         self.walletMaxAge = 26 weeks; // ~6 months
         self.walletMaxBtcTransfer = 10e8; // 10 BTC
         self.walletClosingPeriod = 40 days;
@@ -438,31 +444,47 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         with the given wallet, that has timed out. The redemption
     ///         request is identified by the key built as
     ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
-    ///         The results of calling this function: the pending redemptions
-    ///         value for the wallet will be decreased by the requested amount
-    ///         (minus treasury fee), the tokens taken from the redeemer on
-    ///         redemption request will be returned to the redeemer, the request
-    ///         will be moved from pending redemptions to timed-out redemptions.
-    ///         If the state of the wallet is `Live` or `MovingFunds`, the
-    ///         wallet operators will be slashed.
-    ///         Additionally, if the state of wallet is `Live`, the wallet will
-    ///         be closed or marked as `MovingFunds` (depending on the presence
-    ///         or absence of the wallet's main UTXO) and the wallet will no
-    ///         longer be marked as the active wallet (if it was marked as such).
+    ///         The results of calling this function:
+    ///         - the pending redemptions value for the wallet will be decreased
+    ///           by the requested amount (minus treasury fee),
+    ///         - the tokens taken from the redeemer on redemption request will
+    ///           be returned to the redeemer,
+    ///         - the request will be moved from pending redemptions to
+    ///           timed-out redemptions.
+    ///         - if the state of the wallet is `Live` or `MovingFunds`, the
+    ///           wallet operators will be slashed and the notifier will be
+    ///           rewarded
+    ///         - if the state of wallet is `Live`, the wallet will be closed or
+    ///           marked as `MovingFunds` (depending on the presence or absence
+    ///           of the wallet's main UTXO) and the wallet will no longer be
+    ///           marked as the active wallet (if it was marked as such).
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param redeemerOutputScript  The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH)
     /// @dev Requirements:
+    ///      - The wallet must be in the Live or MovingFunds or Terminated state
     ///      - The redemption request identified by `walletPubKeyHash` and
     ///        `redeemerOutputScript` must exist
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events.
     ///      - The amount of time defined by `redemptionTimeout` must have
     ///        passed since the redemption was requested (the request must be
     ///        timed-out).
     function notifyRedemptionTimeout(
         bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs,
         bytes calldata redeemerOutputScript
     ) external {
-        self.notifyRedemptionTimeout(walletPubKeyHash, redeemerOutputScript);
+        self.notifyRedemptionTimeout(
+            walletPubKeyHash,
+            walletMembersIDs,
+            redeemerOutputScript
+        );
     }
 
     /// @notice Submits the moving funds target wallets commitment.
@@ -918,22 +940,36 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        request was created via `requestRedemption` call. Reported  timed
     ///        out requests are cancelled and locked TBTC is returned to the
     ///        redeemer in full amount.
+    /// @param redemptionTimeoutSlashingAmount New value of the redemption
+    ///        timeout slashing amount in T, it is the amount slashed from each
+    ///        wallet member for redemption timeout
+    /// @param redemptionTimeoutNotifierRewardMultiplier New value of the
+    ///        redemption timeout notifier reward multiplier as percentage,
+    ///        it determines the percentage of the notifier reward from the
+    ///        staking contact the notifier of a redemption timeout receives.
+    ///        The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Redemption dust threshold must be greater than zero
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
+    ///      - Redemption timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     function updateRedemptionParameters(
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout
+        uint256 redemptionTimeout,
+        uint96 redemptionTimeoutSlashingAmount,
+        uint256 redemptionTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateRedemptionParameters(
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
-            redemptionTimeout
+            redemptionTimeout,
+            redemptionTimeoutSlashingAmount,
+            redemptionTimeoutNotifierRewardMultiplier
         );
     }
 
@@ -988,10 +1024,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @param walletCreationPeriod New value of the wallet creation period in
     ///        seconds, determines how frequently a new wallet creation can be
     ///        requested
-    /// @param walletMinBtcBalance New value of the wallet minimum BTC balance
-    ///        in satoshi, used to decide about wallet creation or closing
-    /// @param walletMaxBtcBalance New value of the wallet maximum BTC balance
-    ///        in satoshi, used to decide about wallet creation
+    /// @param walletCreationMinBtcBalance New value of the wallet minimum BTC
+    ///        balance in satoshi, used to decide about wallet creation
+    /// @param walletCreationMaxBtcBalance New value of the wallet maximum BTC
+    ///        balance in satoshi, used to decide about wallet creation
+    /// @param walletClosureMinBtcBalance New value of the wallet minimum BTC
+    ///        balance in satoshi, used to decide about wallet closure
     /// @param walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
     ///        the wallet moving funds process can be requested
@@ -1010,16 +1048,18 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///      - Wallet closing period must be greater than zero
     function updateWalletParameters(
         uint32 walletCreationPeriod,
-        uint64 walletMinBtcBalance,
-        uint64 walletMaxBtcBalance,
+        uint64 walletCreationMinBtcBalance,
+        uint64 walletCreationMaxBtcBalance,
+        uint64 walletClosureMinBtcBalance,
         uint32 walletMaxAge,
         uint64 walletMaxBtcTransfer,
         uint32 walletClosingPeriod
     ) external onlyGovernance {
         self.updateWalletParameters(
             walletCreationPeriod,
-            walletMinBtcBalance,
-            walletMaxBtcBalance,
+            walletCreationMinBtcBalance,
+            walletCreationMaxBtcBalance,
+            walletClosureMinBtcBalance,
             walletMaxAge,
             walletMaxBtcTransfer,
             walletClosingPeriod
@@ -1227,6 +1267,11 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         redemption request was created via `requestRedemption` call.
     ///         Reported  timed out requests are cancelled and locked TBTC is
     ///         returned to the redeemer in full amount.
+    /// @return redemptionTimeoutSlashingAmount The amount of stake slashed
+    ///         from each member of a wallet for a redemption timeout.
+    /// @return redemptionTimeoutNotifierRewardMultiplier The percentage of the
+    ///         notifier reward from the staking contract the notifier of a
+    ///         redemption timeout receives. The value is in the range [0, 100].
     function redemptionParameters()
         external
         view
@@ -1234,13 +1279,18 @@ contract Bridge is Governable, EcdsaWalletOwner {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout
+            uint256 redemptionTimeout,
+            uint96 redemptionTimeoutSlashingAmount,
+            uint256 redemptionTimeoutNotifierRewardMultiplier
         )
     {
         redemptionDustThreshold = self.redemptionDustThreshold;
         redemptionTreasuryFeeDivisor = self.redemptionTreasuryFeeDivisor;
         redemptionTxMaxFee = self.redemptionTxMaxFee;
         redemptionTimeout = self.redemptionTimeout;
+        redemptionTimeoutSlashingAmount = self.redemptionTimeoutSlashingAmount;
+        redemptionTimeoutNotifierRewardMultiplier = self
+            .redemptionTimeoutNotifierRewardMultiplier;
     }
 
     /// @notice Returns the current values of Bridge moving funds between
@@ -1285,10 +1335,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     /// @return walletCreationPeriod Determines how frequently a new wallet
     ///         creation can be requested. Value in seconds.
-    /// @return walletMinBtcBalance The minimum BTC threshold in satoshi that is
-    ///         used to decide about wallet creation or closing.
-    /// @return walletMaxBtcBalance The maximum BTC threshold in satoshi that is
-    ///         used to decide about wallet creation.
+    /// @return walletCreationMinBtcBalance The minimum BTC threshold in satoshi
+    ///         that is used to decide about wallet creation.
+    /// @return walletCreationMaxBtcBalance The maximum BTC threshold in satoshi
+    ///         that is used to decide about wallet creation.
+    /// @return walletClosureMinBtcBalance The minimum BTC threshold in satoshi
+    ///         that is used to decide about wallet closure.
     /// @return walletMaxAge The maximum age of a wallet in seconds, after which
     ///         the wallet moving funds process can be requested.
     /// @return walletMaxBtcTransfer The maximum BTC amount in satoshi than
@@ -1303,16 +1355,18 @@ contract Bridge is Governable, EcdsaWalletOwner {
         view
         returns (
             uint32 walletCreationPeriod,
-            uint64 walletMinBtcBalance,
-            uint64 walletMaxBtcBalance,
+            uint64 walletCreationMinBtcBalance,
+            uint64 walletCreationMaxBtcBalance,
+            uint64 walletClosureMinBtcBalance,
             uint32 walletMaxAge,
             uint64 walletMaxBtcTransfer,
             uint32 walletClosingPeriod
         )
     {
         walletCreationPeriod = self.walletCreationPeriod;
-        walletMinBtcBalance = self.walletMinBtcBalance;
-        walletMaxBtcBalance = self.walletMaxBtcBalance;
+        walletCreationMinBtcBalance = self.walletCreationMinBtcBalance;
+        walletCreationMaxBtcBalance = self.walletCreationMaxBtcBalance;
+        walletClosureMinBtcBalance = self.walletClosureMinBtcBalance;
         walletMaxAge = self.walletMaxAge;
         walletMaxBtcTransfer = self.walletMaxBtcTransfer;
         walletClosingPeriod = self.walletClosingPeriod;
