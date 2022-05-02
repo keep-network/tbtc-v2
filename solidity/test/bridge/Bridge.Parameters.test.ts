@@ -4,10 +4,9 @@ import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 import type { Bridge, BridgeStub } from "../../typechain"
 import { constants } from "../fixtures"
-import bridgeFixture from "./bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const fixture = async () => bridgeFixture()
 
 describe("Bridge - Parameters", () => {
   let governance: SignerWithAddress
@@ -16,7 +15,9 @@ describe("Bridge - Parameters", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, thirdParty, bridge } = await waffle.loadFixture(fixture))
+    ;({ governance, thirdParty, bridge } = await waffle.loadFixture(
+      bridgeFixture
+    ))
   })
 
   describe("updateDepositParameters", () => {
@@ -274,6 +275,8 @@ describe("Bridge - Parameters", () => {
         const newMovingFundsTxMaxTotalFee =
           constants.movingFundsTxMaxTotalFee / 2
         const newMovingFundsTimeout = constants.movingFundsTimeout * 2
+        const newMovingFundsDustThreshold =
+          constants.movingFundsDustThreshold * 2
 
         let tx: ContractTransaction
 
@@ -284,7 +287,8 @@ describe("Bridge - Parameters", () => {
             .connect(governance)
             .updateMovingFundsParameters(
               newMovingFundsTxMaxTotalFee,
-              newMovingFundsTimeout
+              newMovingFundsTimeout,
+              newMovingFundsDustThreshold
             )
         })
 
@@ -299,12 +303,19 @@ describe("Bridge - Parameters", () => {
             newMovingFundsTxMaxTotalFee
           )
           expect(params.movingFundsTimeout).to.be.equal(newMovingFundsTimeout)
+          expect(params.movingFundsDustThreshold).to.be.equal(
+            newMovingFundsDustThreshold
+          )
         })
 
         it("should emit MovingFundsParametersUpdated event", async () => {
           await expect(tx)
             .to.emit(bridge, "MovingFundsParametersUpdated")
-            .withArgs(newMovingFundsTxMaxTotalFee, newMovingFundsTimeout)
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsTimeout,
+              newMovingFundsDustThreshold
+            )
         })
       })
 
@@ -313,7 +324,11 @@ describe("Bridge - Parameters", () => {
           await expect(
             bridge
               .connect(governance)
-              .updateMovingFundsParameters(0, constants.movingFundsTimeout)
+              .updateMovingFundsParameters(
+                0,
+                constants.movingFundsTimeout,
+                constants.movingFundsDustThreshold
+              )
           ).to.be.revertedWith(
             "Moving funds transaction max total fee must be greater than zero"
           )
@@ -327,9 +342,26 @@ describe("Bridge - Parameters", () => {
               .connect(governance)
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
-                0
+                0,
+                constants.movingFundsDustThreshold
               )
           ).to.be.revertedWith("Moving funds timeout must be greater than zero")
+        })
+      })
+
+      context("when new moving funds dust threshold is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateMovingFundsParameters(
+                constants.movingFundsTxMaxTotalFee,
+                constants.movingFundsTimeout,
+                0
+              )
+          ).to.be.revertedWith(
+            "Moving funds dust threshold must be greater than zero"
+          )
         })
       })
     })
@@ -341,7 +373,8 @@ describe("Bridge - Parameters", () => {
             .connect(thirdParty)
             .updateMovingFundsParameters(
               constants.movingFundsTxMaxTotalFee,
-              constants.movingFundsTimeout
+              constants.movingFundsTimeout,
+              constants.movingFundsDustThreshold
             )
         ).to.be.revertedWith("Caller is not the governance")
       })

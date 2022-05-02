@@ -89,6 +89,12 @@ library BridgeState {
         // was requested to move their funds and switched to the MovingFunds
         // state. Value in seconds.
         uint32 movingFundsTimeout;
+        // The minimal satoshi amount that makes sense to be transferred during
+        // the moving funds process. Moving funds wallets having their BTC
+        // balance below that value can begin closing immediately as
+        // transferring such a low value may not be possible due to
+        // BTC network fees.
+        uint64 movingFundsDustThreshold;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
@@ -147,7 +153,7 @@ library BridgeState {
         //    `pendingRedemptions` mapping.
         mapping(uint256 => Redemption.RedemptionRequest) timedOutRedemptions;
         // The amount of stake slashed from each member of a wallet for a fraud.
-        uint256 fraudSlashingAmount;
+        uint96 fraudSlashingAmount;
         // The percentage of the notifier reward from the staking contract
         // the notifier of a fraud receives. The value is in the range [0, 100].
         uint256 fraudNotifierRewardMultiplier;
@@ -226,7 +232,8 @@ library BridgeState {
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
-        uint32 movingFundsTimeout
+        uint32 movingFundsTimeout,
+        uint64 movingFundsDustThreshold
     );
 
     event WalletParametersUpdated(
@@ -239,7 +246,7 @@ library BridgeState {
     );
 
     event FraudParametersUpdated(
-        uint256 fraudSlashingAmount,
+        uint96 fraudSlashingAmount,
         uint256 fraudNotifierRewardMultiplier,
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
@@ -389,13 +396,21 @@ library BridgeState {
     ///        be reported as timed out. It is counted from the moment when the
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
+    /// @param _movingFundsDustThreshold New value of the moving funds dust
+    ///        threshold. It is the minimal satoshi amount that makes sense to
+    //         be transferred during the moving funds process. Moving funds
+    //         wallets having their BTC balance below that value can begin
+    //         closing immediately as transferring such a low value may not be
+    //         possible due to BTC network fees.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
-        uint32 _movingFundsTimeout
+        uint32 _movingFundsTimeout,
+        uint64 _movingFundsDustThreshold
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
@@ -407,12 +422,19 @@ library BridgeState {
             "Moving funds timeout must be greater than zero"
         );
 
+        require(
+            _movingFundsDustThreshold > 0,
+            "Moving funds dust threshold must be greater than zero"
+        );
+
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
         self.movingFundsTimeout = _movingFundsTimeout;
+        self.movingFundsDustThreshold = _movingFundsDustThreshold;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
-            _movingFundsTimeout
+            _movingFundsTimeout,
+            _movingFundsDustThreshold
         );
     }
 
@@ -502,7 +524,7 @@ library BridgeState {
     ///      - Fraud challenge defeat timeout must be greater than 0
     function updateFraudParameters(
         Storage storage self,
-        uint256 _fraudSlashingAmount,
+        uint96 _fraudSlashingAmount,
         uint256 _fraudNotifierRewardMultiplier,
         uint256 _fraudChallengeDefeatTimeout,
         uint256 _fraudChallengeDepositAmount
