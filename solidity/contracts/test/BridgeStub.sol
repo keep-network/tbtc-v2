@@ -6,8 +6,6 @@ import "../bridge/BitcoinTx.sol";
 import "../bridge/Bridge.sol";
 import "../bridge/Wallets.sol";
 
-// TODO: Try to create a separate BridgeStub for every test group (wallets,
-//       frauds, etc.) to decrease the size.
 contract BridgeStub is Bridge {
     constructor(
         address _bank,

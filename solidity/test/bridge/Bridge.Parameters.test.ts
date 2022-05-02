@@ -4,10 +4,9 @@ import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 import type { Bridge, BridgeStub } from "../../typechain"
 import { constants } from "../fixtures"
-import bridgeFixture from "./bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const fixture = async () => bridgeFixture()
 
 describe("Bridge - Parameters", () => {
   let governance: SignerWithAddress
@@ -16,7 +15,9 @@ describe("Bridge - Parameters", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, thirdParty, bridge } = await waffle.loadFixture(fixture))
+    ;({ governance, thirdParty, bridge } = await waffle.loadFixture(
+      bridgeFixture
+    ))
   })
 
   describe("updateDepositParameters", () => {
@@ -278,6 +279,8 @@ describe("Bridge - Parameters", () => {
           constants.movingFundsTimeoutSlashingAmount.mul(3)
         const newMovingFundsTimeoutNotifierRewardMultiplier =
           constants.movingFundsTimeoutNotifierRewardMultiplier / 2
+        const newMovingFundsDustThreshold =
+          constants.movingFundsDustThreshold * 2
 
         let tx: ContractTransaction
 
@@ -290,7 +293,8 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTxMaxTotalFee,
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
-              newMovingFundsTimeoutNotifierRewardMultiplier
+              newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovingFundsDustThreshold
             )
         })
 
@@ -311,6 +315,9 @@ describe("Bridge - Parameters", () => {
           expect(params.movingFundsTimeoutNotifierRewardMultiplier).to.be.equal(
             newMovingFundsTimeoutNotifierRewardMultiplier
           )
+          expect(params.movingFundsDustThreshold).to.be.equal(
+            newMovingFundsDustThreshold
+          )
         })
 
         it("should emit MovingFundsParametersUpdated event", async () => {
@@ -320,7 +327,8 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTxMaxTotalFee,
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
-              newMovingFundsTimeoutNotifierRewardMultiplier
+              newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovingFundsDustThreshold
             )
         })
       })
@@ -334,7 +342,8 @@ describe("Bridge - Parameters", () => {
                 0,
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
-                constants.movingFundsTimeoutNotifierRewardMultiplier
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
+                constants.movingFundsDustThreshold
               )
           ).to.be.revertedWith(
             "Moving funds transaction max total fee must be greater than zero"
@@ -351,7 +360,8 @@ describe("Bridge - Parameters", () => {
                 constants.movingFundsTxMaxTotalFee,
                 0,
                 constants.movingFundsTimeoutSlashingAmount,
-                constants.movingFundsTimeoutNotifierRewardMultiplier
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
+                constants.movingFundsDustThreshold
               )
           ).to.be.revertedWith("Moving funds timeout must be greater than zero")
         })
@@ -368,7 +378,8 @@ describe("Bridge - Parameters", () => {
                   constants.movingFundsTxMaxTotalFee,
                   constants.movingFundsTimeout,
                   constants.movingFundsTimeoutSlashingAmount,
-                  101
+                  101,
+                  constants.movingFundsDustThreshold
                 )
             ).to.be.revertedWith(
               "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
@@ -376,6 +387,23 @@ describe("Bridge - Parameters", () => {
           })
         }
       )
+      context("when new moving funds dust threshold is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateMovingFundsParameters(
+                constants.movingFundsTxMaxTotalFee,
+                constants.movingFundsTimeout,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
+                0
+              )
+          ).to.be.revertedWith(
+            "Moving funds dust threshold must be greater than zero"
+          )
+        })
+      })
     })
 
     context("when caller is not the contract guvnor", () => {
@@ -387,7 +415,8 @@ describe("Bridge - Parameters", () => {
               constants.movingFundsTxMaxTotalFee,
               constants.movingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
-              constants.movingFundsTimeoutNotifierRewardMultiplier
+              constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movingFundsDustThreshold
             )
         ).to.be.revertedWith("Caller is not the governance")
       })
