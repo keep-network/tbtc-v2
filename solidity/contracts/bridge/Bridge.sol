@@ -450,10 +450,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         - the tokens taken from the redeemer on redemption request will
     ///           be returned to the redeemer,
     ///         - the request will be moved from pending redemptions to
-    ///           timed-out redemptions.
+    ///           timed-out redemptions,
     ///         - if the state of the wallet is `Live` or `MovingFunds`, the
     ///           wallet operators will be slashed and the notifier will be
-    ///           rewarded
+    ///           rewarded,
     ///         - if the state of wallet is `Live`, the wallet will be closed or
     ///           marked as `MovingFunds` (depending on the presence or absence
     ///           of the wallet's main UTXO) and the wallet will no longer be
@@ -471,10 +471,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events.
+    ///        events
     ///      - The amount of time defined by `redemptionTimeout` must have
     ///        passed since the redemption was requested (the request must be
-    ///        timed-out).
+    ///        timed-out)
     function notifyRedemptionTimeout(
         bytes20 walletPubKeyHash,
         uint32[] calldata walletMembersIDs,
