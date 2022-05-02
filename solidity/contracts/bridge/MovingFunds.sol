@@ -443,7 +443,7 @@ library MovingFunds {
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events.
+    ///        events of the `WalletRegistry` contract
     function notifyMovingFundsTimeout(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,

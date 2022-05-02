@@ -471,7 +471,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events
+    ///        events of the `WalletRegistry` contract
     ///      - The amount of time defined by `redemptionTimeout` must have
     ///        passed since the redemption was requested (the request must be
     ///        timed-out)
@@ -613,7 +613,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events.
+    ///        events of the `WalletRegistry` contract
     function notifyMovingFundsTimeout(
         bytes20 walletPubKeyHash,
         uint32[] calldata walletMembersIDs
@@ -838,7 +838,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events.
+    ///        events of the `WalletRegistry` contract
     ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
     ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(

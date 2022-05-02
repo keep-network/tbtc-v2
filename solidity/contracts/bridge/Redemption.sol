@@ -792,7 +792,7 @@ library Redemption {
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events
+    ///        events of the `WalletRegistry` contract
     ///      - The amount of time defined by `redemptionTimeout` must have
     ///        passed since the redemption was requested (the request must be
     ///        timed-out)
