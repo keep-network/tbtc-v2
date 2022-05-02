@@ -170,7 +170,9 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout
+        uint256 redemptionTimeout,
+        uint96 redemptionTimeoutSlashingAmount,
+        uint256 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsParametersUpdated(
@@ -228,6 +230,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         self.redemptionTxMaxFee = 10000; // 10000 satoshi
         self.redemptionTimeout = 172800; // 48 hours
+        self.redemptionTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
         self.movingFundsTimeout = 7 days;
         self.movingFundsDustThreshold = 20000; // 20000 satoshi
@@ -436,31 +440,47 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         with the given wallet, that has timed out. The redemption
     ///         request is identified by the key built as
     ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
-    ///         The results of calling this function: the pending redemptions
-    ///         value for the wallet will be decreased by the requested amount
-    ///         (minus treasury fee), the tokens taken from the redeemer on
-    ///         redemption request will be returned to the redeemer, the request
-    ///         will be moved from pending redemptions to timed-out redemptions.
-    ///         If the state of the wallet is `Live` or `MovingFunds`, the
-    ///         wallet operators will be slashed.
-    ///         Additionally, if the state of wallet is `Live`, the wallet will
-    ///         be closed or marked as `MovingFunds` (depending on the presence
-    ///         or absence of the wallet's main UTXO) and the wallet will no
-    ///         longer be marked as the active wallet (if it was marked as such).
+    ///         The results of calling this function:
+    ///         - the pending redemptions value for the wallet will be decreased
+    ///           by the requested amount (minus treasury fee),
+    ///         - the tokens taken from the redeemer on redemption request will
+    ///           be returned to the redeemer,
+    ///         - the request will be moved from pending redemptions to
+    ///           timed-out redemptions.
+    ///         - if the state of the wallet is `Live` or `MovingFunds`, the
+    ///           wallet operators will be slashed and the notifier will be
+    ///           rewarded
+    ///         - if the state of wallet is `Live`, the wallet will be closed or
+    ///           marked as `MovingFunds` (depending on the presence or absence
+    ///           of the wallet's main UTXO) and the wallet will no longer be
+    ///           marked as the active wallet (if it was marked as such).
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param redeemerOutputScript  The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH)
     /// @dev Requirements:
+    ///      - The wallet must be in the Live or MovingFunds or Terminated state
     ///      - The redemption request identified by `walletPubKeyHash` and
     ///        `redeemerOutputScript` must exist
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events.
     ///      - The amount of time defined by `redemptionTimeout` must have
     ///        passed since the redemption was requested (the request must be
     ///        timed-out).
     function notifyRedemptionTimeout(
         bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs,
         bytes calldata redeemerOutputScript
     ) external {
-        self.notifyRedemptionTimeout(walletPubKeyHash, redeemerOutputScript);
+        self.notifyRedemptionTimeout(
+            walletPubKeyHash,
+            walletMembersIDs,
+            redeemerOutputScript
+        );
     }
 
     /// @notice Submits the moving funds target wallets commitment.
@@ -906,22 +926,36 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        request was created via `requestRedemption` call. Reported  timed
     ///        out requests are cancelled and locked TBTC is returned to the
     ///        redeemer in full amount.
+    /// @param redemptionTimeoutSlashingAmount New value of the redemption
+    ///        timeout slashing amount in T, it is the amount slashed from each
+    ///        wallet member for redemption timeout
+    /// @param redemptionTimeoutNotifierRewardMultiplier New value of the
+    ///        redemption timeout notifier reward multiplier as percentage,
+    ///        it determines the percentage of the notifier reward from the
+    ///        staking contact the notifier of a redemption timeout receives.
+    ///        The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Redemption dust threshold must be greater than zero
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
+    ///      - Redemption timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     function updateRedemptionParameters(
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout
+        uint256 redemptionTimeout,
+        uint96 redemptionTimeoutSlashingAmount,
+        uint256 redemptionTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateRedemptionParameters(
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
-            redemptionTimeout
+            redemptionTimeout,
+            redemptionTimeoutSlashingAmount,
+            redemptionTimeoutNotifierRewardMultiplier
         );
     }
 
@@ -1205,6 +1239,11 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         redemption request was created via `requestRedemption` call.
     ///         Reported  timed out requests are cancelled and locked TBTC is
     ///         returned to the redeemer in full amount.
+    /// @return redemptionTimeoutSlashingAmount The amount of stake slashed
+    ///         from each member of a wallet for a redemption timeout.
+    /// @return redemptionTimeoutNotifierRewardMultiplier The percentage of the
+    ///         notifier reward from the staking contract the notifier of a
+    ///         redemption timeout receives. The value is in the range [0, 100].
     function redemptionParameters()
         external
         view
@@ -1212,13 +1251,18 @@ contract Bridge is Governable, EcdsaWalletOwner {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout
+            uint256 redemptionTimeout,
+            uint96 redemptionTimeoutSlashingAmount,
+            uint256 redemptionTimeoutNotifierRewardMultiplier
         )
     {
         redemptionDustThreshold = self.redemptionDustThreshold;
         redemptionTreasuryFeeDivisor = self.redemptionTreasuryFeeDivisor;
         redemptionTxMaxFee = self.redemptionTxMaxFee;
         redemptionTimeout = self.redemptionTimeout;
+        redemptionTimeoutSlashingAmount = self.redemptionTimeoutSlashingAmount;
+        redemptionTimeoutNotifierRewardMultiplier = self
+            .redemptionTimeoutNotifierRewardMultiplier;
     }
 
     /// @notice Returns the current values of Bridge moving funds between

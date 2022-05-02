@@ -122,6 +122,13 @@ library BridgeState {
         // timed out requests are cancelled and locked TBTC is returned
         // to the redeemer in full amount.
         uint256 redemptionTimeout;
+        // The amount of stake slashed from each member of a wallet for a
+        // redemption timeout.
+        uint96 redemptionTimeoutSlashingAmount;
+        // The percentage of the notifier reward from the staking contract
+        // the notifier of a redemption timeout receives. The value is in the
+        // range [0, 100].
+        uint256 redemptionTimeoutNotifierRewardMultiplier;
         // Collection of all pending redemption requests indexed by
         // redemption key built as
         // `keccak256(walletPubKeyHash | redeemerOutputScript)`.
@@ -222,7 +229,9 @@ library BridgeState {
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout
+        uint256 redemptionTimeout,
+        uint96 redemptionTimeoutSlashingAmount,
+        uint256 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsParametersUpdated(
@@ -334,17 +343,29 @@ library BridgeState {
     ///        request was created via `requestRedemption` call. Reported  timed
     ///        out requests are cancelled and locked TBTC is returned to the
     ///        redeemer in full amount.
+    /// @param _redemptionTimeoutSlashingAmount New value of the redemption
+    ///        timeout slashing amount in T, it is the amount slashed from each
+    ///        wallet member for redemption timeout
+    /// @param _redemptionTimeoutNotifierRewardMultiplier New value of the
+    ///        redemption timeout notifier reward multiplier as percentage,
+    ///        it determines the percentage of the notifier reward from the
+    ///        staking contact the notifier of a redemption timeout receives.
+    ///        The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Redemption dust threshold must be greater than zero
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
+    ///      - Redemption timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     function updateRedemptionParameters(
         Storage storage self,
         uint64 _redemptionDustThreshold,
         uint64 _redemptionTreasuryFeeDivisor,
         uint64 _redemptionTxMaxFee,
-        uint256 _redemptionTimeout
+        uint256 _redemptionTimeout,
+        uint96 _redemptionTimeoutSlashingAmount,
+        uint256 _redemptionTimeoutNotifierRewardMultiplier
     ) internal {
         require(
             _redemptionDustThreshold > 0,
@@ -366,16 +387,26 @@ library BridgeState {
             "Redemption timeout must be greater than zero"
         );
 
+        require(
+            _redemptionTimeoutNotifierRewardMultiplier <= 100,
+            "Redemption timeout notifier reward multiplier must be in the range [0, 100]"
+        );
+
         self.redemptionDustThreshold = _redemptionDustThreshold;
         self.redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
         self.redemptionTxMaxFee = _redemptionTxMaxFee;
         self.redemptionTimeout = _redemptionTimeout;
+        self.redemptionTimeoutSlashingAmount = _redemptionTimeoutSlashingAmount;
+        self
+            .redemptionTimeoutNotifierRewardMultiplier = _redemptionTimeoutNotifierRewardMultiplier;
 
         emit RedemptionParametersUpdated(
             _redemptionDustThreshold,
             _redemptionTreasuryFeeDivisor,
             _redemptionTxMaxFee,
-            _redemptionTimeout
+            _redemptionTimeout,
+            _redemptionTimeoutSlashingAmount,
+            _redemptionTimeoutNotifierRewardMultiplier
         );
     }
 
