@@ -13,8 +13,9 @@ export const constants = {
   movingFundsTimeout: 604800, // 1 week
   movingFundsDustThreshold: 20000, // 20000 satoshi
   walletCreationPeriod: 604800, // 1 week
-  walletMinBtcBalance: to1ePrecision(1, 8), // 1 BTC
-  walletMaxBtcBalance: to1ePrecision(10, 8), // 10 BTC
+  walletCreationMinBtcBalance: to1ePrecision(1, 8), // 1 BTC
+  walletCreationMaxBtcBalance: to1ePrecision(100, 8), // 100 BTC
+  walletClosureMinBtcBalance: to1ePrecision(5, 7), // 0.5 BTC
   walletMaxAge: 8 * 604800, // 8 weeks,
   walletMaxBtcTransfer: to1ePrecision(10, 8), // 10 BTC
   walletClosingPeriod: 3456000, // 40 days

@@ -175,11 +175,20 @@ library BridgeState {
         // Value in seconds.
         uint32 walletCreationPeriod;
         // The minimum BTC threshold in satoshi that is used to decide about
-        // wallet creation or closing.
-        uint64 walletMinBtcBalance;
+        // wallet creation. Specifically, we allow for the creation of a new
+        // wallet if the active wallet is old enough and their amount of BTC
+        // is greater than or equal this threshold.
+        uint64 walletCreationMinBtcBalance;
         // The maximum BTC threshold in satoshi that is used to decide about
-        // wallet creation.
-        uint64 walletMaxBtcBalance;
+        // wallet creation. Specifically, we allow for the creation of a new
+        // wallet if the active wallet's amount of BTC is greater than or equal
+        // this threshold, regardless of the active wallet's age.
+        uint64 walletCreationMaxBtcBalance;
+        // The minimum BTC threshold in satoshi that is used to decide about
+        // wallet closing. Specifically, we allow for the closure of the given
+        // wallet if their amount of BTC is lesser than this threshold,
+        // regardless of the wallet's age.
+        uint64 walletClosureMinBtcBalance;
         // The maximum age of a wallet in seconds, after which the wallet
         // moving funds process can be requested.
         uint32 walletMaxAge;
@@ -224,8 +233,9 @@ library BridgeState {
 
     event WalletParametersUpdated(
         uint32 walletCreationPeriod,
-        uint64 walletMinBtcBalance,
-        uint64 walletMaxBtcBalance,
+        uint64 walletCreationMinBtcBalance,
+        uint64 walletCreationMaxBtcBalance,
+        uint64 walletClosureMinBtcBalance,
         uint32 walletMaxAge,
         uint64 walletMaxBtcTransfer,
         uint32 walletClosingPeriod
@@ -426,10 +436,12 @@ library BridgeState {
     /// @param _walletCreationPeriod New value of the wallet creation period in
     ///        seconds, determines how frequently a new wallet creation can be
     ///        requested
-    /// @param _walletMinBtcBalance New value of the wallet minimum BTC balance
-    ///        in satoshi, used to decide about wallet creation or closing
-    /// @param _walletMaxBtcBalance New value of the wallet maximum BTC balance
-    ///        in satoshi, used to decide about wallet creation
+    /// @param _walletCreationMinBtcBalance New value of the wallet minimum BTC
+    ///        balance in satoshi, used to decide about wallet creation
+    /// @param _walletCreationMaxBtcBalance New value of the wallet maximum BTC
+    ///        balance in satoshi, used to decide about wallet creation
+    /// @param _walletClosureMinBtcBalance New value of the wallet minimum BTC
+    ///        balance in satoshi, used to decide about wallet closure
     /// @param _walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
     ///        the wallet moving funds process can be requested
@@ -449,19 +461,20 @@ library BridgeState {
     function updateWalletParameters(
         Storage storage self,
         uint32 _walletCreationPeriod,
-        uint64 _walletMinBtcBalance,
-        uint64 _walletMaxBtcBalance,
+        uint64 _walletCreationMinBtcBalance,
+        uint64 _walletCreationMaxBtcBalance,
+        uint64 _walletClosureMinBtcBalance,
         uint32 _walletMaxAge,
         uint64 _walletMaxBtcTransfer,
         uint32 _walletClosingPeriod
     ) internal {
         require(
-            _walletMinBtcBalance > 0,
-            "Wallet minimum BTC balance must be greater than zero"
+            _walletCreationMaxBtcBalance > _walletCreationMinBtcBalance,
+            "Wallet creation maximum BTC balance must be greater than the creation minimum BTC balance"
         );
         require(
-            _walletMaxBtcBalance > _walletMinBtcBalance,
-            "Wallet maximum BTC balance must be greater than the minimum"
+            _walletClosureMinBtcBalance > 0,
+            "Wallet closure minimum BTC balance must be greater than zero"
         );
         require(
             _walletMaxBtcTransfer > 0,
@@ -473,16 +486,18 @@ library BridgeState {
         );
 
         self.walletCreationPeriod = _walletCreationPeriod;
-        self.walletMinBtcBalance = _walletMinBtcBalance;
-        self.walletMaxBtcBalance = _walletMaxBtcBalance;
+        self.walletCreationMinBtcBalance = _walletCreationMinBtcBalance;
+        self.walletCreationMaxBtcBalance = _walletCreationMaxBtcBalance;
+        self.walletClosureMinBtcBalance = _walletClosureMinBtcBalance;
         self.walletMaxAge = _walletMaxAge;
         self.walletMaxBtcTransfer = _walletMaxBtcTransfer;
         self.walletClosingPeriod = _walletClosingPeriod;
 
         emit WalletParametersUpdated(
             _walletCreationPeriod,
-            _walletMinBtcBalance,
-            _walletMaxBtcBalance,
+            _walletCreationMinBtcBalance,
+            _walletCreationMaxBtcBalance,
+            _walletClosureMinBtcBalance,
             _walletMaxAge,
             _walletMaxBtcTransfer,
             _walletClosingPeriod
