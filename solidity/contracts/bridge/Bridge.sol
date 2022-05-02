@@ -119,6 +119,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovingFundsTimedOut(bytes20 walletPubKeyHash);
 
+    event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -175,7 +177,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
-        uint32 movingFundsTimeout
+        uint32 movingFundsTimeout,
+        uint64 movingFundsDustThreshold
     );
 
     event WalletParametersUpdated(
@@ -188,7 +191,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     );
 
     event FraudParametersUpdated(
-        uint256 fraudSlashingAmount,
+        uint96 fraudSlashingAmount,
         uint256 fraudNotifierRewardMultiplier,
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
@@ -230,6 +233,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
         self.movingFundsTimeout = 7 days;
+        self.movingFundsDustThreshold = 20000; // 20000 satoshi
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.fraudChallengeDefeatTimeout = 7 days;
@@ -601,6 +605,26 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.notifyMovingFundsTimeout(walletPubKeyHash);
     }
 
+    /// @notice Notifies about a moving funds wallet whose BTC balance is
+    ///         below the moving funds dust threshold. Ends the moving funds
+    ///         process and begins wallet closing immediately.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known
+    ///        on the Ethereum chain.
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state
+    ///      - The `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///        If the wallet has no main UTXO, this parameter can be empty as it
+    ///        is ignored.
+    ///      - The wallet BTC balance must be below the moving funds threshold
+    function notifyMovingFundsBelowDust(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata mainUtxo
+    ) external {
+        self.notifyMovingFundsBelowDust(walletPubKeyHash, mainUtxo);
+    }
+
     /// @notice Requests creation of a new wallet. This function just
     ///         forms a request and the creation process is performed
     ///         asynchronously. Once a wallet is created, the ECDSA Wallet
@@ -781,6 +805,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         rewarded.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
@@ -788,15 +813,28 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference
     /// @dev Requirements:
-    ///      - `walletPublicKey`and `sighash` must identify an open fraud
+    ///      - The wallet must be in the Live or MovingFunds or Closing or
+    ///        Terminated state
+    ///      - The `walletPublicKey` and `sighash` must identify an open fraud
     ///        challenge
-    ///      - the amount of time indicated by `challengeDefeatTimeout` must
-    ///        pass after the challenge was reported
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events.
+    ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
+    ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(
         bytes calldata walletPublicKey,
+        uint32[] calldata walletMembersIDs,
         bytes32 sighash
     ) external {
-        self.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
+        self.notifyFraudChallengeDefeatTimeout(
+            walletPublicKey,
+            walletMembersIDs,
+            sighash
+        );
     }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
@@ -930,16 +968,25 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        be reported as timed out. It is counted from the moment when the
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
+    /// @param movingFundsDustThreshold New value of the moving funds dust
+    ///        threshold. It is the minimal satoshi amount that makes sense to
+    //         be transferred during the moving funds process. Moving funds
+    //         wallets having their BTC balance below that value can begin
+    //         closing immediately as transferring such a low value may not be
+    //         possible due to BTC network fees.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
-        uint32 movingFundsTimeout
+        uint32 movingFundsTimeout,
+        uint64 movingFundsDustThreshold
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
-            movingFundsTimeout
+            movingFundsTimeout,
+            movingFundsDustThreshold
         );
     }
 
@@ -1003,7 +1050,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     ///      - Fraud challenge defeat timeout must be greater than 0
     function updateFraudParameters(
-        uint256 fraudSlashingAmount,
+        uint96 fraudSlashingAmount,
         uint256 fraudNotifierRewardMultiplier,
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
@@ -1222,13 +1269,23 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         can be reported as timed out. It is counted from the moment
     ///         when the wallet was requested to move their funds and switched
     ///         to the MovingFunds state. Value in seconds.
+    /// @return movingFundsDustThreshold The minimal satoshi amount that makes
+    //          sense to be transferred during the moving funds process. Moving
+    //          funds wallets having their BTC balance below that value can
+    //          begin closing immediately as transferring such a low value may
+    //          not be possible due to BTC network fees.
     function movingFundsParameters()
         external
         view
-        returns (uint64 movingFundsTxMaxTotalFee, uint32 movingFundsTimeout)
+        returns (
+            uint64 movingFundsTxMaxTotalFee,
+            uint32 movingFundsTimeout,
+            uint64 movingFundsDustThreshold
+        )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
         movingFundsTimeout = self.movingFundsTimeout;
+        movingFundsDustThreshold = self.movingFundsDustThreshold;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet
@@ -1280,7 +1337,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         external
         view
         returns (
-            uint256 fraudSlashingAmount,
+            uint96 fraudSlashingAmount,
             uint256 fraudNotifierRewardMultiplier,
             uint256 fraudChallengeDefeatTimeout,
             uint256 fraudChallengeDepositAmount
@@ -1296,13 +1353,19 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @return bank Address of the Bank the Bridge belongs to.
     /// @return relay Address of the Bitcoin relay providing the current Bitcoin
     ///         network difficulty.
+    /// @return ecdsaWalletRegistry Address of the ECDSA Wallet Registry.
     function contractReferences()
         external
         view
-        returns (Bank bank, IRelay relay)
+        returns (
+            Bank bank,
+            IRelay relay,
+            EcdsaWalletRegistry ecdsaWalletRegistry
+        )
     {
         bank = self.bank;
         relay = self.relay;
+        ecdsaWalletRegistry = self.ecdsaWalletRegistry;
     }
 
     /// @notice Address where the deposit treasury fees will be sent to.
