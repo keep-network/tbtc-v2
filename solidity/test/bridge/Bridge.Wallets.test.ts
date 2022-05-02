@@ -9,14 +9,12 @@ import type { Bridge, BridgeStub, IWalletRegistry } from "../../typechain"
 import { NO_MAIN_UTXO } from "../data/sweep"
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { constants, ecdsaDkgState, walletState } from "../fixtures"
-import bridgeFixture from "./bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 
 chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
-
-const fixture = async () => bridgeFixture()
 
 describe("Bridge - Wallets", () => {
   let thirdParty: SignerWithAddress
@@ -27,7 +25,7 @@ describe("Bridge - Wallets", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, walletRegistry, bridge } = await waffle.loadFixture(
-      fixture
+      bridgeFixture
     ))
   })
 

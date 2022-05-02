@@ -190,7 +190,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     );
 
     event FraudParametersUpdated(
-        uint256 fraudSlashingAmount,
+        uint96 fraudSlashingAmount,
         uint256 fraudNotifierRewardMultiplier,
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
@@ -230,7 +230,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.redemptionTimeout = 172800; // 48 hours
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
         self.movingFundsTimeout = 7 days;
-        self.movingFundsDustThreshold = 1000; // 1000 satoshi
+        self.movingFundsDustThreshold = 20000; // 20000 satoshi
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.fraudChallengeDefeatTimeout = 7 days;
@@ -787,6 +787,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         rewarded.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
@@ -794,15 +795,28 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        the transaction input the signature is produced for. See BIP-143
     ///        for reference
     /// @dev Requirements:
-    ///      - `walletPublicKey`and `sighash` must identify an open fraud
+    ///      - The wallet must be in the Live or MovingFunds or Closing or
+    ///        Terminated state
+    ///      - The `walletPublicKey` and `sighash` must identify an open fraud
     ///        challenge
-    ///      - the amount of time indicated by `challengeDefeatTimeout` must
-    ///        pass after the challenge was reported
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events.
+    ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
+    ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(
         bytes calldata walletPublicKey,
+        uint32[] calldata walletMembersIDs,
         bytes32 sighash
     ) external {
-        self.notifyFraudChallengeDefeatTimeout(walletPublicKey, sighash);
+        self.notifyFraudChallengeDefeatTimeout(
+            walletPublicKey,
+            walletMembersIDs,
+            sighash
+        );
     }
 
     /// @notice Allows the Governance to mark the given vault address as trusted
@@ -1008,7 +1022,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     ///      - Fraud challenge defeat timeout must be greater than 0
     function updateFraudParameters(
-        uint256 fraudSlashingAmount,
+        uint96 fraudSlashingAmount,
         uint256 fraudNotifierRewardMultiplier,
         uint256 fraudChallengeDefeatTimeout,
         uint256 fraudChallengeDepositAmount
@@ -1289,7 +1303,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         external
         view
         returns (
-            uint256 fraudSlashingAmount,
+            uint96 fraudSlashingAmount,
             uint256 fraudNotifierRewardMultiplier,
             uint256 fraudChallengeDefeatTimeout,
             uint256 fraudChallengeDepositAmount
@@ -1305,13 +1319,19 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @return bank Address of the Bank the Bridge belongs to.
     /// @return relay Address of the Bitcoin relay providing the current Bitcoin
     ///         network difficulty.
+    /// @return ecdsaWalletRegistry Address of the ECDSA Wallet Registry.
     function contractReferences()
         external
         view
-        returns (Bank bank, IRelay relay)
+        returns (
+            Bank bank,
+            IRelay relay,
+            EcdsaWalletRegistry ecdsaWalletRegistry
+        )
     {
         bank = self.bank;
         relay = self.relay;
+        ecdsaWalletRegistry = self.ecdsaWalletRegistry;
     }
 
     /// @notice Address where the deposit treasury fees will be sent to.

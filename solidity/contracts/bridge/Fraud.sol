@@ -260,6 +260,7 @@ library Fraud {
     ///         rewarded.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
@@ -271,11 +272,18 @@ library Fraud {
     ///        Terminated state
     ///      - The `walletPublicKey` and `sighash` must identify an open fraud
     ///        challenge
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events.
     ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
     ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(
         BridgeState.Storage storage self,
         bytes calldata walletPublicKey,
+        uint32[] calldata walletMembersIDs,
         bytes32 sighash
     ) external {
         uint256 challengeKey = uint256(
@@ -312,9 +320,12 @@ library Fraud {
             walletPublicKey.slice32(32)
         );
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
-        Wallets.WalletState walletState = self
-            .registeredWallets[walletPubKeyHash]
-            .state;
+
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        Wallets.WalletState walletState = wallet.state;
 
         if (
             walletState == Wallets.WalletState.Live ||
@@ -323,8 +334,13 @@ library Fraud {
         ) {
             self.terminateWallet(walletPubKeyHash);
 
-            // TODO: Perform slashing of the wallet operators, reward the
-            //       challenger, and add unit tests for that.
+            self.ecdsaWalletRegistry.seize(
+                self.fraudSlashingAmount,
+                self.fraudNotifierRewardMultiplier,
+                challenge.challenger,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
         } else if (walletState == Wallets.WalletState.Terminated) {
             // This is a special case when the wallet was already terminated
             // due to a previous deliberate protocol violation. In that
