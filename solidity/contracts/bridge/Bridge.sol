@@ -237,7 +237,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.fraudChallengeDepositAmount = 2 ether;
         self.walletCreationPeriod = 1 weeks;
         self.walletCreationMinBtcBalance = 1e8; // 1 BTC
-        self.walletCreationMaxBtcBalance = 10e8; // 10 BTC
+        self.walletCreationMaxBtcBalance = 100e8; // 100 BTC
         self.walletClosureMinBtcBalance = 5 * 1e7; // 0.5 BTC
         self.walletMaxAge = 26 weeks; // ~6 months
         self.walletMaxBtcTransfer = 10e8; // 10 BTC
