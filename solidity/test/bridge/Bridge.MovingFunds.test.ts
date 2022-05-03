@@ -17,6 +17,8 @@ import type {
 import bridgeFixture from "../fixtures/bridge"
 import { constants, walletState } from "../fixtures"
 import {
+  MovedFundsMergeTestData,
+  MovedFundsMergeWithoutMainUtxo,
   MovingFundsTestData,
   MultipleInputs,
   MultipleTargetWalletsAndDivisibleAmount,
@@ -1349,7 +1351,7 @@ describe("Bridge - Moving funds", () => {
 
         it("should revert", async () => {
           // Corrupt the merkle proof by changing tx index in block to an
-          // invalid one. The proper one is 33 so any other will do the trick.
+          // invalid one. The proper one is 1 so any other will do the trick.
           data.movingFundsProof.txIndexInBlock = 30
 
           await expect(runMovingFundsScenario(data)).to.be.revertedWith(
@@ -1373,7 +1375,7 @@ describe("Bridge - Moving funds", () => {
 
         it("should revert", async () => {
           // To pass the proof validation, the difficulty returned by the relay
-          // must be 1 for test data used in this scenario. Setting
+          // must be 21461933 for test data used in this scenario. Setting
           // a different value will cause difficulty comparison failure.
           data.chainDifficulty = 2
 
@@ -1929,6 +1931,505 @@ describe("Bridge - Moving funds", () => {
     })
   })
 
+  describe("submitMovedFundsMergeProof", () => {
+    context("when transaction proof is valid", () => {
+      context("when there is only one output", () => {
+        context("when the single output is 20-byte", () => {
+          context("when single output is either P2PKH or P2WPKH", () => {
+            context(
+              "when merging wallet is either in the Live or MovingFunds state",
+              () => {
+                context("when merging wallet is in the Live state", () => {
+                  context("when main UTXO data are valid", () => {
+                    context(
+                      "when transaction fee does not exceed the merge transaction maximum fee",
+                      () => {
+                        context(
+                          "when the merging wallet has no main UTXO set",
+                          () => {
+                            context(
+                              "when there is a single input referring to a correct merge request",
+                              () => {
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should mark the merge request as processed", async () => {
+                                  // TODO: Implementation.
+                                })
+
+                                it("should set the transaction output as new merging wallet main UTXO", async () => {
+                                  // TODO: Implementation.
+                                })
+
+                                it("should emit the MovedFundsMerged event", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the single input does not refer to a known merge request",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the single input does refer to a known but already processed merge request",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the single input does refer to a known merge request that belongs to another wallet",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the number of inputs is other than one",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+                          }
+                        )
+
+                        context(
+                          "when the merging wallet has a main UTXO set",
+                          () => {
+                            context(
+                              "when the first input refers to a correct merge request and the second input refers to the merging wallet main UTXO",
+                              () => {
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should mark the merge request as processed", async () => {
+                                  // TODO: Implementation.
+                                })
+
+                                it("should set the transaction output as new merging wallet main UTXO", async () => {
+                                  // TODO: Implementation.
+                                })
+
+                                it("should emit the MovedFundsMerged event", async () => {
+                                  // TODO: Implementation.
+                                })
+
+                                it("should mark the current merging wallet main UTXO as correctly spent", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to the merging wallet main UTXO and the second input refers to a correct merge request",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input does not refer to a known merge request and the second input refers to the merging wallet main UTXO",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to a known but already processed merge request and the second input refers to the merging wallet main UTXO",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to a known merge request that belongs to another wallet and the second input refers to the merging wallet main UTXO",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to a correct merge request and the second input does not refer to the merging wallet main UTXO",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the number of inputs is other than two",
+                              () => {
+                                it("should revert", async () => {
+                                  // TODO: Implementation.
+                                })
+                              }
+                            )
+                          }
+                        )
+                      }
+                    )
+
+                    context(
+                      "when transaction fee exceeds the merge transaction maximum fee",
+                      () => {
+                        it("should revert", async () => {
+                          // TODO: Implementation.
+                        })
+                      }
+                    )
+                  })
+
+                  context("when main UTXO data are invalid", () => {
+                    it("should revert", async () => {
+                      // TODO: Implementation.
+                    })
+                  })
+                })
+
+                context(
+                  "when merging wallet is in the MovingFunds state",
+                  () => {
+                    // TODO: Just assert it does not revert.
+                  }
+                )
+              }
+            )
+
+            context(
+              "when merging wallet is neither in the Live nor MovingFunds state",
+              () => {
+                const testData = [
+                  {
+                    testName: "when merging wallet is in the Unknown state",
+                    walletState: walletState.Unknown,
+                  },
+                  {
+                    testName: "when merging wallet is in the Closing state",
+                    walletState: walletState.Closing,
+                  },
+                  {
+                    testName: "when merging wallet is in the Closed state",
+                    walletState: walletState.Closed,
+                  },
+                  {
+                    testName: "when merging wallet is in the Terminated state",
+                    walletState: walletState.Terminated,
+                  },
+                ]
+
+                testData.forEach((test) => {
+                  context(test.testName, () => {
+                    it("should revert", async () => {
+                      // TODO: Implementation.
+                    })
+                  })
+                })
+              }
+            )
+          })
+
+          context("when single output is neither P2PKH nor P2WPKH", () => {
+            it("should revert", async () => {
+              // TODO: Implementation.
+            })
+          })
+        })
+
+        context("when the single output is not 20-byte", () => {
+          it("should revert", async () => {
+            // TODO: Implementation.
+          })
+        })
+      })
+
+      context("when output count is other than one", () => {
+        it("should revert", async () => {
+          // TODO: Implementation.
+        })
+      })
+    })
+
+    context("when transaction proof is not valid", () => {
+      context("when input vector is not valid", () => {
+        const data: MovedFundsMergeTestData = JSON.parse(
+          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the input vector by setting a compactSize uint claiming
+          // there is no inputs at all.
+          data.mergeTx.inputVector =
+            "0x00b69a2869840aa6fdfd143136ff4514ca46ea2d876855040892ad74ab" +
+            "8c5274220100000000ffffffff"
+
+          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+            "Invalid input vector provided"
+          )
+        })
+      })
+
+      context("when output vector is not valid", () => {
+        const data: MovedFundsMergeTestData = JSON.parse(
+          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the output vector by setting a compactSize uint claiming
+          // there is no outputs at all.
+          data.mergeTx.outputVector =
+            "0x005cf511000000000017a91486884e6be1525dab5ae0b451bd2c72cee6" +
+            "7dcf4187"
+
+          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
+        })
+      })
+
+      context("when merkle proof is not valid", () => {
+        const data: MovedFundsMergeTestData = JSON.parse(
+          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the merkle proof by changing tx index in block to an
+          // invalid one. The proper one is 12 so any other will do the trick.
+          data.mergeProof.txIndexInBlock = 30
+
+          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+            "Tx merkle proof is not valid for provided header and tx hash"
+          )
+        })
+      })
+
+      context("when proof difficulty is not current nor previous", () => {
+        const data: MovedFundsMergeTestData = JSON.parse(
+          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // To pass the proof validation, the difficulty returned by the relay
+          // must be 1 for test data used in this scenario. Setting
+          // a different value will cause difficulty comparison failure.
+          data.chainDifficulty = 2
+
+          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+            "Not at current or previous difficulty"
+          )
+        })
+      })
+
+      context("when headers chain length is not valid", () => {
+        const data: MovedFundsMergeTestData = JSON.parse(
+          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the bitcoin headers length in the moving funds proof. The
+          // proper value is length divisible by 80 so any length violating
+          // this rule will cause failure. In this case, we just remove the
+          // last byte from proper headers chain.
+          const properHeaders = data.mergeProof.bitcoinHeaders.toString()
+          data.mergeProof.bitcoinHeaders = properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )
+
+          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+            "Invalid length of the headers chain"
+          )
+        })
+      })
+
+      context("when headers chain is not valid", () => {
+        const data: MovedFundsMergeTestData = JSON.parse(
+          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Bitcoin headers must form a chain to pass the proof validation.
+          // That means the `previous block hash` encoded in the given block
+          // header must match the actual previous header's hash. To test
+          // that scenario, we corrupt the `previous block hash` of the
+          // second header. Each header is 80 bytes length. First 4 bytes
+          // of each header is `version` and 32 subsequent bytes is
+          // `previous block hash`. Changing byte 85 of the whole chain will
+          // do the work.
+          const properHeaders = data.mergeProof.bitcoinHeaders.toString()
+          data.mergeProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            170
+          )}ff${properHeaders.substring(172)}`
+
+          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+            "Invalid headers chain"
+          )
+        })
+      })
+
+      context("when the work in the header is insufficient", () => {
+        const data: MovedFundsMergeTestData = JSON.parse(
+          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Each header encodes a `difficulty target` field in bytes 72-76.
+          // The given header's hash (interpreted as uint) must be bigger than
+          // the `difficulty target`. To test this scenario, we change the
+          // last byte of the last header in such a way their hash becomes
+          // lower than their `difficulty target`.
+          const properHeaders = data.mergeProof.bitcoinHeaders.toString()
+          data.mergeProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )}ff`
+
+          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+            "Insufficient work in a header"
+          )
+        })
+      })
+
+      context.only(
+        "when accumulated difficulty in headers chain is insufficient",
+        () => {
+          let otherBridge: Bridge
+          const data: MovedFundsMergeTestData = JSON.parse(
+            JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+          )
+
+          before(async () => {
+            await createSnapshot()
+
+            // Necessary to pass the first part of proof validation.
+            relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+            relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+
+            // Deploy another bridge which has higher `txProofDifficultyFactor`
+            // than the original bridge. That means it will need 12 confirmations
+            // to deem transaction proof validity. This scenario uses test
+            // data which has only 6 confirmations. That should force the
+            // failure we expect within this scenario.
+            otherBridge = await BridgeFactory.deploy(
+              bank.address,
+              relay.address,
+              treasury.address,
+              walletRegistry.address,
+              12
+            )
+            await otherBridge.deployed()
+          })
+
+          after(async () => {
+            relay.getCurrentEpochDifficulty.reset()
+            relay.getPrevEpochDifficulty.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              otherBridge.submitMovedFundsMergeProof(
+                data.mergeTx,
+                data.mergeProof,
+                data.mainUtxo
+              )
+            ).to.be.revertedWith(
+              "Insufficient accumulated difficulty in header chain"
+            )
+          })
+        }
+      )
+    })
+  })
+
   async function runMovingFundsScenario(
     data: MovingFundsTestData,
     beforeProofActions?: () => Promise<void>
@@ -1965,6 +2466,48 @@ describe("Bridge - Moving funds", () => {
       data.movingFundsProof,
       data.mainUtxo,
       data.wallet.pubKeyHash
+    )
+
+    relay.getCurrentEpochDifficulty.reset()
+    relay.getPrevEpochDifficulty.reset()
+
+    return tx
+  }
+
+  async function runMovedFundsMergeScenario(
+    data: MovedFundsMergeTestData,
+    beforeProofActions?: () => Promise<void>
+  ): Promise<ContractTransaction> {
+    relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+    relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+
+    // Simulate the wallet is a registered one.
+    await bridge.setWallet(data.wallet.pubKeyHash, {
+      ecdsaWalletID: data.wallet.ecdsaWalletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: await lastBlockTime(),
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      state: data.wallet.state,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    })
+    // Simulate the prepared main UTXO belongs to the wallet.
+    await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+
+    await bridge.setMovedFundsMergeRequest(
+      data.movedFundsMergeRequest.walletPubKeyHash,
+      data.movedFundsMergeRequest
+    )
+
+    if (beforeProofActions) {
+      await beforeProofActions()
+    }
+
+    const tx = await bridge.submitMovedFundsMergeProof(
+      data.mergeTx,
+      data.mergeProof,
+      data.mainUtxo
     )
 
     relay.getCurrentEpochDifficulty.reset()

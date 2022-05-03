@@ -4,6 +4,7 @@ pragma solidity ^0.8.9;
 
 import "../bridge/BitcoinTx.sol";
 import "../bridge/Bridge.sol";
+import "../bridge/MovingFunds.sol";
 import "../bridge/Wallets.sol";
 
 contract BridgeStub is Bridge {
@@ -96,5 +97,23 @@ contract BridgeStub is Bridge {
         external
     {
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
+    }
+
+    function setMovedFundsMergeRequest(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata utxo
+    ) external {
+        uint256 requestKey = uint256(
+            keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
+        );
+
+        self.movedFundsMergeRequests[requestKey] = MovingFunds
+            .MovedFundsMergeRequest(
+                walletPubKeyHash,
+                utxo.txOutputValue,
+                /* solhint-disable-next-line not-rely-on-time */
+                uint32(block.timestamp),
+                0
+            );
     }
 }
