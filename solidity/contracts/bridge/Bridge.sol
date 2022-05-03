@@ -178,6 +178,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
         uint32 movingFundsTimeout,
+        uint96 movingFundsTimeoutSlashingAmount,
+        uint256 movingFundsTimeoutNotifierRewardMultiplier,
         uint64 movingFundsDustThreshold
     );
 
@@ -234,6 +236,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
         self.movingFundsTimeout = 7 days;
+        self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
         self.movingFundsDustThreshold = 20000; // 20000 satoshi
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
@@ -446,10 +450,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         - the tokens taken from the redeemer on redemption request will
     ///           be returned to the redeemer,
     ///         - the request will be moved from pending redemptions to
-    ///           timed-out redemptions.
+    ///           timed-out redemptions,
     ///         - if the state of the wallet is `Live` or `MovingFunds`, the
     ///           wallet operators will be slashed and the notifier will be
-    ///           rewarded
+    ///           rewarded,
     ///         - if the state of wallet is `Live`, the wallet will be closed or
     ///           marked as `MovingFunds` (depending on the presence or absence
     ///           of the wallet's main UTXO) and the wallet will no longer be
@@ -467,10 +471,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events.
+    ///        events of the `WalletRegistry` contract
     ///      - The amount of time defined by `redemptionTimeout` must have
     ///        passed since the redemption was requested (the request must be
-    ///        timed-out).
+    ///        timed-out)
     function notifyRedemptionTimeout(
         bytes20 walletPubKeyHash,
         uint32[] calldata walletMembersIDs,
@@ -600,11 +604,21 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @notice Notifies about a timed out moving funds process. Terminates
     ///         the wallet and slashes signing group members as a result.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @dev Requirements:
     ///      - The wallet must be in the MovingFunds state
     ///      - The moving funds timeout must be actually exceeded
-    function notifyMovingFundsTimeout(bytes20 walletPubKeyHash) external {
-        self.notifyMovingFundsTimeout(walletPubKeyHash);
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events of the `WalletRegistry` contract
+    function notifyMovingFundsTimeout(
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs
+    ) external {
+        self.notifyMovingFundsTimeout(walletPubKeyHash, walletMembersIDs);
     }
 
     /// @notice Notifies about a moving funds wallet whose BTC balance is
@@ -824,7 +838,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events.
+    ///        events of the `WalletRegistry` contract
     ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
     ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(
@@ -970,6 +984,14 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        be reported as timed out. It is counted from the moment when the
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
+    /// @param movingFundsTimeoutSlashingAmount New value of the moving funds
+    ///        timeout slashing amount in T, it is the amount slashed from each
+    ///        wallet member for moving funds timeout
+    /// @param movingFundsTimeoutNotifierRewardMultiplier New value of the
+    ///        moving funds timeout notifier reward multiplier as percentage,
+    ///        it determines the percentage of the notifier reward from the
+    ///        staking contact the notifier of a moving funds timeout receives.
+    ///        The value must be in the range [0, 100]
     /// @param movingFundsDustThreshold New value of the moving funds dust
     ///        threshold. It is the minimal satoshi amount that makes sense to
     //         be transferred during the moving funds process. Moving funds
@@ -979,15 +1001,21 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     ///      - Moving funds dust threshold must be greater than zero
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
         uint32 movingFundsTimeout,
+        uint96 movingFundsTimeoutSlashingAmount,
+        uint256 movingFundsTimeoutNotifierRewardMultiplier,
         uint64 movingFundsDustThreshold
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsTimeout,
+            movingFundsTimeoutSlashingAmount,
+            movingFundsTimeoutNotifierRewardMultiplier,
             movingFundsDustThreshold
         );
     }
@@ -1275,6 +1303,11 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         can be reported as timed out. It is counted from the moment
     ///         when the wallet was requested to move their funds and switched
     ///         to the MovingFunds state. Value in seconds.
+    /// @return movingFundsTimeoutSlashingAmount The amount of stake slashed
+    ///         from each member of a wallet for a moving funds timeout.
+    /// @return movingFundsTimeoutNotifierRewardMultiplier The percentage of the
+    ///         notifier reward from the staking contract the notifier of a
+    ///         moving funds timeout receives. The value is in the range [0, 100].
     /// @return movingFundsDustThreshold The minimal satoshi amount that makes
     //          sense to be transferred during the moving funds process. Moving
     //          funds wallets having their BTC balance below that value can
@@ -1286,11 +1319,17 @@ contract Bridge is Governable, EcdsaWalletOwner {
         returns (
             uint64 movingFundsTxMaxTotalFee,
             uint32 movingFundsTimeout,
+            uint96 movingFundsTimeoutSlashingAmount,
+            uint256 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movingFundsDustThreshold
         )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
         movingFundsTimeout = self.movingFundsTimeout;
+        movingFundsTimeoutSlashingAmount = self
+            .movingFundsTimeoutSlashingAmount;
+        movingFundsTimeoutNotifierRewardMultiplier = self
+            .movingFundsTimeoutNotifierRewardMultiplier;
         movingFundsDustThreshold = self.movingFundsDustThreshold;
     }
 

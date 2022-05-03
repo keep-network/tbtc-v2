@@ -320,6 +320,10 @@ describe("Bridge - Parameters", () => {
         const newMovingFundsTxMaxTotalFee =
           constants.movingFundsTxMaxTotalFee / 2
         const newMovingFundsTimeout = constants.movingFundsTimeout * 2
+        const newMovingFundsTimeoutSlashingAmount =
+          constants.movingFundsTimeoutSlashingAmount.mul(3)
+        const newMovingFundsTimeoutNotifierRewardMultiplier =
+          constants.movingFundsTimeoutNotifierRewardMultiplier / 2
         const newMovingFundsDustThreshold =
           constants.movingFundsDustThreshold * 2
 
@@ -333,6 +337,8 @@ describe("Bridge - Parameters", () => {
             .updateMovingFundsParameters(
               newMovingFundsTxMaxTotalFee,
               newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier,
               newMovingFundsDustThreshold
             )
         })
@@ -348,6 +354,12 @@ describe("Bridge - Parameters", () => {
             newMovingFundsTxMaxTotalFee
           )
           expect(params.movingFundsTimeout).to.be.equal(newMovingFundsTimeout)
+          expect(params.movingFundsTimeoutSlashingAmount).to.be.equal(
+            newMovingFundsTimeoutSlashingAmount
+          )
+          expect(params.movingFundsTimeoutNotifierRewardMultiplier).to.be.equal(
+            newMovingFundsTimeoutNotifierRewardMultiplier
+          )
           expect(params.movingFundsDustThreshold).to.be.equal(
             newMovingFundsDustThreshold
           )
@@ -359,6 +371,8 @@ describe("Bridge - Parameters", () => {
             .withArgs(
               newMovingFundsTxMaxTotalFee,
               newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier,
               newMovingFundsDustThreshold
             )
         })
@@ -372,6 +386,8 @@ describe("Bridge - Parameters", () => {
               .updateMovingFundsParameters(
                 0,
                 constants.movingFundsTimeout,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
                 constants.movingFundsDustThreshold
               )
           ).to.be.revertedWith(
@@ -388,12 +404,34 @@ describe("Bridge - Parameters", () => {
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
                 0,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
                 constants.movingFundsDustThreshold
               )
           ).to.be.revertedWith("Moving funds timeout must be greater than zero")
         })
       })
 
+      context(
+        "when new moving funds timeout notifier reward multiplier is greater than 100",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateMovingFundsParameters(
+                  constants.movingFundsTxMaxTotalFee,
+                  constants.movingFundsTimeout,
+                  constants.movingFundsTimeoutSlashingAmount,
+                  101,
+                  constants.movingFundsDustThreshold
+                )
+            ).to.be.revertedWith(
+              "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
+            )
+          })
+        }
+      )
       context("when new moving funds dust threshold is zero", () => {
         it("should revert", async () => {
           await expect(
@@ -402,6 +440,8 @@ describe("Bridge - Parameters", () => {
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
                 constants.movingFundsTimeout,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
                 0
               )
           ).to.be.revertedWith(
@@ -419,6 +459,8 @@ describe("Bridge - Parameters", () => {
             .updateMovingFundsParameters(
               constants.movingFundsTxMaxTotalFee,
               constants.movingFundsTimeout,
+              constants.movingFundsTimeoutSlashingAmount,
+              constants.movingFundsTimeoutNotifierRewardMultiplier,
               constants.movingFundsDustThreshold
             )
         ).to.be.revertedWith("Caller is not the governance")

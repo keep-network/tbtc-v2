@@ -277,7 +277,7 @@ library Fraud {
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events.
+    ///        events of the `WalletRegistry` contract
     ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
     ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(
