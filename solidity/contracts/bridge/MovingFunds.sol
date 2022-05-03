@@ -438,12 +438,20 @@ library MovingFunds {
     /// @notice Notifies about a timed out moving funds process. Terminates
     ///         the wallet and slashes signing group members as a result.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @dev Requirements:
     ///      - The wallet must be in the MovingFunds state
     ///      - The moving funds timeout must be actually exceeded
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events of the `WalletRegistry` contract
     function notifyMovingFundsTimeout(
         BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs
     ) external {
         Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
@@ -463,8 +471,13 @@ library MovingFunds {
 
         self.terminateWallet(walletPubKeyHash);
 
-        // TODO: Perform slashing of wallet operators, reward the notifier
-        //       using seized amount, and add unit tests for that.
+        self.ecdsaWalletRegistry.seize(
+            self.movingFundsTimeoutSlashingAmount,
+            self.movingFundsTimeoutNotifierRewardMultiplier,
+            msg.sender,
+            wallet.ecdsaWalletID,
+            walletMembersIDs
+        );
 
         // slither-disable-next-line reentrancy-events
         emit MovingFundsTimedOut(walletPubKeyHash);

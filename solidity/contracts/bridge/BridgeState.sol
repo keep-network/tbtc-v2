@@ -89,6 +89,13 @@ library BridgeState {
         // was requested to move their funds and switched to the MovingFunds
         // state. Value in seconds.
         uint32 movingFundsTimeout;
+        // The amount of stake slashed from each member of a wallet for a moving
+        // funds timeout.
+        uint96 movingFundsTimeoutSlashingAmount;
+        // The percentage of the notifier reward from the staking contract
+        // the notifier of a moving funds timeout receives. The value is in the
+        // range [0, 100].
+        uint256 movingFundsTimeoutNotifierRewardMultiplier;
         // The minimal satoshi amount that makes sense to be transferred during
         // the moving funds process. Moving funds wallets having their BTC
         // balance below that value can begin closing immediately as
@@ -138,6 +145,13 @@ library BridgeState {
         // timed out requests are cancelled and locked TBTC is returned
         // to the redeemer in full amount.
         uint256 redemptionTimeout;
+        // The amount of stake slashed from each member of a wallet for a
+        // redemption timeout.
+        uint96 redemptionTimeoutSlashingAmount;
+        // The percentage of the notifier reward from the staking contract
+        // the notifier of a redemption timeout receives. The value is in the
+        // range [0, 100].
+        uint256 redemptionTimeoutNotifierRewardMultiplier;
         // Collection of all pending redemption requests indexed by
         // redemption key built as
         // `keccak256(walletPubKeyHash | redeemerOutputScript)`.
@@ -238,12 +252,16 @@ library BridgeState {
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout
+        uint256 redemptionTimeout,
+        uint96 redemptionTimeoutSlashingAmount,
+        uint256 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
         uint32 movingFundsTimeout,
+        uint96 movingFundsTimeoutSlashingAmount,
+        uint256 movingFundsTimeoutNotifierRewardMultiplier,
         uint64 movingFundsDustThreshold
     );
 
@@ -350,17 +368,29 @@ library BridgeState {
     ///        request was created via `requestRedemption` call. Reported  timed
     ///        out requests are cancelled and locked TBTC is returned to the
     ///        redeemer in full amount.
+    /// @param _redemptionTimeoutSlashingAmount New value of the redemption
+    ///        timeout slashing amount in T, it is the amount slashed from each
+    ///        wallet member for redemption timeout
+    /// @param _redemptionTimeoutNotifierRewardMultiplier New value of the
+    ///        redemption timeout notifier reward multiplier as percentage,
+    ///        it determines the percentage of the notifier reward from the
+    ///        staking contact the notifier of a redemption timeout receives.
+    ///        The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Redemption dust threshold must be greater than zero
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
+    ///      - Redemption timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     function updateRedemptionParameters(
         Storage storage self,
         uint64 _redemptionDustThreshold,
         uint64 _redemptionTreasuryFeeDivisor,
         uint64 _redemptionTxMaxFee,
-        uint256 _redemptionTimeout
+        uint256 _redemptionTimeout,
+        uint96 _redemptionTimeoutSlashingAmount,
+        uint256 _redemptionTimeoutNotifierRewardMultiplier
     ) internal {
         require(
             _redemptionDustThreshold > 0,
@@ -382,16 +412,26 @@ library BridgeState {
             "Redemption timeout must be greater than zero"
         );
 
+        require(
+            _redemptionTimeoutNotifierRewardMultiplier <= 100,
+            "Redemption timeout notifier reward multiplier must be in the range [0, 100]"
+        );
+
         self.redemptionDustThreshold = _redemptionDustThreshold;
         self.redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
         self.redemptionTxMaxFee = _redemptionTxMaxFee;
         self.redemptionTimeout = _redemptionTimeout;
+        self.redemptionTimeoutSlashingAmount = _redemptionTimeoutSlashingAmount;
+        self
+            .redemptionTimeoutNotifierRewardMultiplier = _redemptionTimeoutNotifierRewardMultiplier;
 
         emit RedemptionParametersUpdated(
             _redemptionDustThreshold,
             _redemptionTreasuryFeeDivisor,
             _redemptionTxMaxFee,
-            _redemptionTimeout
+            _redemptionTimeout,
+            _redemptionTimeoutSlashingAmount,
+            _redemptionTimeoutNotifierRewardMultiplier
         );
     }
 
@@ -406,6 +446,14 @@ library BridgeState {
     ///        be reported as timed out. It is counted from the moment when the
     ///        wallet was requested to move their funds and switched to the
     ///        MovingFunds state.
+    /// @param _movingFundsTimeoutSlashingAmount New value of the moving funds
+    ///        timeout slashing amount in T, it is the amount slashed from each
+    ///        wallet member for moving funds timeout
+    /// @param _movingFundsTimeoutNotifierRewardMultiplier New value of the
+    ///        moving funds timeout notifier reward multiplier as percentage,
+    ///        it determines the percentage of the notifier reward from the
+    ///        staking contact the notifier of a moving funds timeout receives.
+    ///        The value must be in the range [0, 100]
     /// @param _movingFundsDustThreshold New value of the moving funds dust
     ///        threshold. It is the minimal satoshi amount that makes sense to
     //         be transferred during the moving funds process. Moving funds
@@ -415,11 +463,15 @@ library BridgeState {
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     ///      - Moving funds dust threshold must be greater than zero
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
         uint32 _movingFundsTimeout,
+        uint96 _movingFundsTimeoutSlashingAmount,
+        uint256 _movingFundsTimeoutNotifierRewardMultiplier,
         uint64 _movingFundsDustThreshold
     ) internal {
         require(
@@ -433,17 +485,28 @@ library BridgeState {
         );
 
         require(
+            _movingFundsTimeoutNotifierRewardMultiplier <= 100,
+            "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
+        );
+
+        require(
             _movingFundsDustThreshold > 0,
             "Moving funds dust threshold must be greater than zero"
         );
 
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
         self.movingFundsTimeout = _movingFundsTimeout;
+        self
+            .movingFundsTimeoutSlashingAmount = _movingFundsTimeoutSlashingAmount;
+        self
+            .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
         self.movingFundsDustThreshold = _movingFundsDustThreshold;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
             _movingFundsTimeout,
+            _movingFundsTimeoutSlashingAmount,
+            _movingFundsTimeoutNotifierRewardMultiplier,
             _movingFundsDustThreshold
         );
     }

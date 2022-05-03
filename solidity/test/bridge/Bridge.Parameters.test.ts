@@ -141,7 +141,10 @@ describe("Bridge - Parameters", () => {
           constants.redemptionTreasuryFeeDivisor / 2
         const newRedemptionTxMaxFee = constants.redemptionTxMaxFee * 3
         const newRedemptionTimeout = constants.redemptionTimeout * 4
-
+        const newRedemptionTimeoutSlashingAmount =
+          constants.redemptionTimeoutSlashingAmount.mul(2)
+        const newRedemptionTimeoutNotifierRewardMultiplier =
+          constants.redemptionTimeoutNotifierRewardMultiplier / 4
         let tx: ContractTransaction
 
         before(async () => {
@@ -153,7 +156,9 @@ describe("Bridge - Parameters", () => {
               newRedemptionDustThreshold,
               newRedemptionTreasuryFeeDivisor,
               newRedemptionTxMaxFee,
-              newRedemptionTimeout
+              newRedemptionTimeout,
+              newRedemptionTimeoutSlashingAmount,
+              newRedemptionTimeoutNotifierRewardMultiplier
             )
         })
 
@@ -172,6 +177,12 @@ describe("Bridge - Parameters", () => {
           )
           expect(params.redemptionTxMaxFee).to.be.equal(newRedemptionTxMaxFee)
           expect(params.redemptionTimeout).to.be.equal(newRedemptionTimeout)
+          expect(params.redemptionTimeoutSlashingAmount).to.be.equal(
+            newRedemptionTimeoutSlashingAmount
+          )
+          expect(params.redemptionTimeoutNotifierRewardMultiplier).to.be.equal(
+            newRedemptionTimeoutNotifierRewardMultiplier
+          )
         })
 
         it("should emit RedemptionParametersUpdated event", async () => {
@@ -181,7 +192,9 @@ describe("Bridge - Parameters", () => {
               newRedemptionDustThreshold,
               newRedemptionTreasuryFeeDivisor,
               newRedemptionTxMaxFee,
-              newRedemptionTimeout
+              newRedemptionTimeout,
+              newRedemptionTimeoutSlashingAmount,
+              newRedemptionTimeoutNotifierRewardMultiplier
             )
         })
       })
@@ -195,7 +208,9 @@ describe("Bridge - Parameters", () => {
                 0,
                 constants.redemptionTreasuryFeeDivisor,
                 constants.redemptionTxMaxFee,
-                constants.redemptionTimeout
+                constants.redemptionTimeout,
+                constants.redemptionTimeoutSlashingAmount,
+                constants.redemptionTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
             "Redemption dust threshold must be greater than zero"
@@ -212,7 +227,9 @@ describe("Bridge - Parameters", () => {
                 constants.redemptionDustThreshold,
                 0,
                 constants.redemptionTxMaxFee,
-                constants.redemptionTimeout
+                constants.redemptionTimeout,
+                constants.redemptionTimeoutSlashingAmount,
+                constants.redemptionTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
             "Redemption treasury fee divisor must be greater than zero"
@@ -229,7 +246,9 @@ describe("Bridge - Parameters", () => {
                 constants.redemptionDustThreshold,
                 constants.redemptionTreasuryFeeDivisor,
                 0,
-                constants.redemptionTimeout
+                constants.redemptionTimeout,
+                constants.redemptionTimeoutSlashingAmount,
+                constants.redemptionTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
             "Redemption transaction max fee must be greater than zero"
@@ -246,11 +265,35 @@ describe("Bridge - Parameters", () => {
                 constants.redemptionDustThreshold,
                 constants.redemptionTreasuryFeeDivisor,
                 constants.redemptionTxMaxFee,
-                0
+                0,
+                constants.redemptionTimeoutSlashingAmount,
+                constants.redemptionTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith("Redemption timeout must be greater than zero")
         })
       })
+
+      context(
+        "when new redemption timeout notifier reward multiplier is greater than 100",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateRedemptionParameters(
+                  constants.redemptionDustThreshold,
+                  constants.redemptionTreasuryFeeDivisor,
+                  constants.redemptionTxMaxFee,
+                  constants.redemptionTimeout,
+                  constants.redemptionTimeoutSlashingAmount,
+                  101
+                )
+            ).to.be.revertedWith(
+              "Redemption timeout notifier reward multiplier must be in the range [0, 100]"
+            )
+          })
+        }
+      )
     })
 
     context("when caller is not the contract guvnor", () => {
@@ -262,7 +305,9 @@ describe("Bridge - Parameters", () => {
               constants.redemptionDustThreshold,
               constants.redemptionTreasuryFeeDivisor,
               constants.redemptionTxMaxFee,
-              constants.redemptionTimeout
+              constants.redemptionTimeout,
+              constants.redemptionTimeoutSlashingAmount,
+              constants.redemptionTimeoutNotifierRewardMultiplier
             )
         ).to.be.revertedWith("Caller is not the governance")
       })
@@ -275,6 +320,10 @@ describe("Bridge - Parameters", () => {
         const newMovingFundsTxMaxTotalFee =
           constants.movingFundsTxMaxTotalFee / 2
         const newMovingFundsTimeout = constants.movingFundsTimeout * 2
+        const newMovingFundsTimeoutSlashingAmount =
+          constants.movingFundsTimeoutSlashingAmount.mul(3)
+        const newMovingFundsTimeoutNotifierRewardMultiplier =
+          constants.movingFundsTimeoutNotifierRewardMultiplier / 2
         const newMovingFundsDustThreshold =
           constants.movingFundsDustThreshold * 2
 
@@ -288,6 +337,8 @@ describe("Bridge - Parameters", () => {
             .updateMovingFundsParameters(
               newMovingFundsTxMaxTotalFee,
               newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier,
               newMovingFundsDustThreshold
             )
         })
@@ -303,6 +354,12 @@ describe("Bridge - Parameters", () => {
             newMovingFundsTxMaxTotalFee
           )
           expect(params.movingFundsTimeout).to.be.equal(newMovingFundsTimeout)
+          expect(params.movingFundsTimeoutSlashingAmount).to.be.equal(
+            newMovingFundsTimeoutSlashingAmount
+          )
+          expect(params.movingFundsTimeoutNotifierRewardMultiplier).to.be.equal(
+            newMovingFundsTimeoutNotifierRewardMultiplier
+          )
           expect(params.movingFundsDustThreshold).to.be.equal(
             newMovingFundsDustThreshold
           )
@@ -314,6 +371,8 @@ describe("Bridge - Parameters", () => {
             .withArgs(
               newMovingFundsTxMaxTotalFee,
               newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier,
               newMovingFundsDustThreshold
             )
         })
@@ -327,6 +386,8 @@ describe("Bridge - Parameters", () => {
               .updateMovingFundsParameters(
                 0,
                 constants.movingFundsTimeout,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
                 constants.movingFundsDustThreshold
               )
           ).to.be.revertedWith(
@@ -343,12 +404,34 @@ describe("Bridge - Parameters", () => {
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
                 0,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
                 constants.movingFundsDustThreshold
               )
           ).to.be.revertedWith("Moving funds timeout must be greater than zero")
         })
       })
 
+      context(
+        "when new moving funds timeout notifier reward multiplier is greater than 100",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateMovingFundsParameters(
+                  constants.movingFundsTxMaxTotalFee,
+                  constants.movingFundsTimeout,
+                  constants.movingFundsTimeoutSlashingAmount,
+                  101,
+                  constants.movingFundsDustThreshold
+                )
+            ).to.be.revertedWith(
+              "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
+            )
+          })
+        }
+      )
       context("when new moving funds dust threshold is zero", () => {
         it("should revert", async () => {
           await expect(
@@ -357,6 +440,8 @@ describe("Bridge - Parameters", () => {
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
                 constants.movingFundsTimeout,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
                 0
               )
           ).to.be.revertedWith(
@@ -374,6 +459,8 @@ describe("Bridge - Parameters", () => {
             .updateMovingFundsParameters(
               constants.movingFundsTxMaxTotalFee,
               constants.movingFundsTimeout,
+              constants.movingFundsTimeoutSlashingAmount,
+              constants.movingFundsTimeoutNotifierRewardMultiplier,
               constants.movingFundsDustThreshold
             )
         ).to.be.revertedWith("Caller is not the governance")
