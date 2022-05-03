@@ -404,6 +404,7 @@ library Sweep {
             } else if (
                 mainUtxoExpected != mainUtxoFound &&
                 mainUtxo.txHash == outpointTxHash
+                // TODO: We probably need to check `mainUtxo.txOutputIndex == outpointIndex` as well.
             ) {
                 // If we entered here, that means the input was identified as
                 // the expected main UTXO.
