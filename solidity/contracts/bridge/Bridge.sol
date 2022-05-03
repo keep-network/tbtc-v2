@@ -182,7 +182,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movingFundsDustThreshold
+        uint64 movingFundsDustThreshold,
+        uint64 movedFundsMergeTxMaxTotalFee
     );
 
     event WalletParametersUpdated(
@@ -1048,6 +1049,11 @@ contract Bridge is Governable, EcdsaWalletOwner {
     //         wallets having their BTC balance below that value can begin
     //         closing immediately as transferring such a low value may not be
     //         possible due to BTC network fees.
+    /// @param movedFundsMergeTxMaxTotalFee New value of the moved funds merge
+    ///        transaction max total fee in satoshis. It is the maximum amount
+    ///        of the total BTC transaction fee that is acceptable in a single
+    ///        moved funds merge transaction. This is a _total_ max fee for the
+    ///        entire moved funds merge transaction.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
@@ -1059,14 +1065,16 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movingFundsDustThreshold
+        uint64 movingFundsDustThreshold,
+        uint64 movedFundsMergeTxMaxTotalFee
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
-            movingFundsDustThreshold
+            movingFundsDustThreshold,
+            movedFundsMergeTxMaxTotalFee
         );
     }
 
@@ -1376,10 +1384,14 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         notifier reward from the staking contract the notifier of a
     ///         moving funds timeout receives. The value is in the range [0, 100].
     /// @return movingFundsDustThreshold The minimal satoshi amount that makes
-    //          sense to be transferred during the moving funds process. Moving
-    //          funds wallets having their BTC balance below that value can
-    //          begin closing immediately as transferring such a low value may
-    //          not be possible due to BTC network fees.
+    ///         sense to be transferred during the moving funds process. Moving
+    ///         funds wallets having their BTC balance below that value can
+    ///         begin closing immediately as transferring such a low value may
+    ///         not be possible due to BTC network fees.
+    /// @return movedFundsMergeTxMaxTotalFee Maximum amount of the total BTC
+    ///         transaction fee that is acceptable in a single moved funds
+    ///         merge transaction. This is a _total_ max fee for the entire
+    ///         moved funds merge transaction.
     function movingFundsParameters()
         external
         view
@@ -1388,7 +1400,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint256 movingFundsTimeoutNotifierRewardMultiplier,
-            uint64 movingFundsDustThreshold
+            uint64 movingFundsDustThreshold,
+            uint64 movedFundsMergeTxMaxTotalFee
         )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
@@ -1398,6 +1411,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         movingFundsTimeoutNotifierRewardMultiplier = self
             .movingFundsTimeoutNotifierRewardMultiplier;
         movingFundsDustThreshold = self.movingFundsDustThreshold;
+        movedFundsMergeTxMaxTotalFee = self.movedFundsMergeTxMaxTotalFee;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet

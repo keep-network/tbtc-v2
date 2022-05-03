@@ -262,7 +262,8 @@ library BridgeState {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movingFundsDustThreshold
+        uint64 movingFundsDustThreshold,
+        uint64 movedFundsMergeTxMaxTotalFee
     );
 
     event WalletParametersUpdated(
@@ -460,19 +461,26 @@ library BridgeState {
     //         wallets having their BTC balance below that value can begin
     //         closing immediately as transferring such a low value may not be
     //         possible due to BTC network fees.
+    /// @param _movedFundsMergeTxMaxTotalFee New value of the moved funds merge
+    ///        transaction max total fee in satoshis. It is the maximum amount
+    ///        of the total BTC transaction fee that is acceptable in a single
+    ///        moved funds merge transaction. This is a _total_ max fee for the
+    ///        entire moved funds merge transaction.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
     ///      - Moving funds dust threshold must be greater than zero
+    ///      - Moved funds merge transaction max total fee must be greater than zero
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
         uint256 _movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 _movingFundsDustThreshold
+        uint64 _movingFundsDustThreshold,
+        uint64 _movedFundsMergeTxMaxTotalFee
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
@@ -493,6 +501,10 @@ library BridgeState {
             _movingFundsDustThreshold > 0,
             "Moving funds dust threshold must be greater than zero"
         );
+        require(
+            _movedFundsMergeTxMaxTotalFee > 0,
+            "Moved funds merge transaction max total fee must be greater than zero"
+        );
 
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
         self.movingFundsTimeout = _movingFundsTimeout;
@@ -501,13 +513,15 @@ library BridgeState {
         self
             .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
         self.movingFundsDustThreshold = _movingFundsDustThreshold;
+        self.movedFundsMergeTxMaxTotalFee = _movedFundsMergeTxMaxTotalFee;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
             _movingFundsTimeout,
             _movingFundsTimeoutSlashingAmount,
             _movingFundsTimeoutNotifierRewardMultiplier,
-            _movingFundsDustThreshold
+            _movingFundsDustThreshold,
+            _movedFundsMergeTxMaxTotalFee
         );
     }
 
