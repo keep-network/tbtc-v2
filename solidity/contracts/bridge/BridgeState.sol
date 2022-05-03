@@ -84,6 +84,12 @@ library BridgeState {
         // if per single redemption. `movingFundsTxMaxTotalFee` is a total
         // fee for the entire transaction.
         uint64 movingFundsTxMaxTotalFee;
+        // The minimal satoshi amount that makes sense to be transferred during
+        // the moving funds process. Moving funds wallets having their BTC
+        // balance below that value can begin closing immediately as
+        // transferring such a low value may not be possible due to
+        // BTC network fees.
+        uint64 movingFundsDustThreshold;
         // Time after which the moving funds process can be reported as
         // timed out. It is counted from the moment when the wallet
         // was requested to move their funds and switched to the MovingFunds
@@ -96,12 +102,6 @@ library BridgeState {
         // the notifier of a moving funds timeout receives. The value is in the
         // range [0, 100].
         uint256 movingFundsTimeoutNotifierRewardMultiplier;
-        // The minimal satoshi amount that makes sense to be transferred during
-        // the moving funds process. Moving funds wallets having their BTC
-        // balance below that value can begin closing immediately as
-        // transferring such a low value may not be possible due to
-        // BTC network fees.
-        uint64 movingFundsDustThreshold;
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moved funds merge transaction.
         //
@@ -181,16 +181,16 @@ library BridgeState {
         //    mapping basing on a timed out request stored previously in
         //    `pendingRedemptions` mapping.
         mapping(uint256 => Redemption.RedemptionRequest) timedOutRedemptions;
+        // The amount of ETH in wei the party challenging the wallet for fraud
+        // needs to deposit.
+        uint256 fraudChallengeDepositAmount;
+        // The amount of time the wallet has to defeat a fraud challenge.
+        uint256 fraudChallengeDefeatTimeout;
         // The amount of stake slashed from each member of a wallet for a fraud.
         uint96 fraudSlashingAmount;
         // The percentage of the notifier reward from the staking contract
         // the notifier of a fraud receives. The value is in the range [0, 100].
         uint256 fraudNotifierRewardMultiplier;
-        // The amount of time the wallet has to defeat a fraud challenge.
-        uint256 fraudChallengeDefeatTimeout;
-        // The amount of ETH in wei the party challenging the wallet for fraud
-        // needs to deposit.
-        uint256 fraudChallengeDepositAmount;
         // Collection of all submitted fraud challenges indexed by challenge
         // key built as `keccak256(walletPublicKey|sighash)`.
         mapping(uint256 => Fraud.FraudChallenge) fraudChallenges;
@@ -259,10 +259,10 @@ library BridgeState {
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
+        uint64 movingFundsDustThreshold,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movingFundsDustThreshold,
         uint64 movedFundsMergeTxMaxTotalFee
     );
 
@@ -277,10 +277,10 @@ library BridgeState {
     );
 
     event FraudParametersUpdated(
-        uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDepositAmount,
         uint256 fraudChallengeDefeatTimeout,
-        uint256 fraudChallengeDepositAmount
+        uint96 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier
     );
 
     /// @notice Updates parameters of deposits.
@@ -442,6 +442,12 @@ library BridgeState {
     ///        BTC transaction fee that is acceptable in a single moving funds
     ///        transaction. This is a _total_ max fee for the entire moving
     ///        funds transaction.
+    /// @param _movingFundsDustThreshold New value of the moving funds dust
+    ///        threshold. It is the minimal satoshi amount that makes sense to
+    //         be transferred during the moving funds process. Moving funds
+    //         wallets having their BTC balance below that value can begin
+    //         closing immediately as transferring such a low value may not be
+    //         possible due to BTC network fees.
     /// @param _movingFundsTimeout New value of the moving funds timeout in
     ///        seconds. It is the time after which the moving funds process can
     ///        be reported as timed out. It is counted from the moment when the
@@ -455,12 +461,6 @@ library BridgeState {
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
     ///        The value must be in the range [0, 100]
-    /// @param _movingFundsDustThreshold New value of the moving funds dust
-    ///        threshold. It is the minimal satoshi amount that makes sense to
-    //         be transferred during the moving funds process. Moving funds
-    //         wallets having their BTC balance below that value can begin
-    //         closing immediately as transferring such a low value may not be
-    //         possible due to BTC network fees.
     /// @param _movedFundsMergeTxMaxTotalFee New value of the moved funds merge
     ///        transaction max total fee in satoshis. It is the maximum amount
     ///        of the total BTC transaction fee that is acceptable in a single
@@ -468,23 +468,28 @@ library BridgeState {
     ///        entire moved funds merge transaction.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
-    ///      - Moving funds dust threshold must be greater than zero
     ///      - Moved funds merge transaction max total fee must be greater than zero
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
+        uint64 _movingFundsDustThreshold,
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
         uint256 _movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 _movingFundsDustThreshold,
         uint64 _movedFundsMergeTxMaxTotalFee
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
             "Moving funds transaction max total fee must be greater than zero"
+        );
+
+        require(
+            _movingFundsDustThreshold > 0,
+            "Moving funds dust threshold must be greater than zero"
         );
 
         require(
@@ -498,29 +503,25 @@ library BridgeState {
         );
 
         require(
-            _movingFundsDustThreshold > 0,
-            "Moving funds dust threshold must be greater than zero"
-        );
-        require(
             _movedFundsMergeTxMaxTotalFee > 0,
             "Moved funds merge transaction max total fee must be greater than zero"
         );
 
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
+        self.movingFundsDustThreshold = _movingFundsDustThreshold;
         self.movingFundsTimeout = _movingFundsTimeout;
         self
             .movingFundsTimeoutSlashingAmount = _movingFundsTimeoutSlashingAmount;
         self
             .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
-        self.movingFundsDustThreshold = _movingFundsDustThreshold;
         self.movedFundsMergeTxMaxTotalFee = _movedFundsMergeTxMaxTotalFee;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
+            _movingFundsDustThreshold,
             _movingFundsTimeout,
             _movingFundsTimeoutSlashingAmount,
             _movingFundsTimeoutNotifierRewardMultiplier,
-            _movingFundsDustThreshold,
             _movedFundsMergeTxMaxTotalFee
         );
     }
@@ -598,6 +599,12 @@ library BridgeState {
     }
 
     /// @notice Updates parameters related to frauds.
+    /// @param _fraudChallengeDepositAmount New value of the fraud challenge
+    ///        deposit amount in wei, it is the amount of ETH the party
+    ///        challenging the wallet for fraud needs to deposit
+    /// @param _fraudChallengeDefeatTimeout New value of the challenge defeat
+    ///        timeout in seconds, it is the amount of time the wallet has to
+    ///        defeat a fraud challenge. The value must be greater than zero
     /// @param _fraudSlashingAmount New value of the fraud slashing amount in T,
     ///        it is the amount slashed from each wallet member for committing
     ///        a fraud
@@ -605,42 +612,36 @@ library BridgeState {
     ///        reward multiplier as percentage, it determines the percentage of
     ///        the notifier reward from the staking contact the notifier of
     ///        a fraud receives. The value must be in the range [0, 100]
-    /// @param _fraudChallengeDefeatTimeout New value of the challenge defeat
-    ///        timeout in seconds, it is the amount of time the wallet has to
-    ///        defeat a fraud challenge. The value must be greater than zero
-    /// @param _fraudChallengeDepositAmount New value of the fraud challenge
-    ///        deposit amount in wei, it is the amount of ETH the party
-    ///        challenging the wallet for fraud needs to deposit
     /// @dev Requirements:
-    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     ///      - Fraud challenge defeat timeout must be greater than 0
+    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     function updateFraudParameters(
         Storage storage self,
-        uint96 _fraudSlashingAmount,
-        uint256 _fraudNotifierRewardMultiplier,
+        uint256 _fraudChallengeDepositAmount,
         uint256 _fraudChallengeDefeatTimeout,
-        uint256 _fraudChallengeDepositAmount
+        uint96 _fraudSlashingAmount,
+        uint256 _fraudNotifierRewardMultiplier
     ) internal {
-        require(
-            _fraudNotifierRewardMultiplier <= 100,
-            "Fraud notifier reward multiplier must be in the range [0, 100]"
-        );
-
         require(
             _fraudChallengeDefeatTimeout > 0,
             "Fraud challenge defeat timeout must be greater than zero"
         );
 
+        require(
+            _fraudNotifierRewardMultiplier <= 100,
+            "Fraud notifier reward multiplier must be in the range [0, 100]"
+        );
+
+        self.fraudChallengeDepositAmount = _fraudChallengeDepositAmount;
+        self.fraudChallengeDefeatTimeout = _fraudChallengeDefeatTimeout;
         self.fraudSlashingAmount = _fraudSlashingAmount;
         self.fraudNotifierRewardMultiplier = _fraudNotifierRewardMultiplier;
-        self.fraudChallengeDefeatTimeout = _fraudChallengeDefeatTimeout;
-        self.fraudChallengeDepositAmount = _fraudChallengeDepositAmount;
 
         emit FraudParametersUpdated(
-            _fraudSlashingAmount,
-            _fraudNotifierRewardMultiplier,
+            _fraudChallengeDepositAmount,
             _fraudChallengeDefeatTimeout,
-            _fraudChallengeDepositAmount
+            _fraudSlashingAmount,
+            _fraudNotifierRewardMultiplier
         );
     }
 }
