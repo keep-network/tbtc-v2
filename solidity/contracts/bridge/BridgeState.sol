@@ -83,6 +83,12 @@ library BridgeState {
         // if per single redemption. `movingFundsTxMaxTotalFee` is a total
         // fee for the entire transaction.
         uint64 movingFundsTxMaxTotalFee;
+        // The minimal satoshi amount that makes sense to be transferred during
+        // the moving funds process. Moving funds wallets having their BTC
+        // balance below that value can begin closing immediately as
+        // transferring such a low value may not be possible due to
+        // BTC network fees.
+        uint64 movingFundsDustThreshold;
         // Time after which the moving funds process can be reported as
         // timed out. It is counted from the moment when the wallet
         // was requested to move their funds and switched to the MovingFunds
@@ -95,12 +101,6 @@ library BridgeState {
         // the notifier of a moving funds timeout receives. The value is in the
         // range [0, 100].
         uint256 movingFundsTimeoutNotifierRewardMultiplier;
-        // The minimal satoshi amount that makes sense to be transferred during
-        // the moving funds process. Moving funds wallets having their BTC
-        // balance below that value can begin closing immediately as
-        // transferring such a low value may not be possible due to
-        // BTC network fees.
-        uint64 movingFundsDustThreshold;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
@@ -243,10 +243,10 @@ library BridgeState {
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
+        uint64 movingFundsDustThreshold,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
-        uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movingFundsDustThreshold
+        uint256 movingFundsTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -425,6 +425,12 @@ library BridgeState {
     ///        BTC transaction fee that is acceptable in a single moving funds
     ///        transaction. This is a _total_ max fee for the entire moving
     ///        funds transaction.
+    /// @param _movingFundsDustThreshold New value of the moving funds dust
+    ///        threshold. It is the minimal satoshi amount that makes sense to
+    //         be transferred during the moving funds process. Moving funds
+    //         wallets having their BTC balance below that value can begin
+    //         closing immediately as transferring such a low value may not be
+    //         possible due to BTC network fees.
     /// @param _movingFundsTimeout New value of the moving funds timeout in
     ///        seconds. It is the time after which the moving funds process can
     ///        be reported as timed out. It is counted from the moment when the
@@ -438,29 +444,28 @@ library BridgeState {
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
     ///        The value must be in the range [0, 100]
-    /// @param _movingFundsDustThreshold New value of the moving funds dust
-    ///        threshold. It is the minimal satoshi amount that makes sense to
-    //         be transferred during the moving funds process. Moving funds
-    //         wallets having their BTC balance below that value can begin
-    //         closing immediately as transferring such a low value may not be
-    //         possible due to BTC network fees.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
-    ///      - Moving funds dust threshold must be greater than zero
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
+        uint64 _movingFundsDustThreshold,
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
-        uint256 _movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 _movingFundsDustThreshold
+        uint256 _movingFundsTimeoutNotifierRewardMultiplier
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
             "Moving funds transaction max total fee must be greater than zero"
+        );
+
+        require(
+            _movingFundsDustThreshold > 0,
+            "Moving funds dust threshold must be greater than zero"
         );
 
         require(
@@ -473,25 +478,20 @@ library BridgeState {
             "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
         );
 
-        require(
-            _movingFundsDustThreshold > 0,
-            "Moving funds dust threshold must be greater than zero"
-        );
-
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
+        self.movingFundsDustThreshold = _movingFundsDustThreshold;
         self.movingFundsTimeout = _movingFundsTimeout;
         self
             .movingFundsTimeoutSlashingAmount = _movingFundsTimeoutSlashingAmount;
         self
             .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
-        self.movingFundsDustThreshold = _movingFundsDustThreshold;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
+            _movingFundsDustThreshold,
             _movingFundsTimeout,
             _movingFundsTimeoutSlashingAmount,
-            _movingFundsTimeoutNotifierRewardMultiplier,
-            _movingFundsDustThreshold
+            _movingFundsTimeoutNotifierRewardMultiplier
         );
     }
 

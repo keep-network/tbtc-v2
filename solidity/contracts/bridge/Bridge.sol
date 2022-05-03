@@ -177,10 +177,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
+        uint64 movingFundsDustThreshold,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
-        uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movingFundsDustThreshold
+        uint256 movingFundsTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -235,10 +235,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.redemptionTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
         self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
+        self.movingFundsDustThreshold = 20000; // 20000 satoshi
         self.movingFundsTimeout = 7 days;
         self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
-        self.movingFundsDustThreshold = 20000; // 20000 satoshi
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.fraudChallengeDefeatTimeout = 7 days;
@@ -979,6 +979,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        BTC transaction fee that is acceptable in a single moving funds
     ///        transaction. This is a _total_ max fee for the entire moving
     ///        funds transaction.
+    /// @param movingFundsDustThreshold New value of the moving funds dust
+    ///        threshold. It is the minimal satoshi amount that makes sense to
+    //         be transferred during the moving funds process. Moving funds
+    //         wallets having their BTC balance below that value can begin
+    //         closing immediately as transferring such a low value may not be
+    //         possible due to BTC network fees.
     /// @param movingFundsTimeout New value of the moving funds timeout in
     ///        seconds. It is the time after which the moving funds process can
     ///        be reported as timed out. It is counted from the moment when the
@@ -992,31 +998,25 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
     ///        The value must be in the range [0, 100]
-    /// @param movingFundsDustThreshold New value of the moving funds dust
-    ///        threshold. It is the minimal satoshi amount that makes sense to
-    //         be transferred during the moving funds process. Moving funds
-    //         wallets having their BTC balance below that value can begin
-    //         closing immediately as transferring such a low value may not be
-    //         possible due to BTC network fees.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
-    ///      - Moving funds dust threshold must be greater than zero
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
+        uint64 movingFundsDustThreshold,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
-        uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movingFundsDustThreshold
+        uint256 movingFundsTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
+            movingFundsDustThreshold,
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
-            movingFundsTimeoutNotifierRewardMultiplier,
-            movingFundsDustThreshold
+            movingFundsTimeoutNotifierRewardMultiplier
         );
     }
 
@@ -1299,6 +1299,11 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         transaction fee that is acceptable in a single moving funds
     ///         transaction. This is a _total_ max fee for the entire moving
     ///         funds transaction.
+    /// @return movingFundsDustThreshold The minimal satoshi amount that makes
+    ///         sense to be transferred during the moving funds process. Moving
+    ///         funds wallets having their BTC balance below that value can
+    ///         begin closing immediately as transferring such a low value may
+    ///         not be possible due to BTC network fees.
     /// @return movingFundsTimeout Time after which the moving funds process
     ///         can be reported as timed out. It is counted from the moment
     ///         when the wallet was requested to move their funds and switched
@@ -1308,29 +1313,24 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @return movingFundsTimeoutNotifierRewardMultiplier The percentage of the
     ///         notifier reward from the staking contract the notifier of a
     ///         moving funds timeout receives. The value is in the range [0, 100].
-    /// @return movingFundsDustThreshold The minimal satoshi amount that makes
-    //          sense to be transferred during the moving funds process. Moving
-    //          funds wallets having their BTC balance below that value can
-    //          begin closing immediately as transferring such a low value may
-    //          not be possible due to BTC network fees.
     function movingFundsParameters()
         external
         view
         returns (
             uint64 movingFundsTxMaxTotalFee,
+            uint64 movingFundsDustThreshold,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
-            uint64 movingFundsDustThreshold
+            uint256 movingFundsTimeoutNotifierRewardMultiplier
         )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
+        movingFundsDustThreshold = self.movingFundsDustThreshold;
         movingFundsTimeout = self.movingFundsTimeout;
         movingFundsTimeoutSlashingAmount = self
             .movingFundsTimeoutSlashingAmount;
         movingFundsTimeoutNotifierRewardMultiplier = self
             .movingFundsTimeoutNotifierRewardMultiplier;
-        movingFundsDustThreshold = self.movingFundsDustThreshold;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet
