@@ -18,6 +18,7 @@ import bridgeFixture from "../fixtures/bridge"
 import { constants, walletState } from "../fixtures"
 import {
   MovedFundsMergeTestData,
+  MovedFundsMergeWithMainUtxo,
   MovedFundsMergeWithoutMainUtxo,
   MovingFundsTestData,
   MultipleInputs,
@@ -1950,8 +1951,15 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when there is a single input referring to a correct merge request",
                               () => {
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithoutMainUtxo
+
+                                let tx: ContractTransaction
+
                                 before(async () => {
                                   await createSnapshot()
+
+                                  tx = await runMovedFundsMergeScenario(data)
                                 })
 
                                 after(async () => {
@@ -1959,15 +1967,46 @@ describe("Bridge - Moving funds", () => {
                                 })
 
                                 it("should mark the merge request as processed", async () => {
-                                  // TODO: Implementation.
+                                  const key = ethers.utils.solidityKeccak256(
+                                    ["bytes32", "uint32"],
+                                    [
+                                      data.movedFundsMergeRequest.txHash,
+                                      data.movedFundsMergeRequest.txOutputIndex,
+                                    ]
+                                  )
+
+                                  expect(
+                                    (await bridge.movedFundsMergeRequests(key))
+                                      .mergedAt
+                                  ).to.be.equal(await lastBlockTime())
                                 })
 
                                 it("should set the transaction output as new merging wallet main UTXO", async () => {
-                                  // TODO: Implementation.
+                                  // Amount can be checked by opening the merge tx
+                                  // in a Bitcoin testnet explorer. In this case,
+                                  // the output  value is 16500.
+                                  const expectedMainUtxoHash =
+                                    ethers.utils.solidityKeccak256(
+                                      ["bytes32", "uint32", "uint64"],
+                                      [data.mergeTx.hash, 0, 16500]
+                                    )
+
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).mainUtxoHash
+                                  ).to.be.equal(expectedMainUtxoHash)
                                 })
 
                                 it("should emit the MovedFundsMerged event", async () => {
-                                  // TODO: Implementation.
+                                  await expect(tx)
+                                    .to.emit(bridge, "MovedFundsMerged")
+                                    .withArgs(
+                                      data.wallet.pubKeyHash,
+                                      data.mergeTx.hash
+                                    )
                                 })
                               }
                             )
@@ -2016,8 +2055,15 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the first input refers to a correct merge request and the second input refers to the merging wallet main UTXO",
                               () => {
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithMainUtxo
+
+                                let tx: ContractTransaction
+
                                 before(async () => {
                                   await createSnapshot()
+
+                                  tx = await runMovedFundsMergeScenario(data)
                                 })
 
                                 after(async () => {
@@ -2025,19 +2071,60 @@ describe("Bridge - Moving funds", () => {
                                 })
 
                                 it("should mark the merge request as processed", async () => {
-                                  // TODO: Implementation.
+                                  const key = ethers.utils.solidityKeccak256(
+                                    ["bytes32", "uint32"],
+                                    [
+                                      data.movedFundsMergeRequest.txHash,
+                                      data.movedFundsMergeRequest.txOutputIndex,
+                                    ]
+                                  )
+
+                                  expect(
+                                    (await bridge.movedFundsMergeRequests(key))
+                                      .mergedAt
+                                  ).to.be.equal(await lastBlockTime())
                                 })
 
                                 it("should set the transaction output as new merging wallet main UTXO", async () => {
-                                  // TODO: Implementation.
+                                  // Amount can be checked by opening the merge tx
+                                  // in a Bitcoin testnet explorer. In this case,
+                                  // the output  value is 2612530.
+                                  const expectedMainUtxoHash =
+                                    ethers.utils.solidityKeccak256(
+                                      ["bytes32", "uint32", "uint64"],
+                                      [data.mergeTx.hash, 0, 2612530]
+                                    )
+
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).mainUtxoHash
+                                  ).to.be.equal(expectedMainUtxoHash)
                                 })
 
                                 it("should emit the MovedFundsMerged event", async () => {
-                                  // TODO: Implementation.
+                                  await expect(tx)
+                                    .to.emit(bridge, "MovedFundsMerged")
+                                    .withArgs(
+                                      data.wallet.pubKeyHash,
+                                      data.mergeTx.hash
+                                    )
                                 })
 
                                 it("should mark the current merging wallet main UTXO as correctly spent", async () => {
-                                  // TODO: Implementation.
+                                  const key = ethers.utils.solidityKeccak256(
+                                    ["bytes32", "uint32"],
+                                    [
+                                      data.mainUtxo.txHash,
+                                      data.mainUtxo.txOutputIndex,
+                                    ]
+                                  )
+
+                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                  expect(await bridge.spentMainUTXOs(key)).to.be
+                                    .true
                                 })
                               }
                             )
@@ -2377,12 +2464,12 @@ describe("Bridge - Moving funds", () => {
         })
       })
 
-      context.only(
+      context(
         "when accumulated difficulty in headers chain is insufficient",
         () => {
           let otherBridge: Bridge
           const data: MovedFundsMergeTestData = JSON.parse(
-            JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+            JSON.stringify(MovedFundsMergeWithMainUtxo)
           )
 
           before(async () => {
@@ -2492,8 +2579,11 @@ describe("Bridge - Moving funds", () => {
       state: data.wallet.state,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
-    // Simulate the prepared main UTXO belongs to the wallet.
-    await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+
+    if (data.mainUtxo.txHash !== ethers.constants.HashZero) {
+      // Simulate the prepared main UTXO belongs to the wallet.
+      await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+    }
 
     await bridge.setMovedFundsMergeRequest(
       data.movedFundsMergeRequest.walletPubKeyHash,

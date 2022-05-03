@@ -734,40 +734,79 @@ export const MovedFundsMergeWithoutMainUtxo: MovedFundsMergeTestData = {
  * - 1 P2PKH output that locks funds on the merging wallet public key hash
  * - 6+ on-chain confirmations of the transaction
  */
-// TODO: Create an appropriate transaction.
 export const MovedFundsMergeWithMainUtxo: MovedFundsMergeTestData = {
   wallet: {
     // In this scenario, the `ecdsaWalletID` is not relevant at all, so it
     // is an arbitrary hex not connected with the `pubKeyHash`
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
-    pubKeyHash: "",
+    pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
     state: walletState.Live,
   },
 
   movedFundsMergeRequest: {
-    walletPubKeyHash: "",
-    txHash: "",
-    txOutputIndex: 0,
-    txOutputValue: 0,
+    walletPubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+    txHash:
+      "0x7d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed243a8961c8ac5887d5aaf528",
+    txOutputIndex: 1,
+    txOutputValue: 1747020,
   },
 
-  mainUtxo: NO_MAIN_UTXO,
+  mainUtxo: {
+    txHash:
+      "0x7d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed243a8961c8ac5887d5aaf528",
+    txOutputIndex: 0,
+    txOutputValue: 873510,
+  },
 
-  // https://live.blockcypher.com/btc-testnet/tx/
+  // https://live.blockcypher.com/btc-testnet/tx/f97ed3704f59bf5ed828d90f04598ea6c1c65a7957befa1f1c175a142c17fff9
   mergeTx: {
-    hash: "",
+    hash: "0xf9ff172c145a171c1ffabe57795ac6c1a68e59040fd928d85ebf594f70d37ef9",
     version: "0x01000000",
-    inputVector: "",
-    outputVector: "",
+    inputVector:
+      "0x027d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed243a8961c8ac5887d5aaf528" +
+      "010000006b483045022100ff95e465ae7f632026e30dfe6c53df8f445066d735f60e" +
+      "3ec411fc1f753aa8860220740aa810b18d4ae90653db147b35c83827b942177d74a4" +
+      "18aa6d48d387550725012102ee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94" +
+      "117a9c65be3911c5c04effffffff7d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed" +
+      "243a8961c8ac5887d5aaf528000000006a473044022058901f5a01c214c3d8ddb224" +
+      "6876a6f96646826a87a9669eacd0d36bac73225202206c19cc3fc2e899b36d2e8f2e" +
+      "6e6bdaa135e051a14b98990184b9cbcd5a4a1ab8012102ee067a0273f2e3ba88d231" +
+      "40a24fdb290f27bbcd0f94117a9c65be3911c5c04effffffff",
+    outputVector:
+      "0x0132dd2700000000001976a9147ac2d9378a1c47e589dfb8095ca95ed2140d2726" +
+      "88ac",
     locktime: "0x00000000",
   },
 
   mergeProof: {
-    merkleProof: "",
-    txIndexInBlock: 0,
-    bitcoinHeaders: "",
+    merkleProof:
+      "0x604a912ff9006ac6c20fab23ea943d101f71dd2cf1825b7938673d44ce6f4a8860" +
+      "82c37e7e71132ae484a8380fb30b5d66d1421af763203204aa062359ad1b5d9d4c8a" +
+      "ebdb88ac4566dbffee27e92048c9e196716373c5939c742941658c0bb4018b30884b" +
+      "99f5598071cbae60e280e27883fac38f7a837e33e584ece7103588ddc565ca2ffdfa" +
+      "80416d65c783bbe7d163432d7b4c672d1625d44ecc76c310c9626d7cc29488c31358" +
+      "7018b2f7b145fae92c8cbe7fa532a68b3b74eb10006c71",
+    txIndexInBlock: 7,
+    bitcoinHeaders:
+      "0x006000201c234690862d57bafca6380873752eab1eb7ddb1d8d5199afbbce90e00" +
+      "000000f2f2fd2d5af10f8f78b90171c37247ffb98e6d6229ce20ffe53767a0ef9783" +
+      "27a53e7162ffff001ac346d46f040000204cb5f1b69fce2f3582dc0f459ab4c4a5b2" +
+      "408df039c621013e000000000000006a8e27c5f82c300b71b229eb26a9e165d96b8e" +
+      "949e1a3346b9fae51abab86a07453f7162ffff001ab12ec161042000203ecc8b4206" +
+      "7a7141a6efda4cda949fdc018e4f77fb0e40d81a00000000000000caf5dc93216e0b" +
+      "fed194755c1c3139d896878515fd9fa12276486325be351cb7b6407162ffff001a53" +
+      "a5715a00600020ca36c03d1f95c68a24bdddd369f0a6125b2e94c54b5c834d570000" +
+      "0000000000d10f76d21aaad4472e4d6eb4a95964e19397a4ddb60133efff13195fdc" +
+      "44eb84ae427162ffff001a91bdc04804000020f76af131aaa7264739e7ab343ee254" +
+      "c3ffef170af99735ef3600000000000000bdd0c4d6202d006bf51fde290c39af0f03" +
+      "954574a7118d6963bd90edc1cdaf66c4437162ffff001aa5b23c7d0000002067dd95" +
+      "a5b7737427a9ad528d7214c5198514f9b9ba8915877000000000000000075033f3f1" +
+      "960f76f53201048967896f037a4dfb1ce17e4f085f130b76314db975487162ffff00" +
+      "1ddcf355240020002066d4c3153de53837c8c84427e6d755b84b20888b6479bebace" +
+      "b036b000000000b04e55ab011429634c84ee0ad9edf0dea34a1a4adc5d1421a13488" +
+      "03457cd43dce457162ffff001aaf43012c",
   },
 
-  chainDifficulty: 1,
+  chainDifficulty: 16777216,
 }
