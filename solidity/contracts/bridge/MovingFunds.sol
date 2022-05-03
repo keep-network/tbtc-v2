@@ -607,6 +607,7 @@ library MovingFunds {
             abi.encodePacked(mergeTxHash, uint32(0), mergeTxOutputValue)
         );
 
+        // slither-disable-next-line reentrancy-events
         emit MovedFundsMerged(walletPubKeyHash, mergeTxHash);
     }
 
