@@ -33,20 +33,20 @@ describe("Bridge - Fraud", () => {
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
 
+  let fraudChallengeDepositAmount: BigNumber
+  let fraudChallengeDefeatTimeout: BigNumber
   let fraudSlashingAmount: BigNumber
   let fraudNotifierRewardMultiplier: BigNumber
-  let fraudChallengeDefeatTimeout: BigNumber
-  let fraudChallengeDepositAmount: BigNumber
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, treasury, walletRegistry, bridge } =
       await waffle.loadFixture(bridgeFixture))
     ;({
+      fraudChallengeDepositAmount,
+      fraudChallengeDefeatTimeout,
       fraudSlashingAmount,
       fraudNotifierRewardMultiplier,
-      fraudChallengeDefeatTimeout,
-      fraudChallengeDepositAmount,
     } = await bridge.fraudParameters())
   })
 
