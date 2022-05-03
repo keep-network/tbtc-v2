@@ -610,7 +610,45 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.notifyMovingFundsBelowDust(walletPubKeyHash, mainUtxo);
     }
 
-    // TODO: Documentation.
+    /// @notice Used by the wallet to prove the BTC moved funds merge
+    ///         transaction and to make the necessary state changes. Moved
+    ///         funds merge is only accepted if it satisfies SPV proof.
+    ///
+    ///         The function validates the merge transaction structure by
+    ///         checking if it actually spends the moved funds UTXO and the
+    ///         merging wallet's main UTXO (optionally) and locks the value
+    ///         on the merging wallet's 20-byte public key hash, using a
+    ///         reasonable transaction fee. If all preconditions are
+    ///         met, this function updates the merging wallet main UTXO, thus
+    ///         their BTC balance.
+    ///
+    ///         It is possible to prove the given merge transaction only
+    ///         one time.
+    /// @param mergeTx Bitcoin merge funds transaction data
+    /// @param mergeProof Bitcoin merge funds proof data
+    /// @param mainUtxo Data of the merging wallet's main UTXO, as currently
+    ///        known on the Ethereum chain
+    /// @dev Requirements:
+    ///      - `mergeTx` components must match the expected structure. See
+    ///        `BitcoinTx.Info` docs for reference. Their values must exactly
+    ///        correspond to appropriate Bitcoin transaction fields to produce
+    ///        a provable transaction hash.
+    ///      - The `mergeTx` should represent a Bitcoin transaction with
+    ///        the first input pointing to a wallet's merge request and,
+    ///        optionally, the second input pointing to the wallet's main UTXO,
+    ///        if the merging wallet has a main UTXO set. There should be only
+    ///        one output locking funds on the merging wallet 20-byte public
+    ///        key hash.
+    ///      - `mergeProof` components must match the expected structure.
+    ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
+    ///        field must contain a valid number of block headers, not less
+    ///        than the `txProofDifficultyFactor` contract constant.
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the merging wallet, as currently known on the Ethereum chain.
+    ///        If there is no main UTXO, this parameter is ignored.
+    ///      - The merging wallet must be in the Live or MovingFunds state.
+    ///      - The total Bitcoin transaction fee must be lesser or equal
+    ///        to `movedFundsMergeTxMaxTotalFee` governable parameter.
     function submitMovedFundsMergeProof(
         BitcoinTx.Info calldata mergeTx,
         BitcoinTx.Proof calldata mergeProof,

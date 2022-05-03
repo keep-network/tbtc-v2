@@ -513,7 +513,45 @@ library MovingFunds {
         emit MovingFundsBelowDustReported(walletPubKeyHash);
     }
 
-    // TODO: Documentation.
+    /// @notice Used by the wallet to prove the BTC moved funds merge
+    ///         transaction and to make the necessary state changes. Moved
+    ///         funds merge is only accepted if it satisfies SPV proof.
+    ///
+    ///         The function validates the merge transaction structure by
+    ///         checking if it actually spends the moved funds UTXO and the
+    ///         merging wallet's main UTXO (optionally) and locks the value
+    ///         on the merging wallet's 20-byte public key hash, using a
+    ///         reasonable transaction fee. If all preconditions are
+    ///         met, this function updates the merging wallet main UTXO, thus
+    ///         their BTC balance.
+    ///
+    ///         It is possible to prove the given merge transaction only
+    ///         one time.
+    /// @param mergeTx Bitcoin merge funds transaction data
+    /// @param mergeProof Bitcoin merge funds proof data
+    /// @param mainUtxo Data of the merging wallet's main UTXO, as currently
+    ///        known on the Ethereum chain
+    /// @dev Requirements:
+    ///      - `mergeTx` components must match the expected structure. See
+    ///        `BitcoinTx.Info` docs for reference. Their values must exactly
+    ///        correspond to appropriate Bitcoin transaction fields to produce
+    ///        a provable transaction hash.
+    ///      - The `mergeTx` should represent a Bitcoin transaction with
+    ///        the first input pointing to a wallet's merge request and,
+    ///        optionally, the second input pointing to the wallet's main UTXO,
+    ///        if the merging wallet has a main UTXO set. There should be only
+    ///        one output locking funds on the merging wallet 20-byte public
+    ///        key hash.
+    ///      - `mergeProof` components must match the expected structure.
+    ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
+    ///        field must contain a valid number of block headers, not less
+    ///        than the `txProofDifficultyFactor` contract constant.
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the merging wallet, as currently known on the Ethereum chain.
+    ///        If there is no main UTXO, this parameter is ignored.
+    ///      - The merging wallet must be in the Live or MovingFunds state.
+    ///      - The total Bitcoin transaction fee must be lesser or equal
+    ///        to `movedFundsMergeTxMaxTotalFee` governable parameter.
     function submitMovedFundsMergeProof(
         BridgeState.Storage storage self,
         BitcoinTx.Info calldata mergeTx,
@@ -549,9 +587,9 @@ library MovingFunds {
             "Transaction fee is too high"
         );
 
-        // Record this sweep data and assign them to the wallet public key hash
-        // as new main UTXO. Transaction output index is always 0 as merge
-        // transaction always contains only one output.
+        // Use the merge transaction output as the new merging wallet's main UTXO.
+        // Transaction output index is always 0 as merge transaction always
+        // contains only one output.
         wallet.mainUtxoHash = keccak256(
             abi.encodePacked(mergeTxHash, uint32(0), mergeTxOutputValue)
         );
@@ -657,7 +695,34 @@ library MovingFunds {
         }
     }
 
-    // TODO: Documentation.
+    /// @notice Processes the Bitcoin moved funds merge transaction input vector.
+    ///         It extracts the first input and try to match it with one of
+    ///         the moved funds merge requests targeting the merging wallet.
+    ///         If the merge request is found and not yet processed, this
+    ///         function marks it as processed. If the merging wallet has a
+    ///         main UTXO, this function extracts the second input, makes sure
+    ///         it refers to the wallet main UTXO, and marks that main UTXO as
+    ///         correctly spent.
+    /// @param mergeTxInputVector Bitcoin moved funds merge transaction input vector.
+    ///        This function assumes vector's structure is valid so it must be
+    ///        validated using e.g. `BTCUtils.validateVin` function before
+    ///        it is passed here
+    /// @param mainUtxo Data of the merging wallet's main UTXO. If no main UTXO
+    ///        exists for the given the wallet, this parameter's fields should
+    ///        be zeroed to bypass the main UTXO validation
+    /// @param walletPubKeyHash 20-byte public key hash of the merging wallet
+    /// @return inputsTotalValue Total inputs value sum.
+    /// @dev Requirements:
+    ///      - The input vector must consist of one mandatory and one optional
+    ///        input.
+    ///      - The mandatory input must be the first input in the vector
+    ///      - The mandatory input must point to a known moved funds merge
+    ///        request that is not processed yet and belongs to the merging
+    ///        wallet
+    ///      - The optional output must be the second input in the vector
+    ///      - The optional input is required if the merging wallet has a
+    ///        main UTXO (i.e. the `mainUtxo` is not zeroed). In that case,
+    ///        that input must point the the merging wallet main UTXO.
     function processMovedFundsMergeTxInputs(
         BridgeState.Storage storage self,
         bytes memory mergeTxInputVector,
