@@ -648,13 +648,13 @@ describe("Bridge - Parameters", () => {
   describe("updateFraudParameters", () => {
     context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
+        const newFraudChallengeDepositAmount =
+          constants.fraudChallengeDepositAmount.mul(4)
+        const newFraudChallengeDefeatTimeout =
+          constants.fraudChallengeDefeatTimeout * 3
         const newFraudSlashingAmount = constants.fraudSlashingAmount.mul(2)
         const newFraudNotifierRewardMultiplier =
           constants.fraudNotifierRewardMultiplier / 4
-        const newFraudChallengeDefeatTimeout =
-          constants.fraudChallengeDefeatTimeout * 3
-        const newFraudChallengeDepositAmount =
-          constants.fraudChallengeDepositAmount.mul(4)
 
         let tx: ContractTransaction
 
@@ -664,10 +664,10 @@ describe("Bridge - Parameters", () => {
           tx = await bridge
             .connect(governance)
             .updateFraudParameters(
-              newFraudSlashingAmount,
-              newFraudNotifierRewardMultiplier,
+              newFraudChallengeDepositAmount,
               newFraudChallengeDefeatTimeout,
-              newFraudChallengeDepositAmount
+              newFraudSlashingAmount,
+              newFraudNotifierRewardMultiplier
             )
         })
 
@@ -678,15 +678,15 @@ describe("Bridge - Parameters", () => {
         it("should set correct values", async () => {
           const params = await bridge.fraudParameters()
 
-          expect(params.fraudSlashingAmount).to.be.equal(newFraudSlashingAmount)
-          expect(params.fraudNotifierRewardMultiplier).to.be.equal(
-            newFraudNotifierRewardMultiplier
+          expect(params.fraudChallengeDepositAmount).to.be.equal(
+            newFraudChallengeDepositAmount
           )
           expect(params.fraudChallengeDefeatTimeout).to.be.equal(
             newFraudChallengeDefeatTimeout
           )
-          expect(params.fraudChallengeDepositAmount).to.be.equal(
-            newFraudChallengeDepositAmount
+          expect(params.fraudSlashingAmount).to.be.equal(newFraudSlashingAmount)
+          expect(params.fraudNotifierRewardMultiplier).to.be.equal(
+            newFraudNotifierRewardMultiplier
           )
         })
 
@@ -694,11 +694,28 @@ describe("Bridge - Parameters", () => {
           await expect(tx)
             .to.emit(bridge, "FraudParametersUpdated")
             .withArgs(
-              newFraudSlashingAmount,
-              newFraudNotifierRewardMultiplier,
+              newFraudChallengeDepositAmount,
               newFraudChallengeDefeatTimeout,
-              newFraudChallengeDepositAmount
+              newFraudSlashingAmount,
+              newFraudNotifierRewardMultiplier
             )
+        })
+      })
+
+      context("when new fraud challenge defeat timeout is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateFraudParameters(
+                constants.fraudChallengeDepositAmount,
+                0,
+                constants.fraudSlashingAmount,
+                constants.fraudNotifierRewardMultiplier
+              )
+          ).to.be.revertedWith(
+            "Fraud challenge defeat timeout must be greater than zero"
+          )
         })
       })
 
@@ -710,10 +727,10 @@ describe("Bridge - Parameters", () => {
               bridge
                 .connect(governance)
                 .updateFraudParameters(
-                  constants.fraudSlashingAmount,
-                  101,
+                  constants.fraudChallengeDepositAmount,
                   constants.fraudChallengeDefeatTimeout,
-                  constants.fraudChallengeDepositAmount
+                  constants.fraudSlashingAmount,
+                  101
                 )
             ).to.be.revertedWith(
               "Fraud notifier reward multiplier must be in the range [0, 100]"
@@ -721,23 +738,6 @@ describe("Bridge - Parameters", () => {
           })
         }
       )
-
-      context("when new fraud challenge defeat timeout is zero", () => {
-        it("should revert", async () => {
-          await expect(
-            bridge
-              .connect(governance)
-              .updateFraudParameters(
-                constants.fraudSlashingAmount,
-                constants.fraudNotifierRewardMultiplier,
-                0,
-                constants.fraudChallengeDepositAmount
-              )
-          ).to.be.revertedWith(
-            "Fraud challenge defeat timeout must be greater than zero"
-          )
-        })
-      })
     })
 
     context("when caller is not the contract guvnor", () => {
@@ -746,10 +746,10 @@ describe("Bridge - Parameters", () => {
           bridge
             .connect(thirdParty)
             .updateFraudParameters(
-              constants.fraudSlashingAmount,
-              constants.fraudNotifierRewardMultiplier,
+              constants.fraudChallengeDepositAmount,
               constants.fraudChallengeDefeatTimeout,
-              constants.fraudChallengeDepositAmount
+              constants.fraudSlashingAmount,
+              constants.fraudNotifierRewardMultiplier
             )
         ).to.be.revertedWith("Caller is not the governance")
       })

@@ -194,10 +194,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
     );
 
     event FraudParametersUpdated(
-        uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDepositAmount,
         uint256 fraudChallengeDefeatTimeout,
-        uint256 fraudChallengeDepositAmount
+        uint96 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier
     );
 
     constructor(
@@ -239,10 +239,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.movingFundsTimeout = 7 days;
         self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
+        self.fraudChallengeDepositAmount = 2 ether;
+        self.fraudChallengeDefeatTimeout = 7 days;
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
-        self.fraudChallengeDefeatTimeout = 7 days;
-        self.fraudChallengeDepositAmount = 2 ether;
         self.walletCreationPeriod = 1 weeks;
         self.walletCreationMinBtcBalance = 1e8; // 1 BTC
         self.walletCreationMaxBtcBalance = 100e8; // 100 BTC
@@ -1067,6 +1067,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
     }
 
     /// @notice Updates parameters related to frauds.
+    /// @param fraudChallengeDepositAmount New value of the fraud challenge
+    ///        deposit amount in wei, it is the amount of ETH the party
+    ///        challenging the wallet for fraud needs to deposit
+    /// @param fraudChallengeDefeatTimeout New value of the challenge defeat
+    ///        timeout in seconds, it is the amount of time the wallet has to
+    ///        defeat a fraud challenge. The value must be greater than zero
     /// @param fraudSlashingAmount New value of the fraud slashing amount in T,
     ///        it is the amount slashed from each wallet member for committing
     ///        a fraud
@@ -1074,26 +1080,20 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        reward multiplier as percentage, it determines the percentage of
     ///        the notifier reward from the staking contact the notifier of
     ///        a fraud receives. The value must be in the range [0, 100]
-    /// @param fraudChallengeDefeatTimeout New value of the challenge defeat
-    ///        timeout in seconds, it is the amount of time the wallet has to
-    ///        defeat a fraud challenge. The value must be greater than zero
-    /// @param fraudChallengeDepositAmount New value of the fraud challenge
-    ///        deposit amount in wei, it is the amount of ETH the party
-    ///        challenging the wallet for fraud needs to deposit
     /// @dev Requirements:
-    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     ///      - Fraud challenge defeat timeout must be greater than 0
+    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     function updateFraudParameters(
-        uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDepositAmount,
         uint256 fraudChallengeDefeatTimeout,
-        uint256 fraudChallengeDepositAmount
+        uint96 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateFraudParameters(
-            fraudSlashingAmount,
-            fraudNotifierRewardMultiplier,
+            fraudChallengeDepositAmount,
             fraudChallengeDefeatTimeout,
-            fraudChallengeDepositAmount
+            fraudSlashingAmount,
+            fraudNotifierRewardMultiplier
         );
     }
 
@@ -1373,29 +1373,29 @@ contract Bridge is Governable, EcdsaWalletOwner {
     }
 
     /// @notice Returns the current values of Bridge fraud parameters.
+    /// @return fraudChallengeDepositAmount The amount of ETH in wei the party
+    ///         challenging the wallet for fraud needs to deposit.
+    /// @return fraudChallengeDefeatTimeout The amount of time the wallet has to
+    ///         defeat a fraud challenge.
     /// @return fraudSlashingAmount The amount slashed from each wallet member
     ///         for committing a fraud.
     /// @return fraudNotifierRewardMultiplier The percentage of the notifier
     ///         reward from the staking contract the notifier of a fraud
     ///         receives. The value is in the range [0, 100].
-    /// @return fraudChallengeDefeatTimeout The amount of time the wallet has to
-    ///         defeat a fraud challenge.
-    /// @return fraudChallengeDepositAmount The amount of ETH in wei the party
-    ///         challenging the wallet for fraud needs to deposit.
     function fraudParameters()
         external
         view
         returns (
-            uint96 fraudSlashingAmount,
-            uint256 fraudNotifierRewardMultiplier,
+            uint256 fraudChallengeDepositAmount,
             uint256 fraudChallengeDefeatTimeout,
-            uint256 fraudChallengeDepositAmount
+            uint96 fraudSlashingAmount,
+            uint256 fraudNotifierRewardMultiplier
         )
     {
+        fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
+        fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
         fraudSlashingAmount = self.fraudSlashingAmount;
         fraudNotifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
-        fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
-        fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
     }
 
     /// @notice Returns the addresses of contracts Bridge is interacting with.

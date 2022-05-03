@@ -23,10 +23,10 @@ export const constants = {
   walletMaxAge: 8 * 604800, // 8 weeks,
   walletMaxBtcTransfer: to1ePrecision(10, 8), // 10 BTC
   walletClosingPeriod: 3456000, // 40 days
+  fraudChallengeDepositAmount: to1ePrecision(2, 18), // 2 ethers
+  fraudChallengeDefeatTimeout: 604800, // 1 week
   fraudSlashingAmount: to1ePrecision(10000, 18), // 10000 T
   fraudNotifierRewardMultiplier: 100, // 100%
-  fraudChallengeDefeatTimeout: 604800, // 1 week
-  fraudChallengeDepositAmount: to1ePrecision(2, 18), // 2 ethers
 }
 
 export const walletState = {

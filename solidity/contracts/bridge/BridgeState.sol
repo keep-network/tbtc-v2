@@ -165,16 +165,16 @@ library BridgeState {
         //    mapping basing on a timed out request stored previously in
         //    `pendingRedemptions` mapping.
         mapping(uint256 => Redemption.RedemptionRequest) timedOutRedemptions;
+        // The amount of ETH in wei the party challenging the wallet for fraud
+        // needs to deposit.
+        uint256 fraudChallengeDepositAmount;
+        // The amount of time the wallet has to defeat a fraud challenge.
+        uint256 fraudChallengeDefeatTimeout;
         // The amount of stake slashed from each member of a wallet for a fraud.
         uint96 fraudSlashingAmount;
         // The percentage of the notifier reward from the staking contract
         // the notifier of a fraud receives. The value is in the range [0, 100].
         uint256 fraudNotifierRewardMultiplier;
-        // The amount of time the wallet has to defeat a fraud challenge.
-        uint256 fraudChallengeDefeatTimeout;
-        // The amount of ETH in wei the party challenging the wallet for fraud
-        // needs to deposit.
-        uint256 fraudChallengeDepositAmount;
         // Collection of all submitted fraud challenges indexed by challenge
         // key built as `keccak256(walletPublicKey|sighash)`.
         mapping(uint256 => Fraud.FraudChallenge) fraudChallenges;
@@ -260,10 +260,10 @@ library BridgeState {
     );
 
     event FraudParametersUpdated(
-        uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDepositAmount,
         uint256 fraudChallengeDefeatTimeout,
-        uint256 fraudChallengeDepositAmount
+        uint96 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier
     );
 
     /// @notice Updates parameters of deposits.
@@ -568,6 +568,12 @@ library BridgeState {
     }
 
     /// @notice Updates parameters related to frauds.
+    /// @param _fraudChallengeDepositAmount New value of the fraud challenge
+    ///        deposit amount in wei, it is the amount of ETH the party
+    ///        challenging the wallet for fraud needs to deposit
+    /// @param _fraudChallengeDefeatTimeout New value of the challenge defeat
+    ///        timeout in seconds, it is the amount of time the wallet has to
+    ///        defeat a fraud challenge. The value must be greater than zero
     /// @param _fraudSlashingAmount New value of the fraud slashing amount in T,
     ///        it is the amount slashed from each wallet member for committing
     ///        a fraud
@@ -575,42 +581,36 @@ library BridgeState {
     ///        reward multiplier as percentage, it determines the percentage of
     ///        the notifier reward from the staking contact the notifier of
     ///        a fraud receives. The value must be in the range [0, 100]
-    /// @param _fraudChallengeDefeatTimeout New value of the challenge defeat
-    ///        timeout in seconds, it is the amount of time the wallet has to
-    ///        defeat a fraud challenge. The value must be greater than zero
-    /// @param _fraudChallengeDepositAmount New value of the fraud challenge
-    ///        deposit amount in wei, it is the amount of ETH the party
-    ///        challenging the wallet for fraud needs to deposit
     /// @dev Requirements:
-    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     ///      - Fraud challenge defeat timeout must be greater than 0
+    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     function updateFraudParameters(
         Storage storage self,
-        uint96 _fraudSlashingAmount,
-        uint256 _fraudNotifierRewardMultiplier,
+        uint256 _fraudChallengeDepositAmount,
         uint256 _fraudChallengeDefeatTimeout,
-        uint256 _fraudChallengeDepositAmount
+        uint96 _fraudSlashingAmount,
+        uint256 _fraudNotifierRewardMultiplier
     ) internal {
-        require(
-            _fraudNotifierRewardMultiplier <= 100,
-            "Fraud notifier reward multiplier must be in the range [0, 100]"
-        );
-
         require(
             _fraudChallengeDefeatTimeout > 0,
             "Fraud challenge defeat timeout must be greater than zero"
         );
 
+        require(
+            _fraudNotifierRewardMultiplier <= 100,
+            "Fraud notifier reward multiplier must be in the range [0, 100]"
+        );
+
+        self.fraudChallengeDepositAmount = _fraudChallengeDepositAmount;
+        self.fraudChallengeDefeatTimeout = _fraudChallengeDefeatTimeout;
         self.fraudSlashingAmount = _fraudSlashingAmount;
         self.fraudNotifierRewardMultiplier = _fraudNotifierRewardMultiplier;
-        self.fraudChallengeDefeatTimeout = _fraudChallengeDefeatTimeout;
-        self.fraudChallengeDepositAmount = _fraudChallengeDepositAmount;
 
         emit FraudParametersUpdated(
-            _fraudSlashingAmount,
-            _fraudNotifierRewardMultiplier,
+            _fraudChallengeDepositAmount,
             _fraudChallengeDefeatTimeout,
-            _fraudChallengeDepositAmount
+            _fraudSlashingAmount,
+            _fraudNotifierRewardMultiplier
         );
     }
 }
