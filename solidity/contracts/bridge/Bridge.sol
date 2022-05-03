@@ -121,6 +121,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
 
+    event MovedFundsMerged(bytes20 walletPubKeyHash, bytes32 mergeTxHash);
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -231,6 +233,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
         self.movingFundsTimeout = 7 days;
         self.movingFundsDustThreshold = 20000; // 20000 satoshi
+        self.movedFundsMergeTxMaxTotalFee = 10000; // 10000 satoshi
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.fraudChallengeDefeatTimeout = 7 days;
@@ -605,6 +608,15 @@ contract Bridge is Governable, EcdsaWalletOwner {
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
         self.notifyMovingFundsBelowDust(walletPubKeyHash, mainUtxo);
+    }
+
+    // TODO: Documentation.
+    function submitMovedFundsMergeProof(
+        BitcoinTx.Info calldata mergeTx,
+        BitcoinTx.Proof calldata mergeProof,
+        BitcoinTx.UTXO calldata mainUtxo
+    ) external {
+        self.submitMovedFundsMergeProof(mergeTx, mergeProof, mainUtxo);
     }
 
     /// @notice Requests creation of a new wallet. This function just

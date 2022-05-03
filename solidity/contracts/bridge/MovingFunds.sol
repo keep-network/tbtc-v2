@@ -62,6 +62,8 @@ library MovingFunds {
         // 20-byte public key hash of the wallet supposed to merge the UTXO
         // representing the received funds with their own main UTXO
         bytes20 walletPubKeyHash;
+        // Value of the received funds.
+        uint64 value;
         // UNIX timestamp the request was created at.
         uint32 createdAt;
         // UNIX timestamp the funds were merged at.
@@ -82,6 +84,8 @@ library MovingFunds {
     event MovingFundsTimedOut(bytes20 walletPubKeyHash);
 
     event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
+
+    event MovedFundsMerged(bytes20 walletPubKeyHash, bytes32 mergeTxHash);
 
     /// @notice Submits the moving funds target wallets commitment.
     ///         Once all requirements are met, that function registers the
@@ -366,7 +370,9 @@ library MovingFunds {
                 outputLength
             );
 
-            bytes20 targetWalletPubKeyHash = self.processPubKeyHashTxOutput(output);
+            bytes20 targetWalletPubKeyHash = self.processPubKeyHashTxOutput(
+                output
+            );
 
             // Add the wallet public key hash to the list that will be used
             // to build the result list hash. There is no need to check if
@@ -395,6 +401,7 @@ library MovingFunds {
                 )
             ] = MovedFundsMergeRequest(
                 targetWalletPubKeyHash,
+                outputsValues[i],
                 /* solhint-disable-next-line not-rely-on-time */
                 uint32(block.timestamp),
                 0
@@ -504,5 +511,266 @@ library MovingFunds {
 
         // slither-disable-next-line reentrancy-events
         emit MovingFundsBelowDustReported(walletPubKeyHash);
+    }
+
+    // TODO: Documentation.
+    function submitMovedFundsMergeProof(
+        BridgeState.Storage storage self,
+        BitcoinTx.Info calldata mergeTx,
+        BitcoinTx.Proof calldata mergeProof,
+        BitcoinTx.UTXO calldata mainUtxo
+    ) external {
+        // The actual transaction proof is performed here. After that point, we
+        // can assume the transaction happened on Bitcoin chain and has
+        // a sufficient number of confirmations as determined by
+        // `txProofDifficultyFactor` constant.
+        bytes32 mergeTxHash = self.validateProof(mergeTx, mergeProof);
+
+        (
+            bytes20 walletPubKeyHash,
+            uint64 mergeTxOutputValue
+        ) = processMovedFundsMergeTxOutput(self, mergeTx.outputVector);
+
+        (
+            Wallets.Wallet storage wallet,
+            BitcoinTx.UTXO memory resolvedMainUtxo
+        ) = resolveMergingWallet(self, walletPubKeyHash, mainUtxo);
+
+        uint256 mergeTxInputsTotalValue = processMovedFundsMergeTxInputs(
+            self,
+            mergeTx.inputVector,
+            resolvedMainUtxo,
+            walletPubKeyHash
+        );
+
+        require(
+            mergeTxInputsTotalValue - mergeTxOutputValue <=
+                self.movedFundsMergeTxMaxTotalFee,
+            "Transaction fee is too high"
+        );
+
+        // Record this sweep data and assign them to the wallet public key hash
+        // as new main UTXO. Transaction output index is always 0 as merge
+        // transaction always contains only one output.
+        wallet.mainUtxoHash = keccak256(
+            abi.encodePacked(mergeTxHash, uint32(0), mergeTxOutputValue)
+        );
+
+        emit MovedFundsMerged(walletPubKeyHash, mergeTxHash);
+    }
+
+    /// @notice Processes the Bitcoin moved funds transaction output vector by
+    ///         extracting the single output and using it to gain additional
+    ///         information required for further processing (e.g. value and
+    ///         wallet public key hash).
+    /// @param mergeTxOutputVector Bitcoin moved funds merge transaction output
+    ///        vector.
+    ///        This function assumes vector's structure is valid so it must be
+    ///        validated using e.g. `BTCUtils.validateVout` function before
+    ///        it is passed here
+    /// @return walletPubKeyHash 20-byte wallet public key hash.
+    /// @return value 8-byte moved funds merge transaction output value.
+    /// @dev Requirements:
+    ///      - Output vector must contain only one output
+    ///      - The single output must be of P2PKH or P2WPKH type and lock the
+    ///        funds on a 20-byte public key hash
+    function processMovedFundsMergeTxOutput(
+        BridgeState.Storage storage self,
+        bytes memory mergeTxOutputVector
+    ) internal view returns (bytes20 walletPubKeyHash, uint64 value) {
+        // To determine the total number of merge transaction outputs, we need to
+        // parse the compactSize uint (VarInt) the output vector is prepended by.
+        // That compactSize uint encodes the number of vector elements using the
+        // format presented in:
+        // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
+        // We don't need asserting the compactSize uint is parseable since it
+        // was already checked during `validateVout` validation.
+        // See `BitcoinTx.outputVector` docs for more details.
+        (, uint256 outputsCount) = mergeTxOutputVector.parseVarInt();
+        require(
+            outputsCount == 1,
+            "Moved funds merge transaction must have a single output"
+        );
+
+        bytes memory output = mergeTxOutputVector.extractOutputAtIndex(0);
+        walletPubKeyHash = self.processPubKeyHashTxOutput(output);
+        value = output.extractValue();
+
+        return (walletPubKeyHash, value);
+    }
+
+    /// @notice Resolves merging wallet based on the provided wallet public key
+    ///         hash. Validates the wallet state and current main UTXO, as
+    ///         currently known on the Ethereum chain.
+    /// @param walletPubKeyHash public key hash of the wallet proving the merge
+    ///        Bitcoin transaction.
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain. If no main UTXO exists for the given wallet,
+    ///        this parameter is ignored
+    /// @return wallet Data of the merging wallet.
+    /// @return resolvedMainUtxo The actual main UTXO of the merging wallet
+    ///         resolved by cross-checking the `mainUtxo` parameter with
+    ///         the chain state. If the validation went well, this is the
+    ///         plain-text main UTXO corresponding to the `wallet.mainUtxoHash`.
+    /// @dev Requirements:
+    ///     - Merging wallet must be either in Live or MovingFunds state.
+    ///     - If the main UTXO of the merging wallet exists in the storage,
+    ///       the passed `mainUTXO` parameter must be equal to the stored one.
+    function resolveMergingWallet(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata mainUtxo
+    )
+        internal
+        view
+        returns (
+            Wallets.Wallet storage wallet,
+            BitcoinTx.UTXO memory resolvedMainUtxo
+        )
+    {
+        wallet = self.registeredWallets[walletPubKeyHash];
+
+        Wallets.WalletState walletState = wallet.state;
+        require(
+            walletState == Wallets.WalletState.Live ||
+                walletState == Wallets.WalletState.MovingFunds,
+            "Wallet must be in Live or MovingFunds state"
+        );
+
+        // Check if the main UTXO for given wallet exists. If so, validate
+        // passed main UTXO data against the stored hash and use them for
+        // further processing. If no main UTXO exists, use empty data.
+        resolvedMainUtxo = BitcoinTx.UTXO(bytes32(0), 0, 0);
+        bytes32 mainUtxoHash = wallet.mainUtxoHash;
+        if (mainUtxoHash != bytes32(0)) {
+            require(
+                keccak256(
+                    abi.encodePacked(
+                        mainUtxo.txHash,
+                        mainUtxo.txOutputIndex,
+                        mainUtxo.txOutputValue
+                    )
+                ) == mainUtxoHash,
+                "Invalid main UTXO data"
+            );
+            resolvedMainUtxo = mainUtxo;
+        }
+    }
+
+    // TODO: Documentation.
+    function processMovedFundsMergeTxInputs(
+        BridgeState.Storage storage self,
+        bytes memory mergeTxInputVector,
+        BitcoinTx.UTXO memory mainUtxo,
+        bytes20 walletPubKeyHash
+    ) internal returns (uint256 inputsTotalValue) {
+        // To determine the total number of Bitcoin transaction inputs,
+        // we need to parse the compactSize uint (VarInt) the input vector is
+        // prepended by. That compactSize uint encodes the number of vector
+        // elements using the format presented in:
+        // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
+        // We don't need asserting the compactSize uint is parseable since it
+        // was already checked during `validateVin` validation.
+        // See `BitcoinTx.inputVector` docs for more details.
+        (, uint256 inputsCount) = mergeTxInputVector.parseVarInt();
+        // We always expect the first input to be the merged UTXO. Additionally,
+        // if the merging wallet has a main UTXO, that main UTXO should be
+        // pointed by the second input.
+        require(
+            inputsCount == (mainUtxo.txHash != bytes32(0) ? 2 : 1),
+            "Moved funds merge transaction must have a proper inputs count"
+        );
+
+        // Parse the first input and extract its outpoint tx hash and index.
+        (
+            bytes32 firstOutpointTxHash,
+            uint32 firstOutpointIndex
+        ) = parseTxInputAt(mergeTxInputVector, 0);
+        // Build the request key and fetch the corresponding moved funds merge
+        // request from contract storage.
+        MovedFundsMergeRequest storage mergeRequest = self
+            .movedFundsMergeRequests[
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            firstOutpointTxHash,
+                            firstOutpointIndex
+                        )
+                    )
+                )
+            ];
+
+        // The merge request must exist, must be not processed yet, and must
+        // belong to the merging wallet.
+        require(mergeRequest.createdAt != 0, "Merge request does not exist");
+        require(mergeRequest.mergedAt == 0, "Merge request already processed");
+        require(
+            mergeRequest.walletPubKeyHash == walletPubKeyHash,
+            "Merge request belongs to another wallet"
+        );
+        // If the validation passed, the merge request must be marked as
+        // processed and its value should be counted into the total inputs
+        // value sum.
+        /* solhint-disable-next-line not-rely-on-time */
+        mergeRequest.mergedAt = uint32(block.timestamp);
+        inputsTotalValue += mergeRequest.value;
+
+        // If the main UTXO for the merging wallet exists, it must be processed.
+        if (mainUtxo.txHash != bytes32(0)) {
+            // The second input is supposed to point to that merging wallet
+            // main UTXO. We need to parse that input.
+            (
+                bytes32 secondOutpointTxHash,
+                uint32 secondOutpointIndex
+            ) = parseTxInputAt(mergeTxInputVector, 1);
+            // Make sure the second input refers to the merging wallet main UTXO.
+            require(
+                mainUtxo.txHash == secondOutpointTxHash &&
+                    mainUtxo.txOutputIndex == secondOutpointIndex,
+                "Second input must point to the wallet's main UTXO"
+            );
+
+            // If the validation passed, count the main UTXO value into the
+            // total inputs value sum.
+            inputsTotalValue += mainUtxo.txOutputValue;
+
+            // Main UTXO used as an input, mark it as spent. This is needed
+            // to defend against fraud challenges referring to this main UTXO.
+            self.spentMainUTXOs[
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            secondOutpointTxHash,
+                            secondOutpointIndex
+                        )
+                    )
+                )
+            ] = true;
+        }
+
+        return inputsTotalValue;
+    }
+
+    /// @notice Parses a Bitcoin transaction input starting at the given index.
+    /// @param inputVector Bitcoin transaction input vector
+    /// @param inputStartingIndex Index the given input starts at
+    /// @return outpointTxHash 32-byte hash of the Bitcoin transaction which is
+    ///         pointed in the given input's outpoint.
+    /// @return outpointIndex 4-byte index of the Bitcoin transaction output
+    ///         which is pointed in the given input's outpoint.
+    /// @dev This function assumes vector's structure is valid so it must be
+    ///      validated using e.g. `BTCUtils.validateVin` function before it
+    ///      is passed here.
+    function parseTxInputAt(
+        bytes memory inputVector,
+        uint256 inputStartingIndex
+    ) internal pure returns (bytes32 outpointTxHash, uint32 outpointIndex) {
+        outpointTxHash = inputVector.extractInputTxIdLeAt(inputStartingIndex);
+
+        outpointIndex = BTCUtils.reverseUint32(
+            uint32(inputVector.extractTxIndexLeAt(inputStartingIndex))
+        );
+
+        return (outpointTxHash, outpointIndex);
     }
 }

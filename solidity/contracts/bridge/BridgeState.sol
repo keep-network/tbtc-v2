@@ -95,6 +95,14 @@ library BridgeState {
         // transferring such a low value may not be possible due to
         // BTC network fees.
         uint64 movingFundsDustThreshold;
+        // Maximum amount of the total BTC transaction fee that is acceptable in
+        // a single moved funds merge transaction.
+        //
+        // This is a TOTAL max fee for the moved funds merge transaction. Note
+        // that `depositTxMaxFee` is per single deposit and `redemptionTxMaxFee`
+        // if per single redemption. `movedFundsMergeTxMaxTotalFee` is a total
+        // fee for the entire transaction.
+        uint64 movedFundsMergeTxMaxTotalFee;
         // Collection of all moved funds merge requests indexed by
         // `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
         // The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin

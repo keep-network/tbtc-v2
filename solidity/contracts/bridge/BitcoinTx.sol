@@ -243,7 +243,7 @@ library BitcoinTx {
     function processPubKeyHashTxOutput(
         BridgeState.Storage storage,
         bytes memory output
-    ) internal view returns(bytes20 pubKeyHash) {
+    ) internal view returns (bytes20 pubKeyHash) {
         bytes memory pubKeyHashBytes = output.extractHash();
 
         require(
@@ -292,7 +292,7 @@ library BitcoinTx {
         // or P2WPKH format.
         require(
             outputScriptKeccak == P2PKHScriptKeccak ||
-            outputScriptKeccak == P2WPKHScriptKeccak,
+                outputScriptKeccak == P2WPKHScriptKeccak,
             "Output must be P2PKH or P2WPKH"
         );
 
