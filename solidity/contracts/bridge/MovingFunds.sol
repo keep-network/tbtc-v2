@@ -751,7 +751,28 @@ library MovingFunds {
         // We don't need asserting the compactSize uint is parseable since it
         // was already checked during `validateVin` validation.
         // See `BitcoinTx.inputVector` docs for more details.
-        (, uint256 inputsCount) = mergeTxInputVector.parseVarInt();
+        (
+            uint256 inputsCompactSizeUintLength,
+            uint256 inputsCount
+        ) = mergeTxInputVector.parseVarInt();
+
+        // To determine the first input starting index, we must jump over
+        // the compactSize uint which prepends the input vector. One byte
+        // must be added because `BtcUtils.parseVarInt` does not include
+        // compactSize uint tag in the returned length.
+        //
+        // For >= 0 && <= 252, `BTCUtils.determineVarIntDataLengthAt`
+        // returns `0`, so we jump over one byte of compactSize uint.
+        //
+        // For >= 253 && <= 0xffff there is `0xfd` tag,
+        // `BTCUtils.determineVarIntDataLengthAt` returns `2` (no
+        // tag byte included) so we need to jump over 1+2 bytes of
+        // compactSize uint.
+        //
+        // Please refer `BTCUtils` library and compactSize uint
+        // docs in `BitcoinTx` library for more details.
+        uint256 inputStartingIndex = 1 + inputsCompactSizeUintLength;
+
         // We always expect the first input to be the merged UTXO. Additionally,
         // if the merging wallet has a main UTXO, that main UTXO should be
         // pointed by the second input.
@@ -762,9 +783,11 @@ library MovingFunds {
 
         // Parse the first input and extract its outpoint tx hash and index.
         (
-            bytes32 firstOutpointTxHash,
-            uint32 firstOutpointIndex
-        ) = parseTxInputAt(mergeTxInputVector, 0);
+            bytes32 firstInputOutpointTxHash,
+            uint32 firstInputOutpointIndex,
+            uint256 firstInputLength
+        ) = parseTxInputAt(mergeTxInputVector, inputStartingIndex);
+
         // Build the request key and fetch the corresponding moved funds merge
         // request from contract storage.
         MovedFundsMergeRequest storage mergeRequest = self
@@ -772,8 +795,8 @@ library MovingFunds {
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            firstOutpointTxHash,
-                            firstOutpointIndex
+                            firstInputOutpointTxHash,
+                            firstInputOutpointIndex
                         )
                     )
                 )
@@ -803,13 +826,17 @@ library MovingFunds {
             // The second input is supposed to point to that merging wallet
             // main UTXO. We need to parse that input.
             (
-                bytes32 secondOutpointTxHash,
-                uint32 secondOutpointIndex
-            ) = parseTxInputAt(mergeTxInputVector, 1);
+                bytes32 secondInputOutpointTxHash,
+                uint32 secondInputOutpointIndex,
+
+            ) = parseTxInputAt(
+                    mergeTxInputVector,
+                    inputStartingIndex + firstInputLength
+                );
             // Make sure the second input refers to the merging wallet main UTXO.
             require(
-                mainUtxo.txHash == secondOutpointTxHash &&
-                    mainUtxo.txOutputIndex == secondOutpointIndex,
+                mainUtxo.txHash == secondInputOutpointTxHash &&
+                    mainUtxo.txOutputIndex == secondInputOutpointIndex,
                 "Second input must point to the wallet's main UTXO"
             );
 
@@ -823,8 +850,8 @@ library MovingFunds {
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            secondOutpointTxHash,
-                            secondOutpointIndex
+                            secondInputOutpointTxHash,
+                            secondInputOutpointIndex
                         )
                     )
                 )
@@ -841,19 +868,30 @@ library MovingFunds {
     ///         pointed in the given input's outpoint.
     /// @return outpointIndex 4-byte index of the Bitcoin transaction output
     ///         which is pointed in the given input's outpoint.
+    /// @return inputLength Byte length of the given input.
     /// @dev This function assumes vector's structure is valid so it must be
     ///      validated using e.g. `BTCUtils.validateVin` function before it
     ///      is passed here.
     function parseTxInputAt(
         bytes memory inputVector,
         uint256 inputStartingIndex
-    ) internal pure returns (bytes32 outpointTxHash, uint32 outpointIndex) {
+    )
+        internal
+        pure
+        returns (
+            bytes32 outpointTxHash,
+            uint32 outpointIndex,
+            uint256 inputLength
+        )
+    {
         outpointTxHash = inputVector.extractInputTxIdLeAt(inputStartingIndex);
 
         outpointIndex = BTCUtils.reverseUint32(
             uint32(inputVector.extractTxIndexLeAt(inputStartingIndex))
         );
 
-        return (outpointTxHash, outpointIndex);
+        inputLength = inputVector.determineInputLengthAt(inputStartingIndex);
+
+        return (outpointTxHash, outpointIndex, inputLength);
     }
 }
