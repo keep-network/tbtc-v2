@@ -793,6 +793,10 @@ library MovingFunds {
         mergeRequest.mergedAt = uint32(block.timestamp);
         inputsTotalValue += mergeRequest.value;
 
+        // TODO: Decrease the merge request count for the merging wallet.
+        //       That will be handled in the PR that will block moving
+        //       funds commitments for wallets with pending merge requests.
+
         // If the main UTXO for the merging wallet exists, it must be processed.
         if (mainUtxo.txHash != bytes32(0)) {
             // The second input is supposed to point to that merging wallet
