@@ -1125,7 +1125,7 @@ describe("Bridge - Moving funds", () => {
 
                     it("should revert", async () => {
                       await expect(tx).to.be.revertedWith(
-                        "Target wallet public key hash must have 20 bytes"
+                        "Output's public key hash must have 20 bytes"
                       )
                     })
                   }

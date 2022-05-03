@@ -366,19 +366,7 @@ library MovingFunds {
                 outputLength
             );
 
-            // Extract the output script payload.
-            bytes memory targetWalletPubKeyHashBytes = output.extractHash();
-            // Output script payload must refer to a known wallet public key
-            // hash which is always 20-byte.
-            require(
-                targetWalletPubKeyHashBytes.length == 20,
-                "Target wallet public key hash must have 20 bytes"
-            );
-
-            bytes20 targetWalletPubKeyHash = targetWalletPubKeyHashBytes
-                .slice20(0);
-
-            validateMovingFundsTxOutputType(output, targetWalletPubKeyHash);
+            bytes20 targetWalletPubKeyHash = self.processPubKeyHashTxOutput(output);
 
             // Add the wallet public key hash to the list that will be used
             // to build the result list hash. There is no need to check if
@@ -438,62 +426,6 @@ library MovingFunds {
         targetWalletsHash = keccak256(abi.encodePacked(targetWallets));
 
         return (targetWalletsHash, outputsTotalValue);
-    }
-
-    /// @notice Validates that the given output uses the target wallet public
-    ///         key hash in the right context of a P2PKH or P2WPKH output.
-    ///         Reverts if the validation fails.
-    /// @param output The moving funds transaction output
-    /// @param targetWalletPubKeyHash 20-byte public key hash of the target wallet
-    /// @dev Requirements:
-    ///      - The output must be of P2PKH or P2WPKH type and lock the funds
-    ///        on the 20-byte public key hash of the target wallet
-    function validateMovingFundsTxOutputType(
-        bytes memory output,
-        bytes20 targetWalletPubKeyHash
-    ) internal {
-        // The validation is about making sure that the 20-byte public key hash
-        // is actually used in the right context of a P2PKH or P2WPKH
-        // output. To do so, we must extract the full script from the output
-        // and compare with the expected P2PKH and P2WPKH scripts
-        // referring to that 20-byte public key hash. The output consists
-        // of an 8-byte value and a variable length script. To extract the
-        // script we slice the output starting from 9th byte until the end.
-        bytes32 outputScriptKeccak = keccak256(
-            output.slice(8, output.length - 8)
-        );
-        // Build the expected P2PKH script which has the following byte
-        // format: <0x1976a914> <20-byte PKH> <0x88ac>. According to
-        // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-        // - 0x19: Byte length of the entire script
-        // - 0x76: OP_DUP
-        // - 0xa9: OP_HASH160
-        // - 0x14: Byte length of the public key hash
-        // - 0x88: OP_EQUALVERIFY
-        // - 0xac: OP_CHECKSIG
-        // which matches the P2PKH structure as per:
-        // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
-        bytes32 targetWalletP2PKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"1976a914", targetWalletPubKeyHash, hex"88ac")
-        );
-        // Build the expected P2WPKH script which has the following format:
-        // <0x160014> <20-byte PKH>. According to
-        // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-        // - 0x16: Byte length of the entire script
-        // - 0x00: OP_0
-        // - 0x14: Byte length of the public key hash
-        // which matches the P2WPKH structure as per:
-        // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
-        bytes32 targetWalletP2WPKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"160014", targetWalletPubKeyHash)
-        );
-        // Make sure the actual output script matches either the P2PKH
-        // or P2WPKH format.
-        require(
-            outputScriptKeccak == targetWalletP2PKHScriptKeccak ||
-                outputScriptKeccak == targetWalletP2WPKHScriptKeccak,
-            "Output must be P2PKH or P2WPKH"
-        );
     }
 
     /// @notice Notifies about a timed out moving funds process. Terminates
