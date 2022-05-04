@@ -416,7 +416,9 @@ library MovingFunds {
             );
             // We added a new moved funds merge request for the target wallet
             // so we must increment their request counter.
-            self.registeredWallets[targetWalletPubKeyHash].pendingMovedFundsMergeRequestsCount++;
+            self
+                .registeredWallets[targetWalletPubKeyHash]
+                .pendingMovedFundsMergeRequestsCount++;
 
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.
@@ -828,9 +830,9 @@ library MovingFunds {
         mergeRequest.mergedAt = uint32(block.timestamp);
         inputsTotalValue += mergeRequest.value;
 
-        // TODO: Decrease the merge request count for the merging wallet.
-        //       That will be handled in the PR that will block moving
-        //       funds commitments for wallets with pending merge requests.
+        self
+            .registeredWallets[walletPubKeyHash]
+            .pendingMovedFundsMergeRequestsCount--;
 
         // If the main UTXO for the merging wallet exists, it must be processed.
         if (mainUtxo.txHash != bytes32(0)) {

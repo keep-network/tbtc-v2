@@ -99,7 +99,7 @@ contract BridgeStub is Bridge {
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
     }
 
-    function setMovedFundsMergeRequest(
+    function setPendingMovedFundsMergeRequest(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
@@ -115,9 +115,13 @@ contract BridgeStub is Bridge {
                 uint32(block.timestamp),
                 0
             );
+
+        self
+            .registeredWallets[walletPubKeyHash]
+            .pendingMovedFundsMergeRequestsCount++;
     }
 
-    function setProcessedMovedFundsMergeRequest(
+    function processPendingMovedFundsMergeRequest(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
@@ -125,15 +129,17 @@ contract BridgeStub is Bridge {
             keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
         );
 
-        self.movedFundsMergeRequests[requestKey] = MovingFunds
-            .MovedFundsMergeRequest(
-                walletPubKeyHash,
-                utxo.txOutputValue,
-                /* solhint-disable-next-line not-rely-on-time */
-                uint32(block.timestamp),
-                /* solhint-disable-next-line not-rely-on-time */
-                uint32(block.timestamp)
-            );
+        MovingFunds.MovedFundsMergeRequest storage request = self
+            .movedFundsMergeRequests[requestKey];
+
+        require(request.createdAt != 0, "Stub merge request does not exist");
+
+        /* solhint-disable-next-line not-rely-on-time */
+        request.mergedAt = uint32(block.timestamp);
+
+        self
+            .registeredWallets[walletPubKeyHash]
+            .pendingMovedFundsMergeRequestsCount--;
     }
 
     function setMovedFundsMergeTxMaxTotalFee(

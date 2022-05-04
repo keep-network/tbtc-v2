@@ -1,6 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 import { ethers, helpers, waffle } from "hardhat"
-import chai, { expect } from "chai"
+import chai, { assert, expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
@@ -835,8 +835,8 @@ describe("Bridge - Moving funds", () => {
                                                       `Unexpected merged timestamp for merge request ${i}`
                                                     )
 
+                                                    /* eslint-disable no-await-in-loop */
                                                     expect(
-                                                      // eslint-disable-next-line no-await-in-loop
                                                       (
                                                         await bridge.wallets(
                                                           expectedMovedFundsMergeRequest.walletPubKeyHash
@@ -844,6 +844,7 @@ describe("Bridge - Moving funds", () => {
                                                       )
                                                         .pendingMovedFundsMergeRequestsCount
                                                     ).to.be.equal(1)
+                                                    /* eslint-enable no-await-in-loop */
                                                   }
                                                 })
                                               })
@@ -2058,6 +2059,20 @@ describe("Bridge - Moving funds", () => {
                                   ).to.be.equal(await lastBlockTime())
                                 })
 
+                                it("should decrease the merging wallet's pending requests count", async () => {
+                                  // The `setPendingMovedFundsMergeRequest` call
+                                  // made as part of `runMovedFundsMergeScenario`
+                                  // set this counter to 1. Eventually, it
+                                  // should be decreased back to 0.
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).pendingMovedFundsMergeRequestsCount
+                                  ).to.be.equal(0)
+                                })
+
                                 it("should set the transaction output as new merging wallet main UTXO", async () => {
                                   // Amount can be checked by opening the merge tx
                                   // in a Bitcoin testnet explorer. In this case,
@@ -2133,7 +2148,7 @@ describe("Bridge - Moving funds", () => {
                                   // merge request as processed using a stub
                                   // method.
                                   const beforeProofActions = async () => {
-                                    await bridge.setProcessedMovedFundsMergeRequest(
+                                    await bridge.processPendingMovedFundsMergeRequest(
                                       data.movedFundsMergeRequest
                                         .walletPubKeyHash,
                                       data.movedFundsMergeRequest
@@ -2260,6 +2275,20 @@ describe("Bridge - Moving funds", () => {
                                     (await bridge.movedFundsMergeRequests(key))
                                       .mergedAt
                                   ).to.be.equal(await lastBlockTime())
+                                })
+
+                                it("should decrease the merging wallet's pending requests count", async () => {
+                                  // The `setPendingMovedFundsMergeRequest` call
+                                  // made as part of `runMovedFundsMergeScenario`
+                                  // set this counter to 1. Eventually, it
+                                  // should be decreased back to 0.
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).pendingMovedFundsMergeRequestsCount
+                                  ).to.be.equal(0)
                                 })
 
                                 it("should set the transaction output as new merging wallet main UTXO", async () => {
@@ -2400,7 +2429,7 @@ describe("Bridge - Moving funds", () => {
                                   // merge request as processed using a stub
                                   // method.
                                   const beforeProofActions = async () => {
-                                    await bridge.setProcessedMovedFundsMergeRequest(
+                                    await bridge.processPendingMovedFundsMergeRequest(
                                       data.movedFundsMergeRequest
                                         .walletPubKeyHash,
                                       data.movedFundsMergeRequest
@@ -3096,9 +3125,16 @@ describe("Bridge - Moving funds", () => {
     }
 
     if (data.movedFundsMergeRequest) {
-      await bridge.setMovedFundsMergeRequest(
+      await bridge.setPendingMovedFundsMergeRequest(
         data.movedFundsMergeRequest.walletPubKeyHash,
         data.movedFundsMergeRequest
+      )
+      // Just make sure the stub function `setPendingMovedFundsMergeRequest`
+      // initialized the counter properly.
+      assert(
+        (await bridge.wallets(data.movedFundsMergeRequest.walletPubKeyHash))
+          .pendingMovedFundsMergeRequestsCount === 1,
+        "Pending moved funds request counter for the merging wallet should be set up to 1"
       )
     }
 
