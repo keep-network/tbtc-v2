@@ -359,8 +359,13 @@ library MovingFunds {
         bytes20[] memory targetWallets = new bytes20[](outputsCount);
         uint64[] memory outputsValues = new uint64[](outputsCount);
 
-        // Outputs processing loop.
-        for (uint256 i = 0; i < outputsCount; i++) {
+        // Outputs processing loop. Note that the `outputIndex` must be
+        // `uint32` to build proper `movedFundsMergeRequests` keys.
+        for (
+            uint32 outputIndex = 0;
+            outputIndex < outputsCount;
+            outputIndex++
+        ) {
             uint256 outputLength = processInfo
                 .movingFundsTxOutputVector
                 .determineOutputLengthAt(outputStartingIndex);
@@ -379,11 +384,11 @@ library MovingFunds {
             // given output is a change here because the actual target wallet
             // list must be exactly the same as the pre-committed target wallet
             // list which is guaranteed to be valid.
-            targetWallets[i] = targetWalletPubKeyHash;
+            targetWallets[outputIndex] = targetWalletPubKeyHash;
 
             // Extract the value from given output.
-            outputsValues[i] = output.extractValue();
-            outputsTotalValue += outputsValues[i];
+            outputsValues[outputIndex] = output.extractValue();
+            outputsTotalValue += outputsValues[outputIndex];
 
             // Register a moved funds merge request that must be handled
             // by the target wallet. The target wallet must merge the
@@ -396,12 +401,15 @@ library MovingFunds {
             self.movedFundsMergeRequests[
                 uint256(
                     keccak256(
-                        abi.encodePacked(processInfo.movingFundsTxHash, i)
+                        abi.encodePacked(
+                            processInfo.movingFundsTxHash,
+                            outputIndex
+                        )
                     )
                 )
             ] = MovedFundsMergeRequest(
                 targetWalletPubKeyHash,
-                outputsValues[i],
+                outputsValues[outputIndex],
                 /* solhint-disable-next-line not-rely-on-time */
                 uint32(block.timestamp),
                 0
