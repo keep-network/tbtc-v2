@@ -66,8 +66,8 @@ library MovingFunds {
         uint64 value;
         // UNIX timestamp the request was created at.
         uint32 createdAt;
-        // UNIX timestamp the funds were merged at.
-        uint32 mergedAt;
+        // The flag indicating whether the request has been processed.
+        bool processed;
     }
 
     event MovingFundsCommitmentSubmitted(
@@ -86,6 +86,12 @@ library MovingFunds {
     event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
 
     event MovedFundsMerged(bytes20 walletPubKeyHash, bytes32 mergeTxHash);
+
+    event MovedFundsMergeRequestTimedOut(
+        bytes20 walletPubKeyHash,
+        bytes32 movingFundsTxHash,
+        uint32 movingFundsTxOutputIndex
+    );
 
     /// @notice Submits the moving funds target wallets commitment.
     ///         Once all requirements are met, that function registers the
@@ -418,7 +424,7 @@ library MovingFunds {
                 outputsValues[outputIndex],
                 /* solhint-disable-next-line not-rely-on-time */
                 uint32(block.timestamp),
-                0
+                false
             );
             // We added a new moved funds merge request for the target wallet
             // so we must increment their request counter.
@@ -824,7 +830,7 @@ library MovingFunds {
         // The merge request must exist, must be not processed yet, and must
         // belong to the merging wallet.
         require(mergeRequest.createdAt != 0, "Merge request does not exist");
-        require(mergeRequest.mergedAt == 0, "Merge request already processed");
+        require(!mergeRequest.processed, "Merge request already processed");
         require(
             mergeRequest.walletPubKeyHash == walletPubKeyHash,
             "Merge request belongs to another wallet"
@@ -832,8 +838,7 @@ library MovingFunds {
         // If the validation passed, the merge request must be marked as
         // processed and its value should be counted into the total inputs
         // value sum.
-        /* solhint-disable-next-line not-rely-on-time */
-        mergeRequest.mergedAt = uint32(block.timestamp);
+        mergeRequest.processed = true;
         inputsTotalValue += mergeRequest.value;
 
         self
@@ -912,5 +917,93 @@ library MovingFunds {
         inputLength = inputVector.determineInputLengthAt(inputStartingIndex);
 
         return (outpointTxHash, outpointIndex, inputLength);
+    }
+
+    /// @notice Notifies about a timed out moved funds merge process. If the
+    ///         wallet is not terminated yet, that function terminates
+    ///         the wallet and slashes signing group members as a result.
+    ///         Marks the given request as resolved.
+    /// @param movingFundsTxHash 32-byte hash of the moving funds transaction
+    ///        that caused the merge request to be created
+    /// @param movingFundsTxOutputIndex Index of the moving funds transaction
+    ///        output that is subject of the merge request.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    /// @dev Requirements:
+    ///      - The moved funds merge request must exist
+    ///      - The moved funds merge not be already processed
+    ///      - The moved funds merge timeout must be actually exceeded
+    ///      - The wallet must be either in the Live or MovingFunds or
+    ///        Terminated state
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events of the `WalletRegistry` contract
+    function notifyMovedFundsMergeTimeout(
+        BridgeState.Storage storage self,
+        bytes32 movingFundsTxHash,
+        uint32 movingFundsTxOutputIndex,
+        uint32[] calldata walletMembersIDs
+    ) external {
+        MovedFundsMergeRequest storage mergeRequest = self
+            .movedFundsMergeRequests[
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            movingFundsTxHash,
+                            movingFundsTxOutputIndex
+                        )
+                    )
+                )
+            ];
+
+        require(mergeRequest.createdAt != 0, "Merge request does not exist");
+
+        require(!mergeRequest.processed, "Merge request already processed");
+
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp >
+                mergeRequest.createdAt + self.movedFundsMergeTimeout,
+            "Merge request has not timed out yet"
+        );
+
+        bytes20 walletPubKeyHash = mergeRequest.walletPubKeyHash;
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
+        Wallets.WalletState walletState = wallet.state;
+
+        require(
+            walletState == Wallets.WalletState.Live ||
+                walletState == Wallets.WalletState.MovingFunds ||
+                walletState == Wallets.WalletState.Terminated,
+            "ECDSA wallet must be in Live or MovingFunds or Terminated state"
+        );
+
+        mergeRequest.processed = true;
+
+        if (
+            walletState == Wallets.WalletState.Live ||
+            walletState == Wallets.WalletState.MovingFunds
+        ) {
+            self.terminateWallet(walletPubKeyHash);
+
+            self.ecdsaWalletRegistry.seize(
+                self.movedFundsMergeTimeoutSlashingAmount,
+                self.movedFundsMergeTimeoutNotifierRewardMultiplier,
+                msg.sender,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
+        }
+
+        // slither-disable-next-line reentrancy-events
+        emit MovedFundsMergeRequestTimedOut(
+            walletPubKeyHash,
+            movingFundsTxHash,
+            movingFundsTxOutputIndex
+        );
     }
 }

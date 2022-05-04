@@ -113,14 +113,14 @@ library BridgeState {
         // Time after which the moved funds merge process can be reported as
         // timed out. It is counted from the moment when the recipient wallet
         // was requested to merge the received funds. Value in seconds.
-        uint32  movedFundsMergeTimeout;
+        uint32 movedFundsMergeTimeout;
         // The amount of stake slashed from each member of a wallet for a moved
         // funds merge timeout.
-        uint96  movedFundsMergeTimeoutSlashingAmount;
+        uint96 movedFundsMergeTimeoutSlashingAmount;
         // The percentage of the notifier reward from the staking contract
         // the notifier of a moved funds merge timeout receives. The value is
         // in the range [0, 100].
-        uint256  movedFundsMergeTimeoutNotifierRewardMultiplier;
+        uint256 movedFundsMergeTimeoutNotifierRewardMultiplier;
         // Collection of all moved funds merge requests indexed by
         // `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
         // The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
@@ -559,8 +559,10 @@ library BridgeState {
             .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
         self.movedFundsMergeTxMaxTotalFee = _movedFundsMergeTxMaxTotalFee;
         self.movedFundsMergeTimeout = _movedFundsMergeTimeout;
-        self.movedFundsMergeTimeoutSlashingAmount = _movedFundsMergeTimeoutSlashingAmount;
-        self.movedFundsMergeTimeoutNotifierRewardMultiplier = _movedFundsMergeTimeoutNotifierRewardMultiplier;
+        self
+            .movedFundsMergeTimeoutSlashingAmount = _movedFundsMergeTimeoutSlashingAmount;
+        self
+            .movedFundsMergeTimeoutNotifierRewardMultiplier = _movedFundsMergeTimeoutNotifierRewardMultiplier;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,

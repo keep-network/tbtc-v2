@@ -879,10 +879,10 @@ describe("Bridge - Moving funds", () => {
                                                     )
 
                                                     expect(
-                                                      actualMovedFundsMergeRequest.mergedAt
+                                                      actualMovedFundsMergeRequest.processed
                                                     ).to.be.equal(
-                                                      0,
-                                                      `Unexpected merged timestamp for merge request ${i}`
+                                                      false,
+                                                      `Unexpected processed flag for merge request ${i}`
                                                     )
 
                                                     /* eslint-disable no-await-in-loop */
@@ -2103,10 +2103,11 @@ describe("Bridge - Moving funds", () => {
                                     ]
                                   )
 
+                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                                   expect(
                                     (await bridge.movedFundsMergeRequests(key))
-                                      .mergedAt
-                                  ).to.be.equal(await lastBlockTime())
+                                      .processed
+                                  ).to.be.true
                                 })
 
                                 it("should decrease the merging wallet's pending requests count", async () => {
@@ -2321,10 +2322,11 @@ describe("Bridge - Moving funds", () => {
                                     ]
                                   )
 
+                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                                   expect(
                                     (await bridge.movedFundsMergeRequests(key))
-                                      .mergedAt
-                                  ).to.be.equal(await lastBlockTime())
+                                      .processed
+                                  ).to.be.true
                                 })
 
                                 it("should decrease the merging wallet's pending requests count", async () => {

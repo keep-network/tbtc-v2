@@ -557,7 +557,7 @@ describe("Bridge - Parameters", () => {
                   constants.movedFundsMergeTxMaxTotalFee,
                   constants.movedFundsMergeTimeout,
                   constants.movedFundsMergeTimeoutSlashingAmount,
-                  0
+                  101
                 )
             ).to.be.revertedWith(
               "Moved funds merge timeout notifier reward multiplier must be in the range [0, 100]"

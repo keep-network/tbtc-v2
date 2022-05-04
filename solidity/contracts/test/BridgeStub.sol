@@ -113,7 +113,7 @@ contract BridgeStub is Bridge {
                 utxo.txOutputValue,
                 /* solhint-disable-next-line not-rely-on-time */
                 uint32(block.timestamp),
-                0
+                false
             );
 
         self
@@ -133,9 +133,9 @@ contract BridgeStub is Bridge {
             .movedFundsMergeRequests[requestKey];
 
         require(request.createdAt != 0, "Stub merge request does not exist");
+        require(!request.processed, "Stub merge request already processed");
 
-        /* solhint-disable-next-line not-rely-on-time */
-        request.mergedAt = uint32(block.timestamp);
+        request.processed = true;
 
         self
             .registeredWallets[walletPubKeyHash]

@@ -123,6 +123,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovedFundsMerged(bytes20 walletPubKeyHash, bytes32 mergeTxHash);
 
+    event MovedFundsMergeRequestTimedOut(
+        bytes20 walletPubKeyHash,
+        bytes32 movingFundsTxHash,
+        uint32 movingFundsTxOutputIndex
+    );
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -697,6 +703,39 @@ contract Bridge is Governable, EcdsaWalletOwner {
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
         self.submitMovedFundsMergeProof(mergeTx, mergeProof, mainUtxo);
+    }
+
+    /// @notice Notifies about a timed out moved funds merge process. If the
+    ///         wallet is not terminated yet, that function terminates
+    ///         the wallet and slashes signing group members as a result.
+    ///         Marks the given request as resolved.
+    /// @param movingFundsTxHash 32-byte hash of the moving funds transaction
+    ///        that caused the merge request to be created
+    /// @param movingFundsTxOutputIndex Index of the moving funds transaction
+    ///        output that is subject of the merge request.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    /// @dev Requirements:
+    ///      - The moved funds merge request must exist
+    ///      - The moved funds merge not be already processed
+    ///      - The moved funds merge timeout must be actually exceeded
+    ///      - The wallet must be either in the Live or MovingFunds or
+    ///        Terminated state
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events of the `WalletRegistry` contract
+    function notifyMovedFundsMergeTimeout(
+        bytes32 movingFundsTxHash,
+        uint32 movingFundsTxOutputIndex,
+        uint32[] calldata walletMembersIDs
+    ) external {
+        self.notifyMovedFundsMergeTimeout(
+            movingFundsTxHash,
+            movingFundsTxOutputIndex,
+            walletMembersIDs
+        );
     }
 
     /// @notice Requests creation of a new wallet. This function just
