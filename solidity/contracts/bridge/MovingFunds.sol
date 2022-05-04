@@ -103,6 +103,7 @@ library MovingFunds {
     /// @dev Requirements:
     ///      - The source wallet must be in the MovingFunds state
     ///      - The source wallet must not have pending redemption requests
+    ///      - The source wallet must not have pending moved funds merge requests
     ///      - The source wallet must not have submitted its commitment already
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
@@ -146,6 +147,11 @@ library MovingFunds {
         require(
             wallet.pendingRedemptionsValue == 0,
             "Source wallet must handle all pending redemptions first"
+        );
+
+        require(
+            wallet.pendingMovedFundsMergeRequestsCount == 0,
+            "Source wallet must handle all pending moved funds merge requests first"
         );
 
         require(
