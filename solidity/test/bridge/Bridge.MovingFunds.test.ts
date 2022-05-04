@@ -81,6 +81,7 @@ describe("Bridge - Moving funds", () => {
       createdAt: 0,
       movingFundsRequestedAt: 0,
       closingStartedAt: 0,
+      pendingMovedFundsMergeRequestsCount: 0,
       state: walletState.Unknown,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     }
@@ -1607,6 +1608,7 @@ describe("Bridge - Moving funds", () => {
       createdAt: 0,
       movingFundsRequestedAt: 0,
       closingStartedAt: 0,
+      pendingMovedFundsMergeRequestsCount: 0,
       state: walletState.Unknown,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     }
@@ -1793,6 +1795,7 @@ describe("Bridge - Moving funds", () => {
       createdAt: 0,
       movingFundsRequestedAt: 0,
       closingStartedAt: 0,
+      pendingMovedFundsMergeRequestsCount: 0,
       state: walletState.Unknown,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     }
@@ -2571,6 +2574,7 @@ describe("Bridge - Moving funds", () => {
                         createdAt: 0,
                         movingFundsRequestedAt: 0,
                         closingStartedAt: 0,
+                        pendingMovedFundsMergeRequestsCount: 0,
                         state: walletState.Live,
                         movingFundsTargetWalletsCommitmentHash:
                           ethers.constants.HashZero,
@@ -3026,6 +3030,7 @@ describe("Bridge - Moving funds", () => {
       createdAt: await lastBlockTime(),
       movingFundsRequestedAt: await lastBlockTime(),
       closingStartedAt: 0,
+      pendingMovedFundsMergeRequestsCount: 0,
       state: data.wallet.state,
       movingFundsTargetWalletsCommitmentHash:
         data.targetWalletsCommitment.length > 0
@@ -3070,6 +3075,7 @@ describe("Bridge - Moving funds", () => {
       createdAt: await lastBlockTime(),
       movingFundsRequestedAt: 0,
       closingStartedAt: 0,
+      pendingMovedFundsMergeRequestsCount: 0,
       state: data.wallet.state,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
