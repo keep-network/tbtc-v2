@@ -183,7 +183,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movedFundsMergeTxMaxTotalFee
+        uint64 movedFundsMergeTxMaxTotalFee,
+        uint32 movedFundsMergeTimeout,
+        uint96 movedFundsMergeTimeoutSlashingAmount,
+        uint256 movedFundsMergeTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -243,6 +246,9 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
         self.movedFundsMergeTxMaxTotalFee = 10000; // 10000 satoshi
+        self.movedFundsMergeTimeout = 7 days;
+        self.movedFundsMergeTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.movedFundsMergeTimeoutNotifierRewardMultiplier = 100; //100%
         self.fraudChallengeDepositAmount = 2 ether;
         self.fraudChallengeDefeatTimeout = 7 days;
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
@@ -1055,6 +1061,19 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        of the total BTC transaction fee that is acceptable in a single
     ///        moved funds merge transaction. This is a _total_ max fee for the
     ///        entire moved funds merge transaction.
+    /// @param movedFundsMergeTimeout New value of the moved funds merge
+    ///        timeout in seconds. It is the time after which the moved funds
+    ///        merge process can be reported as timed out. It is counted from
+    ///        the moment when the wallet was requested to merge the received
+    ///        funds.
+    /// @param movedFundsMergeTimeoutSlashingAmount New value of the moved
+    ///        funds merge timeout slashing amount in T, it is the amount
+    ///        slashed from each wallet member for moved funds merge timeout
+    /// @param movedFundsMergeTimeoutNotifierRewardMultiplier New value of
+    ///        the moved funds merge timeout notifier reward multiplier as
+    ///        percentage, it determines the percentage of the notifier reward
+    ///        from the staking contact the notifier of a moved funds merge
+    ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds dust threshold must be greater than zero
@@ -1062,13 +1081,19 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
     ///      - Moved funds merge transaction max total fee must be greater than zero
+    ///      - Moved funds merge timeout must be greater than zero
+    ///      - Moved funds merge timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
         uint64 movingFundsDustThreshold,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movedFundsMergeTxMaxTotalFee
+        uint64 movedFundsMergeTxMaxTotalFee,
+        uint32 movedFundsMergeTimeout,
+        uint96 movedFundsMergeTimeoutSlashingAmount,
+        uint256 movedFundsMergeTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
@@ -1076,7 +1101,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
-            movedFundsMergeTxMaxTotalFee
+            movedFundsMergeTxMaxTotalFee,
+            movedFundsMergeTimeout,
+            movedFundsMergeTimeoutSlashingAmount,
+            movedFundsMergeTimeoutNotifierRewardMultiplier
         );
     }
 
@@ -1394,6 +1422,16 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         transaction fee that is acceptable in a single moved funds
     ///         merge transaction. This is a _total_ max fee for the entire
     ///         moved funds merge transaction.
+    /// @return movedFundsMergeTimeout Time after which the moved funds merge
+    ///         process can be reported as timed out. It is counted from the
+    ///         moment when the wallet was requested to merge the received funds.
+    ///         Value in seconds.
+    /// @return movedFundsMergeTimeoutSlashingAmount The amount of stake slashed
+    ///         from each member of a wallet for a moved funds merge timeout.
+    /// @return movedFundsMergeTimeoutNotifierRewardMultiplier The percentage
+    ///         of the notifier reward from the staking contract the notifier
+    ///         of a moved funds merge timeout receives. The value is in the
+    ///         range [0, 100].
     function movingFundsParameters()
         external
         view
@@ -1403,7 +1441,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint256 movingFundsTimeoutNotifierRewardMultiplier,
-            uint64 movedFundsMergeTxMaxTotalFee
+            uint64 movedFundsMergeTxMaxTotalFee,
+            uint32 movedFundsMergeTimeout,
+            uint96 movedFundsMergeTimeoutSlashingAmount,
+            uint256 movedFundsMergeTimeoutNotifierRewardMultiplier
         )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
@@ -1414,6 +1455,11 @@ contract Bridge is Governable, EcdsaWalletOwner {
         movingFundsTimeoutNotifierRewardMultiplier = self
             .movingFundsTimeoutNotifierRewardMultiplier;
         movedFundsMergeTxMaxTotalFee = self.movedFundsMergeTxMaxTotalFee;
+        movedFundsMergeTimeout = self.movedFundsMergeTimeout;
+        movedFundsMergeTimeoutSlashingAmount = self
+            .movedFundsMergeTimeoutSlashingAmount;
+        movedFundsMergeTimeoutNotifierRewardMultiplier = self
+            .movedFundsMergeTimeoutNotifierRewardMultiplier;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet

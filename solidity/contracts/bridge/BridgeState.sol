@@ -110,6 +110,17 @@ library BridgeState {
         // if per single redemption. `movedFundsMergeTxMaxTotalFee` is a total
         // fee for the entire transaction.
         uint64 movedFundsMergeTxMaxTotalFee;
+        // Time after which the moved funds merge process can be reported as
+        // timed out. It is counted from the moment when the recipient wallet
+        // was requested to merge the received funds. Value in seconds.
+        uint32  movedFundsMergeTimeout;
+        // The amount of stake slashed from each member of a wallet for a moved
+        // funds merge timeout.
+        uint96  movedFundsMergeTimeoutSlashingAmount;
+        // The percentage of the notifier reward from the staking contract
+        // the notifier of a moved funds merge timeout receives. The value is
+        // in the range [0, 100].
+        uint256  movedFundsMergeTimeoutNotifierRewardMultiplier;
         // Collection of all moved funds merge requests indexed by
         // `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
         // The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
@@ -263,7 +274,10 @@ library BridgeState {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movedFundsMergeTxMaxTotalFee
+        uint64 movedFundsMergeTxMaxTotalFee,
+        uint32 movedFundsMergeTimeout,
+        uint96 movedFundsMergeTimeoutSlashingAmount,
+        uint256 movedFundsMergeTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -466,6 +480,19 @@ library BridgeState {
     ///        of the total BTC transaction fee that is acceptable in a single
     ///        moved funds merge transaction. This is a _total_ max fee for the
     ///        entire moved funds merge transaction.
+    /// @param _movedFundsMergeTimeout New value of the moved funds merge
+    ///        timeout in seconds. It is the time after which the moved funds
+    ///        merge process can be reported as timed out. It is counted from
+    ///        the moment when the wallet was requested to merge the received
+    ///        funds.
+    /// @param _movedFundsMergeTimeoutSlashingAmount New value of the moved
+    ///        funds merge timeout slashing amount in T, it is the amount
+    ///        slashed from each wallet member for moved funds merge timeout
+    /// @param _movedFundsMergeTimeoutNotifierRewardMultiplier New value of
+    ///        the moved funds merge timeout notifier reward multiplier as
+    ///        percentage, it determines the percentage of the notifier reward
+    ///        from the staking contact the notifier of a moved funds merge
+    ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds dust threshold must be greater than zero
@@ -473,6 +500,9 @@ library BridgeState {
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
     ///      - Moved funds merge transaction max total fee must be greater than zero
+    ///      - Moved funds merge timeout must be greater than zero
+    ///      - Moved funds merge timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
@@ -480,7 +510,10 @@ library BridgeState {
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
         uint256 _movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 _movedFundsMergeTxMaxTotalFee
+        uint64 _movedFundsMergeTxMaxTotalFee,
+        uint32 _movedFundsMergeTimeout,
+        uint96 _movedFundsMergeTimeoutSlashingAmount,
+        uint256 _movedFundsMergeTimeoutNotifierRewardMultiplier
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
@@ -507,6 +540,16 @@ library BridgeState {
             "Moved funds merge transaction max total fee must be greater than zero"
         );
 
+        require(
+            _movedFundsMergeTimeout > 0,
+            "Moved funds merge timeout must be greater than zero"
+        );
+
+        require(
+            _movedFundsMergeTimeoutNotifierRewardMultiplier <= 100,
+            "Moved funds merge timeout notifier reward multiplier must be in the range [0, 100]"
+        );
+
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
         self.movingFundsDustThreshold = _movingFundsDustThreshold;
         self.movingFundsTimeout = _movingFundsTimeout;
@@ -515,6 +558,9 @@ library BridgeState {
         self
             .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
         self.movedFundsMergeTxMaxTotalFee = _movedFundsMergeTxMaxTotalFee;
+        self.movedFundsMergeTimeout = _movedFundsMergeTimeout;
+        self.movedFundsMergeTimeoutSlashingAmount = _movedFundsMergeTimeoutSlashingAmount;
+        self.movedFundsMergeTimeoutNotifierRewardMultiplier = _movedFundsMergeTimeoutNotifierRewardMultiplier;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
@@ -522,7 +568,10 @@ library BridgeState {
             _movingFundsTimeout,
             _movingFundsTimeoutSlashingAmount,
             _movingFundsTimeoutNotifierRewardMultiplier,
-            _movedFundsMergeTxMaxTotalFee
+            _movedFundsMergeTxMaxTotalFee,
+            _movedFundsMergeTimeout,
+            _movedFundsMergeTimeoutSlashingAmount,
+            _movedFundsMergeTimeoutNotifierRewardMultiplier
         );
     }
 
