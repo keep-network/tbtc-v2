@@ -414,6 +414,9 @@ library MovingFunds {
                 uint32(block.timestamp),
                 0
             );
+            // We added a new moved funds merge request for the target wallet
+            // so we must increment their request counter.
+            self.registeredWallets[targetWalletPubKeyHash].pendingMovedFundsMergeRequestsCount++;
 
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.

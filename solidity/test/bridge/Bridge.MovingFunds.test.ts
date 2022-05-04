@@ -834,6 +834,16 @@ describe("Bridge - Moving funds", () => {
                                                       0,
                                                       `Unexpected merged timestamp for merge request ${i}`
                                                     )
+
+                                                    expect(
+                                                      // eslint-disable-next-line no-await-in-loop
+                                                      (
+                                                        await bridge.wallets(
+                                                          expectedMovedFundsMergeRequest.walletPubKeyHash
+                                                        )
+                                                      )
+                                                        .pendingMovedFundsMergeRequestsCount
+                                                    ).to.be.equal(1)
                                                   }
                                                 })
                                               })
