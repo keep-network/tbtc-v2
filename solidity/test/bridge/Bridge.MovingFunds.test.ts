@@ -774,6 +774,67 @@ describe("Bridge - Moving funds", () => {
                                                         .hash
                                                     )
                                                 })
+
+                                                it("should create appropriate moved funds merge requests", async () => {
+                                                  for (
+                                                    let i = 0;
+                                                    i <
+                                                    test.data
+                                                      .expectedMovedFundsMergeRequests
+                                                      .length;
+                                                    i++
+                                                  ) {
+                                                    const expectedMovedFundsMergeRequest =
+                                                      test.data
+                                                        .expectedMovedFundsMergeRequests[
+                                                        i
+                                                      ]
+
+                                                    const requestKey =
+                                                      ethers.utils.solidityKeccak256(
+                                                        ["bytes32", "uint32"],
+                                                        [
+                                                          expectedMovedFundsMergeRequest.txHash,
+                                                          expectedMovedFundsMergeRequest.txOutputIndex,
+                                                        ]
+                                                      )
+
+                                                    const actualMovedFundsMergeRequest =
+                                                      // eslint-disable-next-line no-await-in-loop
+                                                      await bridge.movedFundsMergeRequests(
+                                                        requestKey
+                                                      )
+
+                                                    expect(
+                                                      actualMovedFundsMergeRequest.walletPubKeyHash
+                                                    ).to.be.equal(
+                                                      expectedMovedFundsMergeRequest.walletPubKeyHash,
+                                                      `Unexpected wallet for merge request ${i}`
+                                                    )
+
+                                                    expect(
+                                                      actualMovedFundsMergeRequest.value
+                                                    ).to.be.equal(
+                                                      expectedMovedFundsMergeRequest.txOutputValue,
+                                                      `Unexpected value for merge request ${i}`
+                                                    )
+
+                                                    expect(
+                                                      actualMovedFundsMergeRequest.createdAt
+                                                    ).to.be.equal(
+                                                      // eslint-disable-next-line no-await-in-loop
+                                                      await lastBlockTime(),
+                                                      `Unexpected created timestamp for merge request ${i}`
+                                                    )
+
+                                                    expect(
+                                                      actualMovedFundsMergeRequest.mergedAt
+                                                    ).to.be.equal(
+                                                      0,
+                                                      `Unexpected merged timestamp for merge request ${i}`
+                                                    )
+                                                  }
+                                                })
                                               })
                                             })
                                           }

@@ -21,6 +21,17 @@ export interface MovingFundsTestData {
   targetWalletsCommitment: BytesLike[]
 
   /**
+   * Optional list of moved funds merge requests that should be created
+   * as effect of running the test scenario.
+   */
+  expectedMovedFundsMergeRequests?: {
+    walletPubKeyHash: BytesLike
+    txHash: BytesLike
+    txOutputIndex: number
+    txOutputValue: BigNumberish
+  }[]
+
+  /**
    * Main UTXO data which are used as `mainUtxo` parameter during
    * `submitMovingFundsProof` function call. Main UTXO must exist for given
    * wallet in order to make the moving funds proof possible
@@ -82,6 +93,16 @@ export const SingleTargetWallet: MovingFundsTestData = {
   },
 
   targetWalletsCommitment: ["0x2cd680318747b720d67bf4246eb7403b476adb34"],
+
+  expectedMovedFundsMergeRequests: [
+    {
+      walletPubKeyHash: "0x2cd680318747b720d67bf4246eb7403b476adb34",
+      txHash:
+        "0xe55529ca9710bc1f3477dbd826286efe0e5885afeccdfc629050787e0dc078d0",
+      txOutputIndex: 0,
+      txOutputValue: 1464114,
+    },
+  ],
 
   mainUtxo: {
     txHash:
@@ -158,6 +179,30 @@ export const MultipleTargetWalletsAndIndivisibleAmount: MovingFundsTestData = {
     "0x2cd680318747b720d67bf4246eb7403b476adb34",
     "0x8900de8fc6e4cd1db4c7ab0759d28503b4cb0ab1",
     "0xaf7a841e055fc19bf31acf4cbed5ef548a2cc453",
+  ],
+
+  expectedMovedFundsMergeRequests: [
+    {
+      walletPubKeyHash: "0x2cd680318747b720d67bf4246eb7403b476adb34",
+      txHash:
+        "0x7cff663e3e08847a5579913f6a66bc6c01f5f48c6ae1783be77418ed188021e6",
+      txOutputIndex: 0,
+      txOutputValue: 595484,
+    },
+    {
+      walletPubKeyHash: "0x8900de8fc6e4cd1db4c7ab0759d28503b4cb0ab1",
+      txHash:
+        "0x7cff663e3e08847a5579913f6a66bc6c01f5f48c6ae1783be77418ed188021e6",
+      txOutputIndex: 1,
+      txOutputValue: 595485,
+    },
+    {
+      walletPubKeyHash: "0xaf7a841e055fc19bf31acf4cbed5ef548a2cc453",
+      txHash:
+        "0x7cff663e3e08847a5579913f6a66bc6c01f5f48c6ae1783be77418ed188021e6",
+      txOutputIndex: 2,
+      txOutputValue: 595484,
+    },
   ],
 
   mainUtxo: {
@@ -241,6 +286,30 @@ export const MultipleTargetWalletsAndDivisibleAmount: MovingFundsTestData = {
     "0x2cd680318747b720d67bf4246eb7403b476adb34",
     "0x8900de8fc6e4cd1db4c7ab0759d28503b4cb0ab1",
     "0xaf7a841e055fc19bf31acf4cbed5ef548a2cc453",
+  ],
+
+  expectedMovedFundsMergeRequests: [
+    {
+      walletPubKeyHash: "0x2cd680318747b720d67bf4246eb7403b476adb34",
+      txHash:
+        "0xe87a93611b6ea128c5a4f0fa6f824d450be50bbfeb56b046ef6af8feca7fe916",
+      txOutputIndex: 0,
+      txOutputValue: 390649,
+    },
+    {
+      walletPubKeyHash: "0x8900de8fc6e4cd1db4c7ab0759d28503b4cb0ab1",
+      txHash:
+        "0xe87a93611b6ea128c5a4f0fa6f824d450be50bbfeb56b046ef6af8feca7fe916",
+      txOutputIndex: 1,
+      txOutputValue: 390649,
+    },
+    {
+      walletPubKeyHash: "0xaf7a841e055fc19bf31acf4cbed5ef548a2cc453",
+      txHash:
+        "0xe87a93611b6ea128c5a4f0fa6f824d450be50bbfeb56b046ef6af8feca7fe916",
+      txOutputIndex: 2,
+      txOutputValue: 390649,
+    },
   ],
 
   mainUtxo: {
