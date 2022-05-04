@@ -17,6 +17,9 @@ import type {
 import bridgeFixture from "../fixtures/bridge"
 import { constants, walletState } from "../fixtures"
 import {
+  MovedFundsMergeMultipleOutputs,
+  MovedFundsMergeP2SHOutput,
+  MovedFundsMergeProvablyUnspendableOutput,
   MovedFundsMergeTestData,
   MovedFundsMergeWithMainUtxo,
   MovedFundsMergeWithoutMainUtxo,
@@ -2014,8 +2017,29 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the single input does not refer to a known merge request",
                               () => {
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithoutMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  // Getting rid of the `movedFundsMergeRequest`
+                                  // allows running that scenario because
+                                  // the merge request will not exist in the system.
+                                  await expect(
+                                    runMovedFundsMergeScenario({
+                                      ...data,
+                                      movedFundsMergeRequest: null,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Merge request does not exist"
+                                  )
                                 })
                               }
                             )
@@ -2023,8 +2047,39 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the single input does refer to a known but already processed merge request",
                               () => {
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithoutMainUtxo
+
+                                let tx: Promise<ContractTransaction>
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  // To run this scenario, we just mark the
+                                  // merge request as processed using a stub
+                                  // method.
+                                  const beforeProofActions = async () => {
+                                    await bridge.setProcessedMovedFundsMergeRequest(
+                                      data.movedFundsMergeRequest
+                                        .walletPubKeyHash,
+                                      data.movedFundsMergeRequest
+                                    )
+                                  }
+
+                                  tx = runMovedFundsMergeScenario(
+                                    data,
+                                    beforeProofActions
+                                  )
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  await expect(tx).to.be.revertedWith(
+                                    "Merge request already processed"
+                                  )
                                 })
                               }
                             )
@@ -2032,8 +2087,33 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the single input does refer to a known merge request that belongs to another wallet",
                               () => {
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithoutMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  // To make this scenario happen, we just
+                                  // change the wallet in the test data' merge
+                                  // request.
+                                  await expect(
+                                    runMovedFundsMergeScenario({
+                                      ...data,
+                                      movedFundsMergeRequest: {
+                                        ...data.movedFundsMergeRequest,
+                                        walletPubKeyHash:
+                                          "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Merge request belongs to another wallet"
+                                  )
                                 })
                               }
                             )
@@ -2041,8 +2121,31 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the number of inputs is other than one",
                               () => {
+                                // Use a test data that contains a two-input
+                                // transaction.
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  // However, do not set wallet main UTXO. In
+                                  // that case, the system will expect a
+                                  // merge transaction with a single input.
+                                  await expect(
+                                    runMovedFundsMergeScenario({
+                                      ...data,
+                                      mainUtxo: NO_MAIN_UTXO,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Moved funds merge transaction must have a proper inputs count"
+                                  )
                                 })
                               }
                             )
@@ -2132,8 +2235,48 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the first input refers to the merging wallet main UTXO and the second input refers to a correct merge request",
                               () => {
+                                // The merge transaction used by this test data
+                                // has two inputs. The first input is registered
+                                // as a merge request (i.e. it is referred by
+                                // `movedFundsMergeRequest`) and the second one
+                                // is meant to be the main UTXO (i.e. it is
+                                // referred by `mainUtxo`).
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  // To make that scenario happen, we just
+                                  // let the test runner to register the first
+                                  // input as the main UTXO and the second
+                                  // one as the merge request.
+                                  const movedFundsMergeRequest = {
+                                    ...data.mainUtxo,
+                                    walletPubKeyHash:
+                                      data.movedFundsMergeRequest
+                                        .walletPubKeyHash,
+                                  }
+
+                                  const mainUtxo = {
+                                    ...data.movedFundsMergeRequest,
+                                  }
+
+                                  await expect(
+                                    runMovedFundsMergeScenario({
+                                      ...data,
+                                      movedFundsMergeRequest,
+                                      mainUtxo,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Merge request does not exist"
+                                  )
                                 })
                               }
                             )
@@ -2141,8 +2284,29 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the first input does not refer to a known merge request and the second input refers to the merging wallet main UTXO",
                               () => {
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  // Getting rid of the `movedFundsMergeRequest`
+                                  // allows running that scenario because
+                                  // the merge request will not exist in the system.
+                                  await expect(
+                                    runMovedFundsMergeScenario({
+                                      ...data,
+                                      movedFundsMergeRequest: null,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Merge request does not exist"
+                                  )
                                 })
                               }
                             )
@@ -2150,8 +2314,39 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the first input refers to a known but already processed merge request and the second input refers to the merging wallet main UTXO",
                               () => {
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithMainUtxo
+
+                                let tx: Promise<ContractTransaction>
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  // To run this scenario, we just mark the
+                                  // merge request as processed using a stub
+                                  // method.
+                                  const beforeProofActions = async () => {
+                                    await bridge.setProcessedMovedFundsMergeRequest(
+                                      data.movedFundsMergeRequest
+                                        .walletPubKeyHash,
+                                      data.movedFundsMergeRequest
+                                    )
+                                  }
+
+                                  tx = runMovedFundsMergeScenario(
+                                    data,
+                                    beforeProofActions
+                                  )
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  await expect(tx).to.be.revertedWith(
+                                    "Merge request already processed"
+                                  )
                                 })
                               }
                             )
@@ -2159,8 +2354,33 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the first input refers to a known merge request that belongs to another wallet and the second input refers to the merging wallet main UTXO",
                               () => {
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  // To make this scenario happen, we just
+                                  // change the wallet in the test data' merge
+                                  // request.
+                                  await expect(
+                                    runMovedFundsMergeScenario({
+                                      ...data,
+                                      movedFundsMergeRequest: {
+                                        ...data.movedFundsMergeRequest,
+                                        walletPubKeyHash:
+                                          "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Merge request belongs to another wallet"
+                                  )
                                 })
                               }
                             )
@@ -2168,8 +2388,33 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the first input refers to a correct merge request and the second input does not refer to the merging wallet main UTXO",
                               () => {
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  // To make this scenario happen, we just need
+                                  // to simulate that the merging wallet has
+                                  // a different main UTXO than the one used
+                                  // by the second transaction input.
+                                  await expect(
+                                    runMovedFundsMergeScenario({
+                                      ...data,
+                                      mainUtxo: {
+                                        ...data.mainUtxo,
+                                        txOutputIndex: 2,
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Second input must point to the wallet's main UTXO"
+                                  )
                                 })
                               }
                             )
@@ -2177,8 +2422,37 @@ describe("Bridge - Moving funds", () => {
                             context(
                               "when the number of inputs is other than two",
                               () => {
+                                // Use a test data with a one-input transaction.
+                                const data: MovedFundsMergeTestData =
+                                  MovedFundsMergeWithoutMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
                                 it("should revert", async () => {
-                                  // TODO: Implementation.
+                                  // However, register a main UTXO for the
+                                  // merging wallet in order to force the
+                                  // system to expect a two-input transaction
+                                  // for that merging wallet.
+                                  await expect(
+                                    runMovedFundsMergeScenario({
+                                      ...data,
+                                      // Just an arbitrary main UTXO
+                                      mainUtxo: {
+                                        txHash:
+                                          "0x7d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed243a8961c8ac5887d5aaf528",
+                                        txOutputIndex: 0,
+                                        txOutputValue: 873510,
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Moved funds merge transaction must have a proper inputs count"
+                                  )
                                 })
                               }
                             )
@@ -2190,16 +2464,89 @@ describe("Bridge - Moving funds", () => {
                     context(
                       "when transaction fee exceeds the merge transaction maximum fee",
                       () => {
+                        // Use a test data where the merge transaction has
+                        // a fee of 2000 satoshi.
+                        const data: MovedFundsMergeTestData =
+                          MovedFundsMergeWithoutMainUtxo
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Set the max fee to one satoshi less than the fee
+                          // used by the transaction.
+                          await bridge.setMovedFundsMergeTxMaxTotalFee(1999)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
                         it("should revert", async () => {
-                          // TODO: Implementation.
+                          await expect(
+                            runMovedFundsMergeScenario(data)
+                          ).to.be.revertedWith("Transaction fee is too high")
                         })
                       }
                     )
                   })
 
                   context("when main UTXO data are invalid", () => {
+                    const data: MovedFundsMergeTestData =
+                      MovedFundsMergeWithMainUtxo
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      // Required for a successful SPV proof.
+                      relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+                      relay.getCurrentEpochDifficulty.returns(
+                        data.chainDifficulty
+                      )
+
+                      await bridge.setWallet(data.wallet.pubKeyHash, {
+                        ecdsaWalletID: data.wallet.ecdsaWalletID,
+                        mainUtxoHash: ethers.constants.HashZero,
+                        pendingRedemptionsValue: 0,
+                        createdAt: 0,
+                        movingFundsRequestedAt: 0,
+                        closingStartedAt: 0,
+                        state: walletState.Live,
+                        movingFundsTargetWalletsCommitmentHash:
+                          ethers.constants.HashZero,
+                      })
+
+                      // Wallet main UTXO must be set on the Bridge side to make
+                      // that scenario happen.
+                      await bridge.setWalletMainUtxo(
+                        data.wallet.pubKeyHash,
+                        data.mainUtxo
+                      )
+                    })
+
+                    after(async () => {
+                      relay.getPrevEpochDifficulty.reset()
+                      relay.getCurrentEpochDifficulty.reset()
+
+                      await restoreSnapshot()
+                    })
+
                     it("should revert", async () => {
-                      // TODO: Implementation.
+                      // Corrupt the main UTXO parameter passed during
+                      // `submitMovedFundsMergeProof` call. The proper value of
+                      // `txOutputIndex` for this test data set is `0` so any other
+                      // value will make this test scenario happen.
+                      const corruptedMainUtxo = {
+                        ...data.mainUtxo,
+                        txOutputIndex: 2,
+                      }
+
+                      await expect(
+                        bridge.submitMovedFundsMergeProof(
+                          data.mergeTx,
+                          data.mergeProof,
+                          corruptedMainUtxo
+                        )
+                      ).to.be.revertedWith("Invalid main UTXO data")
                     })
                   })
                 })
@@ -2207,7 +2554,33 @@ describe("Bridge - Moving funds", () => {
                 context(
                   "when merging wallet is in the MovingFunds state",
                   () => {
-                    // TODO: Just assert it does not revert.
+                    const data: MovedFundsMergeTestData =
+                      MovedFundsMergeWithoutMainUtxo
+
+                    let tx: Promise<ContractTransaction>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      tx = runMovedFundsMergeScenario({
+                        ...data,
+                        wallet: {
+                          ...data.wallet,
+                          state: walletState.MovingFunds,
+                        },
+                      })
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should succeed", async () => {
+                      // The assertions were already performed for Live wallet
+                      // scenarios. Here we just make sure the transaction
+                      // succeeds for a MovingFunds wallet.
+                      await expect(tx).to.not.be.reverted
+                    })
                   }
                 )
               }
@@ -2237,8 +2610,31 @@ describe("Bridge - Moving funds", () => {
 
                 testData.forEach((test) => {
                   context(test.testName, () => {
+                    const data: MovedFundsMergeTestData =
+                      MovedFundsMergeWithoutMainUtxo
+
+                    let tx: Promise<ContractTransaction>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      tx = runMovedFundsMergeScenario({
+                        ...data,
+                        wallet: {
+                          ...data.wallet,
+                          state: test.walletState,
+                        },
+                      })
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
                     it("should revert", async () => {
-                      // TODO: Implementation.
+                      await expect(tx).to.be.revertedWith(
+                        "Wallet must be in Live or MovingFunds state"
+                      )
                     })
                   })
                 })
@@ -2247,22 +2643,59 @@ describe("Bridge - Moving funds", () => {
           })
 
           context("when single output is neither P2PKH nor P2WPKH", () => {
+            const data: MovedFundsMergeTestData = MovedFundsMergeP2SHOutput
+
+            before(async () => {
+              await createSnapshot()
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
             it("should revert", async () => {
-              // TODO: Implementation.
+              await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+                "Output must be P2PKH or P2WPKH"
+              )
             })
           })
         })
 
         context("when the single output is not 20-byte", () => {
+          const data: MovedFundsMergeTestData =
+            MovedFundsMergeProvablyUnspendableOutput
+
+          before(async () => {
+            await createSnapshot()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
           it("should revert", async () => {
-            // TODO: Implementation.
+            await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+              "Output's public key hash must have 20 bytes"
+            )
           })
         })
       })
 
       context("when output count is other than one", () => {
+        const data: MovedFundsMergeTestData = MovedFundsMergeMultipleOutputs
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         it("should revert", async () => {
-          // TODO: Implementation.
+          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+            "'Moved funds merge transaction must have a single output"
+          )
         })
       })
     })
@@ -2585,10 +3018,12 @@ describe("Bridge - Moving funds", () => {
       await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
     }
 
-    await bridge.setMovedFundsMergeRequest(
-      data.movedFundsMergeRequest.walletPubKeyHash,
-      data.movedFundsMergeRequest
-    )
+    if (data.movedFundsMergeRequest) {
+      await bridge.setMovedFundsMergeRequest(
+        data.movedFundsMergeRequest.walletPubKeyHash,
+        data.movedFundsMergeRequest
+      )
+    }
 
     if (beforeProofActions) {
       await beforeProofActions()

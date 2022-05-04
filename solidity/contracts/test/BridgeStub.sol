@@ -116,4 +116,29 @@ contract BridgeStub is Bridge {
                 0
             );
     }
+
+    function setProcessedMovedFundsMergeRequest(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata utxo
+    ) external {
+        uint256 requestKey = uint256(
+            keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
+        );
+
+        self.movedFundsMergeRequests[requestKey] = MovingFunds
+            .MovedFundsMergeRequest(
+                walletPubKeyHash,
+                utxo.txOutputValue,
+                /* solhint-disable-next-line not-rely-on-time */
+                uint32(block.timestamp),
+                /* solhint-disable-next-line not-rely-on-time */
+                uint32(block.timestamp)
+            );
+    }
+
+    function setMovedFundsMergeTxMaxTotalFee(
+        uint64 _movedFundsMergeTxMaxTotalFee
+    ) external {
+        self.movedFundsMergeTxMaxTotalFee = _movedFundsMergeTxMaxTotalFee;
+    }
 }
