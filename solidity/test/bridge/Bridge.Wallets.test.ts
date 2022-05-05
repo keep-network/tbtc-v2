@@ -92,7 +92,7 @@ describe("Bridge - Wallets", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
-              pendingMovedFundsMergeRequestsCount: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -567,7 +567,7 @@ describe("Bridge - Wallets", () => {
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
             closingStartedAt: 0,
-            pendingMovedFundsMergeRequestsCount: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -867,7 +867,7 @@ describe("Bridge - Wallets", () => {
                 createdAt: 0,
                 movingFundsRequestedAt: 0,
                 closingStartedAt: 0,
-                pendingMovedFundsMergeRequestsCount: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
                 state: test.walletState,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -924,7 +924,7 @@ describe("Bridge - Wallets", () => {
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
             closingStartedAt: 0,
-            pendingMovedFundsMergeRequestsCount: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -1285,7 +1285,7 @@ describe("Bridge - Wallets", () => {
                 createdAt: 0,
                 movingFundsRequestedAt: 0,
                 closingStartedAt: 0,
-                pendingMovedFundsMergeRequestsCount: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
                 state: test.walletState,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -1325,7 +1325,7 @@ describe("Bridge - Wallets", () => {
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
           closingStartedAt: 0,
-          pendingMovedFundsMergeRequestsCount: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -1356,7 +1356,7 @@ describe("Bridge - Wallets", () => {
       createdAt: 0,
       movingFundsRequestedAt: 0,
       closingStartedAt: 0,
-      pendingMovedFundsMergeRequestsCount: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
       state: walletState.Unknown,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     }
