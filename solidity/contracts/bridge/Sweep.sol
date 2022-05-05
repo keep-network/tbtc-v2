@@ -282,7 +282,7 @@ library Sweep {
 
         bytes memory output = sweepTxOutputVector.extractOutputAtIndex(0);
         value = output.extractValue();
-        // TODO: Extract `walletPubKeyHash` using `self.processPubKeyHashTxOutput`
+        // TODO: Extract `walletPubKeyHash` using `self.extractPubKeyHash`
         //       in order to get stronger validation.
         bytes memory walletPubKeyHashBytes = output.extractHash();
         // The sweep transaction output should always be P2PKH or P2WPKH.

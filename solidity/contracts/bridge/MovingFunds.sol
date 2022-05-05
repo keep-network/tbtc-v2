@@ -375,9 +375,7 @@ library MovingFunds {
                 outputLength
             );
 
-            bytes20 targetWalletPubKeyHash = self.processPubKeyHashTxOutput(
-                output
-            );
+            bytes20 targetWalletPubKeyHash = self.extractPubKeyHash(output);
 
             // Add the wallet public key hash to the list that will be used
             // to build the result list hash. There is no need to check if
@@ -653,7 +651,7 @@ library MovingFunds {
         );
 
         bytes memory output = mergeTxOutputVector.extractOutputAtIndex(0);
-        walletPubKeyHash = self.processPubKeyHashTxOutput(output);
+        walletPubKeyHash = self.extractPubKeyHash(output);
         value = output.extractValue();
 
         return (walletPubKeyHash, value);
