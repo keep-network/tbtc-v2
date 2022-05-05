@@ -998,6 +998,7 @@ library MovingFunds {
         );
 
         sweepRequest.state = MovedFundsSweepRequestState.TimedOut;
+        wallet.pendingMovedFundsSweepRequestsCount--;
 
         if (
             walletState == Wallets.WalletState.Live ||
