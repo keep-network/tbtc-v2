@@ -267,11 +267,10 @@ library DepositSweep {
     ///        it is passed here
     /// @return walletPubKeyHash 20-byte wallet public key hash.
     /// @return value 8-byte sweep transaction output value.
-    function processDepositSweepTxOutput(BridgeState.Storage storage self, bytes memory sweepTxOutputVector)
-        internal
-        view
-        returns (bytes20 walletPubKeyHash, uint64 value)
-    {
+    function processDepositSweepTxOutput(
+        BridgeState.Storage storage self,
+        bytes memory sweepTxOutputVector
+    ) internal view returns (bytes20 walletPubKeyHash, uint64 value) {
         // To determine the total number of sweep transaction outputs, we need to
         // parse the compactSize uint (VarInt) the output vector is prepended by.
         // That compactSize uint encodes the number of vector elements using the

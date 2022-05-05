@@ -107,6 +107,7 @@ library MovingFunds {
     /// @dev Requirements:
     ///      - The source wallet must be in the MovingFunds state
     ///      - The source wallet must not have pending redemption requests
+    ///      - The source wallet must not have pending moved funds sweep requests
     ///      - The source wallet must not have submitted its commitment already
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
@@ -150,6 +151,11 @@ library MovingFunds {
         require(
             wallet.pendingRedemptionsValue == 0,
             "Source wallet must handle all pending redemptions first"
+        );
+
+        require(
+            wallet.pendingMovedFundsSweepRequestsCount == 0,
+            "Source wallet must handle all pending moved funds sweep requests first"
         );
 
         require(
@@ -416,6 +422,11 @@ library MovingFunds {
                 uint32(block.timestamp),
                 0
             );
+            // We added a new moved funds sweep request for the target wallet
+            // so we must increment their request counter.
+            self
+                .registeredWallets[targetWalletPubKeyHash]
+                .pendingMovedFundsSweepRequestsCount++;
 
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.
@@ -837,9 +848,9 @@ library MovingFunds {
         sweepRequest.sweptAt = uint32(block.timestamp);
         inputsTotalValue += sweepRequest.value;
 
-        // TODO: Decrease the sweep request count for the sweeping wallet.
-        //       That will be handled in the PR that will block moving
-        //       funds commitments for wallets with pending sweep requests.
+        self
+            .registeredWallets[walletPubKeyHash]
+            .pendingMovedFundsSweepRequestsCount--;
 
         // If the main UTXO for the sweeping wallet exists, it must be processed.
         if (mainUtxo.txHash != bytes32(0)) {
