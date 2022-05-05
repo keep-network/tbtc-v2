@@ -59,7 +59,7 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 ///      A SIGHASH flag is used to indicate which part of the transaction is
 ///      signed by the ECDSA signature. There are currently 3 flags:
 ///      SIGHASH_ALL, SIGHASH_NONE, SIGHASH_SINGLE, and different combinations
-///      of these falgs.
+///      of these flags.
 ///
 ///      No matter the SIGHASH flag and no matter the combination, the following
 ///      fields from the transaction are always included in the constructed
@@ -68,7 +68,7 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 ///        36 bytes  for tx_in.previous_output (or tx_in.hash + tx_in.index for coinbase)
 ///        4  bytes  for lock_time
 ///
-///      Aditionally, the last 4 bytes of the preimage determines the SIGHASH
+///      Additionally, the last 4 bytes of the preimage determines the SIGHASH
 ///      flag.
 ///
 ///      This is enough to say there is no way the preimage could be shorter
@@ -81,8 +81,11 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 library Heartbeat {
     using BytesLib for bytes;
 
-    /// @notice Determines if the signed byte array is in fact valid wallet
-    ///         heartbeat message that is not fraudulent.
+    /// @notice Determines if the signed byte array is a valid, non-fraudulent
+    ///         heartbeat message.
+    /// @param message Message signed by the wallet. It is a potential heartbeat
+    ///        message, Bitcoin transaction preimage, or an arbitrary signed
+    ///        bytes
     /// @dev Wallet heartbeat message must be exactly 40 bytes long with the first
     ///      8 bytes set to 0xffffffffffffffff.
     /// @return True if valid heartbeat message, false otherwise.
