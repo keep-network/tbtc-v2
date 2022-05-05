@@ -2555,59 +2555,31 @@ describe("Bridge - Moving funds", () => {
                     const data: MovedFundsSweepTestData =
                       MovedFundsSweepWithMainUtxo
 
+                    let tx: Promise<ContractTransaction>
+
                     before(async () => {
                       await createSnapshot()
 
-                      // Required for a successful SPV proof.
-                      relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
-                      relay.getCurrentEpochDifficulty.returns(
-                        data.chainDifficulty
-                      )
+                      const beforeProofAction = async () => {
+                        // Swap the main UTXO just before the proof to make
+                        // this scenario happen.
+                        await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, {
+                          ...data.mainUtxo,
+                          txOutputIndex: 2,
+                        })
+                      }
 
-                      await bridge.setWallet(data.wallet.pubKeyHash, {
-                        ecdsaWalletID: data.wallet.ecdsaWalletID,
-                        mainUtxoHash: ethers.constants.HashZero,
-                        pendingRedemptionsValue: 0,
-                        createdAt: 0,
-                        movingFundsRequestedAt: 0,
-                        closingStartedAt: 0,
-                        state: walletState.Live,
-                        movingFundsTargetWalletsCommitmentHash:
-                          ethers.constants.HashZero,
-                      })
-
-                      // Wallet main UTXO must be set on the Bridge side to make
-                      // that scenario happen.
-                      await bridge.setWalletMainUtxo(
-                        data.wallet.pubKeyHash,
-                        data.mainUtxo
-                      )
+                      tx = runMovedFundsSweepScenario(data, beforeProofAction)
                     })
 
                     after(async () => {
-                      relay.getPrevEpochDifficulty.reset()
-                      relay.getCurrentEpochDifficulty.reset()
-
                       await restoreSnapshot()
                     })
 
                     it("should revert", async () => {
-                      // Corrupt the main UTXO parameter passed during
-                      // `submitMovedFundsSweepProof` call. The proper value of
-                      // `txOutputIndex` for this test data set is `0` so any other
-                      // value will make this test scenario happen.
-                      const corruptedMainUtxo = {
-                        ...data.mainUtxo,
-                        txOutputIndex: 2,
-                      }
-
-                      await expect(
-                        bridge.submitMovedFundsSweepProof(
-                          data.sweepTx,
-                          data.sweepProof,
-                          corruptedMainUtxo
-                        )
-                      ).to.be.revertedWith("Invalid main UTXO data")
+                      await expect(tx).to.be.revertedWith(
+                        "Invalid main UTXO data"
+                      )
                     })
                   })
                 })
@@ -2777,7 +2749,7 @@ describe("Bridge - Moving funds", () => {
 
         it("should revert", async () => {
           // Corrupt the input vector by setting a compactSize uint claiming
-          // there is no inputs at all.
+          // there are no inputs at all.
           data.sweepTx.inputVector =
             "0x00b69a2869840aa6fdfd143136ff4514ca46ea2d876855040892ad74ab" +
             "8c5274220100000000ffffffff"
