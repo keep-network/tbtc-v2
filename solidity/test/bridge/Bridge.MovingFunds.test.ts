@@ -17,6 +17,12 @@ import type {
 import bridgeFixture from "../fixtures/bridge"
 import { constants, walletState } from "../fixtures"
 import {
+  MovedFundsSweepMultipleOutputs,
+  MovedFundsSweepP2SHOutput,
+  MovedFundsSweepProvablyUnspendableOutput,
+  MovedFundsSweepTestData,
+  MovedFundsSweepWithMainUtxo,
+  MovedFundsSweepWithoutMainUtxo,
   MovingFundsTestData,
   MultipleInputs,
   MultipleTargetWalletsAndDivisibleAmount,
@@ -27,7 +33,7 @@ import {
   SingleTargetWalletButP2SH,
 } from "../data/moving-funds"
 import { ecdsaWalletTestData } from "../data/ecdsa"
-import { NO_MAIN_UTXO } from "../data/sweep"
+import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 chai.use(smock.matchers)
@@ -768,6 +774,67 @@ describe("Bridge - Moving funds", () => {
                                                         .hash
                                                     )
                                                 })
+
+                                                it("should create appropriate moved funds sweep requests", async () => {
+                                                  for (
+                                                    let i = 0;
+                                                    i <
+                                                    test.data
+                                                      .expectedMovedFundsSweepRequests
+                                                      .length;
+                                                    i++
+                                                  ) {
+                                                    const expectedMovedFundsSweepRequest =
+                                                      test.data
+                                                        .expectedMovedFundsSweepRequests[
+                                                        i
+                                                      ]
+
+                                                    const requestKey =
+                                                      ethers.utils.solidityKeccak256(
+                                                        ["bytes32", "uint32"],
+                                                        [
+                                                          expectedMovedFundsSweepRequest.txHash,
+                                                          expectedMovedFundsSweepRequest.txOutputIndex,
+                                                        ]
+                                                      )
+
+                                                    const actualMovedFundsSweepRequest =
+                                                      // eslint-disable-next-line no-await-in-loop
+                                                      await bridge.movedFundsSweepRequests(
+                                                        requestKey
+                                                      )
+
+                                                    expect(
+                                                      actualMovedFundsSweepRequest.walletPubKeyHash
+                                                    ).to.be.equal(
+                                                      expectedMovedFundsSweepRequest.walletPubKeyHash,
+                                                      `Unexpected wallet for sweep request ${i}`
+                                                    )
+
+                                                    expect(
+                                                      actualMovedFundsSweepRequest.value
+                                                    ).to.be.equal(
+                                                      expectedMovedFundsSweepRequest.txOutputValue,
+                                                      `Unexpected value for sweep request ${i}`
+                                                    )
+
+                                                    expect(
+                                                      actualMovedFundsSweepRequest.createdAt
+                                                    ).to.be.equal(
+                                                      // eslint-disable-next-line no-await-in-loop
+                                                      await lastBlockTime(),
+                                                      `Unexpected created timestamp for sweep request ${i}`
+                                                    )
+
+                                                    expect(
+                                                      actualMovedFundsSweepRequest.sweptAt
+                                                    ).to.be.equal(
+                                                      0,
+                                                      `Unexpected swept timestamp for sweep request ${i}`
+                                                    )
+                                                  }
+                                                })
                                               })
                                             })
                                           }
@@ -1134,7 +1201,7 @@ describe("Bridge - Moving funds", () => {
 
                     it("should revert", async () => {
                       await expect(tx).to.be.revertedWith(
-                        "Target wallet public key hash must have 20 bytes"
+                        "Output's public key hash must have 20 bytes"
                       )
                     })
                   }
@@ -1349,7 +1416,7 @@ describe("Bridge - Moving funds", () => {
 
         it("should revert", async () => {
           // Corrupt the merkle proof by changing tx index in block to an
-          // invalid one. The proper one is 33 so any other will do the trick.
+          // invalid one. The proper one is 1 so any other will do the trick.
           data.movingFundsProof.txIndexInBlock = 30
 
           await expect(runMovingFundsScenario(data)).to.be.revertedWith(
@@ -1373,7 +1440,7 @@ describe("Bridge - Moving funds", () => {
 
         it("should revert", async () => {
           // To pass the proof validation, the difficulty returned by the relay
-          // must be 1 for test data used in this scenario. Setting
+          // must be 21461933 for test data used in this scenario. Setting
           // a different value will cause difficulty comparison failure.
           data.chainDifficulty = 2
 
@@ -1929,6 +1996,993 @@ describe("Bridge - Moving funds", () => {
     })
   })
 
+  describe("submitMovedFundsSweepProof", () => {
+    context("when transaction proof is valid", () => {
+      context("when there is only one output", () => {
+        context("when the single output is 20-byte", () => {
+          context("when single output is either P2PKH or P2WPKH", () => {
+            context(
+              "when sweeping wallet is either in the Live or MovingFunds state",
+              () => {
+                context("when sweeping wallet is in the Live state", () => {
+                  context("when main UTXO data are valid", () => {
+                    context(
+                      "when transaction fee does not exceed the sweep transaction maximum fee",
+                      () => {
+                        context(
+                          "when the sweeping wallet has no main UTXO set",
+                          () => {
+                            context(
+                              "when there is a single input referring to a correct sweep request",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
+
+                                let tx: ContractTransaction
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  tx = await runMovedFundsSweepScenario(data)
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should mark the sweep request as processed", async () => {
+                                  const key = ethers.utils.solidityKeccak256(
+                                    ["bytes32", "uint32"],
+                                    [
+                                      data.movedFundsSweepRequest.txHash,
+                                      data.movedFundsSweepRequest.txOutputIndex,
+                                    ]
+                                  )
+
+                                  expect(
+                                    (await bridge.movedFundsSweepRequests(key))
+                                      .sweptAt
+                                  ).to.be.equal(await lastBlockTime())
+                                })
+
+                                it("should set the transaction output as new sweeping wallet main UTXO", async () => {
+                                  // Amount can be checked by opening the sweep tx
+                                  // in a Bitcoin testnet explorer. In this case,
+                                  // the output  value is 16500.
+                                  const expectedMainUtxoHash =
+                                    ethers.utils.solidityKeccak256(
+                                      ["bytes32", "uint32", "uint64"],
+                                      [data.sweepTx.hash, 0, 16500]
+                                    )
+
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).mainUtxoHash
+                                  ).to.be.equal(expectedMainUtxoHash)
+                                })
+
+                                it("should emit the MovedFundsSwept event", async () => {
+                                  await expect(tx)
+                                    .to.emit(bridge, "MovedFundsSwept")
+                                    .withArgs(
+                                      data.wallet.pubKeyHash,
+                                      data.sweepTx.hash
+                                    )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the single input does not refer to a known sweep request",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // Getting rid of the `movedFundsSweepRequest`
+                                  // allows running that scenario because
+                                  // the sweep request will not exist in the system.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      movedFundsSweepRequest: null,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Sweep request does not exist"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the single input does refer to a known but already processed sweep request",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
+
+                                let tx: Promise<ContractTransaction>
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  // To run this scenario, we just mark the
+                                  // sweep request as processed using a stub
+                                  // method.
+                                  const beforeProofActions = async () => {
+                                    await bridge.setProcessedMovedFundsSweepRequest(
+                                      data.movedFundsSweepRequest
+                                        .walletPubKeyHash,
+                                      data.movedFundsSweepRequest
+                                    )
+                                  }
+
+                                  tx = runMovedFundsSweepScenario(
+                                    data,
+                                    beforeProofActions
+                                  )
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  await expect(tx).to.be.revertedWith(
+                                    "Sweep request already processed"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the single input does refer to a known sweep request that belongs to another wallet",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // To make this scenario happen, we just
+                                  // change the wallet in the test data' sweep
+                                  // request.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      movedFundsSweepRequest: {
+                                        ...data.movedFundsSweepRequest,
+                                        walletPubKeyHash:
+                                          "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Sweep request belongs to another wallet"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the number of inputs is other than one",
+                              () => {
+                                // Use a test data that contains a two-input
+                                // transaction.
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // However, do not set wallet main UTXO. In
+                                  // that case, the system will expect a
+                                  // sweep transaction with a single input.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      mainUtxo: NO_MAIN_UTXO,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Moved funds sweep transaction must have a proper inputs count"
+                                  )
+                                })
+                              }
+                            )
+                          }
+                        )
+
+                        context(
+                          "when the sweeping wallet has a main UTXO set",
+                          () => {
+                            context(
+                              "when the first input refers to a correct sweep request and the second input refers to the sweeping wallet main UTXO",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                let tx: ContractTransaction
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  tx = await runMovedFundsSweepScenario(data)
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should mark the sweep request as processed", async () => {
+                                  const key = ethers.utils.solidityKeccak256(
+                                    ["bytes32", "uint32"],
+                                    [
+                                      data.movedFundsSweepRequest.txHash,
+                                      data.movedFundsSweepRequest.txOutputIndex,
+                                    ]
+                                  )
+
+                                  expect(
+                                    (await bridge.movedFundsSweepRequests(key))
+                                      .sweptAt
+                                  ).to.be.equal(await lastBlockTime())
+                                })
+
+                                it("should set the transaction output as new sweeping wallet main UTXO", async () => {
+                                  // Amount can be checked by opening the sweep tx
+                                  // in a Bitcoin testnet explorer. In this case,
+                                  // the output  value is 2612530.
+                                  const expectedMainUtxoHash =
+                                    ethers.utils.solidityKeccak256(
+                                      ["bytes32", "uint32", "uint64"],
+                                      [data.sweepTx.hash, 0, 2612530]
+                                    )
+
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).mainUtxoHash
+                                  ).to.be.equal(expectedMainUtxoHash)
+                                })
+
+                                it("should emit the MovedFundsSwept event", async () => {
+                                  await expect(tx)
+                                    .to.emit(bridge, "MovedFundsSwept")
+                                    .withArgs(
+                                      data.wallet.pubKeyHash,
+                                      data.sweepTx.hash
+                                    )
+                                })
+
+                                it("should mark the current sweeping wallet main UTXO as correctly spent", async () => {
+                                  const key = ethers.utils.solidityKeccak256(
+                                    ["bytes32", "uint32"],
+                                    [
+                                      data.mainUtxo.txHash,
+                                      data.mainUtxo.txOutputIndex,
+                                    ]
+                                  )
+
+                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                  expect(await bridge.spentMainUTXOs(key)).to.be
+                                    .true
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to the sweeping wallet main UTXO and the second input refers to a correct sweep request",
+                              () => {
+                                // The sweep transaction used by this test data
+                                // has two inputs. The first input is registered
+                                // as a sweep request (i.e. it is referred by
+                                // `movedFundsSweepRequest`) and the second one
+                                // is meant to be the main UTXO (i.e. it is
+                                // referred by `mainUtxo`).
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // To make that scenario happen, we just
+                                  // let the test runner to register the first
+                                  // input as the main UTXO and the second
+                                  // one as the sweep request.
+                                  const movedFundsSweepRequest = {
+                                    ...data.mainUtxo,
+                                    walletPubKeyHash:
+                                      data.movedFundsSweepRequest
+                                        .walletPubKeyHash,
+                                  }
+
+                                  const mainUtxo = {
+                                    ...data.movedFundsSweepRequest,
+                                  }
+
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      movedFundsSweepRequest,
+                                      mainUtxo,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Sweep request does not exist"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input does not refer to a known sweep request and the second input refers to the sweeping wallet main UTXO",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // Getting rid of the `movedFundsSweepRequest`
+                                  // allows running that scenario because
+                                  // the sweep request will not exist in the system.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      movedFundsSweepRequest: null,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Sweep request does not exist"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to a known but already processed sweep request and the second input refers to the sweeping wallet main UTXO",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                let tx: Promise<ContractTransaction>
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  // To run this scenario, we just mark the
+                                  // sweep request as processed using a stub
+                                  // method.
+                                  const beforeProofActions = async () => {
+                                    await bridge.setProcessedMovedFundsSweepRequest(
+                                      data.movedFundsSweepRequest
+                                        .walletPubKeyHash,
+                                      data.movedFundsSweepRequest
+                                    )
+                                  }
+
+                                  tx = runMovedFundsSweepScenario(
+                                    data,
+                                    beforeProofActions
+                                  )
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  await expect(tx).to.be.revertedWith(
+                                    "Sweep request already processed"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to a known sweep request that belongs to another wallet and the second input refers to the sweeping wallet main UTXO",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // To make this scenario happen, we just
+                                  // change the wallet in the test data' sweep
+                                  // request.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      movedFundsSweepRequest: {
+                                        ...data.movedFundsSweepRequest,
+                                        walletPubKeyHash:
+                                          "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Sweep request belongs to another wallet"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to a correct sweep request and the second input does not refer to the sweeping wallet main UTXO",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // To make this scenario happen, we just need
+                                  // to simulate that the sweeping wallet has
+                                  // a different main UTXO than the one used
+                                  // by the second transaction input.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      mainUtxo: {
+                                        ...data.mainUtxo,
+                                        txOutputIndex: 2,
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Second input must point to the wallet's main UTXO"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the number of inputs is other than two",
+                              () => {
+                                // Use a test data with a one-input transaction.
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // However, register a main UTXO for the
+                                  // sweeping wallet in order to force the
+                                  // system to expect a two-input transaction
+                                  // for that sweeping wallet.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      // Just an arbitrary main UTXO
+                                      mainUtxo: {
+                                        txHash:
+                                          "0x7d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed243a8961c8ac5887d5aaf528",
+                                        txOutputIndex: 0,
+                                        txOutputValue: 873510,
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Moved funds sweep transaction must have a proper inputs count"
+                                  )
+                                })
+                              }
+                            )
+                          }
+                        )
+                      }
+                    )
+
+                    context(
+                      "when transaction fee exceeds the sweep transaction maximum fee",
+                      () => {
+                        // Use a test data where the sweep transaction has
+                        // a fee of 2000 satoshi.
+                        const data: MovedFundsSweepTestData =
+                          MovedFundsSweepWithoutMainUtxo
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Set the max fee to one satoshi less than the fee
+                          // used by the transaction.
+                          await bridge.setMovedFundsSweepTxMaxTotalFee(1999)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
+                        it("should revert", async () => {
+                          await expect(
+                            runMovedFundsSweepScenario(data)
+                          ).to.be.revertedWith("Transaction fee is too high")
+                        })
+                      }
+                    )
+                  })
+
+                  context("when main UTXO data are invalid", () => {
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithMainUtxo
+
+                    let tx: Promise<ContractTransaction>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      const beforeProofAction = async () => {
+                        // Swap the main UTXO just before the proof to make
+                        // this scenario happen.
+                        await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, {
+                          ...data.mainUtxo,
+                          txOutputIndex: 2,
+                        })
+                      }
+
+                      tx = runMovedFundsSweepScenario(data, beforeProofAction)
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      await expect(tx).to.be.revertedWith(
+                        "Invalid main UTXO data"
+                      )
+                    })
+                  })
+                })
+
+                context(
+                  "when sweeping wallet is in the MovingFunds state",
+                  () => {
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithoutMainUtxo
+
+                    let tx: Promise<ContractTransaction>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      tx = runMovedFundsSweepScenario({
+                        ...data,
+                        wallet: {
+                          ...data.wallet,
+                          state: walletState.MovingFunds,
+                        },
+                      })
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should succeed", async () => {
+                      // The assertions were already performed for Live wallet
+                      // scenarios. Here we just make sure the transaction
+                      // succeeds for a MovingFunds wallet.
+                      await expect(tx).to.not.be.reverted
+                    })
+                  }
+                )
+              }
+            )
+
+            context(
+              "when sweeping wallet is neither in the Live nor MovingFunds state",
+              () => {
+                const testData = [
+                  {
+                    testName: "when sweeping wallet is in the Unknown state",
+                    walletState: walletState.Unknown,
+                  },
+                  {
+                    testName: "when sweeping wallet is in the Closing state",
+                    walletState: walletState.Closing,
+                  },
+                  {
+                    testName: "when sweeping wallet is in the Closed state",
+                    walletState: walletState.Closed,
+                  },
+                  {
+                    testName: "when sweeping wallet is in the Terminated state",
+                    walletState: walletState.Terminated,
+                  },
+                ]
+
+                testData.forEach((test) => {
+                  context(test.testName, () => {
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithoutMainUtxo
+
+                    let tx: Promise<ContractTransaction>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      tx = runMovedFundsSweepScenario({
+                        ...data,
+                        wallet: {
+                          ...data.wallet,
+                          state: test.walletState,
+                        },
+                      })
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      await expect(tx).to.be.revertedWith(
+                        "Wallet must be in Live or MovingFunds state"
+                      )
+                    })
+                  })
+                })
+              }
+            )
+          })
+
+          context("when single output is neither P2PKH nor P2WPKH", () => {
+            const data: MovedFundsSweepTestData = MovedFundsSweepP2SHOutput
+
+            before(async () => {
+              await createSnapshot()
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+                "Output must be P2PKH or P2WPKH"
+              )
+            })
+          })
+        })
+
+        context("when the single output is not 20-byte", () => {
+          const data: MovedFundsSweepTestData =
+            MovedFundsSweepProvablyUnspendableOutput
+
+          before(async () => {
+            await createSnapshot()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+              "Output's public key hash must have 20 bytes"
+            )
+          })
+        })
+      })
+
+      context("when output count is other than one", () => {
+        const data: MovedFundsSweepTestData = MovedFundsSweepMultipleOutputs
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Moved funds sweep transaction must have a single output"
+          )
+        })
+      })
+    })
+
+    context("when transaction proof is not valid", () => {
+      context("when input vector is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the input vector by setting a compactSize uint claiming
+          // there are no inputs at all.
+          data.sweepTx.inputVector =
+            "0x00b69a2869840aa6fdfd143136ff4514ca46ea2d876855040892ad74ab" +
+            "8c5274220100000000ffffffff"
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid input vector provided"
+          )
+        })
+      })
+
+      context("when output vector is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the output vector by setting a compactSize uint claiming
+          // there is no outputs at all.
+          data.sweepTx.outputVector =
+            "0x005cf511000000000017a91486884e6be1525dab5ae0b451bd2c72cee6" +
+            "7dcf4187"
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
+        })
+      })
+
+      context("when merkle proof is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the merkle proof by changing tx index in block to an
+          // invalid one. The proper one is 12 so any other will do the trick.
+          data.sweepProof.txIndexInBlock = 30
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Tx merkle proof is not valid for provided header and tx hash"
+          )
+        })
+      })
+
+      context("when proof difficulty is not current nor previous", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // To pass the proof validation, the difficulty returned by the relay
+          // must be 1 for test data used in this scenario. Setting
+          // a different value will cause difficulty comparison failure.
+          data.chainDifficulty = 2
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Not at current or previous difficulty"
+          )
+        })
+      })
+
+      context("when headers chain length is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the bitcoin headers length in the moving funds proof. The
+          // proper value is length divisible by 80 so any length violating
+          // this rule will cause failure. In this case, we just remove the
+          // last byte from proper headers chain.
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid length of the headers chain"
+          )
+        })
+      })
+
+      context("when headers chain is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Bitcoin headers must form a chain to pass the proof validation.
+          // That means the `previous block hash` encoded in the given block
+          // header must match the actual previous header's hash. To test
+          // that scenario, we corrupt the `previous block hash` of the
+          // second header. Each header is 80 bytes length. First 4 bytes
+          // of each header is `version` and 32 subsequent bytes is
+          // `previous block hash`. Changing byte 85 of the whole chain will
+          // do the work.
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            170
+          )}ff${properHeaders.substring(172)}`
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid headers chain"
+          )
+        })
+      })
+
+      context("when the work in the header is insufficient", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Each header encodes a `difficulty target` field in bytes 72-76.
+          // The given header's hash (interpreted as uint) must be bigger than
+          // the `difficulty target`. To test this scenario, we change the
+          // last byte of the last header in such a way their hash becomes
+          // lower than their `difficulty target`.
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )}ff`
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Insufficient work in a header"
+          )
+        })
+      })
+
+      context(
+        "when accumulated difficulty in headers chain is insufficient",
+        () => {
+          let otherBridge: Bridge
+          const data: MovedFundsSweepTestData = JSON.parse(
+            JSON.stringify(MovedFundsSweepWithMainUtxo)
+          )
+
+          before(async () => {
+            await createSnapshot()
+
+            // Necessary to pass the first part of proof validation.
+            relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+            relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+
+            // Deploy another bridge which has higher `txProofDifficultyFactor`
+            // than the original bridge. That means it will need 12 confirmations
+            // to deem transaction proof validity. This scenario uses test
+            // data which has only 6 confirmations. That should force the
+            // failure we expect within this scenario.
+            otherBridge = await BridgeFactory.deploy(
+              bank.address,
+              relay.address,
+              treasury.address,
+              walletRegistry.address,
+              12
+            )
+            await otherBridge.deployed()
+          })
+
+          after(async () => {
+            relay.getCurrentEpochDifficulty.reset()
+            relay.getPrevEpochDifficulty.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              otherBridge.submitMovedFundsSweepProof(
+                data.sweepTx,
+                data.sweepProof,
+                data.mainUtxo
+              )
+            ).to.be.revertedWith(
+              "Insufficient accumulated difficulty in header chain"
+            )
+          })
+        }
+      )
+    })
+  })
+
   async function runMovingFundsScenario(
     data: MovingFundsTestData,
     beforeProofActions?: () => Promise<void>
@@ -1965,6 +3019,53 @@ describe("Bridge - Moving funds", () => {
       data.movingFundsProof,
       data.mainUtxo,
       data.wallet.pubKeyHash
+    )
+
+    relay.getCurrentEpochDifficulty.reset()
+    relay.getPrevEpochDifficulty.reset()
+
+    return tx
+  }
+
+  async function runMovedFundsSweepScenario(
+    data: MovedFundsSweepTestData,
+    beforeProofActions?: () => Promise<void>
+  ): Promise<ContractTransaction> {
+    relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+    relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+
+    // Simulate the wallet is a registered one.
+    await bridge.setWallet(data.wallet.pubKeyHash, {
+      ecdsaWalletID: data.wallet.ecdsaWalletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: await lastBlockTime(),
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      state: data.wallet.state,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    })
+
+    if (data.mainUtxo.txHash !== ethers.constants.HashZero) {
+      // Simulate the prepared main UTXO belongs to the wallet.
+      await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+    }
+
+    if (data.movedFundsSweepRequest) {
+      await bridge.setMovedFundsSweepRequest(
+        data.movedFundsSweepRequest.walletPubKeyHash,
+        data.movedFundsSweepRequest
+      )
+    }
+
+    if (beforeProofActions) {
+      await beforeProofActions()
+    }
+
+    const tx = await bridge.submitMovedFundsSweepProof(
+      data.sweepTx,
+      data.sweepProof,
+      data.mainUtxo
     )
 
     relay.getCurrentEpochDifficulty.reset()

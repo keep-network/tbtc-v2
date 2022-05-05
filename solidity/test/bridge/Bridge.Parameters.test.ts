@@ -326,6 +326,8 @@ describe("Bridge - Parameters", () => {
           constants.movingFundsTimeoutSlashingAmount.mul(3)
         const newMovingFundsTimeoutNotifierRewardMultiplier =
           constants.movingFundsTimeoutNotifierRewardMultiplier / 2
+        const newMovedFundsSweepTxMaxTotalFee =
+          constants.movedFundsSweepTxMaxTotalFee * 2
 
         let tx: ContractTransaction
 
@@ -339,7 +341,8 @@ describe("Bridge - Parameters", () => {
               newMovingFundsDustThreshold,
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
-              newMovingFundsTimeoutNotifierRewardMultiplier
+              newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovedFundsSweepTxMaxTotalFee
             )
         })
 
@@ -363,6 +366,9 @@ describe("Bridge - Parameters", () => {
           expect(params.movingFundsTimeoutNotifierRewardMultiplier).to.be.equal(
             newMovingFundsTimeoutNotifierRewardMultiplier
           )
+          expect(params.movedFundsSweepTxMaxTotalFee).to.be.equal(
+            newMovedFundsSweepTxMaxTotalFee
+          )
         })
 
         it("should emit MovingFundsParametersUpdated event", async () => {
@@ -373,7 +379,8 @@ describe("Bridge - Parameters", () => {
               newMovingFundsDustThreshold,
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
-              newMovingFundsTimeoutNotifierRewardMultiplier
+              newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovedFundsSweepTxMaxTotalFee
             )
         })
       })
@@ -388,7 +395,8 @@ describe("Bridge - Parameters", () => {
                 constants.movingFundsDustThreshold,
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
-                constants.movingFundsTimeoutNotifierRewardMultiplier
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
+                constants.movedFundsSweepTxMaxTotalFee
               )
           ).to.be.revertedWith(
             "Moving funds transaction max total fee must be greater than zero"
@@ -406,7 +414,8 @@ describe("Bridge - Parameters", () => {
                 0,
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
-                constants.movingFundsTimeoutNotifierRewardMultiplier
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
+                constants.movedFundsSweepTxMaxTotalFee
               )
           ).to.be.revertedWith(
             "Moving funds dust threshold must be greater than zero"
@@ -424,7 +433,8 @@ describe("Bridge - Parameters", () => {
                 constants.movingFundsDustThreshold,
                 0,
                 constants.movingFundsTimeoutSlashingAmount,
-                constants.movingFundsTimeoutNotifierRewardMultiplier
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
+                constants.movedFundsSweepTxMaxTotalFee
               )
           ).to.be.revertedWith("Moving funds timeout must be greater than zero")
         })
@@ -442,10 +452,33 @@ describe("Bridge - Parameters", () => {
                   constants.movingFundsDustThreshold,
                   constants.movingFundsTimeout,
                   constants.movingFundsTimeoutSlashingAmount,
-                  101
+                  101,
+                  constants.movedFundsSweepTxMaxTotalFee
                 )
             ).to.be.revertedWith(
               "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
+            )
+          })
+        }
+      )
+
+      context(
+        "when new moved funds sweep transaction max total fee is zero",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateMovingFundsParameters(
+                  constants.movingFundsTxMaxTotalFee,
+                  constants.movingFundsDustThreshold,
+                  constants.movingFundsTimeout,
+                  constants.movingFundsTimeoutSlashingAmount,
+                  constants.movingFundsTimeoutNotifierRewardMultiplier,
+                  0
+                )
+            ).to.be.revertedWith(
+              "Moved funds sweep transaction max total fee must be greater than zero"
             )
           })
         }
@@ -462,7 +495,8 @@ describe("Bridge - Parameters", () => {
               constants.movingFundsDustThreshold,
               constants.movingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
-              constants.movingFundsTimeoutNotifierRewardMultiplier
+              constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movedFundsSweepTxMaxTotalFee
             )
         ).to.be.revertedWith("Caller is not the governance")
       })
