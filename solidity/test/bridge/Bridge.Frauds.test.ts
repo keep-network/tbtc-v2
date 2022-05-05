@@ -559,7 +559,9 @@ describe("Bridge - Fraud", () => {
                     })
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
-                    await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -695,7 +697,9 @@ describe("Bridge - Fraud", () => {
                     })
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
-                    await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -833,7 +837,9 @@ describe("Bridge - Fraud", () => {
                     })
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
-                    await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -969,7 +975,9 @@ describe("Bridge - Fraud", () => {
                     })
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
-                    await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -1104,7 +1112,9 @@ describe("Bridge - Fraud", () => {
             })
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
-            await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+            await bridge.setProcessedMovedFundsSweepRequests(
+              data.movedFundsSweepRequests
+            )
 
             await bridge
               .connect(thirdParty)
@@ -1155,7 +1165,9 @@ describe("Bridge - Fraud", () => {
           })
           await bridge.setSweptDeposits(data.deposits)
           await bridge.setSpentMainUtxos(data.spentMainUtxos)
-          await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+          await bridge.setProcessedMovedFundsSweepRequests(
+            data.movedFundsSweepRequests
+          )
 
           await bridge
             .connect(thirdParty)
@@ -1205,7 +1217,9 @@ describe("Bridge - Fraud", () => {
           })
           await bridge.setSweptDeposits(data.deposits)
           await bridge.setSpentMainUtxos(data.spentMainUtxos)
-          await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+          await bridge.setProcessedMovedFundsSweepRequests(
+            data.movedFundsSweepRequests
+          )
 
           await bridge
             .connect(thirdParty)
@@ -1576,7 +1590,9 @@ describe("Bridge - Fraud", () => {
 
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
-                    await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -1639,7 +1655,9 @@ describe("Bridge - Fraud", () => {
             })
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
-            await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+            await bridge.setProcessedMovedFundsSweepRequests(
+              data.movedFundsSweepRequests
+            )
 
             await bridge
               .connect(thirdParty)
@@ -1694,7 +1712,9 @@ describe("Bridge - Fraud", () => {
             })
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
-            await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+            await bridge.setProcessedMovedFundsSweepRequests(
+              data.movedFundsSweepRequests
+            )
 
             await bridge
               .connect(thirdParty)
@@ -1749,7 +1769,9 @@ describe("Bridge - Fraud", () => {
             })
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
-            await bridge.setProcessedMovedFundsSweepRequests(data.movedFundsSweepRequests)
+            await bridge.setProcessedMovedFundsSweepRequests(
+              data.movedFundsSweepRequests
+            )
 
             await bridge
               .connect(thirdParty)
