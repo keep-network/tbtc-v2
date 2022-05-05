@@ -104,7 +104,7 @@ library MovingFunds {
 
     event MovedFundsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
-    event MovedFundsSweepRequestTimedOut(
+    event MovedFundsSweepTimedOut(
         bytes20 walletPubKeyHash,
         bytes32 movingFundsTxHash,
         uint32 movingFundsTxOutputIndex
@@ -1025,7 +1025,7 @@ library MovingFunds {
         }
 
         // slither-disable-next-line reentrancy-events
-        emit MovedFundsSweepRequestTimedOut(
+        emit MovedFundsSweepTimedOut(
             walletPubKeyHash,
             movingFundsTxHash,
             movingFundsTxOutputIndex
