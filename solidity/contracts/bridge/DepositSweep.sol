@@ -186,6 +186,7 @@ library DepositSweep {
             abi.encodePacked(sweepTxHash, uint32(0), sweepTxOutputValue)
         );
 
+        // slither-disable-next-line reentrancy-events
         emit DepositsSwept(walletPubKeyHash, sweepTxHash);
 
         // Update depositors balances in the Bank.
