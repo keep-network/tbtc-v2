@@ -3170,7 +3170,7 @@ describe("Bridge - Moving funds", () => {
     })
   })
 
-  describe.only("notifyMovedFundsSweepTimeout", () => {
+  describe("notifyMovedFundsSweepTimeout", () => {
     const walletDraft = {
       ecdsaWalletID: ecdsaWalletTestData.walletID,
       mainUtxoHash: ethers.constants.HashZero,
