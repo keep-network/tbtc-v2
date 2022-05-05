@@ -1,6 +1,6 @@
 import { BigNumberish, BytesLike } from "ethers"
 import { walletState } from "../fixtures"
-import { NO_MAIN_UTXO } from "./sweep"
+import { NO_MAIN_UTXO } from "./deposit-sweep"
 
 /**
  * Represents a set of data used for the given moving funds scenario.
@@ -21,10 +21,10 @@ export interface MovingFundsTestData {
   targetWalletsCommitment: BytesLike[]
 
   /**
-   * Optional list of moved funds merge requests that should be created
+   * Optional list of moved funds sweep requests that should be created
    * as effect of running the test scenario.
    */
-  expectedMovedFundsMergeRequests?: {
+  expectedMovedFundsSweepRequests?: {
     walletPubKeyHash: BytesLike
     txHash: BytesLike
     txOutputIndex: number
@@ -94,7 +94,7 @@ export const SingleTargetWallet: MovingFundsTestData = {
 
   targetWalletsCommitment: ["0x2cd680318747b720d67bf4246eb7403b476adb34"],
 
-  expectedMovedFundsMergeRequests: [
+  expectedMovedFundsSweepRequests: [
     {
       walletPubKeyHash: "0x2cd680318747b720d67bf4246eb7403b476adb34",
       txHash:
@@ -181,7 +181,7 @@ export const MultipleTargetWalletsAndIndivisibleAmount: MovingFundsTestData = {
     "0xaf7a841e055fc19bf31acf4cbed5ef548a2cc453",
   ],
 
-  expectedMovedFundsMergeRequests: [
+  expectedMovedFundsSweepRequests: [
     {
       walletPubKeyHash: "0x2cd680318747b720d67bf4246eb7403b476adb34",
       txHash:
@@ -288,7 +288,7 @@ export const MultipleTargetWalletsAndDivisibleAmount: MovingFundsTestData = {
     "0xaf7a841e055fc19bf31acf4cbed5ef548a2cc453",
   ],
 
-  expectedMovedFundsMergeRequests: [
+  expectedMovedFundsSweepRequests: [
     {
       walletPubKeyHash: "0x2cd680318747b720d67bf4246eb7403b476adb34",
       txHash:
@@ -662,11 +662,11 @@ export const MultipleInputs: MovingFundsTestData = {
 }
 
 /**
- * Represents a set of data used for the given moved funds merge scenario.
+ * Represents a set of data used for the given moved funds sweep scenario.
  */
-export interface MovedFundsMergeTestData {
+export interface MovedFundsSweepTestData {
   /**
-   * Wallet that makes the moved funds merge transaction.
+   * Wallet that makes the moved funds sweep transaction.
    */
   wallet: {
     ecdsaWalletID: BytesLike
@@ -675,9 +675,9 @@ export interface MovedFundsMergeTestData {
   }
 
   /**
-   * Moved funds merge request handled by the merge transaction.
+   * Moved funds sweep request handled by the sweep transaction.
    */
-  movedFundsMergeRequest: {
+  movedFundsSweepRequest: {
     walletPubKeyHash: BytesLike
     txHash: BytesLike
     txOutputIndex: number
@@ -686,7 +686,7 @@ export interface MovedFundsMergeTestData {
 
   /**
    * Main UTXO data which are used as `mainUtxo` parameter during
-   * `submitMovedFundsMergeProof` function call.
+   * `submitMovedFundsSweepProof` function call.
    */
   mainUtxo: {
     txHash: BytesLike
@@ -695,10 +695,10 @@ export interface MovedFundsMergeTestData {
   }
 
   /**
-   * Moved funds merge transaction data passed as `mergeTx` parameter during
-   * `submitMovedFundsMergeProof`function call.
+   * Moved funds sweep transaction data passed as `sweepTx` parameter during
+   * `submitMovedFundsSweepProof`function call.
    */
-  mergeTx: {
+  sweepTx: {
     hash: BytesLike
     version: BytesLike
     inputVector: BytesLike
@@ -707,10 +707,10 @@ export interface MovedFundsMergeTestData {
   }
 
   /**
-   * Moved funds merge proof data passed as `mergeProof` parameter during
-   * `submitMovedFundsMergeProof` function call.
+   * Moved funds sweep proof data passed as `sweepProof` parameter during
+   * `submitMovedFundsSweepProof` function call.
    */
-  mergeProof: {
+  sweepProof: {
     merkleProof: BytesLike
     txIndexInBlock: BigNumberish
     bitcoinHeaders: BytesLike
@@ -725,13 +725,13 @@ export interface MovedFundsMergeTestData {
 }
 
 /**
- * `MovedFundsMergeWithoutMainUtxo` test data represents a moved funds merge
+ * `MovedFundsSweepWithoutMainUtxo` test data represents a moved funds sweep
  * with the following properties:
- * - 1 P2WPKH input pointing to a moved funds merge request
- * - 1 P2WPKH output that locks funds on the merging wallet public key hash
+ * - 1 P2WPKH input pointing to a moved funds sweep request
+ * - 1 P2WPKH output that locks funds on the sweeping wallet public key hash
  * - 6+ on-chain confirmations of the transaction
  */
-export const MovedFundsMergeWithoutMainUtxo: MovedFundsMergeTestData = {
+export const MovedFundsSweepWithoutMainUtxo: MovedFundsSweepTestData = {
   wallet: {
     // In this scenario, the `ecdsaWalletID` is not relevant at all, so it
     // is an arbitrary hex not connected with the `pubKeyHash`
@@ -741,7 +741,7 @@ export const MovedFundsMergeWithoutMainUtxo: MovedFundsMergeTestData = {
     state: walletState.Live,
   },
 
-  movedFundsMergeRequest: {
+  movedFundsSweepRequest: {
     walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
     txHash:
       "0x51f373dcbb6122bcb1c62964b5f3be923092dc64bc9e31257931d58c4eadb9f5",
@@ -752,7 +752,7 @@ export const MovedFundsMergeWithoutMainUtxo: MovedFundsMergeTestData = {
   mainUtxo: NO_MAIN_UTXO,
 
   // https://live.blockcypher.com/btc-testnet/tx/3c5e414be0a36e7cd8a6b3a554b4bd9bebe3eee4eddd0dd2a182652e5772b1ad
-  mergeTx: {
+  sweepTx: {
     hash: "0xadb172572e6582a1d20dddede4eee3eb9bbdb454a5b3a6d87c6ea3e04b415e3c",
     version: "0x01000000",
     inputVector:
@@ -763,7 +763,7 @@ export const MovedFundsMergeWithoutMainUtxo: MovedFundsMergeTestData = {
     locktime: "0x00000000",
   },
 
-  mergeProof: {
+  sweepProof: {
     merkleProof:
       "0x420b7804b046b62d2c58ed265f1f4c1f5a870cb0dbb1788f251d4377a6ac198cca" +
       "80146dde2a79fab2cdcec6704d3166c1a60cb03b685faf895d171929874798341f0b" +
@@ -797,14 +797,14 @@ export const MovedFundsMergeWithoutMainUtxo: MovedFundsMergeTestData = {
 }
 
 /**
- * `MovedFundsMergeWithMainUtxo` test data represents a moved funds merge
+ * `MovedFundsSweepWithMainUtxo` test data represents a moved funds sweep
  * with the following properties:
- * - 1 P2PKH input pointing to a moved funds merge request
- * - 1 P2PKH input pointing to the merginhg wallet main UTXO
- * - 1 P2PKH output that locks funds on the merging wallet public key hash
+ * - 1 P2PKH input pointing to a moved funds sweep request
+ * - 1 P2PKH input pointing to the sweeping wallet main UTXO
+ * - 1 P2PKH output that locks funds on the sweeping wallet public key hash
  * - 6+ on-chain confirmations of the transaction
  */
-export const MovedFundsMergeWithMainUtxo: MovedFundsMergeTestData = {
+export const MovedFundsSweepWithMainUtxo: MovedFundsSweepTestData = {
   wallet: {
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -812,7 +812,7 @@ export const MovedFundsMergeWithMainUtxo: MovedFundsMergeTestData = {
     state: walletState.Live,
   },
 
-  movedFundsMergeRequest: {
+  movedFundsSweepRequest: {
     walletPubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
     txHash:
       "0x7d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed243a8961c8ac5887d5aaf528",
@@ -828,7 +828,7 @@ export const MovedFundsMergeWithMainUtxo: MovedFundsMergeTestData = {
   },
 
   // https://live.blockcypher.com/btc-testnet/tx/f97ed3704f59bf5ed828d90f04598ea6c1c65a7957befa1f1c175a142c17fff9
-  mergeTx: {
+  sweepTx: {
     hash: "0xf9ff172c145a171c1ffabe57795ac6c1a68e59040fd928d85ebf594f70d37ef9",
     version: "0x01000000",
     inputVector:
@@ -847,7 +847,7 @@ export const MovedFundsMergeWithMainUtxo: MovedFundsMergeTestData = {
     locktime: "0x00000000",
   },
 
-  mergeProof: {
+  sweepProof: {
     merkleProof:
       "0x604a912ff9006ac6c20fab23ea943d101f71dd2cf1825b7938673d44ce6f4a8860" +
       "82c37e7e71132ae484a8380fb30b5d66d1421af763203204aa062359ad1b5d9d4c8a" +
@@ -880,15 +880,15 @@ export const MovedFundsMergeWithMainUtxo: MovedFundsMergeTestData = {
 }
 
 /**
- * `MovedFundsMergeP2SHOutput` test data represents a moved funds merge with
+ * `MovedFundsSweepP2SHOutput` test data represents a moved funds sweep with
  *  the following properties:
- * - 1 P2WPKH input pointing to a moved funds merge request
- * - 1 P2SH output that locks funds on the merging wallet public key hash
+ * - 1 P2WPKH input pointing to a moved funds sweep request
+ * - 1 P2SH output that locks funds on the sweeping wallet public key hash
  * - 6+ on-chain confirmations of the transaction
- * - This is not a valid moved funds merge transaction that should be rejected
+ * - This is not a valid moved funds sweep transaction that should be rejected
  *   because of the illegal P2SH output.
  */
-export const MovedFundsMergeP2SHOutput: MovedFundsMergeTestData = {
+export const MovedFundsSweepP2SHOutput: MovedFundsSweepTestData = {
   wallet: {
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -896,7 +896,7 @@ export const MovedFundsMergeP2SHOutput: MovedFundsMergeTestData = {
     state: walletState.Live,
   },
 
-  movedFundsMergeRequest: {
+  movedFundsSweepRequest: {
     walletPubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
     txHash:
       "0x426518af930297f9d12ce84ac1366e19cf1c797a7515c1a62e0d51193bf6236b",
@@ -907,7 +907,7 @@ export const MovedFundsMergeP2SHOutput: MovedFundsMergeTestData = {
   mainUtxo: NO_MAIN_UTXO,
 
   // https://live.blockcypher.com/btc-testnet/tx/588a0e5e68ec8d3cf80d1190e51a68a431737a33c3a09f16303945dd49e369cd
-  mergeTx: {
+  sweepTx: {
     hash: "0xcd69e349dd453930169fa0c3337a7331a4681ae590110df83c8dec685e0e8a58",
     version: "0x01000000",
     inputVector:
@@ -918,7 +918,7 @@ export const MovedFundsMergeP2SHOutput: MovedFundsMergeTestData = {
     locktime: "0x00000000",
   },
 
-  mergeProof: {
+  sweepProof: {
     merkleProof:
       "0xf6ed9f6ae7235c66ce46e4770aed465ab526375a834bbb651b3e5111ac84e58e42" +
       "6ccb496719c8ba7db243e6e0a7c4f00f1b2a308da73305cb0775a62df99cd26a3996" +
@@ -953,15 +953,15 @@ export const MovedFundsMergeP2SHOutput: MovedFundsMergeTestData = {
 }
 
 /**
- * `MovedFundsMergeProvablyUnspendableOutput` test data represents a moved funds
- *  merge with the following properties:
- * - 1 P2WPKH input pointing to a moved funds merge request
+ * `MovedFundsSweepProvablyUnspendableOutput` test data represents a moved funds
+ *  sweep with the following properties:
+ * - 1 P2WPKH input pointing to a moved funds sweep request
  * - 1 provably unspendable output with value 0 satoshi
  * - 6+ on-chain confirmations of the transaction
- * - This is not a valid moved funds merge transaction that should be rejected
+ * - This is not a valid moved funds sweep transaction that should be rejected
  *   because of the illegal provably unspendable output.
  */
-export const MovedFundsMergeProvablyUnspendableOutput: MovedFundsMergeTestData =
+export const MovedFundsSweepProvablyUnspendableOutput: MovedFundsSweepTestData =
   {
     wallet: {
       ecdsaWalletID:
@@ -970,7 +970,7 @@ export const MovedFundsMergeProvablyUnspendableOutput: MovedFundsMergeTestData =
       state: walletState.Live,
     },
 
-    movedFundsMergeRequest: {
+    movedFundsSweepRequest: {
       walletPubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
       txHash:
         "0xc83c538a70028dd9fd40d7e8be0d05dc414a95927eb52df895e9d0c424786c53",
@@ -981,7 +981,7 @@ export const MovedFundsMergeProvablyUnspendableOutput: MovedFundsMergeTestData =
     mainUtxo: NO_MAIN_UTXO,
 
     // https://live.blockcypher.com/btc-testnet/tx/58a7d94d019aa658d00dfa2b5d5bb6b5d627b71afefff2bda5db501a75981fd3
-    mergeTx: {
+    sweepTx: {
       hash: "0xd31f98751a50dba5bdf2fffe1ab727d6b5b65b5d2bfa0dd058a69a014dd9a758",
       version: "0x01000000",
       inputVector:
@@ -992,7 +992,7 @@ export const MovedFundsMergeProvablyUnspendableOutput: MovedFundsMergeTestData =
       locktime: "0x00000000",
     },
 
-    mergeProof: {
+    sweepProof: {
       merkleProof:
         "0x905ff7ee49bf6e4290d4045f19317130044e77241b4b38fb3c8c1f1413b8a89574" +
         "ebfb6efeabf05d65f5ad9cc1f8355d2a00a4ca22d7c7a0e0cabc0d6a4c6c00db10e3" +
@@ -1025,15 +1025,15 @@ export const MovedFundsMergeProvablyUnspendableOutput: MovedFundsMergeTestData =
   }
 
 /**
- * `MovedFundsMergeMultipleOutputs` test data represents a moved funds
- *  merge with the following properties:
- * - 1 P2WPKH input pointing to a moved funds merge request
+ * `MovedFundsSweepMultipleOutputs` test data represents a moved funds
+ *  sweep with the following properties:
+ * - 1 P2WPKH input pointing to a moved funds sweep request
  * - 3 outputs
  * - 6+ on-chain confirmations of the transaction
- * - This is not a valid moved funds merge transaction that should be rejected
+ * - This is not a valid moved funds sweep transaction that should be rejected
  *   because of the illegal outputs count. Only one output is allowed.
  */
-export const MovedFundsMergeMultipleOutputs: MovedFundsMergeTestData = {
+export const MovedFundsSweepMultipleOutputs: MovedFundsSweepTestData = {
   wallet: {
     ecdsaWalletID:
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863",
@@ -1041,7 +1041,7 @@ export const MovedFundsMergeMultipleOutputs: MovedFundsMergeTestData = {
     state: walletState.Live,
   },
 
-  movedFundsMergeRequest: {
+  movedFundsSweepRequest: {
     walletPubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
     txHash:
       "0x80653f6e07dabddae14cf08d45475388343763100e4548914d811f373465a42e",
@@ -1052,7 +1052,7 @@ export const MovedFundsMergeMultipleOutputs: MovedFundsMergeTestData = {
   mainUtxo: NO_MAIN_UTXO,
 
   // https://live.blockcypher.com/btc-testnet/tx/e6218018ed1874e73b78e16a8cf4f5016cbc666a3f9179557a84083e3e66ff7c
-  mergeTx: {
+  sweepTx: {
     hash: "0x7cff663e3e08847a5579913f6a66bc6c01f5f48c6ae1783be77418ed188021e6",
     version: "0x01000000",
     inputVector:
@@ -1065,7 +1065,7 @@ export const MovedFundsMergeMultipleOutputs: MovedFundsMergeTestData = {
     locktime: "0x00000000",
   },
 
-  mergeProof: {
+  sweepProof: {
     merkleProof:
       "0x4880d00e942d1e54b9281b138ebe684d82067bd3cc55fbb54a4fe5f441f387b370" +
       "029b1360cd2fff4bd5ce292e35ab1650ee349017a25c6c5c47adfb59a41a6d707207" +

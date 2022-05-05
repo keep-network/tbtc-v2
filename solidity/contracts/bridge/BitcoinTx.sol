@@ -234,16 +234,18 @@ library BitcoinTx {
         );
     }
 
-    /// @notice Processes a P2PKH or P2WPKH output. Reverts if the validation fails.
+    /// @notice Extracts public key hash from the provided P2PKH or P2WPKH output.
+    ///         Reverts if the validation fails.
     /// @param output The transaction output
     /// @return pubKeyHash 20-byte public key hash the output locks funds on
     /// @dev Requirements:
     ///      - The output must be of P2PKH or P2WPKH type and lock the funds
     ///        on a 20-byte public key hash
-    function processPubKeyHashTxOutput(
-        BridgeState.Storage storage,
-        bytes memory output
-    ) internal view returns (bytes20 pubKeyHash) {
+    function extractPubKeyHash(BridgeState.Storage storage, bytes memory output)
+        internal
+        view
+        returns (bytes20 pubKeyHash)
+    {
         bytes memory pubKeyHashBytes = output.extractHash();
 
         require(

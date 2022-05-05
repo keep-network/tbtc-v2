@@ -78,8 +78,8 @@ library Wallets {
         // UNIX timestamp indicating the moment the wallet's closing period
         // started.
         uint32 closingStartedAt;
-        // Total count of pending moved funds merge requests targeting this wallet.
-        uint32 pendingMovedFundsMergeRequestsCount;
+        // Total count of pending moved funds sweep requests targeting this wallet.
+        uint32 pendingMovedFundsSweepRequestsCount;
         // Current state of the wallet.
         WalletState state;
         // Moving funds target wallet commitment submitted by the wallet. It

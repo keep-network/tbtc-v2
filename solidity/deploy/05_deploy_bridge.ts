@@ -19,7 +19,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deployments.getNetworkName() === "hardhat" ? 1 : 6
 
   const Deposit = await deploy("Deposit", { from: deployer, log: true })
-  const Sweep = await deploy("Sweep", { from: deployer, log: true })
+  const DepositSweep = await deploy("DepositSweep", {
+    from: deployer,
+    log: true,
+  })
   const Redemption = await deploy("Redemption", { from: deployer, log: true })
   const Wallets = await deploy("Wallets", { from: deployer, log: true })
   const Fraud = await deploy("Fraud", { from: deployer, log: true })
@@ -41,7 +44,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ],
     libraries: {
       Deposit: Deposit.address,
-      Sweep: Sweep.address,
+      DepositSweep: DepositSweep.address,
       Redemption: Redemption.address,
       Wallets: Wallets.address,
       Fraud: Fraud.address,

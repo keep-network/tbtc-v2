@@ -326,13 +326,13 @@ describe("Bridge - Parameters", () => {
           constants.movingFundsTimeoutSlashingAmount.mul(3)
         const newMovingFundsTimeoutNotifierRewardMultiplier =
           constants.movingFundsTimeoutNotifierRewardMultiplier / 2
-        const newMovedFundsMergeTxMaxTotalFee =
-          constants.movedFundsMergeTxMaxTotalFee * 2
-        const newMovedFundsMergeTimeout = constants.movedFundsMergeTimeout * 4
-        const newMovedFundsMergeTimeoutSlashingAmount =
-          constants.movedFundsMergeTimeoutSlashingAmount.mul(6)
-        const newMovedFundsMergeTimeoutNotifierRewardMultiplier =
-          constants.movedFundsMergeTimeoutNotifierRewardMultiplier / 4
+        const newMovedFundsSweepTxMaxTotalFee =
+          constants.movedFundsSweepTxMaxTotalFee * 2
+        const newMovedFundsSweepTimeout = constants.movedFundsSweepTimeout * 4
+        const newMovedFundsSweepTimeoutSlashingAmount =
+          constants.movedFundsSweepTimeoutSlashingAmount.mul(6)
+        const newMovedFundsSweepTimeoutNotifierRewardMultiplier =
+          constants.movedFundsSweepTimeoutNotifierRewardMultiplier / 4
 
         let tx: ContractTransaction
 
@@ -347,10 +347,10 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
-              newMovedFundsMergeTxMaxTotalFee,
-              newMovedFundsMergeTimeout,
-              newMovedFundsMergeTimeoutSlashingAmount,
-              newMovedFundsMergeTimeoutNotifierRewardMultiplier
+              newMovedFundsSweepTxMaxTotalFee,
+              newMovedFundsSweepTimeout,
+              newMovedFundsSweepTimeoutSlashingAmount,
+              newMovedFundsSweepTimeoutNotifierRewardMultiplier
             )
         })
 
@@ -374,18 +374,18 @@ describe("Bridge - Parameters", () => {
           expect(params.movingFundsTimeoutNotifierRewardMultiplier).to.be.equal(
             newMovingFundsTimeoutNotifierRewardMultiplier
           )
-          expect(params.movedFundsMergeTxMaxTotalFee).to.be.equal(
-            newMovedFundsMergeTxMaxTotalFee
+          expect(params.movedFundsSweepTxMaxTotalFee).to.be.equal(
+            newMovedFundsSweepTxMaxTotalFee
           )
-          expect(params.movedFundsMergeTimeout).to.be.equal(
-            newMovedFundsMergeTimeout
+          expect(params.movedFundsSweepTimeout).to.be.equal(
+            newMovedFundsSweepTimeout
           )
-          expect(params.movedFundsMergeTimeoutSlashingAmount).to.be.equal(
-            newMovedFundsMergeTimeoutSlashingAmount
+          expect(params.movedFundsSweepTimeoutSlashingAmount).to.be.equal(
+            newMovedFundsSweepTimeoutSlashingAmount
           )
           expect(
-            params.movedFundsMergeTimeoutNotifierRewardMultiplier
-          ).to.be.equal(newMovedFundsMergeTimeoutNotifierRewardMultiplier)
+            params.movedFundsSweepTimeoutNotifierRewardMultiplier
+          ).to.be.equal(newMovedFundsSweepTimeoutNotifierRewardMultiplier)
         })
 
         it("should emit MovingFundsParametersUpdated event", async () => {
@@ -397,10 +397,10 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
-              newMovedFundsMergeTxMaxTotalFee,
-              newMovedFundsMergeTimeout,
-              newMovedFundsMergeTimeoutSlashingAmount,
-              newMovedFundsMergeTimeoutNotifierRewardMultiplier
+              newMovedFundsSweepTxMaxTotalFee,
+              newMovedFundsSweepTimeout,
+              newMovedFundsSweepTimeoutSlashingAmount,
+              newMovedFundsSweepTimeoutNotifierRewardMultiplier
             )
         })
       })
@@ -416,10 +416,10 @@ describe("Bridge - Parameters", () => {
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movedFundsMergeTxMaxTotalFee,
-                constants.movedFundsMergeTimeout,
-                constants.movedFundsMergeTimeoutSlashingAmount,
-                constants.movedFundsMergeTimeoutNotifierRewardMultiplier
+                constants.movedFundsSweepTxMaxTotalFee,
+                constants.movedFundsSweepTimeout,
+                constants.movedFundsSweepTimeoutSlashingAmount,
+                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
             "Moving funds transaction max total fee must be greater than zero"
@@ -438,10 +438,10 @@ describe("Bridge - Parameters", () => {
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movedFundsMergeTxMaxTotalFee,
-                constants.movedFundsMergeTimeout,
-                constants.movedFundsMergeTimeoutSlashingAmount,
-                constants.movedFundsMergeTimeoutNotifierRewardMultiplier
+                constants.movedFundsSweepTxMaxTotalFee,
+                constants.movedFundsSweepTimeout,
+                constants.movedFundsSweepTimeoutSlashingAmount,
+                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
             "Moving funds dust threshold must be greater than zero"
@@ -460,10 +460,10 @@ describe("Bridge - Parameters", () => {
                 0,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movedFundsMergeTxMaxTotalFee,
-                constants.movedFundsMergeTimeout,
-                constants.movedFundsMergeTimeoutSlashingAmount,
-                constants.movedFundsMergeTimeoutNotifierRewardMultiplier
+                constants.movedFundsSweepTxMaxTotalFee,
+                constants.movedFundsSweepTimeout,
+                constants.movedFundsSweepTimeoutSlashingAmount,
+                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith("Moving funds timeout must be greater than zero")
         })
@@ -482,10 +482,10 @@ describe("Bridge - Parameters", () => {
                   constants.movingFundsTimeout,
                   constants.movingFundsTimeoutSlashingAmount,
                   101,
-                  constants.movedFundsMergeTxMaxTotalFee,
-                  constants.movedFundsMergeTimeout,
-                  constants.movedFundsMergeTimeoutSlashingAmount,
-                  constants.movedFundsMergeTimeoutNotifierRewardMultiplier
+                  constants.movedFundsSweepTxMaxTotalFee,
+                  constants.movedFundsSweepTimeout,
+                  constants.movedFundsSweepTimeoutSlashingAmount,
+                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
                 )
             ).to.be.revertedWith(
               "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
@@ -495,7 +495,7 @@ describe("Bridge - Parameters", () => {
       )
 
       context(
-        "when new moved funds merge transaction max total fee is zero",
+        "when new moved funds sweep transaction max total fee is zero",
         () => {
           it("should revert", async () => {
             await expect(
@@ -508,18 +508,18 @@ describe("Bridge - Parameters", () => {
                   constants.movingFundsTimeoutSlashingAmount,
                   constants.movingFundsTimeoutNotifierRewardMultiplier,
                   0,
-                  constants.movedFundsMergeTimeout,
-                  constants.movedFundsMergeTimeoutSlashingAmount,
-                  constants.movedFundsMergeTimeoutNotifierRewardMultiplier
+                  constants.movedFundsSweepTimeout,
+                  constants.movedFundsSweepTimeoutSlashingAmount,
+                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
                 )
             ).to.be.revertedWith(
-              "Moved funds merge transaction max total fee must be greater than zero"
+              "Moved funds sweep transaction max total fee must be greater than zero"
             )
           })
         }
       )
 
-      context("when new moved funds merge timeout is zero", () => {
+      context("when new moved funds sweep timeout is zero", () => {
         it("should revert", async () => {
           await expect(
             bridge
@@ -530,19 +530,19 @@ describe("Bridge - Parameters", () => {
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movedFundsMergeTxMaxTotalFee,
+                constants.movedFundsSweepTxMaxTotalFee,
                 0,
-                constants.movedFundsMergeTimeoutSlashingAmount,
-                constants.movedFundsMergeTimeoutNotifierRewardMultiplier
+                constants.movedFundsSweepTimeoutSlashingAmount,
+                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
-            "Moved funds merge timeout must be greater than zero"
+            "Moved funds sweep timeout must be greater than zero"
           )
         })
       })
 
       context(
-        "when new moved funds merge timeout notifier reward multiplier is greater than 100",
+        "when new moved funds sweep timeout notifier reward multiplier is greater than 100",
         () => {
           it("should revert", async () => {
             await expect(
@@ -554,13 +554,13 @@ describe("Bridge - Parameters", () => {
                   constants.movingFundsTimeout,
                   constants.movingFundsTimeoutSlashingAmount,
                   constants.movingFundsTimeoutNotifierRewardMultiplier,
-                  constants.movedFundsMergeTxMaxTotalFee,
-                  constants.movedFundsMergeTimeout,
-                  constants.movedFundsMergeTimeoutSlashingAmount,
+                  constants.movedFundsSweepTxMaxTotalFee,
+                  constants.movedFundsSweepTimeout,
+                  constants.movedFundsSweepTimeoutSlashingAmount,
                   101
                 )
             ).to.be.revertedWith(
-              "Moved funds merge timeout notifier reward multiplier must be in the range [0, 100]"
+              "Moved funds sweep timeout notifier reward multiplier must be in the range [0, 100]"
             )
           })
         }
@@ -578,10 +578,10 @@ describe("Bridge - Parameters", () => {
               constants.movingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
               constants.movingFundsTimeoutNotifierRewardMultiplier,
-              constants.movedFundsMergeTxMaxTotalFee,
-              constants.movedFundsMergeTimeout,
-              constants.movedFundsMergeTimeoutSlashingAmount,
-              constants.movedFundsMergeTimeoutNotifierRewardMultiplier
+              constants.movedFundsSweepTxMaxTotalFee,
+              constants.movedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
             )
         ).to.be.revertedWith("Caller is not the governance")
       })
