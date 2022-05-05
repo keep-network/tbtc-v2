@@ -651,8 +651,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///
     ///         The function validates the sweep transaction structure by
     ///         checking if it actually spends the moved funds UTXO and the
-    ///         sweeping wallet's main UTXO (optionally) and locks the value
-    ///         on the sweeping wallet's 20-byte public key hash, using a
+    ///         sweeping wallet's main UTXO (optionally), and if it locks the
+    ///         value on the sweeping wallet's 20-byte public key hash using a
     ///         reasonable transaction fee. If all preconditions are
     ///         met, this function updates the sweeping wallet main UTXO, thus
     ///         their BTC balance.
@@ -669,11 +669,11 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        correspond to appropriate Bitcoin transaction fields to produce
     ///        a provable transaction hash.
     ///      - The `sweepTx` should represent a Bitcoin transaction with
-    ///        the first input pointing to a wallet's sweep request and,
-    ///        optionally, the second input pointing to the wallet's main UTXO,
-    ///        if the sweeping wallet has a main UTXO set. There should be only
-    ///        one output locking funds on the sweeping wallet 20-byte public
-    ///        key hash.
+    ///        the first input pointing to a moved funds sweep request targeted
+    ///        to the wallet, and optionally, the second input pointing to the
+    ///        wallet's main UTXO, if the sweeping wallet has a main UTXO set.
+    ///        There should be only one output locking funds on the sweeping
+    ///        wallet 20-byte public key hash.
     ///      - `sweepProof` components must match the expected structure.
     ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
