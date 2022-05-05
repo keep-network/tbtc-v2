@@ -99,7 +99,7 @@ contract BridgeStub is Bridge {
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
     }
 
-    function setPendingMovedFundsMergeRequest(
+    function setPendingMovedFundsSweepRequest(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
@@ -107,8 +107,8 @@ contract BridgeStub is Bridge {
             keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
         );
 
-        self.movedFundsMergeRequests[requestKey] = MovingFunds
-            .MovedFundsMergeRequest(
+        self.movedFundsSweepRequests[requestKey] = MovingFunds
+            .MovedFundsSweepRequest(
                 walletPubKeyHash,
                 utxo.txOutputValue,
                 /* solhint-disable-next-line not-rely-on-time */
@@ -118,10 +118,10 @@ contract BridgeStub is Bridge {
 
         self
             .registeredWallets[walletPubKeyHash]
-            .pendingMovedFundsMergeRequestsCount++;
+            .pendingMovedFundsSweepRequestsCount++;
     }
 
-    function processPendingMovedFundsMergeRequest(
+    function processPendingMovedFundsSweepRequest(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
@@ -129,22 +129,22 @@ contract BridgeStub is Bridge {
             keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
         );
 
-        MovingFunds.MovedFundsMergeRequest storage request = self
-            .movedFundsMergeRequests[requestKey];
+        MovingFunds.MovedFundsSweepRequest storage request = self
+            .movedFundsSweepRequests[requestKey];
 
-        require(request.createdAt != 0, "Stub merge request does not exist");
+        require(request.createdAt != 0, "Stub sweep request does not exist");
 
         /* solhint-disable-next-line not-rely-on-time */
-        request.mergedAt = uint32(block.timestamp);
+        request.sweptAt = uint32(block.timestamp);
 
         self
             .registeredWallets[walletPubKeyHash]
-            .pendingMovedFundsMergeRequestsCount--;
+            .pendingMovedFundsSweepRequestsCount--;
     }
 
-    function setMovedFundsMergeTxMaxTotalFee(
-        uint64 _movedFundsMergeTxMaxTotalFee
+    function setMovedFundsSweepTxMaxTotalFee(
+        uint64 _movedFundsSweepTxMaxTotalFee
     ) external {
-        self.movedFundsMergeTxMaxTotalFee = _movedFundsMergeTxMaxTotalFee;
+        self.movedFundsSweepTxMaxTotalFee = _movedFundsSweepTxMaxTotalFee;
     }
 }

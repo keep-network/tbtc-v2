@@ -7,12 +7,12 @@ import { BigNumberish } from "ethers"
 /**
  * Represents a set of data used for given sweep scenario.
  */
-export interface SweepTestData {
+export interface DepositSweepTestData {
   /**
    * Deposits swept within given sweep. Those fields correspond to the ones
    * which must be passed during deposit reveal. They are actually used to
    * call `revealDeposit` function for each deposit before calling
-   * `submitSweepProof` during each test scenario.
+   * `submitDepositSweepProof` during each test scenario.
    */
   deposits: {
     fundingTx: {
@@ -35,7 +35,7 @@ export interface SweepTestData {
 
   /**
    * Main UTXO data which are used as `mainUtxo` parameter during
-   * `submitSweepProof` function call. If no main UTXO exists for given wallet,
+   * `submitDepositSweepProof` function call. If no main UTXO exists for given wallet,
    * `NO_MAIN_UTXO` constant should be used as value.
    */
   mainUtxo: {
@@ -46,7 +46,7 @@ export interface SweepTestData {
 
   /**
    * Sweep transaction data passed as `sweepTx` parameter during
-   * `submitSweepProof` function call.
+   * `submitDepositSweepProof` function call.
    */
   sweepTx: {
     hash: BytesLike
@@ -57,7 +57,7 @@ export interface SweepTestData {
   }
 
   /**
-   * Sweep proof data passed as `sweepProof` parameter during `submitSweepProof`
+   * Sweep proof data passed as `sweepProof` parameter during `submitDepositSweepProof`
    * function call.
    */
   sweepProof: {
@@ -87,7 +87,7 @@ export const NO_MAIN_UTXO = {
  * - No main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const SingleP2SHDeposit: SweepTestData = {
+export const SingleP2SHDeposit: DepositSweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/c580e0e352570d90e303d912a506055ceeb0ee06f97dce6988c69941374f5479
@@ -180,7 +180,7 @@ export const SingleP2SHDeposit: SweepTestData = {
  * - No main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const SingleP2WSHDeposit: SweepTestData = {
+export const SingleP2WSHDeposit: DepositSweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83
@@ -262,7 +262,7 @@ export const SingleP2WSHDeposit: SweepTestData = {
  * - The main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const SingleMainUtxo: SweepTestData = {
+export const SingleMainUtxo: DepositSweepTestData = {
   deposits: [],
 
   // https://live.blockcypher.com/btc-testnet/tx/f5b9ad4e8cd5317925319ebc64dc923092bef3b56429c6b1bc2261bbdc73f351
@@ -325,7 +325,7 @@ export const SingleMainUtxo: SweepTestData = {
  * - No main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const MultipleDepositsNoMainUtxo: SweepTestData = {
+export const MultipleDepositsNoMainUtxo: DepositSweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/d6a04c76aab203fe9cd8a2498bb4a8c50eb767fd95719c7790ac675ed5dec526
@@ -526,7 +526,7 @@ export const MultipleDepositsNoMainUtxo: SweepTestData = {
  * - The main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const MultipleDepositsWithMainUtxo: SweepTestData = {
+export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/85eb466ed605916ea764860ceda68fa05e7448cc772558c866a409366b997a85
