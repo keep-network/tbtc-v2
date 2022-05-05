@@ -33,7 +33,7 @@ import {
   SingleTargetWalletButP2SH,
 } from "../data/moving-funds"
 import { ecdsaWalletTestData } from "../data/ecdsa"
-import { NO_MAIN_UTXO } from "../data/sweep"
+import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 chai.use(smock.matchers)

@@ -1,6 +1,6 @@
 import { BigNumberish, BytesLike } from "ethers"
 import { walletState } from "../fixtures"
-import { NO_MAIN_UTXO } from "./sweep"
+import { NO_MAIN_UTXO } from "./deposit-sweep"
 
 /**
  * Represents a set of data used for the given moving funds scenario.

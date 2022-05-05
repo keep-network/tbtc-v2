@@ -792,7 +792,10 @@ library MovingFunds {
             bytes32 firstInputOutpointTxHash,
             uint32 firstInputOutpointIndex,
             uint256 firstInputLength
-        ) = parseTxInputAt(sweepTxInputVector, inputStartingIndex);
+        ) = parseMovedFundsSweepTxInputAt(
+                sweepTxInputVector,
+                inputStartingIndex
+            );
 
         // Build the request key and fetch the corresponding moved funds sweep
         // request from contract storage.
@@ -835,7 +838,7 @@ library MovingFunds {
                 bytes32 secondInputOutpointTxHash,
                 uint32 secondInputOutpointIndex,
 
-            ) = parseTxInputAt(
+            ) = parseMovedFundsSweepTxInputAt(
                     sweepTxInputVector,
                     inputStartingIndex + firstInputLength
                 );
@@ -878,7 +881,7 @@ library MovingFunds {
     /// @dev This function assumes vector's structure is valid so it must be
     ///      validated using e.g. `BTCUtils.validateVin` function before it
     ///      is passed here.
-    function parseTxInputAt(
+    function parseMovedFundsSweepTxInputAt(
         bytes memory inputVector,
         uint256 inputStartingIndex
     )

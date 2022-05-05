@@ -22,7 +22,7 @@ import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/ap
 import "./IRelay.sol";
 import "./BridgeState.sol";
 import "./Deposit.sol";
-import "./Sweep.sol";
+import "./DepositSweep.sol";
 import "./Redemption.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
@@ -60,7 +60,7 @@ import "../bank/Bank.sol";
 contract Bridge is Governable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
-    using Sweep for BridgeState.Storage;
+    using DepositSweep for BridgeState.Storage;
     using Redemption for BridgeState.Storage;
     using MovingFunds for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
@@ -335,12 +335,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
     ///        If there is no main UTXO, this parameter is ignored.
-    function submitSweepProof(
+    function submitDepositSweepProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
-        self.submitSweepProof(sweepTx, sweepProof, mainUtxo);
+        self.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo);
     }
 
     /// @notice Requests redemption of the given amount from the specified
