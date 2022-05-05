@@ -125,7 +125,7 @@ library Sweep {
         (
             Wallets.Wallet storage wallet,
             BitcoinTx.UTXO memory resolvedMainUtxo
-        ) = resolveSweepingWallet(self, walletPubKeyHash, mainUtxo);
+        ) = resolveDepositSweepingWallet(self, walletPubKeyHash, mainUtxo);
 
         // Process sweep transaction inputs and extract all information needed
         // to perform deposit bookkeeping.
@@ -210,7 +210,7 @@ library Sweep {
     ///     - Sweeping wallet must be either in Live or MovingFunds state.
     ///     - If the main UTXO of the sweeping wallet exists in the storage,
     ///       the passed `mainUTXO` parameter must be equal to the stored one.
-    function resolveSweepingWallet(
+    function resolveDepositSweepingWallet(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo

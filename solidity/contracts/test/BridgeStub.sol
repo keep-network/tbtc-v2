@@ -99,7 +99,7 @@ contract BridgeStub is Bridge {
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
     }
 
-    function setMovedFundsMergeRequest(
+    function setMovedFundsSweepRequest(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
@@ -107,8 +107,8 @@ contract BridgeStub is Bridge {
             keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
         );
 
-        self.movedFundsMergeRequests[requestKey] = MovingFunds
-            .MovedFundsMergeRequest(
+        self.movedFundsSweepRequests[requestKey] = MovingFunds
+            .MovedFundsSweepRequest(
                 walletPubKeyHash,
                 utxo.txOutputValue,
                 /* solhint-disable-next-line not-rely-on-time */
@@ -117,7 +117,7 @@ contract BridgeStub is Bridge {
             );
     }
 
-    function setProcessedMovedFundsMergeRequest(
+    function setProcessedMovedFundsSweepRequest(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
@@ -125,8 +125,8 @@ contract BridgeStub is Bridge {
             keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
         );
 
-        self.movedFundsMergeRequests[requestKey] = MovingFunds
-            .MovedFundsMergeRequest(
+        self.movedFundsSweepRequests[requestKey] = MovingFunds
+            .MovedFundsSweepRequest(
                 walletPubKeyHash,
                 utxo.txOutputValue,
                 /* solhint-disable-next-line not-rely-on-time */
@@ -136,9 +136,9 @@ contract BridgeStub is Bridge {
             );
     }
 
-    function setMovedFundsMergeTxMaxTotalFee(
-        uint64 _movedFundsMergeTxMaxTotalFee
+    function setMovedFundsSweepTxMaxTotalFee(
+        uint64 _movedFundsSweepTxMaxTotalFee
     ) external {
-        self.movedFundsMergeTxMaxTotalFee = _movedFundsMergeTxMaxTotalFee;
+        self.movedFundsSweepTxMaxTotalFee = _movedFundsSweepTxMaxTotalFee;
     }
 }

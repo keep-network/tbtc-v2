@@ -103,20 +103,20 @@ library BridgeState {
         // range [0, 100].
         uint256 movingFundsTimeoutNotifierRewardMultiplier;
         // Maximum amount of the total BTC transaction fee that is acceptable in
-        // a single moved funds merge transaction.
+        // a single moved funds sweep transaction.
         //
-        // This is a TOTAL max fee for the moved funds merge transaction. Note
+        // This is a TOTAL max fee for the moved funds sweep transaction. Note
         // that `depositTxMaxFee` is per single deposit and `redemptionTxMaxFee`
-        // if per single redemption. `movedFundsMergeTxMaxTotalFee` is a total
+        // if per single redemption. `movedFundsSweepTxMaxTotalFee` is a total
         // fee for the entire transaction.
-        uint64 movedFundsMergeTxMaxTotalFee;
-        // Collection of all moved funds merge requests indexed by
+        uint64 movedFundsSweepTxMaxTotalFee;
+        // Collection of all moved funds sweep requests indexed by
         // `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
         // The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
         // internally) and `movingFundsOutputIndex` an `uint32`. Each entry
         // is actually an UTXO representing the moved funds and is supposed
-        // to be merged with the current main UTXO of the recipient wallet.
-        mapping(uint256 => MovingFunds.MovedFundsMergeRequest) movedFundsMergeRequests;
+        // to be swept with the current main UTXO of the recipient wallet.
+        mapping(uint256 => MovingFunds.MovedFundsSweepRequest) movedFundsSweepRequests;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
@@ -263,7 +263,7 @@ library BridgeState {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movedFundsMergeTxMaxTotalFee
+        uint64 movedFundsSweepTxMaxTotalFee
     );
 
     event WalletParametersUpdated(
@@ -461,18 +461,18 @@ library BridgeState {
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
     ///        The value must be in the range [0, 100]
-    /// @param _movedFundsMergeTxMaxTotalFee New value of the moved funds merge
+    /// @param _movedFundsSweepTxMaxTotalFee New value of the moved funds sweep
     ///        transaction max total fee in satoshis. It is the maximum amount
     ///        of the total BTC transaction fee that is acceptable in a single
-    ///        moved funds merge transaction. This is a _total_ max fee for the
-    ///        entire moved funds merge transaction.
+    ///        moved funds sweep transaction. This is a _total_ max fee for the
+    ///        entire moved funds sweep transaction.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds dust threshold must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
-    ///      - Moved funds merge transaction max total fee must be greater than zero
+    ///      - Moved funds sweep transaction max total fee must be greater than zero
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
@@ -480,7 +480,7 @@ library BridgeState {
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
         uint256 _movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 _movedFundsMergeTxMaxTotalFee
+        uint64 _movedFundsSweepTxMaxTotalFee
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
@@ -503,8 +503,8 @@ library BridgeState {
         );
 
         require(
-            _movedFundsMergeTxMaxTotalFee > 0,
-            "Moved funds merge transaction max total fee must be greater than zero"
+            _movedFundsSweepTxMaxTotalFee > 0,
+            "Moved funds sweep transaction max total fee must be greater than zero"
         );
 
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
@@ -514,7 +514,7 @@ library BridgeState {
             .movingFundsTimeoutSlashingAmount = _movingFundsTimeoutSlashingAmount;
         self
             .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
-        self.movedFundsMergeTxMaxTotalFee = _movedFundsMergeTxMaxTotalFee;
+        self.movedFundsSweepTxMaxTotalFee = _movedFundsSweepTxMaxTotalFee;
 
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
@@ -522,7 +522,7 @@ library BridgeState {
             _movingFundsTimeout,
             _movingFundsTimeoutSlashingAmount,
             _movingFundsTimeoutNotifierRewardMultiplier,
-            _movedFundsMergeTxMaxTotalFee
+            _movedFundsSweepTxMaxTotalFee
         );
     }
 

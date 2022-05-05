@@ -121,7 +121,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
 
-    event MovedFundsMerged(bytes20 walletPubKeyHash, bytes32 mergeTxHash);
+    event MovedFundsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
     event NewWalletRequested();
 
@@ -183,7 +183,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movedFundsMergeTxMaxTotalFee
+        uint64 movedFundsSweepTxMaxTotalFee
     );
 
     event WalletParametersUpdated(
@@ -242,7 +242,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.movingFundsTimeout = 7 days;
         self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
-        self.movedFundsMergeTxMaxTotalFee = 10000; // 10000 satoshi
+        self.movedFundsSweepTxMaxTotalFee = 10000; // 10000 satoshi
         self.fraudChallengeDepositAmount = 2 ether;
         self.fraudChallengeDefeatTimeout = 7 days;
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
@@ -645,51 +645,51 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.notifyMovingFundsBelowDust(walletPubKeyHash, mainUtxo);
     }
 
-    /// @notice Used by the wallet to prove the BTC moved funds merge
+    /// @notice Used by the wallet to prove the BTC moved funds sweep
     ///         transaction and to make the necessary state changes. Moved
-    ///         funds merge is only accepted if it satisfies SPV proof.
+    ///         funds sweep is only accepted if it satisfies SPV proof.
     ///
-    ///         The function validates the merge transaction structure by
+    ///         The function validates the sweep transaction structure by
     ///         checking if it actually spends the moved funds UTXO and the
-    ///         merging wallet's main UTXO (optionally) and locks the value
-    ///         on the merging wallet's 20-byte public key hash, using a
+    ///         sweeping wallet's main UTXO (optionally) and locks the value
+    ///         on the sweeping wallet's 20-byte public key hash, using a
     ///         reasonable transaction fee. If all preconditions are
-    ///         met, this function updates the merging wallet main UTXO, thus
+    ///         met, this function updates the sweeping wallet main UTXO, thus
     ///         their BTC balance.
     ///
-    ///         It is possible to prove the given merge transaction only
+    ///         It is possible to prove the given sweep transaction only
     ///         one time.
-    /// @param mergeTx Bitcoin merge funds transaction data
-    /// @param mergeProof Bitcoin merge funds proof data
-    /// @param mainUtxo Data of the merging wallet's main UTXO, as currently
+    /// @param sweepTx Bitcoin sweep funds transaction data
+    /// @param sweepProof Bitcoin sweep funds proof data
+    /// @param mainUtxo Data of the sweeping wallet's main UTXO, as currently
     ///        known on the Ethereum chain
     /// @dev Requirements:
-    ///      - `mergeTx` components must match the expected structure. See
+    ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
     ///        a provable transaction hash.
-    ///      - The `mergeTx` should represent a Bitcoin transaction with
-    ///        the first input pointing to a wallet's merge request and,
+    ///      - The `sweepTx` should represent a Bitcoin transaction with
+    ///        the first input pointing to a wallet's sweep request and,
     ///        optionally, the second input pointing to the wallet's main UTXO,
-    ///        if the merging wallet has a main UTXO set. There should be only
-    ///        one output locking funds on the merging wallet 20-byte public
+    ///        if the sweeping wallet has a main UTXO set. There should be only
+    ///        one output locking funds on the sweeping wallet 20-byte public
     ///        key hash.
-    ///      - `mergeProof` components must match the expected structure.
+    ///      - `sweepProof` components must match the expected structure.
     ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
     ///        than the `txProofDifficultyFactor` contract constant.
     ///      - `mainUtxo` components must point to the recent main UTXO
-    ///        of the merging wallet, as currently known on the Ethereum chain.
+    ///        of the sweeping wallet, as currently known on the Ethereum chain.
     ///        If there is no main UTXO, this parameter is ignored.
-    ///      - The merging wallet must be in the Live or MovingFunds state.
+    ///      - The sweeping wallet must be in the Live or MovingFunds state.
     ///      - The total Bitcoin transaction fee must be lesser or equal
-    ///        to `movedFundsMergeTxMaxTotalFee` governable parameter.
-    function submitMovedFundsMergeProof(
-        BitcoinTx.Info calldata mergeTx,
-        BitcoinTx.Proof calldata mergeProof,
+    ///        to `movedFundsSweepTxMaxTotalFee` governable parameter.
+    function submitMovedFundsSweepProof(
+        BitcoinTx.Info calldata sweepTx,
+        BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
-        self.submitMovedFundsMergeProof(mergeTx, mergeProof, mainUtxo);
+        self.submitMovedFundsSweepProof(sweepTx, sweepProof, mainUtxo);
     }
 
     /// @notice Requests creation of a new wallet. This function just
@@ -1049,25 +1049,25 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
     ///        The value must be in the range [0, 100]
-    /// @param movedFundsMergeTxMaxTotalFee New value of the moved funds merge
+    /// @param movedFundsSweepTxMaxTotalFee New value of the moved funds sweep
     ///        transaction max total fee in satoshis. It is the maximum amount
     ///        of the total BTC transaction fee that is acceptable in a single
-    ///        moved funds merge transaction. This is a _total_ max fee for the
-    ///        entire moved funds merge transaction.
+    ///        moved funds sweep transaction. This is a _total_ max fee for the
+    ///        entire moved funds sweep transaction.
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds dust threshold must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
-    ///      - Moved funds merge transaction max total fee must be greater than zero
+    ///      - Moved funds sweep transaction max total fee must be greater than zero
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
         uint64 movingFundsDustThreshold,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movedFundsMergeTxMaxTotalFee
+        uint64 movedFundsSweepTxMaxTotalFee
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
@@ -1075,7 +1075,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
-            movedFundsMergeTxMaxTotalFee
+            movedFundsSweepTxMaxTotalFee
         );
     }
 
@@ -1259,21 +1259,21 @@ contract Bridge is Governable, EcdsaWalletOwner {
         return self.fraudChallenges[challengeKey];
     }
 
-    /// @notice Collection of all moved funds merge requests indexed by
+    /// @notice Collection of all moved funds sweep requests indexed by
     ///         `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
     ///         The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
     ///         internally) and `movingFundsOutputIndex` an `uint32`. Each entry
     ///         is actually an UTXO representing the moved funds and is supposed
-    ///         to be merged with the current main UTXO of the recipient wallet.
+    ///         to be swept with the current main UTXO of the recipient wallet.
     /// @param requestKey Request key built as
     ///        `keccak256(movingFundsTxHash | movingFundsOutputIndex)`
-    /// @return Details of the moved funds merge request.
-    function movedFundsMergeRequests(uint256 requestKey)
+    /// @return Details of the moved funds sweep request.
+    function movedFundsSweepRequests(uint256 requestKey)
         external
         view
-        returns (MovingFunds.MovedFundsMergeRequest memory)
+        returns (MovingFunds.MovedFundsSweepRequest memory)
     {
-        return self.movedFundsMergeRequests[requestKey];
+        return self.movedFundsSweepRequests[requestKey];
     }
 
     /// @notice Indicates if the vault with the given address is trusted or not.
@@ -1389,10 +1389,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @return movingFundsTimeoutNotifierRewardMultiplier The percentage of the
     ///         notifier reward from the staking contract the notifier of a
     ///         moving funds timeout receives. The value is in the range [0, 100].
-    /// @return movedFundsMergeTxMaxTotalFee Maximum amount of the total BTC
+    /// @return movedFundsSweepTxMaxTotalFee Maximum amount of the total BTC
     ///         transaction fee that is acceptable in a single moved funds
-    ///         merge transaction. This is a _total_ max fee for the entire
-    ///         moved funds merge transaction.
+    ///         sweep transaction. This is a _total_ max fee for the entire
+    ///         moved funds sweep transaction.
     function movingFundsParameters()
         external
         view
@@ -1402,7 +1402,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint256 movingFundsTimeoutNotifierRewardMultiplier,
-            uint64 movedFundsMergeTxMaxTotalFee
+            uint64 movedFundsSweepTxMaxTotalFee
         )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
@@ -1412,7 +1412,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
             .movingFundsTimeoutSlashingAmount;
         movingFundsTimeoutNotifierRewardMultiplier = self
             .movingFundsTimeoutNotifierRewardMultiplier;
-        movedFundsMergeTxMaxTotalFee = self.movedFundsMergeTxMaxTotalFee;
+        movedFundsSweepTxMaxTotalFee = self.movedFundsSweepTxMaxTotalFee;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet

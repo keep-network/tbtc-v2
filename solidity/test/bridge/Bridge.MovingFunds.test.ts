@@ -17,12 +17,12 @@ import type {
 import bridgeFixture from "../fixtures/bridge"
 import { constants, walletState } from "../fixtures"
 import {
-  MovedFundsMergeMultipleOutputs,
-  MovedFundsMergeP2SHOutput,
-  MovedFundsMergeProvablyUnspendableOutput,
-  MovedFundsMergeTestData,
-  MovedFundsMergeWithMainUtxo,
-  MovedFundsMergeWithoutMainUtxo,
+  MovedFundsSweepMultipleOutputs,
+  MovedFundsSweepP2SHOutput,
+  MovedFundsSweepProvablyUnspendableOutput,
+  MovedFundsSweepTestData,
+  MovedFundsSweepWithMainUtxo,
+  MovedFundsSweepWithoutMainUtxo,
   MovingFundsTestData,
   MultipleInputs,
   MultipleTargetWalletsAndDivisibleAmount,
@@ -775,18 +775,18 @@ describe("Bridge - Moving funds", () => {
                                                     )
                                                 })
 
-                                                it("should create appropriate moved funds merge requests", async () => {
+                                                it("should create appropriate moved funds sweep requests", async () => {
                                                   for (
                                                     let i = 0;
                                                     i <
                                                     test.data
-                                                      .expectedMovedFundsMergeRequests
+                                                      .expectedMovedFundsSweepRequests
                                                       .length;
                                                     i++
                                                   ) {
-                                                    const expectedMovedFundsMergeRequest =
+                                                    const expectedMovedFundsSweepRequest =
                                                       test.data
-                                                        .expectedMovedFundsMergeRequests[
+                                                        .expectedMovedFundsSweepRequests[
                                                         i
                                                       ]
 
@@ -794,44 +794,44 @@ describe("Bridge - Moving funds", () => {
                                                       ethers.utils.solidityKeccak256(
                                                         ["bytes32", "uint32"],
                                                         [
-                                                          expectedMovedFundsMergeRequest.txHash,
-                                                          expectedMovedFundsMergeRequest.txOutputIndex,
+                                                          expectedMovedFundsSweepRequest.txHash,
+                                                          expectedMovedFundsSweepRequest.txOutputIndex,
                                                         ]
                                                       )
 
-                                                    const actualMovedFundsMergeRequest =
+                                                    const actualMovedFundsSweepRequest =
                                                       // eslint-disable-next-line no-await-in-loop
-                                                      await bridge.movedFundsMergeRequests(
+                                                      await bridge.movedFundsSweepRequests(
                                                         requestKey
                                                       )
 
                                                     expect(
-                                                      actualMovedFundsMergeRequest.walletPubKeyHash
+                                                      actualMovedFundsSweepRequest.walletPubKeyHash
                                                     ).to.be.equal(
-                                                      expectedMovedFundsMergeRequest.walletPubKeyHash,
-                                                      `Unexpected wallet for merge request ${i}`
+                                                      expectedMovedFundsSweepRequest.walletPubKeyHash,
+                                                      `Unexpected wallet for sweep request ${i}`
                                                     )
 
                                                     expect(
-                                                      actualMovedFundsMergeRequest.value
+                                                      actualMovedFundsSweepRequest.value
                                                     ).to.be.equal(
-                                                      expectedMovedFundsMergeRequest.txOutputValue,
-                                                      `Unexpected value for merge request ${i}`
+                                                      expectedMovedFundsSweepRequest.txOutputValue,
+                                                      `Unexpected value for sweep request ${i}`
                                                     )
 
                                                     expect(
-                                                      actualMovedFundsMergeRequest.createdAt
+                                                      actualMovedFundsSweepRequest.createdAt
                                                     ).to.be.equal(
                                                       // eslint-disable-next-line no-await-in-loop
                                                       await lastBlockTime(),
-                                                      `Unexpected created timestamp for merge request ${i}`
+                                                      `Unexpected created timestamp for sweep request ${i}`
                                                     )
 
                                                     expect(
-                                                      actualMovedFundsMergeRequest.mergedAt
+                                                      actualMovedFundsSweepRequest.sweptAt
                                                     ).to.be.equal(
                                                       0,
-                                                      `Unexpected merged timestamp for merge request ${i}`
+                                                      `Unexpected swept timestamp for sweep request ${i}`
                                                     )
                                                   }
                                                 })
@@ -1996,63 +1996,63 @@ describe("Bridge - Moving funds", () => {
     })
   })
 
-  describe("submitMovedFundsMergeProof", () => {
+  describe("submitMovedFundsSweepProof", () => {
     context("when transaction proof is valid", () => {
       context("when there is only one output", () => {
         context("when the single output is 20-byte", () => {
           context("when single output is either P2PKH or P2WPKH", () => {
             context(
-              "when merging wallet is either in the Live or MovingFunds state",
+              "when sweeping wallet is either in the Live or MovingFunds state",
               () => {
-                context("when merging wallet is in the Live state", () => {
+                context("when sweeping wallet is in the Live state", () => {
                   context("when main UTXO data are valid", () => {
                     context(
-                      "when transaction fee does not exceed the merge transaction maximum fee",
+                      "when transaction fee does not exceed the sweep transaction maximum fee",
                       () => {
                         context(
-                          "when the merging wallet has no main UTXO set",
+                          "when the sweeping wallet has no main UTXO set",
                           () => {
                             context(
-                              "when there is a single input referring to a correct merge request",
+                              "when there is a single input referring to a correct sweep request",
                               () => {
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithoutMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
 
                                 let tx: ContractTransaction
 
                                 before(async () => {
                                   await createSnapshot()
 
-                                  tx = await runMovedFundsMergeScenario(data)
+                                  tx = await runMovedFundsSweepScenario(data)
                                 })
 
                                 after(async () => {
                                   await restoreSnapshot()
                                 })
 
-                                it("should mark the merge request as processed", async () => {
+                                it("should mark the sweep request as processed", async () => {
                                   const key = ethers.utils.solidityKeccak256(
                                     ["bytes32", "uint32"],
                                     [
-                                      data.movedFundsMergeRequest.txHash,
-                                      data.movedFundsMergeRequest.txOutputIndex,
+                                      data.movedFundsSweepRequest.txHash,
+                                      data.movedFundsSweepRequest.txOutputIndex,
                                     ]
                                   )
 
                                   expect(
-                                    (await bridge.movedFundsMergeRequests(key))
-                                      .mergedAt
+                                    (await bridge.movedFundsSweepRequests(key))
+                                      .sweptAt
                                   ).to.be.equal(await lastBlockTime())
                                 })
 
-                                it("should set the transaction output as new merging wallet main UTXO", async () => {
-                                  // Amount can be checked by opening the merge tx
+                                it("should set the transaction output as new sweeping wallet main UTXO", async () => {
+                                  // Amount can be checked by opening the sweep tx
                                   // in a Bitcoin testnet explorer. In this case,
                                   // the output  value is 16500.
                                   const expectedMainUtxoHash =
                                     ethers.utils.solidityKeccak256(
                                       ["bytes32", "uint32", "uint64"],
-                                      [data.mergeTx.hash, 0, 16500]
+                                      [data.sweepTx.hash, 0, 16500]
                                     )
 
                                   expect(
@@ -2064,22 +2064,22 @@ describe("Bridge - Moving funds", () => {
                                   ).to.be.equal(expectedMainUtxoHash)
                                 })
 
-                                it("should emit the MovedFundsMerged event", async () => {
+                                it("should emit the MovedFundsSwept event", async () => {
                                   await expect(tx)
-                                    .to.emit(bridge, "MovedFundsMerged")
+                                    .to.emit(bridge, "MovedFundsSwept")
                                     .withArgs(
                                       data.wallet.pubKeyHash,
-                                      data.mergeTx.hash
+                                      data.sweepTx.hash
                                     )
                                 })
                               }
                             )
 
                             context(
-                              "when the single input does not refer to a known merge request",
+                              "when the single input does not refer to a known sweep request",
                               () => {
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithoutMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
 
                                 before(async () => {
                                   await createSnapshot()
@@ -2090,26 +2090,26 @@ describe("Bridge - Moving funds", () => {
                                 })
 
                                 it("should revert", async () => {
-                                  // Getting rid of the `movedFundsMergeRequest`
+                                  // Getting rid of the `movedFundsSweepRequest`
                                   // allows running that scenario because
-                                  // the merge request will not exist in the system.
+                                  // the sweep request will not exist in the system.
                                   await expect(
-                                    runMovedFundsMergeScenario({
+                                    runMovedFundsSweepScenario({
                                       ...data,
-                                      movedFundsMergeRequest: null,
+                                      movedFundsSweepRequest: null,
                                     })
                                   ).to.be.revertedWith(
-                                    "Merge request does not exist"
+                                    "Sweep request does not exist"
                                   )
                                 })
                               }
                             )
 
                             context(
-                              "when the single input does refer to a known but already processed merge request",
+                              "when the single input does refer to a known but already processed sweep request",
                               () => {
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithoutMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
 
                                 let tx: Promise<ContractTransaction>
 
@@ -2117,17 +2117,17 @@ describe("Bridge - Moving funds", () => {
                                   await createSnapshot()
 
                                   // To run this scenario, we just mark the
-                                  // merge request as processed using a stub
+                                  // sweep request as processed using a stub
                                   // method.
                                   const beforeProofActions = async () => {
-                                    await bridge.setProcessedMovedFundsMergeRequest(
-                                      data.movedFundsMergeRequest
+                                    await bridge.setProcessedMovedFundsSweepRequest(
+                                      data.movedFundsSweepRequest
                                         .walletPubKeyHash,
-                                      data.movedFundsMergeRequest
+                                      data.movedFundsSweepRequest
                                     )
                                   }
 
-                                  tx = runMovedFundsMergeScenario(
+                                  tx = runMovedFundsSweepScenario(
                                     data,
                                     beforeProofActions
                                   )
@@ -2139,17 +2139,17 @@ describe("Bridge - Moving funds", () => {
 
                                 it("should revert", async () => {
                                   await expect(tx).to.be.revertedWith(
-                                    "Merge request already processed"
+                                    "Sweep request already processed"
                                   )
                                 })
                               }
                             )
 
                             context(
-                              "when the single input does refer to a known merge request that belongs to another wallet",
+                              "when the single input does refer to a known sweep request that belongs to another wallet",
                               () => {
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithoutMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
 
                                 before(async () => {
                                   await createSnapshot()
@@ -2161,19 +2161,19 @@ describe("Bridge - Moving funds", () => {
 
                                 it("should revert", async () => {
                                   // To make this scenario happen, we just
-                                  // change the wallet in the test data' merge
+                                  // change the wallet in the test data' sweep
                                   // request.
                                   await expect(
-                                    runMovedFundsMergeScenario({
+                                    runMovedFundsSweepScenario({
                                       ...data,
-                                      movedFundsMergeRequest: {
-                                        ...data.movedFundsMergeRequest,
+                                      movedFundsSweepRequest: {
+                                        ...data.movedFundsSweepRequest,
                                         walletPubKeyHash:
                                           "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
                                       },
                                     })
                                   ).to.be.revertedWith(
-                                    "Merge request belongs to another wallet"
+                                    "Sweep request belongs to another wallet"
                                   )
                                 })
                               }
@@ -2184,8 +2184,8 @@ describe("Bridge - Moving funds", () => {
                               () => {
                                 // Use a test data that contains a two-input
                                 // transaction.
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
 
                                 before(async () => {
                                   await createSnapshot()
@@ -2198,14 +2198,14 @@ describe("Bridge - Moving funds", () => {
                                 it("should revert", async () => {
                                   // However, do not set wallet main UTXO. In
                                   // that case, the system will expect a
-                                  // merge transaction with a single input.
+                                  // sweep transaction with a single input.
                                   await expect(
-                                    runMovedFundsMergeScenario({
+                                    runMovedFundsSweepScenario({
                                       ...data,
                                       mainUtxo: NO_MAIN_UTXO,
                                     })
                                   ).to.be.revertedWith(
-                                    "Moved funds merge transaction must have a proper inputs count"
+                                    "Moved funds sweep transaction must have a proper inputs count"
                                   )
                                 })
                               }
@@ -2214,49 +2214,49 @@ describe("Bridge - Moving funds", () => {
                         )
 
                         context(
-                          "when the merging wallet has a main UTXO set",
+                          "when the sweeping wallet has a main UTXO set",
                           () => {
                             context(
-                              "when the first input refers to a correct merge request and the second input refers to the merging wallet main UTXO",
+                              "when the first input refers to a correct sweep request and the second input refers to the sweeping wallet main UTXO",
                               () => {
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
 
                                 let tx: ContractTransaction
 
                                 before(async () => {
                                   await createSnapshot()
 
-                                  tx = await runMovedFundsMergeScenario(data)
+                                  tx = await runMovedFundsSweepScenario(data)
                                 })
 
                                 after(async () => {
                                   await restoreSnapshot()
                                 })
 
-                                it("should mark the merge request as processed", async () => {
+                                it("should mark the sweep request as processed", async () => {
                                   const key = ethers.utils.solidityKeccak256(
                                     ["bytes32", "uint32"],
                                     [
-                                      data.movedFundsMergeRequest.txHash,
-                                      data.movedFundsMergeRequest.txOutputIndex,
+                                      data.movedFundsSweepRequest.txHash,
+                                      data.movedFundsSweepRequest.txOutputIndex,
                                     ]
                                   )
 
                                   expect(
-                                    (await bridge.movedFundsMergeRequests(key))
-                                      .mergedAt
+                                    (await bridge.movedFundsSweepRequests(key))
+                                      .sweptAt
                                   ).to.be.equal(await lastBlockTime())
                                 })
 
-                                it("should set the transaction output as new merging wallet main UTXO", async () => {
-                                  // Amount can be checked by opening the merge tx
+                                it("should set the transaction output as new sweeping wallet main UTXO", async () => {
+                                  // Amount can be checked by opening the sweep tx
                                   // in a Bitcoin testnet explorer. In this case,
                                   // the output  value is 2612530.
                                   const expectedMainUtxoHash =
                                     ethers.utils.solidityKeccak256(
                                       ["bytes32", "uint32", "uint64"],
-                                      [data.mergeTx.hash, 0, 2612530]
+                                      [data.sweepTx.hash, 0, 2612530]
                                     )
 
                                   expect(
@@ -2268,16 +2268,16 @@ describe("Bridge - Moving funds", () => {
                                   ).to.be.equal(expectedMainUtxoHash)
                                 })
 
-                                it("should emit the MovedFundsMerged event", async () => {
+                                it("should emit the MovedFundsSwept event", async () => {
                                   await expect(tx)
-                                    .to.emit(bridge, "MovedFundsMerged")
+                                    .to.emit(bridge, "MovedFundsSwept")
                                     .withArgs(
                                       data.wallet.pubKeyHash,
-                                      data.mergeTx.hash
+                                      data.sweepTx.hash
                                     )
                                 })
 
-                                it("should mark the current merging wallet main UTXO as correctly spent", async () => {
+                                it("should mark the current sweeping wallet main UTXO as correctly spent", async () => {
                                   const key = ethers.utils.solidityKeccak256(
                                     ["bytes32", "uint32"],
                                     [
@@ -2294,16 +2294,16 @@ describe("Bridge - Moving funds", () => {
                             )
 
                             context(
-                              "when the first input refers to the merging wallet main UTXO and the second input refers to a correct merge request",
+                              "when the first input refers to the sweeping wallet main UTXO and the second input refers to a correct sweep request",
                               () => {
-                                // The merge transaction used by this test data
+                                // The sweep transaction used by this test data
                                 // has two inputs. The first input is registered
-                                // as a merge request (i.e. it is referred by
-                                // `movedFundsMergeRequest`) and the second one
+                                // as a sweep request (i.e. it is referred by
+                                // `movedFundsSweepRequest`) and the second one
                                 // is meant to be the main UTXO (i.e. it is
                                 // referred by `mainUtxo`).
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
 
                                 before(async () => {
                                   await createSnapshot()
@@ -2317,36 +2317,36 @@ describe("Bridge - Moving funds", () => {
                                   // To make that scenario happen, we just
                                   // let the test runner to register the first
                                   // input as the main UTXO and the second
-                                  // one as the merge request.
-                                  const movedFundsMergeRequest = {
+                                  // one as the sweep request.
+                                  const movedFundsSweepRequest = {
                                     ...data.mainUtxo,
                                     walletPubKeyHash:
-                                      data.movedFundsMergeRequest
+                                      data.movedFundsSweepRequest
                                         .walletPubKeyHash,
                                   }
 
                                   const mainUtxo = {
-                                    ...data.movedFundsMergeRequest,
+                                    ...data.movedFundsSweepRequest,
                                   }
 
                                   await expect(
-                                    runMovedFundsMergeScenario({
+                                    runMovedFundsSweepScenario({
                                       ...data,
-                                      movedFundsMergeRequest,
+                                      movedFundsSweepRequest,
                                       mainUtxo,
                                     })
                                   ).to.be.revertedWith(
-                                    "Merge request does not exist"
+                                    "Sweep request does not exist"
                                   )
                                 })
                               }
                             )
 
                             context(
-                              "when the first input does not refer to a known merge request and the second input refers to the merging wallet main UTXO",
+                              "when the first input does not refer to a known sweep request and the second input refers to the sweeping wallet main UTXO",
                               () => {
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
 
                                 before(async () => {
                                   await createSnapshot()
@@ -2357,26 +2357,26 @@ describe("Bridge - Moving funds", () => {
                                 })
 
                                 it("should revert", async () => {
-                                  // Getting rid of the `movedFundsMergeRequest`
+                                  // Getting rid of the `movedFundsSweepRequest`
                                   // allows running that scenario because
-                                  // the merge request will not exist in the system.
+                                  // the sweep request will not exist in the system.
                                   await expect(
-                                    runMovedFundsMergeScenario({
+                                    runMovedFundsSweepScenario({
                                       ...data,
-                                      movedFundsMergeRequest: null,
+                                      movedFundsSweepRequest: null,
                                     })
                                   ).to.be.revertedWith(
-                                    "Merge request does not exist"
+                                    "Sweep request does not exist"
                                   )
                                 })
                               }
                             )
 
                             context(
-                              "when the first input refers to a known but already processed merge request and the second input refers to the merging wallet main UTXO",
+                              "when the first input refers to a known but already processed sweep request and the second input refers to the sweeping wallet main UTXO",
                               () => {
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
 
                                 let tx: Promise<ContractTransaction>
 
@@ -2384,17 +2384,17 @@ describe("Bridge - Moving funds", () => {
                                   await createSnapshot()
 
                                   // To run this scenario, we just mark the
-                                  // merge request as processed using a stub
+                                  // sweep request as processed using a stub
                                   // method.
                                   const beforeProofActions = async () => {
-                                    await bridge.setProcessedMovedFundsMergeRequest(
-                                      data.movedFundsMergeRequest
+                                    await bridge.setProcessedMovedFundsSweepRequest(
+                                      data.movedFundsSweepRequest
                                         .walletPubKeyHash,
-                                      data.movedFundsMergeRequest
+                                      data.movedFundsSweepRequest
                                     )
                                   }
 
-                                  tx = runMovedFundsMergeScenario(
+                                  tx = runMovedFundsSweepScenario(
                                     data,
                                     beforeProofActions
                                   )
@@ -2406,17 +2406,17 @@ describe("Bridge - Moving funds", () => {
 
                                 it("should revert", async () => {
                                   await expect(tx).to.be.revertedWith(
-                                    "Merge request already processed"
+                                    "Sweep request already processed"
                                   )
                                 })
                               }
                             )
 
                             context(
-                              "when the first input refers to a known merge request that belongs to another wallet and the second input refers to the merging wallet main UTXO",
+                              "when the first input refers to a known sweep request that belongs to another wallet and the second input refers to the sweeping wallet main UTXO",
                               () => {
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
 
                                 before(async () => {
                                   await createSnapshot()
@@ -2428,29 +2428,29 @@ describe("Bridge - Moving funds", () => {
 
                                 it("should revert", async () => {
                                   // To make this scenario happen, we just
-                                  // change the wallet in the test data' merge
+                                  // change the wallet in the test data' sweep
                                   // request.
                                   await expect(
-                                    runMovedFundsMergeScenario({
+                                    runMovedFundsSweepScenario({
                                       ...data,
-                                      movedFundsMergeRequest: {
-                                        ...data.movedFundsMergeRequest,
+                                      movedFundsSweepRequest: {
+                                        ...data.movedFundsSweepRequest,
                                         walletPubKeyHash:
                                           "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
                                       },
                                     })
                                   ).to.be.revertedWith(
-                                    "Merge request belongs to another wallet"
+                                    "Sweep request belongs to another wallet"
                                   )
                                 })
                               }
                             )
 
                             context(
-                              "when the first input refers to a correct merge request and the second input does not refer to the merging wallet main UTXO",
+                              "when the first input refers to a correct sweep request and the second input does not refer to the sweeping wallet main UTXO",
                               () => {
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
 
                                 before(async () => {
                                   await createSnapshot()
@@ -2462,11 +2462,11 @@ describe("Bridge - Moving funds", () => {
 
                                 it("should revert", async () => {
                                   // To make this scenario happen, we just need
-                                  // to simulate that the merging wallet has
+                                  // to simulate that the sweeping wallet has
                                   // a different main UTXO than the one used
                                   // by the second transaction input.
                                   await expect(
-                                    runMovedFundsMergeScenario({
+                                    runMovedFundsSweepScenario({
                                       ...data,
                                       mainUtxo: {
                                         ...data.mainUtxo,
@@ -2484,8 +2484,8 @@ describe("Bridge - Moving funds", () => {
                               "when the number of inputs is other than two",
                               () => {
                                 // Use a test data with a one-input transaction.
-                                const data: MovedFundsMergeTestData =
-                                  MovedFundsMergeWithoutMainUtxo
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
 
                                 before(async () => {
                                   await createSnapshot()
@@ -2497,11 +2497,11 @@ describe("Bridge - Moving funds", () => {
 
                                 it("should revert", async () => {
                                   // However, register a main UTXO for the
-                                  // merging wallet in order to force the
+                                  // sweeping wallet in order to force the
                                   // system to expect a two-input transaction
-                                  // for that merging wallet.
+                                  // for that sweeping wallet.
                                   await expect(
-                                    runMovedFundsMergeScenario({
+                                    runMovedFundsSweepScenario({
                                       ...data,
                                       // Just an arbitrary main UTXO
                                       mainUtxo: {
@@ -2512,7 +2512,7 @@ describe("Bridge - Moving funds", () => {
                                       },
                                     })
                                   ).to.be.revertedWith(
-                                    "Moved funds merge transaction must have a proper inputs count"
+                                    "Moved funds sweep transaction must have a proper inputs count"
                                   )
                                 })
                               }
@@ -2523,19 +2523,19 @@ describe("Bridge - Moving funds", () => {
                     )
 
                     context(
-                      "when transaction fee exceeds the merge transaction maximum fee",
+                      "when transaction fee exceeds the sweep transaction maximum fee",
                       () => {
-                        // Use a test data where the merge transaction has
+                        // Use a test data where the sweep transaction has
                         // a fee of 2000 satoshi.
-                        const data: MovedFundsMergeTestData =
-                          MovedFundsMergeWithoutMainUtxo
+                        const data: MovedFundsSweepTestData =
+                          MovedFundsSweepWithoutMainUtxo
 
                         before(async () => {
                           await createSnapshot()
 
                           // Set the max fee to one satoshi less than the fee
                           // used by the transaction.
-                          await bridge.setMovedFundsMergeTxMaxTotalFee(1999)
+                          await bridge.setMovedFundsSweepTxMaxTotalFee(1999)
                         })
 
                         after(async () => {
@@ -2544,7 +2544,7 @@ describe("Bridge - Moving funds", () => {
 
                         it("should revert", async () => {
                           await expect(
-                            runMovedFundsMergeScenario(data)
+                            runMovedFundsSweepScenario(data)
                           ).to.be.revertedWith("Transaction fee is too high")
                         })
                       }
@@ -2552,8 +2552,8 @@ describe("Bridge - Moving funds", () => {
                   })
 
                   context("when main UTXO data are invalid", () => {
-                    const data: MovedFundsMergeTestData =
-                      MovedFundsMergeWithMainUtxo
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithMainUtxo
 
                     before(async () => {
                       await createSnapshot()
@@ -2593,7 +2593,7 @@ describe("Bridge - Moving funds", () => {
 
                     it("should revert", async () => {
                       // Corrupt the main UTXO parameter passed during
-                      // `submitMovedFundsMergeProof` call. The proper value of
+                      // `submitMovedFundsSweepProof` call. The proper value of
                       // `txOutputIndex` for this test data set is `0` so any other
                       // value will make this test scenario happen.
                       const corruptedMainUtxo = {
@@ -2602,9 +2602,9 @@ describe("Bridge - Moving funds", () => {
                       }
 
                       await expect(
-                        bridge.submitMovedFundsMergeProof(
-                          data.mergeTx,
-                          data.mergeProof,
+                        bridge.submitMovedFundsSweepProof(
+                          data.sweepTx,
+                          data.sweepProof,
                           corruptedMainUtxo
                         )
                       ).to.be.revertedWith("Invalid main UTXO data")
@@ -2613,17 +2613,17 @@ describe("Bridge - Moving funds", () => {
                 })
 
                 context(
-                  "when merging wallet is in the MovingFunds state",
+                  "when sweeping wallet is in the MovingFunds state",
                   () => {
-                    const data: MovedFundsMergeTestData =
-                      MovedFundsMergeWithoutMainUtxo
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithoutMainUtxo
 
                     let tx: Promise<ContractTransaction>
 
                     before(async () => {
                       await createSnapshot()
 
-                      tx = runMovedFundsMergeScenario({
+                      tx = runMovedFundsSweepScenario({
                         ...data,
                         wallet: {
                           ...data.wallet,
@@ -2648,38 +2648,38 @@ describe("Bridge - Moving funds", () => {
             )
 
             context(
-              "when merging wallet is neither in the Live nor MovingFunds state",
+              "when sweeping wallet is neither in the Live nor MovingFunds state",
               () => {
                 const testData = [
                   {
-                    testName: "when merging wallet is in the Unknown state",
+                    testName: "when sweeping wallet is in the Unknown state",
                     walletState: walletState.Unknown,
                   },
                   {
-                    testName: "when merging wallet is in the Closing state",
+                    testName: "when sweeping wallet is in the Closing state",
                     walletState: walletState.Closing,
                   },
                   {
-                    testName: "when merging wallet is in the Closed state",
+                    testName: "when sweeping wallet is in the Closed state",
                     walletState: walletState.Closed,
                   },
                   {
-                    testName: "when merging wallet is in the Terminated state",
+                    testName: "when sweeping wallet is in the Terminated state",
                     walletState: walletState.Terminated,
                   },
                 ]
 
                 testData.forEach((test) => {
                   context(test.testName, () => {
-                    const data: MovedFundsMergeTestData =
-                      MovedFundsMergeWithoutMainUtxo
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithoutMainUtxo
 
                     let tx: Promise<ContractTransaction>
 
                     before(async () => {
                       await createSnapshot()
 
-                      tx = runMovedFundsMergeScenario({
+                      tx = runMovedFundsSweepScenario({
                         ...data,
                         wallet: {
                           ...data.wallet,
@@ -2704,7 +2704,7 @@ describe("Bridge - Moving funds", () => {
           })
 
           context("when single output is neither P2PKH nor P2WPKH", () => {
-            const data: MovedFundsMergeTestData = MovedFundsMergeP2SHOutput
+            const data: MovedFundsSweepTestData = MovedFundsSweepP2SHOutput
 
             before(async () => {
               await createSnapshot()
@@ -2715,7 +2715,7 @@ describe("Bridge - Moving funds", () => {
             })
 
             it("should revert", async () => {
-              await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+              await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
                 "Output must be P2PKH or P2WPKH"
               )
             })
@@ -2723,8 +2723,8 @@ describe("Bridge - Moving funds", () => {
         })
 
         context("when the single output is not 20-byte", () => {
-          const data: MovedFundsMergeTestData =
-            MovedFundsMergeProvablyUnspendableOutput
+          const data: MovedFundsSweepTestData =
+            MovedFundsSweepProvablyUnspendableOutput
 
           before(async () => {
             await createSnapshot()
@@ -2735,7 +2735,7 @@ describe("Bridge - Moving funds", () => {
           })
 
           it("should revert", async () => {
-            await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+            await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
               "Output's public key hash must have 20 bytes"
             )
           })
@@ -2743,7 +2743,7 @@ describe("Bridge - Moving funds", () => {
       })
 
       context("when output count is other than one", () => {
-        const data: MovedFundsMergeTestData = MovedFundsMergeMultipleOutputs
+        const data: MovedFundsSweepTestData = MovedFundsSweepMultipleOutputs
 
         before(async () => {
           await createSnapshot()
@@ -2754,8 +2754,8 @@ describe("Bridge - Moving funds", () => {
         })
 
         it("should revert", async () => {
-          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
-            "'Moved funds merge transaction must have a single output"
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Moved funds sweep transaction must have a single output"
           )
         })
       })
@@ -2763,8 +2763,8 @@ describe("Bridge - Moving funds", () => {
 
     context("when transaction proof is not valid", () => {
       context("when input vector is not valid", () => {
-        const data: MovedFundsMergeTestData = JSON.parse(
-          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
         )
 
         before(async () => {
@@ -2778,19 +2778,19 @@ describe("Bridge - Moving funds", () => {
         it("should revert", async () => {
           // Corrupt the input vector by setting a compactSize uint claiming
           // there is no inputs at all.
-          data.mergeTx.inputVector =
+          data.sweepTx.inputVector =
             "0x00b69a2869840aa6fdfd143136ff4514ca46ea2d876855040892ad74ab" +
             "8c5274220100000000ffffffff"
 
-          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
             "Invalid input vector provided"
           )
         })
       })
 
       context("when output vector is not valid", () => {
-        const data: MovedFundsMergeTestData = JSON.parse(
-          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
         )
 
         before(async () => {
@@ -2804,19 +2804,19 @@ describe("Bridge - Moving funds", () => {
         it("should revert", async () => {
           // Corrupt the output vector by setting a compactSize uint claiming
           // there is no outputs at all.
-          data.mergeTx.outputVector =
+          data.sweepTx.outputVector =
             "0x005cf511000000000017a91486884e6be1525dab5ae0b451bd2c72cee6" +
             "7dcf4187"
 
-          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
             "Invalid output vector provided"
           )
         })
       })
 
       context("when merkle proof is not valid", () => {
-        const data: MovedFundsMergeTestData = JSON.parse(
-          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
         )
 
         before(async () => {
@@ -2830,17 +2830,17 @@ describe("Bridge - Moving funds", () => {
         it("should revert", async () => {
           // Corrupt the merkle proof by changing tx index in block to an
           // invalid one. The proper one is 12 so any other will do the trick.
-          data.mergeProof.txIndexInBlock = 30
+          data.sweepProof.txIndexInBlock = 30
 
-          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
             "Tx merkle proof is not valid for provided header and tx hash"
           )
         })
       })
 
       context("when proof difficulty is not current nor previous", () => {
-        const data: MovedFundsMergeTestData = JSON.parse(
-          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
         )
 
         before(async () => {
@@ -2857,15 +2857,15 @@ describe("Bridge - Moving funds", () => {
           // a different value will cause difficulty comparison failure.
           data.chainDifficulty = 2
 
-          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
             "Not at current or previous difficulty"
           )
         })
       })
 
       context("when headers chain length is not valid", () => {
-        const data: MovedFundsMergeTestData = JSON.parse(
-          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
         )
 
         before(async () => {
@@ -2881,21 +2881,21 @@ describe("Bridge - Moving funds", () => {
           // proper value is length divisible by 80 so any length violating
           // this rule will cause failure. In this case, we just remove the
           // last byte from proper headers chain.
-          const properHeaders = data.mergeProof.bitcoinHeaders.toString()
-          data.mergeProof.bitcoinHeaders = properHeaders.substring(
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = properHeaders.substring(
             0,
             properHeaders.length - 2
           )
 
-          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
             "Invalid length of the headers chain"
           )
         })
       })
 
       context("when headers chain is not valid", () => {
-        const data: MovedFundsMergeTestData = JSON.parse(
-          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
         )
 
         before(async () => {
@@ -2915,21 +2915,21 @@ describe("Bridge - Moving funds", () => {
           // of each header is `version` and 32 subsequent bytes is
           // `previous block hash`. Changing byte 85 of the whole chain will
           // do the work.
-          const properHeaders = data.mergeProof.bitcoinHeaders.toString()
-          data.mergeProof.bitcoinHeaders = `${properHeaders.substring(
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = `${properHeaders.substring(
             0,
             170
           )}ff${properHeaders.substring(172)}`
 
-          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
             "Invalid headers chain"
           )
         })
       })
 
       context("when the work in the header is insufficient", () => {
-        const data: MovedFundsMergeTestData = JSON.parse(
-          JSON.stringify(MovedFundsMergeWithoutMainUtxo)
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
         )
 
         before(async () => {
@@ -2946,13 +2946,13 @@ describe("Bridge - Moving funds", () => {
           // the `difficulty target`. To test this scenario, we change the
           // last byte of the last header in such a way their hash becomes
           // lower than their `difficulty target`.
-          const properHeaders = data.mergeProof.bitcoinHeaders.toString()
-          data.mergeProof.bitcoinHeaders = `${properHeaders.substring(
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = `${properHeaders.substring(
             0,
             properHeaders.length - 2
           )}ff`
 
-          await expect(runMovedFundsMergeScenario(data)).to.be.revertedWith(
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
             "Insufficient work in a header"
           )
         })
@@ -2962,8 +2962,8 @@ describe("Bridge - Moving funds", () => {
         "when accumulated difficulty in headers chain is insufficient",
         () => {
           let otherBridge: Bridge
-          const data: MovedFundsMergeTestData = JSON.parse(
-            JSON.stringify(MovedFundsMergeWithMainUtxo)
+          const data: MovedFundsSweepTestData = JSON.parse(
+            JSON.stringify(MovedFundsSweepWithMainUtxo)
           )
 
           before(async () => {
@@ -2997,9 +2997,9 @@ describe("Bridge - Moving funds", () => {
 
           it("should revert", async () => {
             await expect(
-              otherBridge.submitMovedFundsMergeProof(
-                data.mergeTx,
-                data.mergeProof,
+              otherBridge.submitMovedFundsSweepProof(
+                data.sweepTx,
+                data.sweepProof,
                 data.mainUtxo
               )
             ).to.be.revertedWith(
@@ -3055,8 +3055,8 @@ describe("Bridge - Moving funds", () => {
     return tx
   }
 
-  async function runMovedFundsMergeScenario(
-    data: MovedFundsMergeTestData,
+  async function runMovedFundsSweepScenario(
+    data: MovedFundsSweepTestData,
     beforeProofActions?: () => Promise<void>
   ): Promise<ContractTransaction> {
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
@@ -3079,10 +3079,10 @@ describe("Bridge - Moving funds", () => {
       await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
     }
 
-    if (data.movedFundsMergeRequest) {
-      await bridge.setMovedFundsMergeRequest(
-        data.movedFundsMergeRequest.walletPubKeyHash,
-        data.movedFundsMergeRequest
+    if (data.movedFundsSweepRequest) {
+      await bridge.setMovedFundsSweepRequest(
+        data.movedFundsSweepRequest.walletPubKeyHash,
+        data.movedFundsSweepRequest
       )
     }
 
@@ -3090,9 +3090,9 @@ describe("Bridge - Moving funds", () => {
       await beforeProofActions()
     }
 
-    const tx = await bridge.submitMovedFundsMergeProof(
-      data.mergeTx,
-      data.mergeProof,
+    const tx = await bridge.submitMovedFundsSweepProof(
+      data.sweepTx,
+      data.sweepProof,
       data.mainUtxo
     )
 

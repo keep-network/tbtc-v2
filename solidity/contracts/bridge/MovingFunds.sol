@@ -32,7 +32,7 @@ import "./Wallets.sol";
 ///      which other Live wallets it is moving the funds to and then, provide an
 ///      SPV proof of moving funds to the previously committed wallets.
 ///      Once the proof is submitted, all target wallets are supposed to
-///      merge the received UTXOs with their own main UTXOs in order to
+///      sweep the received UTXOs with their own main UTXOs in order to
 ///      update their BTC balances.
 library MovingFunds {
     using BridgeState for BridgeState.Storage;
@@ -57,17 +57,17 @@ library MovingFunds {
         bytes movingFundsTxOutputVector;
     }
 
-    /// @notice Represents a moved funds merge request.
-    struct MovedFundsMergeRequest {
-        // 20-byte public key hash of the wallet supposed to merge the UTXO
+    /// @notice Represents a moved funds sweep request.
+    struct MovedFundsSweepRequest {
+        // 20-byte public key hash of the wallet supposed to sweep the UTXO
         // representing the received funds with their own main UTXO
         bytes20 walletPubKeyHash;
         // Value of the received funds.
         uint64 value;
         // UNIX timestamp the request was created at.
         uint32 createdAt;
-        // UNIX timestamp the funds were merged at.
-        uint32 mergedAt;
+        // UNIX timestamp the funds were swept at.
+        uint32 sweptAt;
     }
 
     event MovingFundsCommitmentSubmitted(
@@ -85,7 +85,7 @@ library MovingFunds {
 
     event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
 
-    event MovedFundsMerged(bytes20 walletPubKeyHash, bytes32 mergeTxHash);
+    event MovedFundsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
     /// @notice Submits the moving funds target wallets commitment.
     ///         Once all requirements are met, that function registers the
@@ -360,7 +360,7 @@ library MovingFunds {
         uint64[] memory outputsValues = new uint64[](outputsCount);
 
         // Outputs processing loop. Note that the `outputIndex` must be
-        // `uint32` to build proper `movedFundsMergeRequests` keys.
+        // `uint32` to build proper `movedFundsSweepRequests` keys.
         for (
             uint32 outputIndex = 0;
             outputIndex < outputsCount;
@@ -388,15 +388,15 @@ library MovingFunds {
             outputsValues[outputIndex] = output.extractValue();
             outputsTotalValue += outputsValues[outputIndex];
 
-            // Register a moved funds merge request that must be handled
-            // by the target wallet. The target wallet must merge the
+            // Register a moved funds sweep request that must be handled
+            // by the target wallet. The target wallet must sweep the
             // received funds with their own main UTXO in order to update
             // their BTC balance. Worth noting there is no need to check
-            // if the merge request already exists in the system because
+            // if the sweep request already exists in the system because
             // the moving funds wallet is moved to the Closing state after
             // submitting the moving funds proof so there is no possibility
-            // to submit the proof again and register the merge request twice.
-            self.movedFundsMergeRequests[
+            // to submit the proof again and register the sweep request twice.
+            self.movedFundsSweepRequests[
                 uint256(
                     keccak256(
                         abi.encodePacked(
@@ -405,7 +405,7 @@ library MovingFunds {
                         )
                     )
                 )
-            ] = MovedFundsMergeRequest(
+            ] = MovedFundsSweepRequest(
                 targetWalletPubKeyHash,
                 outputsValues[outputIndex],
                 /* solhint-disable-next-line not-rely-on-time */
@@ -532,111 +532,111 @@ library MovingFunds {
         emit MovingFundsBelowDustReported(walletPubKeyHash);
     }
 
-    /// @notice Used by the wallet to prove the BTC moved funds merge
+    /// @notice Used by the wallet to prove the BTC moved funds sweep
     ///         transaction and to make the necessary state changes. Moved
-    ///         funds merge is only accepted if it satisfies SPV proof.
+    ///         funds sweep is only accepted if it satisfies SPV proof.
     ///
-    ///         The function validates the merge transaction structure by
+    ///         The function validates the sweep transaction structure by
     ///         checking if it actually spends the moved funds UTXO and the
-    ///         merging wallet's main UTXO (optionally) and locks the value
-    ///         on the merging wallet's 20-byte public key hash, using a
+    ///         sweeping wallet's main UTXO (optionally) and locks the value
+    ///         on the sweeping wallet's 20-byte public key hash, using a
     ///         reasonable transaction fee. If all preconditions are
-    ///         met, this function updates the merging wallet main UTXO, thus
+    ///         met, this function updates the sweeping wallet main UTXO, thus
     ///         their BTC balance.
     ///
-    ///         It is possible to prove the given merge transaction only
+    ///         It is possible to prove the given sweep transaction only
     ///         one time.
-    /// @param mergeTx Bitcoin merge funds transaction data
-    /// @param mergeProof Bitcoin merge funds proof data
-    /// @param mainUtxo Data of the merging wallet's main UTXO, as currently
+    /// @param sweepTx Bitcoin sweep funds transaction data
+    /// @param sweepProof Bitcoin sweep funds proof data
+    /// @param mainUtxo Data of the sweeping wallet's main UTXO, as currently
     ///        known on the Ethereum chain
     /// @dev Requirements:
-    ///      - `mergeTx` components must match the expected structure. See
+    ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
     ///        a provable transaction hash.
-    ///      - The `mergeTx` should represent a Bitcoin transaction with
-    ///        the first input pointing to a wallet's merge request and,
+    ///      - The `sweepTx` should represent a Bitcoin transaction with
+    ///        the first input pointing to a wallet's sweep request and,
     ///        optionally, the second input pointing to the wallet's main UTXO,
-    ///        if the merging wallet has a main UTXO set. There should be only
-    ///        one output locking funds on the merging wallet 20-byte public
+    ///        if the sweeping wallet has a main UTXO set. There should be only
+    ///        one output locking funds on the sweeping wallet 20-byte public
     ///        key hash.
-    ///      - `mergeProof` components must match the expected structure.
+    ///      - `sweepProof` components must match the expected structure.
     ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
     ///        than the `txProofDifficultyFactor` contract constant.
     ///      - `mainUtxo` components must point to the recent main UTXO
-    ///        of the merging wallet, as currently known on the Ethereum chain.
+    ///        of the sweeping wallet, as currently known on the Ethereum chain.
     ///        If there is no main UTXO, this parameter is ignored.
-    ///      - The merging wallet must be in the Live or MovingFunds state.
+    ///      - The sweeping wallet must be in the Live or MovingFunds state.
     ///      - The total Bitcoin transaction fee must be lesser or equal
-    ///        to `movedFundsMergeTxMaxTotalFee` governable parameter.
-    function submitMovedFundsMergeProof(
+    ///        to `movedFundsSweepTxMaxTotalFee` governable parameter.
+    function submitMovedFundsSweepProof(
         BridgeState.Storage storage self,
-        BitcoinTx.Info calldata mergeTx,
-        BitcoinTx.Proof calldata mergeProof,
+        BitcoinTx.Info calldata sweepTx,
+        BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
         // `txProofDifficultyFactor` constant.
-        bytes32 mergeTxHash = self.validateProof(mergeTx, mergeProof);
+        bytes32 sweepTxHash = self.validateProof(sweepTx, sweepProof);
 
         (
             bytes20 walletPubKeyHash,
-            uint64 mergeTxOutputValue
-        ) = processMovedFundsMergeTxOutput(self, mergeTx.outputVector);
+            uint64 sweepTxOutputValue
+        ) = processMovedFundsSweepTxOutput(self, sweepTx.outputVector);
 
         (
             Wallets.Wallet storage wallet,
             BitcoinTx.UTXO memory resolvedMainUtxo
-        ) = resolveMergingWallet(self, walletPubKeyHash, mainUtxo);
+        ) = resolveMovedFundsSweepingWallet(self, walletPubKeyHash, mainUtxo);
 
-        uint256 mergeTxInputsTotalValue = processMovedFundsMergeTxInputs(
+        uint256 sweepTxInputsTotalValue = processMovedFundsSweepTxInputs(
             self,
-            mergeTx.inputVector,
+            sweepTx.inputVector,
             resolvedMainUtxo,
             walletPubKeyHash
         );
 
         require(
-            mergeTxInputsTotalValue - mergeTxOutputValue <=
-                self.movedFundsMergeTxMaxTotalFee,
+            sweepTxInputsTotalValue - sweepTxOutputValue <=
+                self.movedFundsSweepTxMaxTotalFee,
             "Transaction fee is too high"
         );
 
-        // Use the merge transaction output as the new merging wallet's main UTXO.
-        // Transaction output index is always 0 as merge transaction always
+        // Use the sweep transaction output as the new sweeping wallet's main UTXO.
+        // Transaction output index is always 0 as sweep transaction always
         // contains only one output.
         wallet.mainUtxoHash = keccak256(
-            abi.encodePacked(mergeTxHash, uint32(0), mergeTxOutputValue)
+            abi.encodePacked(sweepTxHash, uint32(0), sweepTxOutputValue)
         );
 
         // slither-disable-next-line reentrancy-events
-        emit MovedFundsMerged(walletPubKeyHash, mergeTxHash);
+        emit MovedFundsSwept(walletPubKeyHash, sweepTxHash);
     }
 
     /// @notice Processes the Bitcoin moved funds transaction output vector by
     ///         extracting the single output and using it to gain additional
     ///         information required for further processing (e.g. value and
     ///         wallet public key hash).
-    /// @param mergeTxOutputVector Bitcoin moved funds merge transaction output
+    /// @param sweepTxOutputVector Bitcoin moved funds sweep transaction output
     ///        vector.
     ///        This function assumes vector's structure is valid so it must be
     ///        validated using e.g. `BTCUtils.validateVout` function before
     ///        it is passed here
     /// @return walletPubKeyHash 20-byte wallet public key hash.
-    /// @return value 8-byte moved funds merge transaction output value.
+    /// @return value 8-byte moved funds sweep transaction output value.
     /// @dev Requirements:
     ///      - Output vector must contain only one output
     ///      - The single output must be of P2PKH or P2WPKH type and lock the
     ///        funds on a 20-byte public key hash
-    function processMovedFundsMergeTxOutput(
+    function processMovedFundsSweepTxOutput(
         BridgeState.Storage storage self,
-        bytes memory mergeTxOutputVector
+        bytes memory sweepTxOutputVector
     ) internal view returns (bytes20 walletPubKeyHash, uint64 value) {
-        // To determine the total number of merge transaction outputs, we need to
+        // To determine the total number of sweep transaction outputs, we need to
         // parse the compactSize uint (VarInt) the output vector is prepended by.
         // That compactSize uint encodes the number of vector elements using the
         // format presented in:
@@ -644,37 +644,37 @@ library MovingFunds {
         // We don't need asserting the compactSize uint is parseable since it
         // was already checked during `validateVout` validation.
         // See `BitcoinTx.outputVector` docs for more details.
-        (, uint256 outputsCount) = mergeTxOutputVector.parseVarInt();
+        (, uint256 outputsCount) = sweepTxOutputVector.parseVarInt();
         require(
             outputsCount == 1,
-            "Moved funds merge transaction must have a single output"
+            "Moved funds sweep transaction must have a single output"
         );
 
-        bytes memory output = mergeTxOutputVector.extractOutputAtIndex(0);
+        bytes memory output = sweepTxOutputVector.extractOutputAtIndex(0);
         walletPubKeyHash = self.extractPubKeyHash(output);
         value = output.extractValue();
 
         return (walletPubKeyHash, value);
     }
 
-    /// @notice Resolves merging wallet based on the provided wallet public key
+    /// @notice Resolves sweeping wallet based on the provided wallet public key
     ///         hash. Validates the wallet state and current main UTXO, as
     ///         currently known on the Ethereum chain.
-    /// @param walletPubKeyHash public key hash of the wallet proving the merge
+    /// @param walletPubKeyHash public key hash of the wallet proving the sweep
     ///        Bitcoin transaction.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
-    /// @return wallet Data of the merging wallet.
-    /// @return resolvedMainUtxo The actual main UTXO of the merging wallet
+    /// @return wallet Data of the sweeping wallet.
+    /// @return resolvedMainUtxo The actual main UTXO of the sweeping wallet
     ///         resolved by cross-checking the `mainUtxo` parameter with
     ///         the chain state. If the validation went well, this is the
     ///         plain-text main UTXO corresponding to the `wallet.mainUtxoHash`.
     /// @dev Requirements:
-    ///     - Merging wallet must be either in Live or MovingFunds state.
-    ///     - If the main UTXO of the merging wallet exists in the storage,
+    ///     - Sweeping wallet must be either in Live or MovingFunds state.
+    ///     - If the main UTXO of the sweeping wallet exists in the storage,
     ///       the passed `mainUTXO` parameter must be equal to the stored one.
-    function resolveMergingWallet(
+    function resolveMovedFundsSweepingWallet(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
@@ -715,37 +715,37 @@ library MovingFunds {
         }
     }
 
-    /// @notice Processes the Bitcoin moved funds merge transaction input vector.
+    /// @notice Processes the Bitcoin moved funds sweep transaction input vector.
     ///         It extracts the first input and try to match it with one of
-    ///         the moved funds merge requests targeting the merging wallet.
-    ///         If the merge request is found and not yet processed, this
-    ///         function marks it as processed. If the merging wallet has a
+    ///         the moved funds sweep requests targeting the sweeping wallet.
+    ///         If the sweep request is found and not yet processed, this
+    ///         function marks it as processed. If the sweeping wallet has a
     ///         main UTXO, this function extracts the second input, makes sure
     ///         it refers to the wallet main UTXO, and marks that main UTXO as
     ///         correctly spent.
-    /// @param mergeTxInputVector Bitcoin moved funds merge transaction input vector.
+    /// @param sweepTxInputVector Bitcoin moved funds sweep transaction input vector.
     ///        This function assumes vector's structure is valid so it must be
     ///        validated using e.g. `BTCUtils.validateVin` function before
     ///        it is passed here
-    /// @param mainUtxo Data of the merging wallet's main UTXO. If no main UTXO
+    /// @param mainUtxo Data of the sweeping wallet's main UTXO. If no main UTXO
     ///        exists for the given the wallet, this parameter's fields should
     ///        be zeroed to bypass the main UTXO validation
-    /// @param walletPubKeyHash 20-byte public key hash of the merging wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the sweeping wallet
     /// @return inputsTotalValue Total inputs value sum.
     /// @dev Requirements:
     ///      - The input vector must consist of one mandatory and one optional
     ///        input.
     ///      - The mandatory input must be the first input in the vector
-    ///      - The mandatory input must point to a known moved funds merge
-    ///        request that is not processed yet and belongs to the merging
+    ///      - The mandatory input must point to a known moved funds sweep
+    ///        request that is not processed yet and belongs to the sweeping
     ///        wallet
     ///      - The optional output must be the second input in the vector
-    ///      - The optional input is required if the merging wallet has a
+    ///      - The optional input is required if the sweeping wallet has a
     ///        main UTXO (i.e. the `mainUtxo` is not zeroed). In that case,
-    ///        that input must point the the merging wallet main UTXO.
-    function processMovedFundsMergeTxInputs(
+    ///        that input must point the the sweeping wallet main UTXO.
+    function processMovedFundsSweepTxInputs(
         BridgeState.Storage storage self,
-        bytes memory mergeTxInputVector,
+        bytes memory sweepTxInputVector,
         BitcoinTx.UTXO memory mainUtxo,
         bytes20 walletPubKeyHash
     ) internal returns (uint256 inputsTotalValue) {
@@ -760,7 +760,7 @@ library MovingFunds {
         (
             uint256 inputsCompactSizeUintLength,
             uint256 inputsCount
-        ) = mergeTxInputVector.parseVarInt();
+        ) = sweepTxInputVector.parseVarInt();
 
         // To determine the first input starting index, we must jump over
         // the compactSize uint which prepends the input vector. One byte
@@ -779,12 +779,12 @@ library MovingFunds {
         // docs in `BitcoinTx` library for more details.
         uint256 inputStartingIndex = 1 + inputsCompactSizeUintLength;
 
-        // We always expect the first input to be the merged UTXO. Additionally,
-        // if the merging wallet has a main UTXO, that main UTXO should be
+        // We always expect the first input to be the swept UTXO. Additionally,
+        // if the sweeping wallet has a main UTXO, that main UTXO should be
         // pointed by the second input.
         require(
             inputsCount == (mainUtxo.txHash != bytes32(0) ? 2 : 1),
-            "Moved funds merge transaction must have a proper inputs count"
+            "Moved funds sweep transaction must have a proper inputs count"
         );
 
         // Parse the first input and extract its outpoint tx hash and index.
@@ -792,12 +792,12 @@ library MovingFunds {
             bytes32 firstInputOutpointTxHash,
             uint32 firstInputOutpointIndex,
             uint256 firstInputLength
-        ) = parseTxInputAt(mergeTxInputVector, inputStartingIndex);
+        ) = parseTxInputAt(sweepTxInputVector, inputStartingIndex);
 
-        // Build the request key and fetch the corresponding moved funds merge
+        // Build the request key and fetch the corresponding moved funds sweep
         // request from contract storage.
-        MovedFundsMergeRequest storage mergeRequest = self
-            .movedFundsMergeRequests[
+        MovedFundsSweepRequest storage sweepRequest = self
+            .movedFundsSweepRequests[
                 uint256(
                     keccak256(
                         abi.encodePacked(
@@ -808,38 +808,38 @@ library MovingFunds {
                 )
             ];
 
-        // The merge request must exist, must be not processed yet, and must
-        // belong to the merging wallet.
-        require(mergeRequest.createdAt != 0, "Merge request does not exist");
-        require(mergeRequest.mergedAt == 0, "Merge request already processed");
+        // The sweep request must exist, must be not processed yet, and must
+        // belong to the sweeping wallet.
+        require(sweepRequest.createdAt != 0, "Sweep request does not exist");
+        require(sweepRequest.sweptAt == 0, "Sweep request already processed");
         require(
-            mergeRequest.walletPubKeyHash == walletPubKeyHash,
-            "Merge request belongs to another wallet"
+            sweepRequest.walletPubKeyHash == walletPubKeyHash,
+            "Sweep request belongs to another wallet"
         );
-        // If the validation passed, the merge request must be marked as
+        // If the validation passed, the sweep request must be marked as
         // processed and its value should be counted into the total inputs
         // value sum.
         /* solhint-disable-next-line not-rely-on-time */
-        mergeRequest.mergedAt = uint32(block.timestamp);
-        inputsTotalValue += mergeRequest.value;
+        sweepRequest.sweptAt = uint32(block.timestamp);
+        inputsTotalValue += sweepRequest.value;
 
-        // TODO: Decrease the merge request count for the merging wallet.
+        // TODO: Decrease the sweep request count for the sweeping wallet.
         //       That will be handled in the PR that will block moving
-        //       funds commitments for wallets with pending merge requests.
+        //       funds commitments for wallets with pending sweep requests.
 
-        // If the main UTXO for the merging wallet exists, it must be processed.
+        // If the main UTXO for the sweeping wallet exists, it must be processed.
         if (mainUtxo.txHash != bytes32(0)) {
-            // The second input is supposed to point to that merging wallet
+            // The second input is supposed to point to that sweeping wallet
             // main UTXO. We need to parse that input.
             (
                 bytes32 secondInputOutpointTxHash,
                 uint32 secondInputOutpointIndex,
 
             ) = parseTxInputAt(
-                    mergeTxInputVector,
+                    sweepTxInputVector,
                     inputStartingIndex + firstInputLength
                 );
-            // Make sure the second input refers to the merging wallet main UTXO.
+            // Make sure the second input refers to the sweeping wallet main UTXO.
             require(
                 mainUtxo.txHash == secondInputOutpointTxHash &&
                     mainUtxo.txOutputIndex == secondInputOutpointIndex,
