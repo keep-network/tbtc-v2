@@ -207,6 +207,11 @@ library DepositSweep {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
+    /// @return wallet Data of the sweeping wallet.
+    /// @return resolvedMainUtxo The actual main UTXO of the sweeping wallet
+    ///         resolved by cross-checking the `mainUtxo` parameter with
+    ///         the chain state. If the validation went well, this is the
+    ///         plain-text main UTXO corresponding to the `wallet.mainUtxoHash`.
     /// @dev Requirements:
     ///     - Sweeping wallet must be either in Live or MovingFunds state.
     ///     - If the main UTXO of the sweeping wallet exists in the storage,

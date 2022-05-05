@@ -22,7 +22,8 @@ export interface MovingFundsTestData {
 
   /**
    * Optional list of moved funds sweep requests that should be created
-   * as effect of running the test scenario.
+   * as effect of running the test scenario. It should be set for happy
+   * path test scenarios that do not cause reverts.
    */
   expectedMovedFundsSweepRequests?: {
     walletPubKeyHash: BytesLike
@@ -519,6 +520,8 @@ export const SingleTargetWalletButP2SH: MovingFundsTestData = {
  * - 1 main UTXO input
  * - 1 provably unspendable output with value 0 satoshi and index 0.
  * - 6+ on-chain confirmations of the transaction
+ * - This is not a valid moving funds transaction that should be rejected
+ *   because of the provably unspendable output.
  */
 export const SingleProvablyUnspendable: MovingFundsTestData = {
   wallet: {
@@ -591,6 +594,8 @@ export const SingleProvablyUnspendable: MovingFundsTestData = {
  *  the following properties:
  * - 2 inputs where 1 of them points to the main UTXO
  * - 6+ on-chain confirmations of the transaction
+ * - This is not a valid moving funds transaction that should be rejected
+ *   because of the multiple inputs.
  */
 export const MultipleInputs: MovingFundsTestData = {
   wallet: {

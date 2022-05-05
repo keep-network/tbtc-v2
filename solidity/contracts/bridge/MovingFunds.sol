@@ -53,7 +53,8 @@ library MovingFunds {
         // Output vector of the moving funds Bitcoin transaction. It is
         // assumed the vector's structure is valid so it must be validated
         // using e.g. `BTCUtils.validateVout` function before being used
-        // during the processing.
+        // during the processing. The validation is usually done as part
+        // of the `BitcoinTx.validateProof` call that checks the SPV proof.
         bytes movingFundsTxOutputVector;
     }
 
@@ -70,7 +71,10 @@ library MovingFunds {
         TimedOut
     }
 
-    /// @notice Represents a moved funds sweep request.
+    /// @notice Represents a moved funds sweep request. The request is
+    ///         registered in `submitMovingFundsProof` where we know funds
+    ///         have been moved to the target wallet and the only step left is
+    ///         to have the target wallet sweep them.
     struct MovedFundsSweepRequest {
         // 20-byte public key hash of the wallet supposed to sweep the UTXO
         // representing the received funds with their own main UTXO
@@ -568,8 +572,8 @@ library MovingFunds {
     ///
     ///         The function validates the sweep transaction structure by
     ///         checking if it actually spends the moved funds UTXO and the
-    ///         sweeping wallet's main UTXO (optionally) and locks the value
-    ///         on the sweeping wallet's 20-byte public key hash, using a
+    ///         sweeping wallet's main UTXO (optionally), and if it locks the
+    ///         value on the sweeping wallet's 20-byte public key hash using a
     ///         reasonable transaction fee. If all preconditions are
     ///         met, this function updates the sweeping wallet main UTXO, thus
     ///         their BTC balance.
@@ -647,8 +651,8 @@ library MovingFunds {
         emit MovedFundsSwept(walletPubKeyHash, sweepTxHash);
     }
 
-    /// @notice Processes the Bitcoin moved funds transaction output vector by
-    ///         extracting the single output and using it to gain additional
+    /// @notice Processes the Bitcoin moved funds sweep transaction output vector
+    ///         by extracting the single output and using it to gain additional
     ///         information required for further processing (e.g. value and
     ///         wallet public key hash).
     /// @param sweepTxOutputVector Bitcoin moved funds sweep transaction output
@@ -672,7 +676,8 @@ library MovingFunds {
         // format presented in:
         // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
         // We don't need asserting the compactSize uint is parseable since it
-        // was already checked during `validateVout` validation.
+        // was already checked during `validateVout` validation performed as
+        // part of the `BitcoinTx.validateProof` call.
         // See `BitcoinTx.outputVector` docs for more details.
         (, uint256 outputsCount) = sweepTxOutputVector.parseVarInt();
         require(
@@ -746,7 +751,7 @@ library MovingFunds {
     }
 
     /// @notice Processes the Bitcoin moved funds sweep transaction input vector.
-    ///         It extracts the first input and try to match it with one of
+    ///         It extracts the first input and tries to match it with one of
     ///         the moved funds sweep requests targeting the sweeping wallet.
     ///         If the sweep request is an existing Pending request, this
     ///         function marks it as Processed. If the sweeping wallet has a
@@ -767,7 +772,7 @@ library MovingFunds {
     ///        input.
     ///      - The mandatory input must be the first input in the vector
     ///      - The mandatory input must point to a Pending moved funds sweep
-    ///        request that belongs to the sweeping wallet
+    ///        request that is targeted to the sweeping wallet
     ///      - The optional output must be the second input in the vector
     ///      - The optional input is required if the sweeping wallet has a
     ///        main UTXO (i.e. the `mainUtxo` is not zeroed). In that case,
@@ -784,7 +789,8 @@ library MovingFunds {
         // elements using the format presented in:
         // https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers
         // We don't need asserting the compactSize uint is parseable since it
-        // was already checked during `validateVin` validation.
+        // was already checked during `validateVin` validation performed as
+        // part of the `BitcoinTx.validateProof` call.
         // See `BitcoinTx.inputVector` docs for more details.
         (
             uint256 inputsCompactSizeUintLength,
@@ -840,12 +846,15 @@ library MovingFunds {
                 )
             ];
 
-        // The sweep request must be in the Pending state and must belong
-        // to the sweeping wallet.
         require(
             sweepRequest.state == MovedFundsSweepRequestState.Pending,
             "Sweep request must be in Pending state"
         );
+        // We must check if the wallet extracted from the moved funds sweep
+        // transaction output is truly the owner of the sweep request connected
+        // with the swept UTXO. This is needed to prevent a case when a wallet
+        // handles its own sweep request but locks the funds on another
+        // wallet public key hash.
         require(
             sweepRequest.walletPubKeyHash == walletPubKeyHash,
             "Sweep request belongs to another wallet"
