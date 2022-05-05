@@ -821,6 +821,11 @@ library MovingFunds {
         // belong to the sweeping wallet.
         require(sweepRequest.createdAt != 0, "Sweep request does not exist");
         require(sweepRequest.sweptAt == 0, "Sweep request already processed");
+        // We must check if the wallet extracted from the moved funds sweep
+        // transaction output is truly the owner of the sweep request connected
+        // with the swept UTXO. This is needed to prevent a case when a wallet
+        // handles its own sweep request but locks the funds on another
+        // wallet public key hash.
         require(
             sweepRequest.walletPubKeyHash == walletPubKeyHash,
             "Sweep request belongs to another wallet"
