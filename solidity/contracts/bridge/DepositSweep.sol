@@ -120,7 +120,7 @@ library DepositSweep {
         (
             bytes20 walletPubKeyHash,
             uint64 sweepTxOutputValue
-        ) = processDepositSweepTxOutput(sweepTx.outputVector);
+        ) = processDepositSweepTxOutput(self, sweepTx.outputVector);
 
         (
             Wallets.Wallet storage wallet,
@@ -267,9 +267,9 @@ library DepositSweep {
     ///        it is passed here
     /// @return walletPubKeyHash 20-byte wallet public key hash.
     /// @return value 8-byte sweep transaction output value.
-    function processDepositSweepTxOutput(bytes memory sweepTxOutputVector)
+    function processDepositSweepTxOutput(BridgeState.Storage storage self, bytes memory sweepTxOutputVector)
         internal
-        pure
+        view
         returns (bytes20 walletPubKeyHash, uint64 value)
     {
         // To determine the total number of sweep transaction outputs, we need to
@@ -287,20 +287,8 @@ library DepositSweep {
         );
 
         bytes memory output = sweepTxOutputVector.extractOutputAtIndex(0);
+        walletPubKeyHash = self.extractPubKeyHash(output);
         value = output.extractValue();
-        // TODO: Extract `walletPubKeyHash` using `self.extractPubKeyHash`
-        //       in order to get stronger validation.
-        bytes memory walletPubKeyHashBytes = output.extractHash();
-        // The sweep transaction output should always be P2PKH or P2WPKH.
-        // In both cases, the wallet public key hash should be 20 bytes length.
-        require(
-            walletPubKeyHashBytes.length == 20,
-            "Wallet public key hash should have 20 bytes"
-        );
-        /* solhint-disable-next-line no-inline-assembly */
-        assembly {
-            walletPubKeyHash := mload(add(walletPubKeyHashBytes, 32))
-        }
 
         return (walletPubKeyHash, value);
     }
@@ -412,8 +400,8 @@ library DepositSweep {
                 processedDepositsCount++;
             } else if (
                 mainUtxoExpected != mainUtxoFound &&
-                mainUtxo.txHash == outpointTxHash
-                // TODO: We probably need to check `mainUtxo.txOutputIndex == outpointIndex` as well.
+                mainUtxo.txHash == outpointTxHash &&
+                mainUtxo.txOutputIndex == outpointIndex
             ) {
                 // If we entered here, that means the input was identified as
                 // the expected main UTXO.
