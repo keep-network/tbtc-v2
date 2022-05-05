@@ -99,7 +99,7 @@ contract BridgeStub is Bridge {
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
     }
 
-    function setMovedFundsSweepRequest(
+    function setPendingMovedFundsSweepRequest(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
@@ -115,9 +115,13 @@ contract BridgeStub is Bridge {
                 uint32(block.timestamp),
                 0
             );
+
+        self
+            .registeredWallets[walletPubKeyHash]
+            .pendingMovedFundsSweepRequestsCount++;
     }
 
-    function setProcessedMovedFundsSweepRequest(
+    function processPendingMovedFundsSweepRequest(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
     ) external {
@@ -125,15 +129,17 @@ contract BridgeStub is Bridge {
             keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
         );
 
-        self.movedFundsSweepRequests[requestKey] = MovingFunds
-            .MovedFundsSweepRequest(
-                walletPubKeyHash,
-                utxo.txOutputValue,
-                /* solhint-disable-next-line not-rely-on-time */
-                uint32(block.timestamp),
-                /* solhint-disable-next-line not-rely-on-time */
-                uint32(block.timestamp)
-            );
+        MovingFunds.MovedFundsSweepRequest storage request = self
+            .movedFundsSweepRequests[requestKey];
+
+        require(request.createdAt != 0, "Stub sweep request does not exist");
+
+        /* solhint-disable-next-line not-rely-on-time */
+        request.sweptAt = uint32(block.timestamp);
+
+        self
+            .registeredWallets[walletPubKeyHash]
+            .pendingMovedFundsSweepRequestsCount--;
     }
 
     function setMovedFundsSweepTxMaxTotalFee(
