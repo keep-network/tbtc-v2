@@ -144,6 +144,29 @@ contract BridgeStub is Bridge {
             .pendingMovedFundsSweepRequestsCount--;
     }
 
+    function timeoutPendingMovedFundsSweepRequest(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata utxo
+    ) external {
+        uint256 requestKey = uint256(
+            keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
+        );
+
+        MovingFunds.MovedFundsSweepRequest storage request = self
+            .movedFundsSweepRequests[requestKey];
+
+        require(
+            request.state == MovingFunds.MovedFundsSweepRequestState.Pending,
+            "Stub sweep request must be in Pending state"
+        );
+
+        request.state = MovingFunds.MovedFundsSweepRequestState.TimedOut;
+
+        self
+            .registeredWallets[walletPubKeyHash]
+            .pendingMovedFundsSweepRequestsCount--;
+    }
+
     function setMovedFundsSweepTxMaxTotalFee(
         uint64 _movedFundsSweepTxMaxTotalFee
     ) external {

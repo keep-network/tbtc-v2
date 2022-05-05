@@ -48,3 +48,10 @@ export const ecdsaDkgState = {
   AWAITING_RESULT: 2,
   CHALLENGE: 3,
 }
+
+export const movedFundsSweepRequestState = {
+  Unknown: 0,
+  Pending: 1,
+  Processed: 2,
+  TimedOut: 3,
+}
