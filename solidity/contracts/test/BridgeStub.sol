@@ -113,7 +113,7 @@ contract BridgeStub is Bridge {
                 utxo.txOutputValue,
                 /* solhint-disable-next-line not-rely-on-time */
                 uint32(block.timestamp),
-                false
+                MovingFunds.MovedFundsSweepRequestState.Pending
             );
 
         self
@@ -132,10 +132,12 @@ contract BridgeStub is Bridge {
         MovingFunds.MovedFundsSweepRequest storage request = self
             .movedFundsSweepRequests[requestKey];
 
-        require(request.createdAt != 0, "Stub sweep request does not exist");
-        require(!request.processed, "Stub sweep request already processed");
+        require(
+            request.state == MovingFunds.MovedFundsSweepRequestState.Pending,
+            "Stub sweep request must be in Pending state"
+        );
 
-        request.processed = true;
+        request.state = MovingFunds.MovedFundsSweepRequestState.Processed;
 
         self
             .registeredWallets[walletPubKeyHash]

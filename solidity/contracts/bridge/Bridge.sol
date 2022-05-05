@@ -708,15 +708,14 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @notice Notifies about a timed out moved funds sweep process. If the
     ///         wallet is not terminated yet, that function terminates
     ///         the wallet and slashes signing group members as a result.
-    ///         Marks the given request as resolved.
+    ///         Marks the given sweep request as TimedOut.
     /// @param movingFundsTxHash 32-byte hash of the moving funds transaction
     ///        that caused the sweep request to be created
     /// @param movingFundsTxOutputIndex Index of the moving funds transaction
     ///        output that is subject of the sweep request.
     /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @dev Requirements:
-    ///      - The moved funds sweep request must exist
-    ///      - The moved funds sweep not be already processed
+    ///      - The moved funds sweep request must be in the Pending state
     ///      - The moved funds sweep timeout must be actually exceeded
     ///      - The wallet must be either in the Live or MovingFunds or
     ///        Terminated state

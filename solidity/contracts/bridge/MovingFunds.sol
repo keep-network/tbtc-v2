@@ -57,6 +57,19 @@ library MovingFunds {
         bytes movingFundsTxOutputVector;
     }
 
+    /// @notice Represents moved funds sweep request state.
+    enum MovedFundsSweepRequestState {
+        /// @dev The request is unknown to the Bridge.
+        Unknown,
+        /// @dev Request is pending and can be either processed or timed out.
+        Pending,
+        /// @dev Request was processed by the target wallet.
+        Processed,
+        /// @dev Request was not processed in the given time window and
+        ///      the timeout was reported.
+        TimedOut
+    }
+
     /// @notice Represents a moved funds sweep request.
     struct MovedFundsSweepRequest {
         // 20-byte public key hash of the wallet supposed to sweep the UTXO
@@ -66,8 +79,8 @@ library MovingFunds {
         uint64 value;
         // UNIX timestamp the request was created at.
         uint32 createdAt;
-        // The flag indicating whether the request has been processed.
-        bool processed;
+        // Current state of the request.
+        MovedFundsSweepRequestState state;
     }
 
     event MovingFundsCommitmentSubmitted(
@@ -422,7 +435,7 @@ library MovingFunds {
                 outputsValues[outputIndex],
                 /* solhint-disable-next-line not-rely-on-time */
                 uint32(block.timestamp),
-                false
+                MovedFundsSweepRequestState.Pending
             );
             // We added a new moved funds sweep request for the target wallet
             // so we must increment their request counter.
@@ -573,7 +586,7 @@ library MovingFunds {
     ///        correspond to appropriate Bitcoin transaction fields to produce
     ///        a provable transaction hash.
     ///      - The `sweepTx` should represent a Bitcoin transaction with
-    ///        the first input pointing to a wallet's sweep request and,
+    ///        the first input pointing to a wallet's sweep Pending request and,
     ///        optionally, the second input pointing to the wallet's main UTXO,
     ///        if the sweeping wallet has a main UTXO set. There should be only
     ///        one output locking funds on the sweeping wallet 20-byte public
@@ -735,8 +748,8 @@ library MovingFunds {
     /// @notice Processes the Bitcoin moved funds sweep transaction input vector.
     ///         It extracts the first input and try to match it with one of
     ///         the moved funds sweep requests targeting the sweeping wallet.
-    ///         If the sweep request is found and not yet processed, this
-    ///         function marks it as processed. If the sweeping wallet has a
+    ///         If the sweep request is an existing Pending request, this
+    ///         function marks it as Processed. If the sweeping wallet has a
     ///         main UTXO, this function extracts the second input, makes sure
     ///         it refers to the wallet main UTXO, and marks that main UTXO as
     ///         correctly spent.
@@ -753,9 +766,8 @@ library MovingFunds {
     ///      - The input vector must consist of one mandatory and one optional
     ///        input.
     ///      - The mandatory input must be the first input in the vector
-    ///      - The mandatory input must point to a known moved funds sweep
-    ///        request that is not processed yet and belongs to the sweeping
-    ///        wallet
+    ///      - The mandatory input must point to a Pending moved funds sweep
+    ///        request that belongs to the sweeping wallet
     ///      - The optional output must be the second input in the vector
     ///      - The optional input is required if the sweeping wallet has a
     ///        main UTXO (i.e. the `mainUtxo` is not zeroed). In that case,
@@ -828,10 +840,12 @@ library MovingFunds {
                 )
             ];
 
-        // The sweep request must exist, must be not processed yet, and must
-        // belong to the sweeping wallet.
-        require(sweepRequest.createdAt != 0, "Sweep request does not exist");
-        require(!sweepRequest.processed, "Sweep request already processed");
+        // The sweep request must be in the Pending state and must belong
+        // to the sweeping wallet.
+        require(
+            sweepRequest.state == MovedFundsSweepRequestState.Pending,
+            "Sweep request must be in Pending state"
+        );
         require(
             sweepRequest.walletPubKeyHash == walletPubKeyHash,
             "Sweep request belongs to another wallet"
@@ -839,7 +853,7 @@ library MovingFunds {
         // If the validation passed, the sweep request must be marked as
         // processed and its value should be counted into the total inputs
         // value sum.
-        sweepRequest.processed = true;
+        sweepRequest.state = MovedFundsSweepRequestState.Processed;
         inputsTotalValue += sweepRequest.value;
 
         self
@@ -923,15 +937,14 @@ library MovingFunds {
     /// @notice Notifies about a timed out moved funds sweep process. If the
     ///         wallet is not terminated yet, that function terminates
     ///         the wallet and slashes signing group members as a result.
-    ///         Marks the given request as resolved.
+    ///         Marks the given sweep request as TimedOut.
     /// @param movingFundsTxHash 32-byte hash of the moving funds transaction
     ///        that caused the sweep request to be created
     /// @param movingFundsTxOutputIndex Index of the moving funds transaction
     ///        output that is subject of the sweep request.
     /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @dev Requirements:
-    ///      - The moved funds sweep request must exist
-    ///      - The moved funds sweep not be already processed
+    ///      - The moved funds sweep request must be in the Pending state
     ///      - The moved funds sweep timeout must be actually exceeded
     ///      - The wallet must be either in the Live or MovingFunds or
     ///        Terminated state
@@ -959,9 +972,10 @@ library MovingFunds {
                 )
             ];
 
-        require(sweepRequest.createdAt != 0, "Sweep request does not exist");
-
-        require(!sweepRequest.processed, "Sweep request already processed");
+        require(
+            sweepRequest.state == MovedFundsSweepRequestState.Pending,
+            "Sweep request must be in Pending state"
+        );
 
         require(
             /* solhint-disable-next-line not-rely-on-time */
@@ -983,7 +997,7 @@ library MovingFunds {
             "ECDSA wallet must be in Live or MovingFunds or Terminated state"
         );
 
-        sweepRequest.processed = true;
+        sweepRequest.state = MovedFundsSweepRequestState.TimedOut;
 
         if (
             walletState == Wallets.WalletState.Live ||
