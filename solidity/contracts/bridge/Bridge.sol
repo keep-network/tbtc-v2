@@ -327,6 +327,15 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
+    /// @param vault Address of the vault where all swept deposits should
+    ///        be routed to. All deposits swept as part of the transaction
+    ///        must have their `vault` parameters set to the same address.
+    ///        If this parameter is set an address of a trusted vault, swept
+    ///        deposits are routed to that vault.
+    ///        If this parameter is set to the zero address or to an address
+    ///        of a non-trusted vault, swept deposits are not routed to any
+    ///        vault and depositors' balances are increased in the Bank
+    ///        individually.
     /// @dev Requirements:
     ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
@@ -340,6 +349,9 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        revealed deposits UTXOs. That transaction must have only
     ///        one P2(W)PKH output locking funds on the 20-byte wallet public
     ///        key hash.
+    ///      - All revealed deposits that are swept by `sweepTx` must have
+    ///        their `vault` parameters set to the same address as the address
+    ///        passed in the `vault` function parameter.
     ///      - `sweepProof` components must match the expected structure. See
     ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
@@ -350,9 +362,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
     function submitDepositSweepProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
-        BitcoinTx.UTXO calldata mainUtxo
+        BitcoinTx.UTXO calldata mainUtxo,
+        address vault
     ) external {
-        self.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo);
+        self.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo, vault);
     }
 
     /// @notice Requests redemption of the given amount from the specified
