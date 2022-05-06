@@ -46,6 +46,21 @@ contract BridgeStub is Bridge {
         }
     }
 
+    function setProcessedMovedFundsSweepRequests(
+        BitcoinTx.UTXO[] calldata utxos
+    ) external {
+        for (uint256 i = 0; i < utxos.length; i++) {
+            uint256 utxoKey = uint256(
+                keccak256(
+                    abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
+                )
+            );
+            self.movedFundsSweepRequests[utxoKey].state = MovingFunds
+                .MovedFundsSweepRequestState
+                .Processed;
+        }
+    }
+
     function setActiveWallet(bytes20 activeWalletPubKeyHash) external {
         self.activeWalletPubKeyHash = activeWalletPubKeyHash;
     }
@@ -113,7 +128,7 @@ contract BridgeStub is Bridge {
                 utxo.txOutputValue,
                 /* solhint-disable-next-line not-rely-on-time */
                 uint32(block.timestamp),
-                0
+                MovingFunds.MovedFundsSweepRequestState.Pending
             );
 
         self
@@ -132,10 +147,35 @@ contract BridgeStub is Bridge {
         MovingFunds.MovedFundsSweepRequest storage request = self
             .movedFundsSweepRequests[requestKey];
 
-        require(request.createdAt != 0, "Stub sweep request does not exist");
+        require(
+            request.state == MovingFunds.MovedFundsSweepRequestState.Pending,
+            "Stub sweep request must be in Pending state"
+        );
 
-        /* solhint-disable-next-line not-rely-on-time */
-        request.sweptAt = uint32(block.timestamp);
+        request.state = MovingFunds.MovedFundsSweepRequestState.Processed;
+
+        self
+            .registeredWallets[walletPubKeyHash]
+            .pendingMovedFundsSweepRequestsCount--;
+    }
+
+    function timeoutPendingMovedFundsSweepRequest(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata utxo
+    ) external {
+        uint256 requestKey = uint256(
+            keccak256(abi.encodePacked(utxo.txHash, utxo.txOutputIndex))
+        );
+
+        MovingFunds.MovedFundsSweepRequest storage request = self
+            .movedFundsSweepRequests[requestKey];
+
+        require(
+            request.state == MovingFunds.MovedFundsSweepRequestState.Pending,
+            "Stub sweep request must be in Pending state"
+        );
+
+        request.state = MovingFunds.MovedFundsSweepRequestState.TimedOut;
 
         self
             .registeredWallets[walletPubKeyHash]
