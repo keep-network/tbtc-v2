@@ -55,7 +55,7 @@ export default async function bridgeFixture() {
     {
       libraries: {
         Deposit: (await ethers.getContract("Deposit")).address,
-        Sweep: (await ethers.getContract("Sweep")).address,
+        DepositSweep: (await ethers.getContract("DepositSweep")).address,
         Redemption: (await ethers.getContract("Redemption")).address,
         Wallets: (await ethers.getContract("Wallets")).address,
         Fraud: (await ethers.getContract("Fraud")).address,

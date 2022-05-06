@@ -33,20 +33,20 @@ describe("Bridge - Fraud", () => {
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
 
+  let fraudChallengeDepositAmount: BigNumber
+  let fraudChallengeDefeatTimeout: BigNumber
   let fraudSlashingAmount: BigNumber
   let fraudNotifierRewardMultiplier: BigNumber
-  let fraudChallengeDefeatTimeout: BigNumber
-  let fraudChallengeDepositAmount: BigNumber
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, treasury, walletRegistry, bridge } =
       await waffle.loadFixture(bridgeFixture))
     ;({
+      fraudChallengeDepositAmount,
+      fraudChallengeDefeatTimeout,
       fraudSlashingAmount,
       fraudNotifierRewardMultiplier,
-      fraudChallengeDefeatTimeout,
-      fraudChallengeDepositAmount,
     } = await bridge.fraudParameters())
   })
 
@@ -71,6 +71,7 @@ describe("Bridge - Fraud", () => {
                   createdAt: await lastBlockTime(),
                   movingFundsRequestedAt: 0,
                   closingStartedAt: 0,
+                  pendingMovedFundsSweepRequestsCount: 0,
                   state: walletState.Live,
                   movingFundsTargetWalletsCommitmentHash:
                     ethers.constants.HashZero,
@@ -149,6 +150,7 @@ describe("Bridge - Fraud", () => {
                   createdAt: await lastBlockTime(),
                   movingFundsRequestedAt: 0,
                   closingStartedAt: 0,
+                  pendingMovedFundsSweepRequestsCount: 0,
                   state: walletState.Live,
                   movingFundsTargetWalletsCommitmentHash:
                     ethers.constants.HashZero,
@@ -206,6 +208,7 @@ describe("Bridge - Fraud", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -245,6 +248,7 @@ describe("Bridge - Fraud", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -283,6 +287,7 @@ describe("Bridge - Fraud", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -324,6 +329,7 @@ describe("Bridge - Fraud", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -362,6 +368,7 @@ describe("Bridge - Fraud", () => {
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
             closingStartedAt: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -398,6 +405,7 @@ describe("Bridge - Fraud", () => {
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
           closingStartedAt: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
           state: walletState.MovingFunds,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -434,6 +442,7 @@ describe("Bridge - Fraud", () => {
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
           closingStartedAt: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
           state: walletState.Closing,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -488,6 +497,7 @@ describe("Bridge - Fraud", () => {
                 createdAt: await lastBlockTime(),
                 movingFundsRequestedAt: 0,
                 closingStartedAt: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
                 state: test.walletState,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -542,12 +552,16 @@ describe("Bridge - Fraud", () => {
                       createdAt: await lastBlockTime(),
                       movingFundsRequestedAt: 0,
                       closingStartedAt: 0,
+                      pendingMovedFundsSweepRequestsCount: 0,
                       state: walletState.Live,
                       movingFundsTargetWalletsCommitmentHash:
                         ethers.constants.HashZero,
                     })
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -620,6 +634,7 @@ describe("Bridge - Fraud", () => {
                       createdAt: await lastBlockTime(),
                       movingFundsRequestedAt: 0,
                       closingStartedAt: 0,
+                      pendingMovedFundsSweepRequestsCount: 0,
                       state: walletState.Live,
                       movingFundsTargetWalletsCommitmentHash:
                         ethers.constants.HashZero,
@@ -675,12 +690,16 @@ describe("Bridge - Fraud", () => {
                       createdAt: await lastBlockTime(),
                       movingFundsRequestedAt: 0,
                       closingStartedAt: 0,
+                      pendingMovedFundsSweepRequestsCount: 0,
                       state: walletState.Live,
                       movingFundsTargetWalletsCommitmentHash:
                         ethers.constants.HashZero,
                     })
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -753,6 +772,7 @@ describe("Bridge - Fraud", () => {
                       createdAt: await lastBlockTime(),
                       movingFundsRequestedAt: 0,
                       closingStartedAt: 0,
+                      pendingMovedFundsSweepRequestsCount: 0,
                       state: walletState.Live,
                       movingFundsTargetWalletsCommitmentHash:
                         ethers.constants.HashZero,
@@ -810,12 +830,16 @@ describe("Bridge - Fraud", () => {
                       createdAt: await lastBlockTime(),
                       movingFundsRequestedAt: 0,
                       closingStartedAt: 0,
+                      pendingMovedFundsSweepRequestsCount: 0,
                       state: walletState.Live,
                       movingFundsTargetWalletsCommitmentHash:
                         ethers.constants.HashZero,
                     })
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -888,6 +912,7 @@ describe("Bridge - Fraud", () => {
                       createdAt: await lastBlockTime(),
                       movingFundsRequestedAt: 0,
                       closingStartedAt: 0,
+                      pendingMovedFundsSweepRequestsCount: 0,
                       state: walletState.Live,
                       movingFundsTargetWalletsCommitmentHash:
                         ethers.constants.HashZero,
@@ -943,12 +968,16 @@ describe("Bridge - Fraud", () => {
                       createdAt: await lastBlockTime(),
                       movingFundsRequestedAt: 0,
                       closingStartedAt: 0,
+                      pendingMovedFundsSweepRequestsCount: 0,
                       state: walletState.Live,
                       movingFundsTargetWalletsCommitmentHash:
                         ethers.constants.HashZero,
                     })
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -1021,6 +1050,7 @@ describe("Bridge - Fraud", () => {
                       createdAt: await lastBlockTime(),
                       movingFundsRequestedAt: 0,
                       closingStartedAt: 0,
+                      pendingMovedFundsSweepRequestsCount: 0,
                       state: walletState.Live,
                       movingFundsTargetWalletsCommitmentHash:
                         ethers.constants.HashZero,
@@ -1076,11 +1106,15 @@ describe("Bridge - Fraud", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
+            await bridge.setProcessedMovedFundsSweepRequests(
+              data.movedFundsSweepRequests
+            )
 
             await bridge
               .connect(thirdParty)
@@ -1125,11 +1159,15 @@ describe("Bridge - Fraud", () => {
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
             closingStartedAt: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
           await bridge.setSweptDeposits(data.deposits)
           await bridge.setSpentMainUtxos(data.spentMainUtxos)
+          await bridge.setProcessedMovedFundsSweepRequests(
+            data.movedFundsSweepRequests
+          )
 
           await bridge
             .connect(thirdParty)
@@ -1173,11 +1211,15 @@ describe("Bridge - Fraud", () => {
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
             closingStartedAt: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
           await bridge.setSweptDeposits(data.deposits)
           await bridge.setSpentMainUtxos(data.spentMainUtxos)
+          await bridge.setProcessedMovedFundsSweepRequests(
+            data.movedFundsSweepRequests
+          )
 
           await bridge
             .connect(thirdParty)
@@ -1252,6 +1294,7 @@ describe("Bridge - Fraud", () => {
             createdAt: 0,
             movingFundsRequestedAt: 0,
             closingStartedAt: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
             state: walletState.Unknown,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           }
@@ -1547,6 +1590,9 @@ describe("Bridge - Fraud", () => {
 
                     await bridge.setSweptDeposits(data.deposits)
                     await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                    await bridge.setProcessedMovedFundsSweepRequests(
+                      data.movedFundsSweepRequests
+                    )
 
                     await bridge
                       .connect(thirdParty)
@@ -1603,11 +1649,15 @@ describe("Bridge - Fraud", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
+            await bridge.setProcessedMovedFundsSweepRequests(
+              data.movedFundsSweepRequests
+            )
 
             await bridge
               .connect(thirdParty)
@@ -1656,11 +1706,15 @@ describe("Bridge - Fraud", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
+            await bridge.setProcessedMovedFundsSweepRequests(
+              data.movedFundsSweepRequests
+            )
 
             await bridge
               .connect(thirdParty)
@@ -1709,11 +1763,15 @@ describe("Bridge - Fraud", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
             await bridge.setSweptDeposits(data.deposits)
             await bridge.setSpentMainUtxos(data.spentMainUtxos)
+            await bridge.setProcessedMovedFundsSweepRequests(
+              data.movedFundsSweepRequests
+            )
 
             await bridge
               .connect(thirdParty)

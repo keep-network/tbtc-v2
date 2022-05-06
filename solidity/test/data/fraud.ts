@@ -4,20 +4,55 @@ import { BytesLike } from "ethers"
  * Represents a set of data used for given fraud scenario.
  */
 export interface FraudTestData {
+  /**
+   * The signature of the given sigash.
+   */
   signature: {
     v: number
     r: BytesLike
     s: BytesLike
   }
+
+  /**
+   * The preimage used to built the given sighash.
+   */
   preimage: BytesLike
+
+  /**
+   * The sighash used to create the fraud challenge.
+   */
   sighash: BytesLike
+
+  /**
+   * Determines whether the input the sighash refers to is witness or not.
+   */
   witness: boolean
+
+  /**
+   * Swept deposits that will be registered in the system during the test case
+   * execution.
+   */
   deposits: {
     txHash: BytesLike // little endian
     txOutputIndex: number
     txOutputValue: number
   }[]
+
+  /**
+   * Spent main UTXOs that will be registered in the system during the test case
+   * execution.
+   */
   spentMainUtxos: {
+    txHash: BytesLike // little endian
+    txOutputIndex: number
+    txOutputValue: number
+  }[]
+
+  /**
+   * Processed moved funds sweep requests that will be registered in the system
+   * during the test case execution.
+   */
+  movedFundsSweepRequests: {
     txHash: BytesLike // little endian
     txOutputIndex: number
     txOutputValue: number
@@ -51,7 +86,9 @@ export const nonWitnessSignSingleInputTx: FraudTestData = {
     "a90f738986f60000000001000000",
   sighash: "0x5d09cd07392c7163335b67eacc999491a3794c15b88e2b59094be5c5b157064b",
   witness: false,
-  deposits: [
+  deposits: [],
+  spentMainUtxos: [],
+  movedFundsSweepRequests: [
     {
       txHash:
         "0xfb26e52365437fc4fce01864d1303e0e1ed2824ef83345ea6e85174060778acb",
@@ -59,7 +96,6 @@ export const nonWitnessSignSingleInputTx: FraudTestData = {
       txOutputValue: 11000,
     },
   ],
-  spentMainUtxos: [],
 }
 
 // Test data comes from the input at index 5 of transaction:
@@ -93,6 +129,7 @@ export const nonWitnessSignMultipleInputsTx: FraudTestData = {
     },
   ],
   spentMainUtxos: [],
+  movedFundsSweepRequests: [],
 }
 
 // Test data comes from the (only) input of transaction:
@@ -123,6 +160,7 @@ export const witnessSignSingleInputTx: FraudTestData = {
     },
   ],
   spentMainUtxos: [],
+  movedFundsSweepRequests: [],
 }
 
 // Test data comes from the input at index 4 of transaction:
@@ -151,6 +189,7 @@ export const witnessSignMultipleInputTx: FraudTestData = {
       txOutputValue: 8400,
     },
   ],
+  movedFundsSweepRequests: [],
 }
 
 // Test data comes from the input at index 1 of transaction:
@@ -181,4 +220,5 @@ export const wrongSighashType: FraudTestData = {
     },
   ],
   spentMainUtxos: [],
+  movedFundsSweepRequests: [],
 }

@@ -319,13 +319,20 @@ describe("Bridge - Parameters", () => {
       context("when all new parameter values are correct", () => {
         const newMovingFundsTxMaxTotalFee =
           constants.movingFundsTxMaxTotalFee / 2
+        const newMovingFundsDustThreshold =
+          constants.movingFundsDustThreshold * 2
         const newMovingFundsTimeout = constants.movingFundsTimeout * 2
         const newMovingFundsTimeoutSlashingAmount =
           constants.movingFundsTimeoutSlashingAmount.mul(3)
         const newMovingFundsTimeoutNotifierRewardMultiplier =
           constants.movingFundsTimeoutNotifierRewardMultiplier / 2
-        const newMovingFundsDustThreshold =
-          constants.movingFundsDustThreshold * 2
+        const newMovedFundsSweepTxMaxTotalFee =
+          constants.movedFundsSweepTxMaxTotalFee * 2
+        const newMovedFundsSweepTimeout = constants.movedFundsSweepTimeout * 4
+        const newMovedFundsSweepTimeoutSlashingAmount =
+          constants.movedFundsSweepTimeoutSlashingAmount.mul(6)
+        const newMovedFundsSweepTimeoutNotifierRewardMultiplier =
+          constants.movedFundsSweepTimeoutNotifierRewardMultiplier / 4
 
         let tx: ContractTransaction
 
@@ -336,10 +343,14 @@ describe("Bridge - Parameters", () => {
             .connect(governance)
             .updateMovingFundsParameters(
               newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
-              newMovingFundsDustThreshold
+              newMovedFundsSweepTxMaxTotalFee,
+              newMovedFundsSweepTimeout,
+              newMovedFundsSweepTimeoutSlashingAmount,
+              newMovedFundsSweepTimeoutNotifierRewardMultiplier
             )
         })
 
@@ -353,6 +364,9 @@ describe("Bridge - Parameters", () => {
           expect(params.movingFundsTxMaxTotalFee).to.be.equal(
             newMovingFundsTxMaxTotalFee
           )
+          expect(params.movingFundsDustThreshold).to.be.equal(
+            newMovingFundsDustThreshold
+          )
           expect(params.movingFundsTimeout).to.be.equal(newMovingFundsTimeout)
           expect(params.movingFundsTimeoutSlashingAmount).to.be.equal(
             newMovingFundsTimeoutSlashingAmount
@@ -360,9 +374,18 @@ describe("Bridge - Parameters", () => {
           expect(params.movingFundsTimeoutNotifierRewardMultiplier).to.be.equal(
             newMovingFundsTimeoutNotifierRewardMultiplier
           )
-          expect(params.movingFundsDustThreshold).to.be.equal(
-            newMovingFundsDustThreshold
+          expect(params.movedFundsSweepTxMaxTotalFee).to.be.equal(
+            newMovedFundsSweepTxMaxTotalFee
           )
+          expect(params.movedFundsSweepTimeout).to.be.equal(
+            newMovedFundsSweepTimeout
+          )
+          expect(params.movedFundsSweepTimeoutSlashingAmount).to.be.equal(
+            newMovedFundsSweepTimeoutSlashingAmount
+          )
+          expect(
+            params.movedFundsSweepTimeoutNotifierRewardMultiplier
+          ).to.be.equal(newMovedFundsSweepTimeoutNotifierRewardMultiplier)
         })
 
         it("should emit MovingFundsParametersUpdated event", async () => {
@@ -370,10 +393,14 @@ describe("Bridge - Parameters", () => {
             .to.emit(bridge, "MovingFundsParametersUpdated")
             .withArgs(
               newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
-              newMovingFundsDustThreshold
+              newMovedFundsSweepTxMaxTotalFee,
+              newMovedFundsSweepTimeout,
+              newMovedFundsSweepTimeoutSlashingAmount,
+              newMovedFundsSweepTimeoutNotifierRewardMultiplier
             )
         })
       })
@@ -385,13 +412,39 @@ describe("Bridge - Parameters", () => {
               .connect(governance)
               .updateMovingFundsParameters(
                 0,
+                constants.movingFundsDustThreshold,
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movingFundsDustThreshold
+                constants.movedFundsSweepTxMaxTotalFee,
+                constants.movedFundsSweepTimeout,
+                constants.movedFundsSweepTimeoutSlashingAmount,
+                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
             "Moving funds transaction max total fee must be greater than zero"
+          )
+        })
+      })
+
+      context("when new moving funds dust threshold is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateMovingFundsParameters(
+                constants.movingFundsTxMaxTotalFee,
+                0,
+                constants.movingFundsTimeout,
+                constants.movingFundsTimeoutSlashingAmount,
+                constants.movingFundsTimeoutNotifierRewardMultiplier,
+                constants.movedFundsSweepTxMaxTotalFee,
+                constants.movedFundsSweepTimeout,
+                constants.movedFundsSweepTimeoutSlashingAmount,
+                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+              )
+          ).to.be.revertedWith(
+            "Moving funds dust threshold must be greater than zero"
           )
         })
       })
@@ -403,10 +456,14 @@ describe("Bridge - Parameters", () => {
               .connect(governance)
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
+                constants.movingFundsDustThreshold,
                 0,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movingFundsDustThreshold
+                constants.movedFundsSweepTxMaxTotalFee,
+                constants.movedFundsSweepTimeout,
+                constants.movedFundsSweepTimeoutSlashingAmount,
+                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith("Moving funds timeout must be greater than zero")
         })
@@ -421,10 +478,14 @@ describe("Bridge - Parameters", () => {
                 .connect(governance)
                 .updateMovingFundsParameters(
                   constants.movingFundsTxMaxTotalFee,
+                  constants.movingFundsDustThreshold,
                   constants.movingFundsTimeout,
                   constants.movingFundsTimeoutSlashingAmount,
                   101,
-                  constants.movingFundsDustThreshold
+                  constants.movedFundsSweepTxMaxTotalFee,
+                  constants.movedFundsSweepTimeout,
+                  constants.movedFundsSweepTimeoutSlashingAmount,
+                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
                 )
             ).to.be.revertedWith(
               "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
@@ -432,23 +493,78 @@ describe("Bridge - Parameters", () => {
           })
         }
       )
-      context("when new moving funds dust threshold is zero", () => {
+
+      context(
+        "when new moved funds sweep transaction max total fee is zero",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateMovingFundsParameters(
+                  constants.movingFundsTxMaxTotalFee,
+                  constants.movingFundsDustThreshold,
+                  constants.movingFundsTimeout,
+                  constants.movingFundsTimeoutSlashingAmount,
+                  constants.movingFundsTimeoutNotifierRewardMultiplier,
+                  0,
+                  constants.movedFundsSweepTimeout,
+                  constants.movedFundsSweepTimeoutSlashingAmount,
+                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+                )
+            ).to.be.revertedWith(
+              "Moved funds sweep transaction max total fee must be greater than zero"
+            )
+          })
+        }
+      )
+
+      context("when new moved funds sweep timeout is zero", () => {
         it("should revert", async () => {
           await expect(
             bridge
               .connect(governance)
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
+                constants.movingFundsDustThreshold,
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
-                0
+                constants.movedFundsSweepTxMaxTotalFee,
+                0,
+                constants.movedFundsSweepTimeoutSlashingAmount,
+                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
-            "Moving funds dust threshold must be greater than zero"
+            "Moved funds sweep timeout must be greater than zero"
           )
         })
       })
+
+      context(
+        "when new moved funds sweep timeout notifier reward multiplier is greater than 100",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateMovingFundsParameters(
+                  constants.movingFundsTxMaxTotalFee,
+                  constants.movingFundsDustThreshold,
+                  constants.movingFundsTimeout,
+                  constants.movingFundsTimeoutSlashingAmount,
+                  constants.movingFundsTimeoutNotifierRewardMultiplier,
+                  constants.movedFundsSweepTxMaxTotalFee,
+                  constants.movedFundsSweepTimeout,
+                  constants.movedFundsSweepTimeoutSlashingAmount,
+                  101
+                )
+            ).to.be.revertedWith(
+              "Moved funds sweep timeout notifier reward multiplier must be in the range [0, 100]"
+            )
+          })
+        }
+      )
     })
 
     context("when caller is not the contract guvnor", () => {
@@ -458,10 +574,14 @@ describe("Bridge - Parameters", () => {
             .connect(thirdParty)
             .updateMovingFundsParameters(
               constants.movingFundsTxMaxTotalFee,
+              constants.movingFundsDustThreshold,
               constants.movingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
               constants.movingFundsTimeoutNotifierRewardMultiplier,
-              constants.movingFundsDustThreshold
+              constants.movedFundsSweepTxMaxTotalFee,
+              constants.movedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
             )
         ).to.be.revertedWith("Caller is not the governance")
       })
@@ -647,13 +767,13 @@ describe("Bridge - Parameters", () => {
   describe("updateFraudParameters", () => {
     context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
+        const newFraudChallengeDepositAmount =
+          constants.fraudChallengeDepositAmount.mul(4)
+        const newFraudChallengeDefeatTimeout =
+          constants.fraudChallengeDefeatTimeout * 3
         const newFraudSlashingAmount = constants.fraudSlashingAmount.mul(2)
         const newFraudNotifierRewardMultiplier =
           constants.fraudNotifierRewardMultiplier / 4
-        const newFraudChallengeDefeatTimeout =
-          constants.fraudChallengeDefeatTimeout * 3
-        const newFraudChallengeDepositAmount =
-          constants.fraudChallengeDepositAmount.mul(4)
 
         let tx: ContractTransaction
 
@@ -663,10 +783,10 @@ describe("Bridge - Parameters", () => {
           tx = await bridge
             .connect(governance)
             .updateFraudParameters(
-              newFraudSlashingAmount,
-              newFraudNotifierRewardMultiplier,
+              newFraudChallengeDepositAmount,
               newFraudChallengeDefeatTimeout,
-              newFraudChallengeDepositAmount
+              newFraudSlashingAmount,
+              newFraudNotifierRewardMultiplier
             )
         })
 
@@ -677,15 +797,15 @@ describe("Bridge - Parameters", () => {
         it("should set correct values", async () => {
           const params = await bridge.fraudParameters()
 
-          expect(params.fraudSlashingAmount).to.be.equal(newFraudSlashingAmount)
-          expect(params.fraudNotifierRewardMultiplier).to.be.equal(
-            newFraudNotifierRewardMultiplier
+          expect(params.fraudChallengeDepositAmount).to.be.equal(
+            newFraudChallengeDepositAmount
           )
           expect(params.fraudChallengeDefeatTimeout).to.be.equal(
             newFraudChallengeDefeatTimeout
           )
-          expect(params.fraudChallengeDepositAmount).to.be.equal(
-            newFraudChallengeDepositAmount
+          expect(params.fraudSlashingAmount).to.be.equal(newFraudSlashingAmount)
+          expect(params.fraudNotifierRewardMultiplier).to.be.equal(
+            newFraudNotifierRewardMultiplier
           )
         })
 
@@ -693,11 +813,28 @@ describe("Bridge - Parameters", () => {
           await expect(tx)
             .to.emit(bridge, "FraudParametersUpdated")
             .withArgs(
-              newFraudSlashingAmount,
-              newFraudNotifierRewardMultiplier,
+              newFraudChallengeDepositAmount,
               newFraudChallengeDefeatTimeout,
-              newFraudChallengeDepositAmount
+              newFraudSlashingAmount,
+              newFraudNotifierRewardMultiplier
             )
+        })
+      })
+
+      context("when new fraud challenge defeat timeout is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .updateFraudParameters(
+                constants.fraudChallengeDepositAmount,
+                0,
+                constants.fraudSlashingAmount,
+                constants.fraudNotifierRewardMultiplier
+              )
+          ).to.be.revertedWith(
+            "Fraud challenge defeat timeout must be greater than zero"
+          )
         })
       })
 
@@ -709,10 +846,10 @@ describe("Bridge - Parameters", () => {
               bridge
                 .connect(governance)
                 .updateFraudParameters(
-                  constants.fraudSlashingAmount,
-                  101,
+                  constants.fraudChallengeDepositAmount,
                   constants.fraudChallengeDefeatTimeout,
-                  constants.fraudChallengeDepositAmount
+                  constants.fraudSlashingAmount,
+                  101
                 )
             ).to.be.revertedWith(
               "Fraud notifier reward multiplier must be in the range [0, 100]"
@@ -720,23 +857,6 @@ describe("Bridge - Parameters", () => {
           })
         }
       )
-
-      context("when new fraud challenge defeat timeout is zero", () => {
-        it("should revert", async () => {
-          await expect(
-            bridge
-              .connect(governance)
-              .updateFraudParameters(
-                constants.fraudSlashingAmount,
-                constants.fraudNotifierRewardMultiplier,
-                0,
-                constants.fraudChallengeDepositAmount
-              )
-          ).to.be.revertedWith(
-            "Fraud challenge defeat timeout must be greater than zero"
-          )
-        })
-      })
     })
 
     context("when caller is not the contract guvnor", () => {
@@ -745,10 +865,10 @@ describe("Bridge - Parameters", () => {
           bridge
             .connect(thirdParty)
             .updateFraudParameters(
-              constants.fraudSlashingAmount,
-              constants.fraudNotifierRewardMultiplier,
+              constants.fraudChallengeDepositAmount,
               constants.fraudChallengeDefeatTimeout,
-              constants.fraudChallengeDepositAmount
+              constants.fraudSlashingAmount,
+              constants.fraudNotifierRewardMultiplier
             )
         ).to.be.revertedWith("Caller is not the governance")
       })

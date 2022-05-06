@@ -22,7 +22,7 @@ import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/ap
 import "./IRelay.sol";
 import "./BridgeState.sol";
 import "./Deposit.sol";
-import "./Sweep.sol";
+import "./DepositSweep.sol";
 import "./Redemption.sol";
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
@@ -60,7 +60,7 @@ import "../bank/Bank.sol";
 contract Bridge is Governable, EcdsaWalletOwner {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
-    using Sweep for BridgeState.Storage;
+    using DepositSweep for BridgeState.Storage;
     using Redemption for BridgeState.Storage;
     using MovingFunds for BridgeState.Storage;
     using Wallets for BridgeState.Storage;
@@ -121,6 +121,14 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
 
+    event MovedFundsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
+
+    event MovedFundsSweepTimedOut(
+        bytes20 walletPubKeyHash,
+        bytes32 movingFundsTxHash,
+        uint32 movingFundsTxOutputIndex
+    );
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -177,10 +185,14 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
+        uint64 movingFundsDustThreshold,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movingFundsDustThreshold
+        uint64 movedFundsSweepTxMaxTotalFee,
+        uint32 movedFundsSweepTimeout,
+        uint96 movedFundsSweepTimeoutSlashingAmount,
+        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -194,10 +206,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
     );
 
     event FraudParametersUpdated(
-        uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDepositAmount,
         uint256 fraudChallengeDefeatTimeout,
-        uint256 fraudChallengeDepositAmount
+        uint96 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier
     );
 
     constructor(
@@ -235,14 +247,18 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.redemptionTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
         self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
+        self.movingFundsDustThreshold = 20000; // 20000 satoshi
         self.movingFundsTimeout = 7 days;
         self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
-        self.movingFundsDustThreshold = 20000; // 20000 satoshi
+        self.movedFundsSweepTxMaxTotalFee = 10000; // 10000 satoshi
+        self.movedFundsSweepTimeout = 7 days;
+        self.movedFundsSweepTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.movedFundsSweepTimeoutNotifierRewardMultiplier = 100; //100%
+        self.fraudChallengeDepositAmount = 2 ether;
+        self.fraudChallengeDefeatTimeout = 7 days;
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
-        self.fraudChallengeDefeatTimeout = 7 days;
-        self.fraudChallengeDepositAmount = 2 ether;
         self.walletCreationPeriod = 1 weeks;
         self.walletCreationMinBtcBalance = 1e8; // 1 BTC
         self.walletCreationMaxBtcBalance = 100e8; // 100 BTC
@@ -331,12 +347,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
     ///        If there is no main UTXO, this parameter is ignored.
-    function submitSweepProof(
+    function submitDepositSweepProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
-        self.submitSweepProof(sweepTx, sweepProof, mainUtxo);
+        self.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo);
     }
 
     /// @notice Requests redemption of the given amount from the specified
@@ -503,6 +519,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @dev Requirements:
     ///      - The source wallet must be in the MovingFunds state
     ///      - The source wallet must not have pending redemption requests
+    ///      - The source wallet must not have pending moved funds sweep requests
     ///      - The source wallet must not have submitted its commitment already
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
@@ -639,6 +656,85 @@ contract Bridge is Governable, EcdsaWalletOwner {
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
         self.notifyMovingFundsBelowDust(walletPubKeyHash, mainUtxo);
+    }
+
+    /// @notice Used by the wallet to prove the BTC moved funds sweep
+    ///         transaction and to make the necessary state changes. Moved
+    ///         funds sweep is only accepted if it satisfies SPV proof.
+    ///
+    ///         The function validates the sweep transaction structure by
+    ///         checking if it actually spends the moved funds UTXO and the
+    ///         sweeping wallet's main UTXO (optionally), and if it locks the
+    ///         value on the sweeping wallet's 20-byte public key hash using a
+    ///         reasonable transaction fee. If all preconditions are
+    ///         met, this function updates the sweeping wallet main UTXO, thus
+    ///         their BTC balance.
+    ///
+    ///         It is possible to prove the given sweep transaction only
+    ///         one time.
+    /// @param sweepTx Bitcoin sweep funds transaction data
+    /// @param sweepProof Bitcoin sweep funds proof data
+    /// @param mainUtxo Data of the sweeping wallet's main UTXO, as currently
+    ///        known on the Ethereum chain
+    /// @dev Requirements:
+    ///      - `sweepTx` components must match the expected structure. See
+    ///        `BitcoinTx.Info` docs for reference. Their values must exactly
+    ///        correspond to appropriate Bitcoin transaction fields to produce
+    ///        a provable transaction hash.
+    ///      - The `sweepTx` should represent a Bitcoin transaction with
+    ///        the first input pointing to a moved funds sweep request targeted
+    ///        to the wallet, and optionally, the second input pointing to the
+    ///        wallet's main UTXO, if the sweeping wallet has a main UTXO set.
+    ///        There should be only one output locking funds on the sweeping
+    ///        wallet 20-byte public key hash.
+    ///      - `sweepProof` components must match the expected structure.
+    ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
+    ///        field must contain a valid number of block headers, not less
+    ///        than the `txProofDifficultyFactor` contract constant.
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the sweeping wallet, as currently known on the Ethereum chain.
+    ///        If there is no main UTXO, this parameter is ignored.
+    ///      - The sweeping wallet must be in the Live or MovingFunds state.
+    ///      - The total Bitcoin transaction fee must be lesser or equal
+    ///        to `movedFundsSweepTxMaxTotalFee` governable parameter.
+    function submitMovedFundsSweepProof(
+        BitcoinTx.Info calldata sweepTx,
+        BitcoinTx.Proof calldata sweepProof,
+        BitcoinTx.UTXO calldata mainUtxo
+    ) external {
+        self.submitMovedFundsSweepProof(sweepTx, sweepProof, mainUtxo);
+    }
+
+    /// @notice Notifies about a timed out moved funds sweep process. If the
+    ///         wallet is not terminated yet, that function terminates
+    ///         the wallet and slashes signing group members as a result.
+    ///         Marks the given sweep request as TimedOut.
+    /// @param movingFundsTxHash 32-byte hash of the moving funds transaction
+    ///        that caused the sweep request to be created
+    /// @param movingFundsTxOutputIndex Index of the moving funds transaction
+    ///        output that is subject of the sweep request.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    /// @dev Requirements:
+    ///      - The moved funds sweep request must be in the Pending state
+    ///      - The moved funds sweep timeout must be actually exceeded
+    ///      - The wallet must be either in the Live or MovingFunds or
+    ///        Terminated state
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events of the `WalletRegistry` contract
+    function notifyMovedFundsSweepTimeout(
+        bytes32 movingFundsTxHash,
+        uint32 movingFundsTxOutputIndex,
+        uint32[] calldata walletMembersIDs
+    ) external {
+        self.notifyMovedFundsSweepTimeout(
+            movingFundsTxHash,
+            movingFundsTxOutputIndex,
+            walletMembersIDs
+        );
     }
 
     /// @notice Requests creation of a new wallet. This function just
@@ -979,6 +1075,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        BTC transaction fee that is acceptable in a single moving funds
     ///        transaction. This is a _total_ max fee for the entire moving
     ///        funds transaction.
+    /// @param movingFundsDustThreshold New value of the moving funds dust
+    ///        threshold. It is the minimal satoshi amount that makes sense to
+    //         be transferred during the moving funds process. Moving funds
+    //         wallets having their BTC balance below that value can begin
+    //         closing immediately as transferring such a low value may not be
+    //         possible due to BTC network fees.
     /// @param movingFundsTimeout New value of the moving funds timeout in
     ///        seconds. It is the time after which the moving funds process can
     ///        be reported as timed out. It is counted from the moment when the
@@ -992,31 +1094,55 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
     ///        The value must be in the range [0, 100]
-    /// @param movingFundsDustThreshold New value of the moving funds dust
-    ///        threshold. It is the minimal satoshi amount that makes sense to
-    //         be transferred during the moving funds process. Moving funds
-    //         wallets having their BTC balance below that value can begin
-    //         closing immediately as transferring such a low value may not be
-    //         possible due to BTC network fees.
+    /// @param movedFundsSweepTxMaxTotalFee New value of the moved funds sweep
+    ///        transaction max total fee in satoshis. It is the maximum amount
+    ///        of the total BTC transaction fee that is acceptable in a single
+    ///        moved funds sweep transaction. This is a _total_ max fee for the
+    ///        entire moved funds sweep transaction.
+    /// @param movedFundsSweepTimeout New value of the moved funds sweep
+    ///        timeout in seconds. It is the time after which the moved funds
+    ///        sweep process can be reported as timed out. It is counted from
+    ///        the moment when the wallet was requested to sweep the received
+    ///        funds.
+    /// @param movedFundsSweepTimeoutSlashingAmount New value of the moved
+    ///        funds sweep timeout slashing amount in T, it is the amount
+    ///        slashed from each wallet member for moved funds sweep timeout
+    /// @param movedFundsSweepTimeoutNotifierRewardMultiplier New value of
+    ///        the moved funds sweep timeout notifier reward multiplier as
+    ///        percentage, it determines the percentage of the notifier reward
+    ///        from the staking contact the notifier of a moved funds sweep
+    ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
-    ///      - Moving funds dust threshold must be greater than zero
+    ///      - Moved funds sweep transaction max total fee must be greater than zero
+    ///      - Moved funds sweep timeout must be greater than zero
+    ///      - Moved funds sweep timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
+        uint64 movingFundsDustThreshold,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movingFundsDustThreshold
+        uint64 movedFundsSweepTxMaxTotalFee,
+        uint32 movedFundsSweepTimeout,
+        uint96 movedFundsSweepTimeoutSlashingAmount,
+        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
+            movingFundsDustThreshold,
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
-            movingFundsDustThreshold
+            movedFundsSweepTxMaxTotalFee,
+            movedFundsSweepTimeout,
+            movedFundsSweepTimeoutSlashingAmount,
+            movedFundsSweepTimeoutNotifierRewardMultiplier
         );
     }
 
@@ -1067,6 +1193,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
     }
 
     /// @notice Updates parameters related to frauds.
+    /// @param fraudChallengeDepositAmount New value of the fraud challenge
+    ///        deposit amount in wei, it is the amount of ETH the party
+    ///        challenging the wallet for fraud needs to deposit
+    /// @param fraudChallengeDefeatTimeout New value of the challenge defeat
+    ///        timeout in seconds, it is the amount of time the wallet has to
+    ///        defeat a fraud challenge. The value must be greater than zero
     /// @param fraudSlashingAmount New value of the fraud slashing amount in T,
     ///        it is the amount slashed from each wallet member for committing
     ///        a fraud
@@ -1074,26 +1206,20 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        reward multiplier as percentage, it determines the percentage of
     ///        the notifier reward from the staking contact the notifier of
     ///        a fraud receives. The value must be in the range [0, 100]
-    /// @param fraudChallengeDefeatTimeout New value of the challenge defeat
-    ///        timeout in seconds, it is the amount of time the wallet has to
-    ///        defeat a fraud challenge. The value must be greater than zero
-    /// @param fraudChallengeDepositAmount New value of the fraud challenge
-    ///        deposit amount in wei, it is the amount of ETH the party
-    ///        challenging the wallet for fraud needs to deposit
     /// @dev Requirements:
-    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     ///      - Fraud challenge defeat timeout must be greater than 0
+    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     function updateFraudParameters(
-        uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier,
+        uint256 fraudChallengeDepositAmount,
         uint256 fraudChallengeDefeatTimeout,
-        uint256 fraudChallengeDepositAmount
+        uint96 fraudSlashingAmount,
+        uint256 fraudNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateFraudParameters(
-            fraudSlashingAmount,
-            fraudNotifierRewardMultiplier,
+            fraudChallengeDepositAmount,
             fraudChallengeDefeatTimeout,
-            fraudChallengeDepositAmount
+            fraudSlashingAmount,
+            fraudNotifierRewardMultiplier
         );
     }
 
@@ -1200,6 +1326,23 @@ contract Bridge is Governable, EcdsaWalletOwner {
         return self.fraudChallenges[challengeKey];
     }
 
+    /// @notice Collection of all moved funds sweep requests indexed by
+    ///         `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
+    ///         The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
+    ///         internally) and `movingFundsOutputIndex` an `uint32`. Each entry
+    ///         is actually an UTXO representing the moved funds and is supposed
+    ///         to be swept with the current main UTXO of the recipient wallet.
+    /// @param requestKey Request key built as
+    ///        `keccak256(movingFundsTxHash | movingFundsOutputIndex)`
+    /// @return Details of the moved funds sweep request.
+    function movedFundsSweepRequests(uint256 requestKey)
+        external
+        view
+        returns (MovingFunds.MovedFundsSweepRequest memory)
+    {
+        return self.movedFundsSweepRequests[requestKey];
+    }
+
     /// @notice Indicates if the vault with the given address is trusted or not.
     ///         Depositors can route their revealed deposits only to trusted
     ///         vaults and have trusted vaults notified about new deposits as
@@ -1299,6 +1442,11 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         transaction fee that is acceptable in a single moving funds
     ///         transaction. This is a _total_ max fee for the entire moving
     ///         funds transaction.
+    /// @return movingFundsDustThreshold The minimal satoshi amount that makes
+    ///         sense to be transferred during the moving funds process. Moving
+    ///         funds wallets having their BTC balance below that value can
+    ///         begin closing immediately as transferring such a low value may
+    ///         not be possible due to BTC network fees.
     /// @return movingFundsTimeout Time after which the moving funds process
     ///         can be reported as timed out. It is counted from the moment
     ///         when the wallet was requested to move their funds and switched
@@ -1308,29 +1456,48 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @return movingFundsTimeoutNotifierRewardMultiplier The percentage of the
     ///         notifier reward from the staking contract the notifier of a
     ///         moving funds timeout receives. The value is in the range [0, 100].
-    /// @return movingFundsDustThreshold The minimal satoshi amount that makes
-    //          sense to be transferred during the moving funds process. Moving
-    //          funds wallets having their BTC balance below that value can
-    //          begin closing immediately as transferring such a low value may
-    //          not be possible due to BTC network fees.
+    /// @return movedFundsSweepTxMaxTotalFee Maximum amount of the total BTC
+    ///         transaction fee that is acceptable in a single moved funds
+    ///         sweep transaction. This is a _total_ max fee for the entire
+    ///         moved funds sweep transaction.
+    /// @return movedFundsSweepTimeout Time after which the moved funds sweep
+    ///         process can be reported as timed out. It is counted from the
+    ///         moment when the wallet was requested to sweep the received funds.
+    ///         Value in seconds.
+    /// @return movedFundsSweepTimeoutSlashingAmount The amount of stake slashed
+    ///         from each member of a wallet for a moved funds sweep timeout.
+    /// @return movedFundsSweepTimeoutNotifierRewardMultiplier The percentage
+    ///         of the notifier reward from the staking contract the notifier
+    ///         of a moved funds sweep timeout receives. The value is in the
+    ///         range [0, 100].
     function movingFundsParameters()
         external
         view
         returns (
             uint64 movingFundsTxMaxTotalFee,
+            uint64 movingFundsDustThreshold,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint256 movingFundsTimeoutNotifierRewardMultiplier,
-            uint64 movingFundsDustThreshold
+            uint64 movedFundsSweepTxMaxTotalFee,
+            uint32 movedFundsSweepTimeout,
+            uint96 movedFundsSweepTimeoutSlashingAmount,
+            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
         )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
+        movingFundsDustThreshold = self.movingFundsDustThreshold;
         movingFundsTimeout = self.movingFundsTimeout;
         movingFundsTimeoutSlashingAmount = self
             .movingFundsTimeoutSlashingAmount;
         movingFundsTimeoutNotifierRewardMultiplier = self
             .movingFundsTimeoutNotifierRewardMultiplier;
-        movingFundsDustThreshold = self.movingFundsDustThreshold;
+        movedFundsSweepTxMaxTotalFee = self.movedFundsSweepTxMaxTotalFee;
+        movedFundsSweepTimeout = self.movedFundsSweepTimeout;
+        movedFundsSweepTimeoutSlashingAmount = self
+            .movedFundsSweepTimeoutSlashingAmount;
+        movedFundsSweepTimeoutNotifierRewardMultiplier = self
+            .movedFundsSweepTimeoutNotifierRewardMultiplier;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet
@@ -1373,29 +1540,29 @@ contract Bridge is Governable, EcdsaWalletOwner {
     }
 
     /// @notice Returns the current values of Bridge fraud parameters.
+    /// @return fraudChallengeDepositAmount The amount of ETH in wei the party
+    ///         challenging the wallet for fraud needs to deposit.
+    /// @return fraudChallengeDefeatTimeout The amount of time the wallet has to
+    ///         defeat a fraud challenge.
     /// @return fraudSlashingAmount The amount slashed from each wallet member
     ///         for committing a fraud.
     /// @return fraudNotifierRewardMultiplier The percentage of the notifier
     ///         reward from the staking contract the notifier of a fraud
     ///         receives. The value is in the range [0, 100].
-    /// @return fraudChallengeDefeatTimeout The amount of time the wallet has to
-    ///         defeat a fraud challenge.
-    /// @return fraudChallengeDepositAmount The amount of ETH in wei the party
-    ///         challenging the wallet for fraud needs to deposit.
     function fraudParameters()
         external
         view
         returns (
-            uint96 fraudSlashingAmount,
-            uint256 fraudNotifierRewardMultiplier,
+            uint256 fraudChallengeDepositAmount,
             uint256 fraudChallengeDefeatTimeout,
-            uint256 fraudChallengeDepositAmount
+            uint96 fraudSlashingAmount,
+            uint256 fraudNotifierRewardMultiplier
         )
     {
+        fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
+        fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
         fraudSlashingAmount = self.fraudSlashingAmount;
         fraudNotifierRewardMultiplier = self.fraudNotifierRewardMultiplier;
-        fraudChallengeDefeatTimeout = self.fraudChallengeDefeatTimeout;
-        fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
     }
 
     /// @notice Returns the addresses of contracts Bridge is interacting with.
