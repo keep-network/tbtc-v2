@@ -123,7 +123,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovedFundsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
-    event MovedFundsSweepRequestTimedOut(
+    event MovedFundsSweepTimedOut(
         bytes20 walletPubKeyHash,
         bytes32 movingFundsTxHash,
         uint32 movingFundsTxOutputIndex

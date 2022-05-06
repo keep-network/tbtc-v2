@@ -3381,9 +3381,9 @@ describe("Bridge - Moving funds", () => {
                   )
                 })
 
-                it("should emit MovedFundsSweepRequestTimedOut event", async () => {
+                it("should emit MovedFundsSweepTimedOut event", async () => {
                   await expect(tx)
-                    .to.emit(bridge, "MovedFundsSweepRequestTimedOut")
+                    .to.emit(bridge, "MovedFundsSweepTimedOut")
                     .withArgs(
                       movedFundsSweepRequest.walletPubKeyHash,
                       movedFundsSweepRequest.txHash,
