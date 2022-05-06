@@ -22,6 +22,7 @@ import {CheckBitcoinSigs} from "@keep-network/bitcoin-spv-sol/contracts/CheckBit
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./BridgeState.sol";
+import "./MovingFunds.sol";
 import "./Wallets.sol";
 
 /// @title Bridge fraud
@@ -226,7 +227,10 @@ library Fraud {
 
         // Check that the UTXO key identifies a correctly spent UTXO.
         require(
-            self.deposits[utxoKey].sweptAt > 0 || self.spentMainUTXOs[utxoKey],
+            self.deposits[utxoKey].sweptAt > 0 ||
+                self.spentMainUTXOs[utxoKey] ||
+                self.movedFundsSweepRequests[utxoKey].state ==
+                MovingFunds.MovedFundsSweepRequestState.Processed,
             "Spent UTXO not found among correctly spent UTXOs"
         );
 

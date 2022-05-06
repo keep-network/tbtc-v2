@@ -3290,6 +3290,10 @@ describe("Bridge - Moving funds", () => {
                 before(async () => {
                   await createSnapshot()
 
+                  // We change the wallet state while preserving other fields.
+                  // We don't have an update function in the stub so we just use
+                  // the getter to get wallet fields and set them through the
+                  // setter with state field overwritten.
                   await bridge.setWallet(
                     movedFundsSweepRequest.walletPubKeyHash,
                     {
