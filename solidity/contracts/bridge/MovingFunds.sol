@@ -62,7 +62,7 @@ library MovingFunds {
     enum MovedFundsSweepRequestState {
         /// @dev The request is unknown to the Bridge.
         Unknown,
-        /// @dev Request is pending and can be either processed or timed out.
+        /// @dev Request is pending and can become either processed or timed out.
         Pending,
         /// @dev Request was processed by the target wallet.
         Processed,
@@ -83,7 +83,7 @@ library MovingFunds {
         uint64 value;
         // UNIX timestamp the request was created at.
         uint32 createdAt;
-        // Current state of the request.
+        // The current state of the request.
         MovedFundsSweepRequestState state;
     }
 
