@@ -16,14 +16,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       args: [staticGas, maxGasPrice],
       log: true,
     })
-  
+
     const deployerSigner = await ethers.getSigner(deployer)
-  
+
     await deployerSigner.sendTransaction({
       to: ReimbursementPool.address,
       value: ethers.utils.parseEther("100.0"), // Send 100.0 ETH
     })
-  
+
     if (hre.network.tags.tenderly) {
       await hre.tenderly.verify({
         name: "ReimbursementPool",

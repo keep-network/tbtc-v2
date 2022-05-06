@@ -30,8 +30,8 @@ import {
   NO_MAIN_UTXO,
   SingleP2SHDeposit,
   SingleP2WSHDeposit,
-  SweepTestData,
-} from "../data/sweep"
+  DepositSweepTestData,
+} from "../data/deposit-sweep"
 
 import {
   walletPublicKey,
@@ -41,6 +41,13 @@ import {
   witnessSignSingleInputTx,
   witnessSignMultipleInputTx,
 } from "../data/fraud"
+
+import {
+  MovingFundsTestData,
+  MultipleTargetWalletsAndDivisibleAmount,
+  MultipleTargetWalletsAndIndivisibleAmount,
+  SingleTargetWallet,
+} from "../data/moving-funds"
 
 import bridgeFixture from "../fixtures/bridge"
 import { constants, walletState } from "../fixtures"
@@ -145,9 +152,9 @@ describe("Maintainer", () => {
     })
   })
 
-  describe("submitSweepProof", () => {
+  describe("submitDepositSweepProof", () => {
     context("when called by an unauthorized third party", async () => {
-      const data: SweepTestData = SingleP2SHDeposit
+      const data: DepositSweepTestData = SingleP2SHDeposit
       // Take wallet public key hash from first deposit. All
       // deposits in same sweep batch should have the same value
       // of that field.
@@ -163,6 +170,7 @@ describe("Maintainer", () => {
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
           closingStartedAt: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -212,7 +220,7 @@ describe("Maintainer", () => {
                       context(
                         "when the single input is a revealed unswept P2SH deposit",
                         () => {
-                          const data: SweepTestData = SingleP2SHDeposit
+                          const data: DepositSweepTestData = SingleP2SHDeposit
                           // Take wallet public key hash from first deposit. All
                           // deposits in same sweep batch should have the same value
                           // of that field.
@@ -235,6 +243,7 @@ describe("Maintainer", () => {
                               createdAt: await lastBlockTime(),
                               movingFundsRequestedAt: 0,
                               closingStartedAt: 0,
+                              pendingMovedFundsSweepRequestsCount: 0,
                               state: walletState.Live,
                               movingFundsTargetWalletsCommitmentHash:
                                 ethers.constants.HashZero,
@@ -270,7 +279,7 @@ describe("Maintainer", () => {
                       context(
                         "when the single input is a revealed unswept P2WSH deposit",
                         () => {
-                          const data: SweepTestData = SingleP2WSHDeposit
+                          const data: DepositSweepTestData = SingleP2WSHDeposit
                           // Take wallet public key hash from first deposit. All
                           // deposits in same sweep batch should have the same value
                           // of that field.
@@ -293,6 +302,7 @@ describe("Maintainer", () => {
                               createdAt: await lastBlockTime(),
                               movingFundsRequestedAt: 0,
                               closingStartedAt: 0,
+                              pendingMovedFundsSweepRequestsCount: 0,
                               state: walletState.Live,
                               movingFundsTargetWalletsCommitmentHash:
                                 ethers.constants.HashZero,
@@ -331,9 +341,9 @@ describe("Maintainer", () => {
                         "when input vector consists only of revealed unswept " +
                           "deposits and the expected main UTXO",
                         () => {
-                          const previousData: SweepTestData =
+                          const previousData: DepositSweepTestData =
                             MultipleDepositsNoMainUtxo
-                          const data: SweepTestData =
+                          const data: DepositSweepTestData =
                             MultipleDepositsWithMainUtxo
                           // Take wallet public key hash from first deposit. All
                           // deposits in same sweep batch should have the same value
@@ -357,6 +367,7 @@ describe("Maintainer", () => {
                               createdAt: await lastBlockTime(),
                               movingFundsRequestedAt: 0,
                               closingStartedAt: 0,
+                              pendingMovedFundsSweepRequestsCount: 0,
                               state: walletState.Live,
                               movingFundsTargetWalletsCommitmentHash:
                                 ethers.constants.HashZero,
@@ -397,7 +408,8 @@ describe("Maintainer", () => {
                         "when input vector consists only of revealed unswept " +
                           "deposits but there is no main UTXO since it is not expected",
                         () => {
-                          const data: SweepTestData = MultipleDepositsNoMainUtxo
+                          const data: DepositSweepTestData =
+                            MultipleDepositsNoMainUtxo
                           // Take wallet public key hash from first deposit. All
                           // deposits in same sweep batch should have the same value
                           // of that field.
@@ -420,6 +432,7 @@ describe("Maintainer", () => {
                               createdAt: await lastBlockTime(),
                               movingFundsRequestedAt: 0,
                               closingStartedAt: 0,
+                              pendingMovedFundsSweepRequestsCount: 0,
                               state: walletState.Live,
                               movingFundsTargetWalletsCommitmentHash:
                                 ethers.constants.HashZero,
@@ -462,11 +475,11 @@ describe("Maintainer", () => {
     })
 
     context("when the wallet state is MovingFunds", () => {
-      // The execution of `submitSweepProof` is the same for wallets in
+      // The execution of `submitDepositSweepProof` is the same for wallets in
       // `MovingFunds` state as for the ones in `Live` state. Therefore the
       // testing of `MovingFunds` state is limited to just one simple test case
       // (sweeping single P2SH deposit).
-      const data: SweepTestData = SingleP2SHDeposit
+      const data: DepositSweepTestData = SingleP2SHDeposit
       const { fundingTx, reveal } = data.deposits[0]
 
       let tx: Promise<ContractTransaction>
@@ -487,6 +500,7 @@ describe("Maintainer", () => {
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
           closingStartedAt: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -512,7 +526,7 @@ describe("Maintainer", () => {
 
         tx = maintainerProxy
           .connect(thirdParty)
-          .submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
+          .submitDepositSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
       })
 
       after(async () => {
@@ -1210,6 +1224,7 @@ describe("Maintainer", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -1503,12 +1518,16 @@ describe("Maintainer", () => {
                         createdAt: await lastBlockTime(),
                         movingFundsRequestedAt: 0,
                         closingStartedAt: 0,
+                        pendingMovedFundsSweepRequestsCount: 0,
                         state: walletState.Live,
                         movingFundsTargetWalletsCommitmentHash:
                           ethers.constants.HashZero,
                       })
                       await bridge.setSweptDeposits(data.deposits)
                       await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                      await bridge.setProcessedMovedFundsSweepRequests(
+                        data.movedFundsSweepRequests
+                      )
 
                       await bridge
                         .connect(thirdParty)
@@ -1538,11 +1557,11 @@ describe("Maintainer", () => {
                       await restoreSnapshot()
                     })
 
-                    it("should not revert", async () => {
+                    it("should not revert 1", async () => {
                       await expect(tx).not.to.be.reverted
                     })
 
-                    it("should refund ETH", async () => {
+                    it("should refund ETH 1", async () => {
                       const postWalletRegistryBalance =
                         await provider.getBalance(thirdParty.address)
                       const diff = postWalletRegistryBalance.sub(
@@ -1576,6 +1595,7 @@ describe("Maintainer", () => {
                         createdAt: await lastBlockTime(),
                         movingFundsRequestedAt: 0,
                         closingStartedAt: 0,
+                        pendingMovedFundsSweepRequestsCount: 0,
                         state: walletState.Live,
                         movingFundsTargetWalletsCommitmentHash:
                           ethers.constants.HashZero,
@@ -1651,6 +1671,7 @@ describe("Maintainer", () => {
                         createdAt: await lastBlockTime(),
                         movingFundsRequestedAt: 0,
                         closingStartedAt: 0,
+                        pendingMovedFundsSweepRequestsCount: 0,
                         state: walletState.Live,
                         movingFundsTargetWalletsCommitmentHash:
                           ethers.constants.HashZero,
@@ -1724,6 +1745,7 @@ describe("Maintainer", () => {
                         createdAt: await lastBlockTime(),
                         movingFundsRequestedAt: 0,
                         closingStartedAt: 0,
+                        pendingMovedFundsSweepRequestsCount: 0,
                         state: walletState.Live,
                         movingFundsTargetWalletsCommitmentHash:
                           ethers.constants.HashZero,
@@ -1786,7 +1808,139 @@ describe("Maintainer", () => {
   })
 
   describe("submitMovingFundsProof", () => {
-    // TODO: implement
+    context("when transaction proof is valid", () => {
+      context("when there is a main UTXO for the given wallet", () => {
+        context("when main UTXO data are valid", () => {
+          context("when there is only one input", () => {
+            context(
+              "when the single input points to the wallet's main UTXO",
+              () => {
+                context(
+                  "when the output vector references only 20-byte hashes",
+                  () => {
+                    context(
+                      "when the output vector has only P2PKH and P2WPKH outputs",
+                      () => {
+                        context(
+                          "when transaction amount is distributed evenly",
+                          () => {
+                            context(
+                              "when transaction fee is not too high",
+                              () => {
+                                context(
+                                  "when source wallet is in the MovingFunds state",
+                                  () => {
+                                    context(
+                                      "when target wallets commitment is submitted",
+                                      () => {
+                                        context(
+                                          "when actual target wallets correspond to the commitment",
+                                          () => {
+                                            before(async () => {
+                                              await createSnapshot()
+
+                                              await maintainerProxy
+                                                .connect(governance)
+                                                .authorize(
+                                                  walletRegistry.address
+                                                )
+                                              await reimbursementPool
+                                                .connect(governance)
+                                                .authorize(
+                                                  maintainerProxy.address
+                                                )
+                                            })
+
+                                            after(async () => {
+                                              walletRegistry.requestNewWallet.reset()
+
+                                              await restoreSnapshot()
+                                            })
+
+                                            const testData: {
+                                              testName: string
+                                              data: MovingFundsTestData
+                                            }[] = [
+                                              {
+                                                testName:
+                                                  "when there is a single target wallet",
+                                                data: SingleTargetWallet,
+                                              },
+                                              {
+                                                testName:
+                                                  "when there are multiple target wallets and the amount is indivisible",
+                                                data: MultipleTargetWalletsAndIndivisibleAmount,
+                                              },
+                                              {
+                                                testName:
+                                                  "when there are multiple target wallets and the amount is divisible",
+                                                data: MultipleTargetWalletsAndDivisibleAmount,
+                                              },
+                                            ]
+
+                                            testData.forEach((test) => {
+                                              context(test.testName, () => {
+                                                let outcome: MovingFundsScenarioOutcome
+
+                                                before(async () => {
+                                                  await createSnapshot()
+
+                                                  outcome =
+                                                    await runMovingFundsScenario(
+                                                      test.data
+                                                    )
+                                                })
+
+                                                after(async () => {
+                                                  await restoreSnapshot()
+                                                })
+
+                                                it("should succeed", async () => {
+                                                  await expect(
+                                                    outcome.tx.wait()
+                                                  ).not.to.be.reverted
+                                                })
+
+                                                it("should refund ETH", async () => {
+                                                  const postThirdPartyBalance =
+                                                    await provider.getBalance(
+                                                      thirdParty.address
+                                                    )
+                                                  const diff =
+                                                    postThirdPartyBalance.sub(
+                                                      outcome.initThirdPartyBalance
+                                                    )
+
+                                                  expect(diff).to.be.gt(0)
+                                                  expect(diff).to.be.lt(
+                                                    ethers.utils.parseUnits(
+                                                      "2000000",
+                                                      "gwei"
+                                                    ) // 0,002 ETH
+                                                  )
+                                                })
+                                              })
+                                            })
+                                          }
+                                        )
+                                      }
+                                    )
+                                  }
+                                )
+                              }
+                            )
+                          }
+                        )
+                      }
+                    )
+                  }
+                )
+              }
+            )
+          })
+        })
+      })
+    })
   })
 
   describe("submitMovingFundsCommitment", () => {
@@ -1817,6 +1971,11 @@ describe("Maintainer", () => {
     initThirdPartyBalance: BigNumber
   }
 
+  interface MovingFundsScenarioOutcome {
+    tx: ContractTransaction
+    initThirdPartyBalance: BigNumber
+  }
+
   async function makeRedemptionAllowance(
     redeemer: SignerWithAddress,
     amount: BigNumberish
@@ -1830,7 +1989,7 @@ describe("Maintainer", () => {
   }
 
   async function runSweepScenario(
-    data: SweepTestData
+    data: DepositSweepTestData
   ): Promise<SweepScenarioOutcome> {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
@@ -1845,7 +2004,7 @@ describe("Maintainer", () => {
 
     const tx = await maintainerProxy
       .connect(thirdParty)
-      .submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
+      .submitDepositSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
 
     return { tx, initThirdPartyBalance }
   }
@@ -1867,6 +2026,7 @@ describe("Maintainer", () => {
       createdAt: await lastBlockTime(),
       movingFundsRequestedAt: 0,
       closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
       state: data.wallet.state,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
@@ -1915,5 +2075,54 @@ describe("Maintainer", () => {
       tx,
       initThirdPartyBalance,
     }
+  }
+
+  async function runMovingFundsScenario(
+    data: MovingFundsTestData,
+    beforeProofActions?: () => Promise<void>
+  ): Promise<MovingFundsScenarioOutcome> {
+    relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+    relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+
+    // Simulate the wallet is a registered one.
+    await bridge.setWallet(data.wallet.pubKeyHash, {
+      ecdsaWalletID: data.wallet.ecdsaWalletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: await lastBlockTime(),
+      movingFundsRequestedAt: await lastBlockTime(),
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: data.wallet.state,
+      movingFundsTargetWalletsCommitmentHash:
+        data.targetWalletsCommitment.length > 0
+          ? ethers.utils.solidityKeccak256(
+              ["bytes20[]"],
+              [data.targetWalletsCommitment]
+            )
+          : ethers.constants.HashZero,
+    })
+    // Simulate the prepared main UTXO belongs to the wallet.
+    await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+
+    if (beforeProofActions) {
+      await beforeProofActions()
+    }
+
+    const initThirdPartyBalance = await provider.getBalance(thirdParty.address)
+
+    const tx = await maintainerProxy
+      .connect(thirdParty)
+      .submitMovingFundsProof(
+        data.movingFundsTx,
+        data.movingFundsProof,
+        data.mainUtxo,
+        data.wallet.pubKeyHash
+      )
+
+    relay.getCurrentEpochDifficulty.reset()
+    relay.getPrevEpochDifficulty.reset()
+
+    return { tx, initThirdPartyBalance }
   }
 })
