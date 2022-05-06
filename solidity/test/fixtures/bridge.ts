@@ -1,4 +1,4 @@
-import { deployments, ethers } from "hardhat"
+import { deployments, ethers, waffle } from "hardhat"
 import { smock } from "@defi-wonderland/smock"
 import type {
   Bank,
@@ -8,8 +8,11 @@ import type {
   IWalletRegistry,
   BridgeStub__factory,
   TestRelay,
+  ReimbursementPool,
+  MaintainerProxy,
 } from "../../typechain"
 
+const { provider } = waffle
 /**
  * Common fixture for tests suites targeting the Bridge contract.
  */
@@ -30,8 +33,16 @@ export default async function bridgeFixture() {
   // from it.
   await deployer.sendTransaction({
     to: walletRegistry.address,
-    value: ethers.utils.parseEther("1"),
+    value: ethers.utils.parseEther("100"),
   })
+
+  const reimbursementPool: ReimbursementPool = await ethers.getContract(
+    "ReimbursementPool"
+  )
+
+  const maintainerProxy: MaintainerProxy = await ethers.getContract(
+    "MaintainerProxy"
+  )
 
   const relay = await smock.fake<TestRelay>("TestRelay", {
     address: await (await bridge.contractReferences()).relay,
@@ -62,5 +73,8 @@ export default async function bridgeFixture() {
     walletRegistry,
     bridge,
     BridgeFactory,
+    deployer,
+    reimbursementPool,
+    maintainerProxy,
   }
 }
