@@ -16,6 +16,7 @@ import type {
   BridgeStub__factory,
   IWalletRegistry,
   IRelay,
+  IVault,
 } from "../../typechain"
 import {
   MultipleDepositsNoMainUtxo,
@@ -650,6 +651,18 @@ describe("Bridge", () => {
   })
 
   describe("submitDepositSweepProof", () => {
+    const walletDraft = {
+      ecdsaWalletID: ethers.constants.HashZero,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
     context("when the wallet state is Live", () => {
       context("when transaction proof is valid", () => {
         context("when there is only one output", () => {
@@ -676,16 +689,8 @@ describe("Bridge", () => {
                             // Simulate the wallet is an Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
+                              ...walletDraft,
                               state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
                             })
 
                             tx = await runDepositSweepScenario(data)
@@ -774,16 +779,8 @@ describe("Bridge", () => {
                             // Simulate the wallet is an Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
+                              ...walletDraft,
                               state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
                             })
 
                             tx = await runDepositSweepScenario(data)
@@ -857,6 +854,302 @@ describe("Bridge", () => {
                       )
 
                       context(
+                        "when the single input is a revealed unswept deposit with a trusted vault",
+                        async () => {
+                          let vault: FakeContract<IVault>
+                          let tx: ContractTransaction
+
+                          const data: DepositSweepTestData = SingleP2WSHDeposit
+                          // Take wallet public key hash from first deposit. All
+                          // deposits in same sweep batch should have the same value
+                          // of that field.
+                          const { walletPubKeyHash } = data.deposits[0].reveal
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Simulate the wallet is an Live one and is known in
+                            // the system.
+                            await bridge.setWallet(walletPubKeyHash, {
+                              ...walletDraft,
+                              state: walletState.Live,
+                            })
+
+                            // Deploy a fake vault and mark it as trusted.
+                            vault = await smock.fake<IVault>("IVault")
+                            await bridge
+                              .connect(governance)
+                              .setVaultStatus(vault.address, true)
+
+                            // Enrich the test data with the vault parameter.
+                            const dataWithVault: DepositSweepTestData =
+                              JSON.parse(JSON.stringify(data))
+                            dataWithVault.vault = vault.address
+                            dataWithVault.deposits[0].reveal.vault =
+                              vault.address
+
+                            tx = await runDepositSweepScenario(dataWithVault)
+                          })
+
+                          after(async () => {
+                            vault.receiveBalanceIncrease.reset()
+
+                            await restoreSnapshot()
+                          })
+
+                          it("should mark deposit as swept", async () => {
+                            // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                            const depositKey = ethers.utils.solidityKeccak256(
+                              ["bytes32", "uint32"],
+                              [
+                                data.deposits[0].fundingTx.hash,
+                                data.deposits[0].reveal.fundingOutputIndex,
+                              ]
+                            )
+
+                            const deposit = await bridge.deposits(depositKey)
+
+                            expect(deposit.sweptAt).to.be.equal(
+                              await lastBlockTime()
+                            )
+                          })
+
+                          it("should update main UTXO for the given wallet", async () => {
+                            const { mainUtxoHash } = await bridge.wallets(
+                              walletPubKeyHash
+                            )
+
+                            // Amount can be checked by opening the sweep tx in a Bitcoin
+                            // testnet explorer. In this case, the sum of inputs is
+                            // 80000 satoshi (from the single deposit) and there is a
+                            // fee of 2000 so the output value is 78000.
+                            const expectedMainUtxo =
+                              ethers.utils.solidityKeccak256(
+                                ["bytes32", "uint32", "uint64"],
+                                [data.sweepTx.hash, 0, 78000]
+                              )
+
+                            expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
+                          })
+
+                          it("should not update the depositor's balance", async () => {
+                            // The depositor balance should not be increased.
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[0].reveal.depositor
+                              )
+                            ).to.be.equal(0)
+                          })
+
+                          it("should update the vault's balance", async () => {
+                            // The vault's balance should be increased by the
+                            // sum of all swept deposits counted as follows:
+                            //
+                            // The sum of sweep tx inputs is 80000 satoshi. The output
+                            // value is 78000 so the fee is 2000. There is only one
+                            // deposit so it incurs the entire fee. The deposit should
+                            // also incur the treasury fee whose initial value is 0.05%
+                            // of the deposited amount so the final depositor balance
+                            // should be cut by 40 satoshi. The final sum
+                            // is 77960.
+                            expect(
+                              await bank.balanceOf(vault.address)
+                            ).to.be.equal(77960)
+                          })
+
+                          it("should call the vault's receiveBalanceIncrease function", async () => {
+                            expect(
+                              vault.receiveBalanceIncrease
+                            ).to.have.been.calledOnceWith(
+                              [data.deposits[0].reveal.depositor],
+                              [77960]
+                            )
+                          })
+
+                          it("should transfer collected treasury fee", async () => {
+                            expect(
+                              await bank.balanceOf(treasury.address)
+                            ).to.be.equal(40)
+                          })
+
+                          it("should emit DepositsSwept event", async () => {
+                            await expect(tx)
+                              .to.emit(bridge, "DepositsSwept")
+                              .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          })
+                        }
+                      )
+
+                      context(
+                        "when the single input is a revealed unswept deposit with a non-trusted vault",
+                        async () => {
+                          let vault: FakeContract<IVault>
+                          let tx: ContractTransaction
+
+                          const data: DepositSweepTestData = SingleP2WSHDeposit
+                          // Take wallet public key hash from first deposit. All
+                          // deposits in same sweep batch should have the same value
+                          // of that field.
+                          const { walletPubKeyHash } = data.deposits[0].reveal
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Simulate the wallet is an Live one and is known in
+                            // the system.
+                            await bridge.setWallet(walletPubKeyHash, {
+                              ...walletDraft,
+                              state: walletState.Live,
+                            })
+
+                            // Deploy a fake vault and mark it as trusted.
+                            vault = await smock.fake<IVault>("IVault")
+                            await bridge
+                              .connect(governance)
+                              .setVaultStatus(vault.address, true)
+
+                            // Enrich the test data with the vault parameter.
+                            const dataWithVault: DepositSweepTestData =
+                              JSON.parse(JSON.stringify(data))
+                            dataWithVault.vault = vault.address
+                            dataWithVault.deposits[0].reveal.vault =
+                              vault.address
+
+                            // Mark the vault as non-trusted just before
+                            // proof submission.
+                            const beforeProofActions = async () => {
+                              await bridge
+                                .connect(governance)
+                                .setVaultStatus(vault.address, false)
+                            }
+
+                            tx = await runDepositSweepScenario(
+                              dataWithVault,
+                              beforeProofActions
+                            )
+                          })
+
+                          after(async () => {
+                            await restoreSnapshot()
+                          })
+
+                          it("should mark deposit as swept", async () => {
+                            // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                            const depositKey = ethers.utils.solidityKeccak256(
+                              ["bytes32", "uint32"],
+                              [
+                                data.deposits[0].fundingTx.hash,
+                                data.deposits[0].reveal.fundingOutputIndex,
+                              ]
+                            )
+
+                            const deposit = await bridge.deposits(depositKey)
+
+                            expect(deposit.sweptAt).to.be.equal(
+                              await lastBlockTime()
+                            )
+                          })
+
+                          it("should update main UTXO for the given wallet", async () => {
+                            const { mainUtxoHash } = await bridge.wallets(
+                              walletPubKeyHash
+                            )
+
+                            // Amount can be checked by opening the sweep tx in a Bitcoin
+                            // testnet explorer. In this case, the sum of inputs is
+                            // 80000 satoshi (from the single deposit) and there is a
+                            // fee of 2000 so the output value is 78000.
+                            const expectedMainUtxo =
+                              ethers.utils.solidityKeccak256(
+                                ["bytes32", "uint32", "uint64"],
+                                [data.sweepTx.hash, 0, 78000]
+                              )
+
+                            expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
+                          })
+
+                          it("should update the depositor's balance", async () => {
+                            // The sum of sweep tx inputs is 80000 satoshi. The output
+                            // value is 78000 so the fee is 2000. There is only one
+                            // deposit so it incurs the entire fee. The deposit should
+                            // also incur the treasury fee whose initial value is 0.05%
+                            // of the deposited amount so the final depositor balance
+                            // should be cut by 40 satoshi.
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[0].reveal.depositor
+                              )
+                            ).to.be.equal(77960)
+                          })
+
+                          it("should transfer collected treasury fee", async () => {
+                            expect(
+                              await bank.balanceOf(treasury.address)
+                            ).to.be.equal(40)
+                          })
+
+                          it("should emit DepositsSwept event", async () => {
+                            await expect(tx)
+                              .to.emit(bridge, "DepositsSwept")
+                              .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          })
+                        }
+                      )
+
+                      context(
+                        "when the single input is a revealed unswept deposit with a trusted vault but non-equal to the vault passed via function parameter",
+                        async () => {
+                          let vault: FakeContract<IVault>
+                          let tx: Promise<ContractTransaction>
+
+                          const data: DepositSweepTestData = SingleP2WSHDeposit
+                          // Take wallet public key hash from first deposit. All
+                          // deposits in same sweep batch should have the same value
+                          // of that field.
+                          const { walletPubKeyHash } = data.deposits[0].reveal
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Simulate the wallet is an Live one and is known in
+                            // the system.
+                            await bridge.setWallet(walletPubKeyHash, {
+                              ...walletDraft,
+                              state: walletState.Live,
+                            })
+
+                            // Deploy a fake vault and mark it as trusted.
+                            vault = await smock.fake<IVault>("IVault")
+                            await bridge
+                              .connect(governance)
+                              .setVaultStatus(vault.address, true)
+
+                            // Enrich the test data with the vault parameter.
+                            // However, deliberately set the `vault` parameter
+                            // passed to `submitDepositSweepProof` to another
+                            // value than in the deposit.
+                            const dataWithVault: DepositSweepTestData =
+                              JSON.parse(JSON.stringify(data))
+                            dataWithVault.vault = ethers.constants.AddressZero
+                            dataWithVault.deposits[0].reveal.vault =
+                              vault.address
+
+                            tx = runDepositSweepScenario(dataWithVault)
+                          })
+
+                          after(async () => {
+                            await restoreSnapshot()
+                          })
+
+                          it("should revert", async () => {
+                            await expect(tx).to.be.revertedWith(
+                              "Deposit should be routed to another vault"
+                            )
+                          })
+                        }
+                      )
+
+                      context(
                         "when the single input is the expected main UTXO",
                         () => {
                           const previousData: DepositSweepTestData =
@@ -874,16 +1167,8 @@ describe("Bridge", () => {
                             // Simulate the wallet is an Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
+                              ...walletDraft,
                               state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
                             })
 
                             // Make the first sweep which is actually the predecessor
@@ -920,16 +1205,8 @@ describe("Bridge", () => {
                             // Simulate the wallet is an Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
+                              ...walletDraft,
                               state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
                             })
 
                             // Make a proper sweep to turn the tested deposit into
@@ -975,16 +1252,8 @@ describe("Bridge", () => {
 
                           // Simulate the wallet is an Live one and is known in the system.
                           await bridge.setWallet(walletPubKeyHash, {
-                            ecdsaWalletID: ethers.constants.HashZero,
-                            mainUtxoHash: ethers.constants.HashZero,
-                            pendingRedemptionsValue: 0,
-                            createdAt: await lastBlockTime(),
-                            movingFundsRequestedAt: 0,
-                            closingStartedAt: 0,
-                            pendingMovedFundsSweepRequestsCount: 0,
+                            ...walletDraft,
                             state: walletState.Live,
-                            movingFundsTargetWalletsCommitmentHash:
-                              ethers.constants.HashZero,
                           })
 
                           // Necessary to pass the proof validation.
@@ -1020,8 +1289,7 @@ describe("Bridge", () => {
                     // using that criterion during "when there are multiple inputs" scenario.
                     context("when there are multiple inputs", () => {
                       context(
-                        "when input vector consists only of revealed unswept " +
-                          "deposits and the expected main UTXO",
+                        "when input vector consists only of revealed unswept deposits and the expected main UTXO",
                         () => {
                           let tx: ContractTransaction
                           const previousData: DepositSweepTestData =
@@ -1039,16 +1307,8 @@ describe("Bridge", () => {
                             // Simulate the wallet is an Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
+                              ...walletDraft,
                               state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
                             })
 
                             // Make the first sweep which is actually the predecessor
@@ -1185,8 +1445,461 @@ describe("Bridge", () => {
                       )
 
                       context(
-                        "when input vector consists only of revealed unswept " +
-                          "deposits but there is no main UTXO since it is not expected",
+                        "when input vector consists only of revealed unswept deposits with a trusted vault and the expected main UTXO",
+                        () => {
+                          let vault: FakeContract<IVault>
+                          let tx: ContractTransaction
+
+                          const previousData: DepositSweepTestData =
+                            MultipleDepositsNoMainUtxo
+                          const data: DepositSweepTestData =
+                            MultipleDepositsWithMainUtxo
+                          // Take wallet public key hash from first deposit. All
+                          // deposits in same sweep batch should have the same value
+                          // of that field.
+                          const { walletPubKeyHash } = data.deposits[0].reveal
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Simulate the wallet is an Live one and is known in
+                            // the system.
+                            await bridge.setWallet(walletPubKeyHash, {
+                              ...walletDraft,
+                              state: walletState.Live,
+                            })
+
+                            // Make the first sweep which is actually the predecessor
+                            // of the sweep tested within this scenario.
+                            await runDepositSweepScenario(previousData)
+
+                            // Deploy a fake vault and mark it as trusted.
+                            vault = await smock.fake<IVault>("IVault")
+                            await bridge
+                              .connect(governance)
+                              .setVaultStatus(vault.address, true)
+
+                            // Enrich the test data with the vault parameter.
+                            const dataWithVault: DepositSweepTestData =
+                              JSON.parse(JSON.stringify(data))
+                            dataWithVault.vault = vault.address
+                            dataWithVault.deposits[0].reveal.vault =
+                              vault.address
+                            dataWithVault.deposits[1].reveal.vault =
+                              vault.address
+                            dataWithVault.deposits[2].reveal.vault =
+                              vault.address
+                            dataWithVault.deposits[3].reveal.vault =
+                              vault.address
+                            dataWithVault.deposits[4].reveal.vault =
+                              vault.address
+
+                            tx = await runDepositSweepScenario(dataWithVault)
+                          })
+
+                          after(async () => {
+                            vault.receiveBalanceIncrease.reset()
+
+                            await restoreSnapshot()
+                          })
+
+                          it("should mark deposits as swept", async () => {
+                            for (let i = 0; i < data.deposits.length; i++) {
+                              // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                              const depositKey = ethers.utils.solidityKeccak256(
+                                ["bytes32", "uint32"],
+                                [
+                                  data.deposits[i].fundingTx.hash,
+                                  data.deposits[i].reveal.fundingOutputIndex,
+                                ]
+                              )
+
+                              // eslint-disable-next-line no-await-in-loop
+                              const deposit = await bridge.deposits(depositKey)
+
+                              expect(deposit.sweptAt).to.be.equal(
+                                // eslint-disable-next-line no-await-in-loop
+                                await lastBlockTime(),
+                                `Deposit with index ${i} has an unexpected swept time`
+                              )
+                            }
+                          })
+
+                          it("should update main UTXO for the given wallet", async () => {
+                            const { mainUtxoHash } = await bridge.wallets(
+                              walletPubKeyHash
+                            )
+
+                            // Amount can be checked by opening the sweep tx in a Bitcoin
+                            // testnet explorer. In this case, the sum of inputs is
+                            // 4148000 satoshi and there is a fee of 2999 so the output
+                            // value is 4145001.
+                            const expectedMainUtxo =
+                              ethers.utils.solidityKeccak256(
+                                ["bytes32", "uint32", "uint64"],
+                                [data.sweepTx.hash, 0, 4145001]
+                              )
+
+                            expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
+                          })
+
+                          it("should not update the depositors balances", async () => {
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[0].reveal.depositor
+                              )
+                            ).to.be.equal(0)
+
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[1].reveal.depositor
+                              )
+                            ).to.be.equal(0)
+
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[2].reveal.depositor
+                              )
+                            ).to.be.equal(0)
+
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[3].reveal.depositor
+                              )
+                            ).to.be.equal(0)
+
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[4].reveal.depositor
+                              )
+                            ).to.be.equal(0)
+                          })
+
+                          it("should update the vault's balance", async () => {
+                            // The vault's balance should be increased by the
+                            // sum of all swept deposits counted as follows:
+                            //
+                            // The sum of sweep tx inputs is 4148000 satoshi
+                            // (including the main UTXO value). The output value
+                            // is 4145001 so the sweep transaction fee is 2999.
+                            // There are 5 deposits so the fee per deposit is 599
+                            // and the indivisible remainder is 4 which means the
+                            // last deposit should incur 603 satoshi. Each deposit
+                            // should also incur the treasury fee whose initial
+                            // value is 0.05% of the deposited amount. The
+                            // final sum of all deposits is 3085456.
+                            expect(
+                              await bank.balanceOf(vault.address)
+                            ).to.be.equal(3085456)
+                          })
+
+                          it("should call the vault's receiveBalanceIncrease function", async () => {
+                            // The order of deposits is different that
+                            // the order of inputs that refers them in
+                            // the transaction.
+                            expect(
+                              vault.receiveBalanceIncrease
+                            ).to.have.been.calledOnceWith(
+                              [
+                                data.deposits[2].reveal.depositor,
+                                data.deposits[3].reveal.depositor,
+                                data.deposits[1].reveal.depositor,
+                                data.deposits[4].reveal.depositor,
+                                data.deposits[0].reveal.depositor,
+                              ],
+                              [938931, 878961, 759021, 289256, 219287]
+                            )
+                          })
+
+                          it("should transfer collected treasury fee", async () => {
+                            expect(
+                              await bank.balanceOf(treasury.address)
+                            ).to.be.equal(2075)
+                          })
+
+                          it("should mark the previous main UTXO as spent", async () => {
+                            const mainUtxoKey = ethers.utils.solidityKeccak256(
+                              ["bytes32", "uint32"],
+                              [
+                                data.mainUtxo.txHash,
+                                data.mainUtxo.txOutputIndex,
+                              ]
+                            )
+
+                            expect(await bridge.spentMainUTXOs(mainUtxoKey)).to
+                              .be.true
+                          })
+
+                          it("should emit DepositsSwept event", async () => {
+                            await expect(tx)
+                              .to.emit(bridge, "DepositsSwept")
+                              .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          })
+                        }
+                      )
+
+                      context(
+                        "when input vector consists only of revealed unswept deposits with a non-trusted vault and the expected main UTXO",
+                        () => {
+                          let vault: FakeContract<IVault>
+                          let tx: ContractTransaction
+
+                          const previousData: DepositSweepTestData =
+                            MultipleDepositsNoMainUtxo
+                          const data: DepositSweepTestData =
+                            MultipleDepositsWithMainUtxo
+                          // Take wallet public key hash from first deposit. All
+                          // deposits in same sweep batch should have the same value
+                          // of that field.
+                          const { walletPubKeyHash } = data.deposits[0].reveal
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Simulate the wallet is an Live one and is known in
+                            // the system.
+                            await bridge.setWallet(walletPubKeyHash, {
+                              ...walletDraft,
+                              state: walletState.Live,
+                            })
+
+                            // Make the first sweep which is actually the predecessor
+                            // of the sweep tested within this scenario.
+                            await runDepositSweepScenario(previousData)
+
+                            // Deploy a fake vault and mark it as trusted.
+                            vault = await smock.fake<IVault>("IVault")
+                            await bridge
+                              .connect(governance)
+                              .setVaultStatus(vault.address, true)
+
+                            // Enrich the test data with the vault parameter.
+                            const dataWithVault: DepositSweepTestData =
+                              JSON.parse(JSON.stringify(data))
+                            dataWithVault.vault = vault.address
+                            dataWithVault.deposits[0].reveal.vault =
+                              vault.address
+                            dataWithVault.deposits[1].reveal.vault =
+                              vault.address
+                            dataWithVault.deposits[2].reveal.vault =
+                              vault.address
+                            dataWithVault.deposits[3].reveal.vault =
+                              vault.address
+                            dataWithVault.deposits[4].reveal.vault =
+                              vault.address
+
+                            // Mark the vault as non-trusted just before
+                            // proof submission.
+                            const beforeProofActions = async () => {
+                              await bridge
+                                .connect(governance)
+                                .setVaultStatus(vault.address, false)
+                            }
+
+                            tx = await runDepositSweepScenario(
+                              dataWithVault,
+                              beforeProofActions
+                            )
+                          })
+
+                          after(async () => {
+                            await restoreSnapshot()
+                          })
+
+                          it("should mark deposits as swept", async () => {
+                            for (let i = 0; i < data.deposits.length; i++) {
+                              // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                              const depositKey = ethers.utils.solidityKeccak256(
+                                ["bytes32", "uint32"],
+                                [
+                                  data.deposits[i].fundingTx.hash,
+                                  data.deposits[i].reveal.fundingOutputIndex,
+                                ]
+                              )
+
+                              // eslint-disable-next-line no-await-in-loop
+                              const deposit = await bridge.deposits(depositKey)
+
+                              expect(deposit.sweptAt).to.be.equal(
+                                // eslint-disable-next-line no-await-in-loop
+                                await lastBlockTime(),
+                                `Deposit with index ${i} has an unexpected swept time`
+                              )
+                            }
+                          })
+
+                          it("should update main UTXO for the given wallet", async () => {
+                            const { mainUtxoHash } = await bridge.wallets(
+                              walletPubKeyHash
+                            )
+
+                            // Amount can be checked by opening the sweep tx in a Bitcoin
+                            // testnet explorer. In this case, the sum of inputs is
+                            // 4148000 satoshi and there is a fee of 2999 so the output
+                            // value is 4145001.
+                            const expectedMainUtxo =
+                              ethers.utils.solidityKeccak256(
+                                ["bytes32", "uint32", "uint64"],
+                                [data.sweepTx.hash, 0, 4145001]
+                              )
+
+                            expect(mainUtxoHash).to.be.equal(expectedMainUtxo)
+                          })
+
+                          it("should update the depositors balances", async () => {
+                            // The sum of sweep tx inputs is 4148000 satoshi. The output
+                            // value is 4145001 so the sweep transaction fee is 2999.
+                            // There are 5 deposits so the fee per deposit is 599
+                            // and the indivisible remainder is 4 which means the
+                            // last deposit should incur 603 satoshi. Worth noting
+                            // the order of deposits used by this test scenario
+                            // data does not correspond to the order of sweep
+                            // transaction inputs. Each deposit should also incur
+                            // the treasury fee whose initial value is 0.05% of the
+                            // deposited amount.
+
+                            // Deposit with index 0 used as input with index 5
+                            // in the sweep transaction. This is the last deposit
+                            // (according to inputs order) and it should incur the
+                            // remainder of the transaction fee.
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[0].reveal.depositor
+                              )
+                            ).to.be.equal(219287)
+
+                            // Deposit with index 1 used as input with index 3
+                            // in the sweep transaction.
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[1].reveal.depositor
+                              )
+                            ).to.be.equal(759021)
+
+                            // Deposit with index 2 used as input with index 1
+                            // in the sweep transaction.
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[2].reveal.depositor
+                              )
+                            ).to.be.equal(938931)
+
+                            // Deposit with index 3 used as input with index 2
+                            // in the sweep transaction.
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[3].reveal.depositor
+                              )
+                            ).to.be.equal(878961)
+
+                            // Deposit with index 4 used as input with index 4
+                            // in the sweep transaction.
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[4].reveal.depositor
+                              )
+                            ).to.be.equal(289256)
+                          })
+
+                          it("should transfer collected treasury fee", async () => {
+                            expect(
+                              await bank.balanceOf(treasury.address)
+                            ).to.be.equal(2075)
+                          })
+
+                          it("should mark the previous main UTXO as spent", async () => {
+                            const mainUtxoKey = ethers.utils.solidityKeccak256(
+                              ["bytes32", "uint32"],
+                              [
+                                data.mainUtxo.txHash,
+                                data.mainUtxo.txOutputIndex,
+                              ]
+                            )
+
+                            expect(await bridge.spentMainUTXOs(mainUtxoKey)).to
+                              .be.true
+                          })
+
+                          it("should emit DepositsSwept event", async () => {
+                            await expect(tx)
+                              .to.emit(bridge, "DepositsSwept")
+                              .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          })
+                        }
+                      )
+
+                      context(
+                        "when input vector consists only of revealed unswept deposits with different trusted vaults and the expected main UTXO",
+                        () => {
+                          let vaultA: FakeContract<IVault>
+                          let vaultB: FakeContract<IVault>
+                          let tx: Promise<ContractTransaction>
+
+                          const previousData: DepositSweepTestData =
+                            MultipleDepositsNoMainUtxo
+                          const data: DepositSweepTestData =
+                            MultipleDepositsWithMainUtxo
+                          // Take wallet public key hash from first deposit. All
+                          // deposits in same sweep batch should have the same value
+                          // of that field.
+                          const { walletPubKeyHash } = data.deposits[0].reveal
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Simulate the wallet is an Live one and is known in
+                            // the system.
+                            await bridge.setWallet(walletPubKeyHash, {
+                              ...walletDraft,
+                              state: walletState.Live,
+                            })
+
+                            // Make the first sweep which is actually the predecessor
+                            // of the sweep tested within this scenario.
+                            await runDepositSweepScenario(previousData)
+
+                            // Deploy two fake vaults and mark them as trusted.
+                            vaultA = await smock.fake<IVault>("IVault")
+                            vaultB = await smock.fake<IVault>("IVault")
+                            await bridge
+                              .connect(governance)
+                              .setVaultStatus(vaultA.address, true)
+                            await bridge
+                              .connect(governance)
+                              .setVaultStatus(vaultB.address, true)
+
+                            // Enrich the test data with the vault parameter.
+                            const dataWithVault: DepositSweepTestData =
+                              JSON.parse(JSON.stringify(data))
+                            dataWithVault.vault = vaultA.address
+                            dataWithVault.deposits[0].reveal.vault =
+                              vaultA.address
+                            dataWithVault.deposits[1].reveal.vault =
+                              vaultA.address
+                            dataWithVault.deposits[2].reveal.vault =
+                              vaultB.address
+                            dataWithVault.deposits[3].reveal.vault =
+                              vaultB.address
+                            dataWithVault.deposits[4].reveal.vault =
+                              vaultA.address
+
+                            tx = runDepositSweepScenario(dataWithVault)
+                          })
+
+                          after(async () => {
+                            await restoreSnapshot()
+                          })
+
+                          it("should revert", async () => {
+                            await expect(tx).to.be.revertedWith(
+                              "Deposit should be routed to another vault"
+                            )
+                          })
+                        }
+                      )
+
+                      context(
+                        "when input vector consists only of revealed unswept deposits but there is no main UTXO since it is not expected",
                         () => {
                           let tx: ContractTransaction
                           const data: DepositSweepTestData =
@@ -1202,16 +1915,8 @@ describe("Bridge", () => {
                             // Simulate the wallet is an Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
+                              ...walletDraft,
                               state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
                             })
 
                             tx = await runDepositSweepScenario(data)
@@ -1314,8 +2019,7 @@ describe("Bridge", () => {
                       )
 
                       context(
-                        "when input vector consists only of revealed unswept " +
-                          "deposits but there is no main UTXO despite it is expected",
+                        "when input vector consists only of revealed unswept deposits but there is no main UTXO despite it is expected",
                         () => {
                           const previousData: DepositSweepTestData =
                             SingleP2WSHDeposit
@@ -1334,16 +2038,8 @@ describe("Bridge", () => {
                             // Simulate the wallet is an Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
+                              ...walletDraft,
                               state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
                             })
 
                             // Make the first sweep to create an on-chain expectation
@@ -1391,16 +2087,8 @@ describe("Bridge", () => {
                             // Simulate the wallet is an Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
+                              ...walletDraft,
                               state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
                             })
 
                             // Make a proper sweep to turn the tested deposits into
@@ -1450,16 +2138,8 @@ describe("Bridge", () => {
                             // Simulate the wallet is an Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
+                              ...walletDraft,
                               state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
                             })
                           })
 
@@ -1496,16 +2176,8 @@ describe("Bridge", () => {
                       // Simulate the wallet is an Live one and is known in
                       // the system.
                       await bridge.setWallet(walletPubKeyHash, {
-                        ecdsaWalletID: ethers.constants.HashZero,
-                        mainUtxoHash: ethers.constants.HashZero,
-                        pendingRedemptionsValue: 0,
-                        createdAt: await lastBlockTime(),
-                        movingFundsRequestedAt: 0,
-                        closingStartedAt: 0,
-                        pendingMovedFundsSweepRequestsCount: 0,
+                        ...walletDraft,
                         state: walletState.Live,
-                        movingFundsTargetWalletsCommitmentHash:
-                          ethers.constants.HashZero,
                       })
 
                       // Set the deposit transaction maximum fee to a value much
@@ -1543,16 +2215,8 @@ describe("Bridge", () => {
                   // Simulate the wallet is an Live one and is known in
                   // the system.
                   await bridge.setWallet(walletPubKeyHash, {
-                    ecdsaWalletID: ethers.constants.HashZero,
-                    mainUtxoHash: ethers.constants.HashZero,
-                    pendingRedemptionsValue: 0,
-                    createdAt: await lastBlockTime(),
-                    movingFundsRequestedAt: 0,
-                    closingStartedAt: 0,
-                    pendingMovedFundsSweepRequestsCount: 0,
+                    ...walletDraft,
                     state: walletState.Live,
-                    movingFundsTargetWalletsCommitmentHash:
-                      ethers.constants.HashZero,
                   })
 
                   // Make the first sweep which is actually the predecessor
@@ -1733,15 +2397,8 @@ describe("Bridge", () => {
             // Simulate the wallet is an Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
-              ecdsaWalletID: ethers.constants.HashZero,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
+              ...walletDraft,
               state: walletState.Live,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1784,15 +2441,8 @@ describe("Bridge", () => {
             // Simulate the wallet is an Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
-              ecdsaWalletID: ethers.constants.HashZero,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
+              ...walletDraft,
               state: walletState.Live,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1828,15 +2478,8 @@ describe("Bridge", () => {
             // Simulate the wallet is an Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
-              ecdsaWalletID: ethers.constants.HashZero,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
+              ...walletDraft,
               state: walletState.Live,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1870,15 +2513,8 @@ describe("Bridge", () => {
             // Simulate the wallet is an Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
-              ecdsaWalletID: ethers.constants.HashZero,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
+              ...walletDraft,
               state: walletState.Live,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1913,15 +2549,8 @@ describe("Bridge", () => {
             // Simulate the wallet is an Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
-              ecdsaWalletID: ethers.constants.HashZero,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
+              ...walletDraft,
               state: walletState.Live,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -1961,15 +2590,8 @@ describe("Bridge", () => {
             // Simulate the wallet is an Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
-              ecdsaWalletID: ethers.constants.HashZero,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
+              ...walletDraft,
               state: walletState.Live,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -2012,15 +2634,8 @@ describe("Bridge", () => {
             // Simulate the wallet is an Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
-              ecdsaWalletID: ethers.constants.HashZero,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
+              ...walletDraft,
               state: walletState.Live,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -2064,16 +2679,8 @@ describe("Bridge", () => {
               // Simulate the wallet is an Live one and is known in
               // the system.
               await bridge.setWallet(walletPubKeyHash, {
-                ecdsaWalletID: ethers.constants.HashZero,
-                mainUtxoHash: ethers.constants.HashZero,
-                pendingRedemptionsValue: 0,
-                createdAt: await lastBlockTime(),
-                movingFundsRequestedAt: 0,
-                closingStartedAt: 0,
-                pendingMovedFundsSweepRequestsCount: 0,
+                ...walletDraft,
                 state: walletState.Live,
-                movingFundsTargetWalletsCommitmentHash:
-                  ethers.constants.HashZero,
               })
 
               // Necessary to pass the first part of proof validation.
@@ -2129,15 +2736,8 @@ describe("Bridge", () => {
 
         // Initially set the state to Live, so that the deposit can be revealed
         await bridge.setWallet(reveal.walletPubKeyHash, {
-          ecdsaWalletID: ethers.constants.HashZero,
-          mainUtxoHash: ethers.constants.HashZero,
-          pendingRedemptionsValue: 0,
-          createdAt: await lastBlockTime(),
-          movingFundsRequestedAt: 0,
-          closingStartedAt: 0,
-          pendingMovedFundsSweepRequestsCount: 0,
+          ...walletDraft,
           state: walletState.Live,
-          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
 
         relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
@@ -2199,15 +2799,8 @@ describe("Bridge", () => {
 
             // Initially set the state to Live, so that the deposit can be revealed
             await bridge.setWallet(reveal.walletPubKeyHash, {
-              ecdsaWalletID: ethers.constants.HashZero,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
+              ...walletDraft,
               state: walletState.Live,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
 
             relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
@@ -2218,15 +2811,8 @@ describe("Bridge", () => {
             // Simulate the wallet's state has changed
             const wallet = await bridge.wallets(reveal.walletPubKeyHash)
             await bridge.setWallet(reveal.walletPubKeyHash, {
-              ecdsaWalletID: wallet.ecdsaWalletID,
-              mainUtxoHash: wallet.mainUtxoHash,
-              pendingRedemptionsValue: wallet.pendingRedemptionsValue,
-              createdAt: wallet.createdAt,
-              movingFundsRequestedAt: wallet.movingFundsRequestedAt,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
+              ...wallet,
               state: test.walletState,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
@@ -6174,7 +6760,8 @@ describe("Bridge", () => {
   })
 
   async function runDepositSweepScenario(
-    data: DepositSweepTestData
+    data: DepositSweepTestData,
+    beforeProofActions?: () => Promise<void>
   ): Promise<ContractTransaction> {
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
@@ -6185,11 +6772,15 @@ describe("Bridge", () => {
       await bridge.revealDeposit(fundingTx, reveal)
     }
 
+    if (beforeProofActions) {
+      await beforeProofActions()
+    }
+
     return bridge.submitDepositSweepProof(
       data.sweepTx,
       data.sweepProof,
       data.mainUtxo,
-      ethers.constants.AddressZero
+      data.vault
     )
   }
 
