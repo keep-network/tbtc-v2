@@ -15,7 +15,11 @@ import type {
   IWalletRegistry,
 } from "../../typechain"
 import bridgeFixture from "../fixtures/bridge"
-import { constants, walletState } from "../fixtures"
+import {
+  constants,
+  movedFundsSweepRequestState,
+  walletState,
+} from "../fixtures"
 import {
   MovedFundsSweepMultipleOutputs,
   MovedFundsSweepP2SHOutput,
@@ -35,6 +39,7 @@ import {
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
+import { walletPublicKeyHash } from "../data/fraud"
 
 chai.use(smock.matchers)
 
@@ -54,6 +59,9 @@ describe("Bridge - Moving funds", () => {
   let movingFundsTimeout: number
   let movingFundsTimeoutSlashingAmount: BigNumber
   let movingFundsTimeoutNotifierRewardMultiplier: BigNumber
+  let movedFundsSweepTimeout: number
+  let movedFundsSweepTimeoutSlashingAmount: BigNumber
+  let movedFundsSweepTimeoutNotifierRewardMultiplier: BigNumber
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -70,6 +78,9 @@ describe("Bridge - Moving funds", () => {
       movingFundsTimeout,
       movingFundsTimeoutSlashingAmount,
       movingFundsTimeoutNotifierRewardMultiplier,
+      movedFundsSweepTimeout,
+      movedFundsSweepTimeoutSlashingAmount,
+      movedFundsSweepTimeoutNotifierRewardMultiplier,
     } = await bridge.movingFundsParameters())
   })
 
@@ -879,10 +890,10 @@ describe("Bridge - Moving funds", () => {
                                                     )
 
                                                     expect(
-                                                      actualMovedFundsSweepRequest.sweptAt
+                                                      actualMovedFundsSweepRequest.state
                                                     ).to.be.equal(
-                                                      0,
-                                                      `Unexpected swept timestamp for sweep request ${i}`
+                                                      movedFundsSweepRequestState.Pending,
+                                                      `Unexpected state for sweep request ${i}`
                                                     )
 
                                                     /* eslint-disable no-await-in-loop */
@@ -2077,7 +2088,7 @@ describe("Bridge - Moving funds", () => {
                           "when the sweeping wallet has no main UTXO set",
                           () => {
                             context(
-                              "when there is a single input referring to a correct sweep request",
+                              "when there is a single input referring to a Pending sweep request",
                               () => {
                                 const data: MovedFundsSweepTestData =
                                   MovedFundsSweepWithoutMainUtxo
@@ -2103,10 +2114,13 @@ describe("Bridge - Moving funds", () => {
                                     ]
                                   )
 
+                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                                   expect(
                                     (await bridge.movedFundsSweepRequests(key))
-                                      .sweptAt
-                                  ).to.be.equal(await lastBlockTime())
+                                      .state
+                                  ).to.be.equal(
+                                    movedFundsSweepRequestState.Processed
+                                  )
                                 })
 
                                 it("should decrease the sweeping wallet's pending requests count", async () => {
@@ -2154,77 +2168,116 @@ describe("Bridge - Moving funds", () => {
                             )
 
                             context(
-                              "when the single input does not refer to a known sweep request",
+                              "when the single input does not refer to a Pending sweep request",
                               () => {
-                                const data: MovedFundsSweepTestData =
-                                  MovedFundsSweepWithoutMainUtxo
+                                context(
+                                  "when the single input refers to an Unknown sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithoutMainUtxo
 
-                                before(async () => {
-                                  await createSnapshot()
-                                })
-
-                                after(async () => {
-                                  await restoreSnapshot()
-                                })
-
-                                it("should revert", async () => {
-                                  // Getting rid of the `movedFundsSweepRequest`
-                                  // allows running that scenario because
-                                  // the sweep request will not exist in the system.
-                                  await expect(
-                                    runMovedFundsSweepScenario({
-                                      ...data,
-                                      movedFundsSweepRequest: null,
+                                    before(async () => {
+                                      await createSnapshot()
                                     })
-                                  ).to.be.revertedWith(
-                                    "Sweep request does not exist"
-                                  )
-                                })
-                              }
-                            )
 
-                            context(
-                              "when the single input does refer to a known but already processed sweep request",
-                              () => {
-                                const data: MovedFundsSweepTestData =
-                                  MovedFundsSweepWithoutMainUtxo
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
 
-                                let tx: Promise<ContractTransaction>
-
-                                before(async () => {
-                                  await createSnapshot()
-
-                                  // To run this scenario, we just mark the
-                                  // sweep request as processed using a stub
-                                  // method.
-                                  const beforeProofActions = async () => {
-                                    await bridge.processPendingMovedFundsSweepRequest(
-                                      data.movedFundsSweepRequest
-                                        .walletPubKeyHash,
-                                      data.movedFundsSweepRequest
-                                    )
+                                    it("should revert", async () => {
+                                      // Getting rid of the `movedFundsSweepRequest`
+                                      // allows running that scenario because
+                                      // the sweep request will not exist in the system.
+                                      await expect(
+                                        runMovedFundsSweepScenario({
+                                          ...data,
+                                          movedFundsSweepRequest: null,
+                                        })
+                                      ).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
                                   }
+                                )
 
-                                  tx = runMovedFundsSweepScenario(
-                                    data,
-                                    beforeProofActions
-                                  )
-                                })
+                                context(
+                                  "when the single input refers to a Processed sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithoutMainUtxo
 
-                                after(async () => {
-                                  await restoreSnapshot()
-                                })
+                                    let tx: Promise<ContractTransaction>
 
-                                it("should revert", async () => {
-                                  await expect(tx).to.be.revertedWith(
-                                    "Sweep request already processed"
-                                  )
-                                })
+                                    before(async () => {
+                                      await createSnapshot()
+
+                                      const beforeProofActions = async () => {
+                                        await bridge.processPendingMovedFundsSweepRequest(
+                                          data.movedFundsSweepRequest
+                                            .walletPubKeyHash,
+                                          data.movedFundsSweepRequest
+                                        )
+                                      }
+
+                                      tx = runMovedFundsSweepScenario(
+                                        data,
+                                        beforeProofActions
+                                      )
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      await expect(tx).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
+
+                                context(
+                                  "when the single input refers to a TimedOut sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithoutMainUtxo
+
+                                    let tx: Promise<ContractTransaction>
+
+                                    before(async () => {
+                                      await createSnapshot()
+
+                                      const beforeProofActions = async () => {
+                                        await bridge.timeoutPendingMovedFundsSweepRequest(
+                                          data.movedFundsSweepRequest
+                                            .walletPubKeyHash,
+                                          data.movedFundsSweepRequest
+                                        )
+                                      }
+
+                                      tx = runMovedFundsSweepScenario(
+                                        data,
+                                        beforeProofActions
+                                      )
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      await expect(tx).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
                               }
                             )
 
                             context(
-                              "when the single input does refer to a known sweep request that belongs to another wallet",
+                              "when the single input does refer to a Pending sweep request that belongs to another wallet",
                               () => {
                                 const data: MovedFundsSweepTestData =
                                   MovedFundsSweepWithoutMainUtxo
@@ -2295,7 +2348,7 @@ describe("Bridge - Moving funds", () => {
                           "when the sweeping wallet has a main UTXO set",
                           () => {
                             context(
-                              "when the first input refers to a correct sweep request and the second input refers to the sweeping wallet main UTXO",
+                              "when the first input refers to a Pending sweep request and the second input refers to the sweeping wallet main UTXO",
                               () => {
                                 const data: MovedFundsSweepTestData =
                                   MovedFundsSweepWithMainUtxo
@@ -2321,10 +2374,13 @@ describe("Bridge - Moving funds", () => {
                                     ]
                                   )
 
+                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                                   expect(
                                     (await bridge.movedFundsSweepRequests(key))
-                                      .sweptAt
-                                  ).to.be.equal(await lastBlockTime())
+                                      .state
+                                  ).to.be.equal(
+                                    movedFundsSweepRequestState.Processed
+                                  )
                                 })
 
                                 it("should decrease the sweeping wallet's pending requests count", async () => {
@@ -2386,7 +2442,7 @@ describe("Bridge - Moving funds", () => {
                             )
 
                             context(
-                              "when the first input refers to the sweeping wallet main UTXO and the second input refers to a correct sweep request",
+                              "when the first input refers to the sweeping wallet main UTXO and the second input refers to a Pending sweep request",
                               () => {
                                 // The sweep transaction used by this test data
                                 // has two inputs. The first input is registered
@@ -2428,84 +2484,123 @@ describe("Bridge - Moving funds", () => {
                                       mainUtxo,
                                     })
                                   ).to.be.revertedWith(
-                                    "Sweep request does not exist"
+                                    "Sweep request must be in Pending state"
                                   )
                                 })
                               }
                             )
 
                             context(
-                              "when the first input does not refer to a known sweep request and the second input refers to the sweeping wallet main UTXO",
+                              "when the first input does not refer to a Pending sweep request and the second input refers to the sweeping wallet main UTXO",
                               () => {
-                                const data: MovedFundsSweepTestData =
-                                  MovedFundsSweepWithMainUtxo
+                                context(
+                                  "when the first input refers to an Unknown sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithMainUtxo
 
-                                before(async () => {
-                                  await createSnapshot()
-                                })
-
-                                after(async () => {
-                                  await restoreSnapshot()
-                                })
-
-                                it("should revert", async () => {
-                                  // Getting rid of the `movedFundsSweepRequest`
-                                  // allows running that scenario because
-                                  // the sweep request will not exist in the system.
-                                  await expect(
-                                    runMovedFundsSweepScenario({
-                                      ...data,
-                                      movedFundsSweepRequest: null,
+                                    before(async () => {
+                                      await createSnapshot()
                                     })
-                                  ).to.be.revertedWith(
-                                    "Sweep request does not exist"
-                                  )
-                                })
-                              }
-                            )
 
-                            context(
-                              "when the first input refers to a known but already processed sweep request and the second input refers to the sweeping wallet main UTXO",
-                              () => {
-                                const data: MovedFundsSweepTestData =
-                                  MovedFundsSweepWithMainUtxo
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
 
-                                let tx: Promise<ContractTransaction>
-
-                                before(async () => {
-                                  await createSnapshot()
-
-                                  // To run this scenario, we just mark the
-                                  // sweep request as processed using a stub
-                                  // method.
-                                  const beforeProofActions = async () => {
-                                    await bridge.processPendingMovedFundsSweepRequest(
-                                      data.movedFundsSweepRequest
-                                        .walletPubKeyHash,
-                                      data.movedFundsSweepRequest
-                                    )
+                                    it("should revert", async () => {
+                                      // Getting rid of the `movedFundsSweepRequest`
+                                      // allows running that scenario because
+                                      // the sweep request will not exist in the system.
+                                      await expect(
+                                        runMovedFundsSweepScenario({
+                                          ...data,
+                                          movedFundsSweepRequest: null,
+                                        })
+                                      ).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
                                   }
+                                )
 
-                                  tx = runMovedFundsSweepScenario(
-                                    data,
-                                    beforeProofActions
-                                  )
-                                })
+                                context(
+                                  "when the first input refers to a Processed sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithMainUtxo
 
-                                after(async () => {
-                                  await restoreSnapshot()
-                                })
+                                    let tx: Promise<ContractTransaction>
 
-                                it("should revert", async () => {
-                                  await expect(tx).to.be.revertedWith(
-                                    "Sweep request already processed"
-                                  )
-                                })
+                                    before(async () => {
+                                      await createSnapshot()
+
+                                      const beforeProofActions = async () => {
+                                        await bridge.processPendingMovedFundsSweepRequest(
+                                          data.movedFundsSweepRequest
+                                            .walletPubKeyHash,
+                                          data.movedFundsSweepRequest
+                                        )
+                                      }
+
+                                      tx = runMovedFundsSweepScenario(
+                                        data,
+                                        beforeProofActions
+                                      )
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      await expect(tx).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
+
+                                context(
+                                  "when the first input refers to a TimedOut sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithMainUtxo
+
+                                    let tx: Promise<ContractTransaction>
+
+                                    before(async () => {
+                                      await createSnapshot()
+
+                                      const beforeProofActions = async () => {
+                                        await bridge.timeoutPendingMovedFundsSweepRequest(
+                                          data.movedFundsSweepRequest
+                                            .walletPubKeyHash,
+                                          data.movedFundsSweepRequest
+                                        )
+                                      }
+
+                                      tx = runMovedFundsSweepScenario(
+                                        data,
+                                        beforeProofActions
+                                      )
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      await expect(tx).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
                               }
                             )
 
                             context(
-                              "when the first input refers to a known sweep request that belongs to another wallet and the second input refers to the sweeping wallet main UTXO",
+                              "when the first input refers to a Pending sweep request that belongs to another wallet and the second input refers to the sweeping wallet main UTXO",
                               () => {
                                 const data: MovedFundsSweepTestData =
                                   MovedFundsSweepWithMainUtxo
@@ -2539,7 +2634,7 @@ describe("Bridge - Moving funds", () => {
                             )
 
                             context(
-                              "when the first input refers to a correct sweep request and the second input does not refer to the sweeping wallet main UTXO",
+                              "when the first input refers to a Pending sweep request and the second input does not refer to the sweeping wallet main UTXO",
                               () => {
                                 const data: MovedFundsSweepTestData =
                                   MovedFundsSweepWithMainUtxo
@@ -3073,6 +3168,466 @@ describe("Bridge - Moving funds", () => {
         }
       )
     })
+  })
+
+  describe("notifyMovedFundsSweepTimeout", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    const walletMembersIDs = [1, 2, 3, 4, 5]
+
+    // Just an arbitrary request for test purposes.
+    const movedFundsSweepRequest = {
+      walletPubKeyHash: ecdsaWalletTestData.pubKeyHash160,
+      txHash:
+        "0x7d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed243a8961c8ac5887d5aaf528",
+      txOutputIndex: 1,
+      txOutputValue: 1747020,
+    }
+
+    context("when moved funds sweep request is in the Pending state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, walletDraft)
+
+        await bridge.setPendingMovedFundsSweepRequest(
+          movedFundsSweepRequest.walletPubKeyHash,
+          movedFundsSweepRequest
+        )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when moved funds sweep request has timed out", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(movedFundsSweepTimeout)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context(
+          "when the wallet is either in the Live or MovingFunds state",
+          () => {
+            const testData: {
+              testName: string
+              walletState: number
+              additionalSetup?: () => Promise<void>
+              additionalAssertions?: () => Promise<void>
+            }[] = [
+              {
+                testName:
+                  "when the wallet is in the Live state but the wallet is not the active one",
+                walletState: walletState.Live,
+                additionalSetup: async () => {
+                  // The active wallet is a different wallet than the tested one
+                  await bridge.setActiveWallet(
+                    "0x0b9f85c224b0e018a5865392927b3f9e16cf5e79"
+                  )
+                },
+                additionalAssertions: async () => {
+                  it("should decrease the live wallets count", async () => {
+                    expect(await bridge.liveWalletsCount()).to.be.equal(0)
+                  })
+
+                  it("should not unset the active wallet", async () => {
+                    expect(
+                      await bridge.activeWalletPubKeyHash()
+                    ).to.be.not.equal(
+                      "0x0000000000000000000000000000000000000000"
+                    )
+                  })
+                },
+              },
+              {
+                testName:
+                  "when the wallet is in the Live state and the wallet is the active one",
+                walletState: walletState.Live,
+                additionalSetup: async () => {
+                  await bridge.setActiveWallet(
+                    movedFundsSweepRequest.walletPubKeyHash
+                  )
+                },
+                additionalAssertions: async () => {
+                  it("should decrease the live wallets count", async () => {
+                    expect(await bridge.liveWalletsCount()).to.be.equal(0)
+                  })
+
+                  it("should unset the active wallet", async () => {
+                    expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
+                      "0x0000000000000000000000000000000000000000"
+                    )
+                  })
+                },
+              },
+              {
+                testName: "when the wallet is in the MovingFunds state",
+                walletState: walletState.MovingFunds,
+                additionalSetup: async () => {},
+                additionalAssertions: async () => {},
+              },
+            ]
+
+            testData.forEach((test) => {
+              context(test.testName, async () => {
+                let tx: ContractTransaction
+
+                before(async () => {
+                  await createSnapshot()
+
+                  await bridge.setWallet(
+                    movedFundsSweepRequest.walletPubKeyHash,
+                    {
+                      ...(await bridge.wallets(
+                        movedFundsSweepRequest.walletPubKeyHash
+                      )),
+                      state: test.walletState,
+                    }
+                  )
+
+                  await test.additionalSetup()
+
+                  tx = await bridge
+                    .connect(thirdParty)
+                    .notifyMovedFundsSweepTimeout(
+                      movedFundsSweepRequest.txHash,
+                      movedFundsSweepRequest.txOutputIndex,
+                      walletMembersIDs
+                    )
+                })
+
+                after(async () => {
+                  walletRegistry.closeWallet.reset()
+                  walletRegistry.seize.reset()
+
+                  await restoreSnapshot()
+                })
+
+                it("should switch the moved funds sweep request to the TimedOut state", async () => {
+                  const requestKey = ethers.utils.solidityKeccak256(
+                    ["bytes32", "uint32"],
+                    [
+                      movedFundsSweepRequest.txHash,
+                      movedFundsSweepRequest.txOutputIndex,
+                    ]
+                  )
+
+                  expect(
+                    (await bridge.movedFundsSweepRequests(requestKey)).state
+                  ).to.be.equal(movedFundsSweepRequestState.TimedOut)
+                })
+
+                it("should decrease the number of pending moved funds sweep requests for the given wallet", async () =>
+                  expect(
+                    (
+                      await bridge.wallets(
+                        movedFundsSweepRequest.walletPubKeyHash
+                      )
+                    ).pendingMovedFundsSweepRequestsCount
+                  ).to.be.equal(0))
+
+                it("should switch the wallet to Terminated state", async () => {
+                  expect(
+                    (
+                      await bridge.wallets(
+                        movedFundsSweepRequest.walletPubKeyHash
+                      )
+                    ).state
+                  ).to.be.equal(walletState.Terminated)
+                })
+
+                it("should emit WalletTerminated event", async () => {
+                  await expect(tx)
+                    .to.emit(bridge, "WalletTerminated")
+                    .withArgs(
+                      walletDraft.ecdsaWalletID,
+                      movedFundsSweepRequest.walletPubKeyHash
+                    )
+                })
+
+                it("should call ECDSA Wallet Registry's closeWallet function", async () => {
+                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                  expect(
+                    walletRegistry.closeWallet
+                  ).to.have.been.calledOnceWith(walletDraft.ecdsaWalletID)
+                })
+
+                it("should call the ECDSA wallet registry's seize function", async () => {
+                  expect(walletRegistry.seize).to.have.been.calledOnceWith(
+                    movedFundsSweepTimeoutSlashingAmount,
+                    movedFundsSweepTimeoutNotifierRewardMultiplier,
+                    await thirdParty.getAddress(),
+                    walletDraft.ecdsaWalletID,
+                    walletMembersIDs
+                  )
+                })
+
+                it("should emit MovedFundsSweepTimedOut event", async () => {
+                  await expect(tx)
+                    .to.emit(bridge, "MovedFundsSweepTimedOut")
+                    .withArgs(
+                      movedFundsSweepRequest.walletPubKeyHash,
+                      movedFundsSweepRequest.txHash,
+                      movedFundsSweepRequest.txOutputIndex
+                    )
+                })
+
+                await test.additionalAssertions()
+              })
+            })
+          }
+        )
+
+        context("when the wallet is in the Terminated state", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(movedFundsSweepRequest.walletPubKeyHash, {
+              ...(await bridge.wallets(
+                movedFundsSweepRequest.walletPubKeyHash
+              )),
+              state: walletState.Terminated,
+            })
+
+            tx = await bridge
+              .connect(thirdParty)
+              .notifyMovedFundsSweepTimeout(
+                movedFundsSweepRequest.txHash,
+                movedFundsSweepRequest.txOutputIndex,
+                walletMembersIDs
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should switch the moved funds sweep request to the TimedOut state", async () => {
+            const requestKey = ethers.utils.solidityKeccak256(
+              ["bytes32", "uint32"],
+              [
+                movedFundsSweepRequest.txHash,
+                movedFundsSweepRequest.txOutputIndex,
+              ]
+            )
+
+            expect(
+              (await bridge.movedFundsSweepRequests(requestKey)).state
+            ).to.be.equal(movedFundsSweepRequestState.TimedOut)
+          })
+
+          it("should decrease the number of pending moved funds sweep requests for the given wallet", async () =>
+            expect(
+              (await bridge.wallets(movedFundsSweepRequest.walletPubKeyHash))
+                .pendingMovedFundsSweepRequestsCount
+            ).to.be.equal(0))
+
+          it("should not change the wallet state", async () => {
+            expect(
+              (await bridge.wallets(movedFundsSweepRequest.walletPubKeyHash))
+                .state
+            ).to.be.equal(walletState.Terminated)
+          })
+        })
+
+        context(
+          "when the wallet is neither in the Live nor MovingFunds nor Terminated state",
+          () => {
+            const testData = [
+              {
+                testName: "when the wallet is in the Unknown state",
+                walletState: walletState.Unknown,
+              },
+              {
+                testName: "when the wallet is in the Closing state",
+                walletState: walletState.Closing,
+              },
+              {
+                testName: "when the wallet is in the Closed state",
+                walletState: walletState.Closed,
+              },
+            ]
+
+            testData.forEach((test) => {
+              context(test.testName, async () => {
+                before(async () => {
+                  await createSnapshot()
+
+                  await bridge.setWallet(
+                    movedFundsSweepRequest.walletPubKeyHash,
+                    {
+                      ...(await bridge.wallets(
+                        movedFundsSweepRequest.walletPubKeyHash
+                      )),
+                      state: test.walletState,
+                    }
+                  )
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  await expect(
+                    bridge.notifyMovedFundsSweepTimeout(
+                      movedFundsSweepRequest.txHash,
+                      movedFundsSweepRequest.txOutputIndex,
+                      walletMembersIDs
+                    )
+                  ).to.be.revertedWith(
+                    "ECDSA wallet must be in Live or MovingFunds or Terminated state"
+                  )
+                })
+              })
+            })
+          }
+        )
+      })
+
+      context("when moved funds sweep request has not timed out yet", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(movedFundsSweepTimeout - 1)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge.notifyMovedFundsSweepTimeout(
+              movedFundsSweepRequest.txHash,
+              movedFundsSweepRequest.txOutputIndex,
+              walletMembersIDs
+            )
+          ).to.be.revertedWith("Sweep request has not timed out yet")
+        })
+      })
+    })
+
+    context(
+      "when moved funds sweep request is not in the Pending state",
+      () => {
+        context(
+          "when moved funds sweep request is in the Unknown state",
+          () => {
+            before(async () => {
+              await createSnapshot()
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge.notifyMovedFundsSweepTimeout(
+                  movedFundsSweepRequest.txHash,
+                  movedFundsSweepRequest.txOutputIndex,
+                  walletMembersIDs
+                )
+              ).to.be.revertedWith("Sweep request must be in Pending state")
+            })
+          }
+        )
+
+        context(
+          "when moved funds sweep request is in the Processed state",
+          () => {
+            before(async () => {
+              await createSnapshot()
+
+              await bridge.setWallet(
+                ecdsaWalletTestData.pubKeyHash160,
+                walletDraft
+              )
+
+              await bridge.setPendingMovedFundsSweepRequest(
+                movedFundsSweepRequest.walletPubKeyHash,
+                movedFundsSweepRequest
+              )
+
+              await bridge.processPendingMovedFundsSweepRequest(
+                movedFundsSweepRequest.walletPubKeyHash,
+                movedFundsSweepRequest
+              )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge.notifyMovedFundsSweepTimeout(
+                  movedFundsSweepRequest.txHash,
+                  movedFundsSweepRequest.txOutputIndex,
+                  walletMembersIDs
+                )
+              ).to.be.revertedWith("Sweep request must be in Pending state")
+            })
+          }
+        )
+
+        context(
+          "when moved funds sweep request is in the TimedOut state",
+          () => {
+            before(async () => {
+              await createSnapshot()
+
+              await bridge.setWallet(
+                ecdsaWalletTestData.pubKeyHash160,
+                walletDraft
+              )
+
+              await bridge.setPendingMovedFundsSweepRequest(
+                movedFundsSweepRequest.walletPubKeyHash,
+                movedFundsSweepRequest
+              )
+
+              await bridge.timeoutPendingMovedFundsSweepRequest(
+                movedFundsSweepRequest.walletPubKeyHash,
+                movedFundsSweepRequest
+              )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge.notifyMovedFundsSweepTimeout(
+                  movedFundsSweepRequest.txHash,
+                  movedFundsSweepRequest.txOutputIndex,
+                  walletMembersIDs
+                )
+              ).to.be.revertedWith("Sweep request must be in Pending state")
+            })
+          }
+        )
+      }
+    )
   })
 
   async function runMovingFundsScenario(

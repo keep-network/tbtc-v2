@@ -123,6 +123,12 @@ contract Bridge is Governable, EcdsaWalletOwner {
 
     event MovedFundsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
+    event MovedFundsSweepTimedOut(
+        bytes20 walletPubKeyHash,
+        bytes32 movingFundsTxHash,
+        uint32 movingFundsTxOutputIndex
+    );
+
     event NewWalletRequested();
 
     event NewWalletRegistered(
@@ -183,7 +189,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movedFundsSweepTxMaxTotalFee
+        uint64 movedFundsSweepTxMaxTotalFee,
+        uint32 movedFundsSweepTimeout,
+        uint96 movedFundsSweepTimeoutSlashingAmount,
+        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -243,6 +252,9 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
         self.movedFundsSweepTxMaxTotalFee = 10000; // 10000 satoshi
+        self.movedFundsSweepTimeout = 7 days;
+        self.movedFundsSweepTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.movedFundsSweepTimeoutNotifierRewardMultiplier = 100; //100%
         self.fraudChallengeDepositAmount = 2 ether;
         self.fraudChallengeDefeatTimeout = 7 days;
         self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
@@ -693,6 +705,38 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.submitMovedFundsSweepProof(sweepTx, sweepProof, mainUtxo);
     }
 
+    /// @notice Notifies about a timed out moved funds sweep process. If the
+    ///         wallet is not terminated yet, that function terminates
+    ///         the wallet and slashes signing group members as a result.
+    ///         Marks the given sweep request as TimedOut.
+    /// @param movingFundsTxHash 32-byte hash of the moving funds transaction
+    ///        that caused the sweep request to be created
+    /// @param movingFundsTxOutputIndex Index of the moving funds transaction
+    ///        output that is subject of the sweep request.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    /// @dev Requirements:
+    ///      - The moved funds sweep request must be in the Pending state
+    ///      - The moved funds sweep timeout must be actually exceeded
+    ///      - The wallet must be either in the Live or MovingFunds or
+    ///        Terminated state
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events of the `WalletRegistry` contract
+    function notifyMovedFundsSweepTimeout(
+        bytes32 movingFundsTxHash,
+        uint32 movingFundsTxOutputIndex,
+        uint32[] calldata walletMembersIDs
+    ) external {
+        self.notifyMovedFundsSweepTimeout(
+            movingFundsTxHash,
+            movingFundsTxOutputIndex,
+            walletMembersIDs
+        );
+    }
+
     /// @notice Requests creation of a new wallet. This function just
     ///         forms a request and the creation process is performed
     ///         asynchronously. Once a wallet is created, the ECDSA Wallet
@@ -1055,6 +1099,19 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        of the total BTC transaction fee that is acceptable in a single
     ///        moved funds sweep transaction. This is a _total_ max fee for the
     ///        entire moved funds sweep transaction.
+    /// @param movedFundsSweepTimeout New value of the moved funds sweep
+    ///        timeout in seconds. It is the time after which the moved funds
+    ///        sweep process can be reported as timed out. It is counted from
+    ///        the moment when the wallet was requested to sweep the received
+    ///        funds.
+    /// @param movedFundsSweepTimeoutSlashingAmount New value of the moved
+    ///        funds sweep timeout slashing amount in T, it is the amount
+    ///        slashed from each wallet member for moved funds sweep timeout
+    /// @param movedFundsSweepTimeoutNotifierRewardMultiplier New value of
+    ///        the moved funds sweep timeout notifier reward multiplier as
+    ///        percentage, it determines the percentage of the notifier reward
+    ///        from the staking contact the notifier of a moved funds sweep
+    ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds dust threshold must be greater than zero
@@ -1062,13 +1119,19 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
     ///      - Moved funds sweep transaction max total fee must be greater than zero
+    ///      - Moved funds sweep timeout must be greater than zero
+    ///      - Moved funds sweep timeout notifier reward multiplier must be in the
+    ///        range [0, 100]
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
         uint64 movingFundsDustThreshold,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
-        uint64 movedFundsSweepTxMaxTotalFee
+        uint64 movedFundsSweepTxMaxTotalFee,
+        uint32 movedFundsSweepTimeout,
+        uint96 movedFundsSweepTimeoutSlashingAmount,
+        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
@@ -1076,7 +1139,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
-            movedFundsSweepTxMaxTotalFee
+            movedFundsSweepTxMaxTotalFee,
+            movedFundsSweepTimeout,
+            movedFundsSweepTimeoutSlashingAmount,
+            movedFundsSweepTimeoutNotifierRewardMultiplier
         );
     }
 
@@ -1394,6 +1460,16 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         transaction fee that is acceptable in a single moved funds
     ///         sweep transaction. This is a _total_ max fee for the entire
     ///         moved funds sweep transaction.
+    /// @return movedFundsSweepTimeout Time after which the moved funds sweep
+    ///         process can be reported as timed out. It is counted from the
+    ///         moment when the wallet was requested to sweep the received funds.
+    ///         Value in seconds.
+    /// @return movedFundsSweepTimeoutSlashingAmount The amount of stake slashed
+    ///         from each member of a wallet for a moved funds sweep timeout.
+    /// @return movedFundsSweepTimeoutNotifierRewardMultiplier The percentage
+    ///         of the notifier reward from the staking contract the notifier
+    ///         of a moved funds sweep timeout receives. The value is in the
+    ///         range [0, 100].
     function movingFundsParameters()
         external
         view
@@ -1403,7 +1479,10 @@ contract Bridge is Governable, EcdsaWalletOwner {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint256 movingFundsTimeoutNotifierRewardMultiplier,
-            uint64 movedFundsSweepTxMaxTotalFee
+            uint64 movedFundsSweepTxMaxTotalFee,
+            uint32 movedFundsSweepTimeout,
+            uint96 movedFundsSweepTimeoutSlashingAmount,
+            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
         )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
@@ -1414,6 +1493,11 @@ contract Bridge is Governable, EcdsaWalletOwner {
         movingFundsTimeoutNotifierRewardMultiplier = self
             .movingFundsTimeoutNotifierRewardMultiplier;
         movedFundsSweepTxMaxTotalFee = self.movedFundsSweepTxMaxTotalFee;
+        movedFundsSweepTimeout = self.movedFundsSweepTimeout;
+        movedFundsSweepTimeoutSlashingAmount = self
+            .movedFundsSweepTimeoutSlashingAmount;
+        movedFundsSweepTimeoutNotifierRewardMultiplier = self
+            .movedFundsSweepTimeoutNotifierRewardMultiplier;
     }
 
     /// @return walletCreationPeriod Determines how frequently a new wallet
