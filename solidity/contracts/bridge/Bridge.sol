@@ -15,8 +15,6 @@
 
 pragma solidity ^0.8.9;
 
-// TODO: Update dependency version to import a Governable contract that has a
-// storage gap added.
 import "@keep-network/random-beacon/contracts/Governable.sol";
 
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";

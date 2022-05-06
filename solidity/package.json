@@ -28,6 +28,7 @@
   "dependencies": {
     "@keep-network/bitcoin-spv-sol": "3.3.0-solc-0.8",
     "@keep-network/ecdsa": "development",
+    "@keep-network/random-beacon": "development",
     "@keep-network/tbtc": ">1.1.2-dev <1.1.2-pre",
     "@openzeppelin/contracts": "^4.1.0",
     "@openzeppelin/contracts-upgradeable": "^4.6.0-rc.0",
