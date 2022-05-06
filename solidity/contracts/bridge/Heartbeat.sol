@@ -78,6 +78,11 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 ///      message. The first 8 bytes are 0xffffffffffffffff. The last 8 bytes
 ///      are for an arbitrary uint64, being a signed heartbeat nonce (for
 ///      example, the last Ethereum block hash).
+///
+///      The message being signed by the wallet when executing the heartbeat
+///      protocol should be Bitcoin's hash256 (double sha2) of the heartbeat
+///      message:
+///        heartbeat_sighash = hash256(heartbeat_message)
 library Heartbeat {
     using BytesLib for bytes;
 
