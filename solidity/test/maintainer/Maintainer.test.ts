@@ -3,7 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ContractTransaction, BigNumber, BigNumberish } from "ethers"
 import type { FakeContract } from "@defi-wonderland/smock"
-import { BytesLike } from "@ethersproject/bytes"
+import { smock } from "@defi-wonderland/smock"
 
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import type {
@@ -14,8 +14,6 @@ import type {
   MaintainerProxy,
   ReimbursementPool,
   Bridge,
-  MaintainerProxy__factory,
-  ReimbursementPool__factory,
   IRelay,
 } from "../../typechain"
 
@@ -44,65 +42,27 @@ import {
   witnessSignMultipleInputTx,
 } from "../data/fraud"
 
-import bridgeFixture from "../bridge/bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 import { constants, walletState } from "../fixtures"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { provider } = waffle
 const { impersonateAccount } = helpers.account
 
-const fixtureBridge = async () => bridgeFixture()
 const { lastBlockTime, increaseTime } = helpers.time
-
-const fixture = async () => {
-  const staticGas = 40800 // gas amount consumed by the refund() + tx cost
-  const maxGasPrice = 500000000000 // 500 gwei
-
-  const bridgeFixtures = await waffle.loadFixture(fixtureBridge)
-
-  const ReimbursementPool =
-    await ethers.getContractFactory<ReimbursementPool__factory>(
-      "ReimbursementPool"
-    )
-  const reimbursementPool = await ReimbursementPool.deploy(
-    staticGas,
-    maxGasPrice
-  )
-  await reimbursementPool.deployed()
-  await reimbursementPool
-    .connect(bridgeFixtures.deployer)
-    .transferOwnership(bridgeFixtures.governance.address)
-
-  await bridgeFixtures.deployer.sendTransaction({
-    to: reimbursementPool.address,
-    value: ethers.utils.parseEther("100.0"), // Send 100.0 ETH
-  })
-
-  const MaintainerProxy =
-    await ethers.getContractFactory<MaintainerProxy__factory>("MaintainerProxy")
-  const maintainerProxy = await MaintainerProxy.deploy(
-    bridgeFixtures.bridge.address,
-    reimbursementPool.address
-  )
-  await maintainerProxy.deployed()
-  await maintainerProxy
-    .connect(bridgeFixtures.deployer)
-    .transferOwnership(bridgeFixtures.governance.address)
-
-  return { ...bridgeFixtures, maintainerProxy, reimbursementPool }
-}
 
 describe("Maintainer", () => {
   const activeWalletMainUtxo = {
     txHash:
       "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
     txOutputIndex: 1,
-    txOutputValue: constants.walletMinBtcBalance,
+    txOutputValue: constants.walletCreationMinBtcBalance,
   }
 
   let governance: SignerWithAddress
   let bridge: Bridge & BridgeStub
   let thirdParty: SignerWithAddress
+  let deployer: SignerWithAddress
 
   let maintainerProxy: MaintainerProxy
   let reimbursementPool: ReimbursementPool
@@ -118,11 +78,21 @@ describe("Maintainer", () => {
       governance,
       bridge,
       maintainerProxy,
-      reimbursementPool,
       relay,
       bank,
-      walletRegistry,
-    } = await waffle.loadFixture(fixture))
+      reimbursementPool,
+      maintainerProxy,
+      deployer,
+    } = await waffle.loadFixture(bridgeFixture))
+
+    walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry", {
+      address: (await bridge.contractReferences()).ecdsaWalletRegistry,
+    })
+
+    await deployer.sendTransaction({
+      to: walletRegistry.address,
+      value: ethers.utils.parseEther("100"),
+    })
   })
 
   describe("requestNewWallet", () => {
@@ -192,6 +162,7 @@ describe("Maintainer", () => {
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -206,7 +177,10 @@ describe("Maintainer", () => {
         // the initial value in the Bridge in order to save test Bitcoins.
         await bridge.setDepositDustThreshold(10000)
 
-        await expect(runSweepScenario(data)).to.be.revertedWith(
+        const sweepOutcome: Promise<SweepScenarioOutcome> =
+          runSweepScenario(data)
+
+        await expect(sweepOutcome).to.be.revertedWith(
           "Caller is not authorized"
         )
       })
@@ -238,13 +212,12 @@ describe("Maintainer", () => {
                       context(
                         "when the single input is a revealed unswept P2SH deposit",
                         () => {
-                          let tx: ContractTransaction
                           const data: SweepTestData = SingleP2SHDeposit
                           // Take wallet public key hash from first deposit. All
                           // deposits in same sweep batch should have the same value
                           // of that field.
                           const { walletPubKeyHash } = data.deposits[0].reveal
-                          let initThirdPartyBalance: BigNumber
+                          let sweepOutcome: SweepScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
@@ -261,37 +234,34 @@ describe("Maintainer", () => {
                               pendingRedemptionsValue: 0,
                               createdAt: await lastBlockTime(),
                               movingFundsRequestedAt: 0,
+                              closingStartedAt: 0,
                               state: walletState.Live,
                               movingFundsTargetWalletsCommitmentHash:
                                 ethers.constants.HashZero,
                             })
 
-                            initThirdPartyBalance = await provider.getBalance(
-                              thirdParty.address
-                            )
-                            tx = await runSweepScenario(data)
+                            sweepOutcome = await runSweepScenario(data)
                           })
 
                           after(async () => {
                             await restoreSnapshot()
                           })
 
-                          it("should emit DepositsSwept event", async () => {
-                            await expect(tx)
-                              .to.emit(bridge, "DepositsSwept")
-                              .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          it("should not revert", async () => {
+                            await expect(sweepOutcome.tx.wait()).not.to.be
+                              .reverted
                           })
 
                           it("should refund ETH", async () => {
                             const postNotifyThirdPartyBalance =
                               await provider.getBalance(thirdParty.address)
                             const diff = postNotifyThirdPartyBalance.sub(
-                              initThirdPartyBalance
+                              sweepOutcome.initThirdPartyBalance
                             )
 
                             expect(diff).to.be.gt(0)
                             expect(diff).to.be.lt(
-                              ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+                              ethers.utils.parseUnits("1500000", "gwei") // 0,0015 ETH
                             )
                           })
                         }
@@ -300,13 +270,12 @@ describe("Maintainer", () => {
                       context(
                         "when the single input is a revealed unswept P2WSH deposit",
                         () => {
-                          let tx: ContractTransaction
                           const data: SweepTestData = SingleP2WSHDeposit
                           // Take wallet public key hash from first deposit. All
                           // deposits in same sweep batch should have the same value
                           // of that field.
                           const { walletPubKeyHash } = data.deposits[0].reveal
-                          let initThirdPartyBalance: BigNumber
+                          let sweepOutcome: SweepScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
@@ -323,32 +292,29 @@ describe("Maintainer", () => {
                               pendingRedemptionsValue: 0,
                               createdAt: await lastBlockTime(),
                               movingFundsRequestedAt: 0,
+                              closingStartedAt: 0,
                               state: walletState.Live,
                               movingFundsTargetWalletsCommitmentHash:
                                 ethers.constants.HashZero,
                             })
 
-                            initThirdPartyBalance = await provider.getBalance(
-                              thirdParty.address
-                            )
-                            tx = await runSweepScenario(data)
+                            sweepOutcome = await runSweepScenario(data)
                           })
 
                           after(async () => {
                             await restoreSnapshot()
                           })
 
-                          it("should emit DepositsSwept event", async () => {
-                            await expect(tx)
-                              .to.emit(bridge, "DepositsSwept")
-                              .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          it("should not revert", async () => {
+                            await expect(sweepOutcome.tx.wait()).not.to.be
+                              .reverted
                           })
 
                           it("should refund ETH", async () => {
                             const postNotifyThirdPartyBalance =
                               await provider.getBalance(thirdParty.address)
                             const diff = postNotifyThirdPartyBalance.sub(
-                              initThirdPartyBalance
+                              sweepOutcome.initThirdPartyBalance
                             )
 
                             expect(diff).to.be.gt(0)
@@ -365,7 +331,6 @@ describe("Maintainer", () => {
                         "when input vector consists only of revealed unswept " +
                           "deposits and the expected main UTXO",
                         () => {
-                          let tx: ContractTransaction
                           const previousData: SweepTestData =
                             MultipleDepositsNoMainUtxo
                           const data: SweepTestData =
@@ -374,7 +339,7 @@ describe("Maintainer", () => {
                           // deposits in same sweep batch should have the same value
                           // of that field.
                           const { walletPubKeyHash } = data.deposits[0].reveal
-                          let initThirdPartyBalance: BigNumber
+                          let sweepOutcome: SweepScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
@@ -391,6 +356,7 @@ describe("Maintainer", () => {
                               pendingRedemptionsValue: 0,
                               createdAt: await lastBlockTime(),
                               movingFundsRequestedAt: 0,
+                              closingStartedAt: 0,
                               state: walletState.Live,
                               movingFundsTargetWalletsCommitmentHash:
                                 ethers.constants.HashZero,
@@ -400,32 +366,28 @@ describe("Maintainer", () => {
                             // of the sweep tested within this scenario.
                             await runSweepScenario(previousData)
 
-                            initThirdPartyBalance = await provider.getBalance(
-                              thirdParty.address
-                            )
-                            tx = await runSweepScenario(data)
+                            sweepOutcome = await runSweepScenario(data)
                           })
 
                           after(async () => {
                             await restoreSnapshot()
                           })
 
-                          it("should emit DepositsSwept event", async () => {
-                            await expect(tx)
-                              .to.emit(bridge, "DepositsSwept")
-                              .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          it("should not revert", async () => {
+                            await expect(sweepOutcome.tx.wait()).not.to.be
+                              .reverted
                           })
 
                           it("should refund ETH", async () => {
                             const postNotifyThirdPartyBalance =
                               await provider.getBalance(thirdParty.address)
                             const diff = postNotifyThirdPartyBalance.sub(
-                              initThirdPartyBalance
+                              sweepOutcome.initThirdPartyBalance
                             )
 
                             expect(diff).to.be.gt(0)
                             expect(diff).to.be.lt(
-                              ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+                              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
                             )
                           })
                         }
@@ -435,13 +397,12 @@ describe("Maintainer", () => {
                         "when input vector consists only of revealed unswept " +
                           "deposits but there is no main UTXO since it is not expected",
                         () => {
-                          let tx: ContractTransaction
                           const data: SweepTestData = MultipleDepositsNoMainUtxo
                           // Take wallet public key hash from first deposit. All
                           // deposits in same sweep batch should have the same value
                           // of that field.
                           const { walletPubKeyHash } = data.deposits[0].reveal
-                          let initThirdPartyBalance: BigNumber
+                          let sweepOutcome: SweepScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
@@ -458,38 +419,34 @@ describe("Maintainer", () => {
                               pendingRedemptionsValue: 0,
                               createdAt: await lastBlockTime(),
                               movingFundsRequestedAt: 0,
+                              closingStartedAt: 0,
                               state: walletState.Live,
                               movingFundsTargetWalletsCommitmentHash:
                                 ethers.constants.HashZero,
                             })
 
-                            initThirdPartyBalance = await provider.getBalance(
-                              thirdParty.address
-                            )
-
-                            tx = await runSweepScenario(data)
+                            sweepOutcome = await runSweepScenario(data)
                           })
 
                           after(async () => {
                             await restoreSnapshot()
                           })
 
-                          it("should emit DepositsSwept event", async () => {
-                            await expect(tx)
-                              .to.emit(bridge, "DepositsSwept")
-                              .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          it("should not revert", async () => {
+                            await expect(sweepOutcome.tx.wait()).not.to.be
+                              .reverted
                           })
 
                           it("should refund ETH", async () => {
                             const postNotifyThirdPartyBalance =
                               await provider.getBalance(thirdParty.address)
                             const diff = postNotifyThirdPartyBalance.sub(
-                              initThirdPartyBalance
+                              sweepOutcome.initThirdPartyBalance
                             )
 
                             expect(diff).to.be.gt(0)
                             expect(diff).to.be.lt(
-                              ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+                              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
                             )
                           })
                         }
@@ -529,6 +486,7 @@ describe("Maintainer", () => {
           pendingRedemptionsValue: 0,
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -539,7 +497,7 @@ describe("Maintainer", () => {
         await bridge.revealDeposit(fundingTx, reveal)
 
         // Simulate the wallet's state has changed to MovingFunds
-        const wallet = await bridge.getWallet(reveal.walletPubKeyHash)
+        const wallet = await bridge.wallets(reveal.walletPubKeyHash)
         await bridge.setWallet(reveal.walletPubKeyHash, {
           ...wallet,
           state: walletState.MovingFunds,
@@ -580,9 +538,12 @@ describe("Maintainer", () => {
   })
 
   describe("submitRedemptionProof", () => {
+    let redemptionTimeout: BigNumber
+
     context("when called by an unauthorized third party", async () => {
       before(async () => {
         await createSnapshot()
+        ;({ redemptionTimeout } = await bridge.redemptionParameters())
       })
 
       after(async () => {
@@ -643,7 +604,6 @@ describe("Maintainer", () => {
                             await bridge.setRedemptionTreasuryFeeDivisor(0)
 
                             // eslint-disable-next-line @typescript-eslint/no-extra-semi
-
                             outcome = runRedemptionScenario(data)
                           })
 
@@ -692,9 +652,7 @@ describe("Maintainer", () => {
                             // an amount of time that will make the request
                             // timed out though don't report the timeout.
                             const beforeProofActions = async () => {
-                              await increaseTime(
-                                await bridge.redemptionTimeout()
-                              )
+                              await increaseTime(redemptionTimeout)
                             }
 
                             // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -749,11 +707,10 @@ describe("Maintainer", () => {
                             // an amount of time that will make the request
                             // timed out and then report the timeout.
                             const beforeProofActions = async () => {
-                              await increaseTime(
-                                await bridge.redemptionTimeout()
-                              )
+                              await increaseTime(redemptionTimeout)
                               await bridge.notifyRedemptionTimeout(
                                 data.wallet.pubKeyHash,
+                                [],
                                 data.redemptionRequests[0].redeemerOutputScript
                               )
                             }
@@ -872,7 +829,7 @@ describe("Maintainer", () => {
                             )
                             expect(diff).to.be.gt(0)
                             expect(diff).to.be.lt(
-                              ethers.utils.parseUnits("8500000", "gwei") // 0,0085 ETH
+                              ethers.utils.parseUnits("9000000", "gwei") // 0,009 ETH
                             )
                           })
                         }
@@ -898,9 +855,7 @@ describe("Maintainer", () => {
                             // an amount of time that will make the requests
                             // timed out and then report the timeouts.
                             const beforeProofActions = async () => {
-                              await increaseTime(
-                                await bridge.redemptionTimeout()
-                              )
+                              await increaseTime(redemptionTimeout)
 
                               for (
                                 let i = 0;
@@ -910,6 +865,7 @@ describe("Maintainer", () => {
                                 // eslint-disable-next-line no-await-in-loop
                                 await bridge.notifyRedemptionTimeout(
                                   data.wallet.pubKeyHash,
+                                  [],
                                   data.redemptionRequests[i]
                                     .redeemerOutputScript
                                 )
@@ -965,9 +921,7 @@ describe("Maintainer", () => {
                             // an amount of time that will make the requests
                             // timed out and then report the timeouts.
                             const beforeProofActions = async () => {
-                              await increaseTime(
-                                await bridge.redemptionTimeout()
-                              )
+                              await increaseTime(redemptionTimeout)
 
                               for (
                                 let i = 0;
@@ -977,6 +931,7 @@ describe("Maintainer", () => {
                                 // eslint-disable-next-line no-await-in-loop
                                 await bridge.notifyRedemptionTimeout(
                                   data.wallet.pubKeyHash,
+                                  [],
                                   data.redemptionRequests[i]
                                     .redeemerOutputScript
                                 )
@@ -1038,16 +993,16 @@ describe("Maintainer", () => {
                             // timed out but report timeout only the two first
                             // requests.
                             const beforeProofActions = async () => {
-                              await increaseTime(
-                                await bridge.redemptionTimeout()
-                              )
+                              await increaseTime(redemptionTimeout)
 
                               await bridge.notifyRedemptionTimeout(
                                 data.wallet.pubKeyHash,
+                                [],
                                 data.redemptionRequests[0].redeemerOutputScript
                               )
                               await bridge.notifyRedemptionTimeout(
                                 data.wallet.pubKeyHash,
+                                [],
                                 data.redemptionRequests[1].redeemerOutputScript
                               )
                             }
@@ -1100,16 +1055,16 @@ describe("Maintainer", () => {
                             // timed out but report timeout only the two first
                             // requests.
                             const beforeProofActions = async () => {
-                              await increaseTime(
-                                await bridge.redemptionTimeout()
-                              )
+                              await increaseTime(redemptionTimeout)
 
                               await bridge.notifyRedemptionTimeout(
                                 data.wallet.pubKeyHash,
+                                [],
                                 data.redemptionRequests[0].redeemerOutputScript
                               )
                               await bridge.notifyRedemptionTimeout(
                                 data.wallet.pubKeyHash,
+                                [],
                                 data.redemptionRequests[1].redeemerOutputScript
                               )
                             }
@@ -1161,7 +1116,7 @@ describe("Maintainer", () => {
                       // just before proof submission since requests should
                       // be made against a Live wallet.
                       const beforeProofActions = async () => {
-                        const wallet = await bridge.getWallet(
+                        const wallet = await bridge.wallets(
                           data.wallet.pubKeyHash
                         )
                         await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -1195,7 +1150,7 @@ describe("Maintainer", () => {
                       )
                       expect(diff).to.be.gt(0)
                       expect(diff).to.be.lt(
-                        ethers.utils.parseUnits("8500000", "gwei") // 0,0085 ETH
+                        ethers.utils.parseUnits("9000000", "gwei") // 0,009 ETH
                       )
                     })
                   })
@@ -1209,6 +1164,15 @@ describe("Maintainer", () => {
   })
 
   describe("notifyCloseableWallet", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      walletRegistry.requestNewWallet.reset()
+
+      await restoreSnapshot()
+    })
     context("when called by an unauthorized third party", async () => {
       it("should revert", async () => {
         await expect(
@@ -1245,12 +1209,15 @@ describe("Maintainer", () => {
               pendingRedemptionsValue: 0,
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
           })
 
           after(async () => {
+            walletRegistry.requestNewWallet.reset()
+
             await restoreSnapshot()
           })
 
@@ -1258,24 +1225,29 @@ describe("Maintainer", () => {
             before(async () => {
               await createSnapshot()
 
-              await increaseTime((await bridge.getWalletsParameters()).maxAge)
+              console.log("duuuupa2")
+
+              await increaseTime((await bridge.walletParameters()).walletMaxAge)
             })
 
             after(async () => {
+              walletRegistry.requestNewWallet.reset()
+
               await restoreSnapshot()
             })
 
             context("when wallet balance is zero", () => {
-              let tx: Promise<ContractTransaction>
+              let tx: ContractTransaction
               let initWalletRegistryBalance: BigNumber
 
               before(async () => {
                 await createSnapshot()
 
                 initWalletRegistryBalance = await provider.getBalance(
-                  walletRegistry.wallet.getAddress()
+                  await walletRegistry.wallet.getAddress()
                 )
-                tx = maintainerProxy
+
+                tx = await maintainerProxy
                   .connect(walletRegistry.wallet)
                   .notifyCloseableWallet(
                     ecdsaWalletTestData.pubKeyHash160,
@@ -1284,13 +1256,11 @@ describe("Maintainer", () => {
               })
 
               after(async () => {
-                walletRegistry.closeWallet.reset()
-
                 await restoreSnapshot()
               })
 
               it("should not revert", async () => {
-                await expect(tx).not.to.be.reverted
+                await expect(tx.wait()).not.to.be.reverted
               })
 
               it("should refund ETH", async () => {
@@ -1316,7 +1286,7 @@ describe("Maintainer", () => {
                 txOutputValue: 1,
               }
 
-              let tx: Promise<ContractTransaction>
+              let tx: ContractTransaction
               let initWalletRegistryBalance: BigNumber
 
               before(async () => {
@@ -1330,7 +1300,7 @@ describe("Maintainer", () => {
                 initWalletRegistryBalance = await provider.getBalance(
                   walletRegistry.wallet.getAddress()
                 )
-                tx = maintainerProxy
+                tx = await maintainerProxy
                   .connect(walletRegistry.wallet)
                   .notifyCloseableWallet(
                     ecdsaWalletTestData.pubKeyHash160,
@@ -1339,13 +1309,11 @@ describe("Maintainer", () => {
               })
 
               after(async () => {
-                walletRegistry.closeWallet.reset()
-
                 await restoreSnapshot()
               })
 
               it("should not revert", async () => {
-                await expect(tx).not.to.be.reverted
+                await expect(tx.wait()).not.to.be.reverted
               })
 
               it("should refund ETH", async () => {
@@ -1386,8 +1354,6 @@ describe("Maintainer", () => {
                 })
 
                 after(async () => {
-                  walletRegistry.closeWallet.reset()
-
                   await restoreSnapshot()
                 })
 
@@ -1415,10 +1381,10 @@ describe("Maintainer", () => {
                   txHash:
                     "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                   txOutputIndex: 0,
-                  txOutputValue: constants.walletMinBtcBalance.sub(1),
+                  txOutputValue: constants.walletClosureMinBtcBalance.sub(1),
                 }
 
-                let tx: Promise<ContractTransaction>
+                let tx: ContractTransaction
                 let initWalletRegistryBalance: BigNumber
 
                 before(async () => {
@@ -1432,7 +1398,7 @@ describe("Maintainer", () => {
                   initWalletRegistryBalance = await provider.getBalance(
                     walletRegistry.wallet.getAddress()
                   )
-                  tx = maintainerProxy
+                  tx = await maintainerProxy
                     .connect(walletRegistry.wallet)
                     .notifyCloseableWallet(
                       ecdsaWalletTestData.pubKeyHash160,
@@ -1441,13 +1407,11 @@ describe("Maintainer", () => {
                 })
 
                 after(async () => {
-                  walletRegistry.closeWallet.reset()
-
                   await restoreSnapshot()
                 })
 
                 it("should not revert", async () => {
-                  await expect(tx).not.to.be.reverted
+                  await expect(tx.wait()).not.to.be.reverted
                 })
 
                 it("should refund ETH", async () => {
@@ -1472,6 +1436,17 @@ describe("Maintainer", () => {
   })
 
   describe("defeatFraudChallenge", () => {
+    let fraudChallengeDepositAmount: BigNumber
+
+    before(async () => {
+      await createSnapshot()
+      ;({ fraudChallengeDepositAmount } = await bridge.fraudParameters())
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when called by an unauthorized third party", async () => {
       const data = nonWitnessSignSingleInputTx
 
@@ -1527,6 +1502,7 @@ describe("Maintainer", () => {
                         pendingRedemptionsValue: 0,
                         createdAt: await lastBlockTime(),
                         movingFundsRequestedAt: 0,
+                        closingStartedAt: 0,
                         state: walletState.Live,
                         movingFundsTargetWalletsCommitmentHash:
                           ethers.constants.HashZero,
@@ -1541,9 +1517,7 @@ describe("Maintainer", () => {
                           data.sighash,
                           data.signature,
                           {
-                            value: (
-                              await bridge.getFraudParameters()
-                            ).challengeDepositAmount,
+                            value: fraudChallengeDepositAmount,
                           }
                         )
 
@@ -1601,6 +1575,7 @@ describe("Maintainer", () => {
                         pendingRedemptionsValue: 0,
                         createdAt: await lastBlockTime(),
                         movingFundsRequestedAt: 0,
+                        closingStartedAt: 0,
                         state: walletState.Live,
                         movingFundsTargetWalletsCommitmentHash:
                           ethers.constants.HashZero,
@@ -1615,9 +1590,7 @@ describe("Maintainer", () => {
                           data.sighash,
                           data.signature,
                           {
-                            value: (
-                              await bridge.getFraudParameters()
-                            ).challengeDepositAmount,
+                            value: fraudChallengeDepositAmount,
                           }
                         )
 
@@ -1677,6 +1650,7 @@ describe("Maintainer", () => {
                         pendingRedemptionsValue: 0,
                         createdAt: await lastBlockTime(),
                         movingFundsRequestedAt: 0,
+                        closingStartedAt: 0,
                         state: walletState.Live,
                         movingFundsTargetWalletsCommitmentHash:
                           ethers.constants.HashZero,
@@ -1691,9 +1665,7 @@ describe("Maintainer", () => {
                           data.sighash,
                           data.signature,
                           {
-                            value: (
-                              await bridge.getFraudParameters()
-                            ).challengeDepositAmount,
+                            value: fraudChallengeDepositAmount,
                           }
                         )
 
@@ -1751,6 +1723,7 @@ describe("Maintainer", () => {
                         pendingRedemptionsValue: 0,
                         createdAt: await lastBlockTime(),
                         movingFundsRequestedAt: 0,
+                        closingStartedAt: 0,
                         state: walletState.Live,
                         movingFundsTargetWalletsCommitmentHash:
                           ethers.constants.HashZero,
@@ -1765,9 +1738,7 @@ describe("Maintainer", () => {
                           data.sighash,
                           data.signature,
                           {
-                            value: (
-                              await bridge.getFraudParameters()
-                            ).challengeDepositAmount,
+                            value: fraudChallengeDepositAmount,
                           }
                         )
 
@@ -1834,7 +1805,12 @@ describe("Maintainer", () => {
     // TODO: implement
   })
 
-  // TODO: add tests for updating gas
+  // TODO: add tests for updating gas offsets
+
+  interface SweepScenarioOutcome {
+    tx: ContractTransaction
+    initThirdPartyBalance: BigNumber
+  }
 
   interface RedemptionScenarioOutcome {
     tx: ContractTransaction
@@ -1855,7 +1831,7 @@ describe("Maintainer", () => {
 
   async function runSweepScenario(
     data: SweepTestData
-  ): Promise<ContractTransaction> {
+  ): Promise<SweepScenarioOutcome> {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
@@ -1865,9 +1841,13 @@ describe("Maintainer", () => {
       await bridge.revealDeposit(fundingTx, reveal)
     }
 
-    return maintainerProxy
+    const initThirdPartyBalance = await provider.getBalance(thirdParty.address)
+
+    const tx = await maintainerProxy
       .connect(thirdParty)
       .submitSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
+
+    return { tx, initThirdPartyBalance }
   }
 
   async function runRedemptionScenario(
@@ -1886,6 +1866,7 @@ describe("Maintainer", () => {
       pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
       createdAt: await lastBlockTime(),
       movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
       state: data.wallet.state,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
@@ -1899,7 +1880,7 @@ describe("Maintainer", () => {
       /* eslint-disable no-await-in-loop */
       const redeemerSigner = await impersonateAccount(redeemer, {
         from: governance,
-        value: 100, // use default value
+        value: 100,
       })
 
       await makeRedemptionAllowance(redeemerSigner, amount)
@@ -1934,12 +1915,5 @@ describe("Maintainer", () => {
       tx,
       initThirdPartyBalance,
     }
-  }
-
-  function buildChallengeKey(publicKey: BytesLike, sighash: BytesLike): string {
-    return ethers.utils.solidityKeccak256(
-      ["bytes", "bytes32"],
-      [publicKey, sighash]
-    )
   }
 })
