@@ -1559,15 +1559,6 @@
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
     "@threshold-network/solidity-contracts" ">1.2.0-dev <1.2.0-ropsten"
 
-"@keep-network/random-beacon@development":
-  version "2.0.0-dev.9"
-  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.9.tgz#09815afa500f7f57d9b990c6de21fbdfacc37e24"
-  integrity sha512-qXtMGfkKvYvVmsCcNyyrBzbT28GZmZ0ucsDdkOFLB2vS+03msO7jWnJsrnYUWCvVvom6ewBVJM1njo8I+b0LrA==
-  dependencies:
-    "@keep-network/sortition-pools" "1.2.0-dev.24"
-    "@openzeppelin/contracts" "^4.4.2"
-    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
-
 "@keep-network/sortition-pools@1.2.0-dev.1":
   version "1.2.0-dev.1"
   resolved "https://registry.yarnpkg.com/@keep-network/sortition-pools/-/sortition-pools-1.2.0-dev.1.tgz#2ee371f1dd1ff71f6d05c9ddc2a83a4a93ff56b3"
@@ -2422,9 +2413,9 @@
     "@typescript-eslint/types" "4.33.0"
     eslint-visitor-keys "^2.0.0"
 
-"@umpirsky/country-list@git+https://github.com/umpirsky/country-list#05fda51":
+"@umpirsky/country-list@git://github.com/umpirsky/country-list#05fda51":
   version "1.0.0"
-  resolved "git+https://github.com/umpirsky/country-list#05fda51cd97b3294e8175ffed06104c44b3c71d7"
+  resolved "git://github.com/umpirsky/country-list#05fda51cd97b3294e8175ffed06104c44b3c71d7"
 
 "@ungap/promise-all-settled@1.1.2":
   version "1.1.2"
