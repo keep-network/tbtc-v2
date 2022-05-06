@@ -4,6 +4,7 @@ import { expect } from "chai"
 import { ContractTransaction, BigNumber, BigNumberish } from "ethers"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { smock } from "@defi-wonderland/smock"
+import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import type {
@@ -1842,7 +1843,7 @@ describe("Maintainer", () => {
                                               await maintainerProxy
                                                 .connect(governance)
                                                 .authorize(
-                                                  walletRegistry.address
+                                                  thirdParty.address
                                                 )
                                               await reimbursementPool
                                                 .connect(governance)
@@ -1944,7 +1945,225 @@ describe("Maintainer", () => {
   })
 
   describe("submitMovingFundsCommitment", () => {
-    // TODO: implement
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when source wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.MovingFunds,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when source wallet has no pending redemptions", () => {
+        // The wallet created using the `walletDraft` has no pending redemptions
+        // by default. No need to do anything here.
+
+        context(
+          "when source wallet has no pending moved funds sweep requests",
+          () => {
+            // The wallet created using the `walletDraft` has no pending moved
+            // funds sweep requests by default. No need to do anything here.
+
+            context("when the commitment was not submitted yet", () => {
+              // The wallet created using the `walletDraft` has no commitment
+              // submitted by default. No need to do anything here.
+
+              context(
+                "when the caller is a member of the source wallet",
+                () => {
+                  const walletMembersIDs = [1, 2, 3, 4, 5]
+                  const walletMemberIndex = 2
+
+                  let caller: SignerWithAddress
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    caller = thirdParty
+
+                    await maintainerProxy
+                      .connect(governance)
+                      .authorize(caller.address)
+                    await reimbursementPool
+                      .connect(governance)
+                      .authorize(maintainerProxy.address)
+
+                    walletRegistry.isWalletMember
+                      .whenCalledWith(
+                        ecdsaWalletTestData.walletID,
+                        walletMembersIDs,
+                        maintainerProxy.address,
+                        walletMemberIndex
+                      )
+                      .returns(true)
+                  })
+
+                  after(async () => {
+                    walletRegistry.isWalletMember.reset()
+
+                    await restoreSnapshot()
+                  })
+
+                  context("when passed wallet main UTXO is valid", () => {
+                    context("when wallet balance is greater than zero", () => {
+                      // Just an arbitrary main UTXO with value of 26 BTC.
+                      const mainUtxo = {
+                        txHash:
+                          "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                        txOutputIndex: 0,
+                        txOutputValue: to1ePrecision(26, 8),
+                      }
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Set up a main UTXO for the source wallet.
+                        await bridge.setWalletMainUtxo(
+                          ecdsaWalletTestData.pubKeyHash160,
+                          mainUtxo
+                        )
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      context(
+                        "when the expected target wallets count is greater than zero",
+                        () => {
+                          // Just some arbitrary 20-byte hashes to simulate live
+                          // wallets PKHs. They are ordered in the expected way, i.e.
+                          // the hashes represented as numbers form a strictly
+                          // increasing sequence.
+                          const liveWallets = [
+                            "0x4b440cb29c80c3f256212d8fdd4f2125366f3c91",
+                            "0x888f01315e0268bfa05d5e522f8d63f6824d9a96",
+                            "0xb2a89e53a4227dbe530a52a1c419040735fa636c",
+                            "0xbf198e8fff0f90af01024153701da99b9bc08dc5",
+                            "0xffb9e05013f5cd126915bc03d340cc5c1be81862",
+                          ]
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            for (let i = 0; i < liveWallets.length; i++) {
+                              // eslint-disable-next-line no-await-in-loop
+                              await bridge.setWallet(liveWallets[i], {
+                                ...walletDraft,
+                                state: walletState.Live,
+                              })
+                            }
+                          })
+
+                          after(async () => {
+                            await restoreSnapshot()
+                          })
+
+                          context(
+                            "when the submitted target wallets count is same as the expected",
+                            () => {
+                              const expectedTargetWalletsCount = 3
+
+                              context(
+                                "when all target wallets are different than the source wallet",
+                                () => {
+                                  context(
+                                    "when all target wallets follow the expected order",
+                                    () => {
+                                      context(
+                                        "when all target wallets are in the Live state",
+                                        () => {
+                                          let tx: ContractTransaction
+                                          let initCallerBalance: BigNumber
+
+                                          const targetWallets =
+                                            liveWallets.slice(
+                                              0,
+                                              expectedTargetWalletsCount
+                                            )
+
+                                          before(async () => {
+                                            await createSnapshot()
+
+                                            initCallerBalance =
+                                              await provider.getBalance(
+                                                caller.address
+                                              )
+
+                                            tx = await maintainerProxy
+                                              .connect(caller)
+                                              .submitMovingFundsCommitment(
+                                                ecdsaWalletTestData.pubKeyHash160,
+                                                mainUtxo,
+                                                walletMembersIDs,
+                                                walletMemberIndex,
+                                                targetWallets
+                                              )
+                                          })
+
+                                          after(async () => {
+                                            await restoreSnapshot()
+                                          })
+
+                                          it("should not revert", async () => {
+                                            await expect(tx.wait()).not.to.be
+                                              .reverted
+                                          })
+
+                                          it("should refund ETH", async () => {
+                                            const postThirdPartyBalance =
+                                              await provider.getBalance(
+                                                caller.address
+                                              )
+                                            const diff =
+                                              postThirdPartyBalance.sub(
+                                                initCallerBalance
+                                              )
+
+                                            expect(diff).to.be.gt(0)
+                                            expect(diff).to.be.lt(
+                                              ethers.utils.parseUnits(
+                                                "1000000",
+                                                "gwei"
+                                              ) // 0,001 ETH
+                                            )
+                                          })
+                                        }
+                                      )
+                                    }
+                                  )
+                                }
+                              )
+                            }
+                          )
+                        }
+                      )
+                    })
+                  })
+                }
+              )
+            })
+          }
+        )
+      })
+    })
   })
 
   describe("authorize", () => {

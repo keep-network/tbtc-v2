@@ -40,7 +40,9 @@ contract MaintainerProxy is Ownable, Reimbursable {
     // TODO: make it upgradable
     uint256 public defeatFraudChallengeGasOffset = 10000;
     // TODO: make it upgradable
-    uint256 public submitMovingFundsProofGasOffset = 12500;
+    uint256 public submitMovingFundsProofGasOffset = 15000;
+    // TODO: make it upgradable
+    uint256 public submitMovingFundsCommitmentGasOffset = 8000;
 
     event MaintainerAuthorized(address indexed maintainer);
 
@@ -207,7 +209,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         BitcoinTx.Proof calldata movingFundsProof,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
-    ) external {
+    ) external onlyMaintainer {
         uint256 gasStart = gasleft();
 
         bridge.submitMovingFundsProof(
@@ -223,7 +225,41 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    // TODO: add submitMovingFundsCommitment()
+    /// @notice Submits the moving funds target wallets commitment.
+    ///         Once all requirements are met, that function registers the
+    ///         target wallets commitment and opens the way for moving funds
+    ///         proof submission.
+    /// @param walletPubKeyHash 20-byte public key hash of the source wallet
+    /// @param walletMainUtxo Data of the source wallet's main UTXO, as
+    ///        currently known on the Ethereum chain
+    /// @param walletMembersIDs Identifiers of the source wallet signing group
+    ///        members
+    /// @param walletMemberIndex Position of the caller in the source wallet
+    ///        signing group members list
+    /// @param targetWallets List of 20-byte public key hashes of the target
+    ///        wallets that the source wallet commits to move the funds to
+    function submitMovingFundsCommitment(
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata walletMainUtxo,
+        uint32[] calldata walletMembersIDs,
+        uint256 walletMemberIndex,
+        bytes20[] calldata targetWallets
+    ) external onlyMaintainer {
+        uint256 gasStart = gasleft();
+
+        bridge.submitMovingFundsCommitment(
+            walletPubKeyHash,
+            walletMainUtxo,
+            walletMembersIDs,
+            walletMemberIndex,
+            targetWallets
+        );
+
+        reimbursementPool.refund(
+            (gasStart - gasleft()) + submitMovingFundsCommitmentGasOffset,
+            msg.sender
+        );
+    }
 
     /// @notice Authorize a maintainer that can interact with this reimbursment pool.
     ///         Can be authorized by the owner only.
