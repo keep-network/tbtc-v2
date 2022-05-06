@@ -955,7 +955,8 @@ describe("Bridge", () => {
                               bridge.submitDepositSweepProof(
                                 data.sweepTx,
                                 data.sweepProof,
-                                mainUtxo
+                                mainUtxo,
+                                ethers.constants.AddressZero
                               )
                             ).to.be.revertedWith("Deposit already swept")
                           })
@@ -1006,7 +1007,8 @@ describe("Bridge", () => {
                             bridge.submitDepositSweepProof(
                               data.sweepTx,
                               data.sweepProof,
-                              NO_MAIN_UTXO
+                              NO_MAIN_UTXO,
+                              ethers.constants.AddressZero
                             )
                           ).to.be.revertedWith("Unknown input type")
                         })
@@ -1424,7 +1426,8 @@ describe("Bridge", () => {
                               bridge.submitDepositSweepProof(
                                 data.sweepTx,
                                 data.sweepProof,
-                                mainUtxo
+                                mainUtxo,
+                                ethers.constants.AddressZero
                               )
                             ).to.be.revertedWith("Deposit already swept")
                           })
@@ -1641,7 +1644,8 @@ describe("Bridge", () => {
                 bridge.submitDepositSweepProof(
                   sweepTx,
                   sweepProof,
-                  NO_MAIN_UTXO
+                  NO_MAIN_UTXO,
+                  ethers.constants.AddressZero
                 )
               ).to.be.revertedWith(
                 "Output's public key hash must have 20 bytes"
@@ -1702,7 +1706,12 @@ describe("Bridge", () => {
             }
 
             await expect(
-              bridge.submitDepositSweepProof(sweepTx, sweepProof, NO_MAIN_UTXO)
+              bridge.submitDepositSweepProof(
+                sweepTx,
+                sweepProof,
+                NO_MAIN_UTXO,
+                ethers.constants.AddressZero
+              )
             ).to.be.revertedWith("Sweep transaction must have a single output")
           })
         })
@@ -2095,7 +2104,8 @@ describe("Bridge", () => {
                 otherBridge.submitDepositSweepProof(
                   data.sweepTx,
                   data.sweepProof,
-                  data.mainUtxo
+                  data.mainUtxo,
+                  ethers.constants.AddressZero
                 )
               ).to.be.revertedWith(
                 "Insufficient accumulated difficulty in header chain"
@@ -2152,7 +2162,8 @@ describe("Bridge", () => {
           bridge.submitDepositSweepProof(
             data.sweepTx,
             data.sweepProof,
-            data.mainUtxo
+            data.mainUtxo,
+            ethers.constants.AddressZero
           )
         ).not.to.be.reverted
       })
@@ -2228,7 +2239,8 @@ describe("Bridge", () => {
               bridge.submitDepositSweepProof(
                 data.sweepTx,
                 data.sweepProof,
-                data.mainUtxo
+                data.mainUtxo,
+                ethers.constants.AddressZero
               )
             ).to.be.revertedWith("Wallet must be in Live or MovingFunds state")
           })
@@ -6176,7 +6188,8 @@ describe("Bridge", () => {
     return bridge.submitDepositSweepProof(
       data.sweepTx,
       data.sweepProof,
-      data.mainUtxo
+      data.mainUtxo,
+      ethers.constants.AddressZero
     )
   }
 
