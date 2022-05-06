@@ -32,7 +32,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     // TODO: make it upgradable
     uint256 public requestNewWalletGasOffset = 3000;
     // TODO: make it upgradable
-    uint256 public submitSweepProofGasOffset = 26500;
+    uint256 public submitDepositSweepProofGasOffset = 26500;
     // TODO: make it upgradable
     uint256 public submitRedemptionProofGasOffset = 9750;
     // TODO: make it upgradable
@@ -40,7 +40,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     // TODO: make it upgradable
     uint256 public defeatFraudChallengeGasOffset = 10000;
     // TODO: make it upgradable
-    uint256 public submitMovingFundsProofGasOffset = 0;
+    uint256 public submitMovingFundsProofGasOffset = 12500;
 
     event MaintainerAuthorized(address indexed maintainer);
 
@@ -83,17 +83,17 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
-    function submitSweepProof(
+    function submitDepositSweepProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external onlyMaintainer {
         uint256 gasStart = gasleft();
 
-        bridge.submitSweepProof(sweepTx, sweepProof, mainUtxo);
+        bridge.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo);
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) + submitSweepProofGasOffset,
+            (gasStart - gasleft()) + submitDepositSweepProofGasOffset,
             msg.sender
         );
     }
