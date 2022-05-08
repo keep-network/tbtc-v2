@@ -360,13 +360,13 @@ contract MaintainerProxy is Ownable, Reimbursable {
         _submitMovingFundsCommitmentGasOffset = submitMovingFundsCommitmentGasOffset;
 
         emit GasOffsetParametersUpdated(
-            requestNewWalletGasOffset,
-            submitDepositSweepProofGasOffset,
-            submitRedemptionProofGasOffset,
-            notifyCloseableWalletGasOffset,
-            defeatFraudChallengeGasOffset,
-            submitMovingFundsProofGasOffset,
-            submitMovingFundsCommitmentGasOffset
+            _requestNewWalletGasOffset,
+            _submitDepositSweepProofGasOffset,
+            _submitRedemptionProofGasOffset,
+            _notifyCloseableWalletGasOffset,
+            _defeatFraudChallengeGasOffset,
+            _submitMovingFundsProofGasOffset,
+            _submitMovingFundsCommitmentGasOffset
         );
     }
 }

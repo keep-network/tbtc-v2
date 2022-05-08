@@ -2249,7 +2249,7 @@ describe("Maintainer", () => {
       })
     })
 
-    context("when called by the governance", () => {
+    context("when called by the owner", () => {
       let tx: ContractTransaction
 
       before(async () => {
@@ -2275,7 +2275,46 @@ describe("Maintainer", () => {
     })
   })
 
-  // TODO: add tests for updating gas offsets
+  describe("updateGasOffsetParameters", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called by a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .updateGasOffsetParameters(40, 41, 42, 43, 44, 45, 46)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+        tx = await maintainerProxy
+          .connect(governance)
+          .updateGasOffsetParameters(40, 41, 42, 43, 44, 45, 46)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should emit the GasOffsetParametersUpdated event", async () => {
+        await expect(tx)
+          .to.emit(maintainerProxy, "GasOffsetParametersUpdated")
+          .withArgs(40, 41, 42, 43, 44, 45, 46)
+      })
+    })
+  })
 
   interface SweepScenarioOutcome {
     tx: ContractTransaction
