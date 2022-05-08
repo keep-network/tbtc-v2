@@ -20,7 +20,7 @@ export default async function bridgeFixture() {
   await deployments.fixture()
 
   const { deployer, governance, treasury } = await ethers.getNamedSigners()
-  const [thirdParty] = await ethers.getUnnamedSigners()
+  const [thirdParty, thirdPartyContract] = await ethers.getUnnamedSigners()
 
   const bank: Bank & BankStub = await ethers.getContract("Bank")
 
@@ -76,5 +76,6 @@ export default async function bridgeFixture() {
     deployer,
     reimbursementPool,
     maintainerProxy,
+    thirdPartyContract,
   }
 }
