@@ -21,7 +21,11 @@ import "@keep-network/random-beacon/contracts/ReimbursementPool.sol";
 import "../bridge/BitcoinTx.sol";
 import "../bridge/Bridge.sol";
 
-// TODO: add description
+/// @title Maintainer Proxy
+/// @notice Maintainers are the willing off-chain clients approved by DAO or council.
+///         Maintainers proxy calls to the Bridge contract and are refunded for
+///         the spent gas from the Reimbursement Pool. Only the authorized
+///         maintainers can proxy call Bridge contract.
 contract MaintainerProxy is Ownable, Reimbursable {
     Bridge public bridge;
 
@@ -29,26 +33,56 @@ contract MaintainerProxy is Ownable, Reimbursable {
     ///         contract. Authorization can be granted and removed by the governance.
     mapping(address => bool) public isAuthorized;
 
-    // TODO: make it upgradable
-    uint256 public requestNewWalletGasOffset = 3000;
-    // TODO: make it upgradable
-    uint256 public submitDepositSweepProofGasOffset = 26500;
-    // TODO: make it upgradable
-    uint256 public submitRedemptionProofGasOffset = 9750;
-    // TODO: make it upgradable
-    uint256 public notifyCloseableWalletGasOffset = 4000;
-    // TODO: make it upgradable
-    uint256 public defeatFraudChallengeGasOffset = 10000;
-    // TODO: make it upgradable
-    uint256 public submitMovingFundsProofGasOffset = 15000;
-    // TODO: make it upgradable
-    uint256 public submitMovingFundsCommitmentGasOffset = 8000;
+    /// @notice Gas that is meant to balance the request of a new wallet overall
+    ///         cost. Can be updated by the governance based on the current
+    ///         market conditions.
+    uint256 internal _requestNewWalletGasOffset;
+
+    /// @notice Gas that is meant to balance the submission of deposit sweep proof
+    ///         overall cost. Can be updated by the governance based on the current
+    ///         market conditions.
+    uint256 internal _submitDepositSweepProofGasOffset;
+
+    /// @notice Gas that is meant to balance the submission of redemption proof
+    ///         overall cost. Can be updated by the governance based on the current
+    ///         market conditions.
+    uint256 internal _submitRedemptionProofGasOffset;
+
+    /// @notice Gas that is meant to balance the notification of closeable wallet
+    ///         overall cost. Can be updated by the governance based on the current
+    ///         market conditions.
+    uint256 internal _notifyCloseableWalletGasOffset;
+
+    /// @notice Gas that is meant to balance the defeat fraud challenge
+    ///         overall cost. Can be updated by the governance based on the current
+    ///         market conditions.
+    uint256 internal _defeatFraudChallengeGasOffset;
+
+    /// @notice Gas that is meant to balance the submission of moving funds proof
+    ///         overall cost. Can be updated by the governance based on the current
+    ///         market conditions.
+    uint256 internal _submitMovingFundsProofGasOffset;
+
+    /// @notice Gas that is meant to balance the submission of moving funds commitment
+    ///         overall cost. Can be updated by the governance based on the current
+    ///         market conditions.
+    uint256 internal _submitMovingFundsCommitmentGasOffset;
 
     event MaintainerAuthorized(address indexed maintainer);
 
     event MaintainerUnauthorized(address indexed maintainer);
 
     event BridgeUpdated(address newBridge);
+
+    event GasOffsetParametersUpdated(
+        uint256 requestNewWalletGasOffset,
+        uint256 submitDepositSweepProofGasOffset,
+        uint256 submitRedemptionProofGasOffset,
+        uint256 notifyCloseableWalletGasOffset,
+        uint256 defeatFraudChallengeGasOffset,
+        uint256 submitMovingFundsProofGasOffset,
+        uint256 submitMovingFundsCommitmentGasOffset
+    );
 
     modifier onlyMaintainer() {
         require(isAuthorized[msg.sender], "Caller is not authorized");
@@ -58,6 +92,13 @@ contract MaintainerProxy is Ownable, Reimbursable {
     constructor(Bridge _bridge, ReimbursementPool _reimbursementPool) {
         bridge = _bridge;
         reimbursementPool = _reimbursementPool;
+        _requestNewWalletGasOffset = 3000;
+        _submitDepositSweepProofGasOffset = 26500;
+        _submitRedemptionProofGasOffset = 9750;
+        _notifyCloseableWalletGasOffset = 4000;
+        _defeatFraudChallengeGasOffset = 10000;
+        _submitMovingFundsProofGasOffset = 15000;
+        _submitMovingFundsCommitmentGasOffset = 8000;
     }
 
     /// @notice Wraps request new wallet call and reimburses a caller's
@@ -73,7 +114,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         bridge.requestNewWallet(activeWalletMainUtxo);
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) + requestNewWalletGasOffset,
+            (gasStart - gasleft()) + _requestNewWalletGasOffset,
             msg.sender
         );
     }
@@ -95,7 +136,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         bridge.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo);
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) + submitDepositSweepProofGasOffset,
+            (gasStart - gasleft()) + _submitDepositSweepProofGasOffset,
             msg.sender
         );
     }
@@ -125,7 +166,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) + submitRedemptionProofGasOffset,
+            (gasStart - gasleft()) + _submitRedemptionProofGasOffset,
             msg.sender
         );
     }
@@ -144,7 +185,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         bridge.notifyCloseableWallet(walletPubKeyHash, walletMainUtxo);
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) + notifyCloseableWalletGasOffset,
+            (gasStart - gasleft()) + _notifyCloseableWalletGasOffset,
             msg.sender
         );
     }
@@ -180,7 +221,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         bridge.defeatFraudChallenge(walletPublicKey, preimage, witness);
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) + defeatFraudChallengeGasOffset,
+            (gasStart - gasleft()) + _defeatFraudChallengeGasOffset,
             msg.sender
         );
     }
@@ -220,7 +261,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) + submitMovingFundsProofGasOffset,
+            (gasStart - gasleft()) + _submitMovingFundsProofGasOffset,
             msg.sender
         );
     }
@@ -256,7 +297,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) + submitMovingFundsCommitmentGasOffset,
+            (gasStart - gasleft()) + _submitMovingFundsCommitmentGasOffset,
             msg.sender
         );
     }
@@ -289,5 +330,43 @@ contract MaintainerProxy is Ownable, Reimbursable {
         bridge = _bridge;
 
         emit BridgeUpdated(address(_bridge));
+    }
+
+    /// @notice Updates the values of gas offset parameters.
+    /// @dev Can be called only by the contract owner. The caller is responsible
+    ///      for validating parameters.
+    /// @param requestNewWalletGasOffset New request wallet gas offset
+    /// @param submitDepositSweepProofGasOffset New request wallet gas offset
+    /// @param submitRedemptionProofGasOffset New submit redemption proof gas offset
+    /// @param notifyCloseableWalletGasOffset New notify closeable wallet gas offset
+    /// @param defeatFraudChallengeGasOffset New defeat fraud challenge gas offset
+    /// @param submitMovingFundsProofGasOffset New submit moving funds proof gas offset
+    /// @param submitMovingFundsCommitmentGasOffset New submit moving funds commitment gas offset
+    function updateGasOffsetParameters(
+        uint256 requestNewWalletGasOffset,
+        uint256 submitDepositSweepProofGasOffset,
+        uint256 submitRedemptionProofGasOffset,
+        uint256 notifyCloseableWalletGasOffset,
+        uint256 defeatFraudChallengeGasOffset,
+        uint256 submitMovingFundsProofGasOffset,
+        uint256 submitMovingFundsCommitmentGasOffset
+    ) external onlyOwner {
+        _requestNewWalletGasOffset = requestNewWalletGasOffset;
+        _submitDepositSweepProofGasOffset = submitDepositSweepProofGasOffset;
+        _submitRedemptionProofGasOffset = submitRedemptionProofGasOffset;
+        _notifyCloseableWalletGasOffset = notifyCloseableWalletGasOffset;
+        _defeatFraudChallengeGasOffset = defeatFraudChallengeGasOffset;
+        _submitMovingFundsProofGasOffset = submitMovingFundsProofGasOffset;
+        _submitMovingFundsCommitmentGasOffset = submitMovingFundsCommitmentGasOffset;
+
+        emit GasOffsetParametersUpdated(
+            requestNewWalletGasOffset,
+            submitDepositSweepProofGasOffset,
+            submitRedemptionProofGasOffset,
+            notifyCloseableWalletGasOffset,
+            defeatFraudChallengeGasOffset,
+            submitMovingFundsProofGasOffset,
+            submitMovingFundsCommitmentGasOffset
+        );
     }
 }
