@@ -78,6 +78,7 @@ describe("Maintainer", () => {
   let walletRegistry: FakeContract<IWalletRegistry>
 
   let bank: Bank & BankStub
+  let thirdPartyContract: SignerWithAddress
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -91,6 +92,7 @@ describe("Maintainer", () => {
       reimbursementPool,
       maintainerProxy,
       deployer,
+      thirdPartyContract,
     } = await waffle.loadFixture(bridgeFixture))
 
     walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry", {
@@ -1241,8 +1243,6 @@ describe("Maintainer", () => {
             before(async () => {
               await createSnapshot()
 
-              console.log("duuuupa2")
-
               await increaseTime((await bridge.walletParameters()).walletMaxAge)
             })
 
@@ -1842,9 +1842,7 @@ describe("Maintainer", () => {
 
                                               await maintainerProxy
                                                 .connect(governance)
-                                                .authorize(
-                                                  thirdParty.address
-                                                )
+                                                .authorize(thirdParty.address)
                                               await reimbursementPool
                                                 .connect(governance)
                                                 .authorize(
@@ -2167,15 +2165,114 @@ describe("Maintainer", () => {
   })
 
   describe("authorize", () => {
-    // TODO: implement
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .authorize(thirdPartyContract.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      it("should authorize a contract", async () => {
+        const tx = await maintainerProxy
+          .connect(governance)
+          .authorize(thirdPartyContract.address)
+
+        await expect(
+          await maintainerProxy.isAuthorized(thirdPartyContract.address)
+        ).to.be.true
+
+        await expect(tx)
+          .to.emit(maintainerProxy, "MaintainerAuthorized")
+          .withArgs(thirdPartyContract.address)
+      })
+    })
   })
 
   describe("unauthorize", () => {
-    // TODO: implement
+    beforeEach(async () => {
+      await createSnapshot()
+
+      await maintainerProxy
+        .connect(governance)
+        .authorize(thirdPartyContract.address)
+    })
+
+    afterEach(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .unauthorize(thirdPartyContract.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      it("should unauthorize a contract", async () => {
+        const tx = await maintainerProxy
+          .connect(governance)
+          .unauthorize(thirdPartyContract.address)
+
+        await expect(
+          await maintainerProxy.isAuthorized(thirdPartyContract.address)
+        ).to.be.false
+
+        await expect(tx)
+          .to.emit(maintainerProxy, "MaintainerUnauthorized")
+          .withArgs(thirdPartyContract.address)
+      })
+    })
   })
 
   describe("updateBridge", () => {
-    // TODO: implement
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called by a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          maintainerProxy.connect(thirdParty).updateBridge(thirdParty.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+        tx = await maintainerProxy
+          .connect(governance)
+          .updateBridge(thirdParty.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should update the bridge", async () => {
+        expect(await maintainerProxy.bridge()).to.equal(thirdParty.address)
+      })
+
+      it("should emit the BridgeUpdated event", async () => {
+        await expect(tx)
+          .to.emit(maintainerProxy, "BridgeUpdated")
+          .withArgs(thirdParty.address)
+      })
+    })
   })
 
   // TODO: add tests for updating gas offsets
