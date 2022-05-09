@@ -3207,7 +3207,7 @@ describe("Bridge - Redemption", () => {
                 data.redemptionRequests[0].redeemer,
                 {
                   from: governance,
-                  value: null, // use default value
+                  value: 10,
                 }
               )
 
@@ -3398,7 +3398,7 @@ describe("Bridge - Redemption", () => {
                 data.redemptionRequests[0].redeemer,
                 {
                   from: governance,
-                  value: null, // use default value
+                  value: 10,
                 }
               )
 
@@ -3485,7 +3485,7 @@ describe("Bridge - Redemption", () => {
               data.redemptionRequests[0].redeemer,
               {
                 from: governance,
-                value: null, // use default value
+                value: 10,
               }
             )
 
@@ -3674,7 +3674,7 @@ describe("Bridge - Redemption", () => {
               data.redemptionRequests[0].redeemer,
               {
                 from: governance,
-                value: null, // use default value
+                value: 10,
               }
             )
 
@@ -3865,7 +3865,7 @@ describe("Bridge - Redemption", () => {
                     data.redemptionRequests[0].redeemer,
                     {
                       from: governance,
-                      value: null, // use default value
+                      value: 10,
                     }
                   )
 
@@ -3948,7 +3948,7 @@ describe("Bridge - Redemption", () => {
             data.redemptionRequests[0].redeemer,
             {
               from: governance,
-              value: null, // use default value
+              value: 10,
             }
           )
 
@@ -4051,7 +4051,7 @@ describe("Bridge - Redemption", () => {
       /* eslint-disable no-await-in-loop */
       const redeemerSigner = await impersonateAccount(redeemer, {
         from: governance,
-        value: null, // use default value
+        value: 10,
       })
 
       await makeRedemptionAllowance(redeemerSigner, amount)
