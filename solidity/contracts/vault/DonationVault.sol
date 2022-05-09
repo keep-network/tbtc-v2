@@ -29,7 +29,7 @@ import "../bank/Bank.sol";
 contract DonationVault is IVault {
     Bank public bank;
 
-    event DonationReceived(address[] depositors, uint256[] depositedAmounts);
+    event DonationReceived(address donator, uint256 donatedAmount);
 
     modifier onlyBank() {
         require(msg.sender == address(bank), "Caller is not the Bank");
@@ -45,18 +45,62 @@ contract DonationVault is IVault {
         bank = _bank;
     }
 
-    /// @notice Function not supported by the `DonationVault`. Always reverts.
-    function receiveBalanceApproval(address, uint256)
+    /// @notice Transfers the given `amount` of the Bank balance from the
+    ///         caller to the Donation Vault and immediately decreases the
+    ///         vault's balance in the Bank by the transferred `amount`.
+    /// @param amount Amount of the Bank balance to donate
+    /// @dev Requirements:
+    ///      - The caller's balance in the Bank must be greater than or equal
+    ///        to the `amount`.
+    ///      - Donation Vault must have an allowance for caller's balance in
+    ///        the Bank for at least `amount`.
+    function donate(uint256 amount) external {
+        address donator = msg.sender;
+
+        require(
+            bank.balanceOf(donator) >= amount,
+            "Amount exceeds balance in the bank"
+        );
+
+        emit DonationReceived(donator, amount);
+
+        bank.transferBalanceFrom(donator, address(this), amount);
+        bank.decreaseBalance(amount);
+    }
+
+    /// @notice Transfers the given `amount` of the Bank balance from the
+    ///         `owner` to the Donation Vault and immediately decreases the
+    ///         vault's balance in the Bank by the transferred `amount`.
+    /// @param owner Address of the Bank balance owner who approved their
+    ///        balance to be used by the vault
+    /// @param amount The amount of the Bank balance approved by the owner
+    ///        to be used by the vault
+    /// @dev Requirements:
+    ///      - Can only be called by the Bank via `approveBalanceAndCall`.
+    ///      - The `owner` balance in the Bank must be greater than or equal
+    ///        to the `amount`.
+    function receiveBalanceApproval(address owner, uint256 amount)
         external
         override
         onlyBank
     {
-        revert("Donation vault cannot receive balance approval");
+        require(
+            bank.balanceOf(owner) >= amount,
+            "Amount exceeds balance in the bank"
+        );
+
+        emit DonationReceived(owner, amount);
+
+        bank.transferBalanceFrom(owner, address(this), amount);
+        bank.decreaseBalance(amount);
     }
 
     /// @notice Ignores the deposited amounts and does not increase depositors'
     ///         individual tBTC balances. Decreases its own tBTC balance
     ///         in the Bank by the total deposited amount.
+    /// @param depositors Addresses of depositors whose deposits have been swept
+    /// @param depositedAmounts Amounts deposited by individual depositors and
+    ///        swept
     /// @dev Requirements:
     ///      - Can only be called by the Bank after the Bridge swept deposits
     ///        and Bank increased balance for the vault.
@@ -72,9 +116,8 @@ contract DonationVault is IVault {
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < depositors.length; i++) {
             totalAmount += depositedAmounts[i];
+            emit DonationReceived(depositors[i], depositedAmounts[i]);
         }
-
-        emit DonationReceived(depositors, depositedAmounts);
 
         bank.decreaseBalance(totalAmount);
     }

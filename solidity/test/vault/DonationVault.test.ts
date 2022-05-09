@@ -13,7 +13,7 @@ import type {
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
 const fixture = async () => {
-  const [deployer, bridge, thirdParty1, thirdParty2] = await ethers.getSigners()
+  const [deployer, bridge, account1, account2] = await ethers.getSigners()
 
   const Bank = await ethers.getContractFactory<Bank__factory>("Bank")
   const bank = await Bank.deploy()
@@ -29,8 +29,8 @@ const fixture = async () => {
 
   return {
     bridge,
-    thirdParty1,
-    thirdParty2,
+    account1,
+    account2,
     bank,
     vault,
   }
@@ -38,15 +38,16 @@ const fixture = async () => {
 
 describe("DonationVault", () => {
   let bridge: SignerWithAddress
-  let thirdParty1: SignerWithAddress
-  let thirdParty2: SignerWithAddress
+  let account1: SignerWithAddress
+  let account2: SignerWithAddress
   let bank: Bank
   let vault: DonationVault
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ bridge, thirdParty1, thirdParty2, bank, vault } =
-      await waffle.loadFixture(fixture))
+    ;({ bridge, account1, account2, bank, vault } = await waffle.loadFixture(
+      fixture
+    ))
   })
 
   describe("constructor", () => {
@@ -66,22 +67,151 @@ describe("DonationVault", () => {
     })
   })
 
+  describe("donate", () => {
+    context("when caller has not enough balance in the bank", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bank.connect(bridge).increaseBalance(account1.address, 999)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(vault.connect(account1).donate(1000)).to.be.revertedWith(
+          "Amount exceeds balance in the bank"
+        )
+      })
+    })
+
+    context(
+      "when vault does not have enough allowance for caller's balance",
+      () => {
+        before(async () => {
+          await createSnapshot()
+
+          await bank.connect(bridge).increaseBalance(account1.address, 1000)
+          await bank
+            .connect(account1)
+            .increaseBalanceAllowance(vault.address, 999)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(vault.connect(account1).donate(1000)).to.be.revertedWith(
+            "Transfer amount exceeds allowance"
+          )
+        })
+      }
+    )
+
+    context("when called with correct parameters", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        await bank.connect(bridge).increaseBalance(account1.address, 1000)
+        await bank
+          .connect(account1)
+          .increaseBalanceAllowance(vault.address, 1000)
+
+        tx = await vault.connect(account1).donate(1000)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should decrease donator's balance", async () => {
+        expect(await bank.balanceOf(account1.address)).to.be.equal(0)
+      })
+
+      it("should not increase vault's balance", async () => {
+        expect(await bank.balanceOf(vault.address)).to.be.equal(0)
+      })
+
+      it("should emit BalanceDecreased event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceDecreased")
+          .withArgs(vault.address, 1000)
+      })
+
+      it("should emit DonationReceived event", async () => {
+        await expect(tx)
+          .to.emit(vault, "DonationReceived")
+          .withArgs(account1.address, 1000)
+      })
+    })
+  })
+
   describe("receiveBalanceApproval", () => {
     context("when called not by the bank", () => {
       it("should revert", async () => {
         await expect(
-          vault
-            .connect(bridge)
-            .receiveBalanceApproval(thirdParty1.address, 1000)
+          vault.connect(bridge).receiveBalanceApproval(account1.address, 1000)
         ).to.be.revertedWith("Caller is not the Bank")
       })
     })
 
-    context("when called by the bank", () => {
+    context("when caller has not enough balance in the bank", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bank.connect(bridge).increaseBalance(account1.address, 999)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
       it("should revert", async () => {
         await expect(
-          bank.connect(thirdParty1).approveBalanceAndCall(vault.address, 1000)
-        ).to.be.revertedWith("Donation vault cannot receive balance approval")
+          bank.connect(account1).approveBalanceAndCall(vault.address, 1000)
+        ).to.be.revertedWith("Amount exceeds balance in the bank")
+      })
+    })
+
+    context("when called with correct parameters", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        await bank.connect(bridge).increaseBalance(account1.address, 1000)
+
+        tx = await bank
+          .connect(account1)
+          .approveBalanceAndCall(vault.address, 1000)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should decrease donator's balance", async () => {
+        expect(await bank.balanceOf(account1.address)).to.be.equal(0)
+      })
+
+      it("should not increase vault's balance", async () => {
+        expect(await bank.balanceOf(vault.address)).to.be.equal(0)
+      })
+
+      it("should emit BalanceDecreased event", async () => {
+        await expect(tx)
+          .to.emit(bank, "BalanceDecreased")
+          .withArgs(vault.address, 1000)
+      })
+
+      it("should emit DonationReceived event", async () => {
+        await expect(tx)
+          .to.emit(vault, "DonationReceived")
+          .withArgs(account1.address, 1000)
       })
     })
   })
@@ -92,7 +222,7 @@ describe("DonationVault", () => {
         await expect(
           vault
             .connect(bridge)
-            .receiveBalanceIncrease([thirdParty1.address], [1000])
+            .receiveBalanceIncrease([account1.address], [1000])
         ).to.be.revertedWith("Caller is not the Bank")
       })
     })
@@ -115,7 +245,7 @@ describe("DonationVault", () => {
           .connect(bridge)
           .increaseBalanceAndCall(
             vault.address,
-            [thirdParty1.address, thirdParty2.address],
+            [account1.address, account2.address],
             [1000, 2000]
           )
       })
@@ -125,8 +255,8 @@ describe("DonationVault", () => {
       })
 
       it("should not increase depositors' balances", async () => {
-        expect(await bank.balanceOf(thirdParty1.address)).to.be.equal(0)
-        expect(await bank.balanceOf(thirdParty2.address)).to.be.equal(0)
+        expect(await bank.balanceOf(account1.address)).to.be.equal(0)
+        expect(await bank.balanceOf(account2.address)).to.be.equal(0)
       })
 
       it("should not increase vault's balance", async () => {
@@ -142,7 +272,11 @@ describe("DonationVault", () => {
       it("should emit DonationReceived event", async () => {
         await expect(tx)
           .to.emit(vault, "DonationReceived")
-          .withArgs([thirdParty1.address, thirdParty2.address], [1000, 2000])
+          .withArgs(account1.address, 1000)
+
+        await expect(tx)
+          .to.emit(vault, "DonationReceived")
+          .withArgs(account2.address, 2000)
       })
     })
   })
