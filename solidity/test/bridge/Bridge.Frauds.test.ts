@@ -548,7 +548,7 @@ describe("Bridge - Fraud", () => {
       // message changes or in case we want to add more unit tests, we can simply
       // call appropriate function to compute another signature. Also, we do not
       // use any BTC-specific data for this set of unit tests.
-      const wallet = await ethers.Wallet.createRandom()
+      const wallet = ethers.Wallet.createRandom()
       // We use `ethers.utils.SigningKey` for a `Wallet` instead of
       // `Signer.signMessage` to do not add '\x19Ethereum Signed Message:\n'
       // prefix to the signed message. The format of the heartbeat message is

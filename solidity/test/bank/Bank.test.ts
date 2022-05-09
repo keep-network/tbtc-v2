@@ -811,7 +811,7 @@ describe("Bank", () => {
     before(async () => {
       await createSnapshot()
 
-      owner = await ethers.Wallet.createRandom()
+      owner = ethers.Wallet.createRandom()
       await bank.connect(bridge).increaseBalance(owner.address, initialBalance)
 
       const accounts = await getUnnamedAccounts()
