@@ -107,7 +107,7 @@ describe("Bridge - Deposit", () => {
 
         await bridge.connect(governance).setVaultStatus(reveal.vault, true)
 
-        // Simulate the wallet is an Live one and is known in the system.
+        // Simulate the wallet is a Live one and is known in the system.
         await bridge.setWallet(reveal.walletPubKeyHash, {
           ecdsaWalletID: ethers.constants.HashZero,
           mainUtxoHash: ethers.constants.HashZero,
@@ -569,7 +569,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -659,7 +659,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -751,7 +751,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -878,7 +878,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -994,7 +994,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -1047,7 +1047,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -1085,7 +1085,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -1133,7 +1133,7 @@ describe("Bridge - Deposit", () => {
                         before(async () => {
                           await createSnapshot()
 
-                          // Simulate the wallet is an Live one and is known in the system.
+                          // Simulate the wallet is a Live one and is known in the system.
                           await bridge.setWallet(walletPubKeyHash, {
                             ...walletDraft,
                             state: walletState.Live,
@@ -1187,7 +1187,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -1345,7 +1345,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -1539,7 +1539,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -1730,7 +1730,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -1795,7 +1795,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -1918,7 +1918,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -1967,7 +1967,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -2018,7 +2018,7 @@ describe("Bridge - Deposit", () => {
                           before(async () => {
                             await createSnapshot()
 
-                            // Simulate the wallet is an Live one and is known in
+                            // Simulate the wallet is a Live one and is known in
                             // the system.
                             await bridge.setWallet(walletPubKeyHash, {
                               ...walletDraft,
@@ -2056,7 +2056,7 @@ describe("Bridge - Deposit", () => {
                     before(async () => {
                       await createSnapshot()
 
-                      // Simulate the wallet is an Live one and is known in
+                      // Simulate the wallet is a Live one and is known in
                       // the system.
                       await bridge.setWallet(walletPubKeyHash, {
                         ...walletDraft,
@@ -2095,7 +2095,7 @@ describe("Bridge - Deposit", () => {
                 before(async () => {
                   await createSnapshot()
 
-                  // Simulate the wallet is an Live one and is known in
+                  // Simulate the wallet is a Live one and is known in
                   // the system.
                   await bridge.setWallet(walletPubKeyHash, {
                     ...walletDraft,
@@ -2277,7 +2277,7 @@ describe("Bridge - Deposit", () => {
           before(async () => {
             await createSnapshot()
 
-            // Simulate the wallet is an Live one and is known in
+            // Simulate the wallet is a Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
               ...walletDraft,
@@ -2321,7 +2321,7 @@ describe("Bridge - Deposit", () => {
           before(async () => {
             await createSnapshot()
 
-            // Simulate the wallet is an Live one and is known in
+            // Simulate the wallet is a Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
               ...walletDraft,
@@ -2358,7 +2358,7 @@ describe("Bridge - Deposit", () => {
           before(async () => {
             await createSnapshot()
 
-            // Simulate the wallet is an Live one and is known in
+            // Simulate the wallet is a Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
               ...walletDraft,
@@ -2393,7 +2393,7 @@ describe("Bridge - Deposit", () => {
           before(async () => {
             await createSnapshot()
 
-            // Simulate the wallet is an Live one and is known in
+            // Simulate the wallet is a Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
               ...walletDraft,
@@ -2429,7 +2429,7 @@ describe("Bridge - Deposit", () => {
           before(async () => {
             await createSnapshot()
 
-            // Simulate the wallet is an Live one and is known in
+            // Simulate the wallet is a Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
               ...walletDraft,
@@ -2470,7 +2470,7 @@ describe("Bridge - Deposit", () => {
           before(async () => {
             await createSnapshot()
 
-            // Simulate the wallet is an Live one and is known in
+            // Simulate the wallet is a Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
               ...walletDraft,
@@ -2514,7 +2514,7 @@ describe("Bridge - Deposit", () => {
 
           before(async () => {
             await createSnapshot()
-            // Simulate the wallet is an Live one and is known in
+            // Simulate the wallet is a Live one and is known in
             // the system.
             await bridge.setWallet(walletPubKeyHash, {
               ...walletDraft,
@@ -2559,7 +2559,7 @@ describe("Bridge - Deposit", () => {
             before(async () => {
               await createSnapshot()
 
-              // Simulate the wallet is an Live one and is known in
+              // Simulate the wallet is a Live one and is known in
               // the system.
               await bridge.setWallet(walletPubKeyHash, {
                 ...walletDraft,
