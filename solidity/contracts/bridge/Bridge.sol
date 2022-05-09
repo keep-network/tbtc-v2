@@ -327,14 +327,14 @@ contract Bridge is Governable, EcdsaWalletOwner {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
-    /// @param vault Address of the vault where all swept deposits should
-    ///        be routed to. All deposits swept as part of the transaction
+    /// @param vault Optional address of the vault where all swept deposits
+    ///        should be routed to. All deposits swept as part of the transaction
     ///        must have their `vault` parameters set to the same address.
-    ///        If this parameter is set an address of a trusted vault, swept
+    ///        If this parameter is set to an address of a trusted vault, swept
     ///        deposits are routed to that vault.
     ///        If this parameter is set to the zero address or to an address
-    ///        of a non-trusted vault, swept deposits are not routed to any
-    ///        vault and depositors' balances are increased in the Bank
+    ///        of a non-trusted vault, swept deposits are not routed to a
+    ///        vault but depositors' balances are increased in the Bank
     ///        individually.
     /// @dev Requirements:
     ///      - `sweepTx` components must match the expected structure. See

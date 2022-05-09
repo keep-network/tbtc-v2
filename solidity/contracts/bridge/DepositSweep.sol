@@ -57,7 +57,8 @@ library DepositSweep {
         BitcoinTx.UTXO mainUtxo;
         // Address of the vault where all swept deposits should be routed to.
         // It is used to validate whether all swept deposits have been revealed
-        // with the same `vault` parameter.
+        // with the same `vault` parameter. It is an optional parameter.
+        // Set to zero address if deposits are not routed to a vault.
         address vault;
     }
 
@@ -105,14 +106,14 @@ library DepositSweep {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
-    /// @param vault Address of the vault where all swept deposits should
-    ///        be routed to. All deposits swept as part of the transaction
+    /// @param vault Optional address of the vault where all swept deposits
+    ///        should be routed to. All deposits swept as part of the transaction
     ///        must have their `vault` parameters set to the same address.
-    ///        If this parameter is set an address of a trusted vault, swept
+    ///        If this parameter is set to an address of a trusted vault, swept
     ///        deposits are routed to that vault.
     ///        If this parameter is set to the zero address or to an address
-    ///        of a non-trusted vault, swept deposits are not routed to any
-    ///        vault and depositors' balances are increased in the Bank
+    ///        of a non-trusted vault, swept deposits are not routed to a
+    ///        vault but depositors' balances are increased in the Bank
     ///        individually.
     /// @dev Requirements:
     ///      - `sweepTx` components must match the expected structure. See
@@ -236,8 +237,9 @@ library DepositSweep {
                 inputsInfo.depositedAmounts
             );
         } else {
-            // If the `vault` address is zero or belongs to an non-trusted
-            // vault, increase balances in the Bank individually.
+            // If the `vault` address is zero or belongs to a non-trusted
+            // vault, increase balances in the Bank individually for each
+            // depositor.
             self.bank.increaseBalances(
                 inputsInfo.depositors,
                 inputsInfo.depositedAmounts
@@ -347,7 +349,6 @@ library DepositSweep {
     ///         if one of the inputs cannot be recognized as a pointer to a
     ///         revealed deposit or expected main UTXO.
     ///         This function also marks each processed deposit as swept.
-
     /// @return resultInfo Outcomes of the processing.
     function processDepositSweepTxInputs(
         BridgeState.Storage storage self,
