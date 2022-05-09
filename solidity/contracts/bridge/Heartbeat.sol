@@ -80,7 +80,7 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 ///      example, the last Ethereum block hash).
 ///
 ///      The message being signed by the wallet when executing the heartbeat
-///      protocol should be Bitcoin's hash256 (double sha2) of the heartbeat
+///      protocol should be Bitcoin's hash256 (double SHA-256) of the heartbeat
 ///      message:
 ///        heartbeat_sighash = hash256(heartbeat_message)
 library Heartbeat {

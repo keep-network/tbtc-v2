@@ -918,7 +918,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///         deposited by the challenger is sent to the treasury.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
-    /// @param heartbeatMessage Off-chain heartbeat message meeting the hearteat
+    /// @param heartbeatMessage Off-chain heartbeat message meeting the heartbeat
     ///        message format requirements which produces sighash used to
     ///        generate the ECDSA signature that is the subject of the fraud
     ///        claim
