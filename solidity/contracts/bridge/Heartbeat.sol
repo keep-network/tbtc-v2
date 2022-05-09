@@ -74,8 +74,8 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 ///      This is enough to say there is no way the preimage could be shorter
 ///      than 4 + 36 + 4 + 4 = 48 bytes.
 ///
-///      For this reason, we construct the heartbeat message, as a 40-byte
-///      message. The first 8 bytes are 0xffffffffffffffff. The last 32 bytes
+///      For this reason, we construct the heartbeat message, as a 16-byte
+///      message. The first 8 bytes are 0xffffffffffffffff. The last 8 bytes
 ///      are for an arbitrary uint64, being a signed heartbeat nonce (for
 ///      example, the last Ethereum block hash).
 library Heartbeat {
@@ -86,7 +86,7 @@ library Heartbeat {
     /// @param message Message signed by the wallet. It is a potential heartbeat
     ///        message, Bitcoin transaction preimage, or an arbitrary signed
     ///        bytes
-    /// @dev Wallet heartbeat message must be exactly 40 bytes long with the first
+    /// @dev Wallet heartbeat message must be exactly 16 bytes long with the first
     ///      8 bytes set to 0xffffffffffffffff.
     /// @return True if valid heartbeat message, false otherwise.
     function isValidHeartbeatMessage(bytes calldata message)
@@ -94,7 +94,7 @@ library Heartbeat {
         pure
         returns (bool)
     {
-        if (message.length != 40) {
+        if (message.length != 16) {
             return false;
         }
 
