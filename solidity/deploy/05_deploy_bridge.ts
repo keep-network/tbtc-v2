@@ -53,7 +53,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
     },
     proxyOpts: {
-      unsafeAllowLinkedLibraries: true,
+      unsafeAllow: ["external-library-linking"],
     },
   })
 
