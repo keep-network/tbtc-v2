@@ -587,7 +587,7 @@ describe("Bridge - Fraud", () => {
             await createSnapshot()
 
             const signature = ethers.utils.splitSignature(
-              await heartbeatWalletSigningKey.signDigest(sighash)
+              heartbeatWalletSigningKey.signDigest(sighash)
             )
 
             await bridge
@@ -648,7 +648,7 @@ describe("Bridge - Fraud", () => {
             await createSnapshot()
 
             const signature = ethers.utils.splitSignature(
-              await heartbeatWalletSigningKey.signDigest(sighash)
+              heartbeatWalletSigningKey.signDigest(sighash)
             )
 
             await bridge
@@ -688,7 +688,7 @@ describe("Bridge - Fraud", () => {
           await createSnapshot()
 
           const signature = ethers.utils.splitSignature(
-            await heartbeatWalletSigningKey.signDigest(sighash)
+            heartbeatWalletSigningKey.signDigest(sighash)
           )
 
           await bridge
@@ -734,7 +734,7 @@ describe("Bridge - Fraud", () => {
           await createSnapshot()
 
           const signature = ethers.utils.splitSignature(
-            await heartbeatWalletSigningKey.signDigest(sighash)
+            heartbeatWalletSigningKey.signDigest(sighash)
           )
 
           await bridge
@@ -784,7 +784,7 @@ describe("Bridge - Fraud", () => {
         await createSnapshot()
 
         const signature = ethers.utils.splitSignature(
-          await heartbeatWalletSigningKey.signDigest(sighash)
+          heartbeatWalletSigningKey.signDigest(sighash)
         )
 
         await bridge

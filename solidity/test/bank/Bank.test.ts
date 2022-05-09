@@ -871,9 +871,7 @@ describe("Bank", () => {
         )
       )
 
-      return ethers.utils.splitSignature(
-        await signingKey.signDigest(approvalDigest)
-      )
+      return ethers.utils.splitSignature(signingKey.signDigest(approvalDigest))
     }
 
     context("when permission expired", () => {
