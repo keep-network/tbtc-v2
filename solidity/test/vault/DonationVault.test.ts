@@ -128,7 +128,7 @@ describe("DonationVault", () => {
         await restoreSnapshot()
       })
 
-      it("should decrease donator's balance", async () => {
+      it("should decrease donor's balance", async () => {
         expect(await bank.balanceOf(account1.address)).to.be.equal(0)
       })
 
@@ -194,7 +194,7 @@ describe("DonationVault", () => {
         await restoreSnapshot()
       })
 
-      it("should decrease donator's balance", async () => {
+      it("should decrease donor's balance", async () => {
         expect(await bank.balanceOf(account1.address)).to.be.equal(0)
       })
 

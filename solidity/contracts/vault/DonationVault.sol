@@ -30,7 +30,7 @@ import "../bank/Bank.sol";
 contract DonationVault is IVault {
     Bank public bank;
 
-    event DonationReceived(address donator, uint256 donatedAmount);
+    event DonationReceived(address donor, uint256 donatedAmount);
 
     modifier onlyBank() {
         require(msg.sender == address(bank), "Caller is not the Bank");
@@ -56,16 +56,16 @@ contract DonationVault is IVault {
     ///      - Donation Vault must have an allowance for caller's balance in
     ///        the Bank for at least `amount`.
     function donate(uint256 amount) external {
-        address donator = msg.sender;
+        address donor = msg.sender;
 
         require(
-            bank.balanceOf(donator) >= amount,
+            bank.balanceOf(donor) >= amount,
             "Amount exceeds balance in the bank"
         );
 
-        emit DonationReceived(donator, amount);
+        emit DonationReceived(donor, amount);
 
-        bank.transferBalanceFrom(donator, address(this), amount);
+        bank.transferBalanceFrom(donor, address(this), amount);
         bank.decreaseBalance(amount);
     }
 
