@@ -25,9 +25,8 @@ import "../bank/Bank.sol";
 ///         allows making donations using existing Bank balances.
 ///
 ///         BEWARE: ALL BTC DEPOSITS TARGETING THIS VAULT ARE NOT REDEEMABLE
-///         AND THERE IS NO WAY TO RESTORE THE DONATED BALANCE! DO NOT DEPOSIT
-///         AGAINST THIS VAULT OR DONATE YOUR EXISTING BANK BALANCE UNLESS YOU
-///         REALLY KNOW WHAT YOU ARE DOING!
+///         AND THERE IS NO WAY TO RESTORE THE DONATED BALANCE.
+///         USE THIS VAULT ONLY WHEN YOU REALLY KNOW WHAT YOU ARE DOING!
 contract DonationVault is IVault {
     Bank public bank;
 
