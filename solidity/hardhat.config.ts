@@ -42,6 +42,9 @@ const config: HardhatUserConfig = {
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK, 10),
       },
       tags: ["local"],
+      // Ignore contract size on deployment to hardhat network, to be able to
+      // deploy stub contracts in tests.
+      allowUnlimitedContractSize: true,
     },
     development: {
       url: "http://localhost:8545",
@@ -77,10 +80,13 @@ const config: HardhatUserConfig = {
         deploy:
           "node_modules/@threshold-network/solidity-contracts/export/deploy",
       },
-      {
-        artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
-        deploy: "node_modules/@keep-network/ecdsa/export/deploy",
-      },
+      // FIXME: Instead of deploying WalletRegistry in `00_resolve_wallet_registry.ts`
+      // we want to use external deployment.
+      // See: https://github.com/keep-network/tbtc-v2/issues/267
+      // {
+      //   artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
+      //   deploy: "node_modules/@keep-network/ecdsa/export/deploy",
+      // },
     ],
     deployments: {
       // For development environment we expect the local dependencies to be
@@ -125,6 +131,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+    except: ["WalletRegistry$", "WalletRegistryStub$"],
   },
   typechain: {
     outDir: "typechain",

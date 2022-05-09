@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "downlevelIteration": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "resolveJsonModule": true
   },
   "files": [
     "./hardhat.config.ts",
