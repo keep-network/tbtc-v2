@@ -46,9 +46,7 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 const { impersonateAccount } = helpers.account
 
-const ZERO_ADDRESS = ethers.constants.AddressZero
-
-describe("Bridge", () => {
+describe("Bridge - Redemption", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
