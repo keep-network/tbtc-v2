@@ -3,6 +3,7 @@
 
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { SigningKey } from "ethers/lib/utils"
 import chai, { expect } from "chai"
 import { BigNumber, ContractTransaction } from "ethers"
 import { BytesLike } from "@ethersproject/bytes"
@@ -532,9 +533,9 @@ describe("Bridge - Fraud", () => {
   })
 
   describe("defeatFraudChallengeWithHeartbeat", () => {
-    let heartbeatWalletPublicKey
-    let heartbeatWalletPublicKeyHash
-    let heartbeatWalletSigningKey
+    let heartbeatWalletPublicKey: string
+    let heartbeatWalletPublicKeyHash: string
+    let heartbeatWalletSigningKey: SigningKey
 
     before(async () => {
       await createSnapshot()
