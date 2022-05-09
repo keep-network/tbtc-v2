@@ -1509,11 +1509,11 @@
   integrity sha512-AG2fJqqniXVzwitHQcYQK5dZIyUPDo5xS1RZzW+LngcIuKA/f0cvTDEjWxgjf4D5MbStJNFWaCTtWwAJUCzsIw==
 
 "@keep-network/ecdsa@development":
-  version "2.0.0-dev.35"
-  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0-dev.35.tgz#e8fc1ffa7e5b7a9d40abaae565ad2657b026914c"
-  integrity sha512-aUZU5hjWnjbWErM6fOz9crVA1JHZ5uM+4HF/Matu8KVJFHc5kxqlnrdp9P/DcxY2f/7YPnCEJSPKNufBSqd9CQ==
+  version "2.0.0-dev.36"
+  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0-dev.36.tgz#c1b42692423518c6c75211206bdcd8e582f7f299"
+  integrity sha512-+fuaToGoV9B5bUQ5TkBYTSndqEcI5zNCe4zqYFagQTt9bGUGqb5j9sCqe+E8Z/mHB2OLlVyq9zlW8F6n/iYOgw==
   dependencies:
-    "@keep-network/random-beacon" "^2.0.0-dev.30"
+    "@keep-network/random-beacon" "^2.0.0-dev.32"
     "@keep-network/sortition-pools" "^2.0.0-pre.9"
     "@openzeppelin/contracts" "~4.5.0"
     "@openzeppelin/contracts-upgradeable" "^4.6.0-rc.0"
