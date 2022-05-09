@@ -3,6 +3,7 @@
 
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { SigningKey } from "ethers/lib/utils"
 import chai, { expect } from "chai"
 import { BigNumber, ContractTransaction } from "ethers"
 import { BytesLike } from "@ethersproject/bytes"
@@ -25,6 +26,7 @@ chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
+const { keccak256, sha256 } = ethers.utils
 
 describe("Bridge - Fraud", () => {
   let thirdParty: SignerWithAddress
@@ -528,6 +530,283 @@ describe("Bridge - Fraud", () => {
         })
       }
     )
+  })
+
+  describe("defeatFraudChallengeWithHeartbeat", () => {
+    let heartbeatWalletPublicKey: string
+    let heartbeatWalletPublicKeyHash: string
+    let heartbeatWalletSigningKey: SigningKey
+
+    before(async () => {
+      await createSnapshot()
+
+      // For `defeatFraudChallengeWithHeartbeat` unit tests we do not use test
+      // data from `fraud.ts`. Instead, we create random wallet and use its
+      // SigningKey.
+      //
+      // This approach is better long-term. In case the format of the heartbeat
+      // message changes or in case we want to add more unit tests, we can simply
+      // call appropriate function to compute another signature. Also, we do not
+      // use any BTC-specific data for this set of unit tests.
+      const wallet = ethers.Wallet.createRandom()
+      // We use `ethers.utils.SigningKey` for a `Wallet` instead of
+      // `Signer.signMessage` to do not add '\x19Ethereum Signed Message:\n'
+      // prefix to the signed message. The format of the heartbeat message is
+      // the same no matter on which host chain TBTC is deployed.
+      heartbeatWalletSigningKey = new ethers.utils.SigningKey(wallet.privateKey)
+      // Public key obtained as `wallet.publicKey` is an uncompressed key,
+      // prefixed with `0x04`. To compute raw ECDSA key, we need to drop `0x04`.
+      heartbeatWalletPublicKey = `0x${wallet.publicKey.substring(4)}`
+
+      const walletID = keccak256(heartbeatWalletPublicKey)
+      const walletPublicKeyX = `0x${heartbeatWalletPublicKey.substring(2, 66)}`
+      const walletPublicKeyY = `0x${heartbeatWalletPublicKey.substring(66)}`
+      await bridge
+        .connect(walletRegistry.wallet)
+        .__ecdsaWalletCreatedCallback(
+          walletID,
+          walletPublicKeyX,
+          walletPublicKeyY
+        )
+      heartbeatWalletPublicKeyHash = await bridge.activeWalletPubKeyHash()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the challenge exists", () => {
+      context("when the challenge is open", () => {
+        context("when the heartbeat message has correct format", () => {
+          const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+          const sighash = sha256(sha256(heartbeatMessage))
+
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            const signature = ethers.utils.splitSignature(
+              heartbeatWalletSigningKey.signDigest(sighash)
+            )
+
+            await bridge
+              .connect(thirdParty)
+              .submitFraudChallenge(
+                heartbeatWalletPublicKey,
+                sighash,
+                signature,
+                {
+                  value: fraudChallengeDepositAmount,
+                }
+              )
+
+            tx = await bridge
+              .connect(thirdParty)
+              .defeatFraudChallengeWithHeartbeat(
+                heartbeatWalletPublicKey,
+                heartbeatMessage
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should mark the challenge as resolved", async () => {
+            const challengeKey = buildChallengeKey(
+              heartbeatWalletPublicKey,
+              sighash
+            )
+            const fraudChallenge = await bridge.fraudChallenges(challengeKey)
+            expect(fraudChallenge.resolved).to.equal(true)
+          })
+
+          it("should send the ether deposited by the challenger to the treasury", async () => {
+            await expect(tx).to.changeEtherBalance(
+              bridge,
+              fraudChallengeDepositAmount.mul(-1)
+            )
+            await expect(tx).to.changeEtherBalance(
+              treasury,
+              fraudChallengeDepositAmount
+            )
+          })
+
+          it("should emit FraudChallengeDefeated event", async () => {
+            await expect(tx)
+              .to.emit(bridge, "FraudChallengeDefeated")
+              .withArgs(heartbeatWalletPublicKeyHash, sighash)
+          })
+        })
+
+        context("when the heartbeat message has no correct format", () => {
+          const notHeartbeatMessage = "0xAAFFFFFFFFFFFFFF0000000000E0EED7"
+          const sighash = sha256(sha256(notHeartbeatMessage))
+
+          before(async () => {
+            await createSnapshot()
+
+            const signature = ethers.utils.splitSignature(
+              heartbeatWalletSigningKey.signDigest(sighash)
+            )
+
+            await bridge
+              .connect(thirdParty)
+              .submitFraudChallenge(
+                heartbeatWalletPublicKey,
+                sighash,
+                signature,
+                {
+                  value: fraudChallengeDepositAmount,
+                }
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(thirdParty)
+                .defeatFraudChallengeWithHeartbeat(
+                  heartbeatWalletPublicKey,
+                  notHeartbeatMessage
+                )
+            ).to.be.revertedWith("Not a valid heartbeat message")
+          })
+        })
+      })
+
+      context("when the challenge is resolved by defeat", () => {
+        const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+        const sighash = sha256(sha256(heartbeatMessage))
+
+        before(async () => {
+          await createSnapshot()
+
+          const signature = ethers.utils.splitSignature(
+            heartbeatWalletSigningKey.signDigest(sighash)
+          )
+
+          await bridge
+            .connect(thirdParty)
+            .submitFraudChallenge(
+              heartbeatWalletPublicKey,
+              sighash,
+              signature,
+              {
+                value: fraudChallengeDepositAmount,
+              }
+            )
+
+          await bridge
+            .connect(thirdParty)
+            .defeatFraudChallengeWithHeartbeat(
+              heartbeatWalletPublicKey,
+              heartbeatMessage
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(thirdParty)
+              .defeatFraudChallengeWithHeartbeat(
+                heartbeatWalletPublicKey,
+                heartbeatMessage
+              )
+          ).to.be.revertedWith("Fraud challenge has already been resolved")
+        })
+      })
+
+      context("when the challenge is resolved by timeout", () => {
+        const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+        const sighash = sha256(sha256(heartbeatMessage))
+
+        before(async () => {
+          await createSnapshot()
+
+          const signature = ethers.utils.splitSignature(
+            heartbeatWalletSigningKey.signDigest(sighash)
+          )
+
+          await bridge
+            .connect(thirdParty)
+            .submitFraudChallenge(
+              heartbeatWalletPublicKey,
+              sighash,
+              signature,
+              {
+                value: fraudChallengeDepositAmount,
+              }
+            )
+
+          await increaseTime(fraudChallengeDefeatTimeout)
+
+          await bridge
+            .connect(thirdParty)
+            .notifyFraudChallengeDefeatTimeout(
+              heartbeatWalletPublicKey,
+              [],
+              sighash
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(thirdParty)
+              .defeatFraudChallengeWithHeartbeat(
+                heartbeatWalletPublicKey,
+                heartbeatMessage
+              )
+          ).to.be.revertedWith("Fraud challenge has already been resolved")
+        })
+      })
+    })
+
+    context("when the challenge does not exist", () => {
+      const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+      const sighash = sha256(sha256(heartbeatMessage))
+
+      before(async () => {
+        await createSnapshot()
+
+        const signature = ethers.utils.splitSignature(
+          heartbeatWalletSigningKey.signDigest(sighash)
+        )
+
+        await bridge
+          .connect(thirdParty)
+          .submitFraudChallenge(heartbeatWalletPublicKey, sighash, signature, {
+            value: fraudChallengeDepositAmount,
+          })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridge.connect(thirdParty).defeatFraudChallengeWithHeartbeat(
+            heartbeatWalletPublicKey,
+            "0xFFFFFFFFFFFFFFFF0000000000E0EED8" // ...D7 -> ...D8
+          )
+        ).to.be.revertedWith("Fraud challenge does not exist")
+      })
+    })
   })
 
   describe("defeatFraudChallenge", () => {
