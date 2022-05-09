@@ -23,8 +23,7 @@ describe("Heartbeat", () => {
   context("when the message has less than 16 bytes", () => {
     it("should return false", async () => {
       // 15 bytes
-      const message =
-        "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+      const message = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
       expect(await heartbeat.isValidHeartbeatMessage(message)).to.be.false
     })
   })
@@ -32,8 +31,7 @@ describe("Heartbeat", () => {
   context("when the message has more than 16 bytes", () => {
     it("should return false", async () => {
       // 17 bytes
-      const message =
-        "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+      const message = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
       expect(await heartbeat.isValidHeartbeatMessage(message)).to.be.false
     })
   })
