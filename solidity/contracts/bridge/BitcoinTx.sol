@@ -32,7 +32,7 @@ import "./BridgeState.sol";
 ///      | 4      | version      | int32_t (LE)           | TX version number         |
 ///      | varies | tx_in_count  | compactSize uint (LE)  | Number of TX inputs       |
 ///      | varies | tx_in        | txIn[]                 | TX inputs                 |
-///      | varies | tx_out count | compactSize uint (LE)  | Number of TX outputs      |
+///      | varies | tx_out_count | compactSize uint (LE)  | Number of TX outputs      |
 ///      | varies | tx_out       | txOut[]                | TX outputs                |
 ///      | 4      | lock_time    | uint32_t (LE)          | Unix time or block number |
 ///
@@ -42,8 +42,8 @@ import "./BridgeState.sol";
 ///      | Bytes  |       Name       |        BTC type        |                 Description                 |
 ///      |--------|------------------|------------------------|---------------------------------------------|
 ///      | 36     | previous_output  | outpoint               | The previous outpoint being spent           |
-///      | varies | script bytes     | compactSize uint (LE)  | The number of bytes in the signature script |
-///      | varies | signature script | char[]                 | The signature script, empty for P2WSH       |
+///      | varies | script_bytes     | compactSize uint (LE)  | The number of bytes in the signature script |
+///      | varies | signature_script | char[]                 | The signature script, empty for P2WSH       |
 ///      | 4      | sequence         | uint32_t (LE)          | Sequence number                             |
 ///
 ///
@@ -74,6 +74,21 @@ import "./BridgeState.sol";
 ///
 ///      (*) compactSize uint is often references as VarInt)
 ///
+///      Coinbase transaction input (txIn):
+///
+///      | Bytes  |       Name       |        BTC type        |                 Description                 |
+///      |--------|------------------|------------------------|---------------------------------------------|
+///      | 32     | hash             | char[32]               | A 32-byte 0x0  null (no previous_outpoint)  |
+///      | 4      | index            | uint32_t (LE)          | 0xffffffff (no previous_outpoint)           |
+///      | varies | script_bytes     | compactSize uint (LE)  | The number of bytes in the coinbase script  |
+///      | varies | height           | char[]                 | The block height of this block (BIP34) (*)  |
+///      | varies | coinbase_script  | none                   |  Arbitrary data, max 100 bytes              |
+///      | 4      | sequence         | uint32_t (LE)          | Sequence number
+///
+///      (*)  Uses script language: starts with a data-pushing opcode that indicates how many bytes to push to
+///           the stack followed by the block height as a little-endian unsigned integer. This script must be as
+///           short as possible, otherwise it may be rejected. The data-pushing opcode will be 0x03 and the total
+///           size four bytes until block 16,777,216 about 300 years from now.
 library BitcoinTx {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
