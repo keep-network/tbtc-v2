@@ -7,7 +7,7 @@ import type { Bridge, BridgeStub } from "../../typechain"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
-describe.only("Bridge - Vaults", () => {
+describe("Bridge - Vaults", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let bridge: Bridge & BridgeStub
