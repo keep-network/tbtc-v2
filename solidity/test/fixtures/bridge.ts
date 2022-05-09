@@ -1,4 +1,4 @@
-import { deployments, ethers, waffle } from "hardhat"
+import { deployments, ethers } from "hardhat"
 import { smock } from "@defi-wonderland/smock"
 import type {
   Bank,
@@ -12,7 +12,6 @@ import type {
   MaintainerProxy,
 } from "../../typechain"
 
-const { provider } = waffle
 /**
  * Common fixture for tests suites targeting the Bridge contract.
  */
