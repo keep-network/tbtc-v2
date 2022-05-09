@@ -111,6 +111,8 @@ library BitcoinTx {
         /// @dev `lock_time` from raw Bitcoin transaction data.
         ///      Encoded as 4-bytes unsigned integer, little endian.
         bytes4 locktime;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Represents data needed to perform a Bitcoin SPV proof.
@@ -122,6 +124,8 @@ library BitcoinTx {
         /// @notice Single byte-string of 80-byte bitcoin headers,
         ///         lowest height first.
         bytes bitcoinHeaders;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Represents info about an unspent transaction output.
@@ -133,6 +137,8 @@ library BitcoinTx {
         uint32 txOutputIndex;
         /// @notice Value of the transaction output.
         uint64 txOutputValue;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Represents Bitcoin signature in the R/S/V format.
@@ -143,6 +149,8 @@ library BitcoinTx {
         bytes32 s;
         /// @notice Signature recovery value.
         uint8 v;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Validates the SPV proof of the Bitcoin transaction.
