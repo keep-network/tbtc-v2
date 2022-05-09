@@ -116,10 +116,10 @@ describe("DonationVault", () => {
       before(async () => {
         await createSnapshot()
 
-        await bank.connect(bridge).increaseBalance(account1.address, 1000)
+        await bank.connect(bridge).increaseBalance(account1.address, 1100)
         await bank
           .connect(account1)
-          .increaseBalanceAllowance(vault.address, 1000)
+          .increaseBalanceAllowance(vault.address, 1100)
 
         tx = await vault.connect(account1).donate(1000)
       })
@@ -129,7 +129,7 @@ describe("DonationVault", () => {
       })
 
       it("should decrease donor's balance", async () => {
-        expect(await bank.balanceOf(account1.address)).to.be.equal(0)
+        expect(await bank.balanceOf(account1.address)).to.be.equal(100)
       })
 
       it("should not increase vault's balance", async () => {
@@ -183,7 +183,7 @@ describe("DonationVault", () => {
       before(async () => {
         await createSnapshot()
 
-        await bank.connect(bridge).increaseBalance(account1.address, 1000)
+        await bank.connect(bridge).increaseBalance(account1.address, 1100)
 
         tx = await bank
           .connect(account1)
@@ -195,7 +195,7 @@ describe("DonationVault", () => {
       })
 
       it("should decrease donor's balance", async () => {
-        expect(await bank.balanceOf(account1.address)).to.be.equal(0)
+        expect(await bank.balanceOf(account1.address)).to.be.equal(100)
       })
 
       it("should not increase vault's balance", async () => {
