@@ -6,8 +6,6 @@ import deploySortitionPool from "@keep-network/ecdsa/export/deploy/01_deploy_sor
 import deployReimbursementPool from "@keep-network/ecdsa/export/deploy/02_deploy_reimbursement_pool"
 import deployDkgValidator from "@keep-network/ecdsa/export/deploy/03_deploy_dkg_validator"
 
-import RandomBeaconStub from "@keep-network/ecdsa/export/artifacts/RandomBeaconStub.json"
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, helpers } = hre
   const { log } = deployments
@@ -42,10 +40,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // scripts are implemented.
     log("deploying RandomBeaconStub contract instead of RandomBeacon")
     const RandomBeacon = await deployments.deploy("RandomBeaconStub", {
-      contract: {
-        abi: RandomBeaconStub.abi,
-        bytecode: RandomBeaconStub.bytecode,
-      },
       from: deployer,
       log: true,
     })
