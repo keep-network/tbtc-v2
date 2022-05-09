@@ -20,12 +20,14 @@ import "../bank/Bank.sol";
 
 /// @title BTC donation vault
 /// @notice Vault that allows making BTC donations to the system. Upon deposit,
-///         this vault does not increase depositors' tBTC balances and always
-///         decreases its own tBTC balance in the same transaction.
+///         this vault does not increase depositors' balances and always
+///         decreases its own balance in the same transaction. The vault also
+///         allows making donations using existing Bank balances.
 ///
-///         BEWARE: ALL BTC DEPOSITS TARGETING THIS VAULT ARE NOT REDEEMABLE AND
-///         THERE IS NO WAY TO RESTORE THE TBTC BALANCE! DO NOT DEPOSIT AGAINST
-///         THIS VAULT UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!
+///         BEWARE: ALL BTC DEPOSITS TARGETING THIS VAULT ARE NOT REDEEMABLE
+///         AND THERE IS NO WAY TO RESTORE THE DONATED BALANCE! DO NOT DEPOSIT
+///         AGAINST THIS VAULT OR DONATE YOUR EXISTING BANK BALANCE UNLESS YOU
+///         REALLY KNOW WHAT YOU ARE DOING!
 contract DonationVault is IVault {
     Bank public bank;
 
@@ -96,7 +98,7 @@ contract DonationVault is IVault {
     }
 
     /// @notice Ignores the deposited amounts and does not increase depositors'
-    ///         individual tBTC balances. Decreases its own tBTC balance
+    ///         individual balances. The vault decreases its own tBTC balance
     ///         in the Bank by the total deposited amount.
     /// @param depositors Addresses of depositors whose deposits have been swept
     /// @param depositedAmounts Amounts deposited by individual depositors and
