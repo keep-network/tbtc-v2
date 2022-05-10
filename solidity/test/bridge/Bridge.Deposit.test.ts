@@ -15,6 +15,7 @@ import type {
   IRelay,
   IVault,
 } from "../../typechain"
+import type { DepositRevealInfoStruct } from "../../typechain/Bridge"
 import bridgeFixture from "../fixtures/bridge"
 import { walletState } from "../fixtures"
 import {
@@ -194,7 +195,7 @@ describe("Bridge - Deposit", () => {
 
               context("when deposit is not routed to a vault", () => {
                 let tx: ContractTransaction
-                let nonRoutedReveal
+                let nonRoutedReveal: DepositRevealInfoStruct
 
                 before(async () => {
                   await createSnapshot()
@@ -375,7 +376,7 @@ describe("Bridge - Deposit", () => {
 
             context("when deposit is not routed to a vault", () => {
               let tx: ContractTransaction
-              let nonRoutedReveal
+              let nonRoutedReveal: DepositRevealInfoStruct
 
               before(async () => {
                 await createSnapshot()
