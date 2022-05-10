@@ -1,7 +1,7 @@
 import { helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
-import { ContractTransaction } from "ethers"
+import { ContractTransaction, BigNumber } from "ethers"
 import type { Bridge, BridgeStub } from "../../typechain"
 import { constants } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
@@ -199,24 +199,31 @@ describe("Bridge - Parameters", () => {
         })
       })
 
-      context("when new redemption dust threshold is zero", () => {
-        it("should revert", async () => {
-          await expect(
-            bridge
-              .connect(governance)
-              .updateRedemptionParameters(
-                0,
-                constants.redemptionTreasuryFeeDivisor,
-                constants.redemptionTxMaxFee,
-                constants.redemptionTimeout,
-                constants.redemptionTimeoutSlashingAmount,
-                constants.redemptionTimeoutNotifierRewardMultiplier
-              )
-          ).to.be.revertedWith(
-            "Redemption dust threshold must be greater than zero"
-          )
-        })
-      })
+      context(
+        "when new redemption dust threshold is not greater than moving funds dust threshold",
+        () => {
+          // Use the current value of `movingFundsDustThreshold` as the new value
+          // of `redemptionDustThreshold`.
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateRedemptionParameters(
+                  (
+                    await bridge.movingFundsParameters()
+                  ).movingFundsDustThreshold,
+                  constants.redemptionTreasuryFeeDivisor,
+                  constants.redemptionTxMaxFee,
+                  constants.redemptionTimeout,
+                  constants.redemptionTimeoutSlashingAmount,
+                  constants.redemptionTimeoutNotifierRewardMultiplier
+                )
+            ).to.be.revertedWith(
+              "Redemption dust threshold must be greater than moving funds dust threshold"
+            )
+          })
+        }
+      )
 
       context("when new redemption treasury fee divisor is zero", () => {
         it("should revert", async () => {
@@ -444,10 +451,39 @@ describe("Bridge - Parameters", () => {
                 constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
-            "Moving funds dust threshold must be greater than zero"
+            "Moving funds dust threshold must be greater than zero and smaller than redemption dust threshold"
           )
         })
       })
+
+      context(
+        "when new moving funds dust threshold is not smaller than redemption dust threshold",
+        () => {
+          // Use the current value of `redemptionDustThreshold` as the new value
+          // of `movingFundsDustThreshold`.
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateMovingFundsParameters(
+                  constants.movingFundsTxMaxTotalFee,
+                  (
+                    await bridge.redemptionParameters()
+                  ).redemptionDustThreshold,
+                  constants.movingFundsTimeout,
+                  constants.movingFundsTimeoutSlashingAmount,
+                  constants.movingFundsTimeoutNotifierRewardMultiplier,
+                  constants.movedFundsSweepTxMaxTotalFee,
+                  constants.movedFundsSweepTimeout,
+                  constants.movedFundsSweepTimeoutSlashingAmount,
+                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+                )
+            ).to.be.revertedWith(
+              "Moving funds dust threshold must be greater than zero and smaller than redemption dust threshold"
+            )
+          })
+        }
+      )
 
       context("when new moving funds timeout is zero", () => {
         it("should revert", async () => {

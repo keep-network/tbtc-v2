@@ -1077,7 +1077,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        staking contact the notifier of a redemption timeout receives.
     ///        The value must be in the range [0, 100]
     /// @dev Requirements:
-    ///      - Redemption dust threshold must be greater than zero
+    ///      - Redemption dust threshold must be greater than moving funds dust
+    ///        threshold
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
@@ -1146,7 +1147,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
-    ///      - Moving funds dust threshold must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero and smaller
+    ///        than redemption dust threshold
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
