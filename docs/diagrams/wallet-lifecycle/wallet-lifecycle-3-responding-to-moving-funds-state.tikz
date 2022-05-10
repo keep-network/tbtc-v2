@@ -1,0 +1,112 @@
+% TIP: To generate PDF file run `pdflatex filename.tikz`. To generate PNG file
+% run `convert -density 300 filename.pdf -resize 50% filename.png` (requires
+% intallation of `imagemagick` tool).
+
+\documentclass{standalone}%
+\usepackage{tikz}%
+\usetikzlibrary{positioning,shapes,arrows.meta,chains}%
+
+% These commands are used to draw arrow labels
+\newcommand{\yes}{node [auto, pos=0, xshift=5mm]{Y}}%
+\newcommand{\no}{node [auto, swap, pos=0, xshift=-5mm]{N}}%
+
+% We need layers to draw the background
+\pgfdeclarelayer{background}%
+\pgfsetlayers{background,main}%
+
+\begin{document}%
+\begin{tikzpicture}[
+% Specify styles for nodes:
+    base/.style = {rectangle, rounded corners, draw=black,
+                   minimum width=4cm, minimum height=1cm,
+                   text centered, text width=4cm, align=flush center},
+   start/.style = {base, fill=blue!30},
+  revert/.style = {base, fill=red!30},
+  action/.style = {base, fill=black!5},
+   check/.style = {diamond, aspect=1.2, draw=black, fill=black!5,
+                   minimum width=1cm, align=center},
+   note1/.style = {rectangle, draw, dashed, fill=green!10,
+                   align=flush left, text width=5cm},
+   note2/.style = {rectangle, draw, dashed, fill=cyan!10,
+                   align=flush left, text width=5cm},
+              > = Triangle,                  % defines the arrow tip style when `->` is used
+           font = \sffamily,
+]
+
+% MOVING FUNDS COMMITMENT
+% Nodes
+\node[start]                                                      (mfc_start)   {Somebody sends \textbf{moving funds commitment}};
+\node[check, below=of mfc_start]                                  (mfc_check1)  {Is the\\ source wallet in\\ MOVING\_FUNDS\\ state?};
+\node[check, below right=of mfc_check1]                           (mfc_check2)  {Is sender a\\ member of the\\ source wallet?};
+\node[check, below right=of mfc_check2]                           (mfc_check3)  {Hasn't the\\ target\_wallet\_commitment\\ with the same source\\ wallet been already\\ posted?};
+\node[check, below right=of mfc_check3]                           (mfc_check4)  {Is \# of pending\\ redemptions on\\ the source wallet\\ equal 0?};
+\node[check, below right=of mfc_check4]                           (mfc_check5)  {Is the source\\ wallet free of pending\\ moved funds\\ sweep requests?};
+\node[check, below right=of mfc_check5]                           (mfc_check6)  {Are the\\ target wallets\\ in LIVE state?};
+\node[check, below right=of mfc_check6]                           (mfc_check7)  {Are the target\\ wallets different\\ than source\\ wallet?};
+\node[check, below right=of mfc_check7]                           (mfc_check8)  {Is \# of target\\ wallets equal to\\ min(\#\_of\_live\_wallets,\\ balance/wallet\_transfer\_max)\\ and \>0?};
+\node[check, below right=of mfc_check8]                           (mfc_check9)  {Are hashes of\\ target wallets ordered\\ ascending, without\\ duplicates?};              
+\node[revert, below left=of mfc_check9, xshift=-28cm]             (mfc_revert1) {Transaction reverted};
+\node[action, below right=of mfc_check9]                          (mfc_action1) {Information about chosen target wallets saved on-chain};
+\node[action, below=of mfc_action1]                               (mfc_action2) {Notification sent};
+\node[note1, right=of mfc_start.south east, anchor=south west]    (mfc_note1)   {Can be successfully called for wallets:\\
+                                                                                 \textbf{- MOVING\_FUNDS}};
+\node[note2, above=of mfc_note1.north, anchor=south, yshift=-8mm] (mfc_note2)   {Sender incentivized by:\\ \textbf{Fear of loosing rewards for 2 weeks; reimbursement}};
+
+% Arrows
+\draw[->] (mfc_start)   -- (mfc_check1);
+\draw[->] (mfc_check1)  -| (mfc_revert1) \no;
+\draw[->] (mfc_check1)  -| (mfc_check2)  \yes;
+\draw[->] (mfc_check2)  -| (mfc_revert1) \no;
+\draw[->] (mfc_check2)  -| (mfc_check3)  \yes;
+\draw[->] (mfc_check3)  -| (mfc_revert1) \no;
+\draw[->] (mfc_check3)  -| (mfc_check4)  \yes;
+\draw[->] (mfc_check4)  -| (mfc_revert1) \no;
+\draw[->] (mfc_check4)  -| (mfc_check5)  \yes;
+\draw[->] (mfc_check5)  -| (mfc_revert1) \no;
+\draw[->] (mfc_check5)  -| (mfc_check6)  \yes;
+\draw[->] (mfc_check6)  -| (mfc_revert1) \no;
+\draw[->] (mfc_check6)  -| (mfc_check7)  \yes;
+\draw[->] (mfc_check7)  -| (mfc_revert1) \no;
+\draw[->] (mfc_check7)  -| (mfc_check8)  \yes;
+\draw[->] (mfc_check8)  -| (mfc_revert1) \no;
+\draw[->] (mfc_check8)  -| (mfc_check9)  \yes;
+\draw[->] (mfc_check9)  -| (mfc_revert1) \no;
+\draw[->] (mfc_check9)  -| (mfc_action1) \yes;
+\draw[->] (mfc_action1) -- (mfc_action2);
+
+
+% DUST BALANCE
+% Nodes
+\node[start, right=of mfc_start, xshift=30cm]                    (db_start)   {Somebody notifies that \textbf{wallet can be closed due to dust balance}};
+\node[check, below=of db_start]                                  (db_check1)  {Is wallet\\ MOVIG\_FUNDS?};
+\node[check, below right=of db_check1]                           (db_check2)  {Is wallet's\\ balance $\leq$ wallet\_dust\_leftover?};              
+\node[revert, below left=of db_check2, xshift=-2cm]              (db_revert1) {Transaction reverted};
+\node[action, below right=of db_check2]                          (db_action1) {Wallet's state changed to CLOSING};
+\node[action, below=of db_action1]                               (db_action2) {Wallet contract emits notification about state changed to CLOSING};
+\node[note1, right=of db_start.south east, anchor=south west]    (db_note1)   {Can be successfully called for wallets:\\
+                                                                               \textbf{- MOVING\_FUNDS}};
+\node[note2, above=of db_note1.north, anchor=south, yshift=-8mm] (db_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+
+% Arrows
+\draw[->] (db_start)   -- (db_check1);
+\draw[->] (db_check1)  -| (db_revert1) \no;
+\draw[->] (db_check1)  -| (db_check2)  \yes;
+\draw[->] (db_check2)  -| (db_revert1) \no;
+\draw[->] (db_check2)  -| (db_action1) \yes;
+\draw[->] (db_action1) -- (db_action2);
+
+
+% BACKGROUND
+% To draw the background behind the nodes and other objects we use pgf layers. 
+% We calculate top left and bottom right corners position of current canvas and
+% construct white background between those points expanded by some small amount.
+% This gives us nice little margin around the diagram.
+
+\begin{pgfonlayer}{background}
+  \path (current bounding box.north west)+(-0.2,0.2) node (a) {};
+  \path (current bounding box.south east)+(0.2,-0.2) node (b) {};
+  \path[fill=white] (a) rectangle (b);
+\end{pgfonlayer}
+
+\end{tikzpicture}
+\end{document}

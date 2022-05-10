@@ -1,0 +1,70 @@
+% TIP: To generate PDF file run `pdflatex filename.tikz`. To generate PNG file
+% run `convert -density 300 filename.pdf -resize 50% filename.png` (requires
+% intallation of `imagemagick` tool).
+
+\documentclass{standalone}%
+\usepackage{tikz}%
+\usetikzlibrary{positioning,shapes,arrows.meta,chains}%
+
+% These commands are used to draw arrow labels
+\newcommand{\yes}{node [auto, pos=0, xshift=5mm]{Y}}%
+\newcommand{\no}{node [auto, swap, pos=0, xshift=-5mm]{N}}%
+
+% We need layers to draw the background
+\pgfdeclarelayer{background}%
+\pgfsetlayers{background,main}%
+
+\begin{document}%
+\begin{tikzpicture}[
+% Specify styles for nodes:
+    base/.style = {rectangle, rounded corners, draw=black,
+                   minimum width=4cm, minimum height=1cm,
+                   text centered, text width=4cm, align=flush center},
+   start/.style = {base, fill=blue!30},
+  revert/.style = {base, fill=red!30},
+  action/.style = {base, fill=black!5},
+   check/.style = {diamond, aspect=1.2, draw=black, fill=black!5,
+                   minimum width=1cm, align=center},
+   note1/.style = {rectangle, draw, dashed, fill=green!10,
+                   align=flush left, text width=5cm},
+   note2/.style = {rectangle, draw, dashed, fill=cyan!10,
+                   align=flush left, text width=5cm},
+              > = Triangle,                  % defines the arrow tip style when `->` is used
+           font = \sffamily,
+]
+
+% WALLET CLOSING PERIOD ELAPSED
+% Nodes
+\node[start]                                                       (wcpe_start)   {Somebody notifies about \textbf{wallet exceeding closing period}};
+\node[check, below=of wcpe_start]                                  (wcpe_check1)  {Is wallet\\ CLOSING?};
+\node[check, below right=of wcpe_check1]                           (wcpe_check2)  {Has the\\ closing\_period\\ passeed since the wallet\\ channged state\\ to CLOSING?};              
+\node[revert, below left=of wcpe_check2, xshift=-2cm]              (wcpe_revert1) {Transaction reverted};
+\node[action, below right=of wcpe_check2]                          (wcpe_action1) {Wallet's state changed to CLOSED};
+\node[action, below=of wcpe_action1]                               (wcpe_action2) {Emit notification};
+\node[note1, right=of wcpe_start.south east, anchor=south west]    (wcpe_note1)   {Can be successfully called for wallets:\\
+                                                                                   \textbf{- CLOSING}};
+\node[note2, above=of wcpe_note1.north, anchor=south, yshift=-8mm] (wcpe_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+
+% Arrows
+\draw[->] (wcpe_start)   -- (wcpe_check1);
+\draw[->] (wcpe_check1)  -| (wcpe_revert1) \no;
+\draw[->] (wcpe_check1)  -| (wcpe_check2)  \yes;
+\draw[->] (wcpe_check2)  -| (wcpe_revert1) \no;
+\draw[->] (wcpe_check2)  -| (wcpe_action1) \yes;
+\draw[->] (wcpe_action1) -- (wcpe_action2);
+
+
+% BACKGROUND
+% To draw the background behind the nodes and other objects we use pgf layers. 
+% We calculate top left and bottom right corners position of current canvas and
+% construct white background between those points expanded by some small amount.
+% This gives us nice little margin around the diagram.
+
+\begin{pgfonlayer}{background}
+  \path (current bounding box.north west)+(-0.2,0.2) node (a) {};
+  \path (current bounding box.south east)+(0.2,-0.2) node (b) {};
+  \path[fill=white] (a) rectangle (b);
+\end{pgfonlayer}
+
+\end{tikzpicture}
+\end{document}

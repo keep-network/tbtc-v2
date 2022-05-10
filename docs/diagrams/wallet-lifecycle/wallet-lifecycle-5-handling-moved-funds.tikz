@@ -1,0 +1,115 @@
+% TIP: To generate PDF file run `pdflatex filename.tikz`. To generate PNG file
+% run `convert -density 300 filename.pdf -resize 50% filename.png` (requires
+% intallation of `imagemagick` tool).
+
+\documentclass{standalone}%
+\usepackage{tikz}%
+\usetikzlibrary{positioning,shapes,arrows.meta,chains}%
+
+% These commands are used to draw arrow labels
+\newcommand{\yes}{node [auto, pos=0, xshift=5mm]{Y}}%
+\newcommand{\no}{node [auto, swap, pos=0, xshift=-5mm]{N}}%
+
+% We need layers to draw the background
+\pgfdeclarelayer{background}%
+\pgfsetlayers{background,main}%
+
+\begin{document}%
+\begin{tikzpicture}[
+% Specify styles for nodes:
+    base/.style = {rectangle, rounded corners, draw=black,
+                   minimum width=4cm, minimum height=1cm,
+                   text centered, text width=4cm, align=flush center},
+   start/.style = {base, fill=blue!30},
+  revert/.style = {base, fill=red!30},
+  action/.style = {base, fill=black!5},
+   check/.style = {diamond, aspect=1.2, draw=black, fill=black!5,
+                   minimum width=1cm, align=center},
+   note1/.style = {rectangle, draw, dashed, fill=green!10,
+                   align=flush left, text width=5cm},
+   note2/.style = {rectangle, draw, dashed, fill=cyan!10,
+                   align=flush left, text width=5cm},
+              > = Triangle,                  % defines the arrow tip style when `->` is used
+           font = \sffamily,
+]
+
+% MOVED FUNDS SWEEP PROOF
+% Nodes
+\node[start]                                                       (mfsp_start)   {Somebody sends proof of moved funds sweep};
+\node[check, below=of mfsp_start]                                  (mfsp_check1)  {Is there\\ a pending moved\\ funds sweep\\ request registered\\ for the wallet?};
+\node[check, below right=of mfsp_check1]                           (mfsp_check2)  {Has the\\ sweep transaction\\ occurred on\\ Bitcoin?};
+\node[check, below right=of mfsp_check2]                           (mfsp_check3)  {Does the\\ sweep transaction have\\ a single output?};
+\node[check, below right=of mfsp_check3]                           (mfsp_check4)  {Is wallet LIVE or\\ MOVING\_FUNDS?};
+\node[action, below right=of mfsp_check4]                          (mfsp_action1) {Process the sweep transaction inputs};
+\node[check, below=of mfsp_action1]                                (mfsp_check5)  {Isn't the fee\\ too high?};
+\node[revert, below left=of mfsp_check5, xshift=-15cm]             (mfsp_revert1) {Transaction reverted};
+\node[action, below right=of mfsp_check5]                          (mfsp_action2) {Use the sweep transaction's output as the new main UTXO for the sweeping wallet};
+\node[action, below=of mfsp_action2]                               (mfsp_action3) {Emit notification};
+\node[note1, right=of mfsp_start.south east, anchor=south west]    (mfsp_note1)   {Can be successfully called for wallets:\\
+                                                                                   \textbf{- LIVE\\
+                                                                                   - MOVING\_FUNDS}};
+\node[note2, above=of mfsp_note1.north, anchor=south, yshift=-8mm] (mfsp_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+
+% Arrows
+\draw[->] (mfsp_start)   -- (mfsp_check1);
+\draw[->] (mfsp_check1)  -| (mfsp_revert1) \no;
+\draw[->] (mfsp_check1)  -| (mfsp_check2)  \yes;
+\draw[->] (mfsp_check2)  -| (mfsp_revert1) \no;
+\draw[->] (mfsp_check2)  -| (mfsp_check3)  \yes;
+\draw[->] (mfsp_check3)  -| (mfsp_revert1) \no;
+\draw[->] (mfsp_check3)  -| (mfsp_check4)  \yes;
+\draw[->] (mfsp_check4)  -| (mfsp_revert1) \no;
+\draw[->] (mfsp_check4)  -| (mfsp_action1) \yes;
+\draw[->] (mfsp_action1) -- (mfsp_check5);
+\draw[->] (mfsp_check5)  -| (mfsp_revert1) \no;
+\draw[->] (mfsp_check5)  -| (mfsp_action2) \yes;
+\draw[->] (mfsp_action2) -- (mfsp_action3);
+
+
+% MOVED FUNDS SWEEP TIMEOUT
+% Nodes
+\node[start, right=of mfsp_start, xshift=23cm]                    (mft_start)   {Somebody notifies about \textbf{wallet passing moved funds sweep timeout}};
+\node[check, below=of mft_start]                                  (mft_check1)  {Is there\\ a pending moved\\ funds sweep\\ request registered\\ for the wallet?};
+\node[check, below right=of mft_check1]                           (mft_check2)  {Has the\\ moved\_funds\_sweep\_timeout\\ passed?};   
+\node[check, below right=of mft_check2]                           (mft_check3)  {Is wallet LIVE,\\ MOVING\_FUNDS or\\ TERMINATED?};         
+\node[action, below right=of mft_check3]                          (mft_action1) {Mark sweep request as timed out};
+\node[check, below=of mft_action1]                                (mft_check4)  {Is wallet LIVE or\\ MOVING\_FUNDS?};   
+\node[revert, below left=of mft_check4, xshift=-12cm]             (mft_revert1) {Transaction reverted};
+\node[action, below right=of mft_check4]                          (mft_action2) {Slashing, reward for notifier};
+\node[action, below=of mft_action2]                               (mft_action3) {Change wallet state to TERMINATED};
+\node[action, below=of mft_action3]                               (mft_action4) {Emit notification};
+\node[note1, right=of mft_start.south east, anchor=south west]    (mft_note1)   {Can be successfully called for wallets:\\
+                                                                                 \textbf{- LIVE\\
+                                                                                 - MOVING\_FUNDS\\
+                                                                                 - TERMINATED}};
+\node[note2, above=of mft_note1.north, anchor=south, yshift=-8mm] (mft_note2)   {Sender incentivized by:\\ \textbf{Fraction of slashed amount}};
+
+% Arrows
+\draw[->] (mft_start)   -- (mft_check1);
+\draw[->] (mft_check1)  -| (mft_revert1) \no;
+\draw[->] (mft_check1)  -| (mft_check2)  \yes;
+\draw[->] (mft_check2)  -| (mft_revert1) \no;
+\draw[->] (mft_check2)  -| (mft_action1) \yes;
+\draw[->] (mft_check3)  -| (mft_revert1) \no;
+\draw[->] (mft_check3)  -| (mft_action1) \yes;
+\draw[->] (mft_action1) -- (mft_check4);
+\draw[->] (mft_check4)  -| (mft_revert1) \no;
+\draw[->] (mft_check4)  -| (mft_action2) \yes;
+\draw[->] (mft_action2) -- (mft_action3);
+\draw[->] (mft_action3) -- (mft_action4);
+
+
+% BACKGROUND
+% To draw the background behind the nodes and other objects we use pgf layers. 
+% We calculate top left and bottom right corners position of current canvas and
+% construct white background between those points expanded by some small amount.
+% This gives us nice little margin around the diagram.
+
+\begin{pgfonlayer}{background}
+  \path (current bounding box.north west)+(-0.2,0.2) node (a) {};
+  \path (current bounding box.south east)+(0.2,-0.2) node (b) {};
+  \path[fill=white] (a) rectangle (b);
+\end{pgfonlayer}
+
+\end{tikzpicture}
+\end{document}

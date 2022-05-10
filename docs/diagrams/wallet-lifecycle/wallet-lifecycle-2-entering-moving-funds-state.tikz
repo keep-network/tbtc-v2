@@ -1,0 +1,168 @@
+% TIP: To generate PDF file run `pdflatex filename.tikz`. To generate PNG file
+% run `convert -density 300 filename.pdf -resize 50% filename.png` (requires
+% intallation of `imagemagick` tool).
+
+\documentclass{standalone}%
+\usepackage{tikz}%
+\usetikzlibrary{positioning,shapes,arrows.meta,chains}%
+
+% These commands are used to draw arrow labels
+\newcommand{\yes}{node [auto, pos=0, xshift=5mm]{Y}}%
+\newcommand{\no}{node [auto, swap, pos=0, xshift=-5mm]{N}}%
+
+% We need layers to draw the background
+\pgfdeclarelayer{background}%
+\pgfsetlayers{background,main}%
+
+\begin{document}%
+\begin{tikzpicture}[
+% Specify styles for nodes:
+    base/.style = {rectangle, rounded corners, draw=black,
+                   minimum width=4cm, minimum height=1cm,
+                   text centered, text width=4cm, align=flush center},
+   start/.style = {base, fill=blue!30},
+  revert/.style = {base, fill=red!30},
+  action/.style = {base, fill=black!5},
+   check/.style = {diamond, aspect=1.2, draw=black, fill=black!5,
+                   minimum width=1cm, align=center},
+   note1/.style = {rectangle, draw, dashed, fill=green!10,
+                   align=flush left, text width=5cm},
+   note2/.style = {rectangle, draw, dashed, fill=cyan!10,
+                   align=flush left, text width=5cm},
+              > = Triangle,                  % defines the arrow tip style when `->` is used
+     end/.style = {> = {Circle[scale=2]}},   % defines the arrow tip style when `->, end` is used
+           font = \sffamily,
+]
+
+% REDEMPTION TIMEOUT
+% Nodes
+\node[start]                                                     (rt_start)    {Somebody notifies about \textbf{redemption timeout}};
+\node[check, below=of rt_start]                                  (rt_check1)   {Is wallet LIVE,\\
+                                                                                MOVING\_FUNDS\\ or TERMINATED?};
+\node[check, below right=of rt_check1]                           (rt_check2)   {Is there such\\ pending redemption for\\ such wallet?};
+\node[check, below right=of rt_check2]                           (rt_check3)   {Was there no redemption\\ proof received
+                                                                                before\\ redemption\_request\_timeout?};
+\node[revert, below left=of rt_check3, xshift=-6cm]              (rt_revert1)  {Transaction reverted};
+\node[action, below right=of rt_check3]                          (rt_action1)  {Update the total value of pending
+                                                                                redemptions on the wallet: value of
+                                                                                timed out redemption (minus treasury fee)
+                                                                                should be subtracted};
+\node[action, below=of rt_action1]                               (rt_action2)  {Transfer the value of timed out redemption from bank to the redeemer};
+\node[action, below=of rt_action2]                               (rt_action3)  {Move redemption from pending to timed out};
+\node[action, below=of rt_action3]                               (rt_action4)  {Emit notification about redemption timeout};
+\node[check, below=of rt_action4]                                (rt_check4)   {Is wallet LIVE\\ or MOVING\_FUNDS?};
+\node[below left=of rt_check4, xshift=-2cm]                      (rt_end1)     {};
+\node[action, below right=of rt_check4]                          (rt_action5)  {Slash the wallet, reward the notifier};
+\node[check, below=of rt_action5]                                (rt_check5)   {Is wallet LIVE?};
+\node[below left=of rt_check5, xshift=-2cm]                      (rt_end2)     {};
+\node[check, below right=of rt_check5, xshift=130mm]             (rt_check6)   {Does wallet have\\ a main UTXO?};
+\node[action, below left=of rt_check6]                           (rt_action6)  {Wallet's state changed to CLOSING};
+\node[action, below=of rt_action6]                               (rt_action7)  {Wallet contract emits notification about state changed to CLOSING};
+\node[action, below right=of rt_check6]                          (rt_action8)  {Start moving funds};
+\node[check, below=of rt_action8]                                (rt_check7)   {Is wallet\\ marked as ACTIVE?};
+\node[action, below right=of rt_check7]                          (rt_action9)  {Clear ACTIVE field};
+\node[action, below left=of rt_action9, xshift=-20mm]            (rt_action10) {Wallet's state changed to MOVING\_FUNDS, time recorded};
+\node[action, below=of rt_action10]                              (rt_action11) {Wallet contract emits notification about state changed to MOVING\_FUNDS};
+\node[note1, right=of rt_start.south east, anchor=south west]    (rt_note1)    {Can be successfully called for wallets:\\
+                                                                                \textbf{- LIVE\\
+                                                                                - MOVING\_FUNDS\\
+                                                                                - TERMINATED}};
+\node[note2, above=of rt_note1.north, anchor=south, yshift=-8mm] (rt_note2)    {Sender incentivized by:\\ \textbf{Fraction of slashed amount}};
+
+% Arrows
+\draw[->]      (rt_start)    -- (rt_check1);
+\draw[->]      (rt_check1)   -| (rt_revert1) \no;
+\draw[->]      (rt_check1)   -| (rt_check2)  \yes;
+\draw[->]      (rt_check2)   -| (rt_revert1) \no;
+\draw[->]      (rt_check2)   -| (rt_check3)  \yes;
+\draw[->]      (rt_check3)   -| (rt_revert1) \no;
+\draw[->]      (rt_check3)   -| (rt_action1) \yes;
+\draw[->]      (rt_action1)  -- (rt_action2);
+\draw[->]      (rt_action2)  -- (rt_action3);
+\draw[->]      (rt_action3)  -- (rt_action4);
+\draw[->]      (rt_action4)  -- (rt_check4);
+\draw[->, end] (rt_check4)   -| (rt_end1)    \no;
+\draw[->]      (rt_check4)   -| (rt_action5) \yes;
+\draw[->]      (rt_action5)  -- (rt_check5);
+\draw[->, end] (rt_check5)   -| (rt_end2)    \no;
+\draw[->]      (rt_check5)   -| (rt_check6)  \yes;
+\draw[->]      (rt_check6)   -| (rt_action6) \no;
+\draw[->]      (rt_action6)  -- (rt_action7);
+\draw[->]      (rt_check6)   -| (rt_action8) \yes;
+\draw[->]      (rt_action8)  -- (rt_check7);
+\draw[->]      (rt_check7)   -| (rt_action9);
+\draw[->]      (rt_check7)   -| (rt_action10);
+\draw[->]      (rt_action9)  |- (rt_action10);
+\draw[->]      (rt_action10) -- (rt_action11);
+
+
+% CLOSEABLE WALLET
+% Nodes
+\node[start, right=of rt_start, xshift=210mm]                    (cw_start)   {Somebody notifies about \textbf{closeable wallet}};
+\node[check, below=of cw_start]                                  (cw_check1)  {Is wallet marked\\ as ACTIVE?};
+\node[check, below left=of cw_check1]                            (cw_check2)  {Is wallet LIVE?};
+\node[revert, below right=of cw_check1]                          (cw_revert1) {Transaction reverted};
+\node[check, below right=of cw_check2]                           (cw_check3)  {Is wallet\\ older than\\ wallet\_max\_age or\\ is wallet's balance below\\ wallet\_min\_closure\_btc?};
+\node[revert, below left=of cw_check3, xshift=-2cm]              (cw_revert2) {Transaction reverted};
+\node[note1, right=of cw_start.south east, anchor=south west]    (cw_note1)   {Can be successfully called for wallets:\\
+                                                                               \textbf{- LIVE}};
+\node[note2, above=of cw_note1.north, anchor=south, yshift=-8mm] (cw_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+
+% Arrows
+\draw[->] (cw_start)  -- (cw_check1);
+\draw[->] (cw_check1) -| (cw_check2)  \no;
+\draw[->] (cw_check1) -| (cw_revert1) \yes;
+\draw[->] (cw_check2) -| (cw_revert2) \no;
+\draw[->] (cw_check2) -| (cw_check3)  \yes;
+\draw[->] (cw_check3) -| (cw_revert2) \no;
+\draw[->] (cw_check3) -| (rt_check6)  \yes;
+
+
+% WALLET HEARTBEAT FAILED
+% Nodes
+\node[start, right=of cw_start, xshift=140mm]                     (whf_start)   {Somebody notifies about \textbf{wallet failing heartbeat}};
+\node[check, below=of whf_start]                                  (whf_check1)  {Is sender a\\ wallet member?};
+\node[check, below right=of whf_check1]                           (whf_check2)  {Is the\\ notification\\ supported by at\\ least 51 valid\\ signatures?};
+\node[check, below right=of whf_check2]                           (whf_check3)  {Is wallet LIVE?};
+\node[revert, below left=of whf_check3, xshift=-6cm]              (whf_revert1) {Transaction reverted};
+\node[action, below right=of whf_check3]                          (whf_action1) {Mark inactive operators as ineligible for rewards};
+\node[note1, right=of whf_start.south east, anchor=south west]    (whf_note1)   {Can be successfully called for wallets:\\
+                                                                                 \textbf{- LIVE\\
+                                                                                 - MOVING\_FUNDS\\
+                                                                                 - CLOSING}};
+\node[note2, above=of whf_note1.north, anchor=south, yshift=-8mm] (whf_note2)   {Sender incentivized by:\\ \textbf{Fear of loosing rewards for 2 weeks; reimbursement}};
+
+% Arrows
+% In places where arrows needs to bend more than once, we force the lines to
+% pass through intermediary points. 
+% (a,b) - sets point at an exact (a,b) coordinate
+% +(a,b) - sets point at current point and moves it by (a,b) vector, but doesn't
+%          remember the position afterwards
+% ++(a,b) - sets point at current point and moves it by (a,b) vector and
+%           remembers the position afterwards
+% To ease edition of the diagram in the future, usage of relative values is
+% recommended.
+\draw[->] (whf_start)   --                (whf_check1);
+\draw[->] (whf_check1)  -|                (whf_revert1) \no;
+\draw[->] (whf_check1)  -|                (whf_check2)  \yes;
+\draw[->] (whf_check2)  -|                (whf_revert1) \no;
+\draw[->] (whf_check2)  -|                (whf_check3)  \yes;
+\draw[->] (whf_check3)  -|                (whf_revert1) \no;
+\draw[->] (whf_check3)  -|                (whf_action1) \yes;
+\draw[->] (whf_action1) -- +(0,-18.5) -|  (rt_check6.north);
+
+
+% BACKGROUND
+% To draw the background behind the nodes and other objects we use pgf layers.
+% We calculate top left and bottom right corners position of current canvas and
+% construct white background between those points expanded by some small amount.
+% This gives us nice little margin around the diagram.
+
+\begin{pgfonlayer}{background}
+  \path (current bounding box.north west)+(-0.2,0.2) node (a) {};
+  \path (current bounding box.south east)+(0.2,-0.2) node (b) {};
+  \path[fill=white] (a) rectangle (b);
+\end{pgfonlayer}
+
+\end{tikzpicture}
+\end{document}
