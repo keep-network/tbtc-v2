@@ -78,6 +78,8 @@ library Wallets {
         // UNIX timestamp indicating the moment the wallet's closing period
         // started.
         uint32 closingStartedAt;
+        // Total count of pending moved funds sweep requests targeting this wallet.
+        uint32 pendingMovedFundsSweepRequestsCount;
         // Current state of the wallet.
         WalletState state;
         // Moving funds target wallet commitment submitted by the wallet. It
@@ -163,8 +165,9 @@ library Wallets {
 
             require(
                 (activeWalletOldEnough &&
-                    activeWalletBtcBalance >= self.walletMinBtcBalance) ||
-                    activeWalletBtcBalance >= self.walletMaxBtcBalance,
+                    activeWalletBtcBalance >=
+                    self.walletCreationMinBtcBalance) ||
+                    activeWalletBtcBalance >= self.walletCreationMaxBtcBalance,
                 "Wallet creation conditions are not met"
             );
         }
@@ -287,12 +290,11 @@ library Wallets {
         moveFunds(self, walletPubKeyHash);
     }
 
-    /// @notice Handles a notification about a wallet redemption timeout
-    ///         and requests slashing of the wallet operators. Triggers the
-    ///         wallet moving funds process only if the wallet is still in the
-    ///         Live state. That means multiple action timeouts can be reported
-    ///         for the same wallet but only the first report requests the
-    ///         wallet to move their funds.
+    /// @notice Handles a notification about a wallet redemption timeout.
+    ///         Triggers the wallet moving funds process only if the wallet is
+    ///         still in the Live state. That means multiple action timeouts can
+    ///         be reported for the same wallet but only the first report
+    ///         requests the wallet to move their funds.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @dev Requirements:
     ///      - The wallet must be in the `Live` or `MovingFunds` state
@@ -313,9 +315,6 @@ library Wallets {
         if (walletState == WalletState.Live) {
             moveFunds(self, walletPubKeyHash);
         }
-
-        // TODO: Perform slashing of wallet operators and transfer some of the
-        //       slashed tokens to the caller of this function.
     }
 
     /// @notice Notifies that the wallet is either old enough or has too few
@@ -356,7 +355,7 @@ library Wallets {
         require(
             walletOldEnough ||
                 getWalletBtcBalance(self, walletPubKeyHash, walletMainUtxo) <
-                self.walletMinBtcBalance,
+                self.walletClosureMinBtcBalance,
             "Wallet needs to be old enough or have too few satoshis"
         );
 

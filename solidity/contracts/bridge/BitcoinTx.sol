@@ -16,6 +16,7 @@
 pragma solidity ^0.8.9;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
+import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
 
 import "./BridgeState.sol";
@@ -31,7 +32,7 @@ import "./BridgeState.sol";
 ///      | 4      | version      | int32_t (LE)           | TX version number         |
 ///      | varies | tx_in_count  | compactSize uint (LE)  | Number of TX inputs       |
 ///      | varies | tx_in        | txIn[]                 | TX inputs                 |
-///      | varies | tx_out count | compactSize uint (LE)  | Number of TX outputs      |
+///      | varies | tx_out_count | compactSize uint (LE)  | Number of TX outputs      |
 ///      | varies | tx_out       | txOut[]                | TX outputs                |
 ///      | 4      | lock_time    | uint32_t (LE)          | Unix time or block number |
 ///
@@ -41,8 +42,8 @@ import "./BridgeState.sol";
 ///      | Bytes  |       Name       |        BTC type        |                 Description                 |
 ///      |--------|------------------|------------------------|---------------------------------------------|
 ///      | 36     | previous_output  | outpoint               | The previous outpoint being spent           |
-///      | varies | script bytes     | compactSize uint (LE)  | The number of bytes in the signature script |
-///      | varies | signature script | char[]                 | The signature script, empty for P2WSH       |
+///      | varies | script_bytes     | compactSize uint (LE)  | The number of bytes in the signature script |
+///      | varies | signature_script | char[]                 | The signature script, empty for P2WSH       |
 ///      | 4      | sequence         | uint32_t (LE)          | Sequence number                             |
 ///
 ///
@@ -73,9 +74,25 @@ import "./BridgeState.sol";
 ///
 ///      (*) compactSize uint is often references as VarInt)
 ///
+///      Coinbase transaction input (txIn):
+///
+///      | Bytes  |       Name       |        BTC type        |                 Description                 |
+///      |--------|------------------|------------------------|---------------------------------------------|
+///      | 32     | hash             | char[32]               | A 32-byte 0x0  null (no previous_outpoint)  |
+///      | 4      | index            | uint32_t (LE)          | 0xffffffff (no previous_outpoint)           |
+///      | varies | script_bytes     | compactSize uint (LE)  | The number of bytes in the coinbase script  |
+///      | varies | height           | char[]                 | The block height of this block (BIP34) (*)  |
+///      | varies | coinbase_script  | none                   |  Arbitrary data, max 100 bytes              |
+///      | 4      | sequence         | uint32_t (LE)          | Sequence number
+///
+///      (*)  Uses script language: starts with a data-pushing opcode that indicates how many bytes to push to
+///           the stack followed by the block height as a little-endian unsigned integer. This script must be as
+///           short as possible, otherwise it may be rejected. The data-pushing opcode will be 0x03 and the total
+///           size four bytes until block 16,777,216 about 300 years from now.
 library BitcoinTx {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
+    using BytesLib for bytes;
     using ValidateSPV for bytes;
     using ValidateSPV for bytes32;
 
@@ -230,5 +247,72 @@ library BitcoinTx {
             observedDiff >= requestedDiff * self.txProofDifficultyFactor,
             "Insufficient accumulated difficulty in header chain"
         );
+    }
+
+    /// @notice Extracts public key hash from the provided P2PKH or P2WPKH output.
+    ///         Reverts if the validation fails.
+    /// @param output The transaction output
+    /// @return pubKeyHash 20-byte public key hash the output locks funds on
+    /// @dev Requirements:
+    ///      - The output must be of P2PKH or P2WPKH type and lock the funds
+    ///        on a 20-byte public key hash
+    function extractPubKeyHash(BridgeState.Storage storage, bytes memory output)
+        internal
+        view
+        returns (bytes20 pubKeyHash)
+    {
+        bytes memory pubKeyHashBytes = output.extractHash();
+
+        require(
+            pubKeyHashBytes.length == 20,
+            "Output's public key hash must have 20 bytes"
+        );
+
+        pubKeyHash = pubKeyHashBytes.slice20(0);
+
+        // We need to make sure that the 20-byte public key hash
+        // is actually used in the right context of a P2PKH or P2WPKH
+        // output. To do so, we must extract the full script from the output
+        // and compare with the expected P2PKH and P2WPKH scripts
+        // referring to that 20-byte public key hash. The output consists
+        // of an 8-byte value and a variable length script. To extract the
+        // script we slice the output starting from 9th byte until the end.
+        bytes32 outputScriptKeccak = keccak256(
+            output.slice(8, output.length - 8)
+        );
+        // Build the expected P2PKH script which has the following byte
+        // format: <0x1976a914> <20-byte PKH> <0x88ac>. According to
+        // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+        // - 0x19: Byte length of the entire script
+        // - 0x76: OP_DUP
+        // - 0xa9: OP_HASH160
+        // - 0x14: Byte length of the public key hash
+        // - 0x88: OP_EQUALVERIFY
+        // - 0xac: OP_CHECKSIG
+        // which matches the P2PKH structure as per:
+        // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
+        bytes32 P2PKHScriptKeccak = keccak256(
+            abi.encodePacked(hex"1976a914", pubKeyHash, hex"88ac")
+        );
+        // Build the expected P2WPKH script which has the following format:
+        // <0x160014> <20-byte PKH>. According to
+        // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+        // - 0x16: Byte length of the entire script
+        // - 0x00: OP_0
+        // - 0x14: Byte length of the public key hash
+        // which matches the P2WPKH structure as per:
+        // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
+        bytes32 P2WPKHScriptKeccak = keccak256(
+            abi.encodePacked(hex"160014", pubKeyHash)
+        );
+        // Make sure the actual output script matches either the P2PKH
+        // or P2WPKH format.
+        require(
+            outputScriptKeccak == P2PKHScriptKeccak ||
+                outputScriptKeccak == P2WPKHScriptKeccak,
+            "Output must be P2PKH or P2WPKH"
+        );
+
+        return pubKeyHash;
     }
 }

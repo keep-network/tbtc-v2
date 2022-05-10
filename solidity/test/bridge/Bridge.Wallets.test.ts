@@ -6,17 +6,15 @@ import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { ContractTransaction } from "ethers"
 import type { Bridge, BridgeStub, IWalletRegistry } from "../../typechain"
-import { NO_MAIN_UTXO } from "../data/sweep"
+import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { constants, ecdsaDkgState, walletState } from "../fixtures"
-import bridgeFixture from "./bridge-fixture"
+import bridgeFixture from "../fixtures/bridge"
 
 chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
-
-const fixture = async () => bridgeFixture()
 
 describe("Bridge - Wallets", () => {
   let thirdParty: SignerWithAddress
@@ -27,7 +25,7 @@ describe("Bridge - Wallets", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ thirdParty, walletRegistry, bridge } = await waffle.loadFixture(
-      fixture
+      bridgeFixture
     ))
   })
 
@@ -94,6 +92,7 @@ describe("Bridge - Wallets", () => {
               createdAt: await lastBlockTime(),
               movingFundsRequestedAt: 0,
               closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
               state: walletState.Live,
               movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
             })
@@ -124,7 +123,7 @@ describe("Bridge - Wallets", () => {
                         txHash:
                           "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                         txOutputIndex: 1,
-                        txOutputValue: constants.walletMinBtcBalance,
+                        txOutputValue: constants.walletCreationMinBtcBalance,
                       }
 
                       await bridge.setWalletMainUtxo(
@@ -169,7 +168,7 @@ describe("Bridge - Wallets", () => {
                         txHash:
                           "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                         txOutputIndex: 1,
-                        txOutputValue: constants.walletMaxBtcBalance,
+                        txOutputValue: constants.walletCreationMaxBtcBalance,
                       }
 
                       await bridge.setWalletMainUtxo(
@@ -214,7 +213,8 @@ describe("Bridge - Wallets", () => {
                       txHash:
                         "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                       txOutputIndex: 1,
-                      txOutputValue: constants.walletMaxBtcBalance.sub(1),
+                      txOutputValue:
+                        constants.walletCreationMaxBtcBalance.sub(1),
                     }
 
                     await bridge.setWalletMainUtxo(
@@ -255,7 +255,8 @@ describe("Bridge - Wallets", () => {
                       txHash:
                         "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                       txOutputIndex: 1,
-                      txOutputValue: constants.walletMinBtcBalance.sub(1),
+                      txOutputValue:
+                        constants.walletCreationMinBtcBalance.sub(1),
                     }
 
                     await bridge.setWalletMainUtxo(
@@ -284,7 +285,7 @@ describe("Bridge - Wallets", () => {
                 txHash:
                   "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                 txOutputIndex: 1,
-                txOutputValue: constants.walletMaxBtcBalance,
+                txOutputValue: constants.walletCreationMaxBtcBalance,
               }
 
               before(async () => {
@@ -566,6 +567,7 @@ describe("Bridge - Wallets", () => {
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
             closingStartedAt: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -865,6 +867,7 @@ describe("Bridge - Wallets", () => {
                 createdAt: 0,
                 movingFundsRequestedAt: 0,
                 closingStartedAt: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
                 state: test.walletState,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -921,6 +924,7 @@ describe("Bridge - Wallets", () => {
             createdAt: await lastBlockTime(),
             movingFundsRequestedAt: 0,
             closingStartedAt: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
             state: walletState.Live,
             movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
           })
@@ -1106,7 +1110,7 @@ describe("Bridge - Wallets", () => {
                 txHash:
                   "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                 txOutputIndex: 0,
-                txOutputValue: constants.walletMinBtcBalance.sub(1),
+                txOutputValue: constants.walletClosureMinBtcBalance.sub(1),
               }
 
               let tx: ContractTransaction
@@ -1172,7 +1176,7 @@ describe("Bridge - Wallets", () => {
               txHash:
                 "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
               txOutputIndex: 0,
-              txOutputValue: constants.walletMinBtcBalance,
+              txOutputValue: constants.walletClosureMinBtcBalance,
             }
 
             before(async () => {
@@ -1210,7 +1214,7 @@ describe("Bridge - Wallets", () => {
               txHash:
                 "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
               txOutputIndex: 0,
-              txOutputValue: constants.walletMinBtcBalance,
+              txOutputValue: constants.walletClosureMinBtcBalance,
             }
 
             before(async () => {
@@ -1281,6 +1285,7 @@ describe("Bridge - Wallets", () => {
                 createdAt: 0,
                 movingFundsRequestedAt: 0,
                 closingStartedAt: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
                 state: test.walletState,
                 movingFundsTargetWalletsCommitmentHash:
                   ethers.constants.HashZero,
@@ -1320,6 +1325,7 @@ describe("Bridge - Wallets", () => {
           createdAt: await lastBlockTime(),
           movingFundsRequestedAt: 0,
           closingStartedAt: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
           state: walletState.Live,
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
@@ -1350,6 +1356,7 @@ describe("Bridge - Wallets", () => {
       createdAt: 0,
       movingFundsRequestedAt: 0,
       closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
       state: walletState.Unknown,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     }

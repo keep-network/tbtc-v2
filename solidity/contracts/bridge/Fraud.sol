@@ -22,6 +22,8 @@ import {CheckBitcoinSigs} from "@keep-network/bitcoin-spv-sol/contracts/CheckBit
 import "./BitcoinTx.sol";
 import "./EcdsaLib.sol";
 import "./BridgeState.sol";
+import "./Heartbeat.sol";
+import "./MovingFunds.sol";
 import "./Wallets.sol";
 
 /// @title Bridge fraud
@@ -37,10 +39,18 @@ import "./Wallets.sol";
 ///      signature must be provided as were used to calculate the sighash during
 ///      the challenge. The wallet provides the preimage which produces sighash
 ///      used to generate the ECDSA signature that is the subject of the fraud
-///      claim. The fraud challenge defeat attempt will only succeed if the
-///      inputs in the preimage are considered honestly spent by the wallet.
-///      Therefore the transaction spending the UTXO must be proven in the
-///      Bridge before a challenge defeat is called.
+///      claim.
+///
+///      The fraud challenge defeat attempt will succeed if the inputs in the
+///      preimage are considered honestly spent by the wallet. Therefore the
+///      transaction spending the UTXO must be proven in the Bridge before
+///      a challenge defeat is called.
+///
+///      Another option is when a malicious wallet member used a signed heartbeat
+///      message periodically produced by the wallet off-chain to challenge the
+///      wallet for a fraud. Anyone from the wallet can defeat the challenge by
+///      proving the sighash and signature were produced for a heartbeat message
+///      following a strict format.
 library Fraud {
     using Wallets for BridgeState.Storage;
 
@@ -72,6 +82,10 @@ library Fraud {
 
     event FraudChallengeDefeatTimedOut(
         bytes20 walletPubKeyHash,
+        // Sighash calculated as a Bitcoin's hash256 (double sha2) of:
+        // - a preimage of a transaction spending UTXO according to the protocol
+        //   rules OR
+        // - a valid heartbeat message produced by the wallet off-chain.
         bytes32 sighash
     );
 
@@ -226,10 +240,76 @@ library Fraud {
 
         // Check that the UTXO key identifies a correctly spent UTXO.
         require(
-            self.deposits[utxoKey].sweptAt > 0 || self.spentMainUTXOs[utxoKey],
+            self.deposits[utxoKey].sweptAt > 0 ||
+                self.spentMainUTXOs[utxoKey] ||
+                self.movedFundsSweepRequests[utxoKey].state ==
+                MovingFunds.MovedFundsSweepRequestState.Processed,
             "Spent UTXO not found among correctly spent UTXOs"
         );
 
+        resolveFraudChallenge(self, walletPublicKey, challenge, sighash);
+    }
+
+    /// @notice Allows to defeat a pending fraud challenge against a wallet by
+    ///         proving the sighash and signature were produced for an off-chain
+    ///         wallet heartbeat message following a strict format.
+    ///         In order to defeat the challenge the same `walletPublicKey` and
+    ///         signature (represented by `r`, `s` and `v`) must be provided as
+    ///         were used to calculate the sighash during heartbeat message
+    ///         signing. The fraud challenge defeat attempt will only succeed if
+    ///         the signed message follows a strict format required for
+    ///         heartbeat messages. If successfully defeated, the fraud
+    ///         challenge is marked as resolved and the amount of ether
+    ///         deposited by the challenger is sent to the treasury.
+    /// @param walletPublicKey The public key of the wallet in the uncompressed
+    ///        and unprefixed format (64 bytes)
+    /// @param heartbeatMessage Off-chain heartbeat message meeting the heartbeat
+    ///        message format requirements which produces sighash used to
+    ///        generate the ECDSA signature that is the subject of the fraud
+    ///        claim
+    /// @dev Requirements:
+    ///      - `walletPublicKey` and `sighash` calculated as
+    ///        `hash256(heartbeatMessage)` must identify an open fraud challenge
+    ///      - `heartbeatMessage` must follow a strict format of heartbeat
+    ///        messages
+    function defeatFraudChallengeWithHeartbeat(
+        BridgeState.Storage storage self,
+        bytes calldata walletPublicKey,
+        bytes calldata heartbeatMessage
+    ) external {
+        bytes32 sighash = heartbeatMessage.hash256();
+
+        uint256 challengeKey = uint256(
+            keccak256(abi.encodePacked(walletPublicKey, sighash))
+        );
+
+        FraudChallenge storage challenge = self.fraudChallenges[challengeKey];
+
+        require(challenge.reportedAt > 0, "Fraud challenge does not exist");
+        require(
+            !challenge.resolved,
+            "Fraud challenge has already been resolved"
+        );
+
+        require(
+            Heartbeat.isValidHeartbeatMessage(heartbeatMessage),
+            "Not a valid heartbeat message"
+        );
+
+        resolveFraudChallenge(self, walletPublicKey, challenge, sighash);
+    }
+
+    /// @notice Called only for successfully defeated fraud challenges.
+    ///         The fraud challenge is marked as resolved and the amount of
+    ///         ether deposited by the challenger is sent to the treasury.
+    /// @dev Requirements:
+    ///      - Must be called only for successfully defeated fraud challenges.
+    function resolveFraudChallenge(
+        BridgeState.Storage storage self,
+        bytes calldata walletPublicKey,
+        FraudChallenge storage challenge,
+        bytes32 sighash
+    ) internal {
         // Mark the challenge as resolved as it was successfully defeated
         challenge.resolved = true;
 
@@ -244,6 +324,7 @@ library Fraud {
             walletPublicKey.slice32(32)
         );
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
+
         // slither-disable-next-line reentrancy-events
         emit FraudChallengeDefeated(walletPubKeyHash, sighash);
     }
@@ -260,6 +341,7 @@ library Fraud {
     ///         rewarded.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
     ///        and unprefixed format (64 bytes)
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
@@ -271,11 +353,18 @@ library Fraud {
     ///        Terminated state
     ///      - The `walletPublicKey` and `sighash` must identify an open fraud
     ///        challenge
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events of the `WalletRegistry` contract
     ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
     ///        after the challenge was reported
     function notifyFraudChallengeDefeatTimeout(
         BridgeState.Storage storage self,
         bytes calldata walletPublicKey,
+        uint32[] calldata walletMembersIDs,
         bytes32 sighash
     ) external {
         uint256 challengeKey = uint256(
@@ -312,9 +401,12 @@ library Fraud {
             walletPublicKey.slice32(32)
         );
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
-        Wallets.WalletState walletState = self
-            .registeredWallets[walletPubKeyHash]
-            .state;
+
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        Wallets.WalletState walletState = wallet.state;
 
         if (
             walletState == Wallets.WalletState.Live ||
@@ -323,8 +415,13 @@ library Fraud {
         ) {
             self.terminateWallet(walletPubKeyHash);
 
-            // TODO: Perform slashing of the wallet operators, reward the
-            //       challenger, and add unit tests for that.
+            self.ecdsaWalletRegistry.seize(
+                self.fraudSlashingAmount,
+                self.fraudNotifierRewardMultiplier,
+                challenge.challenger,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
         } else if (walletState == Wallets.WalletState.Terminated) {
             // This is a special case when the wallet was already terminated
             // due to a previous deliberate protocol violation. In that
