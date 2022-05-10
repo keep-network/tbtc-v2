@@ -811,7 +811,7 @@ describe("Bank", () => {
     before(async () => {
       await createSnapshot()
 
-      owner = await ethers.Wallet.createRandom()
+      owner = ethers.Wallet.createRandom()
       await bank.connect(bridge).increaseBalance(owner.address, initialBalance)
 
       const accounts = await getUnnamedAccounts()
@@ -871,9 +871,7 @@ describe("Bank", () => {
         )
       )
 
-      return ethers.utils.splitSignature(
-        await signingKey.signDigest(approvalDigest)
-      )
+      return ethers.utils.splitSignature(signingKey.signDigest(approvalDigest))
     }
 
     context("when permission expired", () => {
