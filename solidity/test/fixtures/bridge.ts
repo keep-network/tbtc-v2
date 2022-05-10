@@ -4,6 +4,7 @@ import type {
   Bank,
   BankStub,
   Bridge,
+  BridgeGovernance,
   BridgeStub,
   IWalletRegistry,
   BridgeStub__factory,
@@ -22,6 +23,10 @@ export default async function bridgeFixture() {
   const bank: Bank & BankStub = await ethers.getContract("Bank")
 
   const bridge: Bridge & BridgeStub = await ethers.getContract("Bridge")
+
+  const bridgeGovernance: BridgeGovernance = await ethers.getContract(
+    "BridgeGovernance"
+  )
 
   const walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry", {
     address: await (await bridge.contractReferences()).ecdsaWalletRegistry,
@@ -62,5 +67,6 @@ export default async function bridgeFixture() {
     walletRegistry,
     bridge,
     BridgeFactory,
+    bridgeGovernance,
   }
 }
