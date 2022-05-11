@@ -683,6 +683,172 @@ describe("Bridge - Moving funds", () => {
     })
   })
 
+  describe("resetMovingFundsTimeout", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when the wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.MovingFunds,
+          movingFundsRequestedAt: (await lastBlockTime()) - 3600,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the wallet's commitment is not submitted yet", () => {
+        context("when Live wallets count is zero", () => {
+          // No need to do any specific setup. There is only one MovingFunds
+          // wallet in the system and its commitment is not yet submitted.
+          // All preconditions are met by default.
+
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            tx = await bridge.resetMovingFundsTimeout(
+              ecdsaWalletTestData.pubKeyHash160
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should reset the moving funds timeout", async () => {
+            expect(
+              (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160))
+                .movingFundsRequestedAt
+            ).to.be.equal(await lastBlockTime())
+          })
+
+          it("should emit MovingFundsTimeoutReset event", async () => {
+            await expect(tx)
+              .to.emit(bridge, "MovingFundsTimeoutReset")
+              .withArgs(ecdsaWalletTestData.pubKeyHash160)
+          })
+        })
+
+        context("when Live wallets count is not zero", () => {
+          before(async () => {
+            await createSnapshot()
+
+            // This call will add one Live wallet and increase the Live wallet
+            // counter accordingly. Note that the wallet's public key hash
+            // must be different from the PKH of the tested wallet.
+            await bridge.setWallet(
+              "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+              {
+                ...walletDraft,
+                state: walletState.Live,
+              }
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+            ).to.be.revertedWith("Live wallets count must be zero")
+          })
+        })
+      })
+
+      context("when the wallet's commitment is already submitted", () => {
+        before(async () => {
+          await createSnapshot()
+
+          // Set an arbitrary non-zero commitment.
+          await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+            ...(await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)),
+            movingFundsTargetWalletsCommitmentHash:
+              ethers.utils.solidityKeccak256(
+                ["bytes20"],
+                ["0xc214a5e9ec1b7792af9894e8f9ff0dd9bf427d79"]
+              ),
+          })
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge.resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+          ).to.be.revertedWith("Target wallets commitment already submitted")
+        })
+      })
+    })
+
+    context("when the wallet is not in the MovingFunds state", () => {
+      const testData = [
+        {
+          testName: "when the wallet is in the Unknown state",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when the wallet is in the Live state",
+          walletState: walletState.Live,
+        },
+        {
+          testName: "when the wallet is in the Closing state",
+          walletState: walletState.Closing,
+        },
+        {
+          testName: "when the wallet is in the Closed state",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when the wallet is in the Terminated state",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: test.walletState,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+            ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
+          })
+        })
+      })
+    })
+  })
+
   describe("submitMovingFundsProof", () => {
     context("when transaction proof is valid", () => {
       context("when there is a main UTXO for the given wallet", () => {
