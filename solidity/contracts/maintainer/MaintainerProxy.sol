@@ -179,7 +179,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         uint32[] calldata walletMembersIDs,
         uint256 walletMemberIndex,
         bytes20[] calldata targetWallets
-    ) external onlyMaintainer {
+    ) external {
         uint256 gasStart = gasleft();
 
         bridge.submitMovingFundsCommitment(
