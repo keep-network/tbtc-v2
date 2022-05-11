@@ -14,7 +14,7 @@ const { AddressZero } = ethers.constants
 describe("Bridge - Deployment", async () => {
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
-  let keepTechnicalWalletTeam: SignerWithAddress
+  let esdm: SignerWithAddress
 
   let bridge: Bridge
   let bridgeProxy: TransparentUpgradeableProxy
@@ -22,8 +22,7 @@ describe("Bridge - Deployment", async () => {
 
   before(async () => {
     await deployments.fixture()
-    ;({ deployer, governance, keepTechnicalWalletTeam } =
-      await ethers.getNamedSigners())
+    ;({ deployer, governance, esdm } = await ethers.getNamedSigners())
 
     bridge = await ethers.getContract<Bridge>("Bridge")
 
@@ -63,7 +62,7 @@ describe("Bridge - Deployment", async () => {
 
   it("should set ProxyAdmin owner", async () => {
     expect(await proxyAdmin.owner()).to.be.equal(
-      keepTechnicalWalletTeam.address,
+      esdm.address,
       "invalid ProxyAdmin owner"
     )
   })

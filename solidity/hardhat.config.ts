@@ -112,6 +112,10 @@ const config: HardhatUserConfig = {
       default: 5,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
+    esdm: {
+      default: 6,
+      // mainnet: ""
+    },
   },
   dependencyCompiler: {
     paths: [
