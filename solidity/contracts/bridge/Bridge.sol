@@ -1160,8 +1160,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
-    ///      - Moving funds dust threshold must be greater than zero and smaller
-    ///        than redemption dust threshold
+    ///      - Moving funds dust threshold must be greater than zero and lower
+    ///        than the redemption dust threshold
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]

@@ -451,13 +451,13 @@ describe("Bridge - Parameters", () => {
                 constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
           ).to.be.revertedWith(
-            "Moving funds dust threshold must be greater than zero and smaller than redemption dust threshold"
+            "Moving funds dust threshold must be greater than zero and lower than redemption dust threshold"
           )
         })
       })
 
       context(
-        "when new moving funds dust threshold is not smaller than redemption dust threshold",
+        "when new moving funds dust threshold is not lower than redemption dust threshold",
         () => {
           // Use the current value of `redemptionDustThreshold` as the new value
           // of `movingFundsDustThreshold`.
@@ -479,7 +479,7 @@ describe("Bridge - Parameters", () => {
                   constants.movedFundsSweepTimeoutNotifierRewardMultiplier
                 )
             ).to.be.revertedWith(
-              "Moving funds dust threshold must be greater than zero and smaller than redemption dust threshold"
+              "Moving funds dust threshold must be greater than zero and lower than redemption dust threshold"
             )
           })
         }

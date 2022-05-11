@@ -88,9 +88,9 @@ library BridgeState {
         // the moving funds process. Moving funds wallets having their BTC
         // balance below that value can begin closing immediately as
         // transferring such a low value may not be possible due to
-        // BTC network fees. The value of this parameter must always be smaller
+        // BTC network fees. The value of this parameter must always be lower
         // than `redemptionDustThreshold` in order to prevent redemption requests
-        // with values smaller or equal to `movingFundsDustThreshold`.
+        // with values lower or equal to `movingFundsDustThreshold`.
         uint64 movingFundsDustThreshold;
         // Time after which the moving funds process can be reported as
         // timed out. It is counted from the moment when the wallet
@@ -137,7 +137,7 @@ library BridgeState {
         // treasury and transaction fee and still satisfy the redeemer.
         // Additionally, the value of this parameter must always be greater
         // than `movingFundsDustThreshold` in order to prevent redemption
-        // requests with values smaller or equal to `movingFundsDustThreshold`.
+        // requests with values lower or equal to `movingFundsDustThreshold`.
         uint64 redemptionDustThreshold;
         // Divisor used to compute the treasury fee taken from each
         // redemption request and transferred to the treasury upon
@@ -501,8 +501,8 @@ library BridgeState {
     ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
-    ///      - Moving funds dust threshold must be greater than zero and smaller
-    ///        than redemption dust threshold
+    ///      - Moving funds dust threshold must be greater than zero and lower
+    ///        than the redemption dust threshold
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
@@ -530,7 +530,7 @@ library BridgeState {
         require(
             _movingFundsDustThreshold > 0 &&
                 _movingFundsDustThreshold < self.redemptionDustThreshold,
-            "Moving funds dust threshold must be greater than zero and smaller than redemption dust threshold"
+            "Moving funds dust threshold must be greater than zero and lower than redemption dust threshold"
         );
 
         require(
