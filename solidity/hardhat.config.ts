@@ -42,9 +42,6 @@ const config: HardhatUserConfig = {
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK, 10),
       },
       tags: ["local"],
-      // Ignore contract size on deployment to hardhat network, to be able to
-      // deploy stub contracts in tests.
-      allowUnlimitedContractSize: true,
     },
     development: {
       url: "http://localhost:8545",
@@ -131,7 +128,6 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
-    except: ["WalletRegistry$", "WalletRegistryStub$"],
   },
   typechain: {
     outDir: "typechain",
