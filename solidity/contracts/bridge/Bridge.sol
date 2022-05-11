@@ -218,6 +218,14 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     );
 
     /// @dev Initializes upgradable contract on deployment.
+    /// @param _bank Address of the Bank the Bridge belongs to
+    /// @param _relay Address of the Bitcoin relay providing the current Bitcoin
+    ///        network difficulty
+    /// @param _treasury Address where the deposit and redemption treasury fees
+    ///        will be sent to
+    /// @param _ecdsaWalletRegistry Address of the ECDSA Wallet Registry contract
+    /// @param _txProofDifficultyFactor The number of confirmations on the Bitcoin
+    ///        chain required to successfully evaluate an SPV proof
     function initialize(
         address _bank,
         address _relay,
