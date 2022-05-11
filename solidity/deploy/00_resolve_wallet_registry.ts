@@ -49,6 +49,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: true,
     })
 
+    // Use `deployments.deploy` instead of `helpers.upgrades.deployProxy` as
+    // to workaround problem with a hardhat-gas-reporter problem described in
+    // https://github.com/keep-network/keep-core/pull/2970.
     await deployments.deploy("WalletRegistry", {
       from: deployer,
       args: [SortitionPool.address, TokenStaking.address],
