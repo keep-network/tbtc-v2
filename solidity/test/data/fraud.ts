@@ -5,7 +5,7 @@ import { BytesLike } from "ethers"
  */
 export interface FraudTestData {
   /**
-   * The signature of the given sigash.
+   * The signature generated during input signing.
    */
   signature: {
     v: number
@@ -14,17 +14,20 @@ export interface FraudTestData {
   }
 
   /**
-   * The preimage used to built the given sighash.
+   * The preimage used during the input signing.
+   * The SHA-256 hash of `preimage` results in `sha256preimage`.
    */
   preimage: BytesLike
 
   /**
-   * The sighash used to create the fraud challenge.
+   * The SHA-256 hash of the preimage.
+   * The SHA-256 hash of `sha256preimage` results in `sighash` which is used
+   * during input signing.
    */
-  sighash: BytesLike
+  sha256preimage: BytesLike
 
   /**
-   * Determines whether the input the sighash refers to is witness or not.
+   * Determines whether the input used during signing is witness or not.
    */
   witness: boolean
 
@@ -84,7 +87,8 @@ export const nonWitnessSignSingleInputTx: FraudTestData = {
     "63ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b1" +
     "75ac68ffffffff01b8240000000000001600148db50eb52063ea9d98b3eac91489" +
     "a90f738986f60000000001000000",
-  sighash: "0x5d09cd07392c7163335b67eacc999491a3794c15b88e2b59094be5c5b157064b",
+  sha256preimage:
+    "0x90d29d1021c2a1a381c0c8a39f5ffda96770e1c2ffed835f822500033841b2e3",
   witness: false,
   deposits: [],
   spentMainUtxos: [],
@@ -118,7 +122,8 @@ export const nonWitnessSignMultipleInputsTx: FraudTestData = {
     "b50eb52063ea9d98b3eac91489a90f738986f68763ac6776a914e257eccafbc07c38164" +
     "2ce6e7e55120fb077fbed8804e0250162b175ac68ffffffff011cd40000000000001600" +
     "148db50eb52063ea9d98b3eac91489a90f738986f60000000001000000",
-  sighash: "0x3a3c771a0d6e2484e1f00dca91e724b9f60a986b0c1ac4cafb9ae69a7401a573",
+  sha256preimage:
+    "0x69b912fd0ea8922db4af34145378f7e0f15d6c0eb22bf5d68ab6645819f2476c",
   witness: false,
   deposits: [
     {
@@ -149,7 +154,8 @@ export const witnessSignSingleInputTx: FraudTestData = {
     "a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac68f0" +
     "55000000000000fffffffff5ef547c0c70b4a4747f180b1cc244b99a3d2c12e71d" +
     "73d68ca9da53591139f10000000001000000",
-  sighash: "0xb8994753efd78cc66075991d3a21beef96d4e8a5e9ff06bc692401203df02610",
+  sha256preimage:
+    "0xdfb4a0032c9da53e79640f404cf9e07ff0a881706d0cee6e8ff360f0371d4782",
   witness: true,
   deposits: [
     {
@@ -178,7 +184,8 @@ export const witnessSignMultipleInputTx: FraudTestData = {
     "1976a9148db50eb52063ea9d98b3eac91489a90f738986f688acd020000000000000ff" +
     "ffffffb72599001cf12b672a074ce9ff50fe8cb87432044fd6a5b85953ddc9abc458b9" +
     "0000000001000000",
-  sighash: "0xd05adb53b09ac6b1cc0a0166558f8b90d2898c9a368d40a2a033e5e0c1af9b11",
+  sha256preimage:
+    "0xbf0ff823c255934b7a4ef21dfb98df0547b177a9f71caf0f1f86ae592ec47a09",
   witness: true,
   deposits: [],
   spentMainUtxos: [
@@ -209,7 +216,8 @@ export const wrongSighashType: FraudTestData = {
     "63ea9d98b3eac91489a90f738986f68763ac6776a914e257eccafbc07c381642ce6e7e551" +
     "20fb077fbed8804e0250162b175ac682823000000000000ffffffff000000000000000000" +
     "00000000000000000000000000000000000000000000000000000082000000",
-  sighash: "0x4fd8491a872a42d20e434e838afd6e4d6d6422e035db0d41a9a11cb0596b2959",
+  sha256preimage:
+    "0x6c8afcb2efdb0313c40acb92b80a1ae9113111ce7f081877875d28c20d9fffd7",
   witness: true,
   deposits: [
     {
