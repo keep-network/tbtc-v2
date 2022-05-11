@@ -34,8 +34,9 @@ describe("Bridge - Deployment", async () => {
 
     proxyAdmin = (await upgrades.admin.getInstance()) as ProxyAdmin
 
-    expect(deployer.address, "deployer is the same as governance").not.equal(
-      governance.address
+    expect(deployer.address).to.be.not.equal(
+      governance.address,
+      "deployer is the same as governance"
     )
   })
 
@@ -49,25 +50,30 @@ describe("Bridge - Deployment", async () => {
           bridge.address,
           "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
         )
-      )[0],
+      )[0]
+    ).to.be.equal(
+      proxyAdmin.address,
       "invalid Bridge proxy admin (read from storage slot)"
-    ).to.be.equal(proxyAdmin.address)
+    )
 
     expect(
-      await bridgeProxy.connect(proxyAdmin.address).callStatic.admin(),
-      "invalid Bridge proxy admin"
-    ).to.be.equal(proxyAdmin.address)
+      await bridgeProxy.connect(proxyAdmin.address).callStatic.admin()
+    ).to.be.equal(proxyAdmin.address, "invalid Bridge proxy admin")
   })
 
   it("should set ProxyAdmin owner", async () => {
-    expect(await proxyAdmin.owner(), "invalid ProxyAdmin owner").to.be.equal(
-      keepTechnicalWalletTeam.address
+    expect(await proxyAdmin.owner()).to.be.equal(
+      keepTechnicalWalletTeam.address,
+      "invalid ProxyAdmin owner"
     )
   })
 
   it("should set Bridge governance", async () => {
-    expect(await bridge.governance(), "invalid Bridge governance").equal(
-      governance.address
+    expect(await bridge.governance()).to.be.equal(
+      // TODO: Once BridgeGovernance is implemented and set update this expectation
+      // to be equal bridgeGovernance.address.
+      governance.address,
+      "invalid Bridge governance"
     )
   })
 
