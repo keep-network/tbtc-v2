@@ -406,6 +406,7 @@ contract Bridge is Governable, EcdsaWalletOwner {
         self.requestRedemption(
             walletPubKeyHash,
             mainUtxo,
+            msg.sender,
             redeemerOutputScript,
             amount
         );

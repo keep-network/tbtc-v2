@@ -230,6 +230,7 @@ library Redemption {
     ///        using Bitcoin HASH160 over the compressed ECDSA public key)
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain
+    /// @param redeemer ETH address of the redeemer
     /// @param redeemerOutputScript The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
     ///        redeemed BTC
@@ -257,6 +258,7 @@ library Redemption {
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo,
+        address redeemer,
         bytes calldata redeemerOutputScript,
         uint64 amount
     ) external {
@@ -359,7 +361,7 @@ library Redemption {
         );
 
         self.pendingRedemptions[redemptionKey] = RedemptionRequest(
-            msg.sender,
+            redeemer,
             amount,
             treasuryFee,
             txMaxFee,
@@ -370,13 +372,13 @@ library Redemption {
         emit RedemptionRequested(
             walletPubKeyHash,
             redeemerOutputScript,
-            msg.sender,
+            redeemer,
             amount,
             treasuryFee,
             txMaxFee
         );
 
-        self.bank.transferBalanceFrom(msg.sender, address(this), amount);
+        self.bank.transferBalanceFrom(redeemer, address(this), amount);
     }
 
     /// @notice Used by the wallet to prove the BTC redemption transaction
