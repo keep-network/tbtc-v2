@@ -117,6 +117,8 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         address submitter
     );
 
+    event MovingFundsTimeoutReset(bytes20 walletPubKeyHash);
+
     event MovingFundsCompleted(
         bytes20 walletPubKeyHash,
         bytes32 movingFundsTxHash
@@ -341,6 +343,15 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
+    /// @param vault Optional address of the vault where all swept deposits
+    ///        should be routed to. All deposits swept as part of the transaction
+    ///        must have their `vault` parameters set to the same address.
+    ///        If this parameter is set to an address of a trusted vault, swept
+    ///        deposits are routed to that vault.
+    ///        If this parameter is set to the zero address or to an address
+    ///        of a non-trusted vault, swept deposits are not routed to a
+    ///        vault but depositors' balances are increased in the Bank
+    ///        individually.
     /// @dev Requirements:
     ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
@@ -354,6 +365,9 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        revealed deposits UTXOs. That transaction must have only
     ///        one P2(W)PKH output locking funds on the 20-byte wallet public
     ///        key hash.
+    ///      - All revealed deposits that are swept by `sweepTx` must have
+    ///        their `vault` parameters set to the same address as the address
+    ///        passed in the `vault` function parameter.
     ///      - `sweepProof` components must match the expected structure. See
     ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
@@ -364,9 +378,10 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     function submitDepositSweepProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
-        BitcoinTx.UTXO calldata mainUtxo
+        BitcoinTx.UTXO calldata mainUtxo,
+        address vault
     ) external {
-        self.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo);
+        self.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo, vault);
     }
 
     /// @notice Requests redemption of the given amount from the specified
@@ -571,6 +586,19 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
             walletMemberIndex,
             targetWallets
         );
+    }
+
+    /// @notice Resets the moving funds timeout for the given wallet if the
+    ///         target wallet commitment cannot be submitted due to a lack
+    ///         of live wallets in the system.
+    /// @param walletPubKeyHash 20-byte public key hash of the moving funds wallet
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state
+    ///      - The target wallets commitment must not be already submitted for
+    ///        the given moving funds wallet
+    ///      - Live wallets count must be zero
+    function resetMovingFundsTimeout(bytes20 walletPubKeyHash) external {
+        self.resetMovingFundsTimeout(walletPubKeyHash);
     }
 
     /// @notice Used by the wallet to prove the BTC moving funds transaction
@@ -858,8 +886,8 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         to protocol rules. To prevent spurious allegations, the caller
     ///         must deposit ETH that is returned back upon justified fraud
     ///         challenge or confiscated otherwise.
-    ///@param walletPublicKey The public key of the wallet in the uncompressed
-    ///       and unprefixed format (64 bytes)
+    /// @param walletPublicKey The public key of the wallet in the uncompressed
+    ///        and unprefixed format (64 bytes)
     /// @param sighash The hash that was used to produce the ECDSA signature
     ///        that is the subject of the fraud claim. This hash is constructed
     ///        by applying double SHA-256 over a serialized subset of the
@@ -917,6 +945,38 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         bool witness
     ) external {
         self.defeatFraudChallenge(walletPublicKey, preimage, witness);
+    }
+
+    /// @notice Allows to defeat a pending fraud challenge against a wallet by
+    ///         proving the sighash and signature were produced for an off-chain
+    ///         wallet heartbeat message following a strict format.
+    ///         In order to defeat the challenge the same `walletPublicKey` and
+    ///         signature (represented by `r`, `s` and `v`) must be provided as
+    ///         were used to calculate the sighash during heartbeat message
+    ///         signing. The fraud challenge defeat attempt will only succeed if
+    ///         the signed message follows a strict format required for
+    ///         heartbeat messages. If successfully defeated, the fraud
+    ///         challenge is marked as resolved and the amount of ether
+    ///         deposited by the challenger is sent to the treasury.
+    /// @param walletPublicKey The public key of the wallet in the uncompressed
+    ///        and unprefixed format (64 bytes)
+    /// @param heartbeatMessage Off-chain heartbeat message meeting the heartbeat
+    ///        message format requirements which produces sighash used to
+    ///        generate the ECDSA signature that is the subject of the fraud
+    ///        claim
+    /// @dev Requirements:
+    ///      - `walletPublicKey` and `sighash` calculated as
+    ///        `hash256(heartbeatMessage)` must identify an open fraud challenge
+    ///      - `heartbeatMessage` must follow a strict format of heartbeat
+    ///        messages
+    function defeatFraudChallengeWithHeartbeat(
+        bytes calldata walletPublicKey,
+        bytes calldata heartbeatMessage
+    ) external {
+        self.defeatFraudChallengeWithHeartbeat(
+            walletPublicKey,
+            heartbeatMessage
+        );
     }
 
     /// @notice Notifies about defeat timeout for the given fraud challenge.
@@ -1059,7 +1119,8 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        staking contact the notifier of a redemption timeout receives.
     ///        The value must be in the range [0, 100]
     /// @dev Requirements:
-    ///      - Redemption dust threshold must be greater than zero
+    ///      - Redemption dust threshold must be greater than moving funds dust
+    ///        threshold
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
@@ -1128,7 +1189,8 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
-    ///      - Moving funds dust threshold must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero and lower
+    ///        than the redemption dust threshold
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
