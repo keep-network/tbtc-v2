@@ -112,6 +112,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
         address submitter
     );
 
+    event MovingFundsTimeoutReset(bytes20 walletPubKeyHash);
+
     event MovingFundsCompleted(
         bytes20 walletPubKeyHash,
         bytes32 movingFundsTxHash
@@ -570,6 +572,19 @@ contract Bridge is Governable, EcdsaWalletOwner {
             walletMemberIndex,
             targetWallets
         );
+    }
+
+    /// @notice Resets the moving funds timeout for the given wallet if the
+    ///         target wallet commitment cannot be submitted due to a lack
+    ///         of live wallets in the system.
+    /// @param walletPubKeyHash 20-byte public key hash of the moving funds wallet
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state
+    ///      - The target wallets commitment must not be already submitted for
+    ///        the given moving funds wallet
+    ///      - Live wallets count must be zero
+    function resetMovingFundsTimeout(bytes20 walletPubKeyHash) external {
+        self.resetMovingFundsTimeout(walletPubKeyHash);
     }
 
     /// @notice Used by the wallet to prove the BTC moving funds transaction
