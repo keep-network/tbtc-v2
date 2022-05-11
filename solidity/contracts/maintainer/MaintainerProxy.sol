@@ -90,6 +90,11 @@ contract MaintainerProxy is Ownable, Reimbursable {
         _;
     }
 
+    modifier onlyReimbursableAdmin() override {
+        require(owner() == msg.sender, "Caller is not the owner");
+        _;
+    }
+
     constructor(Bridge _bridge, ReimbursementPool _reimbursementPool) {
         bridge = _bridge;
         reimbursementPool = _reimbursementPool;
