@@ -257,6 +257,10 @@ library BridgeState {
         // information like state and pending redemptions value.
         mapping(bytes20 => Wallets.Wallet) registeredWallets;
         // Reserved storage space in case we need to add more variables.
+        // The convention from OpenZeppelin suggests the storage space should
+        // add up to 50 slots. Here we want to have more slots as there are
+        // planned upgrades of the Bridge contract. If more entires are added to
+        // the struc in the upcoming versions we need to reduce the array size.
         // See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
         // slither-disable-next-line unused-state
         uint256[50] __gap;
