@@ -29,5 +29,5 @@ export default func
 func.tags = ["BridgeProxyAdminWithDeputy"]
 func.dependencies = ["Bridge"]
 
-// For now we skip this script as DAO is not yet established.
+// TODO: For now we skip this script as DAO is not yet established.
 func.skip = async () => true
