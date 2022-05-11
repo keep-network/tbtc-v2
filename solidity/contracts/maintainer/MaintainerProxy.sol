@@ -117,11 +117,12 @@ contract MaintainerProxy is Ownable, Reimbursable {
     function submitDepositSweepProof(
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
-        BitcoinTx.UTXO calldata mainUtxo
+        BitcoinTx.UTXO calldata mainUtxo,
+        address vault
     ) external onlyMaintainer {
         uint256 gasStart = gasleft();
 
-        bridge.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo);
+        bridge.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo, vault);
 
         reimbursementPool.refund(
             (gasStart - gasleft()) + _submitDepositSweepProofGasOffset,
