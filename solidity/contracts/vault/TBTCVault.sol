@@ -109,8 +109,10 @@ contract TBTCVault is IVault {
     /// @dev Caller must have at least `amount` of TBTC approved to
     ///       TBTC Vault.
     /// @param amount Amount of TBTC to redeem
-    function redeem(uint256 amount) external {
-        _redeem(msg.sender, amount);
+    ///
+    /// TODO: Update the docs after introducing redemption approval.
+    function redeem(uint256 amount, bytes calldata extraData) external {
+        _redeem(msg.sender, amount, extraData);
     }
 
     /// @notice Burns `amount` of TBTC from the caller's account and transfers
@@ -121,15 +123,18 @@ contract TBTCVault is IVault {
     /// @param from TBTC token holder executing redemption
     /// @param amount Amount of TBTC to redeem
     /// @param token TBTC token address
+    /// @param extraData Additional data passed by the `approveAndCall` function
+    ///
+    /// TODO: Update the docs after introducing redemption approval.
     function receiveApproval(
         address from,
         uint256 amount,
         address token,
-        bytes calldata
+        bytes calldata extraData
     ) external {
         require(token == address(tbtcToken), "Token is not TBTC");
         require(msg.sender == token, "Only TBTC caller allowed");
-        _redeem(from, amount);
+        _redeem(from, amount, extraData);
     }
 
     // slither-disable-next-line calls-loop
@@ -138,9 +143,17 @@ contract TBTCVault is IVault {
         tbtcToken.mint(minter, amount);
     }
 
-    function _redeem(address redeemer, uint256 amount) internal {
+    function _redeem(
+        address redeemer,
+        uint256 amount,
+        bytes calldata extraData
+    ) internal {
         emit Redeemed(redeemer, amount);
         tbtcToken.burnFrom(redeemer, amount);
         bank.transferBalance(redeemer, amount);
+
+        if (extraData.length > 0) {
+            bank.approveBalanceRedemption(redeemer, amount, extraData);
+        }
     }
 }

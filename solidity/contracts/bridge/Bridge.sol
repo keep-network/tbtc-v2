@@ -57,7 +57,7 @@ import "../bank/Bank.sol";
 /// TODO: Revisit all events and look which parameters should be indexed.
 /// TODO: Align the convention around `param` and `dev` endings. They should
 ///       not have a punctuation mark.
-contract Bridge is Governable, EcdsaWalletOwner {
+contract Bridge is Governable, EcdsaWalletOwner, IBridge {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
     using DepositSweep for BridgeState.Storage;
@@ -409,6 +409,41 @@ contract Bridge is Governable, EcdsaWalletOwner {
             msg.sender,
             redeemerOutputScript,
             amount
+        );
+    }
+
+    // TODO: Documentation.
+    function receiveBalanceRedemptionApproval(
+        address approver,
+        address redeemer,
+        uint256 amount,
+        bytes calldata extraData
+    ) external override {
+        require(msg.sender == address(self.bank), "Caller is not the bank");
+
+        require(
+            approver == redeemer || self.isVaultTrusted[approver],
+            "Approver is neither the redeemer nor a trusted vault"
+        );
+
+        (
+            bytes20 walletPubKeyHash,
+            bytes32 mainUtxoTxHash,
+            uint32 mainUtxoTxOutputIndex,
+            uint64 mainUtxoTxOutputValue,
+            bytes memory redeemerOutputScript
+        ) = abi.decode(extraData, (bytes20, bytes32, uint32, uint64, bytes));
+
+        self.requestRedemption(
+            walletPubKeyHash,
+            BitcoinTx.UTXO(
+                mainUtxoTxHash,
+                mainUtxoTxOutputIndex,
+                mainUtxoTxOutputValue
+            ),
+            redeemer,
+            redeemerOutputScript,
+            uint64(amount)
         );
     }
 

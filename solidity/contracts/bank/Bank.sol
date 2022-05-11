@@ -19,6 +19,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "../vault/IVault.sol";
 
+// TODO: Documentation.
+// TODO: Determine the right place for this interface.
+interface IBridge {
+    function receiveBalanceRedemptionApproval(
+        address approver,
+        address redeemer,
+        uint256 amount,
+        bytes calldata extraData
+    ) external;
+}
+
 /// @title Bitcoin Bank
 /// @notice Bank is a central component tracking Bitcoin balances. Balances can
 ///         be transferred between holders and holders can approve their
@@ -68,6 +79,8 @@ contract Bank is Ownable {
     event BalanceIncreased(address indexed owner, uint256 amount);
 
     event BalanceDecreased(address indexed owner, uint256 amount);
+
+    event BalanceRedemptionApproved(address indexed owner, uint256 amount);
 
     event BridgeUpdated(address newBridge);
 
@@ -309,6 +322,29 @@ contract Bank is Ownable {
     function decreaseBalance(uint256 amount) external {
         balanceOf[msg.sender] -= amount;
         emit BalanceDecreased(msg.sender, amount);
+    }
+
+    // TODO: Documentation.
+    function approveBalanceRedemption(
+        address redeemer,
+        uint256 amount,
+        bytes calldata extraData
+    ) external {
+        require(
+            balanceOf[redeemer] >= amount,
+            "Redemption amount exceeds balance"
+        );
+
+        _approveBalance(redeemer, bridge, amount);
+
+        emit BalanceRedemptionApproved(redeemer, amount);
+
+        IBridge(bridge).receiveBalanceRedemptionApproval(
+            msg.sender,
+            redeemer,
+            amount,
+            extraData
+        );
     }
 
     /// @notice Returns hash of EIP712 Domain struct with `TBTC Bank` as
