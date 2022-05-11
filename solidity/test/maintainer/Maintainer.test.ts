@@ -1,6 +1,8 @@
+/* eslint-disable no-underscore-dangle */
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { expect } from "chai"
+import { SigningKey } from "ethers/lib/utils"
+import { assert, expect } from "chai"
 import { ContractTransaction, BigNumber, BigNumberish } from "ethers"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { smock } from "@defi-wonderland/smock"
@@ -44,6 +46,9 @@ import {
 } from "../data/fraud"
 
 import {
+  MovedFundsSweepTestData,
+  MovedFundsSweepWithMainUtxo,
+  MovedFundsSweepWithoutMainUtxo,
   MovingFundsTestData,
   MultipleTargetWalletsAndDivisibleAmount,
   MultipleTargetWalletsAndIndivisibleAmount,
@@ -58,7 +63,10 @@ const { provider } = waffle
 const { impersonateAccount } = helpers.account
 
 const { lastBlockTime, increaseTime } = helpers.time
+const { keccak256, sha256 } = ethers.utils
 
+// These tests were ported from other tbtc-v2 tests suites and adjusted 
+// to test the refund functionality of the Maintainer Proxy contract.
 describe("Maintainer", () => {
   const activeWalletMainUtxo = {
     txHash:
@@ -79,6 +87,8 @@ describe("Maintainer", () => {
 
   let bank: Bank & BankStub
   let thirdPartyContract: SignerWithAddress
+
+  let fraudChallengeDepositAmount: BigNumber
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -103,6 +113,7 @@ describe("Maintainer", () => {
       to: walletRegistry.address,
       value: ethers.utils.parseEther("100"),
     })
+    ;({ fraudChallengeDepositAmount } = await bridge.fraudParameters())
   })
 
   describe("requestNewWallet", () => {
@@ -188,8 +199,7 @@ describe("Maintainer", () => {
         // the initial value in the Bridge in order to save test Bitcoins.
         await bridge.setDepositDustThreshold(10000)
 
-        const sweepOutcome: Promise<SweepScenarioOutcome> =
-          runSweepScenario(data)
+        const sweepOutcome: Promise<ScenarioOutcome> = runSweepScenario(data)
 
         await expect(sweepOutcome).to.be.revertedWith(
           "Caller is not authorized"
@@ -228,7 +238,7 @@ describe("Maintainer", () => {
                           // deposits in same sweep batch should have the same value
                           // of that field.
                           const { walletPubKeyHash } = data.deposits[0].reveal
-                          let sweepOutcome: SweepScenarioOutcome
+                          let sweepOutcome: ScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
@@ -287,7 +297,7 @@ describe("Maintainer", () => {
                           // deposits in same sweep batch should have the same value
                           // of that field.
                           const { walletPubKeyHash } = data.deposits[0].reveal
-                          let sweepOutcome: SweepScenarioOutcome
+                          let sweepOutcome: ScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
@@ -352,7 +362,7 @@ describe("Maintainer", () => {
                           // deposits in same sweep batch should have the same value
                           // of that field.
                           const { walletPubKeyHash } = data.deposits[0].reveal
-                          let sweepOutcome: SweepScenarioOutcome
+                          let sweepOutcome: ScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
@@ -417,7 +427,7 @@ describe("Maintainer", () => {
                           // deposits in same sweep batch should have the same value
                           // of that field.
                           const { walletPubKeyHash } = data.deposits[0].reveal
-                          let sweepOutcome: SweepScenarioOutcome
+                          let sweepOutcome: ScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
@@ -529,7 +539,12 @@ describe("Maintainer", () => {
 
         tx = maintainerProxy
           .connect(thirdParty)
-          .submitDepositSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
+          .submitDepositSweepProof(
+            data.sweepTx,
+            data.sweepProof,
+            data.mainUtxo,
+            ethers.constants.AddressZero
+          )
       })
 
       after(async () => {
@@ -610,7 +625,7 @@ describe("Maintainer", () => {
                           const data: RedemptionTestData =
                             SinglePendingRequestedRedemption
 
-                          let outcome: Promise<RedemptionScenarioOutcome>
+                          let outcome: Promise<ScenarioOutcome>
 
                           before(async () => {
                             await createSnapshot()
@@ -655,7 +670,7 @@ describe("Maintainer", () => {
                           const data: RedemptionTestData =
                             SinglePendingRequestedRedemption
 
-                          let outcome: Promise<RedemptionScenarioOutcome>
+                          let outcome: Promise<ScenarioOutcome>
 
                           before(async () => {
                             await createSnapshot()
@@ -710,7 +725,7 @@ describe("Maintainer", () => {
                           const data: RedemptionTestData =
                             SinglePendingRequestedRedemption
 
-                          let outcome: Promise<RedemptionScenarioOutcome>
+                          let outcome: Promise<ScenarioOutcome>
 
                           before(async () => {
                             await createSnapshot()
@@ -773,7 +788,7 @@ describe("Maintainer", () => {
                           const data: RedemptionTestData =
                             MultiplePendingRequestedRedemptions
 
-                          let outcome: Promise<RedemptionScenarioOutcome>
+                          let outcome: Promise<ScenarioOutcome>
 
                           before(async () => {
                             await createSnapshot()
@@ -806,7 +821,7 @@ describe("Maintainer", () => {
                             )
                             expect(diff).to.be.gt(0)
                             expect(diff).to.be.lt(
-                              ethers.utils.parseUnits("8000000", "gwei") // 0,008 ETH
+                              ethers.utils.parseUnits("8200000", "gwei") // 0,0082 ETH
                             )
                           })
                         }
@@ -818,7 +833,7 @@ describe("Maintainer", () => {
                           const data: RedemptionTestData =
                             MultiplePendingRequestedRedemptionsWithP2WPKHChange
 
-                          let outcome: Promise<RedemptionScenarioOutcome>
+                          let outcome: Promise<ScenarioOutcome>
 
                           before(async () => {
                             await createSnapshot()
@@ -858,7 +873,7 @@ describe("Maintainer", () => {
                           const data: RedemptionTestData =
                             MultiplePendingRequestedRedemptions
 
-                          let outcome: Promise<RedemptionScenarioOutcome>
+                          let outcome: Promise<ScenarioOutcome>
 
                           before(async () => {
                             await createSnapshot()
@@ -929,7 +944,7 @@ describe("Maintainer", () => {
                           const data: RedemptionTestData =
                             MultiplePendingRequestedRedemptionsWithP2WPKHChange
 
-                          let outcome: Promise<RedemptionScenarioOutcome>
+                          let outcome: Promise<ScenarioOutcome>
 
                           before(async () => {
                             await createSnapshot()
@@ -995,7 +1010,7 @@ describe("Maintainer", () => {
                           const data: RedemptionTestData =
                             MultiplePendingRequestedRedemptions
 
-                          let outcome: Promise<RedemptionScenarioOutcome>
+                          let outcome: Promise<ScenarioOutcome>
 
                           before(async () => {
                             await createSnapshot()
@@ -1062,7 +1077,7 @@ describe("Maintainer", () => {
                           const data: RedemptionTestData =
                             MultiplePendingRequestedRedemptionsWithP2WPKHChange
 
-                          let outcome: Promise<RedemptionScenarioOutcome>
+                          let outcome: Promise<ScenarioOutcome>
 
                           before(async () => {
                             await createSnapshot()
@@ -1124,7 +1139,7 @@ describe("Maintainer", () => {
                     const data: RedemptionTestData =
                       MultiplePendingRequestedRedemptionsWithP2WPKHChange
 
-                    let outcome: Promise<RedemptionScenarioOutcome>
+                    let outcome: Promise<ScenarioOutcome>
 
                     before(async () => {
                       await createSnapshot()
@@ -1149,8 +1164,6 @@ describe("Maintainer", () => {
                       await restoreSnapshot()
                     })
 
-                    // Just assert it passes without revert without repeating
-                    // checks from Live state scenario.
                     it("should succeed", async () => {
                       await expect(outcome).to.not.be.reverted
                     })
@@ -1452,11 +1465,8 @@ describe("Maintainer", () => {
   })
 
   describe("defeatFraudChallenge", () => {
-    let fraudChallengeDepositAmount: BigNumber
-
     before(async () => {
       await createSnapshot()
-      ;({ fraudChallengeDepositAmount } = await bridge.fraudParameters())
     })
 
     after(async () => {
@@ -1879,7 +1889,7 @@ describe("Maintainer", () => {
 
                                             testData.forEach((test) => {
                                               context(test.testName, () => {
-                                                let outcome: MovingFundsScenarioOutcome
+                                                let outcome: ScenarioOutcome
 
                                                 before(async () => {
                                                   await createSnapshot()
@@ -2164,6 +2174,497 @@ describe("Maintainer", () => {
     })
   })
 
+  describe("notifyMovingFundsBelowDust", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when the wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await maintainerProxy.connect(governance).authorize(thirdParty.address)
+        await reimbursementPool
+          .connect(governance)
+          .authorize(maintainerProxy.address)
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.MovingFunds,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the main UTXO parameter is valid", () => {
+        context("when the balance is below the dust threshold", () => {
+          const mainUtxo = {
+            txHash: ethers.constants.HashZero,
+            txOutputIndex: 0,
+            txOutputValue: constants.movingFundsDustThreshold - 1,
+          }
+
+          let tx: ContractTransaction
+          let initThirdPartyBalance: BigNumber
+
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWalletMainUtxo(
+              ecdsaWalletTestData.pubKeyHash160,
+              mainUtxo
+            )
+
+            initThirdPartyBalance = await provider.getBalance(
+              thirdParty.address
+            )
+
+            tx = await maintainerProxy
+              .connect(thirdParty)
+              .notifyMovingFundsBelowDust(
+                ecdsaWalletTestData.pubKeyHash160,
+                mainUtxo
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should not revert", async () => {
+            await expect(tx.wait()).not.to.be.reverted
+          })
+
+          it("should refund ETH", async () => {
+            const postThirdPartyBalance = await provider.getBalance(
+              thirdParty.address
+            )
+            const diff = postThirdPartyBalance.sub(initThirdPartyBalance)
+
+            expect(diff).to.be.gt(0)
+            expect(diff).to.be.lt(
+              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+            )
+          })
+        })
+      })
+    })
+  })
+
+  describe("submitMovedFundsSweepProof", () => {
+    context("when called by an unauthorized third party", async () => {
+      it("should revert", async () => {
+        const data: MovedFundsSweepTestData = MovedFundsSweepWithoutMainUtxo
+        await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+          "Caller is not authorized"
+        )
+      })
+    })
+
+    context("when transaction proof is valid", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await maintainerProxy.connect(governance).authorize(thirdParty.address)
+        await reimbursementPool
+          .connect(governance)
+          .authorize(maintainerProxy.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+      context("when there is only one output", () => {
+        context("when the single output is 20-byte", () => {
+          context("when single output is either P2PKH or P2WPKH", () => {
+            context(
+              "when sweeping wallet is either in the Live or MovingFunds state",
+              () => {
+                context("when sweeping wallet is in the Live state", () => {
+                  context("when main UTXO data are valid", () => {
+                    context(
+                      "when transaction fee does not exceed the sweep transaction maximum fee",
+                      () => {
+                        context(
+                          "when the sweeping wallet has no main UTXO set",
+                          () => {
+                            context(
+                              "when there is a single input referring to a Pending sweep request",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
+
+                                let outcome: Promise<ScenarioOutcome>
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  outcome = runMovedFundsSweepScenario(data)
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should succeed", async () => {
+                                  await expect(outcome).to.not.be.reverted
+                                })
+
+                                it("should refund ETH", async () => {
+                                  const resolvedOutcome = await outcome
+
+                                  const postThirdPartyBalance =
+                                    await provider.getBalance(
+                                      thirdParty.address
+                                    )
+
+                                  const diff = postThirdPartyBalance.sub(
+                                    resolvedOutcome.initThirdPartyBalance
+                                  )
+                                  expect(diff).to.be.gt(0)
+                                  expect(diff).to.be.lt(
+                                    ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+                                  )
+                                })
+                              }
+                            )
+                          }
+                        )
+
+                        context(
+                          "when the sweeping wallet has a main UTXO set",
+                          () => {
+                            context(
+                              "when the first input refers to a Pending sweep request and the second input refers to the sweeping wallet main UTXO",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                let outcome: Promise<ScenarioOutcome>
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  outcome = runMovedFundsSweepScenario(data)
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should succeed", async () => {
+                                  await expect(outcome).to.not.be.reverted
+                                })
+
+                                it("should refund ETH", async () => {
+                                  const resolvedOutcome = await outcome
+
+                                  const postThirdPartyBalance =
+                                    await provider.getBalance(
+                                      thirdParty.address
+                                    )
+
+                                  const diff = postThirdPartyBalance.sub(
+                                    resolvedOutcome.initThirdPartyBalance
+                                  )
+                                  expect(diff).to.be.gt(0)
+                                  expect(diff).to.be.lt(
+                                    ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+                                  )
+                                })
+                              }
+                            )
+                          }
+                        )
+                      }
+                    )
+                  })
+                })
+
+                context(
+                  "when sweeping wallet is in the MovingFunds state",
+                  () => {
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithoutMainUtxo
+
+                    let outcome: Promise<ScenarioOutcome>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      outcome = runMovedFundsSweepScenario({
+                        ...data,
+                        wallet: {
+                          ...data.wallet,
+                          state: walletState.MovingFunds,
+                        },
+                      })
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should succeed", async () => {
+                      await expect(outcome).to.not.be.reverted
+                    })
+
+                    it("should refund ETH", async () => {
+                      const resolvedOutcome = await outcome
+
+                      const postThirdPartyBalance = await provider.getBalance(
+                        thirdParty.address
+                      )
+
+                      const diff = postThirdPartyBalance.sub(
+                        resolvedOutcome.initThirdPartyBalance
+                      )
+                      expect(diff).to.be.gt(0)
+                      expect(diff).to.be.lt(
+                        ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+                      )
+                    })
+                  }
+                )
+              }
+            )
+          })
+        })
+      })
+    })
+  })
+
+  describe("notifyWalletClosingPeriodElapsed", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when the wallet is in the Closing state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await maintainerProxy.connect(governance).authorize(thirdParty.address)
+        await reimbursementPool
+          .connect(governance)
+          .authorize(maintainerProxy.address)
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.Live,
+        })
+
+        // Switches the wallet to Closing state because the wallet has
+        // no main UTXO set.
+        await bridge
+          .connect(walletRegistry.wallet)
+          .__ecdsaWalletHeartbeatFailedCallback(
+            ecdsaWalletTestData.walletID,
+            ecdsaWalletTestData.publicKeyX,
+            ecdsaWalletTestData.publicKeyY
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when closing period has elapsed", () => {
+        let tx: ContractTransaction
+        let initThirdPartyBalance: BigNumber
+
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(
+            (
+              await bridge.walletParameters()
+            ).walletClosingPeriod
+          )
+
+          initThirdPartyBalance = await provider.getBalance(thirdParty.address)
+          tx = await maintainerProxy
+            .connect(thirdParty)
+            .notifyWalletClosingPeriodElapsed(ecdsaWalletTestData.pubKeyHash160)
+        })
+
+        after(async () => {
+          await walletRegistry.closeWallet.reset()
+
+          await restoreSnapshot()
+        })
+
+        it("should successfully submit sweep proof", async () => {
+          await expect(tx.wait()).not.to.be.reverted
+        })
+
+        it("should refund ETH", async () => {
+          const postNotifyThirdPartyBalance = await provider.getBalance(
+            thirdParty.address
+          )
+          const diff = postNotifyThirdPartyBalance.sub(initThirdPartyBalance)
+
+          expect(diff).to.be.gt(0)
+          expect(diff).to.be.lt(
+            ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+          )
+        })
+      })
+    })
+  })
+
+  describe("defeatFraudChallengeWithHeartbeat", () => {
+    context("when called by an unauthorized third party", async () => {
+      it("should revert", async () => {
+        const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+        const wallet = ethers.Wallet.createRandom()
+        const heartbeatWalletPublicKey = `0x${wallet.publicKey.substring(4)}`
+        await expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .defeatFraudChallengeWithHeartbeat(
+              heartbeatWalletPublicKey,
+              heartbeatMessage
+            )
+        ).to.be.revertedWith("Caller is not authorized")
+      })
+    })
+
+    context("when called by an authorized third party", async () => {
+      let heartbeatWalletPublicKey: string
+      let heartbeatWalletPublicKeyHash: string
+      let heartbeatWalletSigningKey: SigningKey
+
+      before(async () => {
+        await createSnapshot()
+
+        await maintainerProxy.connect(governance).authorize(thirdParty.address)
+        await reimbursementPool
+          .connect(governance)
+          .authorize(maintainerProxy.address)
+
+        // For `defeatFraudChallengeWithHeartbeat` unit tests we do not use test
+        // data from `fraud.ts`. Instead, we create random wallet and use its
+        // SigningKey.
+        //
+        // This approach is better long-term. In case the format of the heartbeat
+        // message changes or in case we want to add more unit tests, we can simply
+        // call appropriate function to compute another signature. Also, we do not
+        // use any BTC-specific data for this set of unit tests.
+        const wallet = ethers.Wallet.createRandom()
+        // We use `ethers.utils.SigningKey` for a `Wallet` instead of
+        // `Signer.signMessage` to do not add '\x19Ethereum Signed Message:\n'
+        // prefix to the signed message. The format of the heartbeat message is
+        // the same no matter on which host chain TBTC is deployed.
+        heartbeatWalletSigningKey = new ethers.utils.SigningKey(
+          wallet.privateKey
+        )
+        // Public key obtained as `wallet.publicKey` is an uncompressed key,
+        // prefixed with `0x04`. To compute raw ECDSA key, we need to drop `0x04`.
+        heartbeatWalletPublicKey = `0x${wallet.publicKey.substring(4)}`
+
+        const walletID = keccak256(heartbeatWalletPublicKey)
+        const walletPublicKeyX = `0x${heartbeatWalletPublicKey.substring(
+          2,
+          66
+        )}`
+        const walletPublicKeyY = `0x${heartbeatWalletPublicKey.substring(66)}`
+        await bridge
+          .connect(walletRegistry.wallet)
+          .__ecdsaWalletCreatedCallback(
+            walletID,
+            walletPublicKeyX,
+            walletPublicKeyY
+          )
+        heartbeatWalletPublicKeyHash = await bridge.activeWalletPubKeyHash()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the challenge exists", () => {
+        context("when the challenge is open", () => {
+          context("when the heartbeat message has correct format", () => {
+            const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+            const sighash = sha256(sha256(heartbeatMessage))
+
+            let tx: ContractTransaction
+            let initThirdPartyBalance: BigNumber
+
+            before(async () => {
+              await createSnapshot()
+
+              const signature = ethers.utils.splitSignature(
+                heartbeatWalletSigningKey.signDigest(sighash)
+              )
+
+              await bridge
+                .connect(thirdParty)
+                .submitFraudChallenge(
+                  heartbeatWalletPublicKey,
+                  sighash,
+                  signature,
+                  {
+                    value: fraudChallengeDepositAmount,
+                  }
+                )
+
+              initThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
+              )
+              tx = await maintainerProxy
+                .connect(thirdParty)
+                .defeatFraudChallengeWithHeartbeat(
+                  heartbeatWalletPublicKey,
+                  heartbeatMessage
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should not revert", async () => {
+              await expect(tx.wait()).not.to.be.reverted
+            })
+
+            it("should refund ETH", async () => {
+              const postNotifyThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
+              )
+              const diff = postNotifyThirdPartyBalance.sub(
+                initThirdPartyBalance
+              )
+
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+              )
+            })
+          })
+        })
+      })
+    })
+  })
+
   describe("authorize", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
@@ -2316,17 +2817,9 @@ describe("Maintainer", () => {
     })
   })
 
-  interface SweepScenarioOutcome {
-    tx: ContractTransaction
-    initThirdPartyBalance: BigNumber
-  }
-
-  interface RedemptionScenarioOutcome {
-    tx: ContractTransaction
-    initThirdPartyBalance: BigNumber
-  }
-
-  interface MovingFundsScenarioOutcome {
+   // TODO: test updateReimbursementPool
+   
+  interface ScenarioOutcome {
     tx: ContractTransaction
     initThirdPartyBalance: BigNumber
   }
@@ -2345,7 +2838,7 @@ describe("Maintainer", () => {
 
   async function runSweepScenario(
     data: DepositSweepTestData
-  ): Promise<SweepScenarioOutcome> {
+  ): Promise<ScenarioOutcome> {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
@@ -2359,7 +2852,12 @@ describe("Maintainer", () => {
 
     const tx = await maintainerProxy
       .connect(thirdParty)
-      .submitDepositSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
+      .submitDepositSweepProof(
+        data.sweepTx,
+        data.sweepProof,
+        data.mainUtxo,
+        ethers.constants.AddressZero
+      )
 
     return { tx, initThirdPartyBalance }
   }
@@ -2367,7 +2865,7 @@ describe("Maintainer", () => {
   async function runRedemptionScenario(
     data: RedemptionTestData,
     beforeProofActions?: () => Promise<void>
-  ): Promise<RedemptionScenarioOutcome> {
+  ): Promise<ScenarioOutcome> {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
@@ -2435,7 +2933,7 @@ describe("Maintainer", () => {
   async function runMovingFundsScenario(
     data: MovingFundsTestData,
     beforeProofActions?: () => Promise<void>
-  ): Promise<MovingFundsScenarioOutcome> {
+  ): Promise<ScenarioOutcome> {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
@@ -2479,5 +2977,63 @@ describe("Maintainer", () => {
     relay.getPrevEpochDifficulty.reset()
 
     return { tx, initThirdPartyBalance }
+  }
+
+  async function runMovedFundsSweepScenario(
+    data: MovedFundsSweepTestData,
+    beforeProofActions?: () => Promise<void>
+  ): Promise<ScenarioOutcome> {
+    relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+    relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+
+    // Simulate the wallet is a registered one.
+    await bridge.setWallet(data.wallet.pubKeyHash, {
+      ecdsaWalletID: data.wallet.ecdsaWalletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: await lastBlockTime(),
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: data.wallet.state,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    })
+
+    if (data.mainUtxo.txHash !== ethers.constants.HashZero) {
+      // Simulate the prepared main UTXO belongs to the wallet.
+      await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+    }
+
+    if (data.movedFundsSweepRequest) {
+      await bridge.setPendingMovedFundsSweepRequest(
+        data.movedFundsSweepRequest.walletPubKeyHash,
+        data.movedFundsSweepRequest
+      )
+      // Just make sure the stub function `setPendingMovedFundsSweepRequest`
+      // initialized the counter properly.
+      assert(
+        (await bridge.wallets(data.movedFundsSweepRequest.walletPubKeyHash))
+          .pendingMovedFundsSweepRequestsCount === 1,
+        "Pending moved funds request counter for the sweeping wallet should be set up to 1"
+      )
+    }
+
+    if (beforeProofActions) {
+      await beforeProofActions()
+    }
+
+    const initThirdPartyBalance = await provider.getBalance(thirdParty.address)
+
+    const tx = await maintainerProxy
+      .connect(thirdParty)
+      .submitMovedFundsSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
+
+    relay.getCurrentEpochDifficulty.reset()
+    relay.getPrevEpochDifficulty.reset()
+
+    return {
+      tx,
+      initThirdPartyBalance,
+    }
   }
 })
