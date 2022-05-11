@@ -60,6 +60,8 @@ library DepositSweep {
         // with the same `vault` parameter. It is an optional parameter.
         // Set to zero address if deposits are not routed to a vault.
         address vault;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     /// @notice Represents an outcome of the sweep Bitcoin transaction
