@@ -74,6 +74,8 @@ library Deposit {
         // Address of the Bank vault to which the deposit is routed to.
         // Optional, can be 0x0. The vault must be trusted by the Bridge.
         address vault;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Represents tBTC deposit request data.
@@ -93,6 +95,9 @@ library Deposit {
         // time when the deposit was swept on the Bitcoin chain but actually
         // the time when the sweep proof was delivered to the Ethereum chain.
         uint32 sweptAt;
+        // This struct doesn't contain `__gap` property as the structure is stored
+        // in a mapping, mappings store values in different slots and they are
+        // not contiguous with other values.
     }
 
     event DepositRevealed(

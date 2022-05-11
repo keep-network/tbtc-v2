@@ -9,6 +9,7 @@ import "hardhat-contract-sizer"
 import "hardhat-deploy"
 import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
+import "hardhat-dependency-compiler"
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -78,7 +79,10 @@ const config: HardhatUserConfig = {
       },
       {
         artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
-        deploy: "node_modules/@keep-network/ecdsa/export/deploy",
+        // FIXME: Instead of deploying WalletRegistry in `00_resolve_wallet_registry.ts`
+        // we want to use external deployment.
+        // See: https://github.com/keep-network/tbtc-v2/issues/267
+        //   deploy: "node_modules/@keep-network/ecdsa/export/deploy",
       },
     ],
     deployments: {
@@ -101,13 +105,25 @@ const config: HardhatUserConfig = {
       default: 3,
     },
     keepTechnicalWalletTeam: {
+      default: 4,
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
+      default: 5,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
+    esdm: {
+      default: 6,
+      // mainnet: ""
+    },
   },
-
+  dependencyCompiler: {
+    paths: [
+      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol",
+      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
+    ],
+    keep: true,
+  },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },

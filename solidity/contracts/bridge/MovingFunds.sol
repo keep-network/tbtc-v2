@@ -56,6 +56,8 @@ library MovingFunds {
         // during the processing. The validation is usually done as part
         // of the `BitcoinTx.validateProof` call that checks the SPV proof.
         bytes movingFundsTxOutputVector;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     /// @notice Represents moved funds sweep request state.
@@ -85,6 +87,9 @@ library MovingFunds {
         uint32 createdAt;
         // The current state of the request.
         MovedFundsSweepRequestState state;
+        // This struct doesn't contain `__gap` property as the structure is stored
+        // in a mapping, mappings store values in different slots and they are
+        // not contiguous with other values.
     }
 
     event MovingFundsCommitmentSubmitted(

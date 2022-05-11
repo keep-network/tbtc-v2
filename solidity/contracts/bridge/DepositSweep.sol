@@ -60,6 +60,8 @@ library DepositSweep {
         // with the same `vault` parameter. It is an optional parameter.
         // Set to zero address if deposits are not routed to a vault.
         address vault;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     /// @notice Represents an outcome of the sweep Bitcoin transaction
@@ -86,6 +88,8 @@ library DepositSweep {
         // UTXO doesn't exist) or less by one (main UTXO exists and is pointed
         // by one of the inputs).
         uint256[] treasuryFees;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     event DepositsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);

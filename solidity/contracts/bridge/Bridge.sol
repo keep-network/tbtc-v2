@@ -19,6 +19,11 @@ import "@keep-network/random-beacon/contracts/Governable.sol";
 
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
+// TODO: We used RC version of @openzeppelin/contracts-upgradeable to use `reinitializer`
+// in upgrades. We should revisit this part before mainnet deployment and use
+// a final release package if it's ready.
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import "./IRelay.sol";
 import "./BridgeState.sol";
 import "./Deposit.sol";
@@ -57,7 +62,7 @@ import "../bank/Bank.sol";
 /// TODO: Revisit all events and look which parameters should be indexed.
 /// TODO: Align the convention around `param` and `dev` endings. They should
 ///       not have a punctuation mark.
-contract Bridge is Governable, EcdsaWalletOwner {
+contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
     using DepositSweep for BridgeState.Storage;
@@ -214,13 +219,22 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint256 fraudNotifierRewardMultiplier
     );
 
-    constructor(
+    /// @dev Initializes upgradable contract on deployment.
+    /// @param _bank Address of the Bank the Bridge belongs to
+    /// @param _relay Address of the Bitcoin relay providing the current Bitcoin
+    ///        network difficulty
+    /// @param _treasury Address where the deposit and redemption treasury fees
+    ///        will be sent to
+    /// @param _ecdsaWalletRegistry Address of the ECDSA Wallet Registry contract
+    /// @param _txProofDifficultyFactor The number of confirmations on the Bitcoin
+    ///        chain required to successfully evaluate an SPV proof
+    function initialize(
         address _bank,
         address _relay,
         address _treasury,
         address _ecdsaWalletRegistry,
         uint256 _txProofDifficultyFactor
-    ) {
+    ) external initializer {
         require(_bank != address(0), "Bank address cannot be zero");
         self.bank = Bank(_bank);
 
