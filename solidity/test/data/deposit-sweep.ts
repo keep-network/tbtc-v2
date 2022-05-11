@@ -34,6 +34,12 @@ export interface DepositSweepTestData {
   }[]
 
   /**
+   * Address that will be passed to the `submitDepositSweepProof` function
+   * as the `vault` parameter.
+   */
+  vault: string
+
+  /**
    * Main UTXO data which are used as `mainUtxo` parameter during
    * `submitDepositSweepProof` function call. If no main UTXO exists for given wallet,
    * `NO_MAIN_UTXO` constant should be used as value.
@@ -119,6 +125,8 @@ export const SingleP2SHDeposit: DepositSweepTestData = {
       },
     },
   ],
+
+  vault: "0x0000000000000000000000000000000000000000",
 
   mainUtxo: NO_MAIN_UTXO,
 
@@ -210,6 +218,8 @@ export const SingleP2WSHDeposit: DepositSweepTestData = {
     },
   ],
 
+  vault: "0x0000000000000000000000000000000000000000",
+
   mainUtxo: NO_MAIN_UTXO,
 
   // https://live.blockcypher.com/btc-testnet/tx/9efc9d555233e12e06378a35a7b988d54f7043b5c3156adc79c7af0a0fd6f1a0
@@ -264,6 +274,8 @@ export const SingleP2WSHDeposit: DepositSweepTestData = {
  */
 export const SingleMainUtxo: DepositSweepTestData = {
   deposits: [],
+
+  vault: "0x0000000000000000000000000000000000000000",
 
   // https://live.blockcypher.com/btc-testnet/tx/f5b9ad4e8cd5317925319ebc64dc923092bef3b56429c6b1bc2261bbdc73f351
   mainUtxo: {
@@ -458,6 +470,8 @@ export const MultipleDepositsNoMainUtxo: DepositSweepTestData = {
       },
     },
   ],
+
+  vault: "0x0000000000000000000000000000000000000000",
 
   mainUtxo: NO_MAIN_UTXO,
 
@@ -662,6 +676,8 @@ export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
     },
   ],
 
+  vault: "0x0000000000000000000000000000000000000000",
+
   // https://live.blockcypher.com/btc-testnet/tx/2a5d5f472e376dc28964e1b597b1ca5ee5ac042101b5199a3ca8dae2deec3538
   mainUtxo: {
     txHash:
@@ -742,6 +758,8 @@ export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
 export const SingleMainUtxoP2SHOutput: DepositSweepTestData = {
   // Not relevant in this test scenario.
   deposits: [],
+
+  vault: "0x0000000000000000000000000000000000000000",
 
   mainUtxo: {
     txHash:
