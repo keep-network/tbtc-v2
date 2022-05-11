@@ -19,6 +19,11 @@ import "@keep-network/random-beacon/contracts/Governable.sol";
 
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
+// TODO: We used RC version of @openzeppelin/contracts-upgradeable to use `reinitializer`
+// in upgrades. We should revisit this part before mainnet deployment and use
+// a final release package if it's ready.
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import "./IRelay.sol";
 import "./BridgeState.sol";
 import "./Deposit.sol";
@@ -57,7 +62,7 @@ import "../bank/Bank.sol";
 /// TODO: Revisit all events and look which parameters should be indexed.
 /// TODO: Align the convention around `param` and `dev` endings. They should
 ///       not have a punctuation mark.
-contract Bridge is Governable, EcdsaWalletOwner {
+contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
     using DepositSweep for BridgeState.Storage;
@@ -111,6 +116,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
         bytes20[] targetWallets,
         address submitter
     );
+
+    event MovingFundsTimeoutReset(bytes20 walletPubKeyHash);
 
     event MovingFundsCompleted(
         bytes20 walletPubKeyHash,
@@ -212,13 +219,22 @@ contract Bridge is Governable, EcdsaWalletOwner {
         uint256 fraudNotifierRewardMultiplier
     );
 
-    constructor(
+    /// @dev Initializes upgradable contract on deployment.
+    /// @param _bank Address of the Bank the Bridge belongs to
+    /// @param _relay Address of the Bitcoin relay providing the current Bitcoin
+    ///        network difficulty
+    /// @param _treasury Address where the deposit and redemption treasury fees
+    ///        will be sent to
+    /// @param _ecdsaWalletRegistry Address of the ECDSA Wallet Registry contract
+    /// @param _txProofDifficultyFactor The number of confirmations on the Bitcoin
+    ///        chain required to successfully evaluate an SPV proof
+    function initialize(
         address _bank,
         address _relay,
         address _treasury,
         address _ecdsaWalletRegistry,
         uint256 _txProofDifficultyFactor
-    ) {
+    ) external initializer {
         require(_bank != address(0), "Bank address cannot be zero");
         self.bank = Bank(_bank);
 
@@ -570,6 +586,19 @@ contract Bridge is Governable, EcdsaWalletOwner {
             walletMemberIndex,
             targetWallets
         );
+    }
+
+    /// @notice Resets the moving funds timeout for the given wallet if the
+    ///         target wallet commitment cannot be submitted due to a lack
+    ///         of live wallets in the system.
+    /// @param walletPubKeyHash 20-byte public key hash of the moving funds wallet
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state
+    ///      - The target wallets commitment must not be already submitted for
+    ///        the given moving funds wallet
+    ///      - Live wallets count must be zero
+    function resetMovingFundsTimeout(bytes20 walletPubKeyHash) external {
+        self.resetMovingFundsTimeout(walletPubKeyHash);
     }
 
     /// @notice Used by the wallet to prove the BTC moving funds transaction
@@ -1090,7 +1119,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        staking contact the notifier of a redemption timeout receives.
     ///        The value must be in the range [0, 100]
     /// @dev Requirements:
-    ///      - Redemption dust threshold must be greater than zero
+    ///      - Redemption dust threshold must be greater than moving funds dust
+    ///        threshold
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
@@ -1159,7 +1189,8 @@ contract Bridge is Governable, EcdsaWalletOwner {
     ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
-    ///      - Moving funds dust threshold must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero and lower
+    ///        than the redemption dust threshold
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]

@@ -169,6 +169,9 @@ library Redemption {
         uint64 txMaxFee;
         // UNIX timestamp the request was created at.
         uint32 requestedAt;
+        // This struct doesn't contain `__gap` property as the structure is stored
+        // in a mapping, mappings store values in different slots and they are
+        // not contiguous with other values.
     }
 
     /// @notice Represents an outcome of the redemption Bitcoin transaction
@@ -187,6 +190,8 @@ library Redemption {
         uint32 changeIndex;
         // Value in satoshi of the change output.
         uint64 changeValue;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     /// @notice Represents temporary information needed during the processing of
@@ -203,6 +208,8 @@ library Redemption {
         bytes32 walletP2PKHScriptKeccak;
         // P2WPKH script for the wallet. Needed to determine the change output.
         bytes32 walletP2WPKHScriptKeccak;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     event RedemptionRequested(
@@ -825,7 +832,6 @@ library Redemption {
             request.treasuryFee;
 
         require(
-            // TODO: Allow the wallets in `Closing` state when the state is added
             wallet.state == Wallets.WalletState.Live ||
                 wallet.state == Wallets.WalletState.MovingFunds ||
                 wallet.state == Wallets.WalletState.Terminated,

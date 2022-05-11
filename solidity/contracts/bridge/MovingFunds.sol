@@ -56,6 +56,8 @@ library MovingFunds {
         // during the processing. The validation is usually done as part
         // of the `BitcoinTx.validateProof` call that checks the SPV proof.
         bytes movingFundsTxOutputVector;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     /// @notice Represents moved funds sweep request state.
@@ -85,6 +87,9 @@ library MovingFunds {
         uint32 createdAt;
         // The current state of the request.
         MovedFundsSweepRequestState state;
+        // This struct doesn't contain `__gap` property as the structure is stored
+        // in a mapping, mappings store values in different slots and they are
+        // not contiguous with other values.
     }
 
     event MovingFundsCommitmentSubmitted(
@@ -92,6 +97,8 @@ library MovingFunds {
         bytes20[] targetWallets,
         address submitter
     );
+
+    event MovingFundsTimeoutReset(bytes20 walletPubKeyHash);
 
     event MovingFundsCompleted(
         bytes20 walletPubKeyHash,
@@ -206,10 +213,8 @@ library MovingFunds {
 
         // This requirement fails only when `liveWalletsCount` is zero. In
         // that case, the system cannot accept the commitment and must provide
-        // new wallets first.
-        //
-        // TODO: Expose separate function to reset the moving funds timeout
-        //       if no Live wallets exist in the system.
+        // new wallets first. However, the wallet supposed to submit the
+        // commitment can keep resetting the moving funds timeout until then.
         require(expectedTargetWalletsCount > 0, "No target wallets available");
 
         require(
@@ -250,6 +255,44 @@ library MovingFunds {
             targetWallets,
             msg.sender
         );
+    }
+
+    /// @notice Resets the moving funds timeout for the given wallet if the
+    ///         target wallet commitment cannot be submitted due to a lack
+    ///         of live wallets in the system.
+    /// @param walletPubKeyHash 20-byte public key hash of the moving funds wallet
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state
+    ///      - The target wallets commitment must not be already submitted for
+    ///        the given moving funds wallet
+    ///      - Live wallets count must be zero
+    function resetMovingFundsTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) external {
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        require(
+            wallet.state == Wallets.WalletState.MovingFunds,
+            "ECDSA wallet must be in MovingFunds state"
+        );
+
+        // If the moving funds wallet already submitted their target wallets
+        // commitment, there is no point to reset the timeout since the
+        // wallet can make the BTC transaction and submit the proof.
+        require(
+            wallet.movingFundsTargetWalletsCommitmentHash == bytes32(0),
+            "Target wallets commitment already submitted"
+        );
+
+        require(self.liveWalletsCount == 0, "Live wallets count must be zero");
+
+        /* solhint-disable-next-line not-rely-on-time */
+        wallet.movingFundsRequestedAt = uint32(block.timestamp);
+
+        emit MovingFundsTimeoutReset(walletPubKeyHash);
     }
 
     /// @notice Used by the wallet to prove the BTC moving funds transaction

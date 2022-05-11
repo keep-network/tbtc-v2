@@ -88,7 +88,9 @@ library BridgeState {
         // the moving funds process. Moving funds wallets having their BTC
         // balance below that value can begin closing immediately as
         // transferring such a low value may not be possible due to
-        // BTC network fees.
+        // BTC network fees. The value of this parameter must always be lower
+        // than `redemptionDustThreshold` in order to prevent redemption requests
+        // with values lower or equal to `movingFundsDustThreshold`.
         uint64 movingFundsDustThreshold;
         // Time after which the moving funds process can be reported as
         // timed out. It is counted from the moment when the wallet
@@ -133,6 +135,9 @@ library BridgeState {
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
         // parameters in order to make requests that can incur the
         // treasury and transaction fee and still satisfy the redeemer.
+        // Additionally, the value of this parameter must always be greater
+        // than `movingFundsDustThreshold` in order to prevent redemption
+        // requests with values lower or equal to `movingFundsDustThreshold`.
         uint64 redemptionDustThreshold;
         // Divisor used to compute the treasury fee taken from each
         // redemption request and transferred to the treasury upon
@@ -251,6 +256,14 @@ library BridgeState {
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
         mapping(bytes20 => Wallets.Wallet) registeredWallets;
+        // Reserved storage space in case we need to add more variables.
+        // The convention from OpenZeppelin suggests the storage space should
+        // add up to 50 slots. Here we want to have more slots as there are
+        // planned upgrades of the Bridge contract. If more entires are added to
+        // the struct in the upcoming versions we need to reduce the array size.
+        // See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+        // slither-disable-next-line unused-state
+        uint256[50] __gap;
     }
 
     event DepositParametersUpdated(
@@ -392,7 +405,8 @@ library BridgeState {
     ///        staking contact the notifier of a redemption timeout receives.
     ///        The value must be in the range [0, 100]
     /// @dev Requirements:
-    ///      - Redemption dust threshold must be greater than zero
+    ///      - Redemption dust threshold must be greater than moving funds dust
+    ///        threshold
     ///      - Redemption treasury fee divisor must be greater than zero
     ///      - Redemption transaction max fee must be greater than zero
     ///      - Redemption timeout must be greater than zero
@@ -408,8 +422,8 @@ library BridgeState {
         uint256 _redemptionTimeoutNotifierRewardMultiplier
     ) internal {
         require(
-            _redemptionDustThreshold > 0,
-            "Redemption dust threshold must be greater than zero"
+            _redemptionDustThreshold > self.movingFundsDustThreshold,
+            "Redemption dust threshold must be greater than moving funds dust threshold"
         );
 
         require(
@@ -495,7 +509,8 @@ library BridgeState {
     ///        timeout receives. The value must be in the range [0, 100]
     /// @dev Requirements:
     ///      - Moving funds transaction max total fee must be greater than zero
-    ///      - Moving funds dust threshold must be greater than zero
+    ///      - Moving funds dust threshold must be greater than zero and lower
+    ///        than the redemption dust threshold
     ///      - Moving funds timeout must be greater than zero
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
@@ -521,8 +536,9 @@ library BridgeState {
         );
 
         require(
-            _movingFundsDustThreshold > 0,
-            "Moving funds dust threshold must be greater than zero"
+            _movingFundsDustThreshold > 0 &&
+                _movingFundsDustThreshold < self.redemptionDustThreshold,
+            "Moving funds dust threshold must be greater than zero and lower than redemption dust threshold"
         );
 
         require(
