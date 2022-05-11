@@ -23,10 +23,10 @@ import "../bridge/BitcoinTx.sol";
 import "../bridge/Bridge.sol";
 
 /// @title Maintainer Proxy
-/// @notice Maintainers are the willing off-chain clients approved by DAO or council.
-///         Maintainers proxy calls to the Bridge contract and are refunded for
-///         the spent gas from the Reimbursement Pool. Only the authorized
-///         maintainers can proxy call Bridge contract.
+/// @notice Maintainers are the willing off-chain clients approved by the governance.
+///         Maintainers proxy calls to the Bridge contract via 'MaintainerProxy'
+///         and are refunded for the spent gas from the Reimbursement Pool.
+///         Only the authorized maintainers can call 'MaintainerProxy' functions.
 contract MaintainerProxy is Ownable, Reimbursable {
     Bridge public bridge;
 
