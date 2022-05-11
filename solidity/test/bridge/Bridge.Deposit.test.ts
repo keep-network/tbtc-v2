@@ -2576,7 +2576,8 @@ describe("Bridge - Deposit", () => {
               // to deem transaction proof validity. This scenario uses test
               // data which has only 6 confirmations. That should force the
               // failure we expect within this scenario.
-              otherBridge = await BridgeFactory.deploy(
+              otherBridge = await BridgeFactory.deploy()
+              await otherBridge.initialize(
                 bank.address,
                 relay.address,
                 treasury.address,
