@@ -164,18 +164,14 @@ library BridgeState {
         // request was created via `requestRedemption` call. Reported
         // timed out requests are cancelled and locked TBTC is returned
         // to the redeemer in full amount.
-        uint256 redemptionTimeout;
-
-
+        uint64 redemptionTimeout;
         // The amount of stake slashed from each member of a wallet for a
         // redemption timeout.
         uint96 redemptionTimeoutSlashingAmount;
-
-
         // The percentage of the notifier reward from the staking contract
         // the notifier of a redemption timeout receives. The value is in the
         // range [0, 100].
-        uint256 redemptionTimeoutNotifierRewardMultiplier;
+        uint64 redemptionTimeoutNotifierRewardMultiplier;
 
         // The amount of ETH in wei the party challenging the wallet for fraud
         // needs to deposit.
@@ -462,9 +458,9 @@ library BridgeState {
         uint64 _redemptionDustThreshold,
         uint64 _redemptionTreasuryFeeDivisor,
         uint64 _redemptionTxMaxFee,
-        uint256 _redemptionTimeout,
+        uint64 _redemptionTimeout,
         uint96 _redemptionTimeoutSlashingAmount,
-        uint256 _redemptionTimeoutNotifierRewardMultiplier
+        uint64 _redemptionTimeoutNotifierRewardMultiplier
     ) internal {
         require(
             _redemptionDustThreshold > self.movingFundsDustThreshold,
@@ -496,8 +492,8 @@ library BridgeState {
         self.redemptionTxMaxFee = _redemptionTxMaxFee;
         self.redemptionTimeout = _redemptionTimeout;
         self.redemptionTimeoutSlashingAmount = _redemptionTimeoutSlashingAmount;
-        self
-            .redemptionTimeoutNotifierRewardMultiplier = _redemptionTimeoutNotifierRewardMultiplier;
+        self.redemptionTimeoutNotifierRewardMultiplier
+            = _redemptionTimeoutNotifierRewardMultiplier;
 
         emit RedemptionParametersUpdated(
             _redemptionDustThreshold,

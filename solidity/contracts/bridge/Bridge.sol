@@ -1130,9 +1130,9 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout,
+        uint64 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
-        uint256 redemptionTimeoutNotifierRewardMultiplier
+        uint64 redemptionTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateRedemptionParameters(
             redemptionDustThreshold,
