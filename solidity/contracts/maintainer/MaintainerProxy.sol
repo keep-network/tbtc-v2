@@ -32,7 +32,16 @@ contract MaintainerProxy is Ownable, Reimbursable {
 
     /// @notice Authorized maintainer that can interact with the maintainer proxy
     ///         contract. Authorization can be granted and removed by the governance.
-    mapping(address => bool) public isAuthorized;
+    /// @dev    'Key' is the address of the maintainer. 'Value' represents an index+1
+    ///         in the 'maintainers' array. 1 was added so the maintainer index can
+    ///         never be 0 which is a reserved index for a non-existant maintainer
+    ///         in ths map.
+    mapping(address => uint256) public isAuthorized;
+
+    /// @notice This list of maintainers keeps the order of which maintainer should
+    ///         be submitting a next transaction. It does not enforce the order
+    ///         but only tracks who should be next in line.
+    address[] public maintainers;
 
     /// @notice Gas that is meant to balance the submission of deposit sweep proof
     ///         overall cost. Can be updated by the governance based on the current
@@ -110,7 +119,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     );
 
     modifier onlyMaintainer() {
-        require(isAuthorized[msg.sender], "Caller is not authorized");
+        require(isAuthorized[msg.sender] != 0, "Caller is not authorized");
         _;
     }
 
@@ -445,9 +454,10 @@ contract MaintainerProxy is Ownable, Reimbursable {
 
     /// @notice Authorize a maintainer that can interact with this reimbursment pool.
     ///         Can be authorized by the owner only.
-    /// @param maintainer Maintainer authorized.
+    /// @param maintainer Maintainer to authorize.
     function authorize(address maintainer) external onlyOwner {
-        isAuthorized[maintainer] = true;
+        maintainers.push(maintainer);
+        isAuthorized[maintainer] = maintainers.length;
 
         emit MaintainerAuthorized(maintainer);
     }
@@ -455,11 +465,35 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @notice Unauthorize a maintainer that was previously authorized to interact
     ///         with the Maintainer Proxy contract. Can be unauthorized by the
     ///         owner only.
-    /// @param maintainer Maintainer unauthorized.
-    function unauthorize(address maintainer) external onlyOwner {
-        delete isAuthorized[maintainer];
+    /// @dev    The last maintainer is swapped with the one to unauthorized. The
+    ///         unauthorized maintainer is then removed from the list. An index
+    ///         of the last maintainer is changed with the removed maintainer.
+    ///         Ex.
+    ///         'maintainers' list: [0x1, 0x2, 0x3, 0x4, 0x5]
+    ///         'isAuthorized' map: [0x1 -> 1, 0x2 -> 2, 0x3 -> 3, 0x4 -> 4, 0x5 -> 5]
+    ///         unauthorize: 0x3
+    ///         new 'maintainers' list: [0x1, 0x2, 0x5, 0x4]
+    ///         new 'isAuthorized' map: [0x1 -> 1, 0x2 -> 2, 0x4 -> 4, 0x5 -> 3]
+    /// @param maintainerToUnauthorize Maintainer to unauthorize.
+    function unauthorize(address maintainerToUnauthorize) external onlyOwner {
+        uint256 maintainerIdToUnauthorize = isAuthorized[
+            maintainerToUnauthorize
+        ];
 
-        emit MaintainerUnauthorized(maintainer);
+        require(maintainerIdToUnauthorize != 0, "No contract to unauthorize");
+
+        address lastMaintainerAddress = maintainers[maintainers.length - 1];
+
+        maintainers[maintainerIdToUnauthorize - 1] = maintainers[
+            maintainers.length - 1
+        ];
+        maintainers.pop();
+
+        isAuthorized[lastMaintainerAddress] = maintainerIdToUnauthorize;
+
+        delete isAuthorized[maintainerToUnauthorize];
+
+        emit MaintainerUnauthorized(maintainerToUnauthorize);
     }
 
     /// @notice Allows the Governance to upgrade the Bridge address.

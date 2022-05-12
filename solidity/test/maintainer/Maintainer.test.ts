@@ -15,6 +15,7 @@ import type {
   Bank,
   BankStub,
   MaintainerProxy,
+  MaintainerProxyStub,
   ReimbursementPool,
   Bridge,
   IRelay,
@@ -65,7 +66,7 @@ const { impersonateAccount } = helpers.account
 const { lastBlockTime, increaseTime } = helpers.time
 const { keccak256, sha256 } = ethers.utils
 
-// These tests were ported from other tbtc-v2 tests suites and adjusted 
+// These tests were ported from other tbtc-v2 tests suites and adjusted
 // to test the refund functionality of the Maintainer Proxy contract.
 describe("Maintainer", () => {
   const activeWalletMainUtxo = {
@@ -80,7 +81,7 @@ describe("Maintainer", () => {
   let thirdParty: SignerWithAddress
   let deployer: SignerWithAddress
 
-  let maintainerProxy: MaintainerProxy
+  let maintainerProxy: MaintainerProxy & MaintainerProxyStub
   let reimbursementPool: ReimbursementPool
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
@@ -2677,15 +2678,32 @@ describe("Maintainer", () => {
     })
 
     context("when the caller is the owner", () => {
-      it("should authorize a contract", async () => {
-        const tx = await maintainerProxy
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await maintainerProxy
           .connect(governance)
           .authorize(thirdPartyContract.address)
+      })
 
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should authorize a contract", async () => {
         await expect(
           await maintainerProxy.isAuthorized(thirdPartyContract.address)
-        ).to.be.true
+        ).to.be.not.equal(0)
+      })
 
+      it("should add a maintainer to a maintainers list", async () => {
+        const contract = await maintainerProxy.maintainers(0)
+        expect(contract).to.be.equal(thirdPartyContract.address)
+      })
+
+      it("should emit a MaintainerAuthorized event", async () => {
         await expect(tx)
           .to.emit(maintainerProxy, "MaintainerAuthorized")
           .withArgs(thirdPartyContract.address)
@@ -2694,18 +2712,6 @@ describe("Maintainer", () => {
   })
 
   describe("unauthorize", () => {
-    beforeEach(async () => {
-      await createSnapshot()
-
-      await maintainerProxy
-        .connect(governance)
-        .authorize(thirdPartyContract.address)
-    })
-
-    afterEach(async () => {
-      await restoreSnapshot()
-    })
-
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
@@ -2717,18 +2723,384 @@ describe("Maintainer", () => {
     })
 
     context("when the caller is the owner", () => {
-      it("should unauthorize a contract", async () => {
-        const tx = await maintainerProxy
-          .connect(governance)
-          .unauthorize(thirdPartyContract.address)
+      context("when there are no authorized maintainers", () => {
+        before(async () => {
+          await createSnapshot()
+        })
 
-        await expect(
-          await maintainerProxy.isAuthorized(thirdPartyContract.address)
-        ).to.be.false
+        after(async () => {
+          await restoreSnapshot()
+        })
 
-        await expect(tx)
-          .to.emit(maintainerProxy, "MaintainerUnauthorized")
-          .withArgs(thirdPartyContract.address)
+        it("should revert", async () => {
+          await expect(
+            maintainerProxy
+              .connect(governance)
+              .unauthorize(thirdPartyContract.address)
+          ).to.be.revertedWith("No contract to unauthorize")
+        })
+      })
+
+      context("when there are authorized maintainers", () => {
+        context(
+          "when maintainer to unauthorize is not among the authorized maintainers",
+          () => {
+            before(async () => {
+              await createSnapshot()
+              const signers = await ethers.getUnnamedSigners()
+              const maintainers = [
+                signers[1],
+                signers[2],
+                signers[3],
+                signers[4],
+                signers[5],
+                signers[6],
+                signers[7],
+                signers[8],
+              ]
+
+              for (let i = 0; i < maintainers.length; i++) {
+                /* eslint-disable no-await-in-loop */
+                await maintainerProxy
+                  .connect(governance)
+                  .authorize(maintainers[i].address)
+              }
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                maintainerProxy
+                  .connect(governance)
+                  .unauthorize(governance.address)
+              ).to.be.revertedWith("No contract to unauthorize")
+            })
+          }
+        )
+      })
+
+      context("when there is one authorized maintainer", () => {
+        context("when unauthorizing the one that is authorized", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await maintainerProxy
+              .connect(governance)
+              .authorize(thirdPartyContract.address)
+
+            tx = await maintainerProxy
+              .connect(governance)
+              .unauthorize(thirdPartyContract.address)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should unauthorize a contract", async () => {
+            await expect(
+              await maintainerProxy.isAuthorized(thirdPartyContract.address)
+            ).to.be.equal(0)
+          })
+
+          it("should emit a MaintainerUnauthorized event", async () => {
+            await expect(tx)
+              .to.emit(maintainerProxy, "MaintainerUnauthorized")
+              .withArgs(thirdPartyContract.address)
+          })
+        })
+      })
+
+      context("when there are many authorized maintainers", () => {
+        let maintainer1: SignerWithAddress
+        let maintainer2: SignerWithAddress
+        let maintainer3: SignerWithAddress
+        let maintainer4: SignerWithAddress
+        let maintainer5: SignerWithAddress
+        let maintainer6: SignerWithAddress
+        let maintainer7: SignerWithAddress
+        let maintainer8: SignerWithAddress
+
+        before(async () => {
+          await createSnapshot()
+          const signers = await ethers.getUnnamedSigners()
+          /* eslint-disable */
+          maintainer1 = signers[1]
+          maintainer2 = signers[2]
+          maintainer3 = signers[3]
+          maintainer4 = signers[4]
+          maintainer5 = signers[5]
+          maintainer6 = signers[6]
+          maintainer7 = signers[7]
+          maintainer8 = signers[8]
+          /* eslint-enable */
+          const maintainers = [
+            maintainer1,
+            maintainer2,
+            maintainer3,
+            maintainer4,
+            maintainer5,
+            maintainer6,
+            maintainer7,
+            maintainer8,
+          ]
+
+          for (let i = 0; i < maintainers.length; i++) {
+            /* eslint-disable no-await-in-loop */
+            await maintainerProxy
+              .connect(governance)
+              .authorize(maintainers[i].address)
+          }
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        // Init authorized maintainers: [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+        // Unauthorize: [0x1, 0x3]
+        // Swap the last maintainer with the one to unauthorize
+        // New authorized maintainers: [0x8, 0x2, 0x7, 0x4, 0x5, 0x6]
+        context(
+          "when unauthorizing a couple of maintainers from the beginning",
+          () => {
+            let tx1: ContractTransaction
+            let tx3: ContractTransaction
+            before(async () => {
+              await createSnapshot()
+
+              tx1 = await maintainerProxy
+                .connect(governance)
+                .unauthorize(maintainer1.address)
+
+              tx3 = await maintainerProxy
+                .connect(governance)
+                .unauthorize(maintainer3.address)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should unauthorize a maintainer", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer1.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer8.address)
+              ).to.be.equal(1)
+            })
+
+            it("should unauthorize a contract", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer3.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer7.address)
+              ).to.be.equal(3)
+            })
+
+            it("should remove 2 maintainers from the maintainers array", async () => {
+              const authorizedMaintainers =
+                await maintainerProxy.getAllMaintainers()
+
+              expect(authorizedMaintainers.length).to.be.equal(6)
+              const expectedMaintainers = [
+                maintainer8.address,
+                maintainer2.address,
+                maintainer7.address,
+                maintainer4.address,
+                maintainer5.address,
+                maintainer6.address,
+              ]
+
+              expect(authorizedMaintainers).to.be.deep.equal(
+                expectedMaintainers
+              )
+            })
+
+            it("should emit a MaintainerUnauthorized event", async () => {
+              await expect(tx1)
+                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .withArgs(maintainer1.address)
+            })
+
+            it("should emit a MaintainerUnauthorized event", async () => {
+              await expect(tx3)
+                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .withArgs(maintainer3.address)
+            })
+          }
+        )
+
+        // Init authorized maintainers: [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+        // Unauthorize: [0x3, 0x6]
+        // Swap the last maintainer with the one to unauthorize
+        // New authorized maintainers: [0x1, 0x2, 0x8, 0x4, 0x5, 0x7]
+        context(
+          "when unauthorizing a couple of maintainers from the middle",
+          () => {
+            let tx3: ContractTransaction
+            let tx6: ContractTransaction
+            before(async () => {
+              await createSnapshot()
+
+              tx3 = await maintainerProxy
+                .connect(governance)
+                .unauthorize(maintainer3.address)
+
+              tx6 = await maintainerProxy
+                .connect(governance)
+                .unauthorize(maintainer6.address)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should unauthorize a maintainer", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer3.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer8.address)
+              ).to.be.equal(3)
+            })
+
+            it("should unauthorize a contract", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer6.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer7.address)
+              ).to.be.equal(6)
+            })
+
+            it("should remove 2 maintainers from the maintainers array", async () => {
+              const authorizedMaintainers =
+                await maintainerProxy.getAllMaintainers()
+
+              expect(authorizedMaintainers.length).to.be.equal(6)
+              const expectedMaintainers = [
+                maintainer1.address,
+                maintainer2.address,
+                maintainer8.address,
+                maintainer4.address,
+                maintainer5.address,
+                maintainer7.address,
+              ]
+
+              expect(authorizedMaintainers).to.be.deep.equal(
+                expectedMaintainers
+              )
+            })
+
+            it("should emit a MaintainerUnauthorized event", async () => {
+              await expect(tx3)
+                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .withArgs(maintainer3.address)
+            })
+
+            it("should emit a MaintainerUnauthorized event", async () => {
+              await expect(tx6)
+                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .withArgs(maintainer6.address)
+            })
+          }
+        )
+
+        // Init authorized maintainers: [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+        // Unauthorize: [0x5, 0x8]
+        // Swap the last maintainer with the one to unauthorize
+        // New authorized maintainers: [0x1, 0x2, 0x3, 0x4, 0x7, 0x6]
+        context(
+          "when unauthorizing a couple of maintainers from the end",
+          () => {
+            let tx5: ContractTransaction
+            let tx8: ContractTransaction
+            before(async () => {
+              await createSnapshot()
+
+              tx5 = await maintainerProxy
+                .connect(governance)
+                .unauthorize(maintainer5.address)
+
+              tx8 = await maintainerProxy
+                .connect(governance)
+                .unauthorize(maintainer8.address)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should unauthorize a maintainer", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer5.address)
+              ).to.be.equal(0)
+            })
+
+            it("should unauthorize a contract", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer8.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isAuthorized(maintainer7.address)
+              ).to.be.equal(5)
+            })
+
+            it("should remove 2 maintainers from the maintainers array", async () => {
+              const authorizedMaintainers =
+                await maintainerProxy.getAllMaintainers()
+
+              expect(authorizedMaintainers.length).to.be.equal(6)
+              const expectedMaintainers = [
+                maintainer1.address,
+                maintainer2.address,
+                maintainer3.address,
+                maintainer4.address,
+                maintainer7.address,
+                maintainer6.address,
+              ]
+
+              expect(authorizedMaintainers).to.be.deep.equal(
+                expectedMaintainers
+              )
+            })
+
+            it("should emit a MaintainerUnauthorized event", async () => {
+              await expect(tx5)
+                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .withArgs(maintainer5.address)
+            })
+
+            it("should emit a MaintainerUnauthorized event", async () => {
+              await expect(tx8)
+                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .withArgs(maintainer8.address)
+            })
+          }
+        )
       })
     })
   })
@@ -2790,7 +3162,19 @@ describe("Maintainer", () => {
         await expect(
           maintainerProxy
             .connect(thirdParty)
-            .updateGasOffsetParameters(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50)
+            .updateGasOffsetParameters(
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50
+            )
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })

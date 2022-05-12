@@ -10,6 +10,7 @@ import type {
   TestRelay,
   ReimbursementPool,
   MaintainerProxy,
+  MaintainerProxyStub,
 } from "../../typechain"
 
 /**
@@ -39,9 +40,8 @@ export default async function bridgeFixture() {
     "ReimbursementPool"
   )
 
-  const maintainerProxy: MaintainerProxy = await ethers.getContract(
-    "MaintainerProxy"
-  )
+  const maintainerProxy: MaintainerProxy & MaintainerProxyStub =
+    await ethers.getContract("MaintainerProxy")
 
   const relay = await smock.fake<TestRelay>("TestRelay", {
     address: await (await bridge.contractReferences()).relay,

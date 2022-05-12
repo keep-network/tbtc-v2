@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const MaintainerProxy = await deploy("MaintainerProxy", {
     contract:
       deployments.getNetworkName() === "hardhat"
-        ? "MaintainerProxy"
+        ? "MaintainerProxyStub"
         : undefined,
     from: deployer,
     args: [Bridge.address, ReimbursementPool.address],
