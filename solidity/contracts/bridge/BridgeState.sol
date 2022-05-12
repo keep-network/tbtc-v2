@@ -173,22 +173,17 @@ library BridgeState {
         // range [0, 100].
         uint64 redemptionTimeoutNotifierRewardMultiplier;
 
+
         // The amount of ETH in wei the party challenging the wallet for fraud
         // needs to deposit.
-        uint256 fraudChallengeDepositAmount;
-
-
+        uint96 fraudChallengeDepositAmount;
         // The amount of time the wallet has to defeat a fraud challenge.
-        uint256 fraudChallengeDefeatTimeout;
-
-
+        uint32 fraudChallengeDefeatTimeout;
         // The amount of stake slashed from each member of a wallet for a fraud.
         uint96 fraudSlashingAmount;
-
-
         // The percentage of the notifier reward from the staking contract
         // the notifier of a fraud receives. The value is in the range [0, 100].
-        uint256 fraudNotifierRewardMultiplier;
+        uint32 fraudNotifierRewardMultiplier;
 
 
         // Determines how frequently a new wallet creation can be requested.
@@ -725,10 +720,10 @@ library BridgeState {
     ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     function updateFraudParameters(
         Storage storage self,
-        uint256 _fraudChallengeDepositAmount,
-        uint256 _fraudChallengeDefeatTimeout,
+        uint96 _fraudChallengeDepositAmount,
+        uint32 _fraudChallengeDefeatTimeout,
         uint96 _fraudSlashingAmount,
-        uint256 _fraudNotifierRewardMultiplier
+        uint32 _fraudNotifierRewardMultiplier
     ) internal {
         require(
             _fraudChallengeDefeatTimeout > 0,

@@ -1286,10 +1286,10 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///      - Fraud challenge defeat timeout must be greater than 0
     ///      - Fraud notifier reward multiplier must be in the range [0, 100]
     function updateFraudParameters(
-        uint256 fraudChallengeDepositAmount,
-        uint256 fraudChallengeDefeatTimeout,
+        uint96 fraudChallengeDepositAmount,
+        uint32 fraudChallengeDefeatTimeout,
         uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier
+        uint32 fraudNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateFraudParameters(
             fraudChallengeDepositAmount,
@@ -1498,9 +1498,9 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout,
+            uint64 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
-            uint256 redemptionTimeoutNotifierRewardMultiplier
+            uint64 redemptionTimeoutNotifierRewardMultiplier
         )
     {
         redemptionDustThreshold = self.redemptionDustThreshold;
@@ -1629,10 +1629,10 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         external
         view
         returns (
-            uint256 fraudChallengeDepositAmount,
-            uint256 fraudChallengeDefeatTimeout,
+            uint96 fraudChallengeDepositAmount,
+            uint32 fraudChallengeDefeatTimeout,
             uint96 fraudSlashingAmount,
-            uint256 fraudNotifierRewardMultiplier
+            uint32 fraudNotifierRewardMultiplier
         )
     {
         fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;

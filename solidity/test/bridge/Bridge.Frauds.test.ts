@@ -36,9 +36,9 @@ describe("Bridge - Fraud", () => {
   let bridge: Bridge & BridgeStub
 
   let fraudChallengeDepositAmount: BigNumber
-  let fraudChallengeDefeatTimeout: BigNumber
+  let fraudChallengeDefeatTimeout: number
   let fraudSlashingAmount: BigNumber
-  let fraudNotifierRewardMultiplier: BigNumber
+  let fraudNotifierRewardMultiplier: number
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -1949,7 +1949,7 @@ describe("Bridge - Fraud", () => {
                 }
               )
 
-            await increaseTime(fraudChallengeDefeatTimeout.sub(2))
+            await increaseTime(fraudChallengeDefeatTimeout - 2)
           })
 
           after(async () => {
