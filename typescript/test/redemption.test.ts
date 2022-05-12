@@ -21,10 +21,11 @@ import { RedemptionRequest } from "./redemption"
 import { MockBridge } from "./utils/mock-bridge"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
-chai.use(chaiAsPromised)
 import { expect } from "chai"
 import { BigNumberish, BigNumber } from "ethers"
 import { PendingRedemption } from "./bridge"
+
+chai.use(chaiAsPromised)
 
 describe("Redemption", () => {
   describe("redeemDeposits", () => {
@@ -38,7 +39,7 @@ describe("Redemption", () => {
     })
 
     context("when there are redemption requests provided", () => {
-      context("when there is a change UTXO is created", () => {
+      context("when there is a change created", () => {
         context("when the change output is P2WPKH", () => {
           context("when there is a single redeemer", () => {
             context("when the redeemer address type is P2PKH", () => {
@@ -209,7 +210,7 @@ describe("Redemption", () => {
             bridge,
             walletPrivateKey,
             data.mainUtxo,
-            [],
+            [], // empty redeemer addresses list
             data.witness
           )
         ).to.be.rejectedWith("There must be at least one request to redeem")
@@ -220,7 +221,7 @@ describe("Redemption", () => {
   describe("createRedemptionTransaction", () => {
     context("when there are redemption requests provided", () => {
       describe("when redeemer addresses are either P2PKH, P2WPKH, P2SH or P2WSH", () => {
-        context("when there is a change UTXO is created", () => {
+        context("when there is a change UTXO created", () => {
           describe("when the change output is P2WPKH", () => {
             context("when there is a single redeemer", () => {
               context("when the redeemer address type is P2PKH", () => {
@@ -363,7 +364,7 @@ describe("Redemption", () => {
                   const p2wpkhOutput = txJSON.outputs[0]
                   const changeOutput = txJSON.outputs[1]
 
-                  // P2PKH output
+                  // P2WPKH output
                   // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
                   // which is 15000 - 1700 - 1100 = 12200
                   expect(p2wpkhOutput.value).to.be.equal(12200)
@@ -764,7 +765,7 @@ describe("Redemption", () => {
               expect(p2shOutput.script).to.be.equal(
                 "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
               )
-              // The output address should be the P2PKH address passed within input
+              // The output address should be the P2SH address passed within input
               // data
               expect(p2shOutput.address).to.be.equal(data.redeemerAddresses[0])
 
@@ -867,6 +868,7 @@ describe("Redemption", () => {
       })
 
       describe("when redeemer addresses are neither P2PKH, P2WPKH, P2SH nor P2WSH", () => {
+        // Use P2TR redeemer address
         const data: RedemptionTestData = nonStandardAddressRedemption
 
         const redemptionRequests: RedemptionRequest[] = [

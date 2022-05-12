@@ -32,7 +32,7 @@ export interface RedemptionRequest {
   /**
    * The amount of Bitcoins in satoshis that is subtracted from the amount in
    * redemption request and used to pay the treasury fee.
-   * The value should be equal exactly the value of treasury fee in the Bridge
+   * The value should be exactly equal to the value of treasury fee in the Bridge
    * on-chain contract at the time the redemption request was made.
    */
   treasuryFee: BigNumber
@@ -42,8 +42,8 @@ export interface RedemptionRequest {
    * redemption request and used to pay for the transaction.
    * The value should not be greater than the max fee in the Bridge on-chain
    * contract at the time the redemption request was made.
-   * The sum of all output fee values makes the total fee of the redemption
-   * transaction.
+   * The sum of the fee shares of all the output values makes the total fee of
+   * the redemption transaction.
    */
   feeShare: BigNumber
 }
@@ -55,13 +55,13 @@ export interface RedemptionRequest {
  * the new main UTXO of the wallet.
  * @dev It is up to the caller to ensure the wallet key and each of the redeemer
  *      addresses represent a valid pending redemption request in the Bridge.
- * @param bitcoinClient - The Bitcoin client used to interact with the network.
- * @param bridge - The Interface used to interact with the Bridge on-chain contract.
- * @param walletPrivateKey = The private kay of the wallet in the WIF format.
- * @param mainUtxo - The main UTXO of the wallet.
- * @param redeemerAddresses - The list of redeemer addresses.
+ * @param bitcoinClient - The Bitcoin client used to interact with the network
+ * @param bridge - The Interface used to interact with the Bridge on-chain contract
+ * @param walletPrivateKey = The private kay of the wallet in the WIF format
+ * @param mainUtxo - The main UTXO of the wallet. Must be P2(W)PKH
+ * @param redeemerAddresses - The list of redeemer addresses
  * @param witness - The parameter used to decide the type of the change output.
- *                  P2WPKH if `true`, P2PKH if `false`.
+ *                  P2WPKH if `true`, P2PKH if `false`
  * @returns Empty promise.
  */
 export async function redeemDeposits(
@@ -109,14 +109,14 @@ export async function redeemDeposits(
  *      correctly formed:
  *        - there is at least one redemption
  *        - the `requestedAmount` in each redemption request is greater than
- *          the sum of its `feeShare` and `treasuryFee`.
+ *          the sum of its `feeShare` and `treasuryFee`
  *        - the redeemer address in each redemption request is of a standard
  *          type (P2PKH, P2WPKH, P2SH, P2WSH).
- * @param walletPrivateKey  - The private key of the wallet in the WIF format.
- * @param mainUtxo - The main UTXO of the wallet.
+ * @param walletPrivateKey  - The private key of the wallet in the WIF format
+ * @param mainUtxo - The main UTXO of the wallet. Must be P2(W)PKH
  * @param redemptionRequests - The list of redemption requests
  * @param witness - The parameter used to decide the type of the change output.
- *                  P2WPKH if `true`, P2PKH if `false`.
+ *                  P2WPKH if `true`, P2PKH if `false`
  * @returns Bitcoin redemption transaction in the raw format.
  */
 export async function createRedemptionTransaction(

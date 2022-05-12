@@ -348,8 +348,8 @@ export const multipleAddressesRedemption: RedemptionTestData = {
 }
 
 /**
- * Test data that is based on a Bitcoin redemption transaction with a two
- * redeemer addresses and has no change:
+ * Test data that is based on a Bitcoin redemption transaction with two redeemer
+ * addresses and has no change:
  * https://live.blockcypher.com/btc-testnet/tx/afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb/
  */
 export const noChangeRedemption: RedemptionTestData = {

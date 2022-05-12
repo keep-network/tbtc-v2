@@ -38,5 +38,11 @@ export interface Bridge {
    */
   txProofDifficultyFactor(): Promise<number>
 
+  /**
+   * Gets a pending redemption from the on-chain contract.
+   * @param redemptionKey The redemption key that identifies the pending
+   *        redemption built as keccak256(walletPubKeyHash | redeemerOutputScript).
+   * @returns Promise with pending redemption.
+   */
   getPendingRedemptions(redemptionKey: BigNumberish): Promise<PendingRedemption>
 }
