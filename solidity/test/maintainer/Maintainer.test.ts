@@ -2817,7 +2817,46 @@ describe("Maintainer", () => {
     })
   })
 
-   // TODO: test updateReimbursementPool
+  describe("updateReimbursementPool", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called by a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .updateReimbursementPool(thirdPartyContract.address)
+        ).to.be.revertedWith("Caller is not the owner")
+      })
+    })
+
+    context("when called by the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+        tx = await maintainerProxy
+          .connect(governance)
+          .updateReimbursementPool(thirdPartyContract.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should emit the ReimbursementPoolUpdated event", async () => {
+        await expect(tx)
+          .to.emit(maintainerProxy, "ReimbursementPoolUpdated")
+          .withArgs(thirdPartyContract.address)
+      })
+    })
+  })
 
   interface ScenarioOutcome {
     tx: ContractTransaction
