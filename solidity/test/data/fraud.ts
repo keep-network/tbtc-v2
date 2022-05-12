@@ -4,20 +4,64 @@ import { BytesLike } from "ethers"
  * Represents a set of data used for given fraud scenario.
  */
 export interface FraudTestData {
+  /**
+   * The signature generated during input signing.
+   */
   signature: {
     v: number
     r: BytesLike
     s: BytesLike
   }
+
+  /**
+   * The preimage used during the input signing.
+   * The SHA-256 hash of `preimage` results in `preimageSha256`.
+   */
   preimage: BytesLike
+
+  /**
+   * The SHA-256 hash of the preimage.
+   * The SHA-256 hash of `preimageSha256` results in `sighash` which is used
+   * during input signing.
+   */
+  preimageSha256: BytesLike
+
+  /**
+   * The SHA-256 hash of `preimageSha256`.
+   * This is the data that is actually signed during the input signing.
+   */
   sighash: BytesLike
+
+  /**
+   * Determines whether the input used during signing is witness or not.
+   */
   witness: boolean
+
+  /**
+   * Swept deposits that will be registered in the system during the test case
+   * execution.
+   */
   deposits: {
     txHash: BytesLike // little endian
     txOutputIndex: number
     txOutputValue: number
   }[]
+
+  /**
+   * Spent main UTXOs that will be registered in the system during the test case
+   * execution.
+   */
   spentMainUtxos: {
+    txHash: BytesLike // little endian
+    txOutputIndex: number
+    txOutputValue: number
+  }[]
+
+  /**
+   * Processed moved funds sweep requests that will be registered in the system
+   * during the test case execution.
+   */
+  movedFundsSweepRequests: {
     txHash: BytesLike // little endian
     txOutputIndex: number
     txOutputValue: number
@@ -49,9 +93,13 @@ export const nonWitnessSignSingleInputTx: FraudTestData = {
     "63ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b1" +
     "75ac68ffffffff01b8240000000000001600148db50eb52063ea9d98b3eac91489" +
     "a90f738986f60000000001000000",
+  preimageSha256:
+    "0x90d29d1021c2a1a381c0c8a39f5ffda96770e1c2ffed835f822500033841b2e3",
   sighash: "0x5d09cd07392c7163335b67eacc999491a3794c15b88e2b59094be5c5b157064b",
   witness: false,
-  deposits: [
+  deposits: [],
+  spentMainUtxos: [],
+  movedFundsSweepRequests: [
     {
       txHash:
         "0xfb26e52365437fc4fce01864d1303e0e1ed2824ef83345ea6e85174060778acb",
@@ -59,7 +107,6 @@ export const nonWitnessSignSingleInputTx: FraudTestData = {
       txOutputValue: 11000,
     },
   ],
-  spentMainUtxos: [],
 }
 
 // Test data comes from the input at index 5 of transaction:
@@ -82,6 +129,8 @@ export const nonWitnessSignMultipleInputsTx: FraudTestData = {
     "b50eb52063ea9d98b3eac91489a90f738986f68763ac6776a914e257eccafbc07c38164" +
     "2ce6e7e55120fb077fbed8804e0250162b175ac68ffffffff011cd40000000000001600" +
     "148db50eb52063ea9d98b3eac91489a90f738986f60000000001000000",
+  preimageSha256:
+    "0x69b912fd0ea8922db4af34145378f7e0f15d6c0eb22bf5d68ab6645819f2476c",
   sighash: "0x3a3c771a0d6e2484e1f00dca91e724b9f60a986b0c1ac4cafb9ae69a7401a573",
   witness: false,
   deposits: [
@@ -93,6 +142,7 @@ export const nonWitnessSignMultipleInputsTx: FraudTestData = {
     },
   ],
   spentMainUtxos: [],
+  movedFundsSweepRequests: [],
 }
 
 // Test data comes from the (only) input of transaction:
@@ -112,6 +162,8 @@ export const witnessSignSingleInputTx: FraudTestData = {
     "a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac68f0" +
     "55000000000000fffffffff5ef547c0c70b4a4747f180b1cc244b99a3d2c12e71d" +
     "73d68ca9da53591139f10000000001000000",
+  preimageSha256:
+    "0xdfb4a0032c9da53e79640f404cf9e07ff0a881706d0cee6e8ff360f0371d4782",
   sighash: "0xb8994753efd78cc66075991d3a21beef96d4e8a5e9ff06bc692401203df02610",
   witness: true,
   deposits: [
@@ -123,6 +175,7 @@ export const witnessSignSingleInputTx: FraudTestData = {
     },
   ],
   spentMainUtxos: [],
+  movedFundsSweepRequests: [],
 }
 
 // Test data comes from the input at index 4 of transaction:
@@ -140,6 +193,8 @@ export const witnessSignMultipleInputTx: FraudTestData = {
     "1976a9148db50eb52063ea9d98b3eac91489a90f738986f688acd020000000000000ff" +
     "ffffffb72599001cf12b672a074ce9ff50fe8cb87432044fd6a5b85953ddc9abc458b9" +
     "0000000001000000",
+  preimageSha256:
+    "0xbf0ff823c255934b7a4ef21dfb98df0547b177a9f71caf0f1f86ae592ec47a09",
   sighash: "0xd05adb53b09ac6b1cc0a0166558f8b90d2898c9a368d40a2a033e5e0c1af9b11",
   witness: true,
   deposits: [],
@@ -151,6 +206,7 @@ export const witnessSignMultipleInputTx: FraudTestData = {
       txOutputValue: 8400,
     },
   ],
+  movedFundsSweepRequests: [],
 }
 
 // Test data comes from the input at index 1 of transaction:
@@ -170,6 +226,8 @@ export const wrongSighashType: FraudTestData = {
     "63ea9d98b3eac91489a90f738986f68763ac6776a914e257eccafbc07c381642ce6e7e551" +
     "20fb077fbed8804e0250162b175ac682823000000000000ffffffff000000000000000000" +
     "00000000000000000000000000000000000000000000000000000082000000",
+  preimageSha256:
+    "0x6c8afcb2efdb0313c40acb92b80a1ae9113111ce7f081877875d28c20d9fffd7",
   sighash: "0x4fd8491a872a42d20e434e838afd6e4d6d6422e035db0d41a9a11cb0596b2959",
   witness: true,
   deposits: [
@@ -181,4 +239,5 @@ export const wrongSighashType: FraudTestData = {
     },
   ],
   spentMainUtxos: [],
+  movedFundsSweepRequests: [],
 }

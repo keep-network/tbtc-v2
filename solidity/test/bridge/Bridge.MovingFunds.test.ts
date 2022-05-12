@@ -1,10 +1,10 @@
 /* eslint-disable no-underscore-dangle */
 import { ethers, helpers, waffle } from "hardhat"
-import chai, { expect } from "chai"
+import chai, { assert, expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { ContractTransaction } from "ethers"
+import { BigNumber, ContractTransaction } from "ethers"
 import type {
   Bank,
   BankStub,
@@ -14,9 +14,19 @@ import type {
   IRelay,
   IWalletRegistry,
 } from "../../typechain"
-import bridgeFixture from "./bridge-fixture"
-import { walletState } from "../fixtures"
+import bridgeFixture from "../fixtures/bridge"
 import {
+  constants,
+  movedFundsSweepRequestState,
+  walletState,
+} from "../fixtures"
+import {
+  MovedFundsSweepMultipleOutputs,
+  MovedFundsSweepP2SHOutput,
+  MovedFundsSweepProvablyUnspendableOutput,
+  MovedFundsSweepTestData,
+  MovedFundsSweepWithMainUtxo,
+  MovedFundsSweepWithoutMainUtxo,
   MovingFundsTestData,
   MultipleInputs,
   MultipleTargetWalletsAndDivisibleAmount,
@@ -26,27 +36,817 @@ import {
   SingleTargetWallet,
   SingleTargetWalletButP2SH,
 } from "../data/moving-funds"
+import { ecdsaWalletTestData } from "../data/ecdsa"
+import { NO_MAIN_UTXO } from "../data/deposit-sweep"
+import { to1ePrecision } from "../helpers/contract-test-helpers"
+import { walletPublicKeyHash } from "../data/fraud"
 
 chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const { lastBlockTime } = helpers.time
-
-const fixture = async () => bridgeFixture()
+const { lastBlockTime, increaseTime } = helpers.time
 
 describe("Bridge - Moving funds", () => {
+  let thirdParty: SignerWithAddress
   let treasury: SignerWithAddress
 
   let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
-  let Bridge: BridgeStub__factory
   let bridge: Bridge & BridgeStub
+  let BridgeFactory: BridgeStub__factory
+
+  let movingFundsTimeout: number
+  let movingFundsTimeoutSlashingAmount: BigNumber
+  let movingFundsTimeoutNotifierRewardMultiplier: BigNumber
+  let movedFundsSweepTimeout: number
+  let movedFundsSweepTimeoutSlashingAmount: BigNumber
+  let movedFundsSweepTimeoutNotifierRewardMultiplier: BigNumber
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ treasury, bank, relay, walletRegistry, Bridge, bridge } =
-      await waffle.loadFixture(fixture))
+    ;({
+      thirdParty,
+      treasury,
+      bank,
+      relay,
+      walletRegistry,
+      bridge,
+      BridgeFactory,
+    } = await waffle.loadFixture(bridgeFixture))
+    ;({
+      movingFundsTimeout,
+      movingFundsTimeoutSlashingAmount,
+      movingFundsTimeoutNotifierRewardMultiplier,
+      movedFundsSweepTimeout,
+      movedFundsSweepTimeoutSlashingAmount,
+      movedFundsSweepTimeoutNotifierRewardMultiplier,
+    } = await bridge.movingFundsParameters())
+  })
+
+  describe("submitMovingFundsCommitment", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when source wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.MovingFunds,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when source wallet has no pending redemptions", () => {
+        // The wallet created using the `walletDraft` has no pending redemptions
+        // by default. No need to do anything here.
+
+        context(
+          "when source wallet has no pending moved funds sweep requests",
+          () => {
+            // The wallet created using the `walletDraft` has no pending moved
+            // funds sweep requests by default. No need to do anything here.
+
+            context("when the commitment was not submitted yet", () => {
+              // The wallet created using the `walletDraft` has no commitment
+              // submitted by default. No need to do anything here.
+
+              context(
+                "when the caller is a member of the source wallet",
+                () => {
+                  const walletMembersIDs = [1, 2, 3, 4, 5]
+                  const walletMemberIndex = 2
+
+                  let caller: SignerWithAddress
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    caller = thirdParty
+
+                    walletRegistry.isWalletMember
+                      .whenCalledWith(
+                        ecdsaWalletTestData.walletID,
+                        walletMembersIDs,
+                        caller.address,
+                        walletMemberIndex
+                      )
+                      .returns(true)
+                  })
+
+                  after(async () => {
+                    walletRegistry.isWalletMember.reset()
+
+                    await restoreSnapshot()
+                  })
+
+                  context("when passed wallet main UTXO is valid", () => {
+                    context("when wallet balance is greater than zero", () => {
+                      // Just an arbitrary main UTXO with value of 26 BTC.
+                      const mainUtxo = {
+                        txHash:
+                          "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                        txOutputIndex: 0,
+                        txOutputValue: to1ePrecision(26, 8),
+                      }
+
+                      before(async () => {
+                        await createSnapshot()
+
+                        // Set up a main UTXO for the source wallet.
+                        await bridge.setWalletMainUtxo(
+                          ecdsaWalletTestData.pubKeyHash160,
+                          mainUtxo
+                        )
+                      })
+
+                      after(async () => {
+                        await restoreSnapshot()
+                      })
+
+                      context(
+                        "when the expected target wallets count is greater than zero",
+                        () => {
+                          // Just some arbitrary 20-byte hashes to simulate live
+                          // wallets PKHs. They are ordered in the expected way, i.e.
+                          // the hashes represented as numbers form a strictly
+                          // increasing sequence.
+                          const liveWallets = [
+                            "0x4b440cb29c80c3f256212d8fdd4f2125366f3c91",
+                            "0x888f01315e0268bfa05d5e522f8d63f6824d9a96",
+                            "0xb2a89e53a4227dbe530a52a1c419040735fa636c",
+                            "0xbf198e8fff0f90af01024153701da99b9bc08dc5",
+                            "0xffb9e05013f5cd126915bc03d340cc5c1be81862",
+                          ]
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            for (let i = 0; i < liveWallets.length; i++) {
+                              // eslint-disable-next-line no-await-in-loop
+                              await bridge.setWallet(liveWallets[i], {
+                                ...walletDraft,
+                                state: walletState.Live,
+                              })
+                            }
+                          })
+
+                          after(async () => {
+                            await restoreSnapshot()
+                          })
+
+                          context(
+                            "when the submitted target wallets count is same as the expected",
+                            () => {
+                              // The source wallet has a main UTXO with value of 26 BTC,
+                              // the max BTC transfer is 10 BTC by default (see
+                              // `constants.walletMaxBtcTransfer`) and the count of
+                              // live wallets is `5`. We compute the expected target
+                              // wallets count as:
+                              // `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
+                              // so we have `N = min(5, 26 / 10) = min(5, 3) = 3`
+                              const expectedTargetWalletsCount = 3
+
+                              context(
+                                "when all target wallets are different than the source wallet",
+                                () => {
+                                  context(
+                                    "when all target wallets follow the expected order",
+                                    () => {
+                                      context(
+                                        "when all target wallets are in the Live state",
+                                        () => {
+                                          let tx: ContractTransaction
+
+                                          const targetWallets =
+                                            liveWallets.slice(
+                                              0,
+                                              expectedTargetWalletsCount
+                                            )
+
+                                          before(async () => {
+                                            await createSnapshot()
+
+                                            tx = await bridge
+                                              .connect(caller)
+                                              .submitMovingFundsCommitment(
+                                                ecdsaWalletTestData.pubKeyHash160,
+                                                mainUtxo,
+                                                walletMembersIDs,
+                                                walletMemberIndex,
+                                                targetWallets
+                                              )
+                                          })
+
+                                          after(async () => {
+                                            await restoreSnapshot()
+                                          })
+
+                                          it("should store the target wallets commitment for the given wallet", async () => {
+                                            expect(
+                                              (
+                                                await bridge.wallets(
+                                                  ecdsaWalletTestData.pubKeyHash160
+                                                )
+                                              )
+                                                .movingFundsTargetWalletsCommitmentHash
+                                            ).to.be.equal(
+                                              ethers.utils.solidityKeccak256(
+                                                ["bytes20[]"],
+                                                [targetWallets]
+                                              )
+                                            )
+                                          })
+
+                                          it("should emit the MovingFundsCommitmentSubmitted event", async () => {
+                                            await expect(tx)
+                                              .to.emit(
+                                                bridge,
+                                                "MovingFundsCommitmentSubmitted"
+                                              )
+                                              .withArgs(
+                                                ecdsaWalletTestData.pubKeyHash160,
+                                                targetWallets,
+                                                caller.address
+                                              )
+                                          })
+                                        }
+                                      )
+
+                                      context(
+                                        "when one of the target wallets is not in the Live state",
+                                        () => {
+                                          it("should revert", async () => {
+                                            // Put an Unknown wallet into the mix.
+                                            const targetWallets = [
+                                              "0x2313e29d08e6b5e0d3cda040ed7f664ce9c840c4",
+                                              liveWallets[0],
+                                              liveWallets[1],
+                                            ]
+
+                                            await expect(
+                                              bridge
+                                                .connect(caller)
+                                                .submitMovingFundsCommitment(
+                                                  ecdsaWalletTestData.pubKeyHash160,
+                                                  mainUtxo,
+                                                  walletMembersIDs,
+                                                  walletMemberIndex,
+                                                  targetWallets
+                                                )
+                                            ).to.be.revertedWith(
+                                              "Submitted target wallet must be in Live state"
+                                            )
+                                          })
+                                        }
+                                      )
+                                    }
+                                  )
+
+                                  context(
+                                    "when one of the target wallets break the expected order",
+                                    () => {
+                                      it("should revert", async () => {
+                                        const targetWallets = [
+                                          liveWallets[0],
+                                          liveWallets[1],
+                                          liveWallets[1],
+                                        ]
+
+                                        await expect(
+                                          bridge
+                                            .connect(caller)
+                                            .submitMovingFundsCommitment(
+                                              ecdsaWalletTestData.pubKeyHash160,
+                                              mainUtxo,
+                                              walletMembersIDs,
+                                              walletMemberIndex,
+                                              targetWallets
+                                            )
+                                        ).to.be.revertedWith(
+                                          "Submitted target wallet breaks the expected order"
+                                        )
+                                      })
+                                    }
+                                  )
+                                }
+                              )
+
+                              context(
+                                "when one of the target wallets is same as the source wallet",
+                                () => {
+                                  it("should revert", async () => {
+                                    const targetWallets = [
+                                      liveWallets[0],
+                                      ecdsaWalletTestData.pubKeyHash160,
+                                      liveWallets[1],
+                                    ]
+
+                                    await expect(
+                                      bridge
+                                        .connect(caller)
+                                        .submitMovingFundsCommitment(
+                                          ecdsaWalletTestData.pubKeyHash160,
+                                          mainUtxo,
+                                          walletMembersIDs,
+                                          walletMemberIndex,
+                                          targetWallets
+                                        )
+                                    ).to.be.revertedWith(
+                                      "Submitted target wallet cannot be equal to the source wallet"
+                                    )
+                                  })
+                                }
+                              )
+                            }
+                          )
+
+                          context(
+                            "when the submitted target wallets count is other than the expected",
+                            () => {
+                              it("should revert", async () => {
+                                await expect(
+                                  bridge
+                                    .connect(caller)
+                                    .submitMovingFundsCommitment(
+                                      ecdsaWalletTestData.pubKeyHash160,
+                                      mainUtxo,
+                                      walletMembersIDs,
+                                      walletMemberIndex,
+                                      [liveWallets[0], liveWallets[1]]
+                                    )
+                                ).to.be.revertedWith(
+                                  "Submitted target wallets count is other than expected"
+                                )
+                              })
+                            }
+                          )
+                        }
+                      )
+
+                      context(
+                        "when the expected target wallets count is zero",
+                        () => {
+                          it("should revert", async () => {
+                            await expect(
+                              // The last parameter doesn't matter in this scenario.
+                              bridge
+                                .connect(caller)
+                                .submitMovingFundsCommitment(
+                                  ecdsaWalletTestData.pubKeyHash160,
+                                  mainUtxo,
+                                  walletMembersIDs,
+                                  walletMemberIndex,
+                                  []
+                                )
+                            ).to.be.revertedWith("No target wallets available")
+                          })
+                        }
+                      )
+                    })
+
+                    context("when wallet balance is zero", () => {
+                      it("should revert", async () => {
+                        await expect(
+                          // The last parameter doesn't matter in this scenario.
+                          bridge.connect(caller).submitMovingFundsCommitment(
+                            ecdsaWalletTestData.pubKeyHash160,
+                            NO_MAIN_UTXO, // That makes the balance to be 0 BTC.
+                            walletMembersIDs,
+                            walletMemberIndex,
+                            []
+                          )
+                        ).to.be.revertedWith("Wallet BTC balance is zero")
+                      })
+                    })
+                  })
+
+                  context("when passed wallet main UTXO is invalid", () => {
+                    const mainUtxo = {
+                      txHash:
+                        "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+                      txOutputIndex: 0,
+                      txOutputValue: to1ePrecision(26, 8), // 26 BTC
+                    }
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      await bridge.setWalletMainUtxo(
+                        ecdsaWalletTestData.pubKeyHash160,
+                        mainUtxo
+                      )
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      // Changing the `txOutputValue` to a value other than `0` will
+                      // make that scenario happen.
+                      const corruptedMainUtxo = {
+                        ...mainUtxo,
+                        txOutputValue: 1,
+                      }
+
+                      await expect(
+                        // The last parameter doesn't matter in this scenario.
+                        bridge
+                          .connect(caller)
+                          .submitMovingFundsCommitment(
+                            ecdsaWalletTestData.pubKeyHash160,
+                            corruptedMainUtxo,
+                            walletMembersIDs,
+                            walletMemberIndex,
+                            []
+                          )
+                      ).to.be.revertedWith("Invalid wallet main UTXO data")
+                    })
+                  })
+                }
+              )
+
+              context(
+                "when the caller is not a member of the source wallet",
+                () => {
+                  const walletMembersIDs = [1, 2, 3, 4, 5]
+                  const walletMemberIndex = 2
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    // That's the default behavior, but we just make it explicit.
+                    walletRegistry.isWalletMember.returns(false)
+                  })
+
+                  after(async () => {
+                    walletRegistry.isWalletMember.reset()
+
+                    await restoreSnapshot()
+                  })
+
+                  it("should revert", async () => {
+                    await expect(
+                      // The last parameter doesn't matter in this scenario.
+                      bridge
+                        .connect(thirdParty)
+                        .submitMovingFundsCommitment(
+                          ecdsaWalletTestData.pubKeyHash160,
+                          NO_MAIN_UTXO,
+                          walletMembersIDs,
+                          walletMemberIndex,
+                          []
+                        )
+                    ).to.be.revertedWith(
+                      "Caller is not a member of the source wallet"
+                    )
+                  })
+                }
+              )
+            })
+
+            context("when the commitment was already submitted", () => {
+              before(async () => {
+                await createSnapshot()
+
+                await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+                  ...walletDraft,
+                  state: walletState.MovingFunds,
+                  // Set a non-zero commitment to make this scenario work.
+                  movingFundsTargetWalletsCommitmentHash:
+                    "0x959e95e0bd83d34878f77ead61cb4e955bf5e3bdc9e16cdfbd51c4c20ab7e6b4",
+                })
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  // Parameters others than the first doesn't matter in this scenario.
+                  bridge.submitMovingFundsCommitment(
+                    ecdsaWalletTestData.pubKeyHash160,
+                    NO_MAIN_UTXO,
+                    [],
+                    0,
+                    []
+                  )
+                ).to.be.revertedWith(
+                  "Target wallets commitment already submitted"
+                )
+              })
+            })
+          }
+        )
+
+        context(
+          "when source wallet has pending moved funds sweep requests",
+          () => {
+            before(async () => {
+              await createSnapshot()
+
+              await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+                ...walletDraft,
+                state: walletState.MovingFunds,
+                // Set non-zero pending requests count to make this scenario work.
+                pendingMovedFundsSweepRequestsCount: 1,
+              })
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                // Parameters others than the first doesn't matter in this scenario.
+                bridge.submitMovingFundsCommitment(
+                  ecdsaWalletTestData.pubKeyHash160,
+                  NO_MAIN_UTXO,
+                  [],
+                  0,
+                  []
+                )
+              ).to.be.revertedWith(
+                "Source wallet must handle all pending moved funds sweep requests first"
+              )
+            })
+          }
+        )
+      })
+
+      context("when source wallet has pending redemptions", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+            ...walletDraft,
+            state: walletState.MovingFunds,
+            // Set non-zero pending redemptions value to make this scenario work.
+            pendingRedemptionsValue: 10000,
+          })
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            // Parameters others than the first doesn't matter in this scenario.
+            bridge.submitMovingFundsCommitment(
+              ecdsaWalletTestData.pubKeyHash160,
+              NO_MAIN_UTXO,
+              [],
+              0,
+              []
+            )
+          ).to.be.revertedWith(
+            "Source wallet must handle all pending redemptions first"
+          )
+        })
+      })
+    })
+
+    context("when source wallet is not in the MovingFunds state", () => {
+      const testData: {
+        testName: string
+        state: number
+      }[] = [
+        {
+          testName: "when the source wallet is in the Unknown state",
+          state: walletState.Unknown,
+        },
+        {
+          testName: "when the source wallet is in the Live state",
+          state: walletState.Live,
+        },
+        {
+          testName: "when the source wallet is in the Closing state",
+          state: walletState.Closing,
+        },
+        {
+          testName: "when the source wallet is in the Closed state",
+          state: walletState.Closed,
+        },
+        {
+          testName: "when the source wallet is in the Terminated state",
+          state: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: test.state,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              // Parameters other than the first doesn't matter in this scenario.
+              bridge.submitMovingFundsCommitment(
+                ecdsaWalletTestData.pubKeyHash160,
+                NO_MAIN_UTXO,
+                [],
+                0,
+                []
+              )
+            ).to.be.revertedWith("Source wallet must be in MovingFunds state")
+          })
+        })
+      })
+    })
+  })
+
+  describe("resetMovingFundsTimeout", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when the wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.MovingFunds,
+          movingFundsRequestedAt: (await lastBlockTime()) - 3600,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the wallet's commitment is not submitted yet", () => {
+        context("when Live wallets count is zero", () => {
+          // No need to do any specific setup. There is only one MovingFunds
+          // wallet in the system and its commitment is not yet submitted.
+          // All preconditions are met by default.
+
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            tx = await bridge.resetMovingFundsTimeout(
+              ecdsaWalletTestData.pubKeyHash160
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should reset the moving funds timeout", async () => {
+            expect(
+              (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160))
+                .movingFundsRequestedAt
+            ).to.be.equal(await lastBlockTime())
+          })
+
+          it("should emit MovingFundsTimeoutReset event", async () => {
+            await expect(tx)
+              .to.emit(bridge, "MovingFundsTimeoutReset")
+              .withArgs(ecdsaWalletTestData.pubKeyHash160)
+          })
+        })
+
+        context("when Live wallets count is not zero", () => {
+          before(async () => {
+            await createSnapshot()
+
+            // This call will add one Live wallet and increase the Live wallet
+            // counter accordingly. Note that the wallet's public key hash
+            // must be different from the PKH of the tested wallet.
+            await bridge.setWallet(
+              "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+              {
+                ...walletDraft,
+                state: walletState.Live,
+              }
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+            ).to.be.revertedWith("Live wallets count must be zero")
+          })
+        })
+      })
+
+      context("when the wallet's commitment is already submitted", () => {
+        before(async () => {
+          await createSnapshot()
+
+          // Set an arbitrary non-zero commitment.
+          await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+            ...(await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)),
+            movingFundsTargetWalletsCommitmentHash:
+              ethers.utils.solidityKeccak256(
+                ["bytes20"],
+                ["0xc214a5e9ec1b7792af9894e8f9ff0dd9bf427d79"]
+              ),
+          })
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge.resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+          ).to.be.revertedWith("Target wallets commitment already submitted")
+        })
+      })
+    })
+
+    context("when the wallet is not in the MovingFunds state", () => {
+      const testData = [
+        {
+          testName: "when the wallet is in the Unknown state",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when the wallet is in the Live state",
+          walletState: walletState.Live,
+        },
+        {
+          testName: "when the wallet is in the Closing state",
+          walletState: walletState.Closing,
+        },
+        {
+          testName: "when the wallet is in the Closed state",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when the wallet is in the Terminated state",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: test.walletState,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+            ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
+          })
+        })
+      })
+    })
   })
 
   describe("submitMovingFundsProof", () => {
@@ -113,8 +913,6 @@ describe("Bridge - Moving funds", () => {
                                                 })
 
                                                 after(async () => {
-                                                  walletRegistry.closeWallet.reset()
-
                                                   await restoreSnapshot()
                                                 })
 
@@ -151,7 +949,7 @@ describe("Bridge - Moving funds", () => {
                                                   )
                                                 })
 
-                                                it("should put the source wallet in the Closed state", async () => {
+                                                it("should put the source wallet in the Closing state", async () => {
                                                   expect(
                                                     (
                                                       await bridge.wallets(
@@ -160,15 +958,28 @@ describe("Bridge - Moving funds", () => {
                                                       )
                                                     ).state
                                                   ).to.be.equal(
-                                                    walletState.Closed
+                                                    walletState.Closing
                                                   )
                                                 })
 
-                                                it("should emit the WalletClosed event", async () => {
+                                                it("should set the closing started timestamp", async () => {
+                                                  expect(
+                                                    (
+                                                      await bridge.wallets(
+                                                        test.data.wallet
+                                                          .pubKeyHash
+                                                      )
+                                                    ).closingStartedAt
+                                                  ).to.be.equal(
+                                                    await lastBlockTime()
+                                                  )
+                                                })
+
+                                                it("should emit the WalletClosing event", async () => {
                                                   await expect(tx)
                                                     .to.emit(
                                                       bridge,
-                                                      "WalletClosed"
+                                                      "WalletClosing"
                                                     )
                                                     .withArgs(
                                                       test.data.wallet
@@ -192,14 +1003,76 @@ describe("Bridge - Moving funds", () => {
                                                     )
                                                 })
 
-                                                it("should call ECDSA Wallet Registry's closeWallet function", async () => {
-                                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                                                  expect(
-                                                    walletRegistry.closeWallet
-                                                  ).to.have.been.calledOnceWith(
-                                                    test.data.wallet
-                                                      .ecdsaWalletID
-                                                  )
+                                                it("should create appropriate moved funds sweep requests", async () => {
+                                                  for (
+                                                    let i = 0;
+                                                    i <
+                                                    test.data
+                                                      .expectedMovedFundsSweepRequests
+                                                      .length;
+                                                    i++
+                                                  ) {
+                                                    const expectedMovedFundsSweepRequest =
+                                                      test.data
+                                                        .expectedMovedFundsSweepRequests[
+                                                        i
+                                                      ]
+
+                                                    const requestKey =
+                                                      ethers.utils.solidityKeccak256(
+                                                        ["bytes32", "uint32"],
+                                                        [
+                                                          expectedMovedFundsSweepRequest.txHash,
+                                                          expectedMovedFundsSweepRequest.txOutputIndex,
+                                                        ]
+                                                      )
+
+                                                    const actualMovedFundsSweepRequest =
+                                                      // eslint-disable-next-line no-await-in-loop
+                                                      await bridge.movedFundsSweepRequests(
+                                                        requestKey
+                                                      )
+
+                                                    expect(
+                                                      actualMovedFundsSweepRequest.walletPubKeyHash
+                                                    ).to.be.equal(
+                                                      expectedMovedFundsSweepRequest.walletPubKeyHash,
+                                                      `Unexpected wallet for sweep request ${i}`
+                                                    )
+
+                                                    expect(
+                                                      actualMovedFundsSweepRequest.value
+                                                    ).to.be.equal(
+                                                      expectedMovedFundsSweepRequest.txOutputValue,
+                                                      `Unexpected value for sweep request ${i}`
+                                                    )
+
+                                                    expect(
+                                                      actualMovedFundsSweepRequest.createdAt
+                                                    ).to.be.equal(
+                                                      // eslint-disable-next-line no-await-in-loop
+                                                      await lastBlockTime(),
+                                                      `Unexpected created timestamp for sweep request ${i}`
+                                                    )
+
+                                                    expect(
+                                                      actualMovedFundsSweepRequest.state
+                                                    ).to.be.equal(
+                                                      movedFundsSweepRequestState.Pending,
+                                                      `Unexpected state for sweep request ${i}`
+                                                    )
+
+                                                    /* eslint-disable no-await-in-loop */
+                                                    expect(
+                                                      (
+                                                        await bridge.wallets(
+                                                          expectedMovedFundsSweepRequest.walletPubKeyHash
+                                                        )
+                                                      )
+                                                        .pendingMovedFundsSweepRequestsCount
+                                                    ).to.be.equal(1)
+                                                    /* eslint-enable no-await-in-loop */
+                                                  }
                                                 })
                                               })
                                             })
@@ -400,6 +1273,11 @@ describe("Bridge - Moving funds", () => {
                                         state: walletState.Live,
                                       },
                                       {
+                                        testName:
+                                          "when wallet state is Closing",
+                                        state: walletState.Closing,
+                                      },
+                                      {
                                         testName: "when wallet state is Closed",
                                         state: walletState.Closed,
                                       },
@@ -562,7 +1440,7 @@ describe("Bridge - Moving funds", () => {
 
                     it("should revert", async () => {
                       await expect(tx).to.be.revertedWith(
-                        "Target wallet public key hash must have 20 bytes"
+                        "Output's public key hash must have 20 bytes"
                       )
                     })
                   }
@@ -777,7 +1655,7 @@ describe("Bridge - Moving funds", () => {
 
         it("should revert", async () => {
           // Corrupt the merkle proof by changing tx index in block to an
-          // invalid one. The proper one is 33 so any other will do the trick.
+          // invalid one. The proper one is 1 so any other will do the trick.
           data.movingFundsProof.txIndexInBlock = 30
 
           await expect(runMovingFundsScenario(data)).to.be.revertedWith(
@@ -801,7 +1679,7 @@ describe("Bridge - Moving funds", () => {
 
         it("should revert", async () => {
           // To pass the proof validation, the difficulty returned by the relay
-          // must be 1 for test data used in this scenario. Setting
+          // must be 21461933 for test data used in this scenario. Setting
           // a different value will cause difficulty comparison failure.
           data.chainDifficulty = 2
 
@@ -909,7 +1787,7 @@ describe("Bridge - Moving funds", () => {
       context(
         "when accumulated difficulty in headers chain is insufficient",
         () => {
-          let otherBridge: Bridge
+          let otherBridge: BridgeStub
           const data: MovingFundsTestData = JSON.parse(
             JSON.stringify(SingleTargetWallet)
           )
@@ -926,14 +1804,14 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await Bridge.deploy(
+            otherBridge = await BridgeFactory.deploy()
+            await otherBridge.initialize(
               bank.address,
               relay.address,
               treasury.address,
               walletRegistry.address,
               12
             )
-            await otherBridge.deployed()
           })
 
           after(async () => {
@@ -960,6 +1838,1969 @@ describe("Bridge - Moving funds", () => {
     })
   })
 
+  describe("notifyMovingFundsTimeout", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when source wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.Live,
+        })
+
+        // Wallet must have funds to be not closed immediately by
+        // the following `__ecdsaWalletHeartbeatFailedCallback` call.
+        await bridge.setWalletMainUtxo(ecdsaWalletTestData.pubKeyHash160, {
+          txHash: ethers.constants.HashZero,
+          txOutputIndex: 0,
+          txOutputValue: to1ePrecision(10, 8),
+        })
+
+        // Switches the wallet to moving funds.
+        await bridge
+          .connect(walletRegistry.wallet)
+          .__ecdsaWalletHeartbeatFailedCallback(
+            ecdsaWalletTestData.walletID,
+            ecdsaWalletTestData.publicKeyX,
+            ecdsaWalletTestData.publicKeyY
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the moving funds process has timed out", () => {
+        let tx: ContractTransaction
+        const walletMembersIDs = [1, 2, 3, 4, 5]
+
+        before(async () => {
+          await createSnapshot()
+
+          walletRegistry.closeWallet.reset()
+          walletRegistry.seize.reset()
+
+          await increaseTime(movingFundsTimeout)
+
+          tx = await bridge
+            .connect(thirdParty)
+            .notifyMovingFundsTimeout(
+              ecdsaWalletTestData.pubKeyHash160,
+              walletMembersIDs
+            )
+        })
+
+        after(async () => {
+          walletRegistry.closeWallet.reset()
+          walletRegistry.seize.reset()
+
+          await restoreSnapshot()
+        })
+
+        it("should switch the wallet to Terminated state", async () => {
+          expect(
+            (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)).state
+          ).to.be.equal(walletState.Terminated)
+        })
+
+        it("should emit WalletTerminated event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "WalletTerminated")
+            .withArgs(
+              ecdsaWalletTestData.walletID,
+              ecdsaWalletTestData.pubKeyHash160
+            )
+        })
+
+        it("should call ECDSA Wallet Registry's closeWallet function", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(walletRegistry.closeWallet).to.have.been.calledOnceWith(
+            ecdsaWalletTestData.walletID
+          )
+        })
+
+        it("should call the ECDSA wallet registry's seize function", async () => {
+          expect(walletRegistry.seize).to.have.been.calledOnceWith(
+            movingFundsTimeoutSlashingAmount,
+            movingFundsTimeoutNotifierRewardMultiplier,
+            await thirdParty.getAddress(),
+            ecdsaWalletTestData.walletID,
+            walletMembersIDs
+          )
+        })
+
+        it("should emit MovingFundsTimedOut event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "MovingFundsTimedOut")
+            .withArgs(ecdsaWalletTestData.pubKeyHash160)
+        })
+      })
+
+      context("when the moving funds process has not timed out", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(movingFundsTimeout - 1)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge.notifyMovingFundsTimeout(
+              ecdsaWalletTestData.pubKeyHash160,
+              []
+            )
+          ).to.be.revertedWith("Moving funds has not timed out yet")
+        })
+      })
+    })
+
+    context("when source wallet is not in the MovingFunds state", () => {
+      const testData: {
+        testName: string
+        state: number
+      }[] = [
+        {
+          testName: "when the source wallet is in the Unknown state",
+          state: walletState.Unknown,
+        },
+        {
+          testName: "when the source wallet is in the Live state",
+          state: walletState.Live,
+        },
+        {
+          testName: "when the source wallet is in the Closing state",
+          state: walletState.Closing,
+        },
+        {
+          testName: "when the source wallet is in the Closed state",
+          state: walletState.Closed,
+        },
+        {
+          testName: "when the source wallet is in the Terminated state",
+          state: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: test.state,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.notifyMovingFundsTimeout(
+                ecdsaWalletTestData.pubKeyHash160,
+                []
+              )
+            ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
+          })
+        })
+      })
+    })
+  })
+
+  describe("notifyMovingFundsBelowDust", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when the wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.MovingFunds,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the main UTXO parameter is valid", () => {
+        context("when the balance is below the dust threshold", () => {
+          const mainUtxo = {
+            txHash: ethers.constants.HashZero,
+            txOutputIndex: 0,
+            txOutputValue: constants.movingFundsDustThreshold - 1,
+          }
+
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWalletMainUtxo(
+              ecdsaWalletTestData.pubKeyHash160,
+              mainUtxo
+            )
+
+            tx = await bridge.notifyMovingFundsBelowDust(
+              ecdsaWalletTestData.pubKeyHash160,
+              mainUtxo
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should change wallet's state to Closing", async () => {
+            const { state } = await bridge.wallets(
+              ecdsaWalletTestData.pubKeyHash160
+            )
+
+            expect(state).to.be.equal(walletState.Closing)
+          })
+
+          it("should set the wallet's closing started timestamp", async () => {
+            const wallet = await bridge.wallets(
+              ecdsaWalletTestData.pubKeyHash160
+            )
+            expect(wallet.closingStartedAt).to.be.equal(await lastBlockTime())
+          })
+
+          it("should emit WalletClosing event", async () => {
+            await expect(tx)
+              .to.emit(bridge, "WalletClosing")
+              .withArgs(
+                walletDraft.ecdsaWalletID,
+                ecdsaWalletTestData.pubKeyHash160
+              )
+          })
+
+          it("should emit MovingFundsBelowDustReported event", async () => {
+            await expect(tx)
+              .to.emit(bridge, "MovingFundsBelowDustReported")
+              .withArgs(ecdsaWalletTestData.pubKeyHash160)
+          })
+        })
+
+        context("when the balance is not below the dust threshold", () => {
+          const mainUtxo = {
+            txHash: ethers.constants.HashZero,
+            txOutputIndex: 0,
+            txOutputValue: constants.movingFundsDustThreshold,
+          }
+
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWalletMainUtxo(
+              ecdsaWalletTestData.pubKeyHash160,
+              mainUtxo
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.notifyMovingFundsBelowDust(
+                ecdsaWalletTestData.pubKeyHash160,
+                mainUtxo
+              )
+            ).to.be.revertedWith(
+              "Wallet BTC balance must be below the moving funds dust threshold"
+            )
+          })
+        })
+      })
+
+      context("when the main UTXO parameter is invalid", () => {
+        const mainUtxo = {
+          txHash: ethers.constants.HashZero,
+          txOutputIndex: 0,
+          txOutputValue: to1ePrecision(1, 8),
+        }
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+            ...walletDraft,
+            state: walletState.MovingFunds,
+          })
+
+          await bridge.setWalletMainUtxo(
+            ecdsaWalletTestData.pubKeyHash160,
+            mainUtxo
+          )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          const corruptedMainUtxo = {
+            ...mainUtxo,
+            txOutputIndex: 1,
+          }
+
+          await expect(
+            bridge.notifyMovingFundsBelowDust(
+              ecdsaWalletTestData.pubKeyHash160,
+              corruptedMainUtxo
+            )
+          ).to.be.revertedWith("Invalid wallet main UTXO data")
+        })
+      })
+    })
+
+    context("when the wallet is not in the MovingFunds state", () => {
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is Live",
+          walletState: walletState.Live,
+        },
+        {
+          testName: "when wallet state is Closing",
+          walletState: walletState.Closing,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...walletDraft,
+              state: test.walletState,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              bridge.notifyMovingFundsBelowDust(
+                ecdsaWalletTestData.pubKeyHash160,
+                NO_MAIN_UTXO
+              )
+            ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
+          })
+        })
+      })
+    })
+  })
+
+  describe("submitMovedFundsSweepProof", () => {
+    context("when transaction proof is valid", () => {
+      context("when there is only one output", () => {
+        context("when the single output is 20-byte", () => {
+          context("when single output is either P2PKH or P2WPKH", () => {
+            context(
+              "when sweeping wallet is either in the Live or MovingFunds state",
+              () => {
+                context("when sweeping wallet is in the Live state", () => {
+                  context("when main UTXO data are valid", () => {
+                    context(
+                      "when transaction fee does not exceed the sweep transaction maximum fee",
+                      () => {
+                        context(
+                          "when the sweeping wallet has no main UTXO set",
+                          () => {
+                            context(
+                              "when there is a single input referring to a Pending sweep request",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
+
+                                let tx: ContractTransaction
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  tx = await runMovedFundsSweepScenario(data)
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should mark the sweep request as processed", async () => {
+                                  const key = ethers.utils.solidityKeccak256(
+                                    ["bytes32", "uint32"],
+                                    [
+                                      data.movedFundsSweepRequest.txHash,
+                                      data.movedFundsSweepRequest.txOutputIndex,
+                                    ]
+                                  )
+
+                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                  expect(
+                                    (await bridge.movedFundsSweepRequests(key))
+                                      .state
+                                  ).to.be.equal(
+                                    movedFundsSweepRequestState.Processed
+                                  )
+                                })
+
+                                it("should decrease the sweeping wallet's pending requests count", async () => {
+                                  // The `setPendingMovedFundsSweepRequest` call
+                                  // made as part of `runMovedFundsSweepScenario`
+                                  // set this counter to 1. Eventually, it
+                                  // should be decreased back to 0.
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).pendingMovedFundsSweepRequestsCount
+                                  ).to.be.equal(0)
+                                })
+
+                                it("should set the transaction output as new sweeping wallet main UTXO", async () => {
+                                  // Amount can be checked by opening the sweep tx
+                                  // in a Bitcoin testnet explorer. In this case,
+                                  // the output  value is 16500.
+                                  const expectedMainUtxoHash =
+                                    ethers.utils.solidityKeccak256(
+                                      ["bytes32", "uint32", "uint64"],
+                                      [data.sweepTx.hash, 0, 16500]
+                                    )
+
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).mainUtxoHash
+                                  ).to.be.equal(expectedMainUtxoHash)
+                                })
+
+                                it("should emit the MovedFundsSwept event", async () => {
+                                  await expect(tx)
+                                    .to.emit(bridge, "MovedFundsSwept")
+                                    .withArgs(
+                                      data.wallet.pubKeyHash,
+                                      data.sweepTx.hash
+                                    )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the single input does not refer to a Pending sweep request",
+                              () => {
+                                context(
+                                  "when the single input refers to an Unknown sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithoutMainUtxo
+
+                                    before(async () => {
+                                      await createSnapshot()
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      // Getting rid of the `movedFundsSweepRequest`
+                                      // allows running that scenario because
+                                      // the sweep request will not exist in the system.
+                                      await expect(
+                                        runMovedFundsSweepScenario({
+                                          ...data,
+                                          movedFundsSweepRequest: null,
+                                        })
+                                      ).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
+
+                                context(
+                                  "when the single input refers to a Processed sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithoutMainUtxo
+
+                                    let tx: Promise<ContractTransaction>
+
+                                    before(async () => {
+                                      await createSnapshot()
+
+                                      const beforeProofActions = async () => {
+                                        await bridge.processPendingMovedFundsSweepRequest(
+                                          data.movedFundsSweepRequest
+                                            .walletPubKeyHash,
+                                          data.movedFundsSweepRequest
+                                        )
+                                      }
+
+                                      tx = runMovedFundsSweepScenario(
+                                        data,
+                                        beforeProofActions
+                                      )
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      await expect(tx).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
+
+                                context(
+                                  "when the single input refers to a TimedOut sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithoutMainUtxo
+
+                                    let tx: Promise<ContractTransaction>
+
+                                    before(async () => {
+                                      await createSnapshot()
+
+                                      const beforeProofActions = async () => {
+                                        await bridge.timeoutPendingMovedFundsSweepRequest(
+                                          data.movedFundsSweepRequest
+                                            .walletPubKeyHash,
+                                          data.movedFundsSweepRequest
+                                        )
+                                      }
+
+                                      tx = runMovedFundsSweepScenario(
+                                        data,
+                                        beforeProofActions
+                                      )
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      await expect(tx).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
+                              }
+                            )
+
+                            context(
+                              "when the single input does refer to a Pending sweep request that belongs to another wallet",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // To make this scenario happen, we just
+                                  // change the wallet in the test data' sweep
+                                  // request.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      movedFundsSweepRequest: {
+                                        ...data.movedFundsSweepRequest,
+                                        walletPubKeyHash:
+                                          "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Sweep request belongs to another wallet"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the number of inputs is other than one",
+                              () => {
+                                // Use a test data that contains a two-input
+                                // transaction.
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // However, do not set wallet main UTXO. In
+                                  // that case, the system will expect a
+                                  // sweep transaction with a single input.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      mainUtxo: NO_MAIN_UTXO,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Moved funds sweep transaction must have a proper inputs count"
+                                  )
+                                })
+                              }
+                            )
+                          }
+                        )
+
+                        context(
+                          "when the sweeping wallet has a main UTXO set",
+                          () => {
+                            context(
+                              "when the first input refers to a Pending sweep request and the second input refers to the sweeping wallet main UTXO",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                let tx: ContractTransaction
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  tx = await runMovedFundsSweepScenario(data)
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should mark the sweep request as processed", async () => {
+                                  const key = ethers.utils.solidityKeccak256(
+                                    ["bytes32", "uint32"],
+                                    [
+                                      data.movedFundsSweepRequest.txHash,
+                                      data.movedFundsSweepRequest.txOutputIndex,
+                                    ]
+                                  )
+
+                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                  expect(
+                                    (await bridge.movedFundsSweepRequests(key))
+                                      .state
+                                  ).to.be.equal(
+                                    movedFundsSweepRequestState.Processed
+                                  )
+                                })
+
+                                it("should decrease the sweeping wallet's pending requests count", async () => {
+                                  // The `setPendingMovedFundsSweepRequest` call
+                                  // made as part of `runMovedFundsSweepScenario`
+                                  // set this counter to 1. Eventually, it
+                                  // should be decreased back to 0.
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).pendingMovedFundsSweepRequestsCount
+                                  ).to.be.equal(0)
+                                })
+
+                                it("should set the transaction output as new sweeping wallet main UTXO", async () => {
+                                  // Amount can be checked by opening the sweep tx
+                                  // in a Bitcoin testnet explorer. In this case,
+                                  // the output  value is 2612530.
+                                  const expectedMainUtxoHash =
+                                    ethers.utils.solidityKeccak256(
+                                      ["bytes32", "uint32", "uint64"],
+                                      [data.sweepTx.hash, 0, 2612530]
+                                    )
+
+                                  expect(
+                                    (
+                                      await bridge.wallets(
+                                        data.wallet.pubKeyHash
+                                      )
+                                    ).mainUtxoHash
+                                  ).to.be.equal(expectedMainUtxoHash)
+                                })
+
+                                it("should emit the MovedFundsSwept event", async () => {
+                                  await expect(tx)
+                                    .to.emit(bridge, "MovedFundsSwept")
+                                    .withArgs(
+                                      data.wallet.pubKeyHash,
+                                      data.sweepTx.hash
+                                    )
+                                })
+
+                                it("should mark the current sweeping wallet main UTXO as correctly spent", async () => {
+                                  const key = ethers.utils.solidityKeccak256(
+                                    ["bytes32", "uint32"],
+                                    [
+                                      data.mainUtxo.txHash,
+                                      data.mainUtxo.txOutputIndex,
+                                    ]
+                                  )
+
+                                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                  expect(await bridge.spentMainUTXOs(key)).to.be
+                                    .true
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to the sweeping wallet main UTXO and the second input refers to a Pending sweep request",
+                              () => {
+                                // The sweep transaction used by this test data
+                                // has two inputs. The first input is registered
+                                // as a sweep request (i.e. it is referred by
+                                // `movedFundsSweepRequest`) and the second one
+                                // is meant to be the main UTXO (i.e. it is
+                                // referred by `mainUtxo`).
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // To make that scenario happen, we just
+                                  // let the test runner to register the first
+                                  // input as the main UTXO and the second
+                                  // one as the sweep request.
+                                  const movedFundsSweepRequest = {
+                                    ...data.mainUtxo,
+                                    walletPubKeyHash:
+                                      data.movedFundsSweepRequest
+                                        .walletPubKeyHash,
+                                  }
+
+                                  const mainUtxo = {
+                                    ...data.movedFundsSweepRequest,
+                                  }
+
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      movedFundsSweepRequest,
+                                      mainUtxo,
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Sweep request must be in Pending state"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input does not refer to a Pending sweep request and the second input refers to the sweeping wallet main UTXO",
+                              () => {
+                                context(
+                                  "when the first input refers to an Unknown sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithMainUtxo
+
+                                    before(async () => {
+                                      await createSnapshot()
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      // Getting rid of the `movedFundsSweepRequest`
+                                      // allows running that scenario because
+                                      // the sweep request will not exist in the system.
+                                      await expect(
+                                        runMovedFundsSweepScenario({
+                                          ...data,
+                                          movedFundsSweepRequest: null,
+                                        })
+                                      ).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
+
+                                context(
+                                  "when the first input refers to a Processed sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithMainUtxo
+
+                                    let tx: Promise<ContractTransaction>
+
+                                    before(async () => {
+                                      await createSnapshot()
+
+                                      const beforeProofActions = async () => {
+                                        await bridge.processPendingMovedFundsSweepRequest(
+                                          data.movedFundsSweepRequest
+                                            .walletPubKeyHash,
+                                          data.movedFundsSweepRequest
+                                        )
+                                      }
+
+                                      tx = runMovedFundsSweepScenario(
+                                        data,
+                                        beforeProofActions
+                                      )
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      await expect(tx).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
+
+                                context(
+                                  "when the first input refers to a TimedOut sweep request",
+                                  () => {
+                                    const data: MovedFundsSweepTestData =
+                                      MovedFundsSweepWithMainUtxo
+
+                                    let tx: Promise<ContractTransaction>
+
+                                    before(async () => {
+                                      await createSnapshot()
+
+                                      const beforeProofActions = async () => {
+                                        await bridge.timeoutPendingMovedFundsSweepRequest(
+                                          data.movedFundsSweepRequest
+                                            .walletPubKeyHash,
+                                          data.movedFundsSweepRequest
+                                        )
+                                      }
+
+                                      tx = runMovedFundsSweepScenario(
+                                        data,
+                                        beforeProofActions
+                                      )
+                                    })
+
+                                    after(async () => {
+                                      await restoreSnapshot()
+                                    })
+
+                                    it("should revert", async () => {
+                                      await expect(tx).to.be.revertedWith(
+                                        "Sweep request must be in Pending state"
+                                      )
+                                    })
+                                  }
+                                )
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to a Pending sweep request that belongs to another wallet and the second input refers to the sweeping wallet main UTXO",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // To make this scenario happen, we just
+                                  // change the wallet in the test data' sweep
+                                  // request.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      movedFundsSweepRequest: {
+                                        ...data.movedFundsSweepRequest,
+                                        walletPubKeyHash:
+                                          "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Sweep request belongs to another wallet"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the first input refers to a Pending sweep request and the second input does not refer to the sweeping wallet main UTXO",
+                              () => {
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // To make this scenario happen, we just need
+                                  // to simulate that the sweeping wallet has
+                                  // a different main UTXO than the one used
+                                  // by the second transaction input.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      mainUtxo: {
+                                        ...data.mainUtxo,
+                                        txOutputIndex: 2,
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Second input must point to the wallet's main UTXO"
+                                  )
+                                })
+                              }
+                            )
+
+                            context(
+                              "when the number of inputs is other than two",
+                              () => {
+                                // Use a test data with a one-input transaction.
+                                const data: MovedFundsSweepTestData =
+                                  MovedFundsSweepWithoutMainUtxo
+
+                                before(async () => {
+                                  await createSnapshot()
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                it("should revert", async () => {
+                                  // However, register a main UTXO for the
+                                  // sweeping wallet in order to force the
+                                  // system to expect a two-input transaction
+                                  // for that sweeping wallet.
+                                  await expect(
+                                    runMovedFundsSweepScenario({
+                                      ...data,
+                                      // Just an arbitrary main UTXO
+                                      mainUtxo: {
+                                        txHash:
+                                          "0x7d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed243a8961c8ac5887d5aaf528",
+                                        txOutputIndex: 0,
+                                        txOutputValue: 873510,
+                                      },
+                                    })
+                                  ).to.be.revertedWith(
+                                    "Moved funds sweep transaction must have a proper inputs count"
+                                  )
+                                })
+                              }
+                            )
+                          }
+                        )
+                      }
+                    )
+
+                    context(
+                      "when transaction fee exceeds the sweep transaction maximum fee",
+                      () => {
+                        // Use a test data where the sweep transaction has
+                        // a fee of 2000 satoshi.
+                        const data: MovedFundsSweepTestData =
+                          MovedFundsSweepWithoutMainUtxo
+
+                        before(async () => {
+                          await createSnapshot()
+
+                          // Set the max fee to one satoshi less than the fee
+                          // used by the transaction.
+                          await bridge.setMovedFundsSweepTxMaxTotalFee(1999)
+                        })
+
+                        after(async () => {
+                          await restoreSnapshot()
+                        })
+
+                        it("should revert", async () => {
+                          await expect(
+                            runMovedFundsSweepScenario(data)
+                          ).to.be.revertedWith("Transaction fee is too high")
+                        })
+                      }
+                    )
+                  })
+
+                  context("when main UTXO data are invalid", () => {
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithMainUtxo
+
+                    let tx: Promise<ContractTransaction>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      const beforeProofAction = async () => {
+                        // Swap the main UTXO just before the proof to make
+                        // this scenario happen.
+                        await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, {
+                          ...data.mainUtxo,
+                          txOutputIndex: 2,
+                        })
+                      }
+
+                      tx = runMovedFundsSweepScenario(data, beforeProofAction)
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      await expect(tx).to.be.revertedWith(
+                        "Invalid main UTXO data"
+                      )
+                    })
+                  })
+                })
+
+                context(
+                  "when sweeping wallet is in the MovingFunds state",
+                  () => {
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithoutMainUtxo
+
+                    let tx: Promise<ContractTransaction>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      tx = runMovedFundsSweepScenario({
+                        ...data,
+                        wallet: {
+                          ...data.wallet,
+                          state: walletState.MovingFunds,
+                        },
+                      })
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should succeed", async () => {
+                      // The assertions were already performed for Live wallet
+                      // scenarios. Here we just make sure the transaction
+                      // succeeds for a MovingFunds wallet.
+                      await expect(tx).to.not.be.reverted
+                    })
+                  }
+                )
+              }
+            )
+
+            context(
+              "when sweeping wallet is neither in the Live nor MovingFunds state",
+              () => {
+                const testData = [
+                  {
+                    testName: "when sweeping wallet is in the Unknown state",
+                    walletState: walletState.Unknown,
+                  },
+                  {
+                    testName: "when sweeping wallet is in the Closing state",
+                    walletState: walletState.Closing,
+                  },
+                  {
+                    testName: "when sweeping wallet is in the Closed state",
+                    walletState: walletState.Closed,
+                  },
+                  {
+                    testName: "when sweeping wallet is in the Terminated state",
+                    walletState: walletState.Terminated,
+                  },
+                ]
+
+                testData.forEach((test) => {
+                  context(test.testName, () => {
+                    const data: MovedFundsSweepTestData =
+                      MovedFundsSweepWithoutMainUtxo
+
+                    let tx: Promise<ContractTransaction>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      tx = runMovedFundsSweepScenario({
+                        ...data,
+                        wallet: {
+                          ...data.wallet,
+                          state: test.walletState,
+                        },
+                      })
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      await expect(tx).to.be.revertedWith(
+                        "Wallet must be in Live or MovingFunds state"
+                      )
+                    })
+                  })
+                })
+              }
+            )
+          })
+
+          context("when single output is neither P2PKH nor P2WPKH", () => {
+            const data: MovedFundsSweepTestData = MovedFundsSweepP2SHOutput
+
+            before(async () => {
+              await createSnapshot()
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+                "Output must be P2PKH or P2WPKH"
+              )
+            })
+          })
+        })
+
+        context("when the single output is not 20-byte", () => {
+          const data: MovedFundsSweepTestData =
+            MovedFundsSweepProvablyUnspendableOutput
+
+          before(async () => {
+            await createSnapshot()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+              "Output's public key hash must have 20 bytes"
+            )
+          })
+        })
+      })
+
+      context("when output count is other than one", () => {
+        const data: MovedFundsSweepTestData = MovedFundsSweepMultipleOutputs
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Moved funds sweep transaction must have a single output"
+          )
+        })
+      })
+    })
+
+    context("when transaction proof is not valid", () => {
+      context("when input vector is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the input vector by setting a compactSize uint claiming
+          // there are no inputs at all.
+          data.sweepTx.inputVector =
+            "0x00b69a2869840aa6fdfd143136ff4514ca46ea2d876855040892ad74ab" +
+            "8c5274220100000000ffffffff"
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid input vector provided"
+          )
+        })
+      })
+
+      context("when output vector is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the output vector by setting a compactSize uint claiming
+          // there is no outputs at all.
+          data.sweepTx.outputVector =
+            "0x005cf511000000000017a91486884e6be1525dab5ae0b451bd2c72cee6" +
+            "7dcf4187"
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
+        })
+      })
+
+      context("when merkle proof is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the merkle proof by changing tx index in block to an
+          // invalid one. The proper one is 12 so any other will do the trick.
+          data.sweepProof.txIndexInBlock = 30
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Tx merkle proof is not valid for provided header and tx hash"
+          )
+        })
+      })
+
+      context("when proof difficulty is not current nor previous", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // To pass the proof validation, the difficulty returned by the relay
+          // must be 1 for test data used in this scenario. Setting
+          // a different value will cause difficulty comparison failure.
+          data.chainDifficulty = 2
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Not at current or previous difficulty"
+          )
+        })
+      })
+
+      context("when headers chain length is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the bitcoin headers length in the moving funds proof. The
+          // proper value is length divisible by 80 so any length violating
+          // this rule will cause failure. In this case, we just remove the
+          // last byte from proper headers chain.
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid length of the headers chain"
+          )
+        })
+      })
+
+      context("when headers chain is not valid", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Bitcoin headers must form a chain to pass the proof validation.
+          // That means the `previous block hash` encoded in the given block
+          // header must match the actual previous header's hash. To test
+          // that scenario, we corrupt the `previous block hash` of the
+          // second header. Each header is 80 bytes length. First 4 bytes
+          // of each header is `version` and 32 subsequent bytes is
+          // `previous block hash`. Changing byte 85 of the whole chain will
+          // do the work.
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            170
+          )}ff${properHeaders.substring(172)}`
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid headers chain"
+          )
+        })
+      })
+
+      context("when the work in the header is insufficient", () => {
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Each header encodes a `difficulty target` field in bytes 72-76.
+          // The given header's hash (interpreted as uint) must be bigger than
+          // the `difficulty target`. To test this scenario, we change the
+          // last byte of the last header in such a way their hash becomes
+          // lower than their `difficulty target`.
+          const properHeaders = data.sweepProof.bitcoinHeaders.toString()
+          data.sweepProof.bitcoinHeaders = `${properHeaders.substring(
+            0,
+            properHeaders.length - 2
+          )}ff`
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Insufficient work in a header"
+          )
+        })
+      })
+
+      context(
+        "when accumulated difficulty in headers chain is insufficient",
+        () => {
+          let otherBridge: Bridge
+          const data: MovedFundsSweepTestData = JSON.parse(
+            JSON.stringify(MovedFundsSweepWithMainUtxo)
+          )
+
+          before(async () => {
+            await createSnapshot()
+
+            // Necessary to pass the first part of proof validation.
+            relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+            relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+
+            // Deploy another bridge which has higher `txProofDifficultyFactor`
+            // than the original bridge. That means it will need 12 confirmations
+            // to deem transaction proof validity. This scenario uses test
+            // data which has only 6 confirmations. That should force the
+            // failure we expect within this scenario.
+            otherBridge = await BridgeFactory.deploy()
+            await otherBridge.initialize(
+              bank.address,
+              relay.address,
+              treasury.address,
+              walletRegistry.address,
+              12
+            )
+            await otherBridge.deployed()
+          })
+
+          after(async () => {
+            relay.getCurrentEpochDifficulty.reset()
+            relay.getPrevEpochDifficulty.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              otherBridge.submitMovedFundsSweepProof(
+                data.sweepTx,
+                data.sweepProof,
+                data.mainUtxo
+              )
+            ).to.be.revertedWith(
+              "Insufficient accumulated difficulty in header chain"
+            )
+          })
+        }
+      )
+    })
+  })
+
+  describe("notifyMovedFundsSweepTimeout", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    const walletMembersIDs = [1, 2, 3, 4, 5]
+
+    // Just an arbitrary request for test purposes.
+    const movedFundsSweepRequest = {
+      walletPubKeyHash: ecdsaWalletTestData.pubKeyHash160,
+      txHash:
+        "0x7d5f7d4ae705d6adb8a402e5cd7f25f839a3f3ed243a8961c8ac5887d5aaf528",
+      txOutputIndex: 1,
+      txOutputValue: 1747020,
+    }
+
+    context("when moved funds sweep request is in the Pending state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, walletDraft)
+
+        await bridge.setPendingMovedFundsSweepRequest(
+          movedFundsSweepRequest.walletPubKeyHash,
+          movedFundsSweepRequest
+        )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when moved funds sweep request has timed out", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(movedFundsSweepTimeout)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context(
+          "when the wallet is either in the Live or MovingFunds state",
+          () => {
+            const testData: {
+              testName: string
+              walletState: number
+              additionalSetup?: () => Promise<void>
+              additionalAssertions?: () => Promise<void>
+            }[] = [
+              {
+                testName:
+                  "when the wallet is in the Live state but the wallet is not the active one",
+                walletState: walletState.Live,
+                additionalSetup: async () => {
+                  // The active wallet is a different wallet than the tested one
+                  await bridge.setActiveWallet(
+                    "0x0b9f85c224b0e018a5865392927b3f9e16cf5e79"
+                  )
+                },
+                additionalAssertions: async () => {
+                  it("should decrease the live wallets count", async () => {
+                    expect(await bridge.liveWalletsCount()).to.be.equal(0)
+                  })
+
+                  it("should not unset the active wallet", async () => {
+                    expect(
+                      await bridge.activeWalletPubKeyHash()
+                    ).to.be.not.equal(
+                      "0x0000000000000000000000000000000000000000"
+                    )
+                  })
+                },
+              },
+              {
+                testName:
+                  "when the wallet is in the Live state and the wallet is the active one",
+                walletState: walletState.Live,
+                additionalSetup: async () => {
+                  await bridge.setActiveWallet(
+                    movedFundsSweepRequest.walletPubKeyHash
+                  )
+                },
+                additionalAssertions: async () => {
+                  it("should decrease the live wallets count", async () => {
+                    expect(await bridge.liveWalletsCount()).to.be.equal(0)
+                  })
+
+                  it("should unset the active wallet", async () => {
+                    expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
+                      "0x0000000000000000000000000000000000000000"
+                    )
+                  })
+                },
+              },
+              {
+                testName: "when the wallet is in the MovingFunds state",
+                walletState: walletState.MovingFunds,
+                additionalSetup: async () => {},
+                additionalAssertions: async () => {},
+              },
+            ]
+
+            testData.forEach((test) => {
+              context(test.testName, async () => {
+                let tx: ContractTransaction
+
+                before(async () => {
+                  await createSnapshot()
+
+                  // We change the wallet state while preserving other fields.
+                  // We don't have an update function in the stub so we just use
+                  // the getter to get wallet fields and set them through the
+                  // setter with state field overwritten.
+                  await bridge.setWallet(
+                    movedFundsSweepRequest.walletPubKeyHash,
+                    {
+                      ...(await bridge.wallets(
+                        movedFundsSweepRequest.walletPubKeyHash
+                      )),
+                      state: test.walletState,
+                    }
+                  )
+
+                  await test.additionalSetup()
+
+                  tx = await bridge
+                    .connect(thirdParty)
+                    .notifyMovedFundsSweepTimeout(
+                      movedFundsSweepRequest.txHash,
+                      movedFundsSweepRequest.txOutputIndex,
+                      walletMembersIDs
+                    )
+                })
+
+                after(async () => {
+                  walletRegistry.closeWallet.reset()
+                  walletRegistry.seize.reset()
+
+                  await restoreSnapshot()
+                })
+
+                it("should switch the moved funds sweep request to the TimedOut state", async () => {
+                  const requestKey = ethers.utils.solidityKeccak256(
+                    ["bytes32", "uint32"],
+                    [
+                      movedFundsSweepRequest.txHash,
+                      movedFundsSweepRequest.txOutputIndex,
+                    ]
+                  )
+
+                  expect(
+                    (await bridge.movedFundsSweepRequests(requestKey)).state
+                  ).to.be.equal(movedFundsSweepRequestState.TimedOut)
+                })
+
+                it("should decrease the number of pending moved funds sweep requests for the given wallet", async () =>
+                  expect(
+                    (
+                      await bridge.wallets(
+                        movedFundsSweepRequest.walletPubKeyHash
+                      )
+                    ).pendingMovedFundsSweepRequestsCount
+                  ).to.be.equal(0))
+
+                it("should switch the wallet to Terminated state", async () => {
+                  expect(
+                    (
+                      await bridge.wallets(
+                        movedFundsSweepRequest.walletPubKeyHash
+                      )
+                    ).state
+                  ).to.be.equal(walletState.Terminated)
+                })
+
+                it("should emit WalletTerminated event", async () => {
+                  await expect(tx)
+                    .to.emit(bridge, "WalletTerminated")
+                    .withArgs(
+                      walletDraft.ecdsaWalletID,
+                      movedFundsSweepRequest.walletPubKeyHash
+                    )
+                })
+
+                it("should call ECDSA Wallet Registry's closeWallet function", async () => {
+                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                  expect(
+                    walletRegistry.closeWallet
+                  ).to.have.been.calledOnceWith(walletDraft.ecdsaWalletID)
+                })
+
+                it("should call the ECDSA wallet registry's seize function", async () => {
+                  expect(walletRegistry.seize).to.have.been.calledOnceWith(
+                    movedFundsSweepTimeoutSlashingAmount,
+                    movedFundsSweepTimeoutNotifierRewardMultiplier,
+                    await thirdParty.getAddress(),
+                    walletDraft.ecdsaWalletID,
+                    walletMembersIDs
+                  )
+                })
+
+                it("should emit MovedFundsSweepTimedOut event", async () => {
+                  await expect(tx)
+                    .to.emit(bridge, "MovedFundsSweepTimedOut")
+                    .withArgs(
+                      movedFundsSweepRequest.walletPubKeyHash,
+                      movedFundsSweepRequest.txHash,
+                      movedFundsSweepRequest.txOutputIndex
+                    )
+                })
+
+                await test.additionalAssertions()
+              })
+            })
+          }
+        )
+
+        context("when the wallet is in the Terminated state", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWallet(movedFundsSweepRequest.walletPubKeyHash, {
+              ...(await bridge.wallets(
+                movedFundsSweepRequest.walletPubKeyHash
+              )),
+              state: walletState.Terminated,
+            })
+
+            tx = await bridge
+              .connect(thirdParty)
+              .notifyMovedFundsSweepTimeout(
+                movedFundsSweepRequest.txHash,
+                movedFundsSweepRequest.txOutputIndex,
+                walletMembersIDs
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should switch the moved funds sweep request to the TimedOut state", async () => {
+            const requestKey = ethers.utils.solidityKeccak256(
+              ["bytes32", "uint32"],
+              [
+                movedFundsSweepRequest.txHash,
+                movedFundsSweepRequest.txOutputIndex,
+              ]
+            )
+
+            expect(
+              (await bridge.movedFundsSweepRequests(requestKey)).state
+            ).to.be.equal(movedFundsSweepRequestState.TimedOut)
+          })
+
+          it("should decrease the number of pending moved funds sweep requests for the given wallet", async () =>
+            expect(
+              (await bridge.wallets(movedFundsSweepRequest.walletPubKeyHash))
+                .pendingMovedFundsSweepRequestsCount
+            ).to.be.equal(0))
+
+          it("should not change the wallet state", async () => {
+            expect(
+              (await bridge.wallets(movedFundsSweepRequest.walletPubKeyHash))
+                .state
+            ).to.be.equal(walletState.Terminated)
+          })
+        })
+
+        context(
+          "when the wallet is neither in the Live nor MovingFunds nor Terminated state",
+          () => {
+            const testData = [
+              {
+                testName: "when the wallet is in the Unknown state",
+                walletState: walletState.Unknown,
+              },
+              {
+                testName: "when the wallet is in the Closing state",
+                walletState: walletState.Closing,
+              },
+              {
+                testName: "when the wallet is in the Closed state",
+                walletState: walletState.Closed,
+              },
+            ]
+
+            testData.forEach((test) => {
+              context(test.testName, async () => {
+                before(async () => {
+                  await createSnapshot()
+
+                  await bridge.setWallet(
+                    movedFundsSweepRequest.walletPubKeyHash,
+                    {
+                      ...(await bridge.wallets(
+                        movedFundsSweepRequest.walletPubKeyHash
+                      )),
+                      state: test.walletState,
+                    }
+                  )
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  await expect(
+                    bridge.notifyMovedFundsSweepTimeout(
+                      movedFundsSweepRequest.txHash,
+                      movedFundsSweepRequest.txOutputIndex,
+                      walletMembersIDs
+                    )
+                  ).to.be.revertedWith(
+                    "ECDSA wallet must be in Live or MovingFunds or Terminated state"
+                  )
+                })
+              })
+            })
+          }
+        )
+      })
+
+      context("when moved funds sweep request has not timed out yet", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime(movedFundsSweepTimeout - 1)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge.notifyMovedFundsSweepTimeout(
+              movedFundsSweepRequest.txHash,
+              movedFundsSweepRequest.txOutputIndex,
+              walletMembersIDs
+            )
+          ).to.be.revertedWith("Sweep request has not timed out yet")
+        })
+      })
+    })
+
+    context(
+      "when moved funds sweep request is not in the Pending state",
+      () => {
+        context(
+          "when moved funds sweep request is in the Unknown state",
+          () => {
+            before(async () => {
+              await createSnapshot()
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge.notifyMovedFundsSweepTimeout(
+                  movedFundsSweepRequest.txHash,
+                  movedFundsSweepRequest.txOutputIndex,
+                  walletMembersIDs
+                )
+              ).to.be.revertedWith("Sweep request must be in Pending state")
+            })
+          }
+        )
+
+        context(
+          "when moved funds sweep request is in the Processed state",
+          () => {
+            before(async () => {
+              await createSnapshot()
+
+              await bridge.setWallet(
+                ecdsaWalletTestData.pubKeyHash160,
+                walletDraft
+              )
+
+              await bridge.setPendingMovedFundsSweepRequest(
+                movedFundsSweepRequest.walletPubKeyHash,
+                movedFundsSweepRequest
+              )
+
+              await bridge.processPendingMovedFundsSweepRequest(
+                movedFundsSweepRequest.walletPubKeyHash,
+                movedFundsSweepRequest
+              )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge.notifyMovedFundsSweepTimeout(
+                  movedFundsSweepRequest.txHash,
+                  movedFundsSweepRequest.txOutputIndex,
+                  walletMembersIDs
+                )
+              ).to.be.revertedWith("Sweep request must be in Pending state")
+            })
+          }
+        )
+
+        context(
+          "when moved funds sweep request is in the TimedOut state",
+          () => {
+            before(async () => {
+              await createSnapshot()
+
+              await bridge.setWallet(
+                ecdsaWalletTestData.pubKeyHash160,
+                walletDraft
+              )
+
+              await bridge.setPendingMovedFundsSweepRequest(
+                movedFundsSweepRequest.walletPubKeyHash,
+                movedFundsSweepRequest
+              )
+
+              await bridge.timeoutPendingMovedFundsSweepRequest(
+                movedFundsSweepRequest.walletPubKeyHash,
+                movedFundsSweepRequest
+              )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge.notifyMovedFundsSweepTimeout(
+                  movedFundsSweepRequest.txHash,
+                  movedFundsSweepRequest.txOutputIndex,
+                  walletMembersIDs
+                )
+              ).to.be.revertedWith("Sweep request must be in Pending state")
+            })
+          }
+        )
+      }
+    )
+  })
+
   async function runMovingFundsScenario(
     data: MovingFundsTestData,
     beforeProofActions?: () => Promise<void>
@@ -974,6 +3815,8 @@ describe("Bridge - Moving funds", () => {
       pendingRedemptionsValue: 0,
       createdAt: await lastBlockTime(),
       movingFundsRequestedAt: await lastBlockTime(),
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
       state: data.wallet.state,
       movingFundsTargetWalletsCommitmentHash:
         data.targetWalletsCommitment.length > 0
@@ -995,6 +3838,61 @@ describe("Bridge - Moving funds", () => {
       data.movingFundsProof,
       data.mainUtxo,
       data.wallet.pubKeyHash
+    )
+
+    relay.getCurrentEpochDifficulty.reset()
+    relay.getPrevEpochDifficulty.reset()
+
+    return tx
+  }
+
+  async function runMovedFundsSweepScenario(
+    data: MovedFundsSweepTestData,
+    beforeProofActions?: () => Promise<void>
+  ): Promise<ContractTransaction> {
+    relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
+    relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
+
+    // Simulate the wallet is a registered one.
+    await bridge.setWallet(data.wallet.pubKeyHash, {
+      ecdsaWalletID: data.wallet.ecdsaWalletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: await lastBlockTime(),
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: data.wallet.state,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    })
+
+    if (data.mainUtxo.txHash !== ethers.constants.HashZero) {
+      // Simulate the prepared main UTXO belongs to the wallet.
+      await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+    }
+
+    if (data.movedFundsSweepRequest) {
+      await bridge.setPendingMovedFundsSweepRequest(
+        data.movedFundsSweepRequest.walletPubKeyHash,
+        data.movedFundsSweepRequest
+      )
+      // Just make sure the stub function `setPendingMovedFundsSweepRequest`
+      // initialized the counter properly.
+      assert(
+        (await bridge.wallets(data.movedFundsSweepRequest.walletPubKeyHash))
+          .pendingMovedFundsSweepRequestsCount === 1,
+        "Pending moved funds request counter for the sweeping wallet should be set up to 1"
+      )
+    }
+
+    if (beforeProofActions) {
+      await beforeProofActions()
+    }
+
+    const tx = await bridge.submitMovedFundsSweepProof(
+      data.sweepTx,
+      data.sweepProof,
+      data.mainUtxo
     )
 
     relay.getCurrentEpochDifficulty.reset()

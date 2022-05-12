@@ -169,6 +169,9 @@ library Redemption {
         uint64 txMaxFee;
         // UNIX timestamp the request was created at.
         uint32 requestedAt;
+        // This struct doesn't contain `__gap` property as the structure is stored
+        // in a mapping, mappings store values in different slots and they are
+        // not contiguous with other values.
     }
 
     /// @notice Represents an outcome of the redemption Bitcoin transaction
@@ -187,6 +190,8 @@ library Redemption {
         uint32 changeIndex;
         // Value in satoshi of the change output.
         uint64 changeValue;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     /// @notice Represents temporary information needed during the processing of
@@ -203,24 +208,26 @@ library Redemption {
         bytes32 walletP2PKHScriptKeccak;
         // P2WPKH script for the wallet. Needed to determine the change output.
         bytes32 walletP2WPKHScriptKeccak;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     event RedemptionRequested(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes redeemerOutputScript,
-        address redeemer,
+        address indexed redeemer,
         uint64 requestedAmount,
         uint64 treasuryFee,
         uint64 txMaxFee
     );
 
     event RedemptionsCompleted(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 redemptionTxHash
     );
 
     event RedemptionTimedOut(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes redeemerOutputScript
     );
 
@@ -430,10 +437,6 @@ library Redemption {
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) external {
-        // TODO: Just as for `submitSweepProof`, fail early if the function
-        //       call gets frontrunned. See discussion:
-        //       https://github.com/keep-network/tbtc-v2/pull/106#discussion_r801745204
-
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -603,11 +606,10 @@ library Redemption {
         bytes20 walletPubKeyHash,
         RedemptionTxOutputsProcessingInfo memory processInfo
     ) internal returns (RedemptionTxOutputsInfo memory resultInfo) {
-        // Helper variable that counts the number of processed redemption
-        // outputs. Redemptions can be either pending or reported as timed out.
-        // TODO: Revisit the approach with redemptions count according to
-        //       https://github.com/keep-network/tbtc-v2/pull/128#discussion_r808237765
-        uint256 processedRedemptionsCount = 0;
+        // Helper flag indicating whether there was at least one redemption
+        // output present (redemption must be either pending or reported as
+        // timed out).
+        bool redemptionPresent = false;
 
         // Outputs processing loop.
         for (uint256 i = 0; i < processInfo.outputsCount; i++) {
@@ -654,7 +656,7 @@ library Redemption {
                     );
                 resultInfo.totalBurnableValue += burnableValue;
                 resultInfo.totalTreasuryFee += treasuryFee;
-                processedRedemptionsCount++;
+                redemptionPresent = true;
             }
 
             // Make the `outputStartingIndex` pointing to the next output by
@@ -666,7 +668,7 @@ library Redemption {
         // referring back to the wallet PKH and just burning main UTXO value
         // for transaction fees.
         require(
-            processedRedemptionsCount > 0,
+            redemptionPresent,
             "Redemption transaction must process at least one redemption"
         );
     }
@@ -770,29 +772,41 @@ library Redemption {
     ///         with the given wallet, that has timed out. The redemption
     ///         request is identified by the key built as
     ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
-    ///         The results of calling this function: the pending redemptions
-    ///         value for the wallet will be decreased by the requested amount
-    ///         (minus treasury fee), the tokens taken from the redeemer on
-    ///         redemption request will be returned to the redeemer, the request
-    ///         will be moved from pending redemptions to timed-out redemptions.
-    ///         If the state of the wallet is `Live` or `MovingFunds`, the
-    ///         wallet operators will be slashed.
-    ///         Additionally, if the state of wallet is `Live`, the wallet will
-    ///         be closed or marked as `MovingFunds` (depending on the presence
-    ///         or absence of the wallet's main UTXO) and the wallet will no
-    ///         longer be marked as the active wallet (if it was marked as such).
+    ///         The results of calling this function:
+    ///         - the pending redemptions value for the wallet will be decreased
+    ///           by the requested amount (minus treasury fee),
+    ///         - the tokens taken from the redeemer on redemption request will
+    ///           be returned to the redeemer,
+    ///         - the request will be moved from pending redemptions to
+    ///           timed-out redemptions,
+    ///         - if the state of the wallet is `Live` or `MovingFunds`, the
+    ///           wallet operators will be slashed and the notifier will be
+    ///           rewarded,
+    ///         - if the state of wallet is `Live`, the wallet will be closed or
+    ///           marked as `MovingFunds` (depending on the presence or absence
+    ///           of the wallet's main UTXO) and the wallet will no longer be
+    ///           marked as the active wallet (if it was marked as such).
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletMembersIDs Identifiers of the wallet signing group members
     /// @param redeemerOutputScript  The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH)
     /// @dev Requirements:
+    ///      - The wallet must be in the Live or MovingFunds or Terminated state
     ///      - The redemption request identified by `walletPubKeyHash` and
     ///        `redeemerOutputScript` must exist
+    ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
+    ///        be exactly the same as the hash stored under `membersIdsHash`
+    ///        for the given `walletID`. Those IDs are not directly stored
+    ///        in the contract for gas efficiency purposes but they can be
+    ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
+    ///        events of the `WalletRegistry` contract
     ///      - The amount of time defined by `redemptionTimeout` must have
     ///        passed since the redemption was requested (the request must be
-    ///        timed-out).
+    ///        timed-out)
     function notifyRedemptionTimeout(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs,
         bytes calldata redeemerOutputScript
     ) external {
         uint256 redemptionKey = uint256(
@@ -818,7 +832,6 @@ library Redemption {
             request.treasuryFee;
 
         require(
-            // TODO: Allow the wallets in `Closing` state when the state is added
             wallet.state == Wallets.WalletState.Live ||
                 wallet.state == Wallets.WalletState.MovingFunds ||
                 wallet.state == Wallets.WalletState.Terminated,
@@ -841,8 +854,18 @@ library Redemption {
         ) {
             // Propagate timeout consequences to the wallet
             self.notifyWalletTimedOutRedemption(walletPubKeyHash);
+
+            // Slash the wallet operators and reward the notifier
+            self.ecdsaWalletRegistry.seize(
+                self.redemptionTimeoutSlashingAmount,
+                self.redemptionTimeoutNotifierRewardMultiplier,
+                msg.sender,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
         }
 
+        // slither-disable-next-line reentrancy-events
         emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
 
         // Return the requested amount of tokens to the redeemer

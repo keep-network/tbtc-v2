@@ -33,15 +33,40 @@ import "../bank/Bank.sol";
 ///      This has two main effects: it consolidates the UTXO set and it disables
 ///      the refund. Balances of depositors in the Bank are increased when the
 ///      SPV sweep proof is submitted to the Bridge.
-library Sweep {
+library DepositSweep {
     using BridgeState for BridgeState.Storage;
     using BitcoinTx for BridgeState.Storage;
 
     using BTCUtils for bytes;
 
+    /// @notice Represents temporary information needed during the processing
+    ///         of the deposit sweep Bitcoin transaction inputs. This structure
+    ///         is an internal one and should not be exported outside of the
+    ///         deposit sweep transaction processing code.
+    /// @dev Allows to mitigate "stack too deep" errors on EVM.
+    struct DepositSweepTxInputsProcessingInfo {
+        // Input vector of the deposit sweep Bitcoin transaction. It is
+        // assumed the vector's structure is valid so it must be validated
+        // using e.g. `BTCUtils.validateVin` function before being used
+        // during the processing. The validation is usually done as part
+        // of the `BitcoinTx.validateProof` call that checks the SPV proof.
+        bytes sweepTxInputVector;
+        // Data of the wallet's main UTXO. If no main UTXO exists for the given
+        // sweeping wallet, this parameter's fields should be zeroed to bypass
+        // the main UTXO validation
+        BitcoinTx.UTXO mainUtxo;
+        // Address of the vault where all swept deposits should be routed to.
+        // It is used to validate whether all swept deposits have been revealed
+        // with the same `vault` parameter. It is an optional parameter.
+        // Set to zero address if deposits are not routed to a vault.
+        address vault;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
+    }
+
     /// @notice Represents an outcome of the sweep Bitcoin transaction
     ///         inputs processing.
-    struct SweepTxInputsInfo {
+    struct DepositSweepTxInputsInfo {
         // Sum of all inputs values i.e. all deposits and main UTXO value,
         // if present.
         uint256 inputsTotalValue;
@@ -63,6 +88,8 @@ library Sweep {
         // UTXO doesn't exist) or less by one (main UTXO exists and is pointed
         // by one of the inputs).
         uint256[] treasuryFees;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's memory argument.
     }
 
     event DepositsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
@@ -83,6 +110,15 @@ library Sweep {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
+    /// @param vault Optional address of the vault where all swept deposits
+    ///        should be routed to. All deposits swept as part of the transaction
+    ///        must have their `vault` parameters set to the same address.
+    ///        If this parameter is set to an address of a trusted vault, swept
+    ///        deposits are routed to that vault.
+    ///        If this parameter is set to the zero address or to an address
+    ///        of a non-trusted vault, swept deposits are not routed to a
+    ///        vault but depositors' balances are increased in the Bank
+    ///        individually.
     /// @dev Requirements:
     ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
@@ -96,6 +132,9 @@ library Sweep {
     ///        revealed deposits UTXOs. That transaction must have only
     ///        one P2(W)PKH output locking funds on the 20-byte wallet public
     ///        key hash.
+    ///      - All revealed deposits that are swept by `sweepTx` must have
+    ///        their `vault` parameters set to the same address as the address
+    ///        passed in the `vault` function parameter.
     ///      - `sweepProof` components must match the expected structure. See
     ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
@@ -103,15 +142,13 @@ library Sweep {
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
     ///        If there is no main UTXO, this parameter is ignored.
-    function submitSweepProof(
+    function submitDepositSweepProof(
         BridgeState.Storage storage self,
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
-        BitcoinTx.UTXO calldata mainUtxo
+        BitcoinTx.UTXO calldata mainUtxo,
+        address vault
     ) external {
-        // TODO: Fail early if the function call gets frontrunned. See discussion:
-        //       https://github.com/keep-network/tbtc-v2/pull/106#discussion_r801745204
-
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -123,20 +160,24 @@ library Sweep {
         (
             bytes20 walletPubKeyHash,
             uint64 sweepTxOutputValue
-        ) = processSweepTxOutput(sweepTx.outputVector);
+        ) = processDepositSweepTxOutput(self, sweepTx.outputVector);
 
         (
             Wallets.Wallet storage wallet,
             BitcoinTx.UTXO memory resolvedMainUtxo
-        ) = resolveSweepingWallet(self, walletPubKeyHash, mainUtxo);
+        ) = resolveDepositSweepingWallet(self, walletPubKeyHash, mainUtxo);
 
         // Process sweep transaction inputs and extract all information needed
         // to perform deposit bookkeeping.
-        SweepTxInputsInfo memory inputsInfo = processSweepTxInputs(
-            self,
-            sweepTx.inputVector,
-            resolvedMainUtxo
-        );
+        DepositSweepTxInputsInfo
+            memory inputsInfo = processDepositSweepTxInputs(
+                self,
+                DepositSweepTxInputsProcessingInfo(
+                    sweepTx.inputVector,
+                    resolvedMainUtxo,
+                    vault
+                )
+            );
 
         // Helper variable that will hold the sum of treasury fees paid by
         // all deposits.
@@ -148,7 +189,7 @@ library Sweep {
         (
             uint256 depositTxFee,
             uint256 depositTxFeeRemainder
-        ) = sweepTxFeeDistribution(
+        ) = depositSweepTxFeeDistribution(
                 inputsInfo.inputsTotalValue,
                 sweepTxOutputValue,
                 inputsInfo.depositedAmounts.length
@@ -188,17 +229,29 @@ library Sweep {
             abi.encodePacked(sweepTxHash, uint32(0), sweepTxOutputValue)
         );
 
+        // slither-disable-next-line reentrancy-events
         emit DepositsSwept(walletPubKeyHash, sweepTxHash);
 
-        // Update depositors balances in the Bank.
-        self.bank.increaseBalances(
-            inputsInfo.depositors,
-            inputsInfo.depositedAmounts
-        );
+        if (vault != address(0) && self.isVaultTrusted[vault]) {
+            // If the `vault` address is not zero and belongs to a trusted
+            // vault, route the deposits to that vault.
+            self.bank.increaseBalanceAndCall(
+                vault,
+                inputsInfo.depositors,
+                inputsInfo.depositedAmounts
+            );
+        } else {
+            // If the `vault` address is zero or belongs to a non-trusted
+            // vault, increase balances in the Bank individually for each
+            // depositor.
+            self.bank.increaseBalances(
+                inputsInfo.depositors,
+                inputsInfo.depositedAmounts
+            );
+        }
+
         // Pass the treasury fee to the treasury address.
         self.bank.increaseBalance(self.treasury, totalTreasuryFee);
-
-        // TODO: Handle deposits having `vault` set.
     }
 
     /// @notice Resolves sweeping wallet based on the provided wallet public key
@@ -209,11 +262,16 @@ library Sweep {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
     ///        this parameter is ignored
+    /// @return wallet Data of the sweeping wallet.
+    /// @return resolvedMainUtxo The actual main UTXO of the sweeping wallet
+    ///         resolved by cross-checking the `mainUtxo` parameter with
+    ///         the chain state. If the validation went well, this is the
+    ///         plain-text main UTXO corresponding to the `wallet.mainUtxoHash`.
     /// @dev Requirements:
     ///     - Sweeping wallet must be either in Live or MovingFunds state.
     ///     - If the main UTXO of the sweeping wallet exists in the storage,
     ///       the passed `mainUTXO` parameter must be equal to the stored one.
-    function resolveSweepingWallet(
+    function resolveDepositSweepingWallet(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
@@ -264,11 +322,10 @@ library Sweep {
     ///        it is passed here
     /// @return walletPubKeyHash 20-byte wallet public key hash.
     /// @return value 8-byte sweep transaction output value.
-    function processSweepTxOutput(bytes memory sweepTxOutputVector)
-        internal
-        pure
-        returns (bytes20 walletPubKeyHash, uint64 value)
-    {
+    function processDepositSweepTxOutput(
+        BridgeState.Storage storage self,
+        bytes memory sweepTxOutputVector
+    ) internal view returns (bytes20 walletPubKeyHash, uint64 value) {
         // To determine the total number of sweep transaction outputs, we need to
         // parse the compactSize uint (VarInt) the output vector is prepended by.
         // That compactSize uint encodes the number of vector elements using the
@@ -284,18 +341,8 @@ library Sweep {
         );
 
         bytes memory output = sweepTxOutputVector.extractOutputAtIndex(0);
+        walletPubKeyHash = self.extractPubKeyHash(output);
         value = output.extractValue();
-        bytes memory walletPubKeyHashBytes = output.extractHash();
-        // The sweep transaction output should always be P2PKH or P2WPKH.
-        // In both cases, the wallet public key hash should be 20 bytes length.
-        require(
-            walletPubKeyHashBytes.length == 20,
-            "Wallet public key hash should have 20 bytes"
-        );
-        /* solhint-disable-next-line no-inline-assembly */
-        assembly {
-            walletPubKeyHash := mload(add(walletPubKeyHashBytes, 32))
-        }
 
         return (walletPubKeyHash, value);
     }
@@ -306,32 +353,23 @@ library Sweep {
     ///         if one of the inputs cannot be recognized as a pointer to a
     ///         revealed deposit or expected main UTXO.
     ///         This function also marks each processed deposit as swept.
-    /// @param sweepTxInputVector Bitcoin sweep transaction input vector.
-    ///        This function assumes vector's structure is valid so it must be
-    ///        validated using e.g. `BTCUtils.validateVin` function before
-    ///        it is passed here
-    /// @param mainUtxo Data of the wallet's main UTXO. If no main UTXO
-    ///        exists for the given the wallet, this parameter's fields should
-    ///        be zeroed to bypass the main UTXO validation
-    /// @return info Outcomes of the processing.
-    function processSweepTxInputs(
+    /// @return resultInfo Outcomes of the processing.
+    function processDepositSweepTxInputs(
         BridgeState.Storage storage self,
-        bytes memory sweepTxInputVector,
-        BitcoinTx.UTXO memory mainUtxo
-    ) internal returns (SweepTxInputsInfo memory info) {
+        DepositSweepTxInputsProcessingInfo memory processInfo
+    ) internal returns (DepositSweepTxInputsInfo memory resultInfo) {
         // If the passed `mainUtxo` parameter's values are zeroed, the main UTXO
         // for the given wallet doesn't exist and it is not expected to be
         // included in the sweep transaction input vector.
-        bool mainUtxoExpected = mainUtxo.txHash != bytes32(0);
+        bool mainUtxoExpected = processInfo.mainUtxo.txHash != bytes32(0);
         bool mainUtxoFound = false;
 
         // Determining the total number of sweep transaction inputs in the same
         // way as for number of outputs. See `BitcoinTx.inputVector` docs for
         // more details.
-        (
-            uint256 inputsCompactSizeUintLength,
-            uint256 inputsCount
-        ) = sweepTxInputVector.parseVarInt();
+        (uint256 inputsCompactSizeUintLength, uint256 inputsCount) = processInfo
+            .sweepTxInputVector
+            .parseVarInt();
 
         // To determine the first input starting index, we must jump over
         // the compactSize uint which prepends the input vector. One byte
@@ -353,11 +391,13 @@ library Sweep {
         // Determine the swept deposits count. If main UTXO is NOT expected,
         // all inputs should be deposits. If main UTXO is expected, one input
         // should point to that main UTXO.
-        info.depositors = new address[](
+        resultInfo.depositors = new address[](
             !mainUtxoExpected ? inputsCount : inputsCount - 1
         );
-        info.depositedAmounts = new uint256[](info.depositors.length);
-        info.treasuryFees = new uint256[](info.depositors.length);
+        resultInfo.depositedAmounts = new uint256[](
+            resultInfo.depositors.length
+        );
+        resultInfo.treasuryFees = new uint256[](resultInfo.depositors.length);
 
         // Initialize helper variables.
         uint256 processedDepositsCount = 0;
@@ -368,7 +408,10 @@ library Sweep {
                 bytes32 outpointTxHash,
                 uint32 outpointIndex,
                 uint256 inputLength
-            ) = parseTxInputAt(sweepTxInputVector, inputStartingIndex);
+            ) = parseDepositSweepTxInputAt(
+                    processInfo.sweepTxInputVector,
+                    inputStartingIndex
+                );
 
             Deposit.DepositRequest storage deposit = self.deposits[
                 uint256(
@@ -381,7 +424,12 @@ library Sweep {
                 // a revealed deposit.
                 require(deposit.sweptAt == 0, "Deposit already swept");
 
-                if (processedDepositsCount == info.depositors.length) {
+                require(
+                    deposit.vault == processInfo.vault,
+                    "Deposit should be routed to another vault"
+                );
+
+                if (processedDepositsCount == resultInfo.depositors.length) {
                     // If this condition is true, that means a deposit input
                     // took place of an expected main UTXO input.
                     // In other words, there is no expected main UTXO
@@ -394,21 +442,27 @@ library Sweep {
                 /* solhint-disable-next-line not-rely-on-time */
                 deposit.sweptAt = uint32(block.timestamp);
 
-                info.depositors[processedDepositsCount] = deposit.depositor;
-                info.depositedAmounts[processedDepositsCount] = deposit.amount;
-                info.inputsTotalValue += info.depositedAmounts[
+                resultInfo.depositors[processedDepositsCount] = deposit
+                    .depositor;
+                resultInfo.depositedAmounts[processedDepositsCount] = deposit
+                    .amount;
+                resultInfo.inputsTotalValue += resultInfo.depositedAmounts[
                     processedDepositsCount
                 ];
-                info.treasuryFees[processedDepositsCount] = deposit.treasuryFee;
+                resultInfo.treasuryFees[processedDepositsCount] = deposit
+                    .treasuryFee;
 
                 processedDepositsCount++;
             } else if (
                 mainUtxoExpected != mainUtxoFound &&
-                mainUtxo.txHash == outpointTxHash
+                processInfo.mainUtxo.txHash == outpointTxHash &&
+                processInfo.mainUtxo.txOutputIndex == outpointIndex
             ) {
                 // If we entered here, that means the input was identified as
                 // the expected main UTXO.
-                info.inputsTotalValue += mainUtxo.txOutputValue;
+                resultInfo.inputsTotalValue += processInfo
+                    .mainUtxo
+                    .txOutputValue;
                 mainUtxoFound = true;
 
                 // Main UTXO used as an input, mark it as spent.
@@ -429,7 +483,7 @@ library Sweep {
         }
 
         // Construction of the input processing loop guarantees that:
-        // `processedDepositsCount == info.depositors.length == info.depositedAmounts.length`
+        // `processedDepositsCount == resultInfo.depositors.length == resultInfo.depositedAmounts.length`
         // is always true at this point. We just use the first variable
         // to assert the total count of swept deposit is bigger than zero.
         require(
@@ -444,7 +498,7 @@ library Sweep {
             "Expected main UTXO not present in sweep transaction inputs"
         );
 
-        return info;
+        return resultInfo;
     }
 
     /// @notice Parses a Bitcoin transaction input starting at the given index.
@@ -458,7 +512,7 @@ library Sweep {
     /// @dev This function assumes vector's structure is valid so it must be
     ///      validated using e.g. `BTCUtils.validateVin` function before it
     ///      is passed here.
-    function parseTxInputAt(
+    function parseDepositSweepTxInputAt(
         bytes memory inputVector,
         uint256 inputStartingIndex
     )
@@ -493,7 +547,7 @@ library Sweep {
     ///         transaction fee than cannot be distributed over all deposits.
     /// @dev It is up to the caller to decide how the remainder should be
     ///      counted in. This function only computes its value.
-    function sweepTxFeeDistribution(
+    function depositSweepTxFeeDistribution(
         uint256 sweepTxInputsTotalValue,
         uint256 sweepTxOutputValue,
         uint256 depositsCount

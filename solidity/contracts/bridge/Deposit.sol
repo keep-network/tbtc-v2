@@ -74,6 +74,8 @@ library Deposit {
         // Address of the Bank vault to which the deposit is routed to.
         // Optional, can be 0x0. The vault must be trusted by the Bridge.
         address vault;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Represents tBTC deposit request data.
@@ -93,15 +95,18 @@ library Deposit {
         // time when the deposit was swept on the Bitcoin chain but actually
         // the time when the sweep proof was delivered to the Ethereum chain.
         uint32 sweptAt;
+        // This struct doesn't contain `__gap` property as the structure is stored
+        // in a mapping, mappings store values in different slots and they are
+        // not contiguous with other values.
     }
 
     event DepositRevealed(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
-        address depositor,
+        address indexed depositor,
         uint64 amount,
         bytes8 blindingFactor,
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes20 refundPubKeyHash,
         bytes4 refundLocktime,
         address vault
@@ -149,7 +154,7 @@ library Deposit {
         require(
             self.registeredWallets[reveal.walletPubKeyHash].state ==
                 Wallets.WalletState.Live,
-            "Wallet is not in Live state"
+            "Wallet must be in Live state"
         );
 
         require(
@@ -250,7 +255,7 @@ library Deposit {
         deposit.treasuryFee = self.depositTreasuryFeeDivisor > 0
             ? fundingOutputAmount / self.depositTreasuryFeeDivisor
             : 0;
-
+        // slither-disable-next-line reentrancy-events
         emit DepositRevealed(
             fundingTxHash,
             reveal.fundingOutputIndex,

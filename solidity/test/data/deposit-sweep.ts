@@ -7,12 +7,12 @@ import { BigNumberish } from "ethers"
 /**
  * Represents a set of data used for given sweep scenario.
  */
-export interface SweepTestData {
+export interface DepositSweepTestData {
   /**
    * Deposits swept within given sweep. Those fields correspond to the ones
    * which must be passed during deposit reveal. They are actually used to
    * call `revealDeposit` function for each deposit before calling
-   * `submitSweepProof` during each test scenario.
+   * `submitDepositSweepProof` during each test scenario.
    */
   deposits: {
     fundingTx: {
@@ -34,8 +34,14 @@ export interface SweepTestData {
   }[]
 
   /**
+   * Address that will be passed to the `submitDepositSweepProof` function
+   * as the `vault` parameter.
+   */
+  vault: string
+
+  /**
    * Main UTXO data which are used as `mainUtxo` parameter during
-   * `submitSweepProof` function call. If no main UTXO exists for given wallet,
+   * `submitDepositSweepProof` function call. If no main UTXO exists for given wallet,
    * `NO_MAIN_UTXO` constant should be used as value.
    */
   mainUtxo: {
@@ -46,7 +52,7 @@ export interface SweepTestData {
 
   /**
    * Sweep transaction data passed as `sweepTx` parameter during
-   * `submitSweepProof` function call.
+   * `submitDepositSweepProof` function call.
    */
   sweepTx: {
     hash: BytesLike
@@ -57,7 +63,7 @@ export interface SweepTestData {
   }
 
   /**
-   * Sweep proof data passed as `sweepProof` parameter during `submitSweepProof`
+   * Sweep proof data passed as `sweepProof` parameter during `submitDepositSweepProof`
    * function call.
    */
   sweepProof: {
@@ -87,7 +93,7 @@ export const NO_MAIN_UTXO = {
  * - No main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const SingleP2SHDeposit: SweepTestData = {
+export const SingleP2SHDeposit: DepositSweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/c580e0e352570d90e303d912a506055ceeb0ee06f97dce6988c69941374f5479
@@ -119,6 +125,8 @@ export const SingleP2SHDeposit: SweepTestData = {
       },
     },
   ],
+
+  vault: "0x0000000000000000000000000000000000000000",
 
   mainUtxo: NO_MAIN_UTXO,
 
@@ -180,7 +188,7 @@ export const SingleP2SHDeposit: SweepTestData = {
  * - No main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const SingleP2WSHDeposit: SweepTestData = {
+export const SingleP2WSHDeposit: DepositSweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83
@@ -209,6 +217,8 @@ export const SingleP2WSHDeposit: SweepTestData = {
       },
     },
   ],
+
+  vault: "0x0000000000000000000000000000000000000000",
 
   mainUtxo: NO_MAIN_UTXO,
 
@@ -262,8 +272,10 @@ export const SingleP2WSHDeposit: SweepTestData = {
  * - The main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const SingleMainUtxo: SweepTestData = {
+export const SingleMainUtxo: DepositSweepTestData = {
   deposits: [],
+
+  vault: "0x0000000000000000000000000000000000000000",
 
   // https://live.blockcypher.com/btc-testnet/tx/f5b9ad4e8cd5317925319ebc64dc923092bef3b56429c6b1bc2261bbdc73f351
   mainUtxo: {
@@ -325,7 +337,7 @@ export const SingleMainUtxo: SweepTestData = {
  * - No main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const MultipleDepositsNoMainUtxo: SweepTestData = {
+export const MultipleDepositsNoMainUtxo: DepositSweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/d6a04c76aab203fe9cd8a2498bb4a8c50eb767fd95719c7790ac675ed5dec526
@@ -459,6 +471,8 @@ export const MultipleDepositsNoMainUtxo: SweepTestData = {
     },
   ],
 
+  vault: "0x0000000000000000000000000000000000000000",
+
   mainUtxo: NO_MAIN_UTXO,
 
   // https://live.blockcypher.com/btc-testnet/tx/2a5d5f472e376dc28964e1b597b1ca5ee5ac042101b5199a3ca8dae2deec3538
@@ -526,7 +540,7 @@ export const MultipleDepositsNoMainUtxo: SweepTestData = {
  * - The main UTXO exists for this wallet
  * - 6+ on-chain confirmations of the sweep transaction
  */
-export const MultipleDepositsWithMainUtxo: SweepTestData = {
+export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
   deposits: [
     {
       // https://live.blockcypher.com/btc-testnet/tx/85eb466ed605916ea764860ceda68fa05e7448cc772558c866a409366b997a85
@@ -662,6 +676,8 @@ export const MultipleDepositsWithMainUtxo: SweepTestData = {
     },
   ],
 
+  vault: "0x0000000000000000000000000000000000000000",
+
   // https://live.blockcypher.com/btc-testnet/tx/2a5d5f472e376dc28964e1b597b1ca5ee5ac042101b5199a3ca8dae2deec3538
   mainUtxo: {
     txHash:
@@ -726,6 +742,73 @@ export const MultipleDepositsWithMainUtxo: SweepTestData = {
       "1c82930f615eabe81e3200b6fee728972cadbb56d47342010000000000c676579dd3" +
       "933e14fef681ed72f59e5047b1088d99fd18340290b11f1e760f13ebdaf361ffff00" +
       "1db7fa1d4b",
+  },
+
+  chainDifficulty: 1,
+}
+
+/**
+ * `SingleMainUtxoP2SHOutput` test data represents a sweep with following
+ * properties:
+ * - 1 P2WPKH main UTXO input
+ * - 1 P2SH sweep output
+ * - The main UTXO exists for this wallet
+ * - 6+ on-chain confirmations of the sweep transaction
+ */
+export const SingleMainUtxoP2SHOutput: DepositSweepTestData = {
+  // Not relevant in this test scenario.
+  deposits: [],
+
+  vault: "0x0000000000000000000000000000000000000000",
+
+  mainUtxo: {
+    txHash:
+      "0x426518af930297f9d12ce84ac1366e19cf1c797a7515c1a62e0d51193bf6236b",
+    txOutputIndex: 0,
+    txOutputValue: 1669207,
+  },
+
+  // https://live.blockcypher.com/btc-testnet/tx/588a0e5e68ec8d3cf80d1190e51a68a431737a33c3a09f16303945dd49e369cd
+  sweepTx: {
+    hash: "0xcd69e349dd453930169fa0c3337a7331a4681ae590110df83c8dec685e0e8a58",
+    version: "0x01000000",
+    inputVector:
+      "0x01426518af930297f9d12ce84ac1366e19cf1c797a7515c1a62e0d51193bf6236b" +
+      "0000000000ffffffff",
+    outputVector:
+      "0x01cf6419000000000017a9147ac2d9378a1c47e589dfb8095ca95ed2140d272687",
+    locktime: "0x00000000",
+  },
+
+  sweepProof: {
+    merkleProof:
+      "0xf6ed9f6ae7235c66ce46e4770aed465ab526375a834bbb651b3e5111ac84e58e42" +
+      "6ccb496719c8ba7db243e6e0a7c4f00f1b2a308da73305cb0775a62df99cd26a3996" +
+      "c774364ce40571d188d71e0044c42c3d6689b2d9a8a3c23f3a400f69e753330e3fae" +
+      "9a71acecb7425e8dbe88cdfd7fc3258bac4e21ca1dec42e5094271c77932609c51fb" +
+      "4b82497ed599d3c413c4fd023009716b3e5e885d89c31a1f30bb46106bac1034c65f" +
+      "01d80ac402417373daf1fbae0d43041c67b948f47882b27c802a4e791504be4b1b71" +
+      "80a788a54659799bedbc712e23a816cae0a12c017b838b1655583043a9c8d30399d3" +
+      "f81e7e0fe2121a3c38490845174140a08ff6dc",
+    txIndexInBlock: 6,
+    bitcoinHeaders:
+      "0x04e00020176fb6202fac66facb3155eebc5d9f26155c5f6074d0d298af01000000" +
+      "000000175ff6b2d5fd0ec570f00de4b5b8e45862280926762546123a8c70241e069e" +
+      "50d4ad1c62ffff001d7609709f00000020d6a19088bdad8792c1cbc9323b39b5e18f" +
+      "c70742a12bae439765000000000000606a7bf8e8cc10bb75f3b404adaf02ca5cc39b" +
+      "94cddf6cc56c60081dd5012ffe85b21c62ffff001d0178353b0000002047d4e44d16" +
+      "4b7e98c15fd6bfc32c4dbb6bd0ef8bf47012d84006405500000000b3d6911ee43df5" +
+      "ba0469ec212fcc6f93914df6dbe332c4c3cbb9c2791548e5f136b71c62ffff001dd3" +
+      "769b64040000204fd0926c332cee9eaf06c34458d31e4050a2fd784cf9e91168336b" +
+      "d8000000000dd4218907211ade52ff92d6bd555e7dd387adfd25963efee347a16325" +
+      "1a43321fbc1c62ffff001dc03a633304e00020732d33ea35d62f9488cff5d64c0d70" +
+      "2afd5d88092230ddfcc45f000000000000196283ba24a3f5bad91ef95338aa6d214c" +
+      "934f2c1392e39a0447377fe5b0a04be7c01c62ffff001df0be0a27040000206c318b" +
+      "23e5c42e86ef3edd080e50c9c233b9f0b6d186bd57e41300000000000021fb8cda20" +
+      "0bff4fec1338d85a1e005bb4d729d908a7c5c232ecd0713231d0445ec11c62ed3e03" +
+      "1a7b43466e04e00020f416898d79d4a46fa6c54f190ad3d502bad8aa3afdec0714aa" +
+      "000000000000000603a5cc15e5906cb4eac9f747869fdc9be856e76a110b4f87da90" +
+      "db20f9fbe28fc11c62ed3e031a15dfc3db",
   },
 
   chainDifficulty: 1,
