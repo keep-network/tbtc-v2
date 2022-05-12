@@ -330,8 +330,8 @@ library Redemption {
         // and redeemer output script pair. That means there can be only one
         // request asking for redemption from the given wallet to the given
         // BTC script at the same time.
-        uint256 redemptionKey = uint256(
-            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
+        uint256 redemptionKey = getRedemptionKey(
+            walletPubKeyHash, redeemerOutputScript
         );
 
         // Check if given redemption key is not used by a pending redemption.
@@ -705,8 +705,9 @@ library Redemption {
         // This function should be called only if the given output is
         // supposed to represent a redemption. Build the redemption key
         // to perform that check.
-        uint256 redemptionKey = uint256(
-            keccak256(abi.encodePacked(walletPubKeyHash, outputScript))
+        uint256 redemptionKey = getRedemptionKey(
+            walletPubKeyHash, 
+            outputScript
         );
 
         if (self.pendingRedemptions[redemptionKey].requestedAt != 0) {
@@ -808,8 +809,9 @@ library Redemption {
         uint32[] calldata walletMembersIDs,
         bytes calldata redeemerOutputScript
     ) external {
-        uint256 redemptionKey = uint256(
-            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
+        uint256 redemptionKey = getRedemptionKey(
+            walletPubKeyHash, 
+            redeemerOutputScript
         );
         Redemption.RedemptionRequest memory request = self.pendingRedemptions[
             redemptionKey
@@ -870,4 +872,23 @@ library Redemption {
         // Return the requested amount of tokens to the redeemer
         self.bank.transferBalance(request.redeemer, request.requestedAmount);
     }
+
+    /// @notice Calculate redemption key without allocations
+    /// @param walletPubKeyHash the pubkey hash of the wallet
+    /// @param script the output script of the redemption
+    /// @return The key = keccak256(keccak256(script), walletPubKeyHash)
+    function getRedemptionKey(
+        bytes20 walletPubKeyHash,
+        bytes memory script
+    ) internal pure returns (uint256) {
+        bytes32 scriptHash = keccak256(script);
+        uint256 key;
+        assembly {
+            mstore(0, scriptHash)
+            mstore(32, walletPubKeyHash)
+            key := keccak256(0, 52)
+        }
+        return key;
+    }
+
 }
