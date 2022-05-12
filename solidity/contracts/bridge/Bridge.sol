@@ -79,7 +79,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         address depositor,
         uint64 amount,
         bytes8 blindingFactor,
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes20 refundPubKeyHash,
         bytes4 refundLocktime,
         address vault
@@ -88,7 +88,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     event DepositsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
 
     event RedemptionRequested(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes redeemerOutputScript,
         address redeemer,
         uint64 requestedAmount,
@@ -97,12 +97,12 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     );
 
     event RedemptionsCompleted(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 redemptionTxHash
     );
 
     event RedemptionTimedOut(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes redeemerOutputScript
     );
 
@@ -112,26 +112,29 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     );
 
     event MovingFundsCommitmentSubmitted(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes20[] targetWallets,
         address submitter
     );
 
-    event MovingFundsTimeoutReset(bytes20 walletPubKeyHash);
+    event MovingFundsTimeoutReset(bytes20 indexed walletPubKeyHash);
 
     event MovingFundsCompleted(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 movingFundsTxHash
     );
 
-    event MovingFundsTimedOut(bytes20 walletPubKeyHash);
+    event MovingFundsTimedOut(bytes20 indexed walletPubKeyHash);
 
-    event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
+    event MovingFundsBelowDustReported(bytes20 indexed walletPubKeyHash);
 
-    event MovedFundsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
+    event MovedFundsSwept(
+        bytes20 indexed walletPubKeyHash,
+        bytes32 sweepTxHash
+    );
 
     event MovedFundsSweepTimedOut(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 movingFundsTxHash,
         uint32 movingFundsTxOutputIndex
     );
@@ -159,17 +162,20 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     );
 
     event FraudChallengeSubmitted(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
         bytes32 s
     );
 
-    event FraudChallengeDefeated(bytes20 walletPubKeyHash, bytes32 sighash);
+    event FraudChallengeDefeated(
+        bytes20 indexed walletPubKeyHash,
+        bytes32 sighash
+    );
 
     event FraudChallengeDefeatTimedOut(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 sighash
     );
 

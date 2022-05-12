@@ -213,7 +213,7 @@ library Redemption {
     }
 
     event RedemptionRequested(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes redeemerOutputScript,
         address redeemer,
         uint64 requestedAmount,
@@ -222,12 +222,12 @@ library Redemption {
     );
 
     event RedemptionsCompleted(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 redemptionTxHash
     );
 
     event RedemptionTimedOut(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes redeemerOutputScript
     );
 
