@@ -103,10 +103,10 @@ library Deposit {
     event DepositRevealed(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
-        address depositor,
+        address indexed depositor,
         uint64 amount,
         bytes8 blindingFactor,
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes20 refundPubKeyHash,
         bytes4 refundLocktime,
         address vault
