@@ -27,7 +27,6 @@ import "./MovingFunds.sol";
 import "../bank/Bank.sol";
 
 library BridgeState {
-    // TODO: Make parameters governable
     struct Storage {
         // Address of the Bank the Bridge belongs to.
         Bank bank;
