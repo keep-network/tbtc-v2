@@ -316,8 +316,8 @@ library Redemption {
         // Check if the redeemer output script payload does not point to the
         // wallet public key hash.
         require(
-            keccak256(abi.encodePacked(walletPubKeyHash)) !=
-                keccak256(redeemerOutputScriptPayload),
+            redeemerOutputScriptPayload.length != 20 ||
+            walletPubKeyHash != redeemerOutputScriptPayload.slice20(0),
             "Redeemer output script must not point to the wallet PKH"
         );
 
