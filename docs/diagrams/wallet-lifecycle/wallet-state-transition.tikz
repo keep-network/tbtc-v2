@@ -96,6 +96,7 @@ LIVE:\\
   - defeatFraudChallenge\\
   - notifyFraudChallengeDefeatTimeout\\
   - notifyRedemptionTimeout\\
+  - resetMovingFundsTimeout \\
   - submitMovingFundsCommitment\\
   - submitMovingFundsProof\\
   - notifyMovingFundsTimeout\\

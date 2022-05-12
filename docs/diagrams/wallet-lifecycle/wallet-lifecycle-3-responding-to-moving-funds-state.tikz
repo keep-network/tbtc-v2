@@ -33,9 +33,33 @@
            font = \sffamily,
 ]
 
+% RESET MOVING FUNDS TIMEOUT
+% Nodes
+\node[start]                                                       (rmft_start)   {\textbf{Reset moving funds timeout}};
+\node[check, below=of rmft_start]                                  (rmft_check1)  {Is wallet\\ MOVING\_FUNDS?};
+\node[check, below right=of rmft_check1]                           (rmft_check2)  {Has the\\ moving funds\\ commitment been already\\ submitted for\\ the wallet?};
+\node[check, below left=of rmft_check2]                            (rmft_check3)  {Is \# of live wallets equal 0?};
+\node[revert, below right=of rmft_check2]                          (rmft_revert1) {Transaction reverted};
+\node[revert, below left=of rmft_check3]                           (rmft_revert2) {Transaction reverted};
+\node[action, below right=of rmft_check3]                          (rmft_action1) {Reset the moving\_funds\_timeout};
+\node[action, below=of rmft_action1]                               (rmft_action2) {Notification sent};
+\node[note1, right=of rmft_start.south east, anchor=south west]    (rmft_note1)   {Can be successfully called for wallets:\\ 
+                                                                                   \textbf{- MOVING\_FUNDS}};
+\node[note2, above=of rmft_note1.north, anchor=south, yshift=-8mm] (rmft_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+
+% Arrows
+\draw[->] (rmft_start)   -- (rmft_check1);
+\draw[->] (rmft_check1)  -| (rmft_revert2) \no;
+\draw[->] (rmft_check1)  -| (rmft_check2)  \yes;
+\draw[->] (rmft_check2)  -| (rmft_check3)  \no;
+\draw[->] (rmft_check2)  -| (rmft_revert1) \yes;
+\draw[->] (rmft_check3)  -| (rmft_revert2) \no;
+\draw[->] (rmft_check3)  -| (rmft_action1) \yes;
+\draw[->] (rmft_action1) -- (rmft_action2);
+
 % MOVING FUNDS COMMITMENT
 % Nodes
-\node[start]                                                      (mfc_start)   {Somebody sends \textbf{moving funds commitment}};
+\node[start, right=of rmft_start, xshift=12cm]                    (mfc_start)   {Somebody sends \textbf{moving funds commitment}};
 \node[check, below=of mfc_start]                                  (mfc_check1)  {Is the\\ source wallet in\\ MOVING\_FUNDS\\ state?};
 \node[check, below right=of mfc_check1]                           (mfc_check2)  {Is sender a\\ member of the\\ source wallet?};
 \node[check, below right=of mfc_check2]                           (mfc_check3)  {Hasn't the\\ target\_wallet\_commitment\\ with the same source\\ wallet been already\\ posted?};
