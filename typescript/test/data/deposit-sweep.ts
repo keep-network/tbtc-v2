@@ -17,9 +17,9 @@ export const NO_MAIN_UTXO = {
 }
 
 /**
- * Represents data for tests of assembling sweep transactions.
+ * Represents data for tests of assembling deposit sweep transactions.
  */
-export interface SweepTestData {
+export interface DepositSweepTestData {
   deposits: {
     utxo: UnspentTransactionOutput & RawTransaction
     data: DepositData
@@ -31,7 +31,7 @@ export interface SweepTestData {
   }
 }
 
-export const sweepWithNoMainUtxo: SweepTestData = {
+export const depositSweepWithNoMainUtxo: DepositSweepTestData = {
   deposits: [
     {
       utxo: {
@@ -112,7 +112,7 @@ export const sweepWithNoMainUtxo: SweepTestData = {
   },
 }
 
-export const sweepWithMainUtxo: SweepTestData = {
+export const depositSweepWithMainUtxo: DepositSweepTestData = {
   deposits: [
     {
       // P2SH deposit
@@ -224,9 +224,9 @@ export const sweepWithMainUtxo: SweepTestData = {
 }
 
 /**
- * Represents data for tests of assembling sweep proofs.
+ * Represents data for tests of assembling deposit sweep proofs.
  */
-export interface SweepProofTestData {
+export interface DepositSweepProofTestData {
   bitcoinChainData: {
     transaction: Transaction
     rawTransaction: RawTransaction
@@ -246,7 +246,7 @@ export interface SweepProofTestData {
  * Test data that is based on a Bitcoin testnet transaction with multiple inputs
  * https://live.blockcypher.com/btc-testnet/tx/5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753/
  */
-export const sweepProof: SweepProofTestData = {
+export const depositSweepProof: DepositSweepProofTestData = {
   bitcoinChainData: {
     transaction: {
       transactionHash:

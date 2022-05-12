@@ -10,7 +10,10 @@ import type {
   TBTCVault,
   TBTCVault__factory,
   TBTC__factory,
+  TestERC20,
+  TestERC721,
 } from "../../typechain"
+import { TestERC20__factory, TestERC721__factory } from "../../typechain"
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
@@ -18,7 +21,7 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
 const fixture = async () => {
-  const [deployer, bridge] = await ethers.getSigners()
+  const [deployer, bridge, governance] = await ethers.getSigners()
 
   const Bank = await ethers.getContractFactory<Bank__factory>("Bank")
   const bank = await Bank.deploy()
@@ -37,9 +40,11 @@ const fixture = async () => {
   await vault.deployed()
 
   await tbtc.connect(deployer).transferOwnership(vault.address)
+  await vault.connect(deployer).transferGovernance(governance.address)
 
   return {
     bridge,
+    governance,
     bank,
     vault,
     tbtc,
@@ -48,6 +53,7 @@ const fixture = async () => {
 
 describe("TBTCVault", () => {
   let bridge: SignerWithAddress
+  let governance: SignerWithAddress
   let bank: Bank
   let vault: TBTCVault
   let tbtc: TBTC
@@ -59,7 +65,9 @@ describe("TBTCVault", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ bridge, bank, vault, tbtc } = await waffle.loadFixture(fixture))
+    ;({ bridge, governance, bank, vault, tbtc } = await waffle.loadFixture(
+      fixture
+    ))
 
     const accounts = await getUnnamedAccounts()
     account1 = await ethers.getSigner(accounts[0])
@@ -98,6 +106,106 @@ describe("TBTCVault", () => {
 
       it("should set the TBTC token field", async () => {
         expect(await vault.tbtcToken()).to.equal(tbtc.address)
+      })
+    })
+  })
+
+  describe("recoverERC20", () => {
+    let testToken: TestERC20
+
+    before(async () => {
+      await createSnapshot()
+
+      const TestToken = await ethers.getContractFactory<TestERC20__factory>(
+        "TestERC20"
+      )
+      testToken = await TestToken.deploy()
+      await testToken.deployed()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.recoverERC20(testToken.address, account1.address, to1e18(800))
+        ).to.be.revertedWith("Caller is not the governance")
+      })
+    })
+
+    context("when called with correct parameters", () => {
+      before(async () => {
+        await createSnapshot()
+
+        // Do the misfund.
+        await testToken.mint(account1.address, to1e18(1000))
+        await testToken.connect(account1).transfer(tbtc.address, to1e18(1000))
+
+        await vault
+          .connect(governance)
+          .recoverERC20(testToken.address, account1.address, to1e18(800))
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should do a successful recovery", async () => {
+        expect(await testToken.balanceOf(account1.address)).to.be.equal(
+          to1e18(800)
+        )
+        expect(await testToken.balanceOf(tbtc.address)).to.be.equal(to1e18(200))
+      })
+    })
+  })
+
+  describe("recoverERC721", () => {
+    let testToken: TestERC721
+
+    before(async () => {
+      await createSnapshot()
+
+      const TestToken = await ethers.getContractFactory<TestERC721__factory>(
+        "TestERC721"
+      )
+      testToken = await TestToken.deploy()
+      await testToken.deployed()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.recoverERC721(testToken.address, account1.address, 1, "0x01")
+        ).to.be.revertedWith("Caller is not the governance")
+      })
+    })
+
+    context("when called with correct parameters", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await testToken.mint(account1.address, 1)
+        await testToken
+          .connect(account1)
+          .transferFrom(account1.address, tbtc.address, 1)
+
+        await vault
+          .connect(governance)
+          .recoverERC721(testToken.address, account1.address, 1, "0x01")
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should do a successful recovery", async () => {
+        expect(await testToken.ownerOf(1)).to.be.equal(account1.address)
       })
     })
   })

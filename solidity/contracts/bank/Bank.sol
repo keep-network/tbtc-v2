@@ -281,8 +281,8 @@ contract Bank is Ownable {
     /// @dev Requirements:
     ///       - `vault` must implement `IVault` interface,
     ///       - length of `depositors` and `depositedAmounts` must be the same.
-    /// @param vault Address of `IVault` recipient contract
-    /// @param depositors Addresses of depositors whose deposits have been swept
+    /// @param vault Address of `IVault` recipient contract.
+    /// @param depositors Addresses of depositors whose deposits have been swept.
     /// @param depositedAmounts Amounts deposited by individual depositors and
     ///        swept. The `vault`'s balance in the Bank will be increased by the
     ///        sum of all elements in this array.
