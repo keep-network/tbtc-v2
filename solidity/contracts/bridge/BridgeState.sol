@@ -31,16 +31,26 @@ library BridgeState {
     struct Storage {
         // Address of the Bank the Bridge belongs to.
         Bank bank;
+
+
         // Bitcoin relay providing the current Bitcoin network difficulty.
         IRelay relay;
+
+        
         // ECDSA Wallet Registry contract handle.
         EcdsaWalletRegistry ecdsaWalletRegistry;
-        // The number of confirmations on the Bitcoin chain required to
-        // successfully evaluate an SPV proof.
-        uint256 txProofDifficultyFactor;
+
+
         // Address where the deposit and redemption treasury fees will be sent
         // to. Treasury takes part in the operators rewarding process.
         address treasury;
+
+
+        // The number of confirmations on the Bitcoin chain required to
+        // successfully evaluate an SPV proof.
+        uint256 txProofDifficultyFactor;
+
+
         // The minimal amount that can be requested to deposit.
         // Value of this parameter must take into account the value of
         // `depositTreasuryFeeDivisor` and `depositTxMaxFee` parameters in order
@@ -62,20 +72,11 @@ library BridgeState {
         //
         // This is a per-deposit input max fee for the sweep transaction.
         uint64 depositTxMaxFee;
-        // Collection of all revealed deposits indexed by
-        // `keccak256(fundingTxHash | fundingOutputIndex)`.
-        // The `fundingTxHash` is `bytes32` (ordered as in Bitcoin internally)
-        // and `fundingOutputIndex` an `uint32`. This mapping may contain valid
-        // and invalid deposits and the wallet is responsible for validating
-        // them before attempting to execute a sweep.
-        mapping(uint256 => Deposit.DepositRequest) deposits;
-        // Indicates if the vault with the given address is trusted or not.
-        // Depositors can route their revealed deposits only to trusted vaults
-        // and have trusted vaults notified about new deposits as soon as these
-        // deposits get swept. Vaults not trusted by the Bridge can still be
-        // used by Bank balance owners on their own responsibility - anyone can
-        // approve their Bank balance to any address.
-        mapping(address => bool) isVaultTrusted;
+
+        // slither-disable-next-line unused-state
+        bytes8 __depositAlignmentGap;
+
+
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moving funds transaction.
         //
@@ -100,10 +101,14 @@ library BridgeState {
         // The amount of stake slashed from each member of a wallet for a moving
         // funds timeout.
         uint96 movingFundsTimeoutSlashingAmount;
+
+
         // The percentage of the notifier reward from the staking contract
         // the notifier of a moving funds timeout receives. The value is in the
         // range [0, 100].
         uint256 movingFundsTimeoutNotifierRewardMultiplier;
+
+
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moved funds sweep transaction.
         //
@@ -119,17 +124,14 @@ library BridgeState {
         // The amount of stake slashed from each member of a wallet for a moved
         // funds sweep timeout.
         uint96 movedFundsSweepTimeoutSlashingAmount;
+
+
         // The percentage of the notifier reward from the staking contract
         // the notifier of a moved funds sweep timeout receives. The value is
         // in the range [0, 100].
         uint256 movedFundsSweepTimeoutNotifierRewardMultiplier;
-        // Collection of all moved funds sweep requests indexed by
-        // `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
-        // The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
-        // internally) and `movingFundsOutputIndex` an `uint32`. Each entry
-        // is actually an UTXO representing the moved funds and is supposed
-        // to be swept with the current main UTXO of the recipient wallet.
-        mapping(uint256 => MovingFunds.MovedFundsSweepRequest) movedFundsSweepRequests;
+
+
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
@@ -155,19 +157,106 @@ library BridgeState {
         // This is a per-redemption output max fee for the redemption
         // transaction.
         uint64 redemptionTxMaxFee;
+
+
         // Time after which the redemption request can be reported as
         // timed out. It is counted from the moment when the redemption
         // request was created via `requestRedemption` call. Reported
         // timed out requests are cancelled and locked TBTC is returned
         // to the redeemer in full amount.
         uint256 redemptionTimeout;
+
+
         // The amount of stake slashed from each member of a wallet for a
         // redemption timeout.
         uint96 redemptionTimeoutSlashingAmount;
+
+
         // The percentage of the notifier reward from the staking contract
         // the notifier of a redemption timeout receives. The value is in the
         // range [0, 100].
         uint256 redemptionTimeoutNotifierRewardMultiplier;
+
+        // The amount of ETH in wei the party challenging the wallet for fraud
+        // needs to deposit.
+        uint256 fraudChallengeDepositAmount;
+
+
+        // The amount of time the wallet has to defeat a fraud challenge.
+        uint256 fraudChallengeDefeatTimeout;
+
+
+        // The amount of stake slashed from each member of a wallet for a fraud.
+        uint96 fraudSlashingAmount;
+
+
+        // The percentage of the notifier reward from the staking contract
+        // the notifier of a fraud receives. The value is in the range [0, 100].
+        uint256 fraudNotifierRewardMultiplier;
+
+
+        // Determines how frequently a new wallet creation can be requested.
+        // Value in seconds.
+        uint32 walletCreationPeriod;
+        // The minimum BTC threshold in satoshi that is used to decide about
+        // wallet creation. Specifically, we allow for the creation of a new
+        // wallet if the active wallet is old enough and their amount of BTC
+        // is greater than or equal this threshold.
+        uint64 walletCreationMinBtcBalance;
+        // The maximum BTC threshold in satoshi that is used to decide about
+        // wallet creation. Specifically, we allow for the creation of a new
+        // wallet if the active wallet's amount of BTC is greater than or equal
+        // this threshold, regardless of the active wallet's age.
+        uint64 walletCreationMaxBtcBalance;
+        // The minimum BTC threshold in satoshi that is used to decide about
+        // wallet closing. Specifically, we allow for the closure of the given
+        // wallet if their amount of BTC is lesser than this threshold,
+        // regardless of the wallet's age.
+        uint64 walletClosureMinBtcBalance;
+        // The maximum age of a wallet in seconds, after which the wallet
+        // moving funds process can be requested.
+        uint32 walletMaxAge;
+
+
+        // 20-byte wallet public key hash being reference to the currently
+        // active wallet. Can be unset to the zero value under certain
+        // circumstances.
+        bytes20 activeWalletPubKeyHash;
+        // The current number of wallets in the Live state.
+        uint32 liveWalletsCount;
+        // The maximum BTC amount in satoshi than can be transferred to a single
+        // target wallet during the moving funds process.
+        uint64 walletMaxBtcTransfer;
+
+
+        // Determines the length of the wallet closing period, i.e. the period
+        // when the wallet remains in the Closing state and can be subject
+        // of deposit fraud challenges. This value is in seconds and should be
+        // greater than the deposit refund time plus some time margin.
+        uint32 walletClosingPeriod;
+
+
+        // Collection of all revealed deposits indexed by
+        // `keccak256(fundingTxHash | fundingOutputIndex)`.
+        // The `fundingTxHash` is `bytes32` (ordered as in Bitcoin internally)
+        // and `fundingOutputIndex` an `uint32`. This mapping may contain valid
+        // and invalid deposits and the wallet is responsible for validating
+        // them before attempting to execute a sweep.
+        mapping(uint256 => Deposit.DepositRequest) deposits;
+        // Indicates if the vault with the given address is trusted or not.
+        // Depositors can route their revealed deposits only to trusted vaults
+        // and have trusted vaults notified about new deposits as soon as these
+        // deposits get swept. Vaults not trusted by the Bridge can still be
+        // used by Bank balance owners on their own responsibility - anyone can
+        // approve their Bank balance to any address.
+        mapping(address => bool) isVaultTrusted;
+        // Collection of all moved funds sweep requests indexed by
+        // `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
+        // The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
+        // internally) and `movingFundsOutputIndex` an `uint32`. Each entry
+        // is actually an UTXO representing the moved funds and is supposed
+        // to be swept with the current main UTXO of the recipient wallet.
+        mapping(uint256 => MovingFunds.MovedFundsSweepRequest) movedFundsSweepRequests;
         // Collection of all pending redemption requests indexed by
         // redemption key built as
         // `keccak256(walletPubKeyHash | redeemerOutputScript)`.
@@ -197,16 +286,6 @@ library BridgeState {
         //    mapping basing on a timed out request stored previously in
         //    `pendingRedemptions` mapping.
         mapping(uint256 => Redemption.RedemptionRequest) timedOutRedemptions;
-        // The amount of ETH in wei the party challenging the wallet for fraud
-        // needs to deposit.
-        uint256 fraudChallengeDepositAmount;
-        // The amount of time the wallet has to defeat a fraud challenge.
-        uint256 fraudChallengeDefeatTimeout;
-        // The amount of stake slashed from each member of a wallet for a fraud.
-        uint96 fraudSlashingAmount;
-        // The percentage of the notifier reward from the staking contract
-        // the notifier of a fraud receives. The value is in the range [0, 100].
-        uint256 fraudNotifierRewardMultiplier;
         // Collection of all submitted fraud challenges indexed by challenge
         // key built as `keccak256(walletPublicKey|sighash)`.
         mapping(uint256 => Fraud.FraudChallenge) fraudChallenges;
@@ -217,45 +296,11 @@ library BridgeState {
         // spent if it was used as an input of a transaction that have been
         // proven in the Bridge.
         mapping(uint256 => bool) spentMainUTXOs;
-        // Determines how frequently a new wallet creation can be requested.
-        // Value in seconds.
-        uint32 walletCreationPeriod;
-        // The minimum BTC threshold in satoshi that is used to decide about
-        // wallet creation. Specifically, we allow for the creation of a new
-        // wallet if the active wallet is old enough and their amount of BTC
-        // is greater than or equal this threshold.
-        uint64 walletCreationMinBtcBalance;
-        // The maximum BTC threshold in satoshi that is used to decide about
-        // wallet creation. Specifically, we allow for the creation of a new
-        // wallet if the active wallet's amount of BTC is greater than or equal
-        // this threshold, regardless of the active wallet's age.
-        uint64 walletCreationMaxBtcBalance;
-        // The minimum BTC threshold in satoshi that is used to decide about
-        // wallet closing. Specifically, we allow for the closure of the given
-        // wallet if their amount of BTC is lesser than this threshold,
-        // regardless of the wallet's age.
-        uint64 walletClosureMinBtcBalance;
-        // The maximum age of a wallet in seconds, after which the wallet
-        // moving funds process can be requested.
-        uint32 walletMaxAge;
-        // 20-byte wallet public key hash being reference to the currently
-        // active wallet. Can be unset to the zero value under certain
-        // circumstances.
-        bytes20 activeWalletPubKeyHash;
-        // The current number of wallets in the Live state.
-        uint32 liveWalletsCount;
-        // The maximum BTC amount in satoshi than can be transferred to a single
-        // target wallet during the moving funds process.
-        uint64 walletMaxBtcTransfer;
-        // Determines the length of the wallet closing period, i.e. the period
-        // when the wallet remains in the Closing state and can be subject
-        // of deposit fraud challenges. This value is in seconds and should be
-        // greater than the deposit refund time plus some time margin.
-        uint32 walletClosingPeriod;
         // Maps the 20-byte wallet public key hash (computed using Bitcoin
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
         mapping(bytes20 => Wallets.Wallet) registeredWallets;
+
         // Reserved storage space in case we need to add more variables.
         // The convention from OpenZeppelin suggests the storage space should
         // add up to 50 slots. Here we want to have more slots as there are
