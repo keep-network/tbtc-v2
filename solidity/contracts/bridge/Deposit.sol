@@ -162,8 +162,6 @@ library Deposit {
             "Vault is not trusted"
         );
 
-        // TODO: Should we enforce a specific locktime at contract level?
-
         bytes memory expectedScript = abi.encodePacked(
             hex"14", // Byte length of depositor Ethereum address.
             reveal.depositor,
