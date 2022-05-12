@@ -15,6 +15,8 @@
 
 pragma solidity ^0.8.9;
 
+import "@keep-network/random-beacon/contracts/Governable.sol";
+
 import "./IVault.sol";
 import "../bank/Bank.sol";
 import "../token/TBTC.sol";
@@ -27,7 +29,7 @@ import "../token/TBTC.sol";
 ///         Bank.
 /// @dev TBTC Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
-contract TBTCVault is IVault {
+contract TBTCVault is IVault, Governable {
     Bank public bank;
     TBTC public tbtcToken;
 
@@ -53,6 +55,36 @@ contract TBTCVault is IVault {
 
         bank = _bank;
         tbtcToken = _tbtcToken;
+
+        _transferGovernance(msg.sender);
+    }
+
+    /// @notice Allows the governance of the TBTCVault to recover any ERC20
+    ///         token sent mistakenly to the TBTC token contract address.
+    /// @param token Address of the recovered ERC20 token contract
+    /// @param recipient Address the recovered token should be sent to
+    /// @param amount Recovered amount
+    function recoverERC20(
+        IERC20 token,
+        address recipient,
+        uint256 amount
+    ) external onlyGovernance {
+        tbtcToken.recoverERC20(token, recipient, amount);
+    }
+
+    /// @notice Allows the governance of the TBTCVault to recover any ERC721
+    ///         token sent mistakenly to the TBTC token contract address.
+    /// @param token Address of the recovered ERC721 token contract
+    /// @param recipient Address the recovered token should be sent to
+    /// @param tokenId Identifier of the recovered token
+    /// @param data Additional data
+    function recoverERC721(
+        IERC721 token,
+        address recipient,
+        uint256 tokenId,
+        bytes calldata data
+    ) external onlyGovernance {
+        tbtcToken.recoverERC721(token, recipient, tokenId, data);
     }
 
     /// @notice Transfers the given `amount` of the Bank balance from caller
