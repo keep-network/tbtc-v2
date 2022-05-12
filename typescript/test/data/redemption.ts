@@ -9,6 +9,16 @@ export const walletPrivateKey =
   "cRk1zdau3jp2X3XsrRKDdviYLuC32fHfyU186wLBEbZWx4uQWW3v"
 
 /**
+ * P2PKH address corresponding to walletPrivateKey.
+ */
+export const p2pkhWalletAddress = "mtSEUCE7G8om9zJttG9twtjoiSsUz7QnY9"
+
+/**
+ * P2WPKH address corresponding to walletPrivateKey.
+ */
+export const p2wpkhWalletAddress = "tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"
+
+/**
  * Represents a set of data used for given sweep scenario.
  */
 export interface RedemptionTestData {
