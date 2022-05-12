@@ -233,7 +233,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         address _relay,
         address _treasury,
         address _ecdsaWalletRegistry,
-        uint256 _txProofDifficultyFactor
+        uint96 _txProofDifficultyFactor
     ) external initializer {
         require(_bank != address(0), "Bank address cannot be zero");
         self.bank = Bank(_bank);

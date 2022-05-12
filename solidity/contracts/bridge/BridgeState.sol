@@ -35,7 +35,10 @@ library BridgeState {
 
         // Bitcoin relay providing the current Bitcoin network difficulty.
         IRelay relay;
-
+        // The number of confirmations on the Bitcoin chain required to
+        // successfully evaluate an SPV proof.
+        uint96 txProofDifficultyFactor;
+        
         
         // ECDSA Wallet Registry contract handle.
         EcdsaWalletRegistry ecdsaWalletRegistry;
@@ -45,10 +48,6 @@ library BridgeState {
         // to. Treasury takes part in the operators rewarding process.
         address treasury;
 
-
-        // The number of confirmations on the Bitcoin chain required to
-        // successfully evaluate an SPV proof.
-        uint256 txProofDifficultyFactor;
 
 
         // The minimal amount that can be requested to deposit.
