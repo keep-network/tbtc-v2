@@ -102,7 +102,7 @@
 % DUST BALANCE
 % Nodes
 \node[start, right=of mfc_start, xshift=30cm]                    (db_start)   {Somebody notifies that \textbf{wallet can be closed due to dust balance}};
-\node[check, below=of db_start]                                  (db_check1)  {Is wallet\\ MOVIG\_FUNDS?};
+\node[check, below=of db_start]                                  (db_check1)  {Is wallet\\ MOVING\_FUNDS?};
 \node[check, below right=of db_check1]                           (db_check2)  {Is wallet's\\ balance $\leq$ wallet\_dust\_leftover?};              
 \node[revert, below left=of db_check2, xshift=-2cm]              (db_revert1) {Transaction reverted};
 \node[action, below right=of db_check2]                          (db_action1) {Wallet's state changed to CLOSING};

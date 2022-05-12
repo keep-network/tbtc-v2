@@ -66,8 +66,8 @@
 \node[check, below left=of df_check2]                            (df_check3)  {Were the UTXOs\\ in the challenged transaction\\ spent non-fraudulently?};
 \node[revert, below right=of df_check2]                          (df_revert1) {Transaction reverted};
 \node[revert, below left=of df_check3]                           (df_revert2) {Transaction reverted};
-\node[action, below right=of df_check3, yshift=-3cm]             (df_action1) {Close the fraud\\ challenge, don't allow for\\ challenging again)};
-\node[action, below=of df_action1]                               (df_action2) {Transfer the challenger's\\ deposit to the treasury};
+\node[action, below right=of df_check3, yshift=-3cm]             (df_action1) {Close the fraud challenge, don't allow for challenging again)};
+\node[action, below=of df_action1]                               (df_action2) {Transfer the challenger's deposit to the treasury};
 \node[note1, right=of df_start.south east, anchor=south west]    (df_note1)   {Can be successfully called for wallets:\\ 
                                                                                \textbf{- LIVE\\
                                                                                - MOVING\_FUNDS\\
@@ -121,17 +121,17 @@
 
 % FRAUD DEFEAT TIMEOUT
 % Nodes
-\node[start, right=of dfwt_start, xshift=105mm]                   (fdt_start)   {Send notification about\\ \textbf{fraud defeat timeout}};
+\node[start, right=of dfwt_start, xshift=105mm]                   (fdt_start)   {Send notification about \textbf{fraud defeat timeout}};
 \node[check, below=of fdt_start]                                  (fdt_check1)  {Is there a pending\\ fraud notification that\\ hasn't been defeated?};
 \node[check, below right=of fdt_check1]                           (fdt_check2)  {Has the defeat \\ timeout passed?};
-\node[action, below right=of fdt_check2]                          (fdt_action1) {Return the challenger's\\ deposit to him};
+\node[action, below right=of fdt_check2]                          (fdt_action1) {Return the challenger's deposit to him};
 \node[check, below=of fdt_action1]                                (fdt_check3)  {Is wallet LIVE,\\ MOVING\_FUNDS\\ or CLOSING?};
 \node[check, below left=of fdt_check3, xshift=-40mm]              (fdt_check4)  {Is wallet\\ TERMINATED?};
 \node[revert, below left=of fdt_check4]                           (fdt_revert1) {Transaction reverted};
-\node[action, below right=of fdt_check3]                          (fdt_action2) {Slashing, reward for the\\ fraud challenge notifier};
+\node[action, below right=of fdt_check3]                          (fdt_action2) {Slashing, reward for the fraud challenge notifier};
 \node[check, below=of fdt_action2]                                (fdt_check5)  {Is wallet marked\\ as ACTIVE?};
 \node[action, below right=of fdt_check5]                          (fdt_action3) {Clear ACTIVE field};
-\node[action, below left=of fdt_action3, xshift=-20mm]            (fdt_action4) {Change wallet's state to\\ TERMINATED, delete wallet\\ from registry};
+\node[action, below left=of fdt_action3, xshift=-20mm]            (fdt_action4) {Change wallet's state to TERMINATED, delete wallet from registry};
 \node[action, below=of fdt_action4]                               (fdt_action5) {Emit notification};
 \node[note1, right=of fdt_start.south east, anchor=south west]    (fdt_note1)   {Can be successfully called for wallets:\\ 
                                                                                  \textbf{- LIVE\\

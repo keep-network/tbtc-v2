@@ -72,7 +72,7 @@
 % MOVING FUNDS TIMEOUT
 % Nodes
 \node[start, right=of mfp_start, xshift=25cm]                     (mft_start)   {Somebody notifies about \textbf{wallet passing moving funds timeout}};
-\node[check, below=of mft_start]                                  (mft_check1)  {Is wallet\\ MOVIG\_FUNDS?};
+\node[check, below=of mft_start]                                  (mft_check1)  {Is wallet\\ MOVING\_FUNDS?};
 \node[check, below right=of mft_check1]                           (mft_check2)  {Has the\\ moving\_funds\_timeout\\ passed?};              
 \node[revert, below left=of mft_check2, xshift=-2cm]              (mft_revert1) {Transaction reverted};
 \node[action, below right=of mft_check2]                          (mft_action1) {Slashing, reward for notifier};
