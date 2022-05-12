@@ -93,26 +93,29 @@ library MovingFunds {
     }
 
     event MovingFundsCommitmentSubmitted(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes20[] targetWallets,
         address submitter
     );
 
-    event MovingFundsTimeoutReset(bytes20 walletPubKeyHash);
+    event MovingFundsTimeoutReset(bytes20 indexed walletPubKeyHash);
 
     event MovingFundsCompleted(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 movingFundsTxHash
     );
 
-    event MovingFundsTimedOut(bytes20 walletPubKeyHash);
+    event MovingFundsTimedOut(bytes20 indexed walletPubKeyHash);
 
-    event MovingFundsBelowDustReported(bytes20 walletPubKeyHash);
+    event MovingFundsBelowDustReported(bytes20 indexed walletPubKeyHash);
 
-    event MovedFundsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
+    event MovedFundsSwept(
+        bytes20 indexed walletPubKeyHash,
+        bytes32 sweepTxHash
+    );
 
     event MovedFundsSweepTimedOut(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 movingFundsTxHash,
         uint32 movingFundsTxOutputIndex
     );

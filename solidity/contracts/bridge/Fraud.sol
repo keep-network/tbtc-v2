@@ -74,17 +74,20 @@ library Fraud {
     }
 
     event FraudChallengeSubmitted(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes32 sighash,
         uint8 v,
         bytes32 r,
         bytes32 s
     );
 
-    event FraudChallengeDefeated(bytes20 walletPubKeyHash, bytes32 sighash);
+    event FraudChallengeDefeated(
+        bytes20 indexed walletPubKeyHash,
+        bytes32 sighash
+    );
 
     event FraudChallengeDefeatTimedOut(
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         // Sighash calculated as a Bitcoin's hash256 (double sha2) of:
         // - a preimage of a transaction spending UTXO according to the protocol
         //   rules OR
