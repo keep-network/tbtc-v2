@@ -96,13 +96,17 @@ contract MaintainerProxy is Ownable, Reimbursable {
     event BridgeUpdated(address newBridge);
 
     event GasOffsetParametersUpdated(
-        uint256 requestNewWalletGasOffset,
         uint256 submitDepositSweepProofGasOffset,
         uint256 submitRedemptionProofGasOffset,
-        uint256 notifyCloseableWalletGasOffset,
-        uint256 defeatFraudChallengeGasOffset,
+        uint256 submitMovingFundsCommitmentGasOffset,
         uint256 submitMovingFundsProofGasOffset,
-        uint256 submitMovingFundsCommitmentGasOffset
+        uint256 notifyMovingFundsBelowDustGasOffset,
+        uint256 submitMovedFundsSweepProofGasOffset,
+        uint256 requestNewWalletGasOffset,
+        uint256 notifyCloseableWalletGasOffset,
+        uint256 notifyWalletClosingPeriodElapsedGasOffset,
+        uint256 defeatFraudChallengeGasOffset,
+        uint256 defeatFraudChallengeWithHeartbeatGasOffset
     );
 
     modifier onlyMaintainer() {
@@ -469,43 +473,57 @@ contract MaintainerProxy is Ownable, Reimbursable {
         emit BridgeUpdated(address(_bridge));
     }
 
-    // TODO add new params and order them
-
     /// @notice Updates the values of gas offset parameters.
     /// @dev Can be called only by the contract owner. The caller is responsible
     ///      for validating parameters.
-    /// @param requestNewWalletGasOffset New request wallet gas offset
     /// @param submitDepositSweepProofGasOffset New request wallet gas offset
     /// @param submitRedemptionProofGasOffset New submit redemption proof gas offset
-    /// @param notifyCloseableWalletGasOffset New notify closeable wallet gas offset
-    /// @param defeatFraudChallengeGasOffset New defeat fraud challenge gas offset
-    /// @param submitMovingFundsProofGasOffset New submit moving funds proof gas offset
     /// @param submitMovingFundsCommitmentGasOffset New submit moving funds commitment gas offset
+    /// @param submitMovingFundsProofGasOffset New submit moving funds proof gas offset
+    /// @param notifyMovingFundsBelowDustGasOffset New notification moving funds below dust gas offset
+    /// @param submitMovedFundsSweepProofGasOffset New submit moved funds sweep proof gas offset
+    /// @param requestNewWalletGasOffset New request wallet gas offset
+    /// @param notifyCloseableWalletGasOffset New notify closeable wallet gas offset
+    /// @param notifyWalletClosingPeriodElapsedGasOffset New notify wallet closing period elapsed gas offset
+    /// @param defeatFraudChallengeGasOffset New defeat fraud challenge gas offset
+    /// @param defeatFraudChallengeWithHeartbeatGasOffset New defeat fraud challenge with heartbeat gas offset
     function updateGasOffsetParameters(
-        uint256 requestNewWalletGasOffset,
         uint256 submitDepositSweepProofGasOffset,
         uint256 submitRedemptionProofGasOffset,
-        uint256 notifyCloseableWalletGasOffset,
-        uint256 defeatFraudChallengeGasOffset,
+        uint256 submitMovingFundsCommitmentGasOffset,
         uint256 submitMovingFundsProofGasOffset,
-        uint256 submitMovingFundsCommitmentGasOffset
+        uint256 notifyMovingFundsBelowDustGasOffset,
+        uint256 submitMovedFundsSweepProofGasOffset,
+        uint256 requestNewWalletGasOffset,
+        uint256 notifyCloseableWalletGasOffset,
+        uint256 notifyWalletClosingPeriodElapsedGasOffset,
+        uint256 defeatFraudChallengeGasOffset,
+        uint256 defeatFraudChallengeWithHeartbeatGasOffset
     ) external onlyOwner {
-        _requestNewWalletGasOffset = requestNewWalletGasOffset;
         _submitDepositSweepProofGasOffset = submitDepositSweepProofGasOffset;
         _submitRedemptionProofGasOffset = submitRedemptionProofGasOffset;
-        _notifyCloseableWalletGasOffset = notifyCloseableWalletGasOffset;
-        _defeatFraudChallengeGasOffset = defeatFraudChallengeGasOffset;
-        _submitMovingFundsProofGasOffset = submitMovingFundsProofGasOffset;
         _submitMovingFundsCommitmentGasOffset = submitMovingFundsCommitmentGasOffset;
+        _submitMovingFundsProofGasOffset = submitMovingFundsProofGasOffset;
+        _notifyMovingFundsBelowDustGasOffset = notifyMovingFundsBelowDustGasOffset;
+        _submitMovedFundsSweepProofGasOffset = submitMovedFundsSweepProofGasOffset;
+        _requestNewWalletGasOffset = requestNewWalletGasOffset;
+        _notifyCloseableWalletGasOffset = notifyCloseableWalletGasOffset;
+        _notifyWalletClosingPeriodElapsedGasOffset = notifyWalletClosingPeriodElapsedGasOffset;
+        _defeatFraudChallengeGasOffset = defeatFraudChallengeGasOffset;
+        _defeatFraudChallengeWithHeartbeatGasOffset = defeatFraudChallengeWithHeartbeatGasOffset;
 
         emit GasOffsetParametersUpdated(
-            _requestNewWalletGasOffset,
-            _submitDepositSweepProofGasOffset,
-            _submitRedemptionProofGasOffset,
-            _notifyCloseableWalletGasOffset,
-            _defeatFraudChallengeGasOffset,
-            _submitMovingFundsProofGasOffset,
-            _submitMovingFundsCommitmentGasOffset
+            submitDepositSweepProofGasOffset,
+            submitRedemptionProofGasOffset,
+            submitMovingFundsCommitmentGasOffset,
+            submitMovingFundsProofGasOffset,
+            notifyMovingFundsBelowDustGasOffset,
+            submitMovedFundsSweepProofGasOffset,
+            requestNewWalletGasOffset,
+            notifyCloseableWalletGasOffset,
+            notifyWalletClosingPeriodElapsedGasOffset,
+            defeatFraudChallengeGasOffset,
+            defeatFraudChallengeWithHeartbeatGasOffset
         );
     }
 }

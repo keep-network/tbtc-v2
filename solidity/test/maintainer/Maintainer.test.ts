@@ -2790,7 +2790,7 @@ describe("Maintainer", () => {
         await expect(
           maintainerProxy
             .connect(thirdParty)
-            .updateGasOffsetParameters(40, 41, 42, 43, 44, 45, 46)
+            .updateGasOffsetParameters(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -2802,7 +2802,7 @@ describe("Maintainer", () => {
         await createSnapshot()
         tx = await maintainerProxy
           .connect(governance)
-          .updateGasOffsetParameters(40, 41, 42, 43, 44, 45, 46)
+          .updateGasOffsetParameters(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50)
       })
 
       after(async () => {
@@ -2812,13 +2812,13 @@ describe("Maintainer", () => {
       it("should emit the GasOffsetParametersUpdated event", async () => {
         await expect(tx)
           .to.emit(maintainerProxy, "GasOffsetParametersUpdated")
-          .withArgs(40, 41, 42, 43, 44, 45, 46)
+          .withArgs(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50)
       })
     })
   })
 
    // TODO: test updateReimbursementPool
-   
+
   interface ScenarioOutcome {
     tx: ContractTransaction
     initThirdPartyBalance: BigNumber
