@@ -25,9 +25,9 @@ interface IVault {
     ///         and call the vault to use the approved balance in a single
     ///         transaction.
     /// @param owner Address of the Bank balance owner who approved their
-    ///        balance to be used by the vault
+    ///        balance to be used by the vault.
     /// @param amount The amount of the Bank balance approved by the owner
-    ///        to be used by the vault
+    ///        to be used by the vault.
     // @dev The implementation must ensure this function can only be called
     ///      by the Bank. The Bank does _not_ guarantee that the `amount`
     ///      approved by the `owner` currently exists on their balance. That is,
@@ -46,9 +46,9 @@ interface IVault {
     ///         depositor does not have to execute additional transaction after
     ///         the deposit gets swept by the Bridge to approve and transfer
     ///         their balance to the vault.
-    /// @param depositors Addresses of depositors whose deposits have been swept
+    /// @param depositors Addresses of depositors whose deposits have been swept.
     /// @param depositedAmounts Amounts deposited by individual depositors and
-    ///        swept
+    ///        swept.
     /// @dev The implementation must ensure this function can only be called
     ///      by the Bank. The Bank guarantees that the vault's balance was
     ///      increased by the sum of all deposited amounts before this function

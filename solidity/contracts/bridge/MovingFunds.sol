@@ -124,42 +124,42 @@ library MovingFunds {
     ///         Once all requirements are met, that function registers the
     ///         target wallets commitment and opens the way for moving funds
     ///         proof submission.
-    /// @param walletPubKeyHash 20-byte public key hash of the source wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the source wallet.
     /// @param walletMainUtxo Data of the source wallet's main UTXO, as
-    ///        currently known on the Ethereum chain
+    ///        currently known on the Ethereum chain.
     /// @param walletMembersIDs Identifiers of the source wallet signing group
-    ///        members
+    ///        members.
     /// @param walletMemberIndex Position of the caller in the source wallet
-    ///        signing group members list
+    ///        signing group members list.
     /// @param targetWallets List of 20-byte public key hashes of the target
-    ///        wallets that the source wallet commits to move the funds to
+    ///        wallets that the source wallet commits to move the funds to.
     /// @dev Requirements:
-    ///      - The source wallet must be in the MovingFunds state
-    ///      - The source wallet must not have pending redemption requests
-    ///      - The source wallet must not have pending moved funds sweep requests
-    ///      - The source wallet must not have submitted its commitment already
+    ///      - The source wallet must be in the MovingFunds state,
+    ///      - The source wallet must not have pending redemption requests,
+    ///      - The source wallet must not have pending moved funds sweep requests,
+    ///      - The source wallet must not have submitted its commitment already,
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given source wallet in the ECDSA registry. Those IDs are
     ///        not directly stored in the contract for gas efficiency purposes
     ///        but they can be read from appropriate `DkgResultSubmitted`
-    ///        and `DkgResultApproved` events.
-    ///      - The `walletMemberIndex` must be in range [1, walletMembersIDs.length]
+    ///        and `DkgResultApproved` events,
+    ///      - The `walletMemberIndex` must be in range [1, walletMembersIDs.length],
     ///      - The caller must be the member of the source wallet signing group
-    ///        at the position indicated by `walletMemberIndex` parameter
+    ///        at the position indicated by `walletMemberIndex` parameter,
     ///      - The `walletMainUtxo` components must point to the recent main
     ///        UTXO of the source wallet, as currently known on the Ethereum
-    ///        chain.
-    ///      - Source wallet BTC balance must be greater than zero
-    ///      - At least one Live wallet must exist in the system
+    ///        chain,
+    ///      - Source wallet BTC balance must be greater than zero,
+    ///      - At least one Live wallet must exist in the system,
     ///      - Submitted target wallets count must match the expected count
     ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
-    ///        where `N > 0`
-    ///      - Each target wallet must be not equal to the source wallet
+    ///        where `N > 0`,
+    ///      - Each target wallet must be not equal to the source wallet,
     ///      - Each target wallet must follow the expected order i.e. all
     ///        target wallets 20-byte public key hashes represented as numbers
-    ///        must form a strictly increasing sequence without duplicates.
-    ///      - Each target wallet must be in Live state
+    ///        must form a strictly increasing sequence without duplicates,
+    ///      - Each target wallet must be in Live state.
     function submitMovingFundsCommitment(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
@@ -265,11 +265,11 @@ library MovingFunds {
     ///         of live wallets in the system.
     /// @param walletPubKeyHash 20-byte public key hash of the moving funds wallet
     /// @dev Requirements:
-    ///      - The wallet must be in the MovingFunds state
+    ///      - The wallet must be in the MovingFunds state,
     ///      - The target wallets commitment must not be already submitted for
-    ///        the given moving funds wallet
-    ///      - Live wallets count must be zero
-    ///      - The moving funds timeout reset delay must be elapsed
+    ///        the given moving funds wallet,
+    ///      - Live wallets count must be zero,
+    ///      - The moving funds timeout reset delay must be elapsed.
     function resetMovingFundsTimeout(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -319,37 +319,37 @@ library MovingFunds {
     ///
     ///         It is possible to prove the given moving funds transaction only
     ///         one time.
-    /// @param movingFundsTx Bitcoin moving funds transaction data
-    /// @param movingFundsProof Bitcoin moving funds proof data
+    /// @param movingFundsTx Bitcoin moving funds transaction data.
+    /// @param movingFundsProof Bitcoin moving funds proof data.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
-    ///        the Ethereum chain
+    ///        the Ethereum chain.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
     ///        HASH160 over the compressed ECDSA public key) of the wallet
-    ///        which performed the moving funds transaction
+    ///        which performed the moving funds transaction.
     /// @dev Requirements:
     ///      - `movingFundsTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
-    ///        a provable transaction hash.
+    ///        a provable transaction hash,
     ///      - The `movingFundsTx` should represent a Bitcoin transaction with
     ///        exactly 1 input that refers to the wallet's main UTXO. That
     ///        transaction should have 1..n outputs corresponding to the
     ///        pre-committed target wallets. Outputs must be ordered in the
     ///        same way as their corresponding target wallets are ordered
-    ///        within the target wallets commitment.
+    ///        within the target wallets commitment,
     ///      - `movingFundsProof` components must match the expected structure.
     ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
-    ///        than the `txProofDifficultyFactor` contract constant.
+    ///        than the `txProofDifficultyFactor` contract constant,
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
-    ///        Additionally, the recent main UTXO on Ethereum must be set.
+    ///        Additionally, the recent main UTXO on Ethereum must be set,
     ///      - `walletPubKeyHash` must be connected with the main UTXO used
-    ///        as transaction single input.
+    ///        as transaction single input,
     ///      - The wallet that `walletPubKeyHash` points to must be in the
-    ///        MovingFunds state.
+    ///        MovingFunds state,
     ///      - The target wallets commitment must be submitted by the wallet
-    ///        that `walletPubKeyHash` points to.
+    ///        that `walletPubKeyHash` points to,
     ///      - The total Bitcoin transaction fee must be lesser or equal
     ///        to `movingFundsTxMaxTotalFee` governable parameter.
     function submitMovingFundsProof(
@@ -408,8 +408,8 @@ library MovingFunds {
     /// @return outputsTotalValue Sum of all outputs values.
     /// @dev Requirements:
     ///      - The `movingFundsTxOutputVector` must be parseable, i.e. must
-    ///        be validated by the caller as stated in their parameter doc.
-    ///      - Each output must refer to a 20-byte public key hash.
+    ///        be validated by the caller as stated in their parameter doc,
+    ///      - Each output must refer to a 20-byte public key hash,
     ///      - The total outputs value must be evenly divided over all outputs.
     function processMovingFundsTxOutputs(
         BridgeState.Storage storage self,
@@ -532,17 +532,17 @@ library MovingFunds {
 
     /// @notice Notifies about a timed out moving funds process. Terminates
     ///         the wallet and slashes signing group members as a result.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
-    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
     /// @dev Requirements:
-    ///      - The wallet must be in the MovingFunds state
-    ///      - The moving funds timeout must be actually exceeded
+    ///      - The wallet must be in the MovingFunds state,
+    ///      - The moving funds timeout must be actually exceeded,
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events of the `WalletRegistry` contract
+    ///        events of the `WalletRegistry` contract.
     function notifyMovingFundsTimeout(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
@@ -581,16 +581,16 @@ library MovingFunds {
     /// @notice Notifies about a moving funds wallet whose BTC balance is
     ///         below the moving funds dust threshold. Ends the moving funds
     ///         process and begins wallet closing immediately.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known
     ///        on the Ethereum chain.
     /// @dev Requirements:
-    ///      - The wallet must be in the MovingFunds state
+    ///      - The wallet must be in the MovingFunds state,
     ///      - The `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
     ///        If the wallet has no main UTXO, this parameter can be empty as it
-    ///        is ignored.
-    ///      - The wallet BTC balance must be below the moving funds threshold
+    ///        is ignored,
+    ///      - The wallet BTC balance must be below the moving funds threshold.
     function notifyMovingFundsBelowDust(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
@@ -635,29 +635,29 @@ library MovingFunds {
     ///
     ///         It is possible to prove the given sweep transaction only
     ///         one time.
-    /// @param sweepTx Bitcoin sweep funds transaction data
-    /// @param sweepProof Bitcoin sweep funds proof data
+    /// @param sweepTx Bitcoin sweep funds transaction data.
+    /// @param sweepProof Bitcoin sweep funds proof data.
     /// @param mainUtxo Data of the sweeping wallet's main UTXO, as currently
-    ///        known on the Ethereum chain
+    ///        known on the Ethereum chain.
     /// @dev Requirements:
     ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
-    ///        a provable transaction hash.
+    ///        a provable transaction hash,
     ///      - The `sweepTx` should represent a Bitcoin transaction with
     ///        the first input pointing to a wallet's sweep Pending request and,
     ///        optionally, the second input pointing to the wallet's main UTXO,
     ///        if the sweeping wallet has a main UTXO set. There should be only
     ///        one output locking funds on the sweeping wallet 20-byte public
-    ///        key hash.
+    ///        key hash,
     ///      - `sweepProof` components must match the expected structure.
     ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
-    ///        than the `txProofDifficultyFactor` contract constant.
+    ///        than the `txProofDifficultyFactor` contract constant,
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the sweeping wallet, as currently known on the Ethereum chain.
-    ///        If there is no main UTXO, this parameter is ignored.
-    ///      - The sweeping wallet must be in the Live or MovingFunds state.
+    ///        If there is no main UTXO, this parameter is ignored,
+    ///      - The sweeping wallet must be in the Live or MovingFunds state,
     ///      - The total Bitcoin transaction fee must be lesser or equal
     ///        to `movedFundsSweepTxMaxTotalFee` governable parameter.
     function submitMovedFundsSweepProof(
@@ -714,13 +714,13 @@ library MovingFunds {
     ///        vector.
     ///        This function assumes vector's structure is valid so it must be
     ///        validated using e.g. `BTCUtils.validateVout` function before
-    ///        it is passed here
+    ///        it is passed here.
     /// @return walletPubKeyHash 20-byte wallet public key hash.
     /// @return value 8-byte moved funds sweep transaction output value.
     /// @dev Requirements:
-    ///      - Output vector must contain only one output
+    ///      - Output vector must contain only one output,
     ///      - The single output must be of P2PKH or P2WPKH type and lock the
-    ///        funds on a 20-byte public key hash
+    ///        funds on a 20-byte public key hash.
     function processMovedFundsSweepTxOutput(
         BridgeState.Storage storage self,
         bytes memory sweepTxOutputVector
@@ -754,14 +754,14 @@ library MovingFunds {
     ///        Bitcoin transaction.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
-    ///        this parameter is ignored
+    ///        this parameter is ignored.
     /// @return wallet Data of the sweeping wallet.
     /// @return resolvedMainUtxo The actual main UTXO of the sweeping wallet
     ///         resolved by cross-checking the `mainUtxo` parameter with
     ///         the chain state. If the validation went well, this is the
     ///         plain-text main UTXO corresponding to the `wallet.mainUtxoHash`.
     /// @dev Requirements:
-    ///     - Sweeping wallet must be either in Live or MovingFunds state.
+    ///     - Sweeping wallet must be either in Live or MovingFunds state,
     ///     - If the main UTXO of the sweeping wallet exists in the storage,
     ///       the passed `mainUTXO` parameter must be equal to the stored one.
     function resolveMovedFundsSweepingWallet(
@@ -816,19 +816,19 @@ library MovingFunds {
     /// @param sweepTxInputVector Bitcoin moved funds sweep transaction input vector.
     ///        This function assumes vector's structure is valid so it must be
     ///        validated using e.g. `BTCUtils.validateVin` function before
-    ///        it is passed here
+    ///        it is passed here.
     /// @param mainUtxo Data of the sweeping wallet's main UTXO. If no main UTXO
     ///        exists for the given the wallet, this parameter's fields should
-    ///        be zeroed to bypass the main UTXO validation
-    /// @param walletPubKeyHash 20-byte public key hash of the sweeping wallet
+    ///        be zeroed to bypass the main UTXO validation.
+    /// @param walletPubKeyHash 20-byte public key hash of the sweeping wallet.
     /// @return inputsTotalValue Total inputs value sum.
     /// @dev Requirements:
     ///      - The input vector must consist of one mandatory and one optional
-    ///        input.
-    ///      - The mandatory input must be the first input in the vector
+    ///        input,
+    ///      - The mandatory input must be the first input in the vector,
     ///      - The mandatory input must point to a Pending moved funds sweep
-    ///        request that is targeted to the sweeping wallet
-    ///      - The optional output must be the second input in the vector
+    ///        request that is targeted to the sweeping wallet,
+    ///      - The optional output must be the second input in the vector,
     ///      - The optional input is required if the sweeping wallet has a
     ///        main UTXO (i.e. the `mainUtxo` is not zeroed). In that case,
     ///        that input must point the the sweeping wallet main UTXO.
@@ -965,8 +965,8 @@ library MovingFunds {
     }
 
     /// @notice Parses a Bitcoin transaction input starting at the given index.
-    /// @param inputVector Bitcoin transaction input vector
-    /// @param inputStartingIndex Index the given input starts at
+    /// @param inputVector Bitcoin transaction input vector.
+    /// @param inputStartingIndex Index the given input starts at.
     /// @return outpointTxHash 32-byte hash of the Bitcoin transaction which is
     ///         pointed in the given input's outpoint.
     /// @return outpointIndex 4-byte index of the Bitcoin transaction output
@@ -1003,21 +1003,21 @@ library MovingFunds {
     ///         the wallet and slashes signing group members as a result.
     ///         Marks the given sweep request as TimedOut.
     /// @param movingFundsTxHash 32-byte hash of the moving funds transaction
-    ///        that caused the sweep request to be created
+    ///        that caused the sweep request to be created.
     /// @param movingFundsTxOutputIndex Index of the moving funds transaction
     ///        output that is subject of the sweep request.
-    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
     /// @dev Requirements:
-    ///      - The moved funds sweep request must be in the Pending state
-    ///      - The moved funds sweep timeout must be actually exceeded
+    ///      - The moved funds sweep request must be in the Pending state,
+    ///      - The moved funds sweep timeout must be actually exceeded,
     ///      - The wallet must be either in the Live or MovingFunds or
-    ///        Terminated state
+    ///        Terminated state,,
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events of the `WalletRegistry` contract
+    ///        events of the `WalletRegistry` contract.
     function notifyMovedFundsSweepTimeout(
         BridgeState.Storage storage self,
         bytes32 movingFundsTxHash,

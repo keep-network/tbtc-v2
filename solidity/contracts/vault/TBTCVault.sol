@@ -61,9 +61,9 @@ contract TBTCVault is IVault, Governable {
 
     /// @notice Allows the governance of the TBTCVault to recover any ERC20
     ///         token sent mistakenly to the TBTC token contract address.
-    /// @param token Address of the recovered ERC20 token contract
-    /// @param recipient Address the recovered token should be sent to
-    /// @param amount Recovered amount
+    /// @param token Address of the recovered ERC20 token contract.
+    /// @param recipient Address the recovered token should be sent to.
+    /// @param amount Recovered amount.
     function recoverERC20(
         IERC20 token,
         address recipient,
@@ -74,10 +74,10 @@ contract TBTCVault is IVault, Governable {
 
     /// @notice Allows the governance of the TBTCVault to recover any ERC721
     ///         token sent mistakenly to the TBTC token contract address.
-    /// @param token Address of the recovered ERC721 token contract
-    /// @param recipient Address the recovered token should be sent to
-    /// @param tokenId Identifier of the recovered token
-    /// @param data Additional data
+    /// @param token Address of the recovered ERC721 token contract.
+    /// @param recipient Address the recovered token should be sent to.
+    /// @param tokenId Identifier of the recovered token.
+    /// @param data Additional data.
     function recoverERC721(
         IERC721 token,
         address recipient,
@@ -91,7 +91,7 @@ contract TBTCVault is IVault, Governable {
     ///         to TBTC Vault, and mints `amount` of TBTC to the caller.
     /// @dev TBTC Vault must have an allowance for caller's balance in the Bank
     ///      for at least `amount`.
-    /// @param amount Amount of TBTC to mint
+    /// @param amount Amount of TBTC to mint.
     function mint(uint256 amount) external {
         address minter = msg.sender;
         require(
@@ -105,8 +105,8 @@ contract TBTCVault is IVault, Governable {
     /// @notice Transfers the given `amount` of the Bank balance from the caller
     ///         to TBTC Vault and mints `amount` of TBTC to the caller.
     /// @dev Can only be called by the Bank via `approveBalanceAndCall`.
-    /// @param owner The owner who approved their Bank balance
-    /// @param amount Amount of TBTC to mint
+    /// @param owner The owner who approved their Bank balance.
+    /// @param amount Amount of TBTC to mint.
     function receiveBalanceApproval(address owner, uint256 amount)
         external
         override
@@ -140,7 +140,7 @@ contract TBTCVault is IVault, Governable {
     ///         `amount` back to the caller's balance in the Bank.
     /// @dev Caller must have at least `amount` of TBTC approved to
     ///       TBTC Vault.
-    /// @param amount Amount of TBTC to redeem
+    /// @param amount Amount of TBTC to redeem.
     function redeem(uint256 amount) external {
         _redeem(msg.sender, amount);
     }
@@ -150,9 +150,9 @@ contract TBTCVault is IVault, Governable {
     /// @dev This function is doing the same as `redeem` but it allows to
     ///      execute redemption without an additional approval transaction.
     ///      The function can be called only via `approveAndCall` of TBTC token.
-    /// @param from TBTC token holder executing redemption
-    /// @param amount Amount of TBTC to redeem
-    /// @param token TBTC token address
+    /// @param from TBTC token holder executing redemption.
+    /// @param amount Amount of TBTC to redeem.
+    /// @param token TBTC token address.
     function receiveApproval(
         address from,
         uint256 amount,
