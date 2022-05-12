@@ -49,10 +49,10 @@ contract DonationVault is IVault {
     /// @notice Transfers the given `amount` of the Bank balance from the
     ///         caller to the Donation Vault and immediately decreases the
     ///         vault's balance in the Bank by the transferred `amount`.
-    /// @param amount Amount of the Bank balance to donate
+    /// @param amount Amount of the Bank balance to donate.
     /// @dev Requirements:
     ///      - The caller's balance in the Bank must be greater than or equal
-    ///        to the `amount`.
+    ///        to the `amount`,
     ///      - Donation Vault must have an allowance for caller's balance in
     ///        the Bank for at least `amount`.
     function donate(uint256 amount) external {
@@ -73,11 +73,11 @@ contract DonationVault is IVault {
     ///         `owner` to the Donation Vault and immediately decreases the
     ///         vault's balance in the Bank by the transferred `amount`.
     /// @param owner Address of the Bank balance owner who approved their
-    ///        balance to be used by the vault
+    ///        balance to be used by the vault.
     /// @param amount The amount of the Bank balance approved by the owner
-    ///        to be used by the vault
+    ///        to be used by the vault.
     /// @dev Requirements:
-    ///      - Can only be called by the Bank via `approveBalanceAndCall`.
+    ///      - Can only be called by the Bank via `approveBalanceAndCall`,
     ///      - The `owner` balance in the Bank must be greater than or equal
     ///        to the `amount`.
     function receiveBalanceApproval(address owner, uint256 amount)
@@ -99,13 +99,13 @@ contract DonationVault is IVault {
     /// @notice Ignores the deposited amounts and does not increase depositors'
     ///         individual balances. The vault decreases its own tBTC balance
     ///         in the Bank by the total deposited amount.
-    /// @param depositors Addresses of depositors whose deposits have been swept
+    /// @param depositors Addresses of depositors whose deposits have been swept.
     /// @param depositedAmounts Amounts deposited by individual depositors and
-    ///        swept
+    ///        swept.
     /// @dev Requirements:
     ///      - Can only be called by the Bank after the Bridge swept deposits
-    ///        and Bank increased balance for the vault.
-    ///      - The `depositors` array must not be empty.
+    ///        and Bank increased balance for the vault,
+    ///      - The `depositors` array must not be empty,
     ///      - The `depositors` array length must be equal to the
     ///        `depositedAmounts` array length.
     function receiveBalanceIncrease(
