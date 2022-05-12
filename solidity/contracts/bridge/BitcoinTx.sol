@@ -278,49 +278,74 @@ library BitcoinTx {
 
         pubKeyHash = pubKeyHashBytes.slice20(0);
 
-        // We need to make sure that the 20-byte public key hash
-        // is actually used in the right context of a P2PKH or P2WPKH
-        // output. To do so, we must extract the full script from the output
-        // and compare with the expected P2PKH and P2WPKH scripts
-        // referring to that 20-byte public key hash. The output consists
-        // of an 8-byte value and a variable length script. To extract the
-        // script we slice the output starting from 9th byte until the end.
-        bytes32 outputScriptKeccak = keccak256(
-            output.slice(8, output.length - 8)
-        );
-        // Build the expected P2PKH script which has the following byte
-        // format: <0x1976a914> <20-byte PKH> <0x88ac>. According to
-        // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-        // - 0x19: Byte length of the entire script
-        // - 0x76: OP_DUP
-        // - 0xa9: OP_HASH160
-        // - 0x14: Byte length of the public key hash
-        // - 0x88: OP_EQUALVERIFY
-        // - 0xac: OP_CHECKSIG
-        // which matches the P2PKH structure as per:
-        // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
-        bytes32 P2PKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"1976a914", pubKeyHash, hex"88ac")
-        );
-        // Build the expected P2WPKH script which has the following format:
-        // <0x160014> <20-byte PKH>. According to
-        // https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
-        // - 0x16: Byte length of the entire script
-        // - 0x00: OP_0
-        // - 0x14: Byte length of the public key hash
-        // which matches the P2WPKH structure as per:
-        // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
-        bytes32 P2WPKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"160014", pubKeyHash)
-        );
-        // Make sure the actual output script matches either the P2PKH
-        // or P2WPKH format.
+        uint256 scriptLen = output.length - 8;
+
+        // The P2PKH script is 26 bytes long.
+        // The P2WPKH script is 23 bytes long.
+        // A valid script must have one of these lengths,
+        // and we can identify the expected script type by the length.
         require(
-            outputScriptKeccak == P2PKHScriptKeccak ||
-                outputScriptKeccak == P2WPKHScriptKeccak,
+            scriptLen == 26 || scriptLen == 23,
             "Output must be P2PKH or P2WPKH"
         );
 
+        if (scriptLen == 26) {
+            // Compare to the expected P2PKH script.
+            bytes26 script = bytes26(output.slice32(8));
+
+            require (
+                script == makeP2PKHScript(pubKeyHash),
+                "Invalid P2PKH script"
+            );
+        }
+        
+        if (scriptLen == 23) {
+            // Compare to the expected P2WPKH script.
+            bytes23 script = bytes23(output.slice32(8));
+
+            require (
+                script == makeP2WPKHScript(pubKeyHash),
+                "Invalid P2WPKH script"
+            );            
+        }
+
         return pubKeyHash;
+    }
+
+    /// @notice Build the P2PKH script from the given public key hash.
+    /// @param pubKeyHash The 20-byte public key hash
+    /// @return The P2PKH script
+    /// @dev The P2PKH script has the following byte format:
+    ///      <0x1976a914> <20-byte PKH> <0x88ac>. According to
+    ///      https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+    ///      - 0x19: Byte length of the entire script
+    ///      - 0x76: OP_DUP
+    ///      - 0xa9: OP_HASH160
+    ///      - 0x14: Byte length of the public key hash
+    ///      - 0x88: OP_EQUALVERIFY
+    ///      - 0xac: OP_CHECKSIG
+    ///      which matches the P2PKH structure as per:
+    ///      https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
+    function makeP2PKHScript(bytes20 pubKeyHash) internal pure returns (bytes26) {
+        bytes26 P2PKHScriptMask = hex"1976a914000000000000000000000000000000000000000088ac";
+
+        return ((bytes26(pubKeyHash) >> 32) | P2PKHScriptMask);
+    }
+
+    /// @notice Build the P2WPKH script from the given public key hash.
+    /// @param pubKeyHash The 20-byte public key hash
+    /// @return The P2WPKH script
+    /// @dev The P2WPKH script has the following format:
+    ///      <0x160014> <20-byte PKH>. According to
+    ///      https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
+    ///      - 0x16: Byte length of the entire script
+    ///      - 0x00: OP_0
+    ///      - 0x14: Byte length of the public key hash
+    ///      which matches the P2WPKH structure as per:
+    ///      https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
+    function makeP2WPKHScript(bytes20 pubKeyHash) internal pure returns (bytes23) {
+        bytes23 P2WPKHScriptMask = hex"1600140000000000000000000000000000000000000000";
+
+        return ((bytes23(pubKeyHash) >> 24) | P2WPKHScriptMask);
     }
 }
