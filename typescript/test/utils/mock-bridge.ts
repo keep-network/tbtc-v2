@@ -17,23 +17,23 @@ interface BridgeLog {
  */
 export class MockBridge implements Bridge {
   private _difficultyFactor = 6
-  private _sweepProofLog: BridgeLog[] = []
   private _pendingRedemptions = new Map<BigNumberish, PendingRedemption>()
+  private _depositSweepProofLog: BridgeLog[] = []
 
   set pendingRedemptions(value: Map<BigNumberish, PendingRedemption>) {
     this._pendingRedemptions = value
   }
 
-  get sweepProofLog(): BridgeLog[] {
-    return this._sweepProofLog
+  get depositSweepProofLog(): BridgeLog[] {
+    return this._depositSweepProofLog
   }
 
-  submitSweepProof(
+  submitDepositSweepProof(
     sweepTx: DecomposedRawTransaction,
     sweepProof: Proof,
     mainUtxo: UnspentTransactionOutput
   ): Promise<void> {
-    this._sweepProofLog.push({ sweepTx, sweepProof, mainUtxo })
+    this._depositSweepProofLog.push({ sweepTx, sweepProof, mainUtxo })
     return new Promise<void>((resolve, _) => {
       resolve()
     })

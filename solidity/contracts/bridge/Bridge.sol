@@ -58,9 +58,6 @@ import "../bank/Bank.sol";
 /// @dev Bridge is an upgradeable component of the Bank. The order of
 ///      functionalities in this contract is: deposit, sweep, redemption,
 ///      moving funds, wallet lifecycle, frauds, parameters.
-///
-/// TODO: Align the convention around `param` and `dev` endings. They should
-///       not have a punctuation mark.
 contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
@@ -225,14 +222,14 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     );
 
     /// @dev Initializes upgradable contract on deployment.
-    /// @param _bank Address of the Bank the Bridge belongs to
+    /// @param _bank Address of the Bank the Bridge belongs to.
     /// @param _relay Address of the Bitcoin relay providing the current Bitcoin
-    ///        network difficulty
+    ///        network difficulty.
     /// @param _treasury Address where the deposit and redemption treasury fees
-    ///        will be sent to
-    /// @param _ecdsaWalletRegistry Address of the ECDSA Wallet Registry contract
+    ///        will be sent to.
+    /// @param _ecdsaWalletRegistry Address of the ECDSA Wallet Registry contract.
     /// @param _txProofDifficultyFactor The number of confirmations on the Bitcoin
-    ///        chain required to successfully evaluate an SPV proof
+    ///        chain required to successfully evaluate an SPV proof.
     function initialize(
         address _bank,
         address _relay,
@@ -302,13 +299,13 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         outputs. The deposit may be routed to one of the trusted vaults.
     ///         When a deposit is routed to a vault, vault gets notified when
     ///         the deposit gets swept and it may execute the appropriate action.
-    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`
-    /// @param reveal Deposit reveal data, see `RevealInfo struct
+    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`.
+    /// @param reveal Deposit reveal data, see `RevealInfo struct.
     /// @dev Requirements:
-    ///      - `reveal.walletPubKeyHash` must identify a `Live` wallet
-    ///      - `reveal.vault` must be 0x0 or point to a trusted vault
+    ///      - `reveal.walletPubKeyHash` must identify a `Live` wallet,
+    ///      - `reveal.vault` must be 0x0 or point to a trusted vault,
     ///      - `reveal.fundingOutputIndex` must point to the actual P2(W)SH
-    ///        output of the BTC deposit transaction
+    ///        output of the BTC deposit transaction,
     ///      - `reveal.depositor` must be the Ethereum address used in the
     ///        P2(W)SH BTC deposit transaction,
     ///      - `reveal.blindingFactor` must be the blinding factor used in the
@@ -343,11 +340,11 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         during the reveal transaction, minus their fee share.
     ///
     ///         It is possible to prove the given sweep only one time.
-    /// @param sweepTx Bitcoin sweep transaction data
-    /// @param sweepProof Bitcoin sweep proof data
+    /// @param sweepTx Bitcoin sweep transaction data.
+    /// @param sweepProof Bitcoin sweep proof data.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
-    ///        this parameter is ignored
+    ///        this parameter is ignored.
     /// @param vault Optional address of the vault where all swept deposits
     ///        should be routed to. All deposits swept as part of the transaction
     ///        must have their `vault` parameters set to the same address.
@@ -361,7 +358,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
-    ///        a provable transaction hash.
+    ///        a provable transaction hash,
     ///      - The `sweepTx` should represent a Bitcoin transaction with 1..n
     ///        inputs. If the wallet has no main UTXO, all n inputs should
     ///        correspond to P2(W)SH revealed deposits UTXOs. If the wallet has
@@ -369,14 +366,14 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        main UTXO and remaining n-1 inputs should correspond to P2(W)SH
     ///        revealed deposits UTXOs. That transaction must have only
     ///        one P2(W)PKH output locking funds on the 20-byte wallet public
-    ///        key hash.
+    ///        key hash,
     ///      - All revealed deposits that are swept by `sweepTx` must have
     ///        their `vault` parameters set to the same address as the address
-    ///        passed in the `vault` function parameter.
+    ///        passed in the `vault` function parameter,
     ///      - `sweepProof` components must match the expected structure. See
     ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
-    ///        than the `txProofDifficultyFactor` contract constant.
+    ///        than the `txProofDifficultyFactor` contract constant,
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
     ///        If there is no main UTXO, this parameter is ignored.
@@ -392,12 +389,12 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @notice Requests redemption of the given amount from the specified
     ///         wallet to the redeemer Bitcoin output script.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
-    ///        using Bitcoin HASH160 over the compressed ECDSA public key)
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key).
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
-    ///        the Ethereum chain
+    ///        the Ethereum chain.
     /// @param redeemerOutputScript The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
-    ///        redeemed BTC
+    ///        redeemed BTC.
     /// @param amount Requested amount in satoshi. This is also the TBTC amount
     ///        that is taken from redeemer's balance in the Bank upon request.
     ///        Once the request is handled, the actual amount of BTC locked
@@ -407,15 +404,15 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        `amount - (amount / redemptionTreasuryFeeDivisor) - redemptionTxMaxFee`.
     ///        Fees values are taken at the moment of request creation.
     /// @dev Requirements:
-    ///      - Wallet behind `walletPubKeyHash` must be live
+    ///      - Wallet behind `walletPubKeyHash` must be live,
     ///      - `mainUtxo` components must point to the recent main UTXO
-    ///        of the given wallet, as currently known on the Ethereum chain.
-    ///      - `redeemerOutputScript` must be a proper Bitcoin script
-    ///      - `redeemerOutputScript` cannot have wallet PKH as payload
-    ///      - `amount` must be above or equal the `redemptionDustThreshold`
+    ///        of the given wallet, as currently known on the Ethereum chain,
+    ///      - `redeemerOutputScript` must be a proper Bitcoin script,
+    ///      - `redeemerOutputScript` cannot have wallet PKH as payload,
+    ///      - `amount` must be above or equal the `redemptionDustThreshold`,
     ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
-    ///        used for only one pending request at the same time
-    ///      - Wallet must have enough Bitcoin balance to proceed the request
+    ///        used for only one pending request at the same time,
+    ///      - Wallet must have enough Bitcoin balance to proceed the request,
     ///      - Redeemer must make an allowance in the Bank that the Bridge
     ///        contract can spend the given `amount`.
     function requestRedemption(
@@ -441,18 +438,18 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         transferring the treasury fee sum to the treasury address.
     ///
     ///         It is possible to prove the given redemption only one time.
-    /// @param redemptionTx Bitcoin redemption transaction data
-    /// @param redemptionProof Bitcoin redemption proof data
+    /// @param redemptionTx Bitcoin redemption transaction data.
+    /// @param redemptionProof Bitcoin redemption proof data.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
-    ///        the Ethereum chain
+    ///        the Ethereum chain.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
     ///        HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the redemption transaction
+    ///        performed the redemption transaction.
     /// @dev Requirements:
     ///      - `redemptionTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
-    ///        a provable transaction hash.
+    ///        a provable transaction hash,
     ///      - The `redemptionTx` should represent a Bitcoin transaction with
     ///        exactly 1 input that refers to the wallet's main UTXO. That
     ///        transaction should have 1..n outputs handling existing pending
@@ -460,14 +457,14 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        There can be also 1 optional output representing the
     ///        change and pointing back to the 20-byte wallet public key hash.
     ///        The change should be always present if the redeemed value sum
-    ///        is lower than the total wallet's BTC balance.
+    ///        is lower than the total wallet's BTC balance,
     ///      - `redemptionProof` components must match the expected structure.
     ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
-    ///        than the `txProofDifficultyFactor` contract constant.
+    ///        than the `txProofDifficultyFactor` contract constant,
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
-    ///        Additionally, the recent main UTXO on Ethereum must be set.
+    ///        Additionally, the recent main UTXO on Ethereum must be set,
     ///      - `walletPubKeyHash` must be connected with the main UTXO used
     ///        as transaction single input.
     ///      Other remarks:
@@ -495,36 +492,36 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         request is identified by the key built as
     ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
     ///         The results of calling this function:
-    ///         - the pending redemptions value for the wallet will be decreased
+    ///         - The pending redemptions value for the wallet will be decreased
     ///           by the requested amount (minus treasury fee),
-    ///         - the tokens taken from the redeemer on redemption request will
+    ///         - The tokens taken from the redeemer on redemption request will
     ///           be returned to the redeemer,
-    ///         - the request will be moved from pending redemptions to
+    ///         - The request will be moved from pending redemptions to
     ///           timed-out redemptions,
-    ///         - if the state of the wallet is `Live` or `MovingFunds`, the
+    ///         - If the state of the wallet is `Live` or `MovingFunds`, the
     ///           wallet operators will be slashed and the notifier will be
     ///           rewarded,
-    ///         - if the state of wallet is `Live`, the wallet will be closed or
+    ///         - If the state of wallet is `Live`, the wallet will be closed or
     ///           marked as `MovingFunds` (depending on the presence or absence
     ///           of the wallet's main UTXO) and the wallet will no longer be
     ///           marked as the active wallet (if it was marked as such).
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
-    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
     /// @param redeemerOutputScript  The redeemer's length-prefixed output
-    ///        script (P2PKH, P2WPKH, P2SH or P2WSH)
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH).
     /// @dev Requirements:
-    ///      - The wallet must be in the Live or MovingFunds or Terminated state
+    ///      - The wallet must be in the Live or MovingFunds or Terminated state,
     ///      - The redemption request identified by `walletPubKeyHash` and
-    ///        `redeemerOutputScript` must exist
+    ///        `redeemerOutputScript` must exist,
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events of the `WalletRegistry` contract
+    ///        events of the `WalletRegistry` contract,
     ///      - The amount of time defined by `redemptionTimeout` must have
     ///        passed since the redemption was requested (the request must be
-    ///        timed-out)
+    ///        timed-out).
     function notifyRedemptionTimeout(
         bytes20 walletPubKeyHash,
         uint32[] calldata walletMembersIDs,
@@ -541,42 +538,42 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         Once all requirements are met, that function registers the
     ///         target wallets commitment and opens the way for moving funds
     ///         proof submission.
-    /// @param walletPubKeyHash 20-byte public key hash of the source wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the source wallet.
     /// @param walletMainUtxo Data of the source wallet's main UTXO, as
-    ///        currently known on the Ethereum chain
+    ///        currently known on the Ethereum chain.
     /// @param walletMembersIDs Identifiers of the source wallet signing group
-    ///        members
+    ///        members.
     /// @param walletMemberIndex Position of the caller in the source wallet
-    ///        signing group members list
+    ///        signing group members list.
     /// @param targetWallets List of 20-byte public key hashes of the target
-    ///        wallets that the source wallet commits to move the funds to
+    ///        wallets that the source wallet commits to move the funds to.
     /// @dev Requirements:
-    ///      - The source wallet must be in the MovingFunds state
-    ///      - The source wallet must not have pending redemption requests
-    ///      - The source wallet must not have pending moved funds sweep requests
-    ///      - The source wallet must not have submitted its commitment already
+    ///      - The source wallet must be in the MovingFunds state,
+    ///      - The source wallet must not have pending redemption requests,
+    ///      - The source wallet must not have pending moved funds sweep requests,
+    ///      - The source wallet must not have submitted its commitment already,
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given source wallet in the ECDSA registry. Those IDs are
     ///        not directly stored in the contract for gas efficiency purposes
     ///        but they can be read from appropriate `DkgResultSubmitted`
-    ///        and `DkgResultApproved` events.
-    ///      - The `walletMemberIndex` must be in range [1, walletMembersIDs.length]
+    ///        and `DkgResultApproved` events,
+    ///      - The `walletMemberIndex` must be in range [1, walletMembersIDs.length],
     ///      - The caller must be the member of the source wallet signing group
-    ///        at the position indicated by `walletMemberIndex` parameter
+    ///        at the position indicated by `walletMemberIndex` parameter,
     ///      - The `walletMainUtxo` components must point to the recent main
     ///        UTXO of the source wallet, as currently known on the Ethereum
-    ///        chain.
-    ///      - Source wallet BTC balance must be greater than zero
-    ///      - At least one Live wallet must exist in the system
+    ///        chain,
+    ///      - Source wallet BTC balance must be greater than zero,
+    ///      - At least one Live wallet must exist in the system,
     ///      - Submitted target wallets count must match the expected count
     ///        `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
-    ///        where `N > 0`
-    ///      - Each target wallet must be not equal to the source wallet
+    ///        where `N > 0`,
+    ///      - Each target wallet must be not equal to the source wallet,
     ///      - Each target wallet must follow the expected order i.e. all
     ///        target wallets 20-byte public key hashes represented as numbers
-    ///        must form a strictly increasing sequence without duplicates.
-    ///      - Each target wallet must be in Live state
+    ///        must form a strictly increasing sequence without duplicates,
+    ///      - Each target wallet must be in Live state.
     function submitMovingFundsCommitment(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo,
@@ -596,12 +593,12 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @notice Resets the moving funds timeout for the given wallet if the
     ///         target wallet commitment cannot be submitted due to a lack
     ///         of live wallets in the system.
-    /// @param walletPubKeyHash 20-byte public key hash of the moving funds wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the moving funds wallet.
     /// @dev Requirements:
-    ///      - The wallet must be in the MovingFunds state
+    ///      - The wallet must be in the MovingFunds state,
     ///      - The target wallets commitment must not be already submitted for
-    ///        the given moving funds wallet
-    ///      - Live wallets count must be zero
+    ///        the given moving funds wallet,
+    ///      - Live wallets count must be zero.
     function resetMovingFundsTimeout(bytes20 walletPubKeyHash) external {
         self.resetMovingFundsTimeout(walletPubKeyHash);
     }
@@ -618,37 +615,37 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///
     ///         It is possible to prove the given moving funds transaction only
     ///         one time.
-    /// @param movingFundsTx Bitcoin moving funds transaction data
-    /// @param movingFundsProof Bitcoin moving funds proof data
+    /// @param movingFundsTx Bitcoin moving funds transaction data.
+    /// @param movingFundsProof Bitcoin moving funds proof data.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
-    ///        the Ethereum chain
+    ///        the Ethereum chain.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
     ///        HASH160 over the compressed ECDSA public key) of the wallet
-    ///        which performed the moving funds transaction
+    ///        which performed the moving funds transaction.
     /// @dev Requirements:
     ///      - `movingFundsTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
-    ///        a provable transaction hash.
+    ///        a provable transaction hash,
     ///      - The `movingFundsTx` should represent a Bitcoin transaction with
     ///        exactly 1 input that refers to the wallet's main UTXO. That
     ///        transaction should have 1..n outputs corresponding to the
     ///        pre-committed target wallets. Outputs must be ordered in the
     ///        same way as their corresponding target wallets are ordered
-    ///        within the target wallets commitment.
+    ///        within the target wallets commitment,
     ///      - `movingFundsProof` components must match the expected structure.
     ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
-    ///        than the `txProofDifficultyFactor` contract constant.
+    ///        than the `txProofDifficultyFactor` contract constant,
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
-    ///        Additionally, the recent main UTXO on Ethereum must be set.
+    ///        Additionally, the recent main UTXO on Ethereum must be set,
     ///      - `walletPubKeyHash` must be connected with the main UTXO used
-    ///        as transaction single input.
+    ///        as transaction single input,
     ///      - The wallet that `walletPubKeyHash` points to must be in the
-    ///        MovingFunds state.
+    ///        MovingFunds state,
     ///      - The target wallets commitment must be submitted by the wallet
-    ///        that `walletPubKeyHash` points to.
+    ///        that `walletPubKeyHash` points to,
     ///      - The total Bitcoin transaction fee must be lesser or equal
     ///        to `movingFundsTxMaxTotalFee` governable parameter.
     function submitMovingFundsProof(
@@ -667,17 +664,17 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
 
     /// @notice Notifies about a timed out moving funds process. Terminates
     ///         the wallet and slashes signing group members as a result.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
-    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
     /// @dev Requirements:
-    ///      - The wallet must be in the MovingFunds state
-    ///      - The moving funds timeout must be actually exceeded
+    ///      - The wallet must be in the MovingFunds state,
+    ///      - The moving funds timeout must be actually exceeded,
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events of the `WalletRegistry` contract
+    ///        events of the `WalletRegistry` contract.
     function notifyMovingFundsTimeout(
         bytes20 walletPubKeyHash,
         uint32[] calldata walletMembersIDs
@@ -692,12 +689,12 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known
     ///        on the Ethereum chain.
     /// @dev Requirements:
-    ///      - The wallet must be in the MovingFunds state
+    ///      - The wallet must be in the MovingFunds state,
     ///      - The `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
     ///        If the wallet has no main UTXO, this parameter can be empty as it
-    ///        is ignored.
-    ///      - The wallet BTC balance must be below the moving funds threshold
+    ///        is ignored,
+    ///      - The wallet BTC balance must be below the moving funds threshold.
     function notifyMovingFundsBelowDust(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
@@ -719,29 +716,29 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///
     ///         It is possible to prove the given sweep transaction only
     ///         one time.
-    /// @param sweepTx Bitcoin sweep funds transaction data
-    /// @param sweepProof Bitcoin sweep funds proof data
+    /// @param sweepTx Bitcoin sweep funds transaction data.
+    /// @param sweepProof Bitcoin sweep funds proof data.
     /// @param mainUtxo Data of the sweeping wallet's main UTXO, as currently
-    ///        known on the Ethereum chain
+    ///        known on the Ethereum chain.
     /// @dev Requirements:
     ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
-    ///        a provable transaction hash.
+    ///        a provable transaction hash,
     ///      - The `sweepTx` should represent a Bitcoin transaction with
     ///        the first input pointing to a moved funds sweep request targeted
     ///        to the wallet, and optionally, the second input pointing to the
     ///        wallet's main UTXO, if the sweeping wallet has a main UTXO set.
     ///        There should be only one output locking funds on the sweeping
-    ///        wallet 20-byte public key hash.
+    ///        wallet 20-byte public key hash,
     ///      - `sweepProof` components must match the expected structure.
     ///        See `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
-    ///        than the `txProofDifficultyFactor` contract constant.
+    ///        than the `txProofDifficultyFactor` contract constant,
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the sweeping wallet, as currently known on the Ethereum chain.
-    ///        If there is no main UTXO, this parameter is ignored.
-    ///      - The sweeping wallet must be in the Live or MovingFunds state.
+    ///        If there is no main UTXO, this parameter is ignored,
+    ///      - The sweeping wallet must be in the Live or MovingFunds state,
     ///      - The total Bitcoin transaction fee must be lesser or equal
     ///        to `movedFundsSweepTxMaxTotalFee` governable parameter.
     function submitMovedFundsSweepProof(
@@ -757,21 +754,21 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         the wallet and slashes signing group members as a result.
     ///         Marks the given sweep request as TimedOut.
     /// @param movingFundsTxHash 32-byte hash of the moving funds transaction
-    ///        that caused the sweep request to be created
+    ///        that caused the sweep request to be created.
     /// @param movingFundsTxOutputIndex Index of the moving funds transaction
     ///        output that is subject of the sweep request.
-    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
     /// @dev Requirements:
-    ///      - The moved funds sweep request must be in the Pending state
-    ///      - The moved funds sweep timeout must be actually exceeded
+    ///      - The moved funds sweep request must be in the Pending state,
+    ///      - The moved funds sweep timeout must be actually exceeded,
     ///      - The wallet must be either in the Live or MovingFunds or
-    ///        Terminated state
+    ///        Terminated state,
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events of the `WalletRegistry` contract
+    ///        events of the `WalletRegistry` contract.
     function notifyMovedFundsSweepTimeout(
         bytes32 movingFundsTxHash,
         uint32 movingFundsTxOutputIndex,
@@ -796,14 +793,14 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        UTXO of the given active wallet, as currently known on the
     ///        Ethereum chain. If there is no active wallet at the moment, or
     ///        the active wallet has no main UTXO, this parameter can be
-    ///        empty as it is ignored.
-    ///      - Wallet creation must not be in progress
+    ///        empty as it is ignored,
+    ///      - Wallet creation must not be in progress,
     ///      - If the active wallet is set, one of the following
     ///        conditions must be true:
     ///        - The active wallet BTC balance is above the minimum threshold
     ///          and the active wallet is old enough, i.e. the creation period
-    ///          was elapsed since its creation time
-    ///        - The active wallet BTC balance is above the maximum threshold
+    ///          was elapsed since its creation time,
+    ///        - The active wallet BTC balance is above the maximum threshold.
     function requestNewWallet(BitcoinTx.UTXO calldata activeWalletMainUtxo)
         external
     {
@@ -816,8 +813,8 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @param publicKeyX Wallet's public key's X coordinate.
     /// @param publicKeyY Wallet's public key's Y coordinate.
     /// @dev Requirements:
-    ///      - The only caller authorized to call this function is `registry`
-    ///      - Given wallet data must not belong to an already registered wallet
+    ///      - The only caller authorized to call this function is `registry`,
+    ///      - Given wallet data must not belong to an already registered wallet.
     function __ecdsaWalletCreatedCallback(
         bytes32 ecdsaWalletID,
         bytes32 publicKeyX,
@@ -828,11 +825,11 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
 
     /// @notice A callback function that is called by the ECDSA Wallet Registry
     ///         once a wallet heartbeat failure is detected.
-    /// @param publicKeyX Wallet's public key's X coordinate
-    /// @param publicKeyY Wallet's public key's Y coordinate
+    /// @param publicKeyX Wallet's public key's X coordinate.
+    /// @param publicKeyY Wallet's public key's Y coordinate.
     /// @dev Requirements:
-    ///      - The only caller authorized to call this function is `registry`
-    ///      - Wallet must be in Live state
+    ///      - The only caller authorized to call this function is `registry`,
+    ///      - Wallet must be in Live state.
     function __ecdsaWalletHeartbeatFailedCallback(
         bytes32,
         bytes32 publicKeyX,
@@ -843,19 +840,19 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
 
     /// @notice Notifies that the wallet is either old enough or has too few
     ///         satoshi left and qualifies to be closed.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
     ///        known on the Ethereum chain.
     /// @dev Requirements:
-    ///      - Wallet must not be set as the current active wallet
+    ///      - Wallet must not be set as the current active wallet,
     ///      - Wallet must exceed the wallet maximum age OR the wallet BTC
     ///        balance must be lesser than the minimum threshold. If the latter
     ///        case is true, the `walletMainUtxo` components must point to the
     ///        recent main UTXO of the given wallet, as currently known on the
     ///        Ethereum chain. If the wallet has no main UTXO, this parameter
     ///        can be empty as it is ignored since the wallet balance is
-    ///        assumed to be zero.
-    ///      - Wallet must be in Live state
+    ///        assumed to be zero,
+    ///      - Wallet must be in Live state.
     function notifyCloseableWallet(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
@@ -866,10 +863,10 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @notice Notifies about the end of the closing period for the given wallet.
     ///         Closes the wallet ultimately and notifies the ECDSA registry
     ///         about this fact.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @dev Requirements:
-    ///      - The wallet must be in the Closing state
-    ///      - The wallet closing period must have elapsed
+    ///      - The wallet must be in the Closing state,
+    ///      - The wallet closing period must have elapsed.
     function notifyWalletClosingPeriodElapsed(bytes20 walletPubKeyHash)
         external
     {
@@ -892,7 +889,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         must deposit ETH that is returned back upon justified fraud
     ///         challenge or confiscated otherwise.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes)
+    ///        and unprefixed format (64 bytes).
     /// @param preimageSha256 The hash that was generated by applying SHA-256
     ///        one time over the preimage used during input signing. The preimage
     ///        is a serialized subset of the transaction and its structure
@@ -900,17 +897,17 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        Notice that applying SHA-256 over the `preimageSha256` results
     ///        in `sighash`.  The path from `preimage` to `sighash` looks like
     ///        this:
-    ///        preimage -> (SHA-256) -> preimageSha256 -> (SHA-256) -> sighash
-    /// @param signature Bitcoin signature in the R/S/V format
+    ///        preimage -> (SHA-256) -> preimageSha256 -> (SHA-256) -> sighash.
+    /// @param signature Bitcoin signature in the R/S/V format.
     /// @dev Requirements:
     ///      - Wallet behind `walletPublicKey` must be in Live or MovingFunds
-    ///        or Closing state
+    ///        or Closing state,
     ///      - The challenger must send appropriate amount of ETH used as
-    ///        fraud challenge deposit
+    ///        fraud challenge deposit,
     ///      - The signature (represented by r, s and v) must be generated by
     ///        the wallet behind `walletPubKey` during signing of `sighash`
-    ///        which was calculated from `preimageSha256`
-    ///      - Wallet can be challenged for the given signature only once
+    ///        which was calculated from `preimageSha256`,
+    ///      - Wallet can be challenged for the given signature only once.
     function submitFraudChallenge(
         bytes calldata walletPublicKey,
         bytes memory preimageSha256,
@@ -932,21 +929,21 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         resolved and the amount of ether deposited by the challenger is
     ///         sent to the treasury.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes)
+    ///        and unprefixed format (64 bytes).
     /// @param preimage The preimage which produces sighash used to generate the
     ///        ECDSA signature that is the subject of the fraud claim. It is a
     ///        serialized subset of the transaction. The exact subset used as
     ///        the preimage depends on the transaction input the signature is
-    ///        produced for. See BIP-143 for reference
+    ///        produced for. See BIP-143 for reference.
     /// @param witness Flag indicating whether the preimage was produced for a
-    ///        witness input. True for witness, false for non-witness input
+    ///        witness input. True for witness, false for non-witness input.
     /// @dev Requirements:
     ///      - `walletPublicKey` and `sighash` calculated as `hash256(preimage)`
-    ///        must identify an open fraud challenge
+    ///        must identify an open fraud challenge,
     ///      - the preimage must be a valid preimage of a transaction generated
-    ///        according to the protocol rules and already proved in the Bridge
+    ///        according to the protocol rules and already proved in the Bridge,
     ///      - before a defeat attempt is made the transaction that spends the
-    ///        given UTXO must be proven in the Bridge
+    ///        given UTXO must be proven in the Bridge.
     function defeatFraudChallenge(
         bytes calldata walletPublicKey,
         bytes calldata preimage,
@@ -967,16 +964,16 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         challenge is marked as resolved and the amount of ether
     ///         deposited by the challenger is sent to the treasury.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes)
+    ///        and unprefixed format (64 bytes).
     /// @param heartbeatMessage Off-chain heartbeat message meeting the heartbeat
     ///        message format requirements which produces sighash used to
     ///        generate the ECDSA signature that is the subject of the fraud
-    ///        claim
+    ///        claim.
     /// @dev Requirements:
     ///      - `walletPublicKey` and `sighash` calculated as
-    ///        `hash256(heartbeatMessage)` must identify an open fraud challenge
+    ///        `hash256(heartbeatMessage)` must identify an open fraud challenge,
     ///      - `heartbeatMessage` must follow a strict format of heartbeat
-    ///        messages
+    ///        messages.
     function defeatFraudChallengeWithHeartbeat(
         bytes calldata walletPublicKey,
         bytes calldata heartbeatMessage
@@ -998,8 +995,8 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         deposited is returned to the challenger and the challenger is
     ///         rewarded.
     /// @param walletPublicKey The public key of the wallet in the uncompressed
-    ///        and unprefixed format (64 bytes)
-    /// @param walletMembersIDs Identifiers of the wallet signing group members
+    ///        and unprefixed format (64 bytes).
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
     /// @param preimageSha256 The hash that was generated by applying SHA-256
     ///        one time over the preimage used during input signing. The preimage
     ///        is a serialized subset of the transaction and its structure
@@ -1007,20 +1004,20 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        Notice that applying SHA-256 over the `preimageSha256` results
     ///        in `sighash`.  The path from `preimage` to `sighash` looks like
     ///        this:
-    ///        preimage -> (SHA-256) -> preimageSha256 -> (SHA-256) -> sighash
+    ///        preimage -> (SHA-256) -> preimageSha256 -> (SHA-256) -> sighash.
     /// @dev Requirements:
     ///      - The wallet must be in the Live or MovingFunds or Closing or
-    ///        Terminated state
+    ///        Terminated state,
     ///      - The `walletPublicKey` and `sighash` calculated from
-    ///        `preimageSha256` must identify an open fraud challenge
+    ///        `preimageSha256` must identify an open fraud challenge,
     ///      - The expression `keccak256(abi.encode(walletMembersIDs))` must
     ///        be exactly the same as the hash stored under `membersIdsHash`
     ///        for the given `walletID`. Those IDs are not directly stored
     ///        in the contract for gas efficiency purposes but they can be
     ///        read from appropriate `DkgResultSubmitted` and `DkgResultApproved`
-    ///        events of the `WalletRegistry` contract
+    ///        events of the `WalletRegistry` contract,
     ///      - The amount of time indicated by `challengeDefeatTimeout` must pass
-    ///        after the challenge was reported
+    ///        after the challenge was reported.
     function notifyFraudChallengeDefeatTimeout(
         bytes calldata walletPublicKey,
         uint32[] calldata walletMembersIDs,
@@ -1037,14 +1034,14 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         or no longer trusted. Vaults are not trusted by default.
     ///         Trusted vault must meet the following criteria:
     ///         - `IVault.receiveBalanceIncrease` must have a known, low gas
-    ///           cost.
+    ///           cost,
     ///         - `IVault.receiveBalanceIncrease` must never revert.
     /// @dev Without restricting reveal only to trusted vaults, malicious
     ///      vaults not meeting the criteria would be able to nuke sweep proof
     ///      transactions executed by ECDSA wallet with  deposits routed to
     ///      them.
-    /// @param vault The address of the vault
-    /// @param isTrusted flag indicating whether the vault is trusted or not
+    /// @param vault The address of the vault.
+    /// @param isTrusted flag indicating whether the vault is trusted or not.
     /// @dev Can only be called by the Governance.
     function setVaultStatus(address vault, bool isTrusted)
         external
@@ -1060,7 +1057,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ////       deposit. Value of this parameter must take into account the value
     ///        of `depositTreasuryFeeDivisor` and `depositTxMaxFee` parameters
     ///        in order to make requests that can incur the treasury and
-    ///        transaction fee and still satisfy the depositor
+    ///        transaction fee and still satisfy the depositor.
     /// @param depositTreasuryFeeDivisor New value of the treasury fee divisor.
     ///        It is the divisor used to compute the treasury fee taken from
     ///        each deposit and transferred to the treasury upon sweep proof
@@ -1068,16 +1065,16 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
     ///        For example, if the treasury fee needs to be 2% of each deposit,
     ///        the `depositTreasuryFeeDivisor` should be set to `50`
-    ///        because `1/50 = 0.02 = 2%`
+    ///        because `1/50 = 0.02 = 2%`.
     /// @param depositTxMaxFee New value of the deposit tx max fee in satoshis.
     ///        It is the maximum amount of BTC transaction fee that can
     ///        be incurred by each swept deposit being part of the given sweep
     ///        transaction. If the maximum BTC transaction fee is exceeded,
-    ///        such transaction is considered a fraud
+    ///        such transaction is considered a fraud.
     /// @dev Requirements:
-    ///      - Deposit dust threshold must be greater than zero
-    ///      - Deposit treasury fee divisor must be greater than zero
-    ///      - Deposit transaction max fee must be greater than zero
+    ///      - Deposit dust threshold must be greater than zero,
+    ///      - Deposit treasury fee divisor must be greater than zero,
+    ///      - Deposit transaction max fee must be greater than zero.
     function updateDepositParameters(
         uint64 depositDustThreshold,
         uint64 depositTreasuryFeeDivisor,
@@ -1122,20 +1119,20 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        redeemer in full amount.
     /// @param redemptionTimeoutSlashingAmount New value of the redemption
     ///        timeout slashing amount in T, it is the amount slashed from each
-    ///        wallet member for redemption timeout
+    ///        wallet member for redemption timeout.
     /// @param redemptionTimeoutNotifierRewardMultiplier New value of the
     ///        redemption timeout notifier reward multiplier as percentage,
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a redemption timeout receives.
-    ///        The value must be in the range [0, 100]
+    ///        The value must be in the range [0, 100].
     /// @dev Requirements:
     ///      - Redemption dust threshold must be greater than moving funds dust
-    ///        threshold
-    ///      - Redemption treasury fee divisor must be greater than zero
-    ///      - Redemption transaction max fee must be greater than zero
-    ///      - Redemption timeout must be greater than zero
+    ///        threshold,
+    ///      - Redemption treasury fee divisor must be greater than zero,
+    ///      - Redemption transaction max fee must be greater than zero,
+    ///      - Redemption timeout must be greater than zero,
     ///      - Redemption timeout notifier reward multiplier must be in the
-    ///        range [0, 100]
+    ///        range [0, 100].
     function updateRedemptionParameters(
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
@@ -1173,12 +1170,12 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        MovingFunds state.
     /// @param movingFundsTimeoutSlashingAmount New value of the moving funds
     ///        timeout slashing amount in T, it is the amount slashed from each
-    ///        wallet member for moving funds timeout
+    ///        wallet member for moving funds timeout.
     /// @param movingFundsTimeoutNotifierRewardMultiplier New value of the
     ///        moving funds timeout notifier reward multiplier as percentage,
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
-    ///        The value must be in the range [0, 100]
+    ///        The value must be in the range [0, 100].
     /// @param movedFundsSweepTxMaxTotalFee New value of the moved funds sweep
     ///        transaction max total fee in satoshis. It is the maximum amount
     ///        of the total BTC transaction fee that is acceptable in a single
@@ -1191,23 +1188,23 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        funds.
     /// @param movedFundsSweepTimeoutSlashingAmount New value of the moved
     ///        funds sweep timeout slashing amount in T, it is the amount
-    ///        slashed from each wallet member for moved funds sweep timeout
+    ///        slashed from each wallet member for moved funds sweep timeout.
     /// @param movedFundsSweepTimeoutNotifierRewardMultiplier New value of
     ///        the moved funds sweep timeout notifier reward multiplier as
     ///        percentage, it determines the percentage of the notifier reward
     ///        from the staking contact the notifier of a moved funds sweep
-    ///        timeout receives. The value must be in the range [0, 100]
+    ///        timeout receives. The value must be in the range [0, 100].
     /// @dev Requirements:
-    ///      - Moving funds transaction max total fee must be greater than zero
+    ///      - Moving funds transaction max total fee must be greater than zero,
     ///      - Moving funds dust threshold must be greater than zero and lower
-    ///        than the redemption dust threshold
-    ///      - Moving funds timeout must be greater than zero
+    ///        than the redemption dust threshold,
+    ///      - Moving funds timeout must be greater than zero,
     ///      - Moving funds timeout notifier reward multiplier must be in the
-    ///        range [0, 100]
-    ///      - Moved funds sweep transaction max total fee must be greater than zero
-    ///      - Moved funds sweep timeout must be greater than zero
+    ///        range [0, 100],
+    ///      - Moved funds sweep transaction max total fee must be greater than zero,
+    ///      - Moved funds sweep timeout must be greater than zero,
     ///      - Moved funds sweep timeout notifier reward multiplier must be in the
-    ///        range [0, 100]
+    ///        range [0, 100].
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
         uint64 movingFundsDustThreshold,
@@ -1235,29 +1232,29 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @notice Updates parameters of wallets.
     /// @param walletCreationPeriod New value of the wallet creation period in
     ///        seconds, determines how frequently a new wallet creation can be
-    ///        requested
+    ///        requested.
     /// @param walletCreationMinBtcBalance New value of the wallet minimum BTC
-    ///        balance in satoshi, used to decide about wallet creation
+    ///        balance in satoshi, used to decide about wallet creation.
     /// @param walletCreationMaxBtcBalance New value of the wallet maximum BTC
-    ///        balance in satoshi, used to decide about wallet creation
+    ///        balance in satoshi, used to decide about wallet creation.
     /// @param walletClosureMinBtcBalance New value of the wallet minimum BTC
-    ///        balance in satoshi, used to decide about wallet closure
+    ///        balance in satoshi, used to decide about wallet closure.
     /// @param walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
-    ///        the wallet moving funds process can be requested
+    ///        the wallet moving funds process can be requested.
     /// @param walletMaxBtcTransfer New value of the wallet maximum BTC transfer
     ///        in satoshi, determines the maximum amount that can be transferred
-    //         to a single target wallet during the moving funds process
+    //         to a single target wallet during the moving funds process.
     /// @param walletClosingPeriod New value of the wallet closing period in
     ///        seconds, determines the length of the wallet closing period,
     //         i.e. the period when the wallet remains in the Closing state
-    //         and can be subject of deposit fraud challenges
+    //         and can be subject of deposit fraud challenges.
     /// @dev Requirements:
-    ///      - Wallet minimum BTC balance must be greater than zero
+    ///      - Wallet minimum BTC balance must be greater than zero,
     ///      - Wallet maximum BTC balance must be greater than the wallet
-    ///        minimum BTC balance
-    ///      - Wallet maximum BTC transfer must be greater than zero
-    ///      - Wallet closing period must be greater than zero
+    ///        minimum BTC balance,
+    ///      - Wallet maximum BTC transfer must be greater than zero,
+    ///      - Wallet closing period must be greater than zero.
     function updateWalletParameters(
         uint32 walletCreationPeriod,
         uint64 walletCreationMinBtcBalance,
@@ -1281,20 +1278,20 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @notice Updates parameters related to frauds.
     /// @param fraudChallengeDepositAmount New value of the fraud challenge
     ///        deposit amount in wei, it is the amount of ETH the party
-    ///        challenging the wallet for fraud needs to deposit
+    ///        challenging the wallet for fraud needs to deposit.
     /// @param fraudChallengeDefeatTimeout New value of the challenge defeat
     ///        timeout in seconds, it is the amount of time the wallet has to
-    ///        defeat a fraud challenge. The value must be greater than zero
+    ///        defeat a fraud challenge. The value must be greater than zero.
     /// @param fraudSlashingAmount New value of the fraud slashing amount in T,
     ///        it is the amount slashed from each wallet member for committing
-    ///        a fraud
+    ///        a fraud.
     /// @param fraudNotifierRewardMultiplier New value of the fraud notifier
     ///        reward multiplier as percentage, it determines the percentage of
     ///        the notifier reward from the staking contact the notifier of
-    ///        a fraud receives. The value must be in the range [0, 100]
+    ///        a fraud receives. The value must be in the range [0, 100].
     /// @dev Requirements:
-    ///      - Fraud challenge defeat timeout must be greater than 0
-    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
+    ///      - Fraud challenge defeat timeout must be greater than 0,
+    ///      - Fraud notifier reward multiplier must be in the range [0, 100].
     function updateFraudParameters(
         uint256 fraudChallengeDepositAmount,
         uint256 fraudChallengeDefeatTimeout,
@@ -1334,9 +1331,9 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         to this mapping by the `requestRedemption` method (duplicates
     ///         not allowed) and are removed by one of the following methods:
     ///         - `submitRedemptionProof` in case the request was handled
-    ///           successfully
+    ///           successfully,
     ///         - `notifyRedemptionTimeout` in case the request was reported
-    ///           to be timed out
+    ///           to be timed out.
     function pendingRedemptions(uint256 redemptionKey)
         external
         view
@@ -1378,7 +1375,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
 
     /// @notice Gets details about a registered wallet.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
-    ///        using Bitcoin HASH160 over the compressed ECDSA public key)
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key).
     /// @return Wallet details.
     function wallets(bytes20 walletPubKeyHash)
         external
@@ -1419,7 +1416,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         is actually an UTXO representing the moved funds and is supposed
     ///         to be swept with the current main UTXO of the recipient wallet.
     /// @param requestKey Request key built as
-    ///        `keccak256(movingFundsTxHash | movingFundsOutputIndex)`
+    ///        `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
     /// @return Details of the moved funds sweep request.
     function movedFundsSweepRequests(uint256 requestKey)
         external

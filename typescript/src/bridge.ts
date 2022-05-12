@@ -19,12 +19,12 @@ export interface PendingRedemption {
  */
 export interface Bridge {
   /**
-   * Submits a sweep transaction proof to the on-chain contract.
+   * Submits a deposit sweep transaction proof to the on-chain contract.
    * @param sweepTx - Sweep transaction data.
    * @param sweepProof - Sweep proof data.
    * @param mainUtxo - Data of the wallets main UTXO.
    */
-  submitSweepProof(
+  submitDepositSweepProof(
     sweepTx: DecomposedRawTransaction,
     sweepProof: Proof,
     mainUtxo: UnspentTransactionOutput

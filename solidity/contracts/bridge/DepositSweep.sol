@@ -105,11 +105,11 @@ library DepositSweep {
     ///         during the reveal transaction, minus their fee share.
     ///
     ///         It is possible to prove the given sweep only one time.
-    /// @param sweepTx Bitcoin sweep transaction data
-    /// @param sweepProof Bitcoin sweep proof data
+    /// @param sweepTx Bitcoin sweep transaction data.
+    /// @param sweepProof Bitcoin sweep proof data.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
-    ///        this parameter is ignored
+    ///        this parameter is ignored.
     /// @param vault Optional address of the vault where all swept deposits
     ///        should be routed to. All deposits swept as part of the transaction
     ///        must have their `vault` parameters set to the same address.
@@ -123,7 +123,7 @@ library DepositSweep {
     ///      - `sweepTx` components must match the expected structure. See
     ///        `BitcoinTx.Info` docs for reference. Their values must exactly
     ///        correspond to appropriate Bitcoin transaction fields to produce
-    ///        a provable transaction hash.
+    ///        a provable transaction hash,
     ///      - The `sweepTx` should represent a Bitcoin transaction with 1..n
     ///        inputs. If the wallet has no main UTXO, all n inputs should
     ///        correspond to P2(W)SH revealed deposits UTXOs. If the wallet has
@@ -131,14 +131,14 @@ library DepositSweep {
     ///        main UTXO and remaining n-1 inputs should correspond to P2(W)SH
     ///        revealed deposits UTXOs. That transaction must have only
     ///        one P2(W)PKH output locking funds on the 20-byte wallet public
-    ///        key hash.
+    ///        key hash,
     ///      - All revealed deposits that are swept by `sweepTx` must have
     ///        their `vault` parameters set to the same address as the address
-    ///        passed in the `vault` function parameter.
+    ///        passed in the `vault` function parameter,
     ///      - `sweepProof` components must match the expected structure. See
     ///        `BitcoinTx.Proof` docs for reference. The `bitcoinHeaders`
     ///        field must contain a valid number of block headers, not less
-    ///        than the `txProofDifficultyFactor` contract constant.
+    ///        than the `txProofDifficultyFactor` contract constant,
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain.
     ///        If there is no main UTXO, this parameter is ignored.
@@ -261,14 +261,14 @@ library DepositSweep {
     ///        Bitcoin transaction.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain. If no main UTXO exists for the given wallet,
-    ///        this parameter is ignored
+    ///        this parameter is ignored.
     /// @return wallet Data of the sweeping wallet.
     /// @return resolvedMainUtxo The actual main UTXO of the sweeping wallet
     ///         resolved by cross-checking the `mainUtxo` parameter with
     ///         the chain state. If the validation went well, this is the
     ///         plain-text main UTXO corresponding to the `wallet.mainUtxoHash`.
     /// @dev Requirements:
-    ///     - Sweeping wallet must be either in Live or MovingFunds state.
+    ///     - Sweeping wallet must be either in Live or MovingFunds state,
     ///     - If the main UTXO of the sweeping wallet exists in the storage,
     ///       the passed `mainUTXO` parameter must be equal to the stored one.
     function resolveDepositSweepingWallet(
@@ -319,7 +319,7 @@ library DepositSweep {
     /// @param sweepTxOutputVector Bitcoin sweep transaction output vector.
     ///        This function assumes vector's structure is valid so it must be
     ///        validated using e.g. `BTCUtils.validateVout` function before
-    ///        it is passed here
+    ///        it is passed here.
     /// @return walletPubKeyHash 20-byte wallet public key hash.
     /// @return value 8-byte sweep transaction output value.
     function processDepositSweepTxOutput(
@@ -502,8 +502,8 @@ library DepositSweep {
     }
 
     /// @notice Parses a Bitcoin transaction input starting at the given index.
-    /// @param inputVector Bitcoin transaction input vector
-    /// @param inputStartingIndex Index the given input starts at
+    /// @param inputVector Bitcoin transaction input vector.
+    /// @param inputStartingIndex Index the given input starts at.
     /// @return outpointTxHash 32-byte hash of the Bitcoin transaction which is
     ///         pointed in the given input's outpoint.
     /// @return outpointIndex 4-byte index of the Bitcoin transaction output
