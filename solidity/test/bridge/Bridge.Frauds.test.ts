@@ -109,7 +109,7 @@ describe("Bridge - Fraud", () => {
               it("should store the fraud challenge data", async () => {
                 const challengeKey = buildChallengeKey(
                   walletPublicKey,
-                  data.preimageSha256
+                  data.sighash
                 )
 
                 const fraudChallenge = await bridge.fraudChallenges(
@@ -133,7 +133,7 @@ describe("Bridge - Fraud", () => {
                   .to.emit(bridge, "FraudChallengeSubmitted")
                   .withArgs(
                     walletPublicKeyHash,
-                    sha256(data.preimageSha256),
+                    data.sighash,
                     data.signature.v,
                     data.signature.r,
                     data.signature.s
@@ -579,8 +579,8 @@ describe("Bridge - Fraud", () => {
       context("when the challenge is open", () => {
         context("when the heartbeat message has correct format", () => {
           const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
-          const sha256heartbeatMessage = sha256(heartbeatMessage)
-          const sighash = sha256(sha256heartbeatMessage)
+          const heartbeatMessageSha256 = sha256(heartbeatMessage)
+          const sighash = sha256(heartbeatMessageSha256)
 
           let tx: ContractTransaction
 
@@ -595,7 +595,7 @@ describe("Bridge - Fraud", () => {
               .connect(thirdParty)
               .submitFraudChallenge(
                 heartbeatWalletPublicKey,
-                sha256heartbeatMessage,
+                heartbeatMessageSha256,
                 signature,
                 {
                   value: fraudChallengeDepositAmount,
@@ -617,7 +617,7 @@ describe("Bridge - Fraud", () => {
           it("should mark the challenge as resolved", async () => {
             const challengeKey = buildChallengeKey(
               heartbeatWalletPublicKey,
-              sha256heartbeatMessage
+              sighash
             )
             const fraudChallenge = await bridge.fraudChallenges(challengeKey)
             expect(fraudChallenge.resolved).to.equal(true)
@@ -643,8 +643,8 @@ describe("Bridge - Fraud", () => {
 
         context("when the heartbeat message has no correct format", () => {
           const notHeartbeatMessage = "0xAAFFFFFFFFFFFFFF0000000000E0EED7"
-          const sha256heartbeatMessage = sha256(notHeartbeatMessage)
-          const sighash = sha256(sha256heartbeatMessage)
+          const heartbeatMessageSha256 = sha256(notHeartbeatMessage)
+          const sighash = sha256(heartbeatMessageSha256)
 
           before(async () => {
             await createSnapshot()
@@ -657,7 +657,7 @@ describe("Bridge - Fraud", () => {
               .connect(thirdParty)
               .submitFraudChallenge(
                 heartbeatWalletPublicKey,
-                sha256heartbeatMessage,
+                heartbeatMessageSha256,
                 signature,
                 {
                   value: fraudChallengeDepositAmount,
@@ -684,8 +684,8 @@ describe("Bridge - Fraud", () => {
 
       context("when the challenge is resolved by defeat", () => {
         const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
-        const sha256heartbeatMessage = sha256(heartbeatMessage)
-        const sighash = sha256(sha256heartbeatMessage)
+        const heartbeatMessageSha256 = sha256(heartbeatMessage)
+        const sighash = sha256(heartbeatMessageSha256)
 
         before(async () => {
           await createSnapshot()
@@ -698,7 +698,7 @@ describe("Bridge - Fraud", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               heartbeatWalletPublicKey,
-              sha256heartbeatMessage,
+              heartbeatMessageSha256,
               signature,
               {
                 value: fraudChallengeDepositAmount,
@@ -731,8 +731,8 @@ describe("Bridge - Fraud", () => {
 
       context("when the challenge is resolved by timeout", () => {
         const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
-        const sha256heartbeatMessage = sha256(heartbeatMessage)
-        const sighash = sha256(sha256heartbeatMessage)
+        const heartbeatMessageSha256 = sha256(heartbeatMessage)
+        const sighash = sha256(heartbeatMessageSha256)
 
         before(async () => {
           await createSnapshot()
@@ -745,7 +745,7 @@ describe("Bridge - Fraud", () => {
             .connect(thirdParty)
             .submitFraudChallenge(
               heartbeatWalletPublicKey,
-              sha256heartbeatMessage,
+              heartbeatMessageSha256,
               signature,
               {
                 value: fraudChallengeDepositAmount,
@@ -759,7 +759,7 @@ describe("Bridge - Fraud", () => {
             .notifyFraudChallengeDefeatTimeout(
               heartbeatWalletPublicKey,
               [],
-              sha256heartbeatMessage
+              heartbeatMessageSha256
             )
         })
 
@@ -782,8 +782,8 @@ describe("Bridge - Fraud", () => {
 
     context("when the challenge does not exist", () => {
       const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
-      const sha256heartbeatMessage = sha256(heartbeatMessage)
-      const sighash = sha256(sha256heartbeatMessage)
+      const heartbeatMessageSha256 = sha256(heartbeatMessage)
+      const sighash = sha256(heartbeatMessageSha256)
 
       before(async () => {
         await createSnapshot()
@@ -796,7 +796,7 @@ describe("Bridge - Fraud", () => {
           .connect(thirdParty)
           .submitFraudChallenge(
             heartbeatWalletPublicKey,
-            sha256heartbeatMessage,
+            heartbeatMessageSha256,
             signature,
             {
               value: fraudChallengeDepositAmount,
@@ -879,7 +879,7 @@ describe("Bridge - Fraud", () => {
                   it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
                       walletPublicKey,
-                      data.preimageSha256
+                      data.sighash
                     )
 
                     const fraudChallenge = await bridge.fraudChallenges(
@@ -903,10 +903,7 @@ describe("Bridge - Fraud", () => {
                   it("should emit FraudChallengeDefeated event", async () => {
                     await expect(tx)
                       .to.emit(bridge, "FraudChallengeDefeated")
-                      .withArgs(
-                        walletPublicKeyHash,
-                        sha256(data.preimageSha256)
-                      )
+                      .withArgs(walletPublicKeyHash, data.sighash)
                   })
                 }
               )
@@ -1020,7 +1017,7 @@ describe("Bridge - Fraud", () => {
                   it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
                       walletPublicKey,
-                      data.preimageSha256
+                      data.sighash
                     )
 
                     const fraudChallenge = await bridge.fraudChallenges(
@@ -1044,10 +1041,7 @@ describe("Bridge - Fraud", () => {
                   it("should emit FraudChallengeDefeated event", async () => {
                     await expect(tx)
                       .to.emit(bridge, "FraudChallengeDefeated")
-                      .withArgs(
-                        walletPublicKeyHash,
-                        sha256(data.preimageSha256)
-                      )
+                      .withArgs(walletPublicKeyHash, data.sighash)
                   })
                 }
               )
@@ -1163,7 +1157,7 @@ describe("Bridge - Fraud", () => {
                   it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
                       walletPublicKey,
-                      data.preimageSha256
+                      data.sighash
                     )
 
                     const fraudChallenge = await bridge.fraudChallenges(
@@ -1187,10 +1181,7 @@ describe("Bridge - Fraud", () => {
                   it("should emit FraudChallengeDefeated event", async () => {
                     await expect(tx)
                       .to.emit(bridge, "FraudChallengeDefeated")
-                      .withArgs(
-                        walletPublicKeyHash,
-                        sha256(data.preimageSha256)
-                      )
+                      .withArgs(walletPublicKeyHash, data.sighash)
                   })
                 }
               )
@@ -1304,7 +1295,7 @@ describe("Bridge - Fraud", () => {
                   it("should mark the challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
                       walletPublicKey,
-                      data.preimageSha256
+                      data.sighash
                     )
 
                     const fraudChallenge = await bridge.fraudChallenges(
@@ -1328,10 +1319,7 @@ describe("Bridge - Fraud", () => {
                   it("should emit FraudChallengeDefeated event", async () => {
                     await expect(tx)
                       .to.emit(bridge, "FraudChallengeDefeated")
-                      .withArgs(
-                        walletPublicKeyHash,
-                        sha256(data.preimageSha256)
-                      )
+                      .withArgs(walletPublicKeyHash, data.sighash)
                   })
                 }
               )
@@ -1713,7 +1701,7 @@ describe("Bridge - Fraud", () => {
                   it("should mark the fraud challenge as resolved", async () => {
                     const challengeKey = buildChallengeKey(
                       walletPublicKey,
-                      data.preimageSha256
+                      data.sighash
                     )
 
                     const fraudChallenge = await bridge.fraudChallenges(
@@ -1737,10 +1725,7 @@ describe("Bridge - Fraud", () => {
                   it("should emit FraudChallengeDefeatTimedOut event", async () => {
                     await expect(tx)
                       .to.emit(bridge, "FraudChallengeDefeatTimedOut")
-                      .withArgs(
-                        walletPublicKeyHash,
-                        sha256(data.preimageSha256)
-                      )
+                      .withArgs(walletPublicKeyHash, data.sighash)
                   })
 
                   it("should change the wallet state to Terminated", async () => {
@@ -1830,7 +1815,7 @@ describe("Bridge - Fraud", () => {
             it("should mark the fraud challenge as resolved", async () => {
               const challengeKey = buildChallengeKey(
                 walletPublicKey,
-                data.preimageSha256
+                data.sighash
               )
 
               const fraudChallenge = await bridge.fraudChallenges(challengeKey)
@@ -1852,7 +1837,7 @@ describe("Bridge - Fraud", () => {
             it("should emit FraudChallengeDefeatTimedOut event", async () => {
               await expect(tx)
                 .to.emit(bridge, "FraudChallengeDefeatTimedOut")
-                .withArgs(walletPublicKeyHash, sha256(data.preimageSha256))
+                .withArgs(walletPublicKeyHash, data.sighash)
             })
 
             it("should not change the wallet state", async () => {
@@ -2141,14 +2126,7 @@ describe("Bridge - Fraud", () => {
     })
   })
 
-  function buildChallengeKey(
-    publicKey: BytesLike,
-    preimageSha256: BytesLike
-  ): string {
-    // The challenges are stored using key built with `publicKey` and `sighash`.
-    // Calculate `sighash` by hashing `preimageSha256` with SHA-256 again.
-    const sighash = sha256(preimageSha256)
-
+  function buildChallengeKey(publicKey: BytesLike, sighash: BytesLike): string {
     return ethers.utils.solidityKeccak256(
       ["bytes", "bytes32"],
       [publicKey, sighash]

@@ -27,6 +27,12 @@ export interface FraudTestData {
   preimageSha256: BytesLike
 
   /**
+   * The SHA-256 hash of `preimageSha256`.
+   * This is the data that is actually signed during the input signing.
+   */
+  sighash: BytesLike
+
+  /**
    * Determines whether the input used during signing is witness or not.
    */
   witness: boolean
@@ -89,6 +95,7 @@ export const nonWitnessSignSingleInputTx: FraudTestData = {
     "a90f738986f60000000001000000",
   preimageSha256:
     "0x90d29d1021c2a1a381c0c8a39f5ffda96770e1c2ffed835f822500033841b2e3",
+  sighash: "0x5d09cd07392c7163335b67eacc999491a3794c15b88e2b59094be5c5b157064b",
   witness: false,
   deposits: [],
   spentMainUtxos: [],
@@ -124,6 +131,7 @@ export const nonWitnessSignMultipleInputsTx: FraudTestData = {
     "148db50eb52063ea9d98b3eac91489a90f738986f60000000001000000",
   preimageSha256:
     "0x69b912fd0ea8922db4af34145378f7e0f15d6c0eb22bf5d68ab6645819f2476c",
+  sighash: "0x3a3c771a0d6e2484e1f00dca91e724b9f60a986b0c1ac4cafb9ae69a7401a573",
   witness: false,
   deposits: [
     {
@@ -156,6 +164,7 @@ export const witnessSignSingleInputTx: FraudTestData = {
     "73d68ca9da53591139f10000000001000000",
   preimageSha256:
     "0xdfb4a0032c9da53e79640f404cf9e07ff0a881706d0cee6e8ff360f0371d4782",
+  sighash: "0xb8994753efd78cc66075991d3a21beef96d4e8a5e9ff06bc692401203df02610",
   witness: true,
   deposits: [
     {
@@ -186,6 +195,7 @@ export const witnessSignMultipleInputTx: FraudTestData = {
     "0000000001000000",
   preimageSha256:
     "0xbf0ff823c255934b7a4ef21dfb98df0547b177a9f71caf0f1f86ae592ec47a09",
+  sighash: "0xd05adb53b09ac6b1cc0a0166558f8b90d2898c9a368d40a2a033e5e0c1af9b11",
   witness: true,
   deposits: [],
   spentMainUtxos: [
@@ -218,6 +228,7 @@ export const wrongSighashType: FraudTestData = {
     "00000000000000000000000000000000000000000000000000000082000000",
   preimageSha256:
     "0x6c8afcb2efdb0313c40acb92b80a1ae9113111ce7f081877875d28c20d9fffd7",
+  sighash: "0x4fd8491a872a42d20e434e838afd6e4d6d6422e035db0d41a9a11cb0596b2959",
   witness: true,
   deposits: [
     {
