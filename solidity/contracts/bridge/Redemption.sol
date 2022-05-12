@@ -292,14 +292,6 @@ library Redemption {
             "Invalid main UTXO data"
         );
 
-        // TODO: Confirm if `walletPubKeyHash` should be validated by checking
-        //       if it is the oldest one who can handle the request. This will
-        //       be suggested by the dApp but may not be respected by users who
-        //       interact directly with the contract. Do we need to enforce it
-        //       here? One option is not to enforce it, to save on gas, but if
-        //       we see this rule is not respected, upgrade Bridge contract to
-        //       require it.
-
         // Validate if redeemer output script is a correct standard type
         // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by building a stub
         // output with 0 as value and using `BTCUtils.extractHash` on it. Such
