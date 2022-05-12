@@ -59,7 +59,6 @@ import "../bank/Bank.sol";
 ///      functionalities in this contract is: deposit, sweep, redemption,
 ///      moving funds, wallet lifecycle, frauds, parameters.
 ///
-/// TODO: Revisit all events and look which parameters should be indexed.
 /// TODO: Align the convention around `param` and `dev` endings. They should
 ///       not have a punctuation mark.
 contract Bridge is Governable, EcdsaWalletOwner, Initializable {
@@ -76,7 +75,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     event DepositRevealed(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
-        address depositor,
+        address indexed depositor,
         uint64 amount,
         bytes8 blindingFactor,
         bytes20 indexed walletPubKeyHash,
@@ -90,7 +89,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     event RedemptionRequested(
         bytes20 indexed walletPubKeyHash,
         bytes redeemerOutputScript,
-        address redeemer,
+        address indexed redeemer,
         uint64 requestedAmount,
         uint64 treasuryFee,
         uint64 txMaxFee
