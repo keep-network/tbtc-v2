@@ -158,6 +158,9 @@ library BridgeState {
         // transaction.
         uint64 redemptionTxMaxFee;
 
+        // slither-disable-next-line unused-state
+        bytes8 __redemptionAlignmentGap;
+
 
         // Time after which the redemption request can be reported as
         // timed out. It is counted from the moment when the redemption
