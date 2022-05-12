@@ -40,8 +40,9 @@
 \node[check, below right=of rmft_check1]                           (rmft_check2)  {Has the\\ moving funds\\ commitment been already\\ submitted for\\ the wallet?};
 \node[check, below left=of rmft_check2]                            (rmft_check3)  {Is \# of live wallets equal 0?};
 \node[revert, below right=of rmft_check2]                          (rmft_revert1) {Transaction reverted};
-\node[revert, below left=of rmft_check3]                           (rmft_revert2) {Transaction reverted};
-\node[action, below right=of rmft_check3]                          (rmft_action1) {Reset the moving\_funds\_timeout};
+\node[check, below right=of rmft_check3]                           (rmft_check4)  {Has at least\\ moving\_funds\_timeout\_reset\_delay\\ passed since moving\_funds\_timeout\\ was reset for the wallet?};
+\node[revert, below left=of rmft_check4, xshift=-3cm]                           (rmft_revert2) {Transaction reverted};
+\node[action, below right=of rmft_check4]                          (rmft_action1) {Reset the moving\_funds\_timeout};
 \node[action, below=of rmft_action1]                               (rmft_action2) {Notification sent};
 \node[note1, right=of rmft_start.south east, anchor=south west]    (rmft_note1)   {Can be successfully called for wallets:\\ 
                                                                                    \textbf{- MOVING\_FUNDS}};
@@ -54,7 +55,9 @@
 \draw[->] (rmft_check2)  -| (rmft_check3)  \no;
 \draw[->] (rmft_check2)  -| (rmft_revert1) \yes;
 \draw[->] (rmft_check3)  -| (rmft_revert2) \no;
-\draw[->] (rmft_check3)  -| (rmft_action1) \yes;
+\draw[->] (rmft_check3)  -| (rmft_check4)  \yes;
+\draw[->] (rmft_check4)  -| (rmft_revert2) \no;
+\draw[->] (rmft_check4)  -| (rmft_action1) \yes;
 \draw[->] (rmft_action1) -- (rmft_action2);
 
 % MOVING FUNDS COMMITMENT
