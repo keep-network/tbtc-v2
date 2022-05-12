@@ -15,6 +15,8 @@
 
 pragma solidity ^0.8.9;
 
+import "@keep-network/random-beacon/contracts/Governable.sol";
+
 import "./IVault.sol";
 import "../bank/Bank.sol";
 import "../token/TBTC.sol";
@@ -27,7 +29,7 @@ import "../token/TBTC.sol";
 ///         Bank.
 /// @dev TBTC Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
-contract TBTCVault is IVault {
+contract TBTCVault is IVault, Governable {
     Bank public bank;
     TBTC public tbtcToken;
 
@@ -53,6 +55,8 @@ contract TBTCVault is IVault {
 
         bank = _bank;
         tbtcToken = _tbtcToken;
+
+        _transferGovernance(msg.sender);
     }
 
     /// @notice Transfers the given `amount` of the Bank balance from caller
