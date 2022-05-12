@@ -301,16 +301,14 @@ library Redemption {
         //       require it.
 
         // Validate if redeemer output script is a correct standard type
-        // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by building a stub
-        // output with 0 as value and using `BTCUtils.extractHash` on it. Such
-        // a function extracts the payload properly only from standard outputs
-        // so if it succeeds, we have a guarantee the redeemer output script
-        // is proper. Worth to note `extractHash` ignores the value at all
-        // so this is why we can use 0 safely. This way of validation is the
-        // same as in tBTC v1.
-        bytes memory redeemerOutputScriptPayload = abi
-            .encodePacked(bytes8(0), redeemerOutputScript)
-            .extractHash();
+        // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by using 
+        // `BTCUtils.extractHashAt` on it. Such a function extracts the payload
+        // properly only from standard outputs so if it succeeds, we have a 
+        // guarantee the redeemer output script is proper. The underlying way
+        // of validation is the same as in tBTC v1.
+        bytes memory redeemerOutputScriptPayload = redeemerOutputScript
+            .extractHashAt(0, redeemerOutputScript.length);
+
         require(
             redeemerOutputScriptPayload.length > 0,
             "Redeemer output script must be a standard type"
