@@ -608,6 +608,7 @@ library Redemption {
             // TODO: Check if we can optimize gas costs by adding
             //       `extractValueAt` and `extractHashAt` in `bitcoin-spv-sol`
             //       in order to avoid allocating bytes in memory.
+            //       https://github.com/keep-network/tbtc-v2/issues/257
             uint256 outputLength = redemptionTxOutputVector
                 .determineOutputLengthAt(processInfo.outputStartingIndex);
             bytes memory output = redemptionTxOutputVector.slice(
