@@ -198,6 +198,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
         uint64 movingFundsDustThreshold,
+        uint32 movingFundsTimeoutResetDelay,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
@@ -269,6 +270,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
         self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
         self.movingFundsDustThreshold = 20000; // 20000 satoshi
+        self.movingFundsTimeoutResetDelay = 6 days;
         self.movingFundsTimeout = 7 days;
         self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
@@ -602,6 +604,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///      - The target wallets commitment must not be already submitted for
     ///        the given moving funds wallet
     ///      - Live wallets count must be zero
+    ///      - The moving funds timeout reset delay must be elapsed
     function resetMovingFundsTimeout(bytes20 walletPubKeyHash) external {
         self.resetMovingFundsTimeout(walletPubKeyHash);
     }
@@ -1162,10 +1165,17 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        funds transaction.
     /// @param movingFundsDustThreshold New value of the moving funds dust
     ///        threshold. It is the minimal satoshi amount that makes sense to
-    //         be transferred during the moving funds process. Moving funds
-    //         wallets having their BTC balance below that value can begin
-    //         closing immediately as transferring such a low value may not be
-    //         possible due to BTC network fees.
+    ///        be transferred during the moving funds process. Moving funds
+    ///        wallets having their BTC balance below that value can begin
+    ///        closing immediately as transferring such a low value may not be
+    ///        possible due to BTC network fees.
+    /// @param movingFundsTimeoutResetDelay New value of the moving funds
+    ///        timeout reset delay in seconds. It is the time after which the
+    ///        moving funds timeout can be reset in case the target wallet
+    ///        commitment cannot be submitted due to a lack of live wallets
+    ///        in the system. It is counted from the moment when the wallet
+    ///        was requested to move their funds and switched to the MovingFunds
+    ///        state
     /// @param movingFundsTimeout New value of the moving funds timeout in
     ///        seconds. It is the time after which the moving funds process can
     ///        be reported as timed out. It is counted from the moment when the
@@ -1201,7 +1211,9 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds dust threshold must be greater than zero and lower
     ///        than the redemption dust threshold
-    ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds timeout reset delay must be greater than zero
+    ///      - Moving funds timeout must be greater than the moving funds
+    ///        timeout reset delay
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
     ///      - Moved funds sweep transaction max total fee must be greater than zero
@@ -1211,6 +1223,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     function updateMovingFundsParameters(
         uint64 movingFundsTxMaxTotalFee,
         uint64 movingFundsDustThreshold,
+        uint32 movingFundsTimeoutResetDelay,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
@@ -1222,6 +1235,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
+            movingFundsTimeoutResetDelay,
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
@@ -1533,6 +1547,13 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         funds wallets having their BTC balance below that value can
     ///         begin closing immediately as transferring such a low value may
     ///         not be possible due to BTC network fees.
+    /// @return movingFundsTimeoutResetDelay Time after which the moving funds
+    ///         timeout can be reset in case the target wallet commitment
+    ///         cannot be submitted due to a lack of live wallets in the system.
+    ///         It is counted from the moment when the wallet was requested to
+    ///         move their funds and switched to the MovingFunds state.
+    ///         Value in seconds. This value should be smaller than the value
+    ///         of the `movingFundsTimeout`.
     /// @return movingFundsTimeout Time after which the moving funds process
     ///         can be reported as timed out. It is counted from the moment
     ///         when the wallet was requested to move their funds and switched
@@ -1562,6 +1583,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         returns (
             uint64 movingFundsTxMaxTotalFee,
             uint64 movingFundsDustThreshold,
+            uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint256 movingFundsTimeoutNotifierRewardMultiplier,
@@ -1573,6 +1595,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
         movingFundsDustThreshold = self.movingFundsDustThreshold;
+        movingFundsTimeoutResetDelay = self.movingFundsTimeoutResetDelay;
         movingFundsTimeout = self.movingFundsTimeout;
         movingFundsTimeoutSlashingAmount = self
             .movingFundsTimeoutSlashingAmount;

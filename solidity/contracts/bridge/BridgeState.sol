@@ -91,6 +91,13 @@ library BridgeState {
         // than `redemptionDustThreshold` in order to prevent redemption requests
         // with values lower or equal to `movingFundsDustThreshold`.
         uint64 movingFundsDustThreshold;
+        // Time after which the moving funds timeout can be reset in case the
+        // target wallet commitment cannot be submitted due to a lack of live
+        // wallets in the system. It is counted from the moment when the wallet
+        // was requested to move their funds and switched to the MovingFunds
+        // state. Value in seconds. This value should be smaller than the value
+        // of the `movingFundsTimeout`.
+        uint32 movingFundsTimeoutResetDelay;
         // Time after which the moving funds process can be reported as
         // timed out. It is counted from the moment when the wallet
         // was requested to move their funds and switched to the MovingFunds
@@ -283,6 +290,7 @@ library BridgeState {
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
         uint64 movingFundsDustThreshold,
+        uint32 movingFundsTimeoutResetDelay,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
@@ -471,10 +479,17 @@ library BridgeState {
     ///        funds transaction.
     /// @param _movingFundsDustThreshold New value of the moving funds dust
     ///        threshold. It is the minimal satoshi amount that makes sense to
-    //         be transferred during the moving funds process. Moving funds
-    //         wallets having their BTC balance below that value can begin
-    //         closing immediately as transferring such a low value may not be
-    //         possible due to BTC network fees.
+    ///        be transferred during the moving funds process. Moving funds
+    ///        wallets having their BTC balance below that value can begin
+    ///        closing immediately as transferring such a low value may not be
+    ///        possible due to BTC network fees.
+    /// @param _movingFundsTimeoutResetDelay New value of the moving funds
+    ///        timeout reset delay in seconds. It is the time after which the
+    ///        moving funds timeout can be reset in case the target wallet
+    ///        commitment cannot be submitted due to a lack of live wallets
+    ///        in the system. It is counted from the moment when the wallet
+    ///        was requested to move their funds and switched to the MovingFunds
+    ///        state
     /// @param _movingFundsTimeout New value of the moving funds timeout in
     ///        seconds. It is the time after which the moving funds process can
     ///        be reported as timed out. It is counted from the moment when the
@@ -510,7 +525,9 @@ library BridgeState {
     ///      - Moving funds transaction max total fee must be greater than zero
     ///      - Moving funds dust threshold must be greater than zero and lower
     ///        than the redemption dust threshold
-    ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds timeout reset delay must be greater than zero
+    ///      - Moving funds timeout must be greater than the moving funds
+    ///        timeout reset delay
     ///      - Moving funds timeout notifier reward multiplier must be in the
     ///        range [0, 100]
     ///      - Moved funds sweep transaction max total fee must be greater than zero
@@ -521,6 +538,7 @@ library BridgeState {
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
         uint64 _movingFundsDustThreshold,
+        uint32 _movingFundsTimeoutResetDelay,
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
         uint256 _movingFundsTimeoutNotifierRewardMultiplier,
@@ -541,8 +559,13 @@ library BridgeState {
         );
 
         require(
-            _movingFundsTimeout > 0,
-            "Moving funds timeout must be greater than zero"
+            _movingFundsTimeoutResetDelay > 0,
+            "Moving funds timeout reset delay must be greater than zero"
+        );
+
+        require(
+            _movingFundsTimeout > _movingFundsTimeoutResetDelay,
+            "Moving funds timeout must be greater than its reset delay"
         );
 
         require(
@@ -567,6 +590,7 @@ library BridgeState {
 
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
         self.movingFundsDustThreshold = _movingFundsDustThreshold;
+        self.movingFundsTimeoutResetDelay = _movingFundsTimeoutResetDelay;
         self.movingFundsTimeout = _movingFundsTimeout;
         self
             .movingFundsTimeoutSlashingAmount = _movingFundsTimeoutSlashingAmount;
@@ -582,6 +606,7 @@ library BridgeState {
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
             _movingFundsDustThreshold,
+            _movingFundsTimeoutResetDelay,
             _movingFundsTimeout,
             _movingFundsTimeoutSlashingAmount,
             _movingFundsTimeoutNotifierRewardMultiplier,
