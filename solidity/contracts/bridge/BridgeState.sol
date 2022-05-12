@@ -124,12 +124,10 @@ library BridgeState {
         // The amount of stake slashed from each member of a wallet for a moved
         // funds sweep timeout.
         uint96 movedFundsSweepTimeoutSlashingAmount;
-
-
         // The percentage of the notifier reward from the staking contract
         // the notifier of a moved funds sweep timeout receives. The value is
         // in the range [0, 100].
-        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier;
+        uint64 movedFundsSweepTimeoutNotifierRewardMultiplier;
 
 
         // The minimal amount that can be requested for redemption.
@@ -567,7 +565,7 @@ library BridgeState {
         uint64 _movedFundsSweepTxMaxTotalFee,
         uint32 _movedFundsSweepTimeout,
         uint96 _movedFundsSweepTimeoutSlashingAmount,
-        uint256 _movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint64 _movedFundsSweepTimeoutNotifierRewardMultiplier
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
