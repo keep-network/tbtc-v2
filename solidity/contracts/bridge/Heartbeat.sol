@@ -90,7 +90,7 @@ library Heartbeat {
     ///         heartbeat message.
     /// @param message Message signed by the wallet. It is a potential heartbeat
     ///        message, Bitcoin transaction preimage, or an arbitrary signed
-    ///        bytes
+    ///        bytes.
     /// @dev Wallet heartbeat message must be exactly 16 bytes long with the first
     ///      8 bytes set to 0xffffffffffffffff.
     /// @return True if valid heartbeat message, false otherwise.

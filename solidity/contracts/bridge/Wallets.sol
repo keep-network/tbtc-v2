@@ -129,14 +129,14 @@ library Wallets {
     ///        UTXO of the given active wallet, as currently known on the
     ///        Ethereum chain. If there is no active wallet at the moment, or
     ///        the active wallet has no main UTXO, this parameter can be
-    ///        empty as it is ignored.
-    ///      - Wallet creation must not be in progress
+    ///        empty as it is ignored,
+    ///      - Wallet creation must not be in progress,
     ///      - If the active wallet is set, one of the following
     ///        conditions must be true:
     ///        - The active wallet BTC balance is above the minimum threshold
     ///          and the active wallet is old enough, i.e. the creation period
-    ///           was elapsed since its creation time
-    ///        - The active wallet BTC balance is above the maximum threshold
+    ///           was elapsed since its creation time,
+    ///        - The active wallet BTC balance is above the maximum threshold.
     function requestNewWallet(
         BridgeState.Storage storage self,
         BitcoinTx.UTXO calldata activeWalletMainUtxo
@@ -181,7 +181,7 @@ library Wallets {
     }
 
     /// @notice Gets BTC balance for given the wallet.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
     ///        known on the Ethereum chain.
     /// @return walletBtcBalance Current BTC balance for the given wallet.
@@ -227,8 +227,8 @@ library Wallets {
     /// @param publicKeyX Wallet's public key's X coordinate.
     /// @param publicKeyY Wallet's public key's Y coordinate.
     /// @dev Requirements:
-    ///      - The only caller authorized to call this function is `registry`
-    ///      - Given wallet data must not belong to an already registered wallet
+    ///      - The only caller authorized to call this function is `registry`,
+    ///      - Given wallet data must not belong to an already registered wallet.
     function registerNewWallet(
         BridgeState.Storage storage self,
         bytes32 ecdsaWalletID,
@@ -268,8 +268,8 @@ library Wallets {
     /// @param publicKeyX Wallet's public key's X coordinate.
     /// @param publicKeyY Wallet's public key's Y coordinate.
     /// @dev Requirements:
-    ///      - The only caller authorized to call this function is `registry`
-    ///      - Wallet must be in Live state
+    ///      - The only caller authorized to call this function is `registry`,
+    ///      - Wallet must be in Live state.
     function notifyWalletHeartbeatFailed(
         BridgeState.Storage storage self,
         bytes32 publicKeyX,
@@ -298,9 +298,9 @@ library Wallets {
     ///         still in the Live state. That means multiple action timeouts can
     ///         be reported for the same wallet but only the first report
     ///         requests the wallet to move their funds.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @dev Requirements:
-    ///      - The wallet must be in the `Live` or `MovingFunds` state
+    ///      - The wallet must be in the `Live` or `MovingFunds` state.
     function notifyWalletTimedOutRedemption(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -322,19 +322,19 @@ library Wallets {
 
     /// @notice Notifies that the wallet is either old enough or has too few
     ///         satoshis left and qualifies to be closed.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
     ///        known on the Ethereum chain.
     /// @dev Requirements:
-    ///      - Wallet must not be set as the current active wallet
+    ///      - Wallet must not be set as the current active wallet,
     ///      - Wallet must exceed the wallet maximum age OR the wallet BTC
     ///        balance must be lesser than the minimum threshold. If the latter
     ///        case is true, the `walletMainUtxo` components must point to the
     ///        recent main UTXO of the given wallet, as currently known on the
     ///        Ethereum chain. If the wallet has no main UTXO, this parameter
     ///        can be empty as it is ignored since the wallet balance is
-    ///        assumed to be zero.
-    ///      - Wallet must be in Live state
+    ///        assumed to be zero,
+    ///      - Wallet must be in Live state.
     function notifyCloseableWallet(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
@@ -370,9 +370,9 @@ library Wallets {
     ///         funds request refers to the current active wallet, such a wallet
     ///         is no longer considered active and the active wallet slot
     ///         is unset allowing to trigger a new wallet creation immediately.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @dev Requirements:
-    ///      - The caller must make sure that the wallet is in the Live state
+    ///      - The caller must make sure that the wallet is in the Live state.
     function moveFunds(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -403,10 +403,10 @@ library Wallets {
     }
 
     /// @notice Begins the closing period of the given wallet.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the
-    ///        MovingFunds state
+    ///        MovingFunds state.
     function beginWalletClosing(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -423,10 +423,10 @@ library Wallets {
     /// @notice Notifies about the end of the closing period for the given wallet.
     ///         Closes the wallet ultimately and notifies the ECDSA registry
     ///         about this fact.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @dev Requirements:
-    ///      - The wallet must be in the Closing state
-    ///      - The wallet closing period must have elapsed
+    ///      - The wallet must be in the Closing state,
+    ///      - The wallet closing period must have elapsed.
     function notifyWalletClosingPeriodElapsed(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -450,9 +450,9 @@ library Wallets {
 
     /// @notice Finalizes the closing period of the given wallet and notifies
     ///         the ECDSA registry about this fact.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @dev Requirements:
-    ///      - The caller must make sure that the wallet is in the Closing state
+    ///      - The caller must make sure that the wallet is in the Closing state.
     function finalizeWalletClosing(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -471,7 +471,7 @@ library Wallets {
     ///         active wallet, such a wallet is no longer considered active and
     ///         the active wallet slot is unset allowing to trigger a new wallet
     ///         creation immediately.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @dev Requirements:
     ///      - The caller must make sure that the wallet is in the
     ///        Live or MovingFunds or Closing state.
@@ -503,16 +503,16 @@ library Wallets {
     ///         successfully. Checks if the funds were moved to the expected
     ///         target wallets. Closes the source wallet if everything went
     ///         good and reverts otherwise.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @param targetWalletsHash 32-byte keccak256 hash over the list of
     ///        20-byte public key hashes of the target wallets actually used
     ///        within the moving funds transactions.
     /// @dev Requirements:
     ///      - The caller must make sure the moving funds transaction actually
-    ///        happened on Bitcoin chain and fits the protocol requirements.
-    ///      - The source wallet must be in the MovingFunds state
+    ///        happened on Bitcoin chain and fits the protocol requirements,
+    ///      - The source wallet must be in the MovingFunds state,
     ///      - The target wallets commitment must be submitted by the source
-    ///        wallet.
+    ///        wallet,
     ///      - The actual target wallets used in the moving funds transaction
     ///        must be exactly the same as the target wallets commitment.
     function notifyWalletFundsMoved(
