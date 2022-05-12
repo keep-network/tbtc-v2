@@ -618,17 +618,18 @@ library Redemption {
             //       in order to avoid allocating bytes in memory.
             uint256 outputLength = redemptionTxOutputVector
                 .determineOutputLengthAt(processInfo.outputStartingIndex);
-            bytes memory output = redemptionTxOutputVector.slice(
-                processInfo.outputStartingIndex,
-                outputLength
-            );
 
             // Extract the value from given output.
-            uint64 outputValue = output.extractValue();
+            uint64 outputValue = redemptionTxOutputVector
+                .extractValueAt(processInfo.outputStartingIndex);
+
+            uint256 scriptLength = outputLength - 8;
+
             // The output consists of an 8-byte value and a variable length
             // script. To extract that script we slice the output starting from
             // 9th byte until the end.
-            bytes memory outputScript = output.slice(8, output.length - 8);
+            bytes memory outputScript = redemptionTxOutputVector
+                .slice(processInfo.outputStartingIndex + 8, scriptLength);
 
             if (
                 resultInfo.changeValue == 0 &&
