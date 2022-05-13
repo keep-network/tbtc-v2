@@ -101,6 +101,67 @@ export async function makeRedemptions(
 }
 
 /**
+ * Prepares a list of redemption requests based on the provided redeemer
+ * addresses and the wallet key. The information on the redemption requests
+ * is acquired by connecting to the provided Bridge contract interface.
+ * @dev It is up to the caller of this function to ensure that each of the
+ *      addresses represent a valid pending redemption request in the Bridge
+ *      on-chain contract. An exception will be thrown if any of the addresses
+ *      (along with the wallet public key corresponding to the provided private
+ *      key) does not represent a valid pending redemption.
+ * @param bridge The interface to the Bridge on-chain contract.
+ * @param walletPrivateKey The private key of the wallet in the WIF format.
+ * @param redeemerAddresses The addresses that will be the recipients of the
+ *                          redeemed Bitcoins.
+ * @returns The list of redemption requests.
+ */
+async function prepareRedemptionRequests(
+  bridge: Bridge,
+  walletPrivateKey: string,
+  redeemerAddresses: string[]
+): Promise<RedemptionRequest[]> {
+  const walletPublicKey = getPublicKey(walletPrivateKey)
+
+  const walletPubKeyHash =
+    "0x" + hash160.digest(Buffer.from(walletPublicKey, "hex")).toString("hex")
+
+  const redemptionRequests: RedemptionRequest[] = []
+
+  for (const redeemerAddress of redeemerAddresses) {
+    const redeemerOutputScript = buildOutputScript(redeemerAddress)
+
+    const pendingRedemption = await bridge.pendingRedemptions(
+      walletPubKeyHash,
+      redeemerOutputScript
+    )
+
+    if (pendingRedemption.requestedAt == 0) {
+      // The requested redemption does not exist among `pendingRedemptions`
+      // in the Bridge.
+      throw new Error(
+        "Provided redeemer address and wallet public key do not identify a pending redemption"
+      )
+    }
+
+    // TODO: Use `txMaxFee` as the `txFee` for now.
+    // In the future allow the caller to propose the value of transaction fee.
+    // If the proposed transaction fee is smaller than the sum of fee shares from
+    // all the outputs then use the proposed fee and add the difference to outputs
+    // proportionally.
+
+    // Redemption exists in the Bridge. Add it to the list.
+    redemptionRequests.push({
+      redeemerAddress: redeemerAddress,
+      requestedAmount: pendingRedemption.requestedAmount,
+      txFee: pendingRedemption.txMaxFee,
+      treasuryFee: pendingRedemption.treasuryFee,
+    })
+  }
+
+  return redemptionRequests
+}
+
+/**
  * Creates a Bitcoin redemption transaction.
  * The transaction will have a single input (main UTXO) and an output for each
  * redemption request provided and a change output if the redemption requests
@@ -209,6 +270,7 @@ export async function createRedemptionTransaction(
     transactionHex: transaction.toRaw().toString("hex"),
   }
 }
+
 /**
  * Builds a length prefixed output script based on the provided address (P2PKH,
  * P2WPKH, P2SH or P2WSH).
@@ -238,65 +300,4 @@ function getPublicKey(privateKey: string): string {
   })
 
   return keyRing.getPublicKey().toString("hex")
-}
-
-/**
- * Prepares a list of redemption requests based on the provided redeemer
- * addresses and the wallet key. The information on the redemption requests
- * is acquired by connecting to the provided Bridge contract interface.
- * @dev It is up to the caller of this function to ensure that each of the
- *      addresses represent a valid pending redemption request in the Bridge
- *      on-chain contract. An exception will be thrown if any of the addresses
- *      (along with the wallet public key corresponding to the provided private
- *      key) does not represent a valid pending redemption.
- * @param bridge The interface to the Bridge on-chain contract.
- * @param walletPrivateKey The private key of the wallet in the WIF format.
- * @param redeemerAddresses The addresses that will be the recipients of the
- *                          redeemed Bitcoins.
- * @returns The list of redemption requests.
- */
-async function prepareRedemptionRequests(
-  bridge: Bridge,
-  walletPrivateKey: string,
-  redeemerAddresses: string[]
-): Promise<RedemptionRequest[]> {
-  const walletPublicKey = getPublicKey(walletPrivateKey)
-
-  const walletPubKeyHash =
-    "0x" + hash160.digest(Buffer.from(walletPublicKey, "hex")).toString("hex")
-
-  const redemptionRequests: RedemptionRequest[] = []
-
-  for (const redeemerAddress of redeemerAddresses) {
-    const redeemerOutputScript = buildOutputScript(redeemerAddress)
-
-    const pendingRedemption = await bridge.pendingRedemptions(
-      walletPubKeyHash,
-      redeemerOutputScript
-    )
-
-    if (pendingRedemption.requestedAt == 0) {
-      // The requested redemption does not exist among `pendingRedemptions`
-      // in the Bridge.
-      throw new Error(
-        "Provided redeemer address and wallet public key do not identify a pending redemption"
-      )
-    }
-
-    // TODO: Use `txMaxFee` as the `txFee` for now.
-    // In the future allow the caller to propose the value of transaction fee.
-    // If the proposed transaction fee is smaller than the sum of fee shares from
-    // all the outputs then use the proposed fee and add the difference to outputs
-    // proportionally.
-
-    // Redemption exists in the Bridge. Add it to the list.
-    redemptionRequests.push({
-      redeemerAddress: redeemerAddress,
-      requestedAmount: pendingRedemption.requestedAmount,
-      txFee: pendingRedemption.txMaxFee,
-      treasuryFee: pendingRedemption.treasuryFee,
-    })
-  }
-
-  return redemptionRequests
 }
