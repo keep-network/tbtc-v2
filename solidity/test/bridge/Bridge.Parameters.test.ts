@@ -328,6 +328,8 @@ describe("Bridge - Parameters", () => {
           constants.movingFundsTxMaxTotalFee / 2
         const newMovingFundsDustThreshold =
           constants.movingFundsDustThreshold * 2
+        const newMovingFundsTimeoutResetDelay =
+          constants.movingFundsTimeoutResetDelay * 2
         const newMovingFundsTimeout = constants.movingFundsTimeout * 2
         const newMovingFundsTimeoutSlashingAmount =
           constants.movingFundsTimeoutSlashingAmount.mul(3)
@@ -351,6 +353,7 @@ describe("Bridge - Parameters", () => {
             .updateMovingFundsParameters(
               newMovingFundsTxMaxTotalFee,
               newMovingFundsDustThreshold,
+              newMovingFundsTimeoutResetDelay,
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
@@ -373,6 +376,9 @@ describe("Bridge - Parameters", () => {
           )
           expect(params.movingFundsDustThreshold).to.be.equal(
             newMovingFundsDustThreshold
+          )
+          expect(params.movingFundsTimeoutResetDelay).to.be.equal(
+            newMovingFundsTimeoutResetDelay
           )
           expect(params.movingFundsTimeout).to.be.equal(newMovingFundsTimeout)
           expect(params.movingFundsTimeoutSlashingAmount).to.be.equal(
@@ -401,6 +407,7 @@ describe("Bridge - Parameters", () => {
             .withArgs(
               newMovingFundsTxMaxTotalFee,
               newMovingFundsDustThreshold,
+              newMovingFundsTimeoutResetDelay,
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
@@ -420,6 +427,7 @@ describe("Bridge - Parameters", () => {
               .updateMovingFundsParameters(
                 0,
                 constants.movingFundsDustThreshold,
+                constants.movingFundsTimeoutResetDelay,
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
@@ -442,6 +450,7 @@ describe("Bridge - Parameters", () => {
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
                 0,
+                constants.movingFundsTimeoutResetDelay,
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
@@ -470,6 +479,7 @@ describe("Bridge - Parameters", () => {
                   (
                     await bridge.redemptionParameters()
                   ).redemptionDustThreshold,
+                  constants.movingFundsTimeoutResetDelay,
                   constants.movingFundsTimeout,
                   constants.movingFundsTimeoutSlashingAmount,
                   constants.movingFundsTimeoutNotifierRewardMultiplier,
@@ -485,7 +495,7 @@ describe("Bridge - Parameters", () => {
         }
       )
 
-      context("when new moving funds timeout is zero", () => {
+      context("when new moving funds timeout reset delay is zero", () => {
         it("should revert", async () => {
           await expect(
             bridge
@@ -494,6 +504,7 @@ describe("Bridge - Parameters", () => {
                 constants.movingFundsTxMaxTotalFee,
                 constants.movingFundsDustThreshold,
                 0,
+                constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
                 constants.movedFundsSweepTxMaxTotalFee,
@@ -501,9 +512,37 @@ describe("Bridge - Parameters", () => {
                 constants.movedFundsSweepTimeoutSlashingAmount,
                 constants.movedFundsSweepTimeoutNotifierRewardMultiplier
               )
-          ).to.be.revertedWith("Moving funds timeout must be greater than zero")
+          ).to.be.revertedWith(
+            "Moving funds timeout reset delay must be greater than zero"
+          )
         })
       })
+
+      context(
+        "when new moving funds timeout is not greater than its reset delay",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateMovingFundsParameters(
+                  constants.movingFundsTxMaxTotalFee,
+                  constants.movingFundsDustThreshold,
+                  constants.movingFundsTimeoutResetDelay,
+                  constants.movingFundsTimeoutResetDelay,
+                  constants.movingFundsTimeoutSlashingAmount,
+                  constants.movingFundsTimeoutNotifierRewardMultiplier,
+                  constants.movedFundsSweepTxMaxTotalFee,
+                  constants.movedFundsSweepTimeout,
+                  constants.movedFundsSweepTimeoutSlashingAmount,
+                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+                )
+            ).to.be.revertedWith(
+              "Moving funds timeout must be greater than its reset delay"
+            )
+          })
+        }
+      )
 
       context(
         "when new moving funds timeout notifier reward multiplier is greater than 100",
@@ -515,6 +554,7 @@ describe("Bridge - Parameters", () => {
                 .updateMovingFundsParameters(
                   constants.movingFundsTxMaxTotalFee,
                   constants.movingFundsDustThreshold,
+                  constants.movingFundsTimeoutResetDelay,
                   constants.movingFundsTimeout,
                   constants.movingFundsTimeoutSlashingAmount,
                   101,
@@ -540,6 +580,7 @@ describe("Bridge - Parameters", () => {
                 .updateMovingFundsParameters(
                   constants.movingFundsTxMaxTotalFee,
                   constants.movingFundsDustThreshold,
+                  constants.movingFundsTimeoutResetDelay,
                   constants.movingFundsTimeout,
                   constants.movingFundsTimeoutSlashingAmount,
                   constants.movingFundsTimeoutNotifierRewardMultiplier,
@@ -563,6 +604,7 @@ describe("Bridge - Parameters", () => {
               .updateMovingFundsParameters(
                 constants.movingFundsTxMaxTotalFee,
                 constants.movingFundsDustThreshold,
+                constants.movingFundsTimeoutResetDelay,
                 constants.movingFundsTimeout,
                 constants.movingFundsTimeoutSlashingAmount,
                 constants.movingFundsTimeoutNotifierRewardMultiplier,
@@ -587,6 +629,7 @@ describe("Bridge - Parameters", () => {
                 .updateMovingFundsParameters(
                   constants.movingFundsTxMaxTotalFee,
                   constants.movingFundsDustThreshold,
+                  constants.movingFundsTimeoutResetDelay,
                   constants.movingFundsTimeout,
                   constants.movingFundsTimeoutSlashingAmount,
                   constants.movingFundsTimeoutNotifierRewardMultiplier,
@@ -611,6 +654,7 @@ describe("Bridge - Parameters", () => {
             .updateMovingFundsParameters(
               constants.movingFundsTxMaxTotalFee,
               constants.movingFundsDustThreshold,
+              constants.movingFundsTimeoutResetDelay,
               constants.movingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
               constants.movingFundsTimeoutNotifierRewardMultiplier,
