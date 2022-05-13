@@ -129,7 +129,7 @@ async function prepareRedemptionRequests(
   const redemptionRequests: RedemptionRequest[] = []
 
   for (const redeemerAddress of redeemerAddresses) {
-    const redeemerOutputScript = buildOutputScript(redeemerAddress)
+    const redeemerOutputScript = deriveOutputScript(redeemerAddress)
 
     const pendingRedemption = await bridge.pendingRedemptions(
       walletPubKeyHash,
@@ -273,12 +273,12 @@ export async function createRedemptionTransaction(
 }
 
 /**
- * Builds a length prefixed output script based on the provided address (P2PKH,
+ * Derives a length prefixed output script based on the provided address (P2PKH,
  * P2WPKH, P2SH or P2WSH).
  * @param address - Bitcoin address from which the output script will be build
  * @returns The output script as a string.
  */
-function buildOutputScript(address: string): string {
+function deriveOutputScript(address: string): string {
   const rawOutputScript = bcoin.Script.fromAddress(address).toRaw()
 
   return `0x${Buffer.concat([
