@@ -168,7 +168,7 @@ async function prepareRedemptionRequests(
  * Derives a length prefixed output script based on the provided address (P2PKH,
  * P2WPKH, P2SH or P2WSH).
  * @param address - Bitcoin address from which the output script will be build
- * @returns The output script as a string.
+ * @returns The 0x-prefixed output script as a string.
  */
 function deriveOutputScript(address: string): string {
   const rawOutputScript = bcoin.Script.fromAddress(address).toRaw()
