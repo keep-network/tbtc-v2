@@ -200,7 +200,7 @@ export interface TBTC {
    *      correctly formed:
    *        - there is at least one redemption
    *        - the `requestedAmount` in each redemption request is greater than
-   *          the sum of its `feeShare` and `treasuryFee`
+   *          the sum of its `txFee` and `treasuryFee`
    *        - the redeemer address in each redemption request is of a standard
    *          type (P2PKH, P2WPKH, P2SH, P2WSH).
    * @param walletPrivateKey  - The private key of the wallet in the WIF format

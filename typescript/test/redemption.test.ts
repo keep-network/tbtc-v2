@@ -326,7 +326,7 @@ describe("Redemption", () => {
                   const changeOutput = txJSON.outputs[1]
 
                   // P2PKH output
-                  // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+                  // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
                   // which is 10000 - 1600 - 1000 = 7400
                   expect(p2pkhOutput.value).to.be.equal(7400)
                   // The output script should correspond to:
@@ -412,7 +412,7 @@ describe("Redemption", () => {
                   const changeOutput = txJSON.outputs[1]
 
                   // P2WPKH output
-                  // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+                  // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
                   // which is 15000 - 1700 - 1100 = 12200
                   expect(p2wpkhOutput.value).to.be.equal(12200)
                   // The output script should correspond to:
@@ -497,7 +497,7 @@ describe("Redemption", () => {
                   const changeOutput = txJSON.outputs[1]
 
                   // P2SH output
-                  // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+                  // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
                   // which is 13000 - 1700 - 800 = 10500
                   expect(p2shOutput.value).to.be.equal(10500)
                   // The output script should correspond to:
@@ -582,7 +582,7 @@ describe("Redemption", () => {
                   const changeOutput = txJSON.outputs[1]
 
                   // P2WSH output
-                  // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+                  // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
                   // which is 18000 - 1400 - 1000 = 15600
                   expect(p2wshOutput.value).to.be.equal(15600)
                   // The output script should correspond to:
@@ -671,7 +671,7 @@ describe("Redemption", () => {
                 const changeOutput = txJSON.outputs[4]
 
                 // P2PKH output
-                // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+                // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
                 // which is 18000 - 1100 - 1000 = 15900
                 expect(p2pkhOutput.value).to.be.equal(15900)
                 // The output script should correspond to:
@@ -687,7 +687,7 @@ describe("Redemption", () => {
                 )
 
                 // P2WPKH output
-                // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+                // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
                 // which is 13000 - 900 - 800 = 11300
                 expect(p2wpkhOutput.value).to.be.equal(11300)
                 // The output script should correspond to:
@@ -702,7 +702,7 @@ describe("Redemption", () => {
                 )
 
                 // P2SH output
-                // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+                // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
                 // which is 12000 - 1000 - 1100 = 9900
                 expect(p2shOutput.value).to.be.equal(9900)
                 // The output script should correspond to:
@@ -717,7 +717,7 @@ describe("Redemption", () => {
                 )
 
                 // P2WSH output
-                // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+                // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
                 // which is 15000 - 1400 - 700 = 12900
                 expect(p2wshOutput.value).to.be.equal(12900)
                 // The output script should correspond to:
@@ -804,7 +804,7 @@ describe("Redemption", () => {
               const changeOutput = txJSON.outputs[1]
 
               // P2SH output
-              // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+              // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
               // which is 12000 - 1200 - 1000 = 9800
               expect(p2shOutput.value).to.be.equal(9800)
               // The output script should correspond to:
@@ -885,7 +885,7 @@ describe("Redemption", () => {
             const p2wpkhOutput = txJSON.outputs[1]
 
             // P2PKH output
-            // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+            // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
             // which is 6000 - 800 - 0 = 5200
             expect(p2pkhOutput.value).to.be.equal(5200)
             // The output script should correspond to:
@@ -899,7 +899,7 @@ describe("Redemption", () => {
             expect(p2pkhOutput.address).to.be.equal(data.redeemerAddresses[0])
 
             // P2WPKH output
-            // The output value should be `requestedAmount` - `feeShare` - `treasuryFee`
+            // The output value should be `requestedAmount` - `txFee` - `treasuryFee`
             // which is 4000 - 900 - 0 = 3100
             expect(p2wpkhOutput.value).to.be.equal(3100)
             // The output script should correspond to:
@@ -922,7 +922,7 @@ describe("Redemption", () => {
           {
             redeemerAddress: data.redeemerAddresses[0],
             requestedAmount: BigNumber.from(10000),
-            feeShare: BigNumber.from(1000),
+            txFee: BigNumber.from(1000),
             treasuryFee: BigNumber.from(2000),
           },
         ]
@@ -998,7 +998,7 @@ function buildRedemptionRequests(
     redemptionRequests.push({
       redeemerAddress: data.redeemerAddresses[i],
       requestedAmount: redemption.requestedAmount,
-      feeShare: redemption.txMaxFee,
+      txFee: redemption.txMaxFee,
       treasuryFee: redemption.treasuryFee,
     })
   }

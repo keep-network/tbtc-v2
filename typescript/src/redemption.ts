@@ -42,10 +42,10 @@ export interface RedemptionRequest {
    * redemption request and used to pay for the transaction.
    * The value should not be greater than the max fee in the Bridge on-chain
    * contract at the time the redemption request was made.
-   * The sum of the fee shares of all the output values makes the total fee of
-   * the redemption transaction.
+   * The sum of the tx fee from all the output values makes the total fee
+   * of the redemption transaction.
    */
-  feeShare: BigNumber
+  txFee: BigNumber
 }
 
 /**
@@ -109,7 +109,7 @@ export async function makeRedemptions(
  *      correctly formed:
  *        - there is at least one redemption
  *        - the `requestedAmount` in each redemption request is greater than
- *          the sum of its `feeShare` and `treasuryFee`
+ *          the sum of its `txFee` and `treasuryFee`
  *        - the redeemer address in each redemption request is of a standard
  *          type (P2PKH, P2WPKH, P2SH, P2WSH).
  * @param walletPrivateKey  - The private key of the wallet in the WIF format
@@ -158,14 +158,14 @@ export async function createRedemptionTransaction(
     // Calculate the value of the output by subtracting fee share and treasury
     // fee for this particular output from the requested amount
     const outputValue = request.requestedAmount
-      .sub(request.feeShare)
+      .sub(request.txFee)
       .sub(request.treasuryFee)
 
     // Add the output value to the total output value
     totalOutputValue += outputValue.toNumber()
 
     // Add the fee for this particular request to the overall transaction fee
-    txFee += request.feeShare.toNumber()
+    txFee += request.txFee.toNumber()
 
     // Only allow standard address type to receive the redeemed Bitcoins
     const address = bcoin.Address.fromString(request.redeemerAddress)
@@ -283,7 +283,7 @@ async function prepareRedemptionRequests(
       )
     }
 
-    // TODO: Use `txMaxFee` as the `feeShare` for now.
+    // TODO: Use `txMaxFee` as the `txFee` for now.
     // In the future allow the caller to propose the value of transaction fee.
     // If the proposed transaction fee is smaller than the sum of fee shares from
     // all the outputs then use the proposed fee and add the difference to outputs
@@ -293,7 +293,7 @@ async function prepareRedemptionRequests(
     redemptionRequests.push({
       redeemerAddress: redeemerAddress,
       requestedAmount: pendingRedemption.requestedAmount,
-      feeShare: pendingRedemption.txMaxFee,
+      txFee: pendingRedemption.txMaxFee,
       treasuryFee: pendingRedemption.treasuryFee,
     })
   }
