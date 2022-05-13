@@ -125,11 +125,16 @@ contract Bank is Ownable {
     ///      both the old and the new allowance by unfortunate transaction
     ///      ordering. Please use `increaseBalanceAllowance` and
     ///      `decreaseBalanceAllowance` to eliminate the risk.
-    function approveBalanceAndCall(address spender, uint256 amount) external {
+    function approveBalanceAndCall(
+        address spender,
+        uint256 amount,
+        bytes memory extraData
+    ) external {
         _approveBalance(msg.sender, spender, amount);
         IReceiveBalanceApproval(spender).receiveBalanceApproval(
             msg.sender,
-            amount
+            amount,
+            extraData
         );
     }
 
