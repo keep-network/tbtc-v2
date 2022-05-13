@@ -1,7 +1,5 @@
 // @ts-ignore
 import bcoin from "bcoin"
-// @ts-ignore
-import wif from "wif"
 import { BigNumber } from "ethers"
 import {
   RawTransaction,
@@ -9,6 +7,7 @@ import {
   Client as BitcoinClient,
   decomposeRawTransaction,
   isCompressedPublicKey,
+  createKeyRing,
 } from "./bitcoin"
 import { createDepositScript, DepositData } from "./deposit"
 import { Bridge } from "./bridge"
@@ -110,14 +109,10 @@ export async function createDepositSweepTransaction(
       "Number of UTXOs must equal the number of deposit data elements"
     )
   }
-  const decodedWalletPrivateKey = wif.decode(walletPrivateKey)
 
-  const walletKeyRing = new bcoin.KeyRing({
-    witness: true,
-    privateKey: decodedWalletPrivateKey.privateKey,
-    compressed: decodedWalletPrivateKey.compressed,
-  })
-
+  // TODO: Type of `walletAddress` decides about the type of the tx output
+  // (new main UTXO). Add possibility to create a non-witness output (P2PKH).
+  const walletKeyRing = createKeyRing(walletPrivateKey)
   const walletAddress = walletKeyRing.getAddress("string")
 
   const inputCoins = []
@@ -177,6 +172,7 @@ export async function createDepositSweepTransaction(
     const previousScript = previousOutput.script
 
     // P2WKH (main UTXO)
+    // TODO: Main UTXO can be non-witness - handle that case.
     if (previousScript.isWitnessPubkeyhash()) {
       await signMainUtxoInput(transaction, i, walletKeyRing)
       continue

@@ -1,5 +1,7 @@
 // @ts-ignore
-import { TX } from "bcoin"
+import bcoin, { TX } from "bcoin"
+// @ts-ignore
+import wif from "wif"
 // @ts-ignore
 import bufio from "bufio"
 // @ts-ignore
@@ -293,4 +295,24 @@ export function isCompressedPublicKey(publicKey: string): boolean {
     publicKey.length == 66 &&
     (publicKey.substring(0, 2) == "02" || publicKey.substring(0, 2) == "03")
   )
+}
+
+/**
+ * Creates a Bitcoin key ring based on given private key.
+ * @param privateKey Private key that should be used to create the key ring
+ * @param witness Flag indicating whether the key ring will create witness
+ *        or non-witness addresses
+ * @returns Bitcoin key ring.
+ */
+export function createKeyRing(
+  privateKey: string,
+  witness: boolean = true
+): bcoin.KeyRing {
+  const decodedPrivateKey = wif.decode(privateKey)
+
+  return new bcoin.KeyRing({
+    witness: witness,
+    privateKey: decodedPrivateKey.privateKey,
+    compressed: decodedPrivateKey.compressed,
+  })
 }

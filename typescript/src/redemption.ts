@@ -1,11 +1,10 @@
 // @ts-ignore
 import bcoin from "bcoin"
 // @ts-ignore
-import wif from "wif"
-// @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
 import {
+  createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
   Client as BitcoinClient,
@@ -120,7 +119,8 @@ async function prepareRedemptionRequests(
   walletPrivateKey: string,
   redeemerAddresses: string[]
 ): Promise<RedemptionRequest[]> {
-  const walletPublicKey = derivePublicKey(walletPrivateKey)
+  const walletKeyRing = createKeyRing(walletPrivateKey)
+  const walletPublicKey = walletKeyRing.getPublicKey().toString("hex")
 
   const walletPubKeyHash = `0x${hash160
     .digest(Buffer.from(walletPublicKey, "hex"))
@@ -163,6 +163,21 @@ async function prepareRedemptionRequests(
 }
 
 /**
+ * Derives a length prefixed output script based on the provided address (P2PKH,
+ * P2WPKH, P2SH or P2WSH).
+ * @param address - Bitcoin address from which the output script will be build
+ * @returns The output script as a string.
+ */
+function deriveOutputScript(address: string): string {
+  const rawOutputScript = bcoin.Script.fromAddress(address).toRaw()
+
+  return `0x${Buffer.concat([
+    Buffer.from([rawOutputScript.length]),
+    rawOutputScript,
+  ]).toString("hex")}`
+}
+
+/**
  * Creates a Bitcoin redemption transaction.
  * The transaction will have a single input (main UTXO) and an output for each
  * redemption request provided and a change output if the redemption requests
@@ -191,14 +206,7 @@ export async function createRedemptionTransaction(
     throw new Error("There must be at least one request to redeem")
   }
 
-  const decodedWalletPrivateKey = wif.decode(walletPrivateKey)
-
-  const walletKeyRing = new bcoin.KeyRing({
-    witness: witness,
-    privateKey: decodedWalletPrivateKey.privateKey,
-    compressed: decodedWalletPrivateKey.compressed,
-  })
-
+  const walletKeyRing = createKeyRing(walletPrivateKey, witness)
   const walletAddress = walletKeyRing.getAddress("string")
 
   // Use the main UTXO as the single transaction input
@@ -270,36 +278,4 @@ export async function createRedemptionTransaction(
   return {
     transactionHex: transaction.toRaw().toString("hex"),
   }
-}
-
-/**
- * Derives a length prefixed output script based on the provided address (P2PKH,
- * P2WPKH, P2SH or P2WSH).
- * @param address - Bitcoin address from which the output script will be build
- * @returns The output script as a string.
- */
-function deriveOutputScript(address: string): string {
-  const rawOutputScript = bcoin.Script.fromAddress(address).toRaw()
-
-  return `0x${Buffer.concat([
-    Buffer.from([rawOutputScript.length]),
-    rawOutputScript,
-  ]).toString("hex")}`
-}
-
-/**
- * Returns the Bitcoin public key in the compressed format corresponding to
- * the provided private key.
- * @param privateKey - The private key of in the WIF format.
- * @returns The public key of as a string.
- */
-function derivePublicKey(privateKey: string): string {
-  const decodedPrivateKey = wif.decode(privateKey)
-
-  const keyRing = new bcoin.KeyRing({
-    privateKey: decodedPrivateKey.privateKey,
-    compressed: decodedPrivateKey.compressed,
-  })
-
-  return keyRing.getPublicKey().toString("hex")
 }
