@@ -12,7 +12,7 @@ import {
 import { Bridge } from "./bridge"
 
 /**
- * Contains information needed to fulfill a redemption request.
+ * Represents a redemption request.
  */
 export interface RedemptionRequest {
   /**
@@ -29,20 +29,20 @@ export interface RedemptionRequest {
   requestedAmount: BigNumber
 
   /**
-   * The amount of Bitcoins in satoshis that is subtracted from the amount in
-   * redemption request and used to pay the treasury fee.
+   * The amount of Bitcoins in satoshis that is subtracted from the amount of
+   * the redemption request and used to pay the treasury fee.
    * The value should be exactly equal to the value of treasury fee in the Bridge
    * on-chain contract at the time the redemption request was made.
    */
   treasuryFee: BigNumber
 
   /**
-   * The amount of Bitcoins in satoshis that is subtracted from the amount in
-   * redemption request and used to pay for the transaction.
-   * The value should not be greater than the max fee in the Bridge on-chain
-   * contract at the time the redemption request was made.
-   * The sum of the tx fee from all the output values makes the total fee
-   * of the redemption transaction.
+   * The amount of Bitcoins in satoshis that is subtracted from the amount of
+   * the redemption request and used to pay the transaction network fee.
+   * The value must not exceed the value of the Bridge's txMaxFee parameter
+   * that was in force at the moment the redemption request was made. The sum
+   * of the txFee values taken from all redemption outputs is equivalent to
+   * the total network fee of the entire redemption transaction.
    */
   txFee: BigNumber
 }
