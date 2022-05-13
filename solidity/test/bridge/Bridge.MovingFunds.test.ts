@@ -718,7 +718,7 @@ describe("Bridge - Moving funds", () => {
           // wallet in the system and its commitment is not yet submitted.
           // Those preconditions are met by default.
 
-          context("when reset delay was elapsed", () => {
+          context("when reset delay has elapsed", () => {
             let tx: ContractTransaction
 
             before(async () => {
@@ -755,7 +755,7 @@ describe("Bridge - Moving funds", () => {
             })
           })
 
-          context("when reset delay was not elapsed yet", () => {
+          context("when reset delay has not elapsed yet", () => {
             before(async () => {
               await createSnapshot()
 

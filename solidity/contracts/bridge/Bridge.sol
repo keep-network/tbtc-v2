@@ -1172,7 +1172,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        commitment cannot be submitted due to a lack of live wallets
     ///        in the system. It is counted from the moment when the wallet
     ///        was requested to move their funds and switched to the MovingFunds
-    ///        state.
+    ///        state or from the moment the timeout was reset the last time.
     /// @param movingFundsTimeout New value of the moving funds timeout in
     ///        seconds. It is the time after which the moving funds process can
     ///        be reported as timed out. It is counted from the moment when the
@@ -1548,9 +1548,10 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///         timeout can be reset in case the target wallet commitment
     ///         cannot be submitted due to a lack of live wallets in the system.
     ///         It is counted from the moment when the wallet was requested to
-    ///         move their funds and switched to the MovingFunds state.
-    ///         Value in seconds. This value should be smaller than the value
-    ///         of the `movingFundsTimeout`.
+    ///         move their funds and switched to the MovingFunds state or from
+    ///         the moment the timeout was reset the last time. Value in seconds
+    ///         This value should be lower than the value of the
+    ///         `movingFundsTimeout`.
     /// @return movingFundsTimeout Time after which the moving funds process
     ///         can be reported as timed out. It is counted from the moment
     ///         when the wallet was requested to move their funds and switched
