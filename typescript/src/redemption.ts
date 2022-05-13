@@ -4,7 +4,7 @@ import bcoin from "bcoin"
 import wif from "wif"
 // @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
-import { BigNumber, utils } from "ethers"
+import { BigNumber } from "ethers"
 import {
   RawTransaction,
   UnspentTransactionOutput,
@@ -270,12 +270,10 @@ async function prepareRedemptionRequests(
   for (const redeemerAddress of redeemerAddresses) {
     const redeemerOutputScript = buildOutputScript(redeemerAddress)
 
-    const redemptionKey = utils.solidityKeccak256(
-      ["bytes20", "bytes"],
-      [walletPubKeyHash, redeemerOutputScript]
+    const pendingRedemption = await bridge.getPendingRedemptions(
+      walletPubKeyHash,
+      redeemerOutputScript
     )
-
-    const pendingRedemption = await bridge.getPendingRedemptions(redemptionKey)
 
     if (pendingRedemption.requestedAt == 0) {
       // The requested redemption does not exist among `pendingRedemptions`

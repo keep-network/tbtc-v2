@@ -4,7 +4,7 @@ import {
   DecomposedRawTransaction,
 } from "./bitcoin"
 
-import { BigNumberish, BigNumber } from "ethers"
+import { BigNumber } from "ethers"
 
 export interface PendingRedemption {
   redeemer: string
@@ -40,9 +40,14 @@ export interface Bridge {
 
   /**
    * Gets a pending redemption from the on-chain contract.
-   * @param redemptionKey The redemption key that identifies the pending
-   *        redemption built as keccak256(walletPubKeyHash | redeemerOutputScript).
-   * @returns Promise with pending redemption.
+   * @param walletPubKeyHash The wallet public key hash that identifies the
+   *        pending redemption (along with the redeemer output script)
+   * @param redeemerOutputScript The redeemer output script that identifies the
+   *        pending redemption (along with the wallet public key)
+   * @returns Promise with the pending redemption.
    */
-  getPendingRedemptions(redemptionKey: BigNumberish): Promise<PendingRedemption>
+  getPendingRedemptions(
+    walletPubKeyHash: string,
+    redeemerOutputScript: string
+  ): Promise<PendingRedemption>
 }

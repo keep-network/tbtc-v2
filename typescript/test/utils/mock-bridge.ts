@@ -4,7 +4,7 @@ import {
   Proof,
   UnspentTransactionOutput,
 } from "../../src/bitcoin"
-import { BigNumberish, BigNumber, constants } from "ethers"
+import { BigNumberish, BigNumber, utils, constants } from "ethers"
 
 interface BridgeLog {
   sweepTx: DecomposedRawTransaction
@@ -46,9 +46,15 @@ export class MockBridge implements Bridge {
   }
 
   getPendingRedemptions(
-    redemptionKey: BigNumberish
+    walletPubKeyHash: string,
+    redeemerOutputScript: string
   ): Promise<PendingRedemption> {
     return new Promise<PendingRedemption>((resolve, _) => {
+      const redemptionKey = utils.solidityKeccak256(
+        ["bytes20", "bytes"],
+        [walletPubKeyHash, redeemerOutputScript]
+      )
+
       // Return the redemption if it is found in the map.
       // Otherwise, return zeroed values simulating the behavior of a smart contract.
       resolve(
