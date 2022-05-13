@@ -16,12 +16,8 @@
 pragma solidity ^0.8.9;
 
 import "@keep-network/random-beacon/contracts/Governable.sol";
-
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
-// TODO: We used RC version of @openzeppelin/contracts-upgradeable to use `reinitializer`
-// in upgrades. We should revisit this part before mainnet deployment and use
-// a final release package if it's ready.
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./IRelay.sol";
@@ -255,6 +251,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         self.txProofDifficultyFactor = _txProofDifficultyFactor;
 
         // TODO: Revisit initial values.
+        //       https://github.com/keep-network/tbtc-v2/issues/258
         self.depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         self.depositTxMaxFee = 10000; // 10000 satoshi
         self.depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
