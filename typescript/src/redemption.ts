@@ -246,9 +246,9 @@ function getPublicKey(privateKey: string): string {
  * is acquired by connecting to the provided Bridge contract interface.
  * @dev It is up to the caller of this function to ensure that each of the
  *      addresses represent a valid pending redemption request in the Bridge
- *      on-chain contract. If the given address (along with the wallet public
- *      key corresponding to the provided private key) does not represent a
- *      valid pending redemption, this address will be skipped.
+ *      on-chain contract. An exception will be thrown if any of the addresses
+ *      (along with the wallet public key corresponding to the provided private
+ *      key) does not represent a valid pending redemption.
  * @param bridge The interface to the Bridge on-chain contract.
  * @param walletPrivateKey The private key of the wallet in the WIF format.
  * @param redeemerAddresses The addresses that will be the recipients of the
