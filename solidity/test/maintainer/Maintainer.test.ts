@@ -92,6 +92,8 @@ describe("Maintainer", () => {
 
   let fraudChallengeDepositAmount: BigNumber
 
+  let movingFundsTimeoutResetDelay: number
+
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
@@ -106,6 +108,7 @@ describe("Maintainer", () => {
       deployer,
       thirdPartyContract,
     } = await waffle.loadFixture(bridgeFixture))
+    ;({ movingFundsTimeoutResetDelay } = await bridge.movingFundsParameters())
 
     walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry", {
       address: (await bridge.contractReferences()).ecdsaWalletRegistry,
@@ -2220,6 +2223,14 @@ describe("Maintainer", () => {
 
           before(async () => {
             await createSnapshot()
+
+            // Set the timestamp of the block that contains the `setWallet` tx.
+            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+              ...(await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)),
+              movingFundsRequestedAt: (await lastBlockTime()) + 1,
+            })
+
+            await increaseTime(movingFundsTimeoutResetDelay)
 
             initThirdPartyBalance = await provider.getBalance(
               thirdParty.address
