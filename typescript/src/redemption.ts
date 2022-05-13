@@ -103,17 +103,17 @@ export async function makeRedemptions(
 
 /**
  * Prepares a list of redemption requests based on the provided redeemer
- * addresses and the wallet key. The information on the redemption requests
- * is acquired by connecting to the provided Bridge contract interface.
+ * addresses and the wallet key. Details of the redemption requests are fetched
+ * from the provided Bridge on-chain contract handle.
  * @dev It is up to the caller of this function to ensure that each of the
  *      addresses represent a valid pending redemption request in the Bridge
  *      on-chain contract. An exception will be thrown if any of the addresses
  *      (along with the wallet public key corresponding to the provided private
  *      key) does not represent a valid pending redemption.
- * @param bridge The interface to the Bridge on-chain contract.
- * @param walletPrivateKey The private key of the wallet in the WIF format.
+ * @param bridge The handle to the Bridge on-chain contract
+ * @param walletPrivateKey The private key of the wallet in the WIF format
  * @param redeemerAddresses The addresses that will be the recipients of the
- *                          redeemed Bitcoins.
+ *        redeemed Bitcoins
  * @returns The list of redemption requests.
  */
 async function prepareRedemptionRequests(
