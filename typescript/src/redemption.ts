@@ -120,7 +120,7 @@ async function prepareRedemptionRequests(
   walletPrivateKey: string,
   redeemerAddresses: string[]
 ): Promise<RedemptionRequest[]> {
-  const walletPublicKey = getPublicKey(walletPrivateKey)
+  const walletPublicKey = derivePublicKey(walletPrivateKey)
 
   const walletPubKeyHash = `0x${hash160
     .digest(Buffer.from(walletPublicKey, "hex"))
@@ -293,7 +293,7 @@ function buildOutputScript(address: string): string {
  * @param privateKey - The private key of in the WIF format.
  * @returns The public key of as a string.
  */
-function getPublicKey(privateKey: string): string {
+function derivePublicKey(privateKey: string): string {
   const decodedPrivateKey = wif.decode(privateKey)
 
   const keyRing = new bcoin.KeyRing({
