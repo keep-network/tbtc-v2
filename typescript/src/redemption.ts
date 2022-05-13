@@ -122,8 +122,9 @@ async function prepareRedemptionRequests(
 ): Promise<RedemptionRequest[]> {
   const walletPublicKey = getPublicKey(walletPrivateKey)
 
-  const walletPubKeyHash =
-    "0x" + hash160.digest(Buffer.from(walletPublicKey, "hex")).toString("hex")
+  const walletPubKeyHash = `0x${hash160
+    .digest(Buffer.from(walletPublicKey, "hex"))
+    .toString("hex")}`
 
   const redemptionRequests: RedemptionRequest[] = []
 
@@ -278,11 +279,12 @@ export async function createRedemptionTransaction(
  * @returns The output script as a string.
  */
 function buildOutputScript(address: string): string {
-  const script = bcoin.Script.fromAddress(address)
-  const scriptAsStr = script.toRaw().toString("hex")
-  const scriptLength = scriptAsStr.length / 2 // get length in bytes
+  const rawOutputScript = bcoin.Script.fromAddress(address).toRaw()
 
-  return "0x" + scriptLength.toString(16) + scriptAsStr
+  return `0x${Buffer.concat([
+    Buffer.from([rawOutputScript.length]),
+    rawOutputScript,
+  ]).toString("hex")}`
 }
 
 /**
