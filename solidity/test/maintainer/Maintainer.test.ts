@@ -66,8 +66,9 @@ const { impersonateAccount } = helpers.account
 const { lastBlockTime, increaseTime } = helpers.time
 const { keccak256, sha256 } = ethers.utils
 
-// These tests were ported from other tbtc-v2 tests suites and adjusted
-// to test the refund functionality of the Maintainer Proxy contract.
+// Most of the tests around specific bridge functionality were ported from the
+// other tbtc-v2 tests suites and adjusted to check the refund functionality of
+// the Maintainer Proxy contract.
 describe("Maintainer", () => {
   const activeWalletMainUtxo = {
     txHash:
@@ -1545,7 +1546,7 @@ describe("Maintainer", () => {
                         .connect(thirdParty)
                         .submitFraudChallenge(
                           walletPublicKey,
-                          data.sighash,
+                          data.preimageSha256,
                           data.signature,
                           {
                             value: fraudChallengeDepositAmount,
@@ -1619,7 +1620,7 @@ describe("Maintainer", () => {
                         .connect(thirdParty)
                         .submitFraudChallenge(
                           walletPublicKey,
-                          data.sighash,
+                          data.preimageSha256,
                           data.signature,
                           {
                             value: fraudChallengeDepositAmount,
@@ -1695,7 +1696,7 @@ describe("Maintainer", () => {
                         .connect(thirdParty)
                         .submitFraudChallenge(
                           walletPublicKey,
-                          data.sighash,
+                          data.preimageSha256,
                           data.signature,
                           {
                             value: fraudChallengeDepositAmount,
@@ -1769,7 +1770,7 @@ describe("Maintainer", () => {
                         .connect(thirdParty)
                         .submitFraudChallenge(
                           walletPublicKey,
-                          data.sighash,
+                          data.preimageSha256,
                           data.signature,
                           {
                             value: fraudChallengeDepositAmount,
@@ -2605,6 +2606,7 @@ describe("Maintainer", () => {
         context("when the challenge is open", () => {
           context("when the heartbeat message has correct format", () => {
             const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+            const heartbeatMessageSha256 = sha256(heartbeatMessage)
             const sighash = sha256(sha256(heartbeatMessage))
 
             let tx: ContractTransaction
@@ -2621,7 +2623,7 @@ describe("Maintainer", () => {
                 .connect(thirdParty)
                 .submitFraudChallenge(
                   heartbeatWalletPublicKey,
-                  sighash,
+                  heartbeatMessageSha256,
                   signature,
                   {
                     value: fraudChallengeDepositAmount,
