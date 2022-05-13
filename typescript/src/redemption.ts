@@ -220,22 +220,22 @@ export async function createRedemptionTransaction(
 
   const transaction = new bcoin.MTX()
 
-  let txFee = 0
-  let totalOutputValue = 0
+  let txTotalFee = 0
+  let totalOutputsValue = 0
 
   // Process the requests
   for (const request of redemptionRequests) {
-    // Calculate the value of the output by subtracting fee share and treasury
+    // Calculate the value of the output by subtracting tx fee and treasury
     // fee for this particular output from the requested amount
     const outputValue = request.requestedAmount
       .sub(request.txFee)
       .sub(request.treasuryFee)
 
     // Add the output value to the total output value
-    totalOutputValue += outputValue.toNumber()
+    totalOutputsValue += outputValue.toNumber()
 
     // Add the fee for this particular request to the overall transaction fee
-    txFee += request.txFee.toNumber()
+    txTotalFee += request.txFee.toNumber()
 
     // Only allow standard address type to receive the redeemed Bitcoins
     const address = bcoin.Address.fromString(request.redeemerAddress)
@@ -259,7 +259,7 @@ export async function createRedemptionTransaction(
   // anyway during funding, but if the value of the change output was very low,
   // the library would consider it "dust" and add it to the fee rather than
   // create a new output.
-  const changeOutputValue = mainUtxo.value - totalOutputValue - txFee
+  const changeOutputValue = mainUtxo.value - totalOutputsValue - txTotalFee
   if (changeOutputValue > 0) {
     transaction.addOutput({
       script: bcoin.Script.fromAddress(walletAddress),
@@ -269,7 +269,7 @@ export async function createRedemptionTransaction(
 
   await transaction.fund(inputCoins, {
     changeAddress: walletAddress,
-    hardFee: txFee,
+    hardFee: txTotalFee,
     subtractFee: false,
   })
 
