@@ -1509,14 +1509,14 @@
   integrity sha512-AG2fJqqniXVzwitHQcYQK5dZIyUPDo5xS1RZzW+LngcIuKA/f0cvTDEjWxgjf4D5MbStJNFWaCTtWwAJUCzsIw==
 
 "@keep-network/ecdsa@development":
-  version "2.0.0-dev.36"
-  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0-dev.36.tgz#c1b42692423518c6c75211206bdcd8e582f7f299"
-  integrity sha512-+fuaToGoV9B5bUQ5TkBYTSndqEcI5zNCe4zqYFagQTt9bGUGqb5j9sCqe+E8Z/mHB2OLlVyq9zlW8F6n/iYOgw==
+  version "2.0.0-dev.42"
+  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0-dev.42.tgz#49e3d19edcfcb39292336dd992641e07504b1fb1"
+  integrity sha512-xv//i5wwuJJiA+G3BduflZCisCmIEca23GFEgoM/Ef6jIgjliMYa6/Ab5FMm0P5rcqXhGPXl8nCvmmtX08vDEA==
   dependencies:
-    "@keep-network/random-beacon" "^2.0.0-dev.32"
+    "@keep-network/random-beacon" "^2.0.0-dev.36"
     "@keep-network/sortition-pools" "^2.0.0-pre.9"
-    "@openzeppelin/contracts" "~4.5.0"
-    "@openzeppelin/contracts-upgradeable" "^4.6.0-rc.0"
+    "@openzeppelin/contracts" "^4.6.0"
+    "@openzeppelin/contracts-upgradeable" "^4.6.0"
     "@threshold-network/solidity-contracts" ">1.2.0-dev <1.2.0-ropsten"
 
 "@keep-network/hardhat-helpers@^0.5.0":
@@ -1540,10 +1540,10 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.4.0"
 
-"@keep-network/keep-core@>1.8.0-dev <1.8.0-pre":
-  version "1.8.0-dev.11"
-  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.0-dev.11.tgz#cf607c6b9f86b545d8110ea4857b2eef5f3de737"
-  integrity sha512-NWsG0RqsJm+ZTbSUTWXgmJe6tSyNmHVhx7tQO/7d3/A31hEpbeJeC2H8ro7Pj88M6JDHSvor7svn8bL0KlIy1A==
+"@keep-network/keep-core@>1.8.1-dev <1.8.1-pre":
+  version "1.8.1-dev.0"
+  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.1-dev.0.tgz#d95864b25800214de43d8840376a68336cb12055"
+  integrity sha512-gFXkgN4PYOYCZ14AskL7fZHEFW5mu3BDd+TJKBuKZc1q9CgRMOK+dxpJnSctxmSH1tV+Ln9v9yqlSkfPCoiBHw==
   dependencies:
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.4.0"
@@ -1558,23 +1558,13 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
 
-"@keep-network/random-beacon@^2.0.0-dev.32":
-  version "2.0.0-dev.33"
-  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.33.tgz#ed6b9d723d9f4b7190bf0eb6cb28b172cc851029"
-  integrity sha512-oI0Zy+kFWgq/E9dpQVfjdp+PqSrxy13FPXxhZrPpUrIWIUrfb6MDofNu7nkS/obI9wBGVRZvClyh2oAOu4u5gQ==
+"@keep-network/random-beacon@^2.0.0-dev.36", "@keep-network/random-beacon@development":
+  version "2.0.0-dev.36"
+  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.36.tgz#c2b62974c655301ef218cd6e7b2aa4ef4e8f7ef0"
+  integrity sha512-a1RiOxFtn8GnNmWzM4vwaQE95PMbvzPcDftbRv+n1s6/69rHMIFzHXLbkcMNQ8IIjUD0p+bDqghNOc8lheLHIQ==
   dependencies:
     "@keep-network/sortition-pools" "^2.0.0-pre.9"
-    "@openzeppelin/contracts" "^4.4.2"
-    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
-    "@threshold-network/solidity-contracts" ">1.2.0-dev <1.2.0-ropsten"
-
-"@keep-network/random-beacon@development":
-  version "2.0.0-dev.32"
-  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.32.tgz#eb7edcc5e5ace484eeb928e20b195b1379c619d5"
-  integrity sha512-rVqUdU5yKfFu9SywTCVlwXqG3dZSJp139wivQG0QlvPAz4TrnO1iIcMgohpeV9Z4DU01Mw+BaBWYD7QF/OLAMQ==
-  dependencies:
-    "@keep-network/sortition-pools" "^2.0.0-pre.9"
-    "@openzeppelin/contracts" "^4.4.2"
+    "@openzeppelin/contracts" "^4.6.0"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
     "@threshold-network/solidity-contracts" ">1.2.0-dev <1.2.0-ropsten"
 
@@ -1731,15 +1721,15 @@
     "@types/sinon-chai" "^3.2.3"
     "@types/web3" "1.0.19"
 
-"@openzeppelin/contracts-upgradeable@^4.5":
+"@openzeppelin/contracts-upgradeable@^4.6.0":
   version "4.6.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.6.0.tgz#1bf55f230f008554d4c6fe25eb165b85112108b0"
   integrity sha512-5OnVuO4HlkjSCJO165a4i2Pu1zQGzMs//o54LPrwUgxvEO2P3ax1QuaSI0cEHHTveA77guS0PnNugpR2JMsPfA==
 
-"@openzeppelin/contracts-upgradeable@^4.6.0-rc.0":
-  version "4.6.0-rc.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.6.0-rc.0.tgz#80b6dcff3167ab2f86f9d08e6bd60c0332a5fee5"
-  integrity sha512-IQo98b6AlCGqpdgW1pxsUucqMu8x6WFJmusKMS4qoaVm3cifA/aQM/klHIAdr3pmVeZRjIM1gywQU85jzWEnAA==
+"@openzeppelin/contracts-upgradeable@~4.5.2":
+  version "4.5.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.5.2.tgz#90d9e47bacfd8693bfad0ac8a394645575528d05"
+  integrity sha512-xgWZYaPlrEOQo3cBj97Ufiuv79SPd8Brh4GcFYhPgb6WvAq4ppz8dWKL6h+jLAK01rUqMRp/TS9AdXgAeNvCLA==
 
 "@openzeppelin/contracts@^2.4.0":
   version "2.5.1"
@@ -1751,7 +1741,7 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.2.0.tgz#260d921d99356e48013d9d760caaa6cea35dc642"
   integrity sha512-LD4NnkKpHHSMo5z9MvFsG4g1xxZUDqV3A3Futu3nvyfs4wPwXxqOgMaxOoa2PeyGL2VNeSlbxT54enbQzGcgJQ==
 
-"@openzeppelin/contracts@^4.3.2", "@openzeppelin/contracts@^4.4.2", "@openzeppelin/contracts@^4.5":
+"@openzeppelin/contracts@^4.3.2", "@openzeppelin/contracts@^4.6.0":
   version "4.6.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.6.0.tgz#c91cf64bc27f573836dba4122758b4743418c1b3"
   integrity sha512-8vi4d50NNya/bQqCmaVzvHNmwHvS0OBKb7HNtuNwEE3scXWrP31fKQoGxNMT+KbzmrNZzatE3QK5p2gFONI/hg==
@@ -2076,13 +2066,13 @@
     "@openzeppelin/contracts" "^4.1.0"
 
 "@threshold-network/solidity-contracts@>1.2.0-dev <1.2.0-ropsten":
-  version "1.2.0-dev.6"
-  resolved "https://registry.yarnpkg.com/@threshold-network/solidity-contracts/-/solidity-contracts-1.2.0-dev.6.tgz#00f78102c81e8c724e805fd646f23f02941ab4cd"
-  integrity sha512-hTSFDxfDmYxSZHy3JIzcuiRf8tAvFxK4oRDAWBTrLlmOcVLQgK7OT+CfXC5qiku9bK+GOEuQmqmeQLQZLieG8Q==
+  version "1.2.0-dev.10"
+  resolved "https://registry.yarnpkg.com/@threshold-network/solidity-contracts/-/solidity-contracts-1.2.0-dev.10.tgz#a17391fec84b80dfd70e6b35bf2f71adb23f9d4f"
+  integrity sha512-gVZYFWlet12iT3tOLjgmYkqrwcrWaKvISy6WLb0jVd3se5y8Il20mmivYjar6x+5AvapuXLVeKqQmsYtKhTvRg==
   dependencies:
-    "@keep-network/keep-core" ">1.8.0-dev <1.8.0-pre"
-    "@openzeppelin/contracts" "^4.5"
-    "@openzeppelin/contracts-upgradeable" "^4.5"
+    "@keep-network/keep-core" ">1.8.1-dev <1.8.1-pre"
+    "@openzeppelin/contracts" "~4.5.0"
+    "@openzeppelin/contracts-upgradeable" "~4.5.2"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
 "@tsconfig/node10@^1.0.7":
@@ -2270,9 +2260,9 @@
     form-data "^3.0.0"
 
 "@types/node@*":
-  version "17.0.31"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.31.tgz#a5bb84ecfa27eec5e1c802c6bbf8139bdb163a5d"
-  integrity sha512-AR0x5HbXGqkEx9CadRH3EBYx/VkiUgZIhP4wvPn/+5KIsgpNoyFaRlVe0Zlx9gRtg8fA06a9tskE2MSN7TcG4Q==
+  version "17.0.33"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.33.tgz#3c1879b276dc63e73030bb91165e62a4509cd506"
+  integrity sha512-miWq2m2FiQZmaHfdZNcbpp9PuXg34W5JZ5CrJ/BaS70VuhoJENBEQybeiYSaPBRNq6KQGnjfEnc/F3PN++D+XQ==
 
 "@types/node@10.12.18":
   version "10.12.18"
@@ -2300,9 +2290,9 @@
   integrity sha512-iFJOS5Q470FF+r4Ol2pSley7/wCNVqf+jgjhtxLLaJcDs+To2iCxlXIkJXrGLD9w9G/oJ9ibySu7z92DCwr7Pg==
 
 "@types/node@^12.6.1":
-  version "12.20.50"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.20.50.tgz#14ba5198f1754ffd0472a2f84ab433b45ee0b65e"
-  integrity sha512-+9axpWx2b2JCVovr7Ilgt96uc6C1zBKOQMpGtRbWT9IoR/8ue32GGMfGA4woP8QyP2gBs6GQWEVM3tCybGCxDA==
+  version "12.20.52"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.20.52.tgz#2fd2dc6bfa185601b15457398d4ba1ef27f81251"
+  integrity sha512-cfkwWw72849SNYp3Zx0IcIs25vABmFh73xicxhCkTcvtZQeIez15PpwQN8fY3RD7gv1Wrxlc9MEtfMORZDEsGw==
 
 "@types/node@^17.0.10":
   version "17.0.21"
@@ -7184,10 +7174,15 @@ has-symbol-support-x@^1.4.1:
   resolved "https://registry.yarnpkg.com/has-symbol-support-x/-/has-symbol-support-x-1.4.2.tgz#1409f98bc00247da45da67cee0a36f282ff26455"
   integrity sha512-3ToOva++HaW+eCpgqZrCfN51IPB+7bJNVT6CUATzueB5Heb8o6Nam0V3HG5dlDvZU1Gn5QLcbahiKw/XVk5JJw==
 
-has-symbols@^1.0.0, has-symbols@^1.0.1, has-symbols@^1.0.2:
+has-symbols@^1.0.0, has-symbols@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/has-symbols/-/has-symbols-1.0.2.tgz#165d3070c00309752a1236a479331e3ac56f1423"
   integrity sha512-chXa79rL/UC2KlX17jo3vRGz0azaWEx5tGqZg5pO3NUyEJVB17dMruQlzCCOfUvElghKcm5194+BCRvi2Rv/Gw==
+
+has-symbols@^1.0.1:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/has-symbols/-/has-symbols-1.0.3.tgz#bb7b2c4349251dce87b125f7bdf874aa7c8b39f8"
+  integrity sha512-l3LCuF6MgDNwTDKkdYGEihYjt5pRPbEg46rtlmnSPlUbgmB8LOIrKJbYYFBSbnPaJexMKtiPO8hmeRjRz2Td+A==
 
 has-to-string-tag-x@^1.2.0:
   version "1.4.1"
@@ -9273,7 +9268,7 @@ object-copy@^0.1.0:
     define-property "^0.2.5"
     kind-of "^3.0.3"
 
-object-inspect@^1.10.3, object-inspect@^1.9.0:
+object-inspect@^1.10.3:
   version "1.10.3"
   resolved "https://registry.yarnpkg.com/object-inspect/-/object-inspect-1.10.3.tgz#c2aa7d2d09f50c99375704f7a0adf24c5782d369"
   integrity sha512-e5mCJlSH7poANfC8z8S9s9S2IN5/4Zb3aZ33f5s8YqoazCFzNLloLU8r5VCG+G7WoqLvAAZoVMcy3tp/3X0Plw==
@@ -9282,6 +9277,11 @@ object-inspect@^1.11.0:
   version "1.11.0"
   resolved "https://registry.yarnpkg.com/object-inspect/-/object-inspect-1.11.0.tgz#9dceb146cedd4148a0d9e51ab88d34cf509922b1"
   integrity sha512-jp7ikS6Sd3GxQfZJPyH3cjcbJF6GZPClgdV+EFygjFLQ5FmW/dRUnTd9PQ9k0JhoNDabWFbpF1yCdSWCC6gexg==
+
+object-inspect@^1.9.0:
+  version "1.12.0"
+  resolved "https://registry.yarnpkg.com/object-inspect/-/object-inspect-1.12.0.tgz#6e2c120e868fd1fd18cb4f18c31741d0d6e776f0"
+  integrity sha512-Ho2z80bVIvJloH+YzRmpZVQe87+qASmBUKZDWgx9cu+KDrX2ZDH/3tMy+gXbZETVGs2M8YdxObOh7XAtim9Y0g==
 
 object-inspect@~1.7.0:
   version "1.7.0"
