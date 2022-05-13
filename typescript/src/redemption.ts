@@ -270,7 +270,7 @@ async function prepareRedemptionRequests(
   for (const redeemerAddress of redeemerAddresses) {
     const redeemerOutputScript = buildOutputScript(redeemerAddress)
 
-    const pendingRedemption = await bridge.getPendingRedemptions(
+    const pendingRedemption = await bridge.pendingRedemptions(
       walletPubKeyHash,
       redeemerOutputScript
     )

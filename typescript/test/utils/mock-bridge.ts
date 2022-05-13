@@ -20,7 +20,7 @@ export class MockBridge implements Bridge {
   private _pendingRedemptions = new Map<BigNumberish, PendingRedemption>()
   private _depositSweepProofLog: BridgeLog[] = []
 
-  set pendingRedemptions(value: Map<BigNumberish, PendingRedemption>) {
+  set requestRedemptions(value: Map<BigNumberish, PendingRedemption>) {
     this._pendingRedemptions = value
   }
 
@@ -45,7 +45,7 @@ export class MockBridge implements Bridge {
     })
   }
 
-  getPendingRedemptions(
+  pendingRedemptions(
     walletPubKeyHash: string,
     redeemerOutputScript: string
   ): Promise<PendingRedemption> {

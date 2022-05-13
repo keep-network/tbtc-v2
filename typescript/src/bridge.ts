@@ -46,7 +46,7 @@ export interface Bridge {
    *        pending redemption (along with the wallet public key)
    * @returns Promise with the pending redemption.
    */
-  getPendingRedemptions(
+  pendingRedemptions(
     walletPubKeyHash: string,
     redeemerOutputScript: string
   ): Promise<PendingRedemption>

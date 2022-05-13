@@ -218,7 +218,7 @@ describe("Redemption", () => {
             // Before setting the pending redemption map in the Bridge, delete
             // one element to simulate absence of that redemption
             pendingRedemptions.delete(data.pendingRedemptions[2].redemptionKey)
-            bridge.pendingRedemptions = pendingRedemptions
+            bridge.requestRedemptions = pendingRedemptions
           })
 
           it("should revert", async () => {
@@ -971,7 +971,7 @@ async function runRedemptionScenario(
   })
   bitcoinClient.rawTransactions = rawTransactions
 
-  bridge.pendingRedemptions = new Map<BigNumberish, PendingRedemption>(
+  bridge.requestRedemptions = new Map<BigNumberish, PendingRedemption>(
     data.pendingRedemptions.map((redemption) => [
       redemption.redemptionKey,
       redemption.pendingRedemption,
