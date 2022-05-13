@@ -64,7 +64,7 @@ export interface RedemptionRequest {
  *                  P2WPKH if `true`, P2PKH if `false`
  * @returns Empty promise.
  */
-export async function redeemDeposits(
+export async function makeRedemptions(
   bitcoinClient: BitcoinClient,
   bridge: Bridge,
   walletPrivateKey: string,

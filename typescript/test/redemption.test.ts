@@ -28,7 +28,7 @@ import { PendingRedemption } from "./bridge"
 chai.use(chaiAsPromised)
 
 describe("Redemption", () => {
-  describe("redeemDeposits", () => {
+  describe("makeRedemptions", () => {
     let bitcoinClient: MockBitcoinClient
     let bridge: MockBridge
 
@@ -223,7 +223,7 @@ describe("Redemption", () => {
 
           it("should revert", async () => {
             await expect(
-              TBTC.redeemDeposits(
+              TBTC.makeRedemptions(
                 bitcoinClient,
                 bridge,
                 walletPrivateKey,
@@ -252,7 +252,7 @@ describe("Redemption", () => {
 
       it("should revert", async () => {
         await expect(
-          TBTC.redeemDeposits(
+          TBTC.makeRedemptions(
             bitcoinClient,
             bridge,
             walletPrivateKey,
@@ -978,7 +978,7 @@ async function runRedemptionScenario(
     ])
   )
 
-  await TBTC.redeemDeposits(
+  await TBTC.makeRedemptions(
     bitcoinClient,
     bridge,
     walletPrivKey,

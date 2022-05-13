@@ -9,7 +9,7 @@ import {
 } from "./deposit"
 import {
   createRedemptionTransaction,
-  redeemDeposits,
+  makeRedemptions,
   RedemptionRequest,
 } from "./redemption"
 import {
@@ -182,7 +182,7 @@ export interface TBTC {
    *                  P2WPKH if `true`, P2PKH if `false`
    * @returns Empty promise.
    */
-  redeemDeposits(
+  makeRedemptions(
     bitcoinClient: BitcoinClient,
     bridge: Bridge,
     walletPrivateKey: string,
@@ -228,7 +228,7 @@ const tbtc: TBTC = {
   sweepDeposits,
   createDepositSweepTransaction,
   proveDepositSweep,
-  redeemDeposits,
+  makeRedemptions,
   createRedemptionTransaction,
 }
 
