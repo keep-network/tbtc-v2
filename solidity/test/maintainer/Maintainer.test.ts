@@ -2176,6 +2176,83 @@ describe("Maintainer", () => {
     })
   })
 
+  describe("resetMovingFundsTimeout", () => {
+    const walletDraft = {
+      ecdsaWalletID: ecdsaWalletTestData.walletID,
+      mainUtxoHash: ethers.constants.HashZero,
+      pendingRedemptionsValue: 0,
+      createdAt: 0,
+      movingFundsRequestedAt: 0,
+      closingStartedAt: 0,
+      pendingMovedFundsSweepRequestsCount: 0,
+      state: walletState.Unknown,
+      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    }
+
+    context("when the wallet is in the MovingFunds state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await maintainerProxy.connect(governance).authorize(thirdParty.address)
+        await reimbursementPool
+          .connect(governance)
+          .authorize(maintainerProxy.address)
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ...walletDraft,
+          state: walletState.MovingFunds,
+          movingFundsRequestedAt: (await lastBlockTime()) - 3600,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the wallet's commitment is not submitted yet", () => {
+        context("when Live wallets count is zero", () => {
+          // No need to do any specific setup. There is only one MovingFunds
+          // wallet in the system and its commitment is not yet submitted.
+          // All preconditions are met by default.
+
+          let tx: ContractTransaction
+          let initThirdPartyBalance: BigNumber
+
+          before(async () => {
+            await createSnapshot()
+
+            initThirdPartyBalance = await provider.getBalance(
+              thirdParty.address
+            )
+            tx = await maintainerProxy
+              .connect(thirdParty)
+              .resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should succeed", async () => {
+            await expect(tx.wait()).not.to.be.reverted
+          })
+
+          it("should refund ETH", async () => {
+            const postThirdPartyBalance = await provider.getBalance(
+              thirdParty.address
+            )
+            const diff = postThirdPartyBalance.sub(initThirdPartyBalance)
+
+            expect(diff).to.be.gt(0)
+            expect(diff).to.be.lt(
+              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+            )
+          })
+        })
+      })
+    })
+  })
+
   describe("notifyMovingFundsBelowDust", () => {
     const walletDraft = {
       ecdsaWalletID: ecdsaWalletTestData.walletID,
@@ -3175,7 +3252,8 @@ describe("Maintainer", () => {
               47,
               48,
               49,
-              50
+              50,
+              51
             )
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
@@ -3188,7 +3266,20 @@ describe("Maintainer", () => {
         await createSnapshot()
         tx = await maintainerProxy
           .connect(governance)
-          .updateGasOffsetParameters(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50)
+          .updateGasOffsetParameters(
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51
+          )
       })
 
       after(async () => {
@@ -3198,7 +3289,7 @@ describe("Maintainer", () => {
       it("should emit the GasOffsetParametersUpdated event", async () => {
         await expect(tx)
           .to.emit(maintainerProxy, "GasOffsetParametersUpdated")
-          .withArgs(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50)
+          .withArgs(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51)
       })
     })
   })

@@ -58,6 +58,11 @@ contract MaintainerProxy is Ownable, Reimbursable {
     ///         market conditions.
     uint256 internal _submitMovingFundsCommitmentGasOffset;
 
+    /// @notice Gas that is meant to balance the reset of moving funds timeout
+    ///         overall cost. Can be updated by the governance based on the current
+    ///         market conditions.
+    uint256 internal _resetMovingFundsTimeoutGasOffset;
+
     /// @notice Gas that is meant to balance the submission of moving funds proof
     ///         overall cost. Can be updated by the governance based on the current
     ///         market conditions.
@@ -108,6 +113,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         uint256 submitDepositSweepProofGasOffset,
         uint256 submitRedemptionProofGasOffset,
         uint256 submitMovingFundsCommitmentGasOffset,
+        uint256 resetMovingFundsTimeoutGasOffset,
         uint256 submitMovingFundsProofGasOffset,
         uint256 notifyMovingFundsBelowDustGasOffset,
         uint256 submitMovedFundsSweepProofGasOffset,
@@ -134,6 +140,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         _submitDepositSweepProofGasOffset = 26750;
         _submitRedemptionProofGasOffset = 9750;
         _submitMovingFundsCommitmentGasOffset = 8000;
+        _resetMovingFundsTimeoutGasOffset = 1000;
         _submitMovingFundsProofGasOffset = 15000;
         _notifyMovingFundsBelowDustGasOffset = 3500;
         _submitMovedFundsSweepProofGasOffset = 22000;
@@ -229,6 +236,21 @@ contract MaintainerProxy is Ownable, Reimbursable {
 
         reimbursementPool.refund(
             (gasStart - gasleft()) + _submitMovingFundsCommitmentGasOffset,
+            msg.sender
+        );
+    }
+
+    /// @notice Resets the moving funds timeout for the given wallet if the
+    ///         target wallet commitment cannot be submitted due to a lack
+    ///         of live wallets in the system.
+    /// @param walletPubKeyHash 20-byte public key hash of the moving funds wallet.
+    function resetMovingFundsTimeout(bytes20 walletPubKeyHash) external {
+        uint256 gasStart = gasleft();
+
+        bridge.resetMovingFundsTimeout(walletPubKeyHash);
+
+        reimbursementPool.refund(
+            (gasStart - gasleft()) + _resetMovingFundsTimeoutGasOffset,
             msg.sender
         );
     }
@@ -525,6 +547,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         uint256 submitDepositSweepProofGasOffset,
         uint256 submitRedemptionProofGasOffset,
         uint256 submitMovingFundsCommitmentGasOffset,
+        uint256 resetMovingFundsTimeoutGasOffset,
         uint256 submitMovingFundsProofGasOffset,
         uint256 notifyMovingFundsBelowDustGasOffset,
         uint256 submitMovedFundsSweepProofGasOffset,
@@ -537,6 +560,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         _submitDepositSweepProofGasOffset = submitDepositSweepProofGasOffset;
         _submitRedemptionProofGasOffset = submitRedemptionProofGasOffset;
         _submitMovingFundsCommitmentGasOffset = submitMovingFundsCommitmentGasOffset;
+        _resetMovingFundsTimeoutGasOffset = resetMovingFundsTimeoutGasOffset;
         _submitMovingFundsProofGasOffset = submitMovingFundsProofGasOffset;
         _notifyMovingFundsBelowDustGasOffset = notifyMovingFundsBelowDustGasOffset;
         _submitMovedFundsSweepProofGasOffset = submitMovedFundsSweepProofGasOffset;
@@ -550,6 +574,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
             submitDepositSweepProofGasOffset,
             submitRedemptionProofGasOffset,
             submitMovingFundsCommitmentGasOffset,
+            resetMovingFundsTimeoutGasOffset,
             submitMovingFundsProofGasOffset,
             notifyMovingFundsBelowDustGasOffset,
             submitMovedFundsSweepProofGasOffset,
