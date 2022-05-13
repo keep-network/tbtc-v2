@@ -181,9 +181,10 @@ function deriveOutputScript(address: string): string {
 
 /**
  * Creates a Bitcoin redemption transaction.
- * The transaction will have a single input (main UTXO) and an output for each
- * redemption request provided and a change output if the redemption requests
- * do not consume all the Bitcoins from the main UTXO.
+ * The transaction will have a single input (main UTXO of the wallet making
+ * the redemption), an output for each redemption request provided, and a change
+ * output if the redemption requests do not consume the entire amount of the
+ * single input.
  * @dev The caller is responsible for ensuring the redemption request list is
  *      correctly formed:
  *        - there is at least one redemption
@@ -192,7 +193,8 @@ function deriveOutputScript(address: string): string {
  *        - the redeemer address in each redemption request is of a standard
  *          type (P2PKH, P2WPKH, P2SH, P2WSH).
  * @param walletPrivateKey  - The private key of the wallet in the WIF format
- * @param mainUtxo - The main UTXO of the wallet. Must be P2(W)PKH
+ * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
+ *        by the on-chain Bridge contract
  * @param redemptionRequests - The list of redemption requests
  * @param witness - The parameter used to decide the type of the change output.
  *                  P2WPKH if `true`, P2PKH if `false`
