@@ -277,22 +277,27 @@ async function prepareRedemptionRequests(
 
     const pendingRedemption = await bridge.getPendingRedemptions(redemptionKey)
 
-    // If the pending redemption was found in the Bridge, add it to the list of
-    // redemption requests. Otherwise, skip it.
+    if (pendingRedemption.requestedAt == 0) {
+      // The requested redemption does not exist among `pendingRedemptions`
+      // in the Bridge.
+      throw new Error(
+        "Provided redeemer address and wallet public key do not identify a pending redemption"
+      )
+    }
 
     // TODO: Use `txMaxFee` as the `feeShare` for now.
     // In the future allow the caller to propose the value of transaction fee.
     // If the proposed transaction fee is smaller than the sum of fee shares from
     // all the outputs then use the proposed fee and add the difference to outputs
     // proportionally.
-    if (pendingRedemption.requestedAt > 0) {
-      redemptionRequests.push({
-        redeemerAddress: redeemerAddress,
-        requestedAmount: pendingRedemption.requestedAmount,
-        feeShare: pendingRedemption.txMaxFee,
-        treasuryFee: pendingRedemption.treasuryFee,
-      })
-    }
+
+    // Redemption exists in the Bridge. Add it to the list.
+    redemptionRequests.push({
+      redeemerAddress: redeemerAddress,
+      requestedAmount: pendingRedemption.requestedAmount,
+      feeShare: pendingRedemption.txMaxFee,
+      treasuryFee: pendingRedemption.treasuryFee,
+    })
   }
 
   return redemptionRequests
