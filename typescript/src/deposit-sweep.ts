@@ -16,7 +16,7 @@ import { createTransactionProof } from "./proof"
 
 /**
  * Sweeps P2(W)SH UTXOs by combining all the provided UTXOs and broadcasting
- * a Bitcoin P2WPKH sweep transaction.
+ * a Bitcoin P2WPKH deposit sweep transaction.
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee. Note that broadcasting transaction may fail silently (e.g.
@@ -30,7 +30,7 @@ import { createTransactionProof } from "./proof"
  *                      The number of UTXOs and deposit data elements must
  *                      equal.
  * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
- *                   from the previous sweep transaction (optional).
+ *                   from the previous wallet transaction (optional).
  * @returns Empty promise.
  */
 export async function sweepDeposits(
@@ -65,7 +65,7 @@ export async function sweepDeposits(
     }
   }
 
-  const transaction = await createSweepTransaction(
+  const transaction = await createDepositSweepTransaction(
     fee,
     walletPrivateKey,
     utxosWithRaw,
@@ -80,7 +80,7 @@ export async function sweepDeposits(
 }
 
 /**
- * Creates a Bitcoin P2WPKH sweep transaction.
+ * Creates a Bitcoin P2WPKH deposit sweep transaction.
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee.
@@ -91,10 +91,10 @@ export async function sweepDeposits(
  * @param depositData - data on deposits. Each element corresponds to UTXO.
  *                      The number of UTXOs and deposit data elements must equal.
  * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
- *                   from the previous sweep transaction (optional).
- * @returns Bitcoin sweep transaction in raw format.
+ *                   from the previous wallet transaction (optional).
+ * @returns Bitcoin deposit sweep transaction in raw format.
  */
-export async function createSweepTransaction(
+export async function createDepositSweepTransaction(
   fee: BigNumber,
   walletPrivateKey: string,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
@@ -159,7 +159,7 @@ export async function createSweepTransaction(
   })
 
   if (transaction.outputs.length != 1) {
-    throw new Error("Sweep transaction must have one output")
+    throw new Error("Deposit sweep transaction must have only one output")
   }
 
   // UTXOs must be mapped to deposit data, as `fund` may arrange inputs in any
@@ -372,15 +372,15 @@ async function prepareInputSignData(
 }
 
 /**
- * Prepares the proof of a sweep transaction and submits it to the Bridge
- * on-chain contract.
+ * Prepares the proof of a deposit sweep transaction and submits it to the
+ * Bridge on-chain contract.
  * @param transactionHash - Hash of the transaction being proven.
  * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
  * @param bridge - Interface to the Bridge on-chain contract.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Empty promise.
  */
-export async function proveSweep(
+export async function proveDepositSweep(
   transactionHash: string,
   mainUtxo: UnspentTransactionOutput,
   bridge: Bridge,
@@ -396,5 +396,9 @@ export async function proveSweep(
   // convert it to raw transaction.
   const rawTransaction = await bitcoinClient.getRawTransaction(transactionHash)
   const decomposedRawTransaction = decomposeRawTransaction(rawTransaction)
-  await bridge.submitSweepProof(decomposedRawTransaction, proof, mainUtxo)
+  await bridge.submitDepositSweepProof(
+    decomposedRawTransaction,
+    proof,
+    mainUtxo
+  )
 }

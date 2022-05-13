@@ -32,7 +32,7 @@ import "./BridgeState.sol";
 ///      | 4      | version      | int32_t (LE)           | TX version number         |
 ///      | varies | tx_in_count  | compactSize uint (LE)  | Number of TX inputs       |
 ///      | varies | tx_in        | txIn[]                 | TX inputs                 |
-///      | varies | tx_out count | compactSize uint (LE)  | Number of TX outputs      |
+///      | varies | tx_out_count | compactSize uint (LE)  | Number of TX outputs      |
 ///      | varies | tx_out       | txOut[]                | TX outputs                |
 ///      | 4      | lock_time    | uint32_t (LE)          | Unix time or block number |
 ///
@@ -42,8 +42,8 @@ import "./BridgeState.sol";
 ///      | Bytes  |       Name       |        BTC type        |                 Description                 |
 ///      |--------|------------------|------------------------|---------------------------------------------|
 ///      | 36     | previous_output  | outpoint               | The previous outpoint being spent           |
-///      | varies | script bytes     | compactSize uint (LE)  | The number of bytes in the signature script |
-///      | varies | signature script | char[]                 | The signature script, empty for P2WSH       |
+///      | varies | script_bytes     | compactSize uint (LE)  | The number of bytes in the signature script |
+///      | varies | signature_script | char[]                 | The signature script, empty for P2WSH       |
 ///      | 4      | sequence         | uint32_t (LE)          | Sequence number                             |
 ///
 ///
@@ -74,6 +74,21 @@ import "./BridgeState.sol";
 ///
 ///      (*) compactSize uint is often references as VarInt)
 ///
+///      Coinbase transaction input (txIn):
+///
+///      | Bytes  |       Name       |        BTC type        |                 Description                 |
+///      |--------|------------------|------------------------|---------------------------------------------|
+///      | 32     | hash             | char[32]               | A 32-byte 0x0  null (no previous_outpoint)  |
+///      | 4      | index            | uint32_t (LE)          | 0xffffffff (no previous_outpoint)           |
+///      | varies | script_bytes     | compactSize uint (LE)  | The number of bytes in the coinbase script  |
+///      | varies | height           | char[]                 | The block height of this block (BIP34) (*)  |
+///      | varies | coinbase_script  | none                   |  Arbitrary data, max 100 bytes              |
+///      | 4      | sequence         | uint32_t (LE)          | Sequence number
+///
+///      (*)  Uses script language: starts with a data-pushing opcode that indicates how many bytes to push to
+///           the stack followed by the block height as a little-endian unsigned integer. This script must be as
+///           short as possible, otherwise it may be rejected. The data-pushing opcode will be 0x03 and the total
+///           size four bytes until block 16,777,216 about 300 years from now.
 library BitcoinTx {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
@@ -83,7 +98,7 @@ library BitcoinTx {
 
     /// @notice Represents Bitcoin transaction data.
     struct Info {
-        /// @notice Bitcoin transaction version
+        /// @notice Bitcoin transaction version.
         /// @dev `version` from raw Bitcoin transaction data.
         ///      Encoded as 4-bytes signed integer, little endian.
         bytes4 version;
@@ -111,6 +126,8 @@ library BitcoinTx {
         /// @dev `lock_time` from raw Bitcoin transaction data.
         ///      Encoded as 4-bytes unsigned integer, little endian.
         bytes4 locktime;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Represents data needed to perform a Bitcoin SPV proof.
@@ -122,6 +139,8 @@ library BitcoinTx {
         /// @notice Single byte-string of 80-byte bitcoin headers,
         ///         lowest height first.
         bytes bitcoinHeaders;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Represents info about an unspent transaction output.
@@ -133,6 +152,8 @@ library BitcoinTx {
         uint32 txOutputIndex;
         /// @notice Value of the transaction output.
         uint64 txOutputValue;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Represents Bitcoin signature in the R/S/V format.
@@ -143,12 +164,14 @@ library BitcoinTx {
         bytes32 s;
         /// @notice Signature recovery value.
         uint8 v;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Validates the SPV proof of the Bitcoin transaction.
     ///         Reverts in case the validation or proof verification fail.
-    /// @param txInfo Bitcoin transaction data
-    /// @param proof Bitcoin proof data
+    /// @param txInfo Bitcoin transaction data.
+    /// @param proof Bitcoin proof data.
     /// @return txHash Proven 32-byte transaction hash.
     function validateProof(
         BridgeState.Storage storage self,
@@ -191,7 +214,7 @@ library BitcoinTx {
     ///         Bitcoin chain difficulty provided by the relay oracle.
     ///         Reverts in case the evaluation fails.
     /// @param bitcoinHeaders Bitcoin headers chain being part of the SPV
-    ///        proof. Used to extract the observed proof difficulty
+    ///        proof. Used to extract the observed proof difficulty.
     function evaluateProofDifficulty(
         BridgeState.Storage storage self,
         bytes memory bitcoinHeaders
@@ -236,11 +259,11 @@ library BitcoinTx {
 
     /// @notice Extracts public key hash from the provided P2PKH or P2WPKH output.
     ///         Reverts if the validation fails.
-    /// @param output The transaction output
-    /// @return pubKeyHash 20-byte public key hash the output locks funds on
+    /// @param output The transaction output.
+    /// @return pubKeyHash 20-byte public key hash the output locks funds on.
     /// @dev Requirements:
     ///      - The output must be of P2PKH or P2WPKH type and lock the funds
-    ///        on a 20-byte public key hash
+    ///        on a 20-byte public key hash.
     function extractPubKeyHash(BridgeState.Storage storage, bytes memory output)
         internal
         view

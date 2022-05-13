@@ -13,6 +13,7 @@ export const constants = {
   redemptionTimeoutNotifierRewardMultiplier: 100, // 100%
   movingFundsTxMaxTotalFee: 10000, // 10000 satoshi
   movingFundsDustThreshold: 20000, // 20000 satoshi
+  movingFundsTimeoutResetDelay: 518400, // 6 days
   movingFundsTimeout: 604800, // 1 week
   movingFundsTimeoutSlashingAmount: to1ePrecision(10000, 18), // 10000 T
   movingFundsTimeoutNotifierRewardMultiplier: 100, // 100%

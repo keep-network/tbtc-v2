@@ -1,6 +1,8 @@
+.openzeppelin/
 artifacts/
 build/
 cache/
 deployments/
-export.json
+hardhat-dependency-compiler/
 typechain/
+export.json
