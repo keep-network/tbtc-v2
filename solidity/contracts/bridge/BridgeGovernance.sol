@@ -176,6 +176,41 @@ contract BridgeGovernance is Ownable {
         depositDustThresholdChangeInitiated = 0;
     }
 
+    // uint64 depositDustThreshold, -> done
+    // uint64 depositTreasuryFeeDivisor,
+    // uint64 depositTxMaxFee
+
+    // uint64 redemptionDustThreshold,
+    // uint64 redemptionTreasuryFeeDivisor,
+    // uint64 redemptionTxMaxFee,
+    // uint256 redemptionTimeout,
+    // uint96 redemptionTimeoutSlashingAmount,
+    // uint256 redemptionTimeoutNotifierRewardMultiplier
+
+    // uint64 movingFundsTxMaxTotalFee,
+    // uint64 movingFundsDustThreshold,
+    // uint32 movingFundsTimeoutResetDelay,
+    // uint32 movingFundsTimeout,
+    // uint96 movingFundsTimeoutSlashingAmount,
+    // uint256 movingFundsTimeoutNotifierRewardMultiplier,
+    // uint64 movedFundsSweepTxMaxTotalFee,
+    // uint32 movedFundsSweepTimeout,
+    // uint96 movedFundsSweepTimeoutSlashingAmount,
+    // uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+
+    // uint32 walletCreationPeriod,
+    // uint64 walletCreationMinBtcBalance,
+    // uint64 walletCreationMaxBtcBalance,
+    // uint64 walletClosureMinBtcBalance,
+    // uint32 walletMaxAge,
+    // uint64 walletMaxBtcTransfer,
+    // uint32 walletClosingPeriod
+
+    // uint256 fraudChallengeDepositAmount,
+    // uint256 fraudChallengeDefeatTimeout,
+    // uint96 fraudSlashingAmount,
+    // uint256 fraudNotifierRewardMultiplier
+
     /// @notice Get the time remaining until the governance delay can
     ///         be updated.
     /// @return Remaining time in seconds.
@@ -198,6 +233,16 @@ contract BridgeGovernance is Ownable {
         return getRemainingChangeTime(bridgeGovernanceTransferInitiated);
     }
 
+    /// @notice Get the time deposit dust threshold can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingDepositDustThresholdDelayUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return getRemainingChangeTime(depositDustThresholdChangeInitiated);
+    }
+
     /// @notice Gets the time remaining until the governable parameter update
     ///         can be committed.
     /// @param changeTimestamp Timestamp indicating the beginning of the change.
@@ -216,34 +261,4 @@ contract BridgeGovernance is Ownable {
 
         return governanceDelay - elapsed;
     }
-
-    // TODO: update
-    //     uint64 depositTreasuryFeeDivisor,
-    //     uint64 depositTxMaxFee
-    //     uint64 redemptionDustThreshold,
-    //     uint64 redemptionTreasuryFeeDivisor,
-    //     uint64 redemptionTxMaxFee,
-    //     uint256 redemptionTimeout,
-    //     uint96 redemptionTimeoutSlashingAmount,
-    //     uint256 redemptionTimeoutNotifierRewardMultiplier
-    //     uint64 movingFundsTxMaxTotalFee,
-    //     uint64 movingFundsDustThreshold,
-    //     uint32 movingFundsTimeout,
-    //     uint96 movingFundsTimeoutSlashingAmount,
-    //     uint256 movingFundsTimeoutNotifierRewardMultiplier,
-    //     uint64 movedFundsSweepTxMaxTotalFee,
-    //     uint32 movedFundsSweepTimeout,
-    //     uint96 movedFundsSweepTimeoutSlashingAmount,
-    //     uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
-    //     uint32 walletCreationPeriod,
-    //     uint64 walletCreationMinBtcBalance,
-    //     uint64 walletCreationMaxBtcBalance,
-    //     uint64 walletClosureMinBtcBalance,
-    //     uint32 walletMaxAge,
-    //     uint64 walletMaxBtcTransfer,
-    //     uint32 walletClosingPeriod
-    //     uint256 fraudChallengeDepositAmount,
-    //     uint256 fraudChallengeDefeatTimeout,
-    //     uint96 fraudSlashingAmount,
-    //     uint256 fraudNotifierRewardMultiplier
 }

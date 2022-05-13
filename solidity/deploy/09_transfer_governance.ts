@@ -5,11 +5,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
   const { deployer, governance } = await getNamedAccounts()
 
+  const BridgeGovernance = await deployments.get("BridgeGovernance")
+
   await deployments.execute(
     "Bridge",
     { from: deployer },
     "transferGovernance",
-    governance
+    BridgeGovernance.address
   )
 }
 
