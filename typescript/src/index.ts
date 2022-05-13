@@ -167,19 +167,21 @@ export interface TBTC {
   ): Promise<void>
 
   /**
-   * Redeems deposited tBTC by creating a redemption transaction transferring
-   * Bitcoins from the wallet's main UTXO to the redeemer addresses and
-   * broadcasting it. The change UTXO resulting from the transaction becomes
+   * Handles pending redemption requests by creating a redemption transaction
+   * transferring Bitcoins from the wallet's main UTXO to the redeemer addresses
+   * and broadcasting it. The change UTXO resulting from the transaction becomes
    * the new main UTXO of the wallet.
    * @dev It is up to the caller to ensure the wallet key and each of the redeemer
    *      addresses represent a valid pending redemption request in the Bridge.
+   *      If this is not the case, an exception will be thrown.
    * @param bitcoinClient - The Bitcoin client used to interact with the network
-   * @param bridge - The Interface used to interact with the Bridge on-chain contract
+   * @param bridge - The handle to the Bridge on-chain contract
    * @param walletPrivateKey = The private kay of the wallet in the WIF format
-   * @param mainUtxo - The main UTXO of the wallet. Must be P2(W)PKH
-   * @param redeemerAddresses - The list of redeemer addresses.
-   * @param witness - The parameter used to decide the type of the change output.
-   *                  P2WPKH if `true`, P2PKH if `false`
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
+   *        held by the on-chain Bridge contract.
+   * @param redeemerAddresses - The list of redeemer addresses
+   * @param witness - The parameter used to decide about the type of the change
+   *        output. P2WPKH if `true`, P2PKH if `false`
    * @returns Empty promise.
    */
   makeRedemptions(
