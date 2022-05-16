@@ -11,6 +11,16 @@ import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
 import "hardhat-dependency-compiler"
 
+const ecdsaSolidityCompilerConfig = {
+  version: "0.8.9",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200,
+    },
+  },
+}
+
 const config: HardhatUserConfig = {
   solidity: {
     compilers: [
@@ -24,6 +34,10 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+    overrides: {
+      "@keep-network/ecdsa/contracts/WalletRegistry.sol":
+        ecdsaSolidityCompilerConfig,
+    },
   },
 
   paths: {
