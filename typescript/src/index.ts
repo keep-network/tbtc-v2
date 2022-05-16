@@ -11,6 +11,7 @@ import {
 import {
   createRedemptionTransaction,
   makeRedemptions,
+  proveRedemption,
   RedemptionRequest,
 } from "./redemption"
 import {
@@ -189,6 +190,24 @@ export interface TBTC {
   ): Promise<void>
 
   /**
+   * Prepares the proof of a redemption transaction and submits it to the
+   * Bridge on-chain contract.
+   * @param transactionHash - Hash of the transaction being proven.
+   * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
+   * @param walletPubKeyHash - 20-byte public key hash of the wallet
+   * @param bridge - Interface to the Bridge on-chain contract.
+   * @param bitcoinClient - Bitcoin client used to interact with the network.
+   * @returns Empty promise.
+   */
+  proveRedemption(
+    transactionHash: string,
+    mainUtxo: UnspentTransactionOutput,
+    walletPubKeyHash: string,
+    bridge: Bridge,
+    bitcoinClient: BitcoinClient
+  ): Promise<void>
+
+  /**
    * Handles pending redemption requests by creating a redemption transaction
    * transferring Bitcoins from the wallet's main UTXO to the provided redeemer
    * output scripts and broadcasting it. The change UTXO resulting from the
@@ -255,6 +274,7 @@ const tbtc: TBTC = {
   sweepDeposits,
   createDepositSweepTransaction,
   proveDepositSweep,
+  proveRedemption,
   makeRedemptions,
   createRedemptionTransaction,
 }

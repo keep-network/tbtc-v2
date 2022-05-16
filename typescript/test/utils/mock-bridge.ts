@@ -4,7 +4,7 @@ import {
   Proof,
   UnspentTransactionOutput,
 } from "../../src/bitcoin"
-import { BigNumberish, BigNumber, utils, constants } from "ethers"
+import { BigNumberish, BigNumber, BytesLike, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
 import { Deposit } from "../../src/deposit"
 
@@ -20,6 +20,13 @@ interface RevealDepositLogEntry {
   deposit: Deposit
 }
 
+interface RedemptionBridgeLogEntry {
+  redemptionTx: DecomposedRawTransaction
+  redemptionProof: Proof
+  mainUtxo: UnspentTransactionOutput
+  walletPubKeyHash: BytesLike
+}
+
 /**
  * Mock Bridge used for test purposes.
  */
@@ -28,6 +35,7 @@ export class MockBridge implements Bridge {
   private _pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
   private _depositSweepProofLog: DepositSweepProofLogEntry[] = []
   private _revealDepositLogEntry: RevealDepositLogEntry[] = []
+  private _redemptionProofLog: RedemptionBridgeLogEntry[] = []
 
   set requestRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -39,6 +47,10 @@ export class MockBridge implements Bridge {
 
   get revealDepositLogEntry(): RevealDepositLogEntry[] {
     return this._revealDepositLogEntry
+  }
+
+  get redemptionProofLog(): RedemptionBridgeLogEntry[] {
+    return this._redemptionProofLog
   }
 
   submitDepositSweepProof(
@@ -58,6 +70,23 @@ export class MockBridge implements Bridge {
     deposit: Deposit
   ): Promise<void> {
     this._revealDepositLogEntry.push({ depositTx, depositOutputIndex, deposit })
+    return new Promise<void>((resolve, _) => {
+      resolve()
+    })
+  }
+
+  submitRedemptionProof(
+    redemptionTx: DecomposedRawTransaction,
+    redemptionProof: Proof,
+    mainUtxo: UnspentTransactionOutput,
+    walletPubKeyHash: BytesLike
+  ): Promise<void> {
+    this._redemptionProofLog.push({
+      redemptionTx,
+      redemptionProof,
+      mainUtxo,
+      walletPubKeyHash,
+    })
     return new Promise<void>((resolve, _) => {
       resolve()
     })

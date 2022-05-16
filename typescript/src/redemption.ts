@@ -5,12 +5,13 @@ import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
 import {
   createKeyRing,
+  decomposeRawTransaction,
   RawTransaction,
   UnspentTransactionOutput,
   Client as BitcoinClient,
 } from "./bitcoin"
-import { Bridge } from "./chain"
-import { Identifier } from "./chain"
+import { Bridge, Identifier } from "./chain"
+import { createTransactionProof } from "./proof"
 
 /**
  * Represents a redemption request.
@@ -263,4 +264,39 @@ export async function createRedemptionTransaction(
   return {
     transactionHex: transaction.toRaw().toString("hex"),
   }
+}
+
+/**
+ * Prepares the proof of a redemption transaction and submits it to the
+ * Bridge on-chain contract.
+ * @param transactionHash - Hash of the transaction being proven.
+ * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
+ * @param walletPubKeyHash - 20-byte public key hash of the wallet
+ * @param bridge - Interface to the Bridge on-chain contract.
+ * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * @returns Empty promise.
+ */
+export async function proveRedemption(
+  transactionHash: string,
+  mainUtxo: UnspentTransactionOutput,
+  walletPubKeyHash: string,
+  bridge: Bridge,
+  bitcoinClient: BitcoinClient
+): Promise<void> {
+  const confirmations = await bridge.txProofDifficultyFactor()
+  const proof = await createTransactionProof(
+    transactionHash,
+    confirmations,
+    bitcoinClient
+  )
+  // TODO: instead of getting rawTransaction, use transaction part of proof and
+  // convert it to raw transaction.
+  const rawTransaction = await bitcoinClient.getRawTransaction(transactionHash)
+  const decomposedRawTransaction = decomposeRawTransaction(rawTransaction)
+  await bridge.submitRedemptionProof(
+    decomposedRawTransaction,
+    proof,
+    mainUtxo,
+    walletPubKeyHash
+  )
 }

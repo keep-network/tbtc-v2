@@ -1,3 +1,4 @@
+import { BytesLike } from "ethers"
 import {
   Proof,
   UnspentTransactionOutput,
@@ -43,6 +44,20 @@ export interface Bridge {
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
     deposit: Deposit
+  ): Promise<void>
+
+  /**
+   * Submits a redemption transaction proof to the on-chain contract.
+   * @param redemptionTx - Redemption transaction data
+   * @param redemptionProof - Redemption proof data
+   * @param mainUtxo - Data of the wallets main UTXO
+   * @param walletPubKeyHash - 20-byte public key hash of the wallet
+   */
+  submitRedemptionProof(
+    redemptionTx: DecomposedRawTransaction,
+    redemptionProof: Proof,
+    mainUtxo: UnspentTransactionOutput,
+    walletPubKeyHash: BytesLike
   ): Promise<void>
 
   /**

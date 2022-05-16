@@ -962,6 +962,10 @@ describe("Redemption", () => {
       })
     })
   })
+
+  describe("proveRedemption", () => {
+    // TODO: Implement
+  })
 })
 
 async function runRedemptionScenario(
