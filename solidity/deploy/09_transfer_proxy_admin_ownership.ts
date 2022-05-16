@@ -2,9 +2,9 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types"
 import type { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
-  const { ethers, getNamedAccounts, upgrades, deployments } = hre
+  const { ethers, helpers, getNamedAccounts, upgrades, deployments } = hre
   const { esdm } = await getNamedAccounts()
-  const { deployer } = await ethers.getNamedSigners()
+  const { deployer } = await helpers.signers.getNamedSigners()
 
   // TODO: Once a DAO is established we want to switch to ProxyAdminWithDeputy and
   // use the DAO as the proxy admin owner and ESDM as the deputy. Until then we
