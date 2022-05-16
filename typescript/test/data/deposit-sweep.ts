@@ -49,7 +49,9 @@ export const depositSweepWithNoMainUtxo: DepositSweepTestData = {
           "db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+        depositor: {
+          identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
+        },
         amount: BigNumber.from(25000),
         walletPublicKey:
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
@@ -75,7 +77,9 @@ export const depositSweepWithNoMainUtxo: DepositSweepTestData = {
           "8d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+        depositor: {
+          identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
+        },
         amount: BigNumber.from(12000),
         walletPublicKey:
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
@@ -131,7 +135,9 @@ export const depositSweepWithMainUtxo: DepositSweepTestData = {
           "08db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+        depositor: {
+          identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
+        },
         amount: BigNumber.from(17000),
         walletPublicKey:
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
@@ -158,7 +164,9 @@ export const depositSweepWithMainUtxo: DepositSweepTestData = {
           "8d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+        depositor: {
+          identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
+        },
         amount: BigNumber.from(10000),
         walletPublicKey:
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",

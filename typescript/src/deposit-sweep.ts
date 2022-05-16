@@ -11,7 +11,7 @@ import {
   isCompressedPublicKey,
 } from "./bitcoin"
 import { createDepositScript, DepositData } from "./deposit"
-import { Bridge } from "./bridge"
+import { Bridge } from "./chain"
 import { createTransactionProof } from "./proof"
 
 /**
