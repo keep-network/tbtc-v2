@@ -16,8 +16,7 @@ import { Bridge } from "./bridge"
  */
 export interface RedemptionRequest {
   /**
-   * The address that is the recipient of the redeemed Bitcoins.
-   * The type of the address must be P2PKH, P2WPKH, P2SH or P2WSH.
+   * The address of the redeemer.
    */
   redeemerAddress: string
 
@@ -45,6 +44,11 @@ export interface RedemptionRequest {
    * the total network fee of the entire redemption transaction.
    */
   txFee: BigNumber
+
+  /**
+   * UNIX timestamp the request was created at.
+   */
+  requestedAt: number
 }
 
 /**
@@ -146,7 +150,8 @@ async function prepareRedemptionRequests(
       )
     }
 
-    // TODO: Use `txMaxFee` as the `txFee` for now.
+    // TODO: Use the value of fee that was set in the Bridge (max fee) as the
+    // `txFee` for now.
     // In the future allow the caller to propose the value of transaction fee.
     // If the proposed transaction fee is smaller than the sum of fee shares from
     // all the outputs then use the proposed fee and add the difference to outputs
@@ -156,8 +161,9 @@ async function prepareRedemptionRequests(
     redemptionRequests.push({
       redeemerAddress: redeemerAddress,
       requestedAmount: pendingRedemption.requestedAmount,
-      txFee: pendingRedemption.txMaxFee,
       treasuryFee: pendingRedemption.treasuryFee,
+      txFee: pendingRedemption.txFee,
+      requestedAt: pendingRedemption.requestedAt,
     })
   }
 

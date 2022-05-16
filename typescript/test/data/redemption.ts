@@ -1,6 +1,6 @@
 import { BigNumber, BytesLike } from "ethers"
 import { RawTransaction, UnspentTransactionOutput } from "../../src/bitcoin"
-import { PendingRedemption } from "../bridge"
+import { RedemptionRequest } from "../../src/redemption"
 
 /**
  * Private key (testnet) of the wallet.
@@ -25,7 +25,7 @@ export interface RedemptionTestData {
   mainUtxo: UnspentTransactionOutput & RawTransaction
   pendingRedemptions: {
     redemptionKey: BytesLike
-    pendingRedemption: PendingRedemption
+    pendingRedemption: RedemptionRequest
   }[]
   redeemerAddresses: string[]
   witness: boolean
@@ -60,10 +60,10 @@ export const singleP2PKHAddressRedemption: RedemptionTestData = {
       redemptionKey:
         "0xe7a0e8b724c3ee7708701137cb57f0a742e284b4ad0b21cc16a3b3fbe733521a",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(10000),
         treasuryFee: BigNumber.from(1000),
-        txMaxFee: BigNumber.from(1600),
+        txFee: BigNumber.from(1600),
         requestedAt: 1650623240,
       },
     },
@@ -114,10 +114,10 @@ export const singleP2WPKHAddressRedemption: RedemptionTestData = {
       redemptionKey:
         "0xbd6593f81039fe17735ef62f15a6532f5df31cd641400c45218cfbefcb9625e7",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(15000),
         treasuryFee: BigNumber.from(1100),
-        txMaxFee: BigNumber.from(1700),
+        txFee: BigNumber.from(1700),
         requestedAt: 1650623240,
       },
     },
@@ -168,10 +168,10 @@ export const singleP2SHAddressRedemption: RedemptionTestData = {
       redemptionKey:
         "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(13000),
         treasuryFee: BigNumber.from(800),
-        txMaxFee: BigNumber.from(1700),
+        txFee: BigNumber.from(1700),
         requestedAt: 1650623240,
       },
     },
@@ -222,10 +222,10 @@ export const singleP2WSHAddressRedemption: RedemptionTestData = {
       redemptionKey:
         "0xbc985c5ef4dec86ae1eba229623636f405e873ad5b154d294ec18f8cabc16185",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(18000),
         treasuryFee: BigNumber.from(1000),
-        txMaxFee: BigNumber.from(1400),
+        txFee: BigNumber.from(1400),
         requestedAt: 1650623240,
       },
     },
@@ -286,10 +286,10 @@ export const multipleAddressesRedemption: RedemptionTestData = {
       redemptionKey:
         "0xe7a0e8b724c3ee7708701137cb57f0a742e284b4ad0b21cc16a3b3fbe733521a",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(18000),
         treasuryFee: BigNumber.from(1000),
-        txMaxFee: BigNumber.from(1100),
+        txFee: BigNumber.from(1100),
         requestedAt: 1650623240,
       },
     },
@@ -297,10 +297,10 @@ export const multipleAddressesRedemption: RedemptionTestData = {
       redemptionKey:
         "0xbd6593f81039fe17735ef62f15a6532f5df31cd641400c45218cfbefcb9625e7",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(13000),
         treasuryFee: BigNumber.from(800),
-        txMaxFee: BigNumber.from(900),
+        txFee: BigNumber.from(900),
         requestedAt: 1650623240,
       },
     },
@@ -308,10 +308,10 @@ export const multipleAddressesRedemption: RedemptionTestData = {
       redemptionKey:
         "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(12000),
         treasuryFee: BigNumber.from(1100),
-        txMaxFee: BigNumber.from(1000),
+        txFee: BigNumber.from(1000),
         requestedAt: 1650623240,
       },
     },
@@ -319,10 +319,10 @@ export const multipleAddressesRedemption: RedemptionTestData = {
       redemptionKey:
         "0xbc985c5ef4dec86ae1eba229623636f405e873ad5b154d294ec18f8cabc16185",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(15000),
         treasuryFee: BigNumber.from(700),
-        txMaxFee: BigNumber.from(1400),
+        txFee: BigNumber.from(1400),
         requestedAt: 1650623240,
       },
     },
@@ -378,10 +378,10 @@ export const noChangeRedemption: RedemptionTestData = {
       redemptionKey:
         "0xe7a0e8b724c3ee7708701137cb57f0a742e284b4ad0b21cc16a3b3fbe733521a",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(6000),
         treasuryFee: BigNumber.from(0),
-        txMaxFee: BigNumber.from(800),
+        txFee: BigNumber.from(800),
         requestedAt: 1650623240,
       },
     },
@@ -389,10 +389,10 @@ export const noChangeRedemption: RedemptionTestData = {
       redemptionKey:
         "0xddd0fd5d4e471ff4573eb0906088a53e8b8dbb3f1ce2f1b33b285a1c104b59a1",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(4000),
         treasuryFee: BigNumber.from(0),
-        txMaxFee: BigNumber.from(900),
+        txFee: BigNumber.from(900),
         requestedAt: 1650623240,
       },
     },
@@ -446,10 +446,10 @@ export const p2PKHChangeRedemption: RedemptionTestData = {
       redemptionKey:
         "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820",
       pendingRedemption: {
-        redeemer: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+        redeemerAddress: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
         requestedAmount: BigNumber.from(12000),
         treasuryFee: BigNumber.from(1000),
-        txMaxFee: BigNumber.from(1200),
+        txFee: BigNumber.from(1200),
         requestedAt: 1650623240,
       },
     },

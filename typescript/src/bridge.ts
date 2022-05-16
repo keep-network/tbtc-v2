@@ -3,16 +3,7 @@ import {
   UnspentTransactionOutput,
   DecomposedRawTransaction,
 } from "./bitcoin"
-
-import { BigNumber } from "ethers"
-
-export interface PendingRedemption {
-  redeemer: string
-  requestedAmount: BigNumber
-  treasuryFee: BigNumber
-  txMaxFee: BigNumber
-  requestedAt: number
-}
+import { RedemptionRequest } from "./redemption"
 
 /**
  * Interface for communication with the Bridge on-chain contract.
@@ -49,5 +40,5 @@ export interface Bridge {
   pendingRedemptions(
     walletPubKeyHash: string,
     redeemerOutputScript: string
-  ): Promise<PendingRedemption>
+  ): Promise<RedemptionRequest>
 }

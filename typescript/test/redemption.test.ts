@@ -23,7 +23,6 @@ import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
 import { expect } from "chai"
 import { BigNumberish, BigNumber } from "ethers"
-import { PendingRedemption } from "./bridge"
 
 chai.use(chaiAsPromised)
 
@@ -208,7 +207,7 @@ describe("Redemption", () => {
             })
             bitcoinClient.rawTransactions = rawTransactions
 
-            const pendingRedemptions = new Map<BigNumberish, PendingRedemption>(
+            const pendingRedemptions = new Map<BigNumberish, RedemptionRequest>(
               data.pendingRedemptions.map((redemption) => [
                 redemption.redemptionKey,
                 redemption.pendingRedemption,
@@ -924,6 +923,7 @@ describe("Redemption", () => {
             requestedAmount: BigNumber.from(10000),
             txFee: BigNumber.from(1000),
             treasuryFee: BigNumber.from(2000),
+            requestedAt: 1651363200,
           },
         ]
 
@@ -971,7 +971,7 @@ async function runRedemptionScenario(
   })
   bitcoinClient.rawTransactions = rawTransactions
 
-  bridge.requestRedemptions = new Map<BigNumberish, PendingRedemption>(
+  bridge.requestRedemptions = new Map<BigNumberish, RedemptionRequest>(
     data.pendingRedemptions.map((redemption) => [
       redemption.redemptionKey,
       redemption.pendingRedemption,
@@ -998,8 +998,9 @@ function buildRedemptionRequests(
     redemptionRequests.push({
       redeemerAddress: data.redeemerAddresses[i],
       requestedAmount: redemption.requestedAmount,
-      txFee: redemption.txMaxFee,
       treasuryFee: redemption.treasuryFee,
+      txFee: redemption.txFee,
+      requestedAt: redemption.requestedAt,
     })
   }
 
