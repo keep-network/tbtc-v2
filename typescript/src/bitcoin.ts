@@ -3,6 +3,8 @@ import { TX } from "bcoin"
 // @ts-ignore
 import bufio from "bufio"
 // @ts-ignore
+import hash160 from "bcrypto/lib/hash160"
+// @ts-ignore
 import { StaticWriter, BufferWriter } from "bufio"
 
 /**
@@ -293,4 +295,9 @@ export function isCompressedPublicKey(publicKey: string): boolean {
     publicKey.length == 66 &&
     (publicKey.substring(0, 2) == "02" || publicKey.substring(0, 2) == "03")
   )
+}
+
+// TODO: Documentation.
+export function computeHash160(text: string): string {
+  return hash160.digest(Buffer.from(text, "hex")).toString("hex")
 }

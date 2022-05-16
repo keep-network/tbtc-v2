@@ -42,10 +42,10 @@ export interface DepositData {
   refundPublicKey: string
 
   /**
-   * An 8 bytes number. Must be unique for given Ethereum address, wallet
-   * public key and refund public key.
+   * An 8 bytes blinding factor as an un-prefixed hex string. Must be unique
+   * for the given depositor, wallet public key and refund public key.
    */
-  blindingFactor: BigNumber
+  blindingFactor: string
 
   /**
    * Unix timestamp in seconds determining the moment of deposit creation.
@@ -160,7 +160,7 @@ export async function createDepositScript(
 
   // Blinding factor should be an 8 bytes number.
   const blindingFactor = depositData.blindingFactor
-  if (blindingFactor.toHexString().substring(2).length != 16) {
+  if (blindingFactor.length != 16) {
     throw new Error("Blinding factor must be an 8 bytes number")
   }
 
@@ -183,7 +183,7 @@ export async function createDepositScript(
   script.clear()
   script.pushData(Buffer.from(depositor.identifierHex, "hex"))
   script.pushOp(opcodes.OP_DROP)
-  script.pushData(Buffer.from(blindingFactor.toHexString().substring(2), "hex"))
+  script.pushData(Buffer.from(blindingFactor, "hex"))
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)

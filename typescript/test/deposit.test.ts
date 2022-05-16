@@ -24,7 +24,7 @@ describe("Deposit", () => {
       "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
     refundPublicKey:
       "0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
-    blindingFactor: BigNumber.from("0xf9f0c90d00039523"), // 18010115967526606115
+    blindingFactor: "f9f0c90d00039523",
     createdAt: 1640181600, // 22-12-2021 14:00:00 UTC
   }
 
@@ -324,9 +324,7 @@ describe("Deposit", () => {
       // The first byte (0x08) before the blinding factor is this byte length.
       // In this case it's 8 bytes.
       expect(script.substring(44, 46)).to.be.equal("08")
-      expect(script.substring(46, 62)).to.be.equal(
-        depositData.blindingFactor.toHexString().substring(2)
-      )
+      expect(script.substring(46, 62)).to.be.equal(depositData.blindingFactor)
 
       // OP_DROP opcode is 0x75.
       expect(script.substring(62, 64)).to.be.equal("75")

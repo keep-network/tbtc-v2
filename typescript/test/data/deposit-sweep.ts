@@ -57,7 +57,7 @@ export const depositSweepWithNoMainUtxo: DepositSweepTestData = {
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
         refundPublicKey:
           "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
-        blindingFactor: BigNumber.from("0xf9f0c90d00039523"),
+        blindingFactor: "f9f0c90d00039523",
         createdAt: 1641650400,
       },
     },
@@ -85,7 +85,7 @@ export const depositSweepWithNoMainUtxo: DepositSweepTestData = {
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
         refundPublicKey:
           "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
-        blindingFactor: BigNumber.from("0xf9f0c90d00039523"),
+        blindingFactor: "f9f0c90d00039523",
         createdAt: 1641650400,
       },
     },
@@ -143,7 +143,7 @@ export const depositSweepWithMainUtxo: DepositSweepTestData = {
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
         refundPublicKey:
           "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
-        blindingFactor: BigNumber.from("0xf9f0c90d00039523"),
+        blindingFactor: "f9f0c90d00039523",
         createdAt: 1641650400,
       },
     },
@@ -172,7 +172,7 @@ export const depositSweepWithMainUtxo: DepositSweepTestData = {
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
         refundPublicKey:
           "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
-        blindingFactor: BigNumber.from("0xf9f0c90d00039523"),
+        blindingFactor: "f9f0c90d00039523",
         createdAt: 1641650400,
       },
     },
