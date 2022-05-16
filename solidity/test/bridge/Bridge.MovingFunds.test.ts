@@ -56,6 +56,7 @@ describe("Bridge - Moving funds", () => {
   let bridge: Bridge & BridgeStub
   let BridgeFactory: BridgeStub__factory
 
+  let movingFundsTimeoutResetDelay: number
   let movingFundsTimeout: number
   let movingFundsTimeoutSlashingAmount: BigNumber
   let movingFundsTimeoutNotifierRewardMultiplier: BigNumber
@@ -75,6 +76,7 @@ describe("Bridge - Moving funds", () => {
       BridgeFactory,
     } = await waffle.loadFixture(bridgeFixture))
     ;({
+      movingFundsTimeoutResetDelay,
       movingFundsTimeout,
       movingFundsTimeoutSlashingAmount,
       movingFundsTimeoutNotifierRewardMultiplier,
@@ -703,7 +705,6 @@ describe("Bridge - Moving funds", () => {
         await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
           ...walletDraft,
           state: walletState.MovingFunds,
-          movingFundsRequestedAt: (await lastBlockTime()) - 3600,
         })
       })
 
@@ -715,34 +716,156 @@ describe("Bridge - Moving funds", () => {
         context("when Live wallets count is zero", () => {
           // No need to do any specific setup. There is only one MovingFunds
           // wallet in the system and its commitment is not yet submitted.
-          // All preconditions are met by default.
+          // Those preconditions are met by default.
 
-          let tx: ContractTransaction
+          context("when reset delay has elapsed", () => {
+            let tx: ContractTransaction
 
-          before(async () => {
-            await createSnapshot()
+            before(async () => {
+              await createSnapshot()
 
-            tx = await bridge.resetMovingFundsTimeout(
-              ecdsaWalletTestData.pubKeyHash160
-            )
+              // Set the timestamp of the block that contains the `setWallet` tx.
+              await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+                ...(await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)),
+                movingFundsRequestedAt: (await lastBlockTime()) + 1,
+              })
+
+              await increaseTime(movingFundsTimeoutResetDelay)
+
+              tx = await bridge.resetMovingFundsTimeout(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should reset the moving funds timeout", async () => {
+              expect(
+                (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160))
+                  .movingFundsRequestedAt
+              ).to.be.equal(await lastBlockTime())
+            })
+
+            it("should emit MovingFundsTimeoutReset event", async () => {
+              await expect(tx)
+                .to.emit(bridge, "MovingFundsTimeoutReset")
+                .withArgs(ecdsaWalletTestData.pubKeyHash160)
+            })
           })
 
-          after(async () => {
-            await restoreSnapshot()
+          context("when reset delay has not elapsed yet", () => {
+            before(async () => {
+              await createSnapshot()
+
+              // Set the timestamp of the block that contains the `setWallet` tx.
+              await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+                ...(await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)),
+                movingFundsRequestedAt: (await lastBlockTime()) + 1,
+              })
+
+              await increaseTime(movingFundsTimeoutResetDelay - 1)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                bridge.resetMovingFundsTimeout(
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+              ).to.be.revertedWith("Moving funds timeout cannot be reset yet")
+            })
           })
 
-          it("should reset the moving funds timeout", async () => {
-            expect(
-              (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160))
-                .movingFundsRequestedAt
-            ).to.be.equal(await lastBlockTime())
-          })
+          context(
+            "when one reset occurred and the reset delay has elapsed again",
+            () => {
+              let tx: ContractTransaction
 
-          it("should emit MovingFundsTimeoutReset event", async () => {
-            await expect(tx)
-              .to.emit(bridge, "MovingFundsTimeoutReset")
-              .withArgs(ecdsaWalletTestData.pubKeyHash160)
-          })
+              before(async () => {
+                await createSnapshot()
+
+                // Set the timestamp of the block that contains the `setWallet` tx.
+                await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+                  ...(await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)),
+                  movingFundsRequestedAt: (await lastBlockTime()) + 1,
+                })
+
+                await increaseTime(movingFundsTimeoutResetDelay)
+
+                // Reset for the first time.
+                await bridge.resetMovingFundsTimeout(
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+
+                // The reset delay elapses again.
+                await increaseTime(movingFundsTimeoutResetDelay)
+
+                // The next reset.
+                tx = await bridge.resetMovingFundsTimeout(
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should reset the moving funds timeout", async () => {
+                expect(
+                  (await bridge.wallets(ecdsaWalletTestData.pubKeyHash160))
+                    .movingFundsRequestedAt
+                ).to.be.equal(await lastBlockTime())
+              })
+
+              it("should emit MovingFundsTimeoutReset event", async () => {
+                await expect(tx)
+                  .to.emit(bridge, "MovingFundsTimeoutReset")
+                  .withArgs(ecdsaWalletTestData.pubKeyHash160)
+              })
+            }
+          )
+
+          context(
+            "when one reset occurred and the reset delay has not elapsed yet",
+            () => {
+              before(async () => {
+                await createSnapshot()
+
+                // Set the timestamp of the block that contains the `setWallet` tx.
+                await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+                  ...(await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)),
+                  movingFundsRequestedAt: (await lastBlockTime()) + 1,
+                })
+
+                await increaseTime(movingFundsTimeoutResetDelay)
+
+                // Reset for the first time.
+                await bridge.resetMovingFundsTimeout(
+                  ecdsaWalletTestData.pubKeyHash160
+                )
+
+                // The reset delay has not elapsed again yet.
+                await increaseTime(movingFundsTimeoutResetDelay - 1)
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  bridge.resetMovingFundsTimeout(
+                    ecdsaWalletTestData.pubKeyHash160
+                  )
+                ).to.be.revertedWith("Moving funds timeout cannot be reset yet")
+              })
+            }
+          )
         })
 
         context("when Live wallets count is not zero", () => {

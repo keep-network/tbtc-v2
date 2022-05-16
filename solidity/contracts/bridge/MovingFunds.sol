@@ -268,7 +268,8 @@ library MovingFunds {
     ///      - The wallet must be in the MovingFunds state,
     ///      - The target wallets commitment must not be already submitted for
     ///        the given moving funds wallet,
-    ///      - Live wallets count must be zero.
+    ///      - Live wallets count must be zero,
+    ///      - The moving funds timeout reset delay must be elapsed.
     function resetMovingFundsTimeout(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash
@@ -291,6 +292,14 @@ library MovingFunds {
         );
 
         require(self.liveWalletsCount == 0, "Live wallets count must be zero");
+
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp >
+                wallet.movingFundsRequestedAt +
+                    self.movingFundsTimeoutResetDelay,
+            "Moving funds timeout cannot be reset yet"
+        );
 
         /* solhint-disable-next-line not-rely-on-time */
         wallet.movingFundsRequestedAt = uint32(block.timestamp);
