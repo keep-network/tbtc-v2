@@ -266,7 +266,7 @@ library BitcoinTx {
     ///        on a 20-byte public key hash.
     function extractPubKeyHash(BridgeState.Storage storage, bytes memory output)
         internal
-        view
+        pure
         returns (bytes20 pubKeyHash)
     {
         bytes memory pubKeyHashBytes = output.extractHash();
