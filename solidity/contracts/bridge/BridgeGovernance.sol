@@ -30,6 +30,18 @@ contract BridgeGovernance is Ownable {
     uint64 public newDepositDustThreshold;
     uint256 public depositDustThresholdChangeInitiated;
 
+    uint64 public newDepositTreasuryFeeDivisor;
+    uint256 public depositTreasuryFeeDivisorChangeInitiated;
+
+    uint64 public newDepositTxMaxFee;
+    uint256 public depositTxMaxFeeChangeInitiated;
+
+    uint64 public newRedemptionDustThreshold;
+    uint256 public redemptionDustThresholdChangeInitiated;
+
+    uint64 public newRedemptionTreasuryFeeDivisor;
+    uint256 public redemptionTreasuryFeeDivisorChangeInitiated;
+
     Bridge public bridge;
 
     uint256 public governanceDelay;
@@ -52,6 +64,32 @@ contract BridgeGovernance is Ownable {
     );
     event DepositDustThresholdUpdated(uint64 depositDustThreshold);
 
+    event DepositTreasuryFeeDivisorUpdateStarted(
+        uint64 newDepositTreasuryFeeDivisorThreshold,
+        uint256 timestamp
+    );
+    event DepositTreasuryFeeDivisorUpdated(uint64 depositTreasuryFeeDivisor);
+
+    event DepositTxMaxFeeUpdateStarted(
+        uint64 newDepositTxMaxFeeThreshold,
+        uint256 timestamp
+    );
+    event DepositTxMaxFeeUpdated(uint64 depositTxMaxFee);
+
+    event RedemptionDustThresholdUpdateStarted(
+        uint64 newRedemptionDustThresholdThreshold,
+        uint256 timestamp
+    );
+    event RedemptionDustThresholdUpdated(uint64 redemptionDustThreshold);
+
+    event RedemptionTreasuryFeeDivisorUpdateStarted(
+        uint64 redemptionTreasuryFeeDivisor,
+        uint256 timestamp
+    );
+    event RedemptionTreasuryFeeDivisorUpdated(
+        uint64 redemptionTreasuryFeeDivisor
+    );
+
     /// @notice Reverts if called before the governance delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
     ///        of the change.
@@ -70,10 +108,6 @@ contract BridgeGovernance is Ownable {
         bridge = _bridge;
         governanceDelay = _governanceDelay;
     }
-
-    // TODO: - implement a governable delay for updating parameters,
-    //       - allow transferring the governance of Bridge to some other contract,
-    //       - allow to update a single parameter without having to pass values of other parameters (less error-prone update).
 
     /// @notice Begins the governance delay update process.
     /// @dev Can be called only by the contract owner.
@@ -176,12 +210,176 @@ contract BridgeGovernance is Ownable {
         depositDustThresholdChangeInitiated = 0;
     }
 
-    // uint64 depositDustThreshold, -> done
-    // uint64 depositTreasuryFeeDivisor,
-    // uint64 depositTxMaxFee
+    /// @notice Begins the deposit treasury fee divisor update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newDepositTreasuryFeeDivisor New deposit treasury fee divisor.
+    function beginDepositTreasuryFeeDivisorUpdate(
+        uint64 _newDepositTreasuryFeeDivisor
+    ) external onlyOwner {
+        /* solhint-disable not-rely-on-time */
+        newDepositTreasuryFeeDivisor = _newDepositTreasuryFeeDivisor;
+        depositTreasuryFeeDivisorChangeInitiated = block.timestamp;
+        emit DepositTreasuryFeeDivisorUpdateStarted(
+            _newDepositTreasuryFeeDivisor,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
 
-    // uint64 redemptionDustThreshold,
-    // uint64 redemptionTreasuryFeeDivisor,
+    /// @notice Finalizes the deposit treasury fee divisor update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeDepositTreasuryFeeDivisorUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(depositTreasuryFeeDivisorChangeInitiated)
+    {
+        emit DepositTreasuryFeeDivisorUpdated(newDepositTreasuryFeeDivisor);
+        (uint64 depositDustThreshold, , uint64 depositTxMaxFee) = bridge
+            .depositParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateDepositParameters(
+            depositDustThreshold,
+            newDepositTreasuryFeeDivisor,
+            depositTxMaxFee
+        );
+        newDepositTreasuryFeeDivisor = 0;
+        depositTreasuryFeeDivisorChangeInitiated = 0;
+    }
+
+    /// @notice Begins the deposit tx max fee update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newDepositTxMaxFee New deposit tx max fee.
+    function beginDepositTxMaxFeeUpdate(uint64 _newDepositTxMaxFee)
+        external
+        onlyOwner
+    {
+        /* solhint-disable not-rely-on-time */
+        newDepositTxMaxFee = _newDepositTxMaxFee;
+        depositTxMaxFeeChangeInitiated = block.timestamp;
+        emit DepositTxMaxFeeUpdateStarted(_newDepositTxMaxFee, block.timestamp);
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the deposit tx max fee update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeDepositTxMaxFeeUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(depositTxMaxFeeChangeInitiated)
+    {
+        emit DepositTxMaxFeeUpdated(newDepositTxMaxFee);
+        (
+            uint64 depositDustThreshold,
+            uint64 depositTreasuryFeeDivisor,
+
+        ) = bridge.depositParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateDepositParameters(
+            depositDustThreshold,
+            depositTreasuryFeeDivisor,
+            newDepositTxMaxFee
+        );
+        newDepositTxMaxFee = 0;
+        depositTxMaxFeeChangeInitiated = 0;
+    }
+
+    /// @notice Begins the redemption dust threshold update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newRedemptionDustThreshold New redemption dust threshold.
+    function beginRedemptionDustThresholdUpdate(
+        uint64 _newRedemptionDustThreshold
+    ) external onlyOwner {
+        /* solhint-disable not-rely-on-time */
+        newRedemptionDustThreshold = _newRedemptionDustThreshold;
+        redemptionDustThresholdChangeInitiated = block.timestamp;
+        emit RedemptionDustThresholdUpdateStarted(
+            _newRedemptionDustThreshold,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the redemption dust threshold update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeRedemptionDustThresholdUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(redemptionDustThresholdChangeInitiated)
+    {
+        emit RedemptionDustThresholdUpdated(newRedemptionDustThreshold);
+        (
+            ,
+            uint64 redemptionTreasuryFeeDivisor,
+            uint64 redemptionTxMaxFee,
+            uint256 redemptionTimeout,
+            uint96 redemptionTimeoutSlashingAmount,
+            uint256 redemptionTimeoutNotifierRewardMultiplier
+        ) = bridge.redemptionParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateRedemptionParameters(
+            newRedemptionDustThreshold,
+            redemptionTreasuryFeeDivisor,
+            redemptionTxMaxFee,
+            redemptionTimeout,
+            redemptionTimeoutSlashingAmount,
+            redemptionTimeoutNotifierRewardMultiplier
+        );
+        newRedemptionDustThreshold = 0;
+        redemptionDustThresholdChangeInitiated = 0;
+    }
+
+    /// @notice Begins the redemption treasury fee divisor update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newRedemptionTreasuryFeeDivisor New redemption treasury fee divisor.
+    function beginRedemptionTreasuryFeeDivisorUpdate(
+        uint64 _newRedemptionTreasuryFeeDivisor
+    ) external onlyOwner {
+        /* solhint-disable not-rely-on-time */
+        newRedemptionTreasuryFeeDivisor = _newRedemptionTreasuryFeeDivisor;
+        redemptionTreasuryFeeDivisorChangeInitiated = block.timestamp;
+        emit RedemptionTreasuryFeeDivisorUpdateStarted(
+            _newRedemptionTreasuryFeeDivisor,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the redemption treasury fee divisor update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeRedemptionTreasuryFeeDivisorUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(redemptionTreasuryFeeDivisorChangeInitiated)
+    {
+        emit RedemptionTreasuryFeeDivisorUpdated(
+            newRedemptionTreasuryFeeDivisor
+        );
+        (
+            uint64 redemptionDustThreshold,
+            ,
+            uint64 redemptionTxMaxFee,
+            uint256 redemptionTimeout,
+            uint96 redemptionTimeoutSlashingAmount,
+            uint256 redemptionTimeoutNotifierRewardMultiplier
+        ) = bridge.redemptionParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateRedemptionParameters(
+            redemptionDustThreshold,
+            newRedemptionTreasuryFeeDivisor,
+            redemptionTxMaxFee,
+            redemptionTimeout,
+            redemptionTimeoutSlashingAmount,
+            redemptionTimeoutNotifierRewardMultiplier
+        );
+        newRedemptionTreasuryFeeDivisor = 0;
+        redemptionTreasuryFeeDivisorChangeInitiated = 0;
+    }
+
+    // TODO add:
     // uint64 redemptionTxMaxFee,
     // uint256 redemptionTimeout,
     // uint96 redemptionTimeoutSlashingAmount,
@@ -241,6 +439,47 @@ contract BridgeGovernance is Ownable {
         returns (uint256)
     {
         return getRemainingChangeTime(depositDustThresholdChangeInitiated);
+    }
+
+    /// @notice Get the time deposit treasury fee divisor can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingDepositTreasuryFeeDivisorDelayUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return getRemainingChangeTime(depositTreasuryFeeDivisorChangeInitiated);
+    }
+
+    /// @notice Get the time deposit tx max fee can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingDepositTxMaxFeeDelayUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return getRemainingChangeTime(depositTxMaxFeeChangeInitiated);
+    }
+
+    /// @notice Get the time redemption dust threshold can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingRedemptionDustThresholdDelayUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return getRemainingChangeTime(redemptionDustThresholdChangeInitiated);
+    }
+
+    /// @notice Get the time redemption treasury fee divisor can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingRedemptionTreasuryFeeDivisorDelayUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            getRemainingChangeTime(redemptionTreasuryFeeDivisorChangeInitiated);
     }
 
     /// @notice Gets the time remaining until the governable parameter update
