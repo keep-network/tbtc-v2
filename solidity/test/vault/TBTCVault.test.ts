@@ -320,8 +320,8 @@ describe("TBTCVault", () => {
     })
   })
 
-  describe("redeem", () => {
-    context("when the redeemer has no TBTC", () => {
+  describe("unmint", () => {
+    context("when the unminter has no TBTC", () => {
       const amount = to1e18(1)
       before(async () => {
         await createSnapshot()
@@ -335,20 +335,20 @@ describe("TBTCVault", () => {
 
       it("should revert", async () => {
         await expect(
-          vault.connect(account1).redeem(to1e18(1))
+          vault.connect(account1).unmint(to1e18(1))
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
     })
 
-    context("when the redeemer has not enough TBTC", () => {
+    context("when the unminter has not enough TBTC", () => {
       const mintedAmount = to1e18(1)
-      const redeemedAmount = mintedAmount.add(1)
+      const unmintedAmount = mintedAmount.add(1)
 
       before(async () => {
         await createSnapshot()
 
         await vault.connect(account1).mint(mintedAmount)
-        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
+        await tbtc.connect(account1).approve(vault.address, unmintedAmount)
       })
 
       after(async () => {
@@ -357,15 +357,15 @@ describe("TBTCVault", () => {
 
       it("should revert", async () => {
         await expect(
-          vault.connect(account1).redeem(redeemedAmount)
+          vault.connect(account1).unmint(unmintedAmount)
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
     })
 
-    context("when there is a single redeemer", () => {
+    context("when there is a single unminter", () => {
       const mintedAmount = to1e18(20)
-      const redeemedAmount = to1e18(12) // 1 + 3 + 8 = 12
-      const notRedeemedAmount = mintedAmount.sub(redeemedAmount)
+      const unmintedAmount = to1e18(12) // 1 + 3 + 8 = 12
+      const notUnmintedAmount = mintedAmount.sub(unmintedAmount)
 
       const transactions: ContractTransaction[] = []
 
@@ -373,51 +373,51 @@ describe("TBTCVault", () => {
         await createSnapshot()
 
         await vault.connect(account1).mint(mintedAmount)
-        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
-        transactions.push(await vault.connect(account1).redeem(to1e18(1)))
-        transactions.push(await vault.connect(account1).redeem(to1e18(3)))
-        transactions.push(await vault.connect(account1).redeem(to1e18(8)))
+        await tbtc.connect(account1).approve(vault.address, unmintedAmount)
+        transactions.push(await vault.connect(account1).unmint(to1e18(1)))
+        transactions.push(await vault.connect(account1).unmint(to1e18(3)))
+        transactions.push(await vault.connect(account1).unmint(to1e18(8)))
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should transfer balance to the redeemer", async () => {
-        expect(await bank.balanceOf(vault.address)).to.equal(notRedeemedAmount)
+      it("should transfer balance to the unminter", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(notUnmintedAmount)
         expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(notRedeemedAmount)
+          initialBalance.sub(notUnmintedAmount)
         )
       })
 
       it("should burn TBTC", async () => {
         expect(await tbtc.balanceOf(account1.address)).to.equal(
-          notRedeemedAmount
+          notUnmintedAmount
         )
-        expect(await tbtc.totalSupply()).to.be.equal(notRedeemedAmount)
+        expect(await tbtc.totalSupply()).to.be.equal(notUnmintedAmount)
       })
 
-      it("should emit Redeemed events", async () => {
+      it("should emit Unminted events", async () => {
         await expect(transactions[0])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(1))
         await expect(transactions[1])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(3))
         await expect(transactions[2])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(8))
       })
     })
 
-    context("when there are multiple redeemers", () => {
+    context("when there are multiple unminters", () => {
       const mintedAmount1 = to1e18(20)
-      const redeemedAmount1 = to1e18(12) // 1 + 3 + 8 = 12
-      const notRedeemedAmount1 = mintedAmount1.sub(redeemedAmount1)
+      const unmintedAmount1 = to1e18(12) // 1 + 3 + 8 = 12
+      const notUnmintedAmount1 = mintedAmount1.sub(unmintedAmount1)
 
       const mintedAmount2 = to1e18(41)
-      const redeemedAmount2 = to1e18(30) // 20 + 10 = 30
-      const notRedeemedAmount2 = mintedAmount2.sub(redeemedAmount2)
+      const unmintedAmount2 = to1e18(30) // 20 + 10 = 30
+      const notUnmintedAmount2 = mintedAmount2.sub(unmintedAmount2)
 
       const transactions: ContractTransaction[] = []
 
@@ -426,58 +426,58 @@ describe("TBTCVault", () => {
 
         await vault.connect(account1).mint(mintedAmount1)
         await vault.connect(account2).mint(mintedAmount2)
-        await tbtc.connect(account1).approve(vault.address, redeemedAmount1)
-        await tbtc.connect(account2).approve(vault.address, redeemedAmount2)
-        transactions.push(await vault.connect(account1).redeem(to1e18(1)))
-        transactions.push(await vault.connect(account2).redeem(to1e18(20)))
-        transactions.push(await vault.connect(account1).redeem(to1e18(3)))
-        transactions.push(await vault.connect(account1).redeem(to1e18(8)))
-        transactions.push(await vault.connect(account2).redeem(to1e18(10)))
+        await tbtc.connect(account1).approve(vault.address, unmintedAmount1)
+        await tbtc.connect(account2).approve(vault.address, unmintedAmount2)
+        transactions.push(await vault.connect(account1).unmint(to1e18(1)))
+        transactions.push(await vault.connect(account2).unmint(to1e18(20)))
+        transactions.push(await vault.connect(account1).unmint(to1e18(3)))
+        transactions.push(await vault.connect(account1).unmint(to1e18(8)))
+        transactions.push(await vault.connect(account2).unmint(to1e18(10)))
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should transfer balances to redeemers", async () => {
+      it("should transfer balances to unminters", async () => {
         expect(await bank.balanceOf(vault.address)).to.equal(
-          notRedeemedAmount1.add(notRedeemedAmount2)
+          notUnmintedAmount1.add(notUnmintedAmount2)
         )
         expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(notRedeemedAmount1)
+          initialBalance.sub(notUnmintedAmount1)
         )
         expect(await bank.balanceOf(account2.address)).to.equal(
-          initialBalance.sub(notRedeemedAmount2)
+          initialBalance.sub(notUnmintedAmount2)
         )
       })
 
       it("should burn TBTC", async () => {
         expect(await tbtc.balanceOf(account1.address)).to.equal(
-          notRedeemedAmount1
+          notUnmintedAmount1
         )
         expect(await tbtc.balanceOf(account2.address)).to.equal(
-          notRedeemedAmount2
+          notUnmintedAmount2
         )
         expect(await tbtc.totalSupply()).to.be.equal(
-          notRedeemedAmount1.add(notRedeemedAmount2)
+          notUnmintedAmount1.add(notUnmintedAmount2)
         )
       })
 
-      it("should emit Redeemed events", async () => {
+      it("should emit Unminted events", async () => {
         await expect(transactions[0])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(1))
         await expect(transactions[1])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account2.address, to1e18(20))
         await expect(transactions[2])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(3))
         await expect(transactions[3])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(8))
         await expect(transactions[4])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account2.address, to1e18(10))
       })
     })
@@ -506,8 +506,8 @@ describe("TBTCVault", () => {
 
     context("when called via approveAndCall", () => {
       const mintedAmount = to1e18(10)
-      const redeemedAmount = to1e18(4)
-      const notRedeemedAmount = mintedAmount.sub(redeemedAmount)
+      const unmintedAmount = to1e18(4)
+      const notUnmintedAmount = mintedAmount.sub(unmintedAmount)
 
       let tx
 
@@ -515,34 +515,34 @@ describe("TBTCVault", () => {
         await createSnapshot()
 
         await vault.connect(account1).mint(mintedAmount)
-        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
+        await tbtc.connect(account1).approve(vault.address, unmintedAmount)
         tx = await tbtc
           .connect(account1)
-          .approveAndCall(vault.address, redeemedAmount, [])
+          .approveAndCall(vault.address, unmintedAmount, [])
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should transfer balance to the redeemer", async () => {
-        expect(await bank.balanceOf(vault.address)).to.equal(notRedeemedAmount)
+      it("should transfer balance to the unminter", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(notUnmintedAmount)
         expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(notRedeemedAmount)
+          initialBalance.sub(notUnmintedAmount)
         )
       })
 
       it("should burn TBTC", async () => {
         expect(await tbtc.balanceOf(account1.address)).to.equal(
-          notRedeemedAmount
+          notUnmintedAmount
         )
-        expect(await tbtc.totalSupply()).to.be.equal(notRedeemedAmount)
+        expect(await tbtc.totalSupply()).to.be.equal(notUnmintedAmount)
       })
 
-      it("should emit Redeemed event", async () => {
+      it("should emit Unminted event", async () => {
         await expect(tx)
-          .to.emit(vault, "Redeemed")
-          .withArgs(account1.address, redeemedAmount)
+          .to.emit(vault, "Unminted")
+          .withArgs(account1.address, unmintedAmount)
       })
     })
   })

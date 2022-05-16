@@ -25,7 +25,7 @@ import "../token/TBTC.sol";
 /// @notice TBTC is a fully Bitcoin-backed ERC-20 token pegged to the price of
 ///         Bitcoin. It facilitates Bitcoin holders to act on the Ethereum
 ///         blockchain and access the decentralized finance (DeFi) ecosystem.
-///         TBTC Vault mints and redeems TBTC based on Bitcoin balances in the
+///         TBTC Vault mints and unmints TBTC based on Bitcoin balances in the
 ///         Bank.
 /// @dev TBTC Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
@@ -35,7 +35,7 @@ contract TBTCVault is IVault, Governable {
 
     event Minted(address indexed to, uint256 amount);
 
-    event Redeemed(address indexed from, uint256 amount);
+    event Unminted(address indexed from, uint256 amount);
 
     modifier onlyBank() {
         require(msg.sender == address(bank), "Caller is not the Bank");
@@ -140,18 +140,18 @@ contract TBTCVault is IVault, Governable {
     ///         `amount` back to the caller's balance in the Bank.
     /// @dev Caller must have at least `amount` of TBTC approved to
     ///       TBTC Vault.
-    /// @param amount Amount of TBTC to redeem.
-    function redeem(uint256 amount) external {
-        _redeem(msg.sender, amount);
+    /// @param amount Amount of TBTC to unmint.
+    function unmint(uint256 amount) external {
+        _unmint(msg.sender, amount);
     }
 
     /// @notice Burns `amount` of TBTC from the caller's account and transfers
     ///         `amount` back to the caller's balance in the Bank.
-    /// @dev This function is doing the same as `redeem` but it allows to
-    ///      execute redemption without an additional approval transaction.
+    /// @dev This function is doing the same as `unmint` but it allows to
+    ///      execute unminting without an additional approval transaction.
     ///      The function can be called only via `approveAndCall` of TBTC token.
-    /// @param from TBTC token holder executing redemption.
-    /// @param amount Amount of TBTC to redeem.
+    /// @param from TBTC token holder executing unminting.
+    /// @param amount Amount of TBTC to unmint.
     /// @param token TBTC token address.
     function receiveApproval(
         address from,
@@ -161,7 +161,7 @@ contract TBTCVault is IVault, Governable {
     ) external {
         require(token == address(tbtcToken), "Token is not TBTC");
         require(msg.sender == token, "Only TBTC caller allowed");
-        _redeem(from, amount);
+        _unmint(from, amount);
     }
 
     // slither-disable-next-line calls-loop
@@ -170,9 +170,9 @@ contract TBTCVault is IVault, Governable {
         tbtcToken.mint(minter, amount);
     }
 
-    function _redeem(address redeemer, uint256 amount) internal {
-        emit Redeemed(redeemer, amount);
-        tbtcToken.burnFrom(redeemer, amount);
-        bank.transferBalance(redeemer, amount);
+    function _unmint(address unminter, uint256 amount) internal {
+        emit Unminted(unminter, amount);
+        tbtcToken.burnFrom(unminter, amount);
+        bank.transferBalance(unminter, amount);
     }
 }
