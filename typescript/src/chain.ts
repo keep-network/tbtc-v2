@@ -6,6 +6,16 @@ import {
 import { RedemptionRequest } from "./redemption"
 
 /**
+ * Represents a generic chain identifier.
+ */
+export interface Identifier {
+  /**
+   * Identifier as an un-prefixed hex string.
+   */
+  identifierHex: string
+}
+
+/**
  * Interface for communication with the Bridge on-chain contract.
  */
 export interface Bridge {

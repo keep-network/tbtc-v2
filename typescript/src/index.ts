@@ -17,7 +17,7 @@ import {
   sweepDeposits,
   proveDepositSweep,
 } from "./deposit-sweep"
-import { Bridge } from "./bridge"
+import { Bridge } from "./chain"
 import {
   Client as BitcoinClient,
   RawTransaction,

@@ -14,10 +14,11 @@ import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import bcoin from "bcoin"
 // @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
+import { DepositData } from "../src/deposit"
 
 describe("Deposit", () => {
-  const depositData = {
-    ethereumAddress: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+  const depositData: DepositData = {
+    depositor: { identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637" },
     amount: BigNumber.from(10000), // 0.0001 BTC
     walletPublicKey:
       "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
@@ -305,14 +306,14 @@ describe("Deposit", () => {
 
       expect(script.length).to.be.equal(expectedDepositScript.length)
 
-      // Assert the Ethereum address is encoded correctly.
+      // Assert the depositor identifier is encoded correctly.
       // According the Bitcoin script format, the first byte before arbitrary
       // data must determine the length of those data. In this case the first
       // byte is 0x14 which is 20 in decimal, and this is correct because we
-      // have a 20 bytes Ethereum address as subsequent data.
+      // have a 20 bytes depositor identifier as subsequent data.
       expect(script.substring(0, 2)).to.be.equal("14")
       expect(script.substring(2, 42)).to.be.equal(
-        depositData.ethereumAddress.substring(2).toLowerCase()
+        depositData.depositor.identifierHex
       )
 
       // According to https://en.bitcoin.it/wiki/Script#Constants, the

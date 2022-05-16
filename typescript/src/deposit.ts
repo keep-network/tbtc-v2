@@ -12,15 +12,16 @@ import {
   RawTransaction,
   UnspentTransactionOutput,
 } from "./bitcoin"
+import { Identifier } from "./chain"
 
 /**
  * Contains deposit data.
  */
 export interface DepositData {
   /**
-   * Ethereum address prefixed with '0x' that should be used for TBTC accounting.
+   * Depositor's chain identifier.
    */
-  ethereumAddress: string
+  depositor: Identifier
 
   /**
    * Deposit amount in satoshis.
@@ -154,12 +155,7 @@ export async function createDepositTransaction(
 export async function createDepositScript(
   depositData: DepositData
 ): Promise<string> {
-  // Make sure Ethereum address is prefixed since the prefix is removed
-  // while constructing the script.
-  const ethereumAddress = depositData.ethereumAddress
-  if (ethereumAddress.substring(0, 2) !== "0x") {
-    throw new Error("Ethereum address must be prefixed with 0x")
-  }
+  const depositor = depositData.depositor
 
   // Blinding factor should be an 8 bytes number.
   const blindingFactor = depositData.blindingFactor
@@ -184,7 +180,7 @@ export async function createDepositScript(
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
   script.clear()
-  script.pushData(Buffer.from(ethereumAddress.substring(2), "hex"))
+  script.pushData(Buffer.from(depositor.identifierHex, "hex"))
   script.pushOp(opcodes.OP_DROP)
   script.pushData(Buffer.from(blindingFactor.toHexString().substring(2), "hex"))
   script.pushOp(opcodes.OP_DROP)
