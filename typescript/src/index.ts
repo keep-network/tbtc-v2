@@ -168,18 +168,20 @@ export interface TBTC {
 
   /**
    * Handles pending redemption requests by creating a redemption transaction
-   * transferring Bitcoins from the wallet's main UTXO to the redeemer addresses
-   * and broadcasting it. The change UTXO resulting from the transaction becomes
-   * the new main UTXO of the wallet.
+   * transferring Bitcoins from the wallet's main UTXO to the provided redeemer
+   * output scripts and broadcasting it. The change UTXO resulting from the
+   * transaction becomes the new main UTXO of the wallet.
    * @dev It is up to the caller to ensure the wallet key and each of the redeemer
-   *      addresses represent a valid pending redemption request in the Bridge.
+   *      output scripts represent a valid pending redemption request in the Bridge.
    *      If this is not the case, an exception will be thrown.
    * @param bitcoinClient - The Bitcoin client used to interact with the network
    * @param bridge - The handle to the Bridge on-chain contract
-   * @param walletPrivateKey = The private kay of the wallet in the WIF format
+   * @param walletPrivateKey - The private kay of the wallet in the WIF format
    * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
-   *        held by the on-chain Bridge contract.
-   * @param redeemerAddresses - The list of redeemer addresses
+   *        held by the on-chain Bridge contract
+   * @param redeemerOutputScripts - The list of output scripts that the redeemed
+   *        funds will be locked to. The output scripts must be un-prefixed and
+   *        not prepended with length
    * @param witness - The parameter used to decide about the type of the change
    *        output. P2WPKH if `true`, P2PKH if `false`
    * @returns Empty promise.
@@ -189,7 +191,7 @@ export interface TBTC {
     bridge: Bridge,
     walletPrivateKey: string,
     mainUtxo: UnspentTransactionOutput,
-    redeemerAddresses: string[],
+    redeemerOutputScripts: string[],
     witness: boolean
   ): Promise<void>
 
@@ -204,14 +206,12 @@ export interface TBTC {
    *        - there is at least one redemption
    *        - the `requestedAmount` in each redemption request is greater than
    *          the sum of its `txFee` and `treasuryFee`
-   *        - the redeemer address in each redemption request is of a standard
-   *          type (P2PKH, P2WPKH, P2SH, P2WSH).
-   * @param walletPrivateKey  - The private key of the wallet in the WIF format
+   * @param walletPrivateKey - The private key of the wallet in the WIF format
    * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
    *        by the on-chain Bridge contract
    * @param redemptionRequests - The list of redemption requests
    * @param witness - The parameter used to decide the type of the change output.
-   *                  P2WPKH if `true`, P2PKH if `false`
+   *        P2WPKH if `true`, P2PKH if `false`
    * @returns Bitcoin redemption transaction in the raw format.
    */
   createRedemptionTransaction(

@@ -298,7 +298,7 @@ export function isCompressedPublicKey(publicKey: string): boolean {
 }
 
 /**
- * Creates a Bitcoin key ring based on given private key.
+ * Creates a Bitcoin key ring based on the given private key.
  * @param privateKey Private key that should be used to create the key ring
  * @param witness Flag indicating whether the key ring will create witness
  *        or non-witness addresses

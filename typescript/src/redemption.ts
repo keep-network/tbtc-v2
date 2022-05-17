@@ -9,16 +9,23 @@ import {
   UnspentTransactionOutput,
   Client as BitcoinClient,
 } from "./bitcoin"
-import { Bridge } from "./bridge"
+import { Bridge } from "./chain"
+import { Identifier } from "./chain"
 
 /**
  * Represents a redemption request.
  */
 export interface RedemptionRequest {
   /**
-   * The address of the redeemer.
+   * On-chain identifier of the redeemer.
    */
-  redeemerAddress: string
+  redeemer: Identifier
+
+  /**
+   * The output script the redeemed Bitcoin funds are locked to. It is un-prefixed
+   * and is not prepended with length.
+   */
+  redeemerOutputScript: string
 
   /**
    * The amount of Bitcoins in satoshis that is requested to be redeemed.
@@ -36,14 +43,10 @@ export interface RedemptionRequest {
   treasuryFee: BigNumber
 
   /**
-   * The amount of Bitcoins in satoshis that is subtracted from the amount of
-   * the redemption request and used to pay the transaction network fee.
-   * The value must not exceed the value of the Bridge's txMaxFee parameter
-   * that was in force at the moment the redemption request was made. The sum
-   * of the txFee values taken from all redemption outputs is equivalent to
-   * the total network fee of the entire redemption transaction.
+   * The maximum amount of Bitcoins in satoshis that can be subtracted from the
+   * redemption's `requestedAmount` to pay the transaction network fee.
    */
-  txFee: BigNumber
+  txMaxFee: BigNumber
 
   /**
    * UNIX timestamp the request was created at.
@@ -53,18 +56,20 @@ export interface RedemptionRequest {
 
 /**
  * Handles pending redemption requests by creating a redemption transaction
- * transferring Bitcoins from the wallet's main UTXO to the redeemer addresses
- * and broadcasting it. The change UTXO resulting from the transaction becomes
- * the new main UTXO of the wallet.
+ * transferring Bitcoins from the wallet's main UTXO to the provided redeemer
+ * output scripts and broadcasting it. The change UTXO resulting from the
+ * transaction becomes the new main UTXO of the wallet.
  * @dev It is up to the caller to ensure the wallet key and each of the redeemer
- *      addresses represent a valid pending redemption request in the Bridge.
+ *      output scripts represent a valid pending redemption request in the Bridge.
  *      If this is not the case, an exception will be thrown.
  * @param bitcoinClient - The Bitcoin client used to interact with the network
  * @param bridge - The handle to the Bridge on-chain contract
- * @param walletPrivateKey = The private kay of the wallet in the WIF format
+ * @param walletPrivateKey - The private kay of the wallet in the WIF format
  * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
- *        held by the on-chain Bridge contract.
- * @param redeemerAddresses - The list of redeemer addresses
+ *        held by the on-chain Bridge contract
+ * @param redeemerOutputScripts - The list of output scripts that the redeemed
+ *        funds will be locked to. The output scripts must be un-prefixed and
+ *        not prepended with length
  * @param witness - The parameter used to decide about the type of the change
  *        output. P2WPKH if `true`, P2PKH if `false`
  * @returns Empty promise.
@@ -74,7 +79,7 @@ export async function makeRedemptions(
   bridge: Bridge,
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput,
-  redeemerAddresses: string[],
+  redeemerOutputScripts: string[],
   witness: boolean
 ): Promise<void> {
   const rawTransaction = await bitcoinClient.getRawTransaction(
@@ -86,10 +91,10 @@ export async function makeRedemptions(
     transactionHex: rawTransaction.transactionHex,
   }
 
-  const redemptionRequests = await prepareRedemptionRequests(
+  const redemptionRequests = await fetchRedemptionRequests(
     bridge,
     walletPrivateKey,
-    redeemerAddresses
+    redeemerOutputScripts
   )
 
   const transaction = await createRedemptionTransaction(
@@ -106,37 +111,37 @@ export async function makeRedemptions(
 }
 
 /**
- * Prepares a list of redemption requests based on the provided redeemer
- * addresses and the wallet key. Details of the redemption requests are fetched
- * from the provided Bridge on-chain contract handle.
+ * Fetches a list of redemption requests from the provided Bridge on-chain
+ * contract handle.
  * @dev It is up to the caller of this function to ensure that each of the
- *      addresses represent a valid pending redemption request in the Bridge
- *      on-chain contract. An exception will be thrown if any of the addresses
- *      (along with the wallet public key corresponding to the provided private
- *      key) does not represent a valid pending redemption.
- * @param bridge The handle to the Bridge on-chain contract
- * @param walletPrivateKey The private key of the wallet in the WIF format
- * @param redeemerAddresses The addresses that will be the recipients of the
- *        redeemed Bitcoins
+ *      redeemer output scripts represents a valid pending redemption request
+ *      in the Bridge on-chain contract. An exception will be thrown if any of
+ *      the redeemer output scripts (along with the wallet public key
+ *      corresponding to the provided private key) does not represent a valid
+ *      pending redemption.
+ * @param bridge - The handle to the Bridge on-chain contract
+ * @param walletPrivateKey - The private key of the wallet in the WIF format
+ * @param redeemerOutputScripts - The list of output scripts that the redeemed
+ *        funds are locked to. The output scripts must be un-prefixed and
+ *        not prepended with length
  * @returns The list of redemption requests.
  */
-async function prepareRedemptionRequests(
+async function fetchRedemptionRequests(
   bridge: Bridge,
   walletPrivateKey: string,
-  redeemerAddresses: string[]
+  redeemerOutputScripts: string[]
 ): Promise<RedemptionRequest[]> {
   const walletKeyRing = createKeyRing(walletPrivateKey)
   const walletPublicKey = walletKeyRing.getPublicKey().toString("hex")
 
-  const walletPubKeyHash = `0x${hash160
+  // Calculate un-prefixed wallet public key hash
+  const walletPubKeyHash = hash160
     .digest(Buffer.from(walletPublicKey, "hex"))
-    .toString("hex")}`
+    .toString("hex")
 
   const redemptionRequests: RedemptionRequest[] = []
 
-  for (const redeemerAddress of redeemerAddresses) {
-    const redeemerOutputScript = deriveOutputScript(redeemerAddress)
-
+  for (const redeemerOutputScript of redeemerOutputScripts) {
     const pendingRedemption = await bridge.pendingRedemptions(
       walletPubKeyHash,
       redeemerOutputScript
@@ -146,43 +151,18 @@ async function prepareRedemptionRequests(
       // The requested redemption does not exist among `pendingRedemptions`
       // in the Bridge.
       throw new Error(
-        "Provided redeemer address and wallet public key do not identify a pending redemption"
+        "Provided redeemer output script and wallet public key do not identify a pending redemption"
       )
     }
 
-    // TODO: Use the value of fee that was set in the Bridge (max fee) as the
-    // `txFee` for now.
-    // In the future allow the caller to propose the value of transaction fee.
-    // If the proposed transaction fee is smaller than the sum of fee shares from
-    // all the outputs then use the proposed fee and add the difference to outputs
-    // proportionally.
-
     // Redemption exists in the Bridge. Add it to the list.
     redemptionRequests.push({
-      redeemerAddress: redeemerAddress,
-      requestedAmount: pendingRedemption.requestedAmount,
-      treasuryFee: pendingRedemption.treasuryFee,
-      txFee: pendingRedemption.txFee,
-      requestedAt: pendingRedemption.requestedAt,
+      ...pendingRedemption,
+      redeemerOutputScript: redeemerOutputScript,
     })
   }
 
   return redemptionRequests
-}
-
-/**
- * Derives a length prefixed output script based on the provided address (P2PKH,
- * P2WPKH, P2SH or P2WSH).
- * @param address - Bitcoin address from which the output script will be build
- * @returns The 0x-prefixed output script as a string.
- */
-function deriveOutputScript(address: string): string {
-  const rawOutputScript = bcoin.Script.fromAddress(address).toRaw()
-
-  return `0x${Buffer.concat([
-    Buffer.from([rawOutputScript.length]),
-    rawOutputScript,
-  ]).toString("hex")}`
 }
 
 /**
@@ -196,14 +176,12 @@ function deriveOutputScript(address: string): string {
  *        - there is at least one redemption
  *        - the `requestedAmount` in each redemption request is greater than
  *          the sum of its `txFee` and `treasuryFee`
- *        - the redeemer address in each redemption request is of a standard
- *          type (P2PKH, P2WPKH, P2SH, P2WSH).
- * @param walletPrivateKey  - The private key of the wallet in the WIF format
+ * @param walletPrivateKey - The private key of the wallet in the WIF format
  * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
  *        by the on-chain Bridge contract
  * @param redemptionRequests - The list of redemption requests
  * @param witness - The parameter used to decide the type of the change output.
- *                  P2WPKH if `true`, P2PKH if `false`
+ *        P2WPKH if `true`, P2PKH if `false`
  * @returns Bitcoin redemption transaction in the raw format.
  */
 export async function createRedemptionTransaction(
@@ -238,30 +216,27 @@ export async function createRedemptionTransaction(
     // Calculate the value of the output by subtracting tx fee and treasury
     // fee for this particular output from the requested amount
     const outputValue = request.requestedAmount
-      .sub(request.txFee)
+      .sub(request.txMaxFee)
       .sub(request.treasuryFee)
 
     // Add the output value to the total output value
     totalOutputsValue += outputValue.toNumber()
 
     // Add the fee for this particular request to the overall transaction fee
-    txTotalFee += request.txFee.toNumber()
+    txTotalFee += request.txMaxFee.toNumber()
+    // TODO: Use the value of fee that was set in the Bridge (`txMaxFee`) as the
+    // transaction fee for now.
+    // In the future allow the caller to propose the value of transaction fee.
+    // If the proposed transaction fee is smaller than the sum of fee shares from
+    // all the outputs then use the proposed fee and add the difference to outputs
+    // proportionally.
 
-    // Only allow standard address type to receive the redeemed Bitcoins
-    const address = bcoin.Address.fromString(request.redeemerAddress)
-    if (
-      address.isPubkeyhash() ||
-      address.isWitnessPubkeyhash() ||
-      address.isScripthash() ||
-      address.isWitnessScripthash()
-    ) {
-      transaction.addOutput({
-        script: bcoin.Script.fromAddress(address),
-        value: outputValue.toNumber(),
-      })
-    } else {
-      throw new Error("Redemption address must be P2PKH, P2WPKH, P2SH or P2WSH")
-    }
+    transaction.addOutput({
+      script: bcoin.Script.fromRaw(
+        Buffer.from(request.redeemerOutputScript, "hex")
+      ),
+      value: outputValue.toNumber(),
+    })
   }
 
   // If there is a change output, add it explicitly to the transaction.

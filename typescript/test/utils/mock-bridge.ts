@@ -51,9 +51,18 @@ export class MockBridge implements Bridge {
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     return new Promise<RedemptionRequest>((resolve, _) => {
+      const prefixedWalletPubKeyHash = `0x${walletPubKeyHash}`
+
+      const rawOutputScript = Buffer.from(redeemerOutputScript, "hex")
+
+      const prefixedOutputScript = `0x${Buffer.concat([
+        Buffer.from([rawOutputScript.length]),
+        rawOutputScript,
+      ]).toString("hex")}`
+
       const redemptionKey = utils.solidityKeccak256(
         ["bytes20", "bytes"],
-        [walletPubKeyHash, redeemerOutputScript]
+        [prefixedWalletPubKeyHash, prefixedOutputScript]
       )
 
       // Return the redemption if it is found in the map.
@@ -62,10 +71,11 @@ export class MockBridge implements Bridge {
         this._pendingRedemptions.has(redemptionKey)
           ? (this._pendingRedemptions.get(redemptionKey) as RedemptionRequest)
           : {
-              redeemerAddress: constants.AddressZero,
+              redeemer: { identifierHex: constants.AddressZero },
+              redeemerOutputScript: "",
               requestedAmount: BigNumber.from(0),
               treasuryFee: BigNumber.from(0),
-              txFee: BigNumber.from(0),
+              txMaxFee: BigNumber.from(0),
               requestedAt: 0,
             }
       )
