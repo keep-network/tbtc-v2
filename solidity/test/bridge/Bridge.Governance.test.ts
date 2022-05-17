@@ -8,7 +8,7 @@ import bridgeFixture from "../fixtures/bridge"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
-describe("Bridge - Governance", () => {
+describe.only("Bridge - Governance", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let bridgeGovernance: BridgeGovernance
@@ -210,7 +210,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeBridgeGovernanceTransfer()
-        ).to.be.revertedWith("Change not initiated")
+        ).to.be.revertedWith("New governance is the zero address")
       })
     })
 
@@ -344,7 +344,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeDepositDustThresholdUpdate()
-        ).to.be.revertedWith("Change not initiated")
+        ).to.be.revertedWith("Deposit dust threshold must be greater than zero")
       })
     })
 
@@ -481,7 +481,9 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeDepositTreasuryFeeDivisorUpdate()
-        ).to.be.revertedWith("Change not initiated")
+        ).to.be.revertedWith(
+          "Deposit treasury fee divisor must be greater than zero"
+        )
       })
     })
 
@@ -610,7 +612,9 @@ describe("Bridge - Governance", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance.connect(governance).finalizeDepositTxMaxFeeUpdate()
-        ).to.be.revertedWith("Change not initiated")
+        ).to.be.revertedWith(
+          "Deposit transaction max fee must be greater than zero"
+        )
       })
     })
 
@@ -745,7 +749,9 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeRedemptionDustThresholdUpdate()
-        ).to.be.revertedWith("Change not initiated")
+        ).to.be.revertedWith(
+          "Redemption dust threshold must be greater than moving funds dust threshold"
+        )
       })
     })
 
@@ -755,7 +761,9 @@ describe("Bridge - Governance", () => {
 
         await bridgeGovernance
           .connect(governance)
-          .beginRedemptionDustThresholdUpdate(7331)
+          .beginRedemptionDustThresholdUpdate(
+            constants.redemptionDustThreshold + 1
+          )
 
         await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
       })
@@ -891,7 +899,9 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeRedemptionTreasuryFeeDivisorUpdate()
-        ).to.be.revertedWith("Change not initiated")
+        ).to.be.revertedWith(
+          "Redemption treasury fee divisor must be greater than zero"
+        )
       })
     })
 
