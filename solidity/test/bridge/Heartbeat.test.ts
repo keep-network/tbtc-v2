@@ -2,14 +2,13 @@
 
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import type { HeartbeatStub, HeartbeatStub__factory } from "../../typechain"
+import type { HeartbeatStub } from "../../typechain"
 
 describe("Heartbeat", () => {
   let heartbeat: HeartbeatStub
 
   before(async () => {
-    const HeartbeatStub =
-      await ethers.getContractFactory<HeartbeatStub__factory>("HeartbeatStub")
+    const HeartbeatStub = await ethers.getContractFactory("HeartbeatStub")
     heartbeat = await HeartbeatStub.deploy()
   })
 

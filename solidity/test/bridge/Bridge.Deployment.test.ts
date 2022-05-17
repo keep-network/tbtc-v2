@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
-import { deployments, ethers, upgrades } from "hardhat"
+import { deployments, ethers, helpers, upgrades } from "hardhat"
 import chai, { expect } from "chai"
 import chaiAsPromised from "chai-as-promised"
 
@@ -22,11 +22,11 @@ describe("Bridge - Deployment", async () => {
 
   before(async () => {
     await deployments.fixture()
-    ;({ deployer, governance, esdm } = await ethers.getNamedSigners())
+    ;({ deployer, governance, esdm } = await helpers.signers.getNamedSigners())
 
-    bridge = await ethers.getContract<Bridge>("Bridge")
+    bridge = await helpers.contracts.getContract("Bridge")
 
-    bridgeProxy = await ethers.getContractAt<TransparentUpgradeableProxy>(
+    bridgeProxy = await ethers.getContractAt(
       "TransparentUpgradeableProxy",
       bridge.address
     )
