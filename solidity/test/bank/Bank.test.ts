@@ -1,14 +1,15 @@
-import { artifacts, ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
+import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { expect } from "chai"
+import chai, { expect } from "chai"
+import { FakeContract, smock } from "@defi-wonderland/smock"
 
 import { ContractTransaction, Signature, Wallet } from "ethers"
-import type { Bank } from "../../typechain"
+import type { Bank, IVault } from "../../typechain"
+
+chai.use(smock.matchers)
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-
-const IVaultJSON = artifacts.readArtifactSync("IVault")
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 const MAX_UINT256 = ethers.constants.MaxUint256
@@ -271,28 +272,37 @@ describe("Bank", () => {
 
     let owner: SignerWithAddress
 
-    let mockVault
+    let mockVault: FakeContract<IVault>
 
     before(async () => {
       const accounts = await getUnnamedAccounts()
       owner = await ethers.getSigner(accounts[0])
-      mockVault = await waffle.deployMockContract(deployer, IVaultJSON.abi)
+      mockVault = await smock.fake<IVault>("IVault")
     })
 
     context("when the spender is the zero address", () => {
       it("should revert", async () => {
         await expect(
-          bank.connect(owner).approveBalanceAndCall(ZERO_ADDRESS, amount)
+          bank.connect(owner).approveBalanceAndCall(ZERO_ADDRESS, amount, [])
         ).to.be.revertedWith("Can not approve to the zero address")
       })
     })
 
     context("when the spender callback reverted", () => {
+      before(async () => {
+        await mockVault.receiveBalanceApproval.reverts()
+      })
+
+      after(async () => {
+        mockVault.receiveBalanceApproval.reset()
+      })
+
       it("should revert", async () => {
-        await mockVault.mock.receiveBalanceApproval.revertsWithReason("brrrr")
         await expect(
-          bank.connect(owner).approveBalanceAndCall(mockVault.address, amount)
-        ).to.be.revertedWith("brrrr")
+          bank
+            .connect(owner)
+            .approveBalanceAndCall(mockVault.address, amount, [])
+        ).to.be.reverted
       })
     })
 
@@ -301,15 +311,14 @@ describe("Bank", () => {
 
       before(async () => {
         await createSnapshot()
-
-        await mockVault.mock.receiveBalanceApproval.returns()
         tx = await bank
           .connect(owner)
-          .approveBalanceAndCall(mockVault.address, amount)
+          .approveBalanceAndCall(mockVault.address, amount, "0x11")
       })
 
       after(async () => {
         await restoreSnapshot()
+        mockVault.receiveBalanceApproval.reset()
       })
 
       it("should approve the requested amount", async () => {
@@ -323,29 +332,44 @@ describe("Bank", () => {
           .to.emit(bank, "BalanceApproved")
           .withArgs(owner.address, mockVault.address, amount)
       })
+
+      it("should call receiveBalanceApproval", async () => {
+        expect(mockVault.receiveBalanceApproval).to.have.been.calledOnceWith(
+          owner.address,
+          amount,
+          "0x11"
+        )
+      })
     })
 
     context("when the spender had an approved balance before", () => {
       before(async () => {
         await createSnapshot()
 
-        await mockVault.mock.receiveBalanceApproval.returns()
-
         await bank
           .connect(owner)
           .approveBalance(mockVault.address, to1e18(1337))
         await bank
           .connect(owner)
-          .approveBalanceAndCall(mockVault.address, amount)
+          .approveBalanceAndCall(mockVault.address, amount, "0x02")
       })
 
       after(async () => {
         await restoreSnapshot()
+        mockVault.receiveBalanceApproval.reset()
       })
 
       it("should replace the previous allowance", async () => {
         expect(await bank.allowance(owner.address, mockVault.address)).to.equal(
           amount
+        )
+      })
+
+      it("should call receiveBalanceApproval", async () => {
+        expect(mockVault.receiveBalanceApproval).to.have.been.calledOnceWith(
+          owner.address,
+          amount,
+          "0x02"
         )
       })
     })
