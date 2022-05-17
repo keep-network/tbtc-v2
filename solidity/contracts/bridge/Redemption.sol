@@ -548,7 +548,7 @@ library Redemption {
         // which matches the P2PKH structure as per:
         // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
         bytes32 walletP2PKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"1976a914", walletPubKeyHash, hex"88ac")
+            abi.encodePacked(BitcoinTx.makeP2PKHScript(walletPubKeyHash))
         );
         // The P2WPKH script has the byte format: <0x160014> <20-byte PKH>.
         // According to https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
@@ -558,7 +558,7 @@ library Redemption {
         // which matches the P2WPKH structure as per:
         // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
         bytes32 walletP2WPKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"160014", walletPubKeyHash)
+            abi.encodePacked(BitcoinTx.makeP2WPKHScript(walletPubKeyHash))
         );
 
         return
