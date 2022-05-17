@@ -3,6 +3,7 @@ import {
   UnspentTransactionOutput,
   DecomposedRawTransaction,
 } from "./bitcoin"
+import { Deposit } from "./deposit"
 
 /**
  * Represents a generic chain identifier.
@@ -28,6 +29,18 @@ export interface Bridge {
     sweepTx: DecomposedRawTransaction,
     sweepProof: Proof,
     mainUtxo: UnspentTransactionOutput
+  ): Promise<void>
+
+  /**
+   * Reveals a given deposit to the on-chain contract.
+   * @param fundingTx - Deposit funding transaction data.
+   * @param fundingOutputIndex - Index of the funding transaction output.
+   * @param deposit - Data of the revealed deposit.
+   */
+  revealDeposit(
+    fundingTx: DecomposedRawTransaction,
+    fundingOutputIndex: number,
+    deposit: Deposit
   ): Promise<void>
 
   /**

@@ -8,11 +8,12 @@ import { BigNumber } from "ethers"
 import {
   Client as BitcoinClient,
   computeHash160,
+  decomposeRawTransaction,
   isCompressedPublicKey,
   RawTransaction,
   UnspentTransactionOutput,
 } from "./bitcoin"
-import { Identifier } from "./chain"
+import { Bridge, Identifier } from "./chain"
 
 /**
  * Duration of the deposit refund locktime in seconds. After that time, the
@@ -57,6 +58,11 @@ export interface Deposit {
    * A 4-byte little-endian refund locktime as an un-prefixed hex string.
    */
   refundLocktime: string
+
+  /**
+   * Optional identifier of the vault the deposit should be routed in.
+   */
+  vault?: Identifier
 }
 
 /**
@@ -301,5 +307,26 @@ function createKeyRing(privateKey: string): bcoin.KeyRing {
   })
 }
 
-// TODO: Implementation and documentation.
-export async function revealDeposit(): Promise<void> {}
+/**
+ * Reveals the given deposit to the on-chain Bridge contract.
+ * @param utxo - UTXO that funds the revealed deposit.
+ * @param deposit - Data of the revealed deposit.
+ * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * @param bridge - Handle to the Bridge on-chain contract.
+ * @returns Empty promise
+ * @dev The caller must ensure that the given deposit data are valid and
+ *      the given funding UTXO actually originates from a funding transaction
+ *      that matches the given deposit data.
+ */
+export async function revealDeposit(
+  utxo: UnspentTransactionOutput,
+  deposit: Deposit,
+  bitcoinClient: BitcoinClient,
+  bridge: Bridge
+): Promise<void> {
+  const fundingTx = decomposeRawTransaction(
+    await bitcoinClient.getRawTransaction(utxo.transactionHash)
+  )
+
+  await bridge.revealDeposit(fundingTx, utxo.outputIndex, deposit)
+}

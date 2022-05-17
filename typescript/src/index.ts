@@ -99,8 +99,23 @@ export interface TBTC {
     witness: boolean
   ): Promise<string>
 
-  // TODO: Implementation and documentation.
-  revealDeposit(): Promise<void>
+  /**
+   * Reveals the given deposit to the on-chain Bridge contract.
+   * @param utxo - UTXO that funds the revealed deposit.
+   * @param deposit - Data of the revealed deposit.
+   * @param bitcoinClient - Bitcoin client used to interact with the network.
+   * @param bridge - Handle to the Bridge on-chain contract.
+   * @returns Empty promise
+   * @dev The caller must ensure that the given deposit data are valid and
+   *      the given funding UTXO actually originates from a funding transaction
+   *      that matches the given deposit data.
+   */
+  revealDeposit(
+    utxo: UnspentTransactionOutput,
+    deposit: Deposit,
+    bitcoinClient: BitcoinClient,
+    bridge: Bridge
+  ): Promise<void>
 
   /**
    * Sweeps deposits P2(W)SH UTXOs by combining all the provided UTXOs and
