@@ -1558,20 +1558,10 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
 
-"@keep-network/random-beacon@^2.0.0-dev.39":
+"@keep-network/random-beacon@^2.0.0-dev.39", "@keep-network/random-beacon@development":
   version "2.0.0-dev.39"
   resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.39.tgz#592e0df954931dd18896b6a6be479577d075cc59"
   integrity sha512-fm07pJE1E2bPhw1zmY695+DVPVikRUZ/Jm2MvnDJ0Ly2mhyHOVp96zW4Yd35sNXmMN/dL+eXRc1Jkwr58NoCXA==
-  dependencies:
-    "@keep-network/sortition-pools" "^2.0.0-pre.9"
-    "@openzeppelin/contracts" "^4.6.0"
-    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
-    "@threshold-network/solidity-contracts" ">1.2.0-dev <1.2.0-ropsten"
-
-"@keep-network/random-beacon@development":
-  version "2.0.0-dev.36"
-  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.36.tgz#c2b62974c655301ef218cd6e7b2aa4ef4e8f7ef0"
-  integrity sha512-a1RiOxFtn8GnNmWzM4vwaQE95PMbvzPcDftbRv+n1s6/69rHMIFzHXLbkcMNQ8IIjUD0p+bDqghNOc8lheLHIQ==
   dependencies:
     "@keep-network/sortition-pools" "^2.0.0-pre.9"
     "@openzeppelin/contracts" "^4.6.0"
