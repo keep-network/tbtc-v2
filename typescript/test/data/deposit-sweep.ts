@@ -6,7 +6,7 @@ import {
   UnspentTransactionOutput,
   TransactionMerkleBranch,
 } from "../../src/bitcoin"
-import { DepositData } from "../deposit"
+import { Deposit } from "../deposit"
 import { BigNumber } from "ethers"
 
 export const NO_MAIN_UTXO = {
@@ -22,7 +22,7 @@ export const NO_MAIN_UTXO = {
 export interface DepositSweepTestData {
   deposits: {
     utxo: UnspentTransactionOutput & RawTransaction
-    data: DepositData
+    data: Deposit
   }[]
   mainUtxo: UnspentTransactionOutput & RawTransaction
   expectedSweep: {

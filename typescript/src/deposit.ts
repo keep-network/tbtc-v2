@@ -16,9 +16,9 @@ import {
 import { Identifier } from "./chain"
 
 /**
- * Contains deposit data.
+ * Represents a deposit.
  */
-export interface DepositData {
+export interface Deposit {
   /**
    * Depositor's chain identifier.
    */
@@ -28,6 +28,12 @@ export interface DepositData {
    * Deposit amount in satoshis.
    */
   amount: BigNumber
+
+  /**
+   * An 8 bytes blinding factor as an un-prefixed hex string. Must be unique
+   * for the given depositor, wallet public key and refund public key.
+   */
+  blindingFactor: string
 
   /**
    * Compressed (33 bytes long with 02 or 03 prefix) Bitcoin public key of
@@ -42,12 +48,6 @@ export interface DepositData {
   refundPublicKey: string
 
   /**
-   * An 8 bytes blinding factor as an un-prefixed hex string. Must be unique
-   * for the given depositor, wallet public key and refund public key.
-   */
-  blindingFactor: string
-
-  /**
    * Unix timestamp in seconds determining the moment of deposit creation.
    */
   createdAt: number
@@ -56,7 +56,7 @@ export interface DepositData {
 /**
  * Makes a deposit by creating and broadcasting a Bitcoin P2(W)SH
  * deposit transaction.
- * @param depositData - Details of the deposit.
+ * @param deposit - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
@@ -64,7 +64,7 @@ export interface DepositData {
  * @returns Empty promise.
  */
 export async function makeDeposit(
-  depositData: DepositData,
+  deposit: Deposit,
   depositorPrivateKey: string,
   bitcoinClient: BitcoinClient,
   witness: boolean
@@ -89,7 +89,7 @@ export async function makeDeposit(
   }
 
   const transaction = await createDepositTransaction(
-    depositData,
+    deposit,
     utxosWithRaw,
     depositorPrivateKey,
     witness
@@ -100,7 +100,7 @@ export async function makeDeposit(
 
 /**
  * Creates a Bitcoin P2(W)SH deposit transaction.
- * @param depositData - Details of the deposit.
+ * @param deposit - Details of the deposit.
  * @param utxos - UTXOs that should be used as transaction inputs.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
@@ -108,7 +108,7 @@ export async function makeDeposit(
  * @returns Bitcoin P2(W)SH deposit transaction in raw format.
  */
 export async function createDepositTransaction(
-  depositData: DepositData,
+  deposit: Deposit,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   depositorPrivateKey: string,
   witness: boolean
@@ -126,13 +126,13 @@ export async function createDepositTransaction(
 
   const transaction = new bcoin.MTX()
 
-  const scriptHash = await createDepositScriptHash(depositData, witness)
+  const scriptHash = await createDepositScriptHash(deposit, witness)
 
   transaction.addOutput({
     script: witness
       ? bcoin.Script.fromProgram(0, scriptHash)
       : bcoin.Script.fromScripthash(scriptHash),
-    value: depositData.amount.toNumber(),
+    value: deposit.amount.toNumber(),
   })
 
   await transaction.fund(inputCoins, {
@@ -150,33 +150,31 @@ export async function createDepositTransaction(
 
 /**
  * Creates a Bitcoin locking script for P2(W)SH deposit transaction.
- * @param depositData - Details of the deposit.
+ * @param deposit - Details of the deposit.
  * @returns Script as an un-prefixed hex string.
  */
-export async function createDepositScript(
-  depositData: DepositData
-): Promise<string> {
-  const depositor = depositData.depositor
+export async function createDepositScript(deposit: Deposit): Promise<string> {
+  const depositor = deposit.depositor
 
   // Blinding factor should be an 8 bytes number.
-  const blindingFactor = depositData.blindingFactor
+  const blindingFactor = deposit.blindingFactor
   if (blindingFactor.length != 16) {
     throw new Error("Blinding factor must be an 8 bytes number")
   }
 
-  const walletPublicKey = depositData.walletPublicKey
+  const walletPublicKey = deposit.walletPublicKey
   if (!isCompressedPublicKey(walletPublicKey)) {
     throw new Error("Wallet public key must be compressed")
   }
 
-  const refundPublicKey = depositData.refundPublicKey
+  const refundPublicKey = deposit.refundPublicKey
   if (!isCompressedPublicKey(refundPublicKey)) {
     throw new Error("Refund public key must be compressed")
   }
 
   // Locktime is an Unix timestamp in seconds, computed as deposit
   // creation timestamp + 30 days.
-  const locktime = BigNumber.from(depositData.createdAt + 2592000)
+  const locktime = BigNumber.from(deposit.createdAt + 2592000)
 
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
@@ -213,16 +211,16 @@ export async function createDepositScript(
 
 /**
  * Creates a Bitcoin locking script hash for P2(W)SH deposit transaction.
- * @param depositData - Details of the deposit.
+ * @param deposit - Details of the deposit.
  * @param witness - If true, a witness script hash will be created.
  *        Otherwise, a legacy script hash will be made.
  * @returns Buffer with script hash.
  */
 export async function createDepositScriptHash(
-  depositData: DepositData,
+  deposit: Deposit,
   witness: boolean
 ): Promise<Buffer> {
-  const script = await createDepositScript(depositData)
+  const script = await createDepositScript(deposit)
   // Parse the script from HEX string.
   const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
   // If witness script hash should be produced, SHA256 should be used.
@@ -232,7 +230,7 @@ export async function createDepositScriptHash(
 
 /**
  * Creates a Bitcoin target address for P2(W)SH deposit transaction.
- * @param depositData - Details of the deposit.
+ * @param deposit - Details of the deposit.
  * @param network - Network that the address should be created for.
  *        For example, `main` or `testnet`.
  * @param witness - If true, a witness address will be created.
@@ -240,11 +238,11 @@ export async function createDepositScriptHash(
  * @returns Address as string.
  */
 export async function createDepositAddress(
-  depositData: DepositData,
+  deposit: Deposit,
   network: string,
   witness: boolean
 ): Promise<string> {
-  const scriptHash = await createDepositScriptHash(depositData, witness)
+  const scriptHash = await createDepositScriptHash(deposit, witness)
   const address = witness
     ? bcoin.Address.fromWitnessScripthash(scriptHash)
     : bcoin.Address.fromScripthash(scriptHash)
