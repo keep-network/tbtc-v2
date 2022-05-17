@@ -1,7 +1,7 @@
 import { helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
-import { ContractTransaction, BigNumber } from "ethers"
+import { ContractTransaction } from "ethers"
 import type { Bridge, BridgeStub } from "../../typechain"
 import { constants } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
