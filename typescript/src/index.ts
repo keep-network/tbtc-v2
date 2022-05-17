@@ -7,7 +7,11 @@ import {
   makeDeposit,
   revealDeposit,
 } from "./deposit"
-import { createSweepTransaction, sweepDeposits, proveSweep } from "./sweep"
+import {
+  createDepositSweepTransaction,
+  sweepDeposits,
+  proveDepositSweep,
+} from "./deposit-sweep"
 import { Bridge } from "./bridge"
 import {
   Client as BitcoinClient,
@@ -91,31 +95,8 @@ export interface TBTC {
   revealDeposit(): Promise<void>
 
   /**
-   * Creates a Bitcoin P2WPKH sweep transaction.
-   * @dev The caller is responsible for ensuring the provided UTXOs are correctly
-   *      formed, can be spent by the wallet and their combined value is greater
-   *      then the fee.
-   * @param fee - the value that should be subtracted from the sum of the UTXOs
-   *              values and used as the transaction fee.
-   * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
-   * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
-   * @param depositData - data on deposits. Each element corresponds to UTXO.
-   *                      The number of UTXOs and deposit data elements must equal.
-   * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
-   *                   from the previous sweep transaction (optional).
-   * @returns Bitcoin sweep transaction in raw format.
-   */
-  createSweepTransaction(
-    fee: BigNumber,
-    walletPrivateKey: string,
-    utxos: (UnspentTransactionOutput & RawTransaction)[],
-    depositData: DepositData[],
-    mainUtxo?: UnspentTransactionOutput & RawTransaction
-  ): Promise<RawTransaction>
-
-  /**
-   * Sweeps P2(W)SH UTXOs by combining all the provided UTXOs and broadcasting
-   * a Bitcoin P2WPKH sweep transaction.
+   * Sweeps deposits P2(W)SH UTXOs by combining all the provided UTXOs and
+   * broadcasting a Bitcoin P2WPKH deposit sweep transaction.
    * @dev The caller is responsible for ensuring the provided UTXOs are correctly
    *      formed, can be spent by the wallet and their combined value is greater
    *      then the fee. Note that broadcasting transaction may fail silently (e.g.
@@ -129,7 +110,7 @@ export interface TBTC {
    *                      The number of UTXOs and deposit data elements must
    *                      equal.
    * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
-   *                   from the previous sweep transaction (optional).
+   *                   from the previous wallet transaction (optional).
    * @returns Empty promise.
    */
   sweepDeposits(
@@ -142,15 +123,38 @@ export interface TBTC {
   ): Promise<void>
 
   /**
-   * Prepares the proof of a sweep transaction and submits it to the Bridge
-   * on-chain contract.
+   * Creates a Bitcoin P2WPKH deposit sweep transaction.
+   * @dev The caller is responsible for ensuring the provided UTXOs are correctly
+   *      formed, can be spent by the wallet and their combined value is greater
+   *      then the fee.
+   * @param fee - the value that should be subtracted from the sum of the UTXOs
+   *              values and used as the transaction fee.
+   * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
+   * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
+   * @param depositData - data on deposits. Each element corresponds to UTXO.
+   *                      The number of UTXOs and deposit data elements must equal.
+   * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
+   *                   from the previous wallet transaction (optional).
+   * @returns Bitcoin deposit sweep transaction in raw format.
+   */
+  createDepositSweepTransaction(
+    fee: BigNumber,
+    walletPrivateKey: string,
+    utxos: (UnspentTransactionOutput & RawTransaction)[],
+    depositData: DepositData[],
+    mainUtxo?: UnspentTransactionOutput & RawTransaction
+  ): Promise<RawTransaction>
+
+  /**
+   * Prepares the proof of a deposit sweep transaction and submits it to the
+   * Bridge on-chain contract.
    * @param transactionHash - Hash of the transaction being proven.
    * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
    * @param bridge - Interface to the Bridge on-chain contract.
    * @param bitcoinClient - Bitcoin client used to interact with the network.
    * @returns Empty promise.
    */
-  proveSweep(
+  proveDepositSweep(
     transactionHash: string,
     mainUtxo: UnspentTransactionOutput,
     bridge: Bridge,
@@ -165,9 +169,9 @@ const tbtc: TBTC = {
   createDepositScriptHash,
   createDepositAddress,
   revealDeposit,
-  createSweepTransaction,
   sweepDeposits,
-  proveSweep,
+  createDepositSweepTransaction,
+  proveDepositSweep,
 }
 
 export default tbtc

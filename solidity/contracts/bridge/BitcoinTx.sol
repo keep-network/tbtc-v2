@@ -98,7 +98,7 @@ library BitcoinTx {
 
     /// @notice Represents Bitcoin transaction data.
     struct Info {
-        /// @notice Bitcoin transaction version
+        /// @notice Bitcoin transaction version.
         /// @dev `version` from raw Bitcoin transaction data.
         ///      Encoded as 4-bytes signed integer, little endian.
         bytes4 version;
@@ -170,8 +170,8 @@ library BitcoinTx {
 
     /// @notice Validates the SPV proof of the Bitcoin transaction.
     ///         Reverts in case the validation or proof verification fail.
-    /// @param txInfo Bitcoin transaction data
-    /// @param proof Bitcoin proof data
+    /// @param txInfo Bitcoin transaction data.
+    /// @param proof Bitcoin proof data.
     /// @return txHash Proven 32-byte transaction hash.
     function validateProof(
         BridgeState.Storage storage self,
@@ -214,7 +214,7 @@ library BitcoinTx {
     ///         Bitcoin chain difficulty provided by the relay oracle.
     ///         Reverts in case the evaluation fails.
     /// @param bitcoinHeaders Bitcoin headers chain being part of the SPV
-    ///        proof. Used to extract the observed proof difficulty
+    ///        proof. Used to extract the observed proof difficulty.
     function evaluateProofDifficulty(
         BridgeState.Storage storage self,
         bytes memory bitcoinHeaders
@@ -259,11 +259,11 @@ library BitcoinTx {
 
     /// @notice Extracts public key hash from the provided P2PKH or P2WPKH output.
     ///         Reverts if the validation fails.
-    /// @param output The transaction output
-    /// @return pubKeyHash 20-byte public key hash the output locks funds on
+    /// @param output The transaction output.
+    /// @return pubKeyHash 20-byte public key hash the output locks funds on.
     /// @dev Requirements:
     ///      - The output must be of P2PKH or P2WPKH type and lock the funds
-    ///        on a 20-byte public key hash
+    ///        on a 20-byte public key hash.
     function extractPubKeyHash(BridgeState.Storage storage, bytes memory output)
         internal
         view
