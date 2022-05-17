@@ -22,10 +22,10 @@ import "../vault/IVault.sol";
 
 /// @title Bitcoin Bank
 /// @notice Bank is a central component tracking Bitcoin balances. Balances can
-///         be transferred between balance owners, and balane owners can approve
-///         their balances to be spent by others. Balances in the Bank are
-///         updated for depositors who deposited their Bitcoin into the Bridge
-///         and only the Bridge can increase balances.
+///         be transferred between balance owners, and balance owners can
+///         approve their balances to be spent by others. Balances in the Bank
+///         are updated for depositors who deposited their Bitcoin into the
+///         Bridge and only the Bridge can increase balances.
 /// @dev Bank is a governable contract and the Governance can upgrade the Bridge
 ///      address.
 contract Bank is Ownable {
