@@ -3,9 +3,6 @@
     "downlevelIteration": true,
     "esModuleInterop": true
   },
-  "files": [
-    "./hardhat.config.ts",
-    "node_modules/@keep-network/hardhat-local-networks-config/src/type-extensions.d.ts"
-  ],
+  "files": ["./hardhat.config.ts"],
   "include": ["./deploy", "./test", "./typechain"]
 }
