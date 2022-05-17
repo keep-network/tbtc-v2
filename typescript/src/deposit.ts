@@ -16,6 +16,13 @@ import {
 import { Identifier } from "./chain"
 
 /**
+ * Duration of the deposit refund locktime in seconds. After that time, the
+ * depositor can make a refund of an unswept deposit using the refund public
+ * key.
+ */
+export const DepositRefundLocktimeDuration = 2592000 // 30 days
+
+/**
  * Represents a deposit.
  */
 export interface Deposit {
@@ -30,7 +37,7 @@ export interface Deposit {
   amount: BigNumber
 
   /**
-   * An 8 bytes blinding factor as an un-prefixed hex string. Must be unique
+   * An 8-byte blinding factor as an un-prefixed hex string. Must be unique
    * for the given depositor, wallet public key and refund public key.
    */
   blindingFactor: string
@@ -48,9 +55,9 @@ export interface Deposit {
   refundPublicKey: string
 
   /**
-   * Unix timestamp in seconds determining the moment of deposit creation.
+   * A 4-byte little-endian refund locktime as an un-prefixed hex string.
    */
-  createdAt: number
+  refundLocktime: string
 }
 
 /**
@@ -172,10 +179,6 @@ export async function createDepositScript(deposit: Deposit): Promise<string> {
     throw new Error("Refund public key must be compressed")
   }
 
-  // Locktime is an Unix timestamp in seconds, computed as deposit
-  // creation timestamp + 30 days.
-  const locktime = BigNumber.from(deposit.createdAt + 2592000)
-
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
   script.clear()
@@ -194,11 +197,7 @@ export async function createDepositScript(deposit: Deposit): Promise<string> {
   script.pushOp(opcodes.OP_HASH160)
   script.pushData(hash160.digest(Buffer.from(refundPublicKey, "hex")))
   script.pushOp(opcodes.OP_EQUALVERIFY)
-  script.pushData(
-    // Bitcoin locktime is interpreted as little-endian integer so we must
-    // adhere to that convention by converting the locktime accordingly.
-    Buffer.from(locktime.toHexString().substring(2), "hex").reverse()
-  )
+  script.pushData(Buffer.from(deposit.refundLocktime, "hex"))
   script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_CHECKSIG)
@@ -207,6 +206,26 @@ export async function createDepositScript(deposit: Deposit): Promise<string> {
 
   // Return script as HEX string.
   return script.toRaw().toString("hex")
+}
+
+/**
+ * Computes a refund locktime parameter for the given deposit creation timestamp.
+ * @param depositCreatedAt - Unix timestamp in seconds determining the moment
+ *                           of deposit creation.
+ * @returns A 4-byte little-endian deposit refund locktime as an un-prefixed
+ *          hex string.
+ */
+export function computeDepositRefundLocktime(depositCreatedAt: number): string {
+  // Locktime is a Unix timestamp in seconds, computed as deposit creation
+  // timestamp plus locktime duration.
+  const locktime = BigNumber.from(
+    depositCreatedAt + DepositRefundLocktimeDuration
+  )
+  // Bitcoin locktime is interpreted as little-endian integer so we must
+  // adhere to that convention by converting the locktime accordingly.
+  return Buffer.from(locktime.toHexString().substring(2), "hex")
+    .reverse()
+    .toString("hex")
 }
 
 /**

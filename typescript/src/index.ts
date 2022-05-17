@@ -1,6 +1,7 @@
 import {
   createDepositAddress,
   createDepositScript,
+  computeDepositRefundLocktime,
   createDepositScriptHash,
   createDepositTransaction,
   Deposit,
@@ -63,6 +64,15 @@ export interface TBTC {
    * @returns Script as an un-prefixed hex string.
    */
   createDepositScript(deposit: Deposit): Promise<string>
+
+  /**
+   * Computes a refund locktime parameter for the given deposit creation timestamp.
+   * @param depositCreatedAt - Unix timestamp in seconds determining the moment
+   *                           of deposit creation.
+   * @returns A 4-byte little-endian deposit refund locktime as an un-prefixed
+   *          hex string.
+   */
+  computeDepositRefundLocktime(depositCreatedAt: number): string
 
   /**
    * Creates a Bitcoin locking script hash for P2(W)SH deposit transaction.
@@ -162,6 +172,7 @@ const tbtc: TBTC = {
   makeDeposit,
   createDepositTransaction,
   createDepositScript,
+  computeDepositRefundLocktime,
   createDepositScriptHash,
   createDepositAddress,
   revealDeposit,

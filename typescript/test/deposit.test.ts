@@ -14,7 +14,11 @@ import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import bcoin from "bcoin"
 // @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
-import { Deposit } from "../src/deposit"
+import {
+  computeDepositRefundLocktime,
+  Deposit,
+  DepositRefundLocktimeDuration,
+} from "../src/deposit"
 
 describe("Deposit", () => {
   const deposit: Deposit = {
@@ -25,7 +29,7 @@ describe("Deposit", () => {
     refundPublicKey:
       "0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
     blindingFactor: "f9f0c90d00039523",
-    createdAt: 1640181600, // 22-12-2021 14:00:00 UTC
+    refundLocktime: computeDepositRefundLocktime(1640181600),
   }
 
   // All test scenarios using the deposit script within `Deposit` group
@@ -370,7 +374,7 @@ describe("Deposit", () => {
       expect(script.substring(166, 168)).to.be.equal("04")
       expect(script.substring(168, 176)).to.be.equal(
         Buffer.from(
-          BigNumber.from(deposit.createdAt + 2592000)
+          BigNumber.from(1640181600 + DepositRefundLocktimeDuration)
             .toHexString()
             .substring(2),
           "hex"
@@ -390,6 +394,19 @@ describe("Deposit", () => {
 
       // OP_ENDIF opcode is 0x68.
       expect(script.substring(182, 184)).to.be.equal("68")
+    })
+  })
+
+  describe("computeDepositRefundLocktime", () => {
+    it("should compute a proper 4-byte little-endian locktime as un-prefixed hex string", () => {
+      const depositCreatedAt = 1652776752
+
+      const refundLocktime = TBTC.computeDepositRefundLocktime(depositCreatedAt)
+
+      // The creation timestamp is 1652776752 and locktime duration 2592000 (30 days).
+      // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
+      // is represented as 30ecaa62 hex in the little-endian format.
+      expect(refundLocktime).to.be.equal("30ecaa62")
     })
   })
 

@@ -6,7 +6,7 @@ import {
   UnspentTransactionOutput,
   TransactionMerkleBranch,
 } from "../../src/bitcoin"
-import { Deposit } from "../deposit"
+import { computeDepositRefundLocktime, Deposit } from "../../src/deposit"
 import { BigNumber } from "ethers"
 
 export const NO_MAIN_UTXO = {
@@ -58,7 +58,7 @@ export const depositSweepWithNoMainUtxo: DepositSweepTestData = {
         refundPublicKey:
           "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
         blindingFactor: "f9f0c90d00039523",
-        createdAt: 1641650400,
+        refundLocktime: computeDepositRefundLocktime(1641650400),
       },
     },
     {
@@ -86,7 +86,7 @@ export const depositSweepWithNoMainUtxo: DepositSweepTestData = {
         refundPublicKey:
           "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
         blindingFactor: "f9f0c90d00039523",
-        createdAt: 1641650400,
+        refundLocktime: computeDepositRefundLocktime(1641650400),
       },
     },
   ],
@@ -144,7 +144,7 @@ export const depositSweepWithMainUtxo: DepositSweepTestData = {
         refundPublicKey:
           "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
         blindingFactor: "f9f0c90d00039523",
-        createdAt: 1641650400,
+        refundLocktime: computeDepositRefundLocktime(1641650400),
       },
     },
     {
@@ -173,7 +173,7 @@ export const depositSweepWithMainUtxo: DepositSweepTestData = {
         refundPublicKey:
           "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
         blindingFactor: "f9f0c90d00039523",
-        createdAt: 1641650400,
+        refundLocktime: computeDepositRefundLocktime(1641650400),
       },
     },
   ],
