@@ -398,15 +398,36 @@ describe("Deposit", () => {
   })
 
   describe("computeDepositRefundLocktime", () => {
-    it("should compute a proper 4-byte little-endian locktime as un-prefixed hex string", () => {
-      const depositCreatedAt = 1652776752
+    context("when the resulting locktime is lesser than 4 bytes", () => {
+      it("should throw", () => {
+        // This will result with 2592001 as the locktime which is a 3-byte number.
+        expect(() => TBTC.computeDepositRefundLocktime(1)).to.throw(
+          "Refund locktime must be a 4 bytes number"
+        )
+      })
+    })
 
-      const refundLocktime = TBTC.computeDepositRefundLocktime(depositCreatedAt)
+    context("when the resulting locktime is greater than 4 bytes", () => {
+      it("should throw", () => {
+        // This will result with 259200144444 as the locktime which is a 5-byte number.
+        expect(() => TBTC.computeDepositRefundLocktime(259197552444)).to.throw(
+          "Refund locktime must be a 4 bytes number"
+        )
+      })
+    })
 
-      // The creation timestamp is 1652776752 and locktime duration 2592000 (30 days).
-      // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
-      // is represented as 30ecaa62 hex in the little-endian format.
-      expect(refundLocktime).to.be.equal("30ecaa62")
+    context("when the resulting locktime is a 4-byte number", () => {
+      it("should compute a proper 4-byte little-endian locktime as un-prefixed hex string", () => {
+        const depositCreatedAt = 1652776752
+
+        const refundLocktime =
+          TBTC.computeDepositRefundLocktime(depositCreatedAt)
+
+        // The creation timestamp is 1652776752 and locktime duration 2592000 (30 days).
+        // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
+        // is represented as 30ecaa62 hex in the little-endian format.
+        expect(refundLocktime).to.be.equal("30ecaa62")
+      })
     })
   })
 

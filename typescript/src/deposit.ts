@@ -1,14 +1,13 @@
 // @ts-ignore
 import bcoin from "bcoin"
 // @ts-ignore
-import hash160 from "bcrypto/lib/hash160"
-// @ts-ignore
 import { opcodes } from "bcoin/lib/script/common"
 // @ts-ignore
 import wif from "wif"
 import { BigNumber } from "ethers"
 import {
   Client as BitcoinClient,
+  computeHash160,
   isCompressedPublicKey,
   RawTransaction,
   UnspentTransactionOutput,
@@ -161,41 +160,25 @@ export async function createDepositTransaction(
  * @returns Script as an un-prefixed hex string.
  */
 export async function createDepositScript(deposit: Deposit): Promise<string> {
-  const depositor = deposit.depositor
-
-  // Blinding factor should be an 8 bytes number.
-  const blindingFactor = deposit.blindingFactor
-  if (blindingFactor.length != 16) {
-    throw new Error("Blinding factor must be an 8 bytes number")
-  }
-
-  const walletPublicKey = deposit.walletPublicKey
-  if (!isCompressedPublicKey(walletPublicKey)) {
-    throw new Error("Wallet public key must be compressed")
-  }
-
-  const refundPublicKey = deposit.refundPublicKey
-  if (!isCompressedPublicKey(refundPublicKey)) {
-    throw new Error("Refund public key must be compressed")
-  }
+  validateDeposit(deposit)
 
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
   script.clear()
-  script.pushData(Buffer.from(depositor.identifierHex, "hex"))
+  script.pushData(Buffer.from(deposit.depositor.identifierHex, "hex"))
   script.pushOp(opcodes.OP_DROP)
-  script.pushData(Buffer.from(blindingFactor, "hex"))
+  script.pushData(Buffer.from(deposit.blindingFactor, "hex"))
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(hash160.digest(Buffer.from(walletPublicKey, "hex")))
+  script.pushData(Buffer.from(computeHash160(deposit.walletPublicKey), "hex"))
   script.pushOp(opcodes.OP_EQUAL)
   script.pushOp(opcodes.OP_IF)
   script.pushOp(opcodes.OP_CHECKSIG)
   script.pushOp(opcodes.OP_ELSE)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(hash160.digest(Buffer.from(refundPublicKey, "hex")))
+  script.pushData(Buffer.from(computeHash160(deposit.refundPublicKey), "hex"))
   script.pushOp(opcodes.OP_EQUALVERIFY)
   script.pushData(Buffer.from(deposit.refundLocktime, "hex"))
   script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
@@ -208,8 +191,38 @@ export async function createDepositScript(deposit: Deposit): Promise<string> {
   return script.toRaw().toString("hex")
 }
 
+// eslint-disable-next-line valid-jsdoc
+/**
+ * Validates the given deposit parameters. Throws in case of a validation error.
+ * @param deposit - The validated deposit.
+ * @dev This function does not validate the depositor's identifier as its
+ *      validity is chain-specific. This parameter must be validated outside.
+ */
+export function validateDeposit(deposit: Deposit) {
+  if (!deposit.amount.gt(0)) {
+    throw new Error("Amount must be greater than 0")
+  }
+
+  if (deposit.blindingFactor.length != 16) {
+    throw new Error("Blinding factor must be an 8-byte number")
+  }
+
+  if (!isCompressedPublicKey(deposit.walletPublicKey)) {
+    throw new Error("Wallet public key must be compressed")
+  }
+
+  if (!isCompressedPublicKey(deposit.refundPublicKey)) {
+    throw new Error("Refund public key must be compressed")
+  }
+
+  if (deposit.refundLocktime.length != 8) {
+    throw new Error("Refund locktime must be a 4-byte number")
+  }
+}
+
 /**
  * Computes a refund locktime parameter for the given deposit creation timestamp.
+ * Throws if the resulting locktime is not a 4-byte number.
  * @param depositCreatedAt - Unix timestamp in seconds determining the moment
  *                           of deposit creation.
  * @returns A 4-byte little-endian deposit refund locktime as an un-prefixed
@@ -221,6 +234,11 @@ export function computeDepositRefundLocktime(depositCreatedAt: number): string {
   const locktime = BigNumber.from(
     depositCreatedAt + DepositRefundLocktimeDuration
   )
+
+  if (locktime.toHexString().substring(2).length != 8) {
+    throw new Error("Refund locktime must be a 4 bytes number")
+  }
+
   // Bitcoin locktime is interpreted as little-endian integer so we must
   // adhere to that convention by converting the locktime accordingly.
   return Buffer.from(locktime.toHexString().substring(2), "hex")

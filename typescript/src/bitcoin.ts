@@ -297,7 +297,11 @@ export function isCompressedPublicKey(publicKey: string): boolean {
   )
 }
 
-// TODO: Documentation.
+/**
+ * Computes the HASH160 for the given text.
+ * @param text - Text the HASH160 is computed for.
+ * @returns Hash as a 20-byte un-prefixed hex string.
+ */
 export function computeHash160(text: string): string {
   return hash160.digest(Buffer.from(text, "hex")).toString("hex")
 }

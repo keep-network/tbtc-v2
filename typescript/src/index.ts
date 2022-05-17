@@ -67,6 +67,7 @@ export interface TBTC {
 
   /**
    * Computes a refund locktime parameter for the given deposit creation timestamp.
+   * Throws if the resulting locktime is not a 4-byte number.
    * @param depositCreatedAt - Unix timestamp in seconds determining the moment
    *                           of deposit creation.
    * @returns A 4-byte little-endian deposit refund locktime as an un-prefixed
