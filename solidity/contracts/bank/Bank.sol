@@ -133,6 +133,11 @@ contract Bank is Ownable {
     ///      both the old and the new allowance by unfortunate transaction
     ///      ordering. Please use `increaseBalanceAllowance` and
     ///      `decreaseBalanceAllowance` to eliminate the risk.
+    /// @param spender The smart contract that will be allowed to spend the
+    ///        balance.
+    /// @param amount The amount the spender contract is allowed to spend.
+    /// @param extraData Extra data passed to the `spender` contract via
+    ///        `receiveBalanceApproval` call.
     function approveBalanceAndCall(
         address spender,
         uint256 amount,
@@ -148,6 +153,8 @@ contract Bank is Ownable {
 
     /// @notice Atomically increases the caller's balance allowance granted to
     ///         `spender` by the given `addedValue`.
+    /// @param spender The spender address for which the allowance is increased.
+    /// @param addedValue The amount by which the allowance is increased.
     function increaseBalanceAllowance(address spender, uint256 addedValue)
         external
     {
@@ -214,7 +221,7 @@ contract Bank is Ownable {
 
     /// @notice An EIP2612 approval made with secp256k1 signature. Users can
     ///         authorize a transfer of their balance with a signature
-    ///         conforming to the EIP712 standard, rather than an on-chain 
+    ///         conforming to the EIP712 standard, rather than an on-chain
     ///         transaction from their address. Anyone can submit this signature
     ///         on the user's behalf by calling the `permit` function, paying
     ///         gas fees, and possibly performing other actions in the same
