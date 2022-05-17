@@ -624,16 +624,24 @@ library Redemption {
             uint256 scriptLength = outputLength - 8;
 
             // The output consists of an 8-byte value and a variable length
-            // script. To extract that script we slice the output starting from
+            // script. To hash that script we slice the output starting from
             // 9th byte until the end.
-            bytes memory outputScript = redemptionTxOutputVector
-                .slice(processInfo.outputStartingIndex + 8, scriptLength);
+
+            uint256 outputScriptStart = processInfo.outputStartingIndex + 8;
+
+            bytes32 outputScriptHash;
+            assembly {
+                outputScriptHash := keccak256(
+                    add(redemptionTxOutputVector, add(outputScriptStart, 32)),
+                    scriptLength
+                )
+            }
 
             if (
                 resultInfo.changeValue == 0 &&
-                (keccak256(outputScript) ==
+                (outputScriptHash ==
                     processInfo.walletP2PKHScriptKeccak ||
-                    keccak256(outputScript) ==
+                    outputScriptHash ==
                     processInfo.walletP2WPKHScriptKeccak) &&
                 outputValue > 0
             ) {
@@ -649,8 +657,7 @@ library Redemption {
                     uint64 treasuryFee
                 ) = processNonChangeRedemptionTxOutput(
                         self,
-                        walletPubKeyHash,
-                        outputScript,
+                        _getRedemptionKey(walletPubKeyHash, outputScriptHash),
                         outputValue
                     );
                 resultInfo.totalBurnableValue += burnableValue;
@@ -681,10 +688,7 @@ library Redemption {
     ///         requested and reported timed-out redemption.
     ///         This function also marks each pending request as processed by
     ///         removing them from `pendingRedemptions` mapping.
-    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the redemption transaction.
-    /// @param outputScript Non-change output script to be processed
+    /// @param redemptionKey Redemption key of the output being processed
     /// @param outputValue Value of the output being processed
     /// @return burnableValue The value burnable as a result of processing this
     ///         single redemption output. This value needs to be summed up with
@@ -698,17 +702,9 @@ library Redemption {
     ///         redemption request.
     function processNonChangeRedemptionTxOutput(
         BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash,
-        bytes memory outputScript,
+        uint256 redemptionKey,
         uint64 outputValue
     ) internal returns (uint64 burnableValue, uint64 treasuryFee) {
-        // This function should be called only if the given output is
-        // supposed to represent a redemption. Build the redemption key
-        // to perform that check.
-        uint256 redemptionKey = getRedemptionKey(
-            walletPubKeyHash, 
-            outputScript
-        );
 
         if (self.pendingRedemptions[redemptionKey].requestedAt != 0) {
             // If we entered here, that means the output was identified
@@ -891,4 +887,20 @@ library Redemption {
         return key;
     }
 
+    /// @notice Finish calculating redemption key without allocations
+    /// @param walletPubKeyHash the pubkey hash of the wallet
+    /// @param scriptHash the output script hash of the redemption
+    /// @return The key = keccak256(scriptHash, walletPubKeyHash)
+    function _getRedemptionKey(
+        bytes20 walletPubKeyHash,
+        bytes32 scriptHash
+    ) internal pure returns (uint256) {
+        uint256 key;
+        assembly {
+            mstore(0, scriptHash)
+            mstore(32, walletPubKeyHash)
+            key := keccak256(0, 52)
+        }
+        return key;
+    }
 }
