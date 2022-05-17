@@ -4,7 +4,7 @@ import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 
 import { ContractTransaction, Signature, Wallet } from "ethers"
-import type { Bank, Bank__factory, IVault } from "../../typechain"
+import type { Bank, IVault } from "../../typechain"
 
 chai.use(smock.matchers)
 
@@ -17,7 +17,7 @@ const MAX_UINT256 = ethers.constants.MaxUint256
 const fixture = async () => {
   const [deployer, governance, bridge, thirdParty] = await ethers.getSigners()
 
-  const Bank = await ethers.getContractFactory<Bank__factory>("Bank")
+  const Bank = await ethers.getContractFactory("Bank")
   const bank = await Bank.deploy()
   await bank.deployed()
 

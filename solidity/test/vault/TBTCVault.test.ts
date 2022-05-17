@@ -5,15 +5,11 @@ import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 import type {
   Bank,
-  Bank__factory,
   TBTC,
   TBTCVault,
-  TBTCVault__factory,
-  TBTC__factory,
   TestERC20,
   TestERC721,
 } from "../../typechain"
-import { TestERC20__factory, TestERC721__factory } from "../../typechain"
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
@@ -23,19 +19,17 @@ const ZERO_ADDRESS = ethers.constants.AddressZero
 const fixture = async () => {
   const [deployer, bridge, governance] = await ethers.getSigners()
 
-  const Bank = await ethers.getContractFactory<Bank__factory>("Bank")
+  const Bank = await ethers.getContractFactory("Bank")
   const bank = await Bank.deploy()
   await bank.deployed()
 
   await bank.connect(deployer).updateBridge(bridge.address)
 
-  const TBTC = await ethers.getContractFactory<TBTC__factory>("TBTC")
+  const TBTC = await ethers.getContractFactory("TBTC")
   const tbtc = await TBTC.deploy()
   await tbtc.deployed()
 
-  const TBTCVault = await ethers.getContractFactory<TBTCVault__factory>(
-    "TBTCVault"
-  )
+  const TBTCVault = await ethers.getContractFactory("TBTCVault")
   const vault = await TBTCVault.deploy(bank.address, tbtc.address)
   await vault.deployed()
 
@@ -116,9 +110,7 @@ describe("TBTCVault", () => {
     before(async () => {
       await createSnapshot()
 
-      const TestToken = await ethers.getContractFactory<TestERC20__factory>(
-        "TestERC20"
-      )
+      const TestToken = await ethers.getContractFactory("TestERC20")
       testToken = await TestToken.deploy()
       await testToken.deployed()
     })
@@ -167,9 +159,7 @@ describe("TBTCVault", () => {
     before(async () => {
       await createSnapshot()
 
-      const TestToken = await ethers.getContractFactory<TestERC721__factory>(
-        "TestERC721"
-      )
+      const TestToken = await ethers.getContractFactory("TestERC721")
       testToken = await TestToken.deploy()
       await testToken.deployed()
     })
