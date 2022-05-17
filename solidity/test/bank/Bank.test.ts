@@ -279,7 +279,7 @@ describe("Bank", () => {
       mockVault = await waffle.deployMockContract(deployer, IVaultJSON.abi)
     })
 
-    context("when the vault is the zero address", () => {
+    context("when the spender is the zero address", () => {
       it("should revert", async () => {
         await expect(
           bank.connect(owner).approveBalanceAndCall(ZERO_ADDRESS, amount)
@@ -287,7 +287,7 @@ describe("Bank", () => {
       })
     })
 
-    context("when the vault callback reverted", () => {
+    context("when the spender callback reverted", () => {
       it("should revert", async () => {
         await mockVault.mock.receiveBalanceApproval.revertsWithReason("brrrr")
         await expect(
@@ -296,7 +296,7 @@ describe("Bank", () => {
       })
     })
 
-    context("when the vault had no approved balance before", () => {
+    context("when the spender had no approved balance before", () => {
       let tx: ContractTransaction
 
       before(async () => {
@@ -325,7 +325,7 @@ describe("Bank", () => {
       })
     })
 
-    context("when the vault had an approved balance before", () => {
+    context("when the spender had an approved balance before", () => {
       before(async () => {
         await createSnapshot()
 
