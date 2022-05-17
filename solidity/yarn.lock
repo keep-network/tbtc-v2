@@ -1509,11 +1509,11 @@
   integrity sha512-AG2fJqqniXVzwitHQcYQK5dZIyUPDo5xS1RZzW+LngcIuKA/f0cvTDEjWxgjf4D5MbStJNFWaCTtWwAJUCzsIw==
 
 "@keep-network/ecdsa@development":
-  version "2.0.0-dev.42"
-  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0-dev.42.tgz#49e3d19edcfcb39292336dd992641e07504b1fb1"
-  integrity sha512-xv//i5wwuJJiA+G3BduflZCisCmIEca23GFEgoM/Ef6jIgjliMYa6/Ab5FMm0P5rcqXhGPXl8nCvmmtX08vDEA==
+  version "2.0.0-dev.45"
+  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0-dev.45.tgz#7d2706b46d0e575c0c795f81697412a13ef54471"
+  integrity sha512-qDpcmLpGdOBm7iQcPVdwMy3zaGJtbs6U3IxqzFe+ZvJgvUiVHJU2kuofrGxCDx8qVyi21VUMFpCfOr83WARa1Q==
   dependencies:
-    "@keep-network/random-beacon" "^2.0.0-dev.36"
+    "@keep-network/random-beacon" "^2.0.0-dev.39"
     "@keep-network/sortition-pools" "^2.0.0-pre.9"
     "@openzeppelin/contracts" "^4.6.0"
     "@openzeppelin/contracts-upgradeable" "^4.6.0"
@@ -1558,7 +1558,17 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
 
-"@keep-network/random-beacon@^2.0.0-dev.36", "@keep-network/random-beacon@development":
+"@keep-network/random-beacon@^2.0.0-dev.39":
+  version "2.0.0-dev.39"
+  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.39.tgz#592e0df954931dd18896b6a6be479577d075cc59"
+  integrity sha512-fm07pJE1E2bPhw1zmY695+DVPVikRUZ/Jm2MvnDJ0Ly2mhyHOVp96zW4Yd35sNXmMN/dL+eXRc1Jkwr58NoCXA==
+  dependencies:
+    "@keep-network/sortition-pools" "^2.0.0-pre.9"
+    "@openzeppelin/contracts" "^4.6.0"
+    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
+    "@threshold-network/solidity-contracts" ">1.2.0-dev <1.2.0-ropsten"
+
+"@keep-network/random-beacon@development":
   version "2.0.0-dev.36"
   resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.36.tgz#c2b62974c655301ef218cd6e7b2aa4ef4e8f7ef0"
   integrity sha512-a1RiOxFtn8GnNmWzM4vwaQE95PMbvzPcDftbRv+n1s6/69rHMIFzHXLbkcMNQ8IIjUD0p+bDqghNOc8lheLHIQ==
