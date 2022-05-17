@@ -5,13 +5,13 @@ import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
   walletPrivateKey,
-  singleP2PKHAddressRedemption,
-  singleP2WPKHAddressRedemption,
-  singleP2SHAddressRedemption,
-  singleP2WSHAddressRedemption,
-  multipleAddressesRedemption,
-  noChangeRedemption,
-  p2PKHChangeRedemption,
+  singleP2PKHRedemptionWithWitnessChange,
+  singleP2WPKHRedemptionWithWitnessChange,
+  singleP2SHRedemptionWithWitnessChange,
+  singleP2WSHRedemptionWithWitnessChange,
+  multipleRedemptionsWithWitnessChange,
+  multipleRedemptionsWithoutChange,
+  singleP2SHRedemptionWithNonWitnessChange,
   RedemptionTestData,
   p2pkhWalletAddress,
   p2wpkhWalletAddress,
@@ -47,7 +47,7 @@ describe("Redemption", () => {
                   "when the redeemer output script is derived from a P2PKH address",
                   () => {
                     const data: RedemptionTestData =
-                      singleP2PKHAddressRedemption
+                      singleP2PKHRedemptionWithWitnessChange
 
                     beforeEach(async () => {
                       await runRedemptionScenario(
@@ -71,7 +71,7 @@ describe("Redemption", () => {
                   "when the redeemer output script is derived from a P2WPKH address",
                   () => {
                     const data: RedemptionTestData =
-                      singleP2WPKHAddressRedemption
+                      singleP2WPKHRedemptionWithWitnessChange
 
                     beforeEach(async () => {
                       await runRedemptionScenario(
@@ -94,7 +94,8 @@ describe("Redemption", () => {
                 context(
                   "when the redeemer output script is derived from a P2SH address",
                   () => {
-                    const data: RedemptionTestData = singleP2SHAddressRedemption
+                    const data: RedemptionTestData =
+                      singleP2SHRedemptionWithWitnessChange
 
                     beforeEach(async () => {
                       await runRedemptionScenario(
@@ -118,7 +119,7 @@ describe("Redemption", () => {
                   "when the redeemer output script is derived from a P2WSH address",
                   () => {
                     const data: RedemptionTestData =
-                      singleP2WSHAddressRedemption
+                      singleP2WSHRedemptionWithWitnessChange
 
                     beforeEach(async () => {
                       await runRedemptionScenario(
@@ -140,7 +141,8 @@ describe("Redemption", () => {
               })
 
               context("when there are multiple redeemers", () => {
-                const data: RedemptionTestData = multipleAddressesRedemption
+                const data: RedemptionTestData =
+                  multipleRedemptionsWithWitnessChange
 
                 beforeEach(async () => {
                   await runRedemptionScenario(
@@ -164,7 +166,8 @@ describe("Redemption", () => {
               // The only difference between redemption transactions with P2PKH and
               // P2WPKH change is the output type.
               // Therefore only one test case was added for P2PKH transactions.
-              const data: RedemptionTestData = p2PKHChangeRedemption
+              const data: RedemptionTestData =
+                singleP2SHRedemptionWithNonWitnessChange
 
               beforeEach(async () => {
                 await runRedemptionScenario(
@@ -188,7 +191,7 @@ describe("Redemption", () => {
             // Use test data with the treasury fees of all the redemption requests
             // set to 0. This is the only situation that the redemption transaction
             // will not contain the change output.
-            const data: RedemptionTestData = noChangeRedemption
+            const data: RedemptionTestData = multipleRedemptionsWithoutChange
 
             beforeEach(async () => {
               await runRedemptionScenario(
@@ -212,7 +215,7 @@ describe("Redemption", () => {
       context(
         "when not all redeemer output scripts identify pending redemptions",
         () => {
-          const data: RedemptionTestData = multipleAddressesRedemption
+          const data: RedemptionTestData = multipleRedemptionsWithWitnessChange
 
           beforeEach(async () => {
             const rawTransactions = new Map<string, RawTransaction>()
@@ -257,7 +260,7 @@ describe("Redemption", () => {
     })
 
     context("when there are no redemption requests provided", () => {
-      const data: RedemptionTestData = singleP2WPKHAddressRedemption
+      const data: RedemptionTestData = singleP2WPKHRedemptionWithWitnessChange
 
       beforeEach(async () => {
         const rawTransactions = new Map<string, RawTransaction>()
@@ -290,7 +293,8 @@ describe("Redemption", () => {
             context(
               "when the redeemer output script is derived from a P2PKH address",
               () => {
-                const data: RedemptionTestData = singleP2PKHAddressRedemption
+                const data: RedemptionTestData =
+                  singleP2PKHRedemptionWithWitnessChange
                 let transaction: RawTransaction
 
                 beforeEach(async () => {
@@ -379,7 +383,8 @@ describe("Redemption", () => {
             context(
               "when the redeemer output script is derived from a P2WPKH address",
               () => {
-                const data: RedemptionTestData = singleP2WPKHAddressRedemption
+                const data: RedemptionTestData =
+                  singleP2WPKHRedemptionWithWitnessChange
                 let transaction: RawTransaction
 
                 beforeEach(async () => {
@@ -467,7 +472,8 @@ describe("Redemption", () => {
             context(
               "when the redeemer output script is derived from a P2SH address",
               () => {
-                const data: RedemptionTestData = singleP2SHAddressRedemption
+                const data: RedemptionTestData =
+                  singleP2SHRedemptionWithWitnessChange
                 let transaction: RawTransaction
 
                 beforeEach(async () => {
@@ -555,7 +561,8 @@ describe("Redemption", () => {
             context(
               "when the redeemer output script is derived from a P2WSH address",
               () => {
-                const data: RedemptionTestData = singleP2WSHAddressRedemption
+                const data: RedemptionTestData =
+                  singleP2WSHRedemptionWithWitnessChange
                 let transaction: RawTransaction
 
                 beforeEach(async () => {
@@ -642,7 +649,8 @@ describe("Redemption", () => {
           })
 
           context("when there are multiple redeemers", () => {
-            const data: RedemptionTestData = multipleAddressesRedemption
+            const data: RedemptionTestData =
+              multipleRedemptionsWithWitnessChange
             let transaction: RawTransaction
 
             beforeEach(async () => {
@@ -775,7 +783,8 @@ describe("Redemption", () => {
           // Therefore the tests for creating transactions with P2PKH are
           // limited to one single test case as more complicated scenarios are
           // covered for P2WPKH change output tests.
-          const data: RedemptionTestData = p2PKHChangeRedemption
+          const data: RedemptionTestData =
+            singleP2SHRedemptionWithNonWitnessChange
           let transaction: RawTransaction
 
           beforeEach(async () => {
@@ -858,7 +867,7 @@ describe("Redemption", () => {
       })
 
       context("when there is no change UTXO created", () => {
-        const data: RedemptionTestData = noChangeRedemption
+        const data: RedemptionTestData = multipleRedemptionsWithoutChange
         let transaction: RawTransaction
 
         beforeEach(async () => {
@@ -939,7 +948,7 @@ describe("Redemption", () => {
     })
 
     context("when there are no redemption requests provided", () => {
-      const data: RedemptionTestData = singleP2PKHAddressRedemption
+      const data: RedemptionTestData = singleP2PKHRedemptionWithWitnessChange
 
       it("should revert", async () => {
         await expect(

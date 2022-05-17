@@ -39,7 +39,7 @@ export interface RedemptionTestData {
  * P2PKH redeemer address:
  * https://live.blockcypher.com/btc-testnet/tx/c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20/
  */
-export const singleP2PKHAddressRedemption: RedemptionTestData = {
+export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
       "523e4bfb71804e5ed3b76c8933d733339563e560311c1bf835934ee7aae5db20",
@@ -94,7 +94,7 @@ export const singleP2PKHAddressRedemption: RedemptionTestData = {
  * P2WPKH redeemer address:
  * https://live.blockcypher.com/btc-testnet/tx/925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110/
  */
-export const singleP2WPKHAddressRedemption: RedemptionTestData = {
+export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
       "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20",
@@ -148,7 +148,7 @@ export const singleP2WPKHAddressRedemption: RedemptionTestData = {
  * P2SH redeemer address:
  * https://live.blockcypher.com/btc-testnet/tx/ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521/
  */
-export const singleP2SHAddressRedemption: RedemptionTestData = {
+export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
       "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110",
@@ -202,7 +202,7 @@ export const singleP2SHAddressRedemption: RedemptionTestData = {
  * P2SH redeemer address:
  * https://live.blockcypher.com/btc-testnet/tx/3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3/
  */
-export const singleP2WSHAddressRedemption: RedemptionTestData = {
+export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
       "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521",
@@ -257,7 +257,7 @@ export const singleP2WSHAddressRedemption: RedemptionTestData = {
  * redeemer addresses (P2PKH, P2WPKH, P2SH and P2WSH):
  * https://live.blockcypher.com/btc-testnet/tx/f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7/
  */
-export const multipleAddressesRedemption: RedemptionTestData = {
+export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
       "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
@@ -361,7 +361,7 @@ export const multipleAddressesRedemption: RedemptionTestData = {
  * addresses and has no change:
  * https://live.blockcypher.com/btc-testnet/tx/afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb/
  */
-export const noChangeRedemption: RedemptionTestData = {
+export const multipleRedemptionsWithoutChange: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
       "7dd38b48cb626580d317871c5b716eaf4a952ceb67ba3aa4ca76e3dc7cdcc65b",
@@ -431,7 +431,7 @@ export const noChangeRedemption: RedemptionTestData = {
  * redeemer address and P2PKH change:
  * https://live.blockcypher.com/btc-testnet/tx/0fec22d0fecd6607a0429210d04e9465681507d514f3edf0f07def96eda0f89d/
  */
-export const p2PKHChangeRedemption: RedemptionTestData = {
+export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
   mainUtxo: {
     transactionHash:
       "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7",
