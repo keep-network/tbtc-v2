@@ -31,7 +31,7 @@ describe("VendingMachine", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ deployer, governance } = await ethers.getNamedSigners())
+    ;({ deployer, governance } = await helpers.signers.getNamedSigners())
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[
@@ -39,7 +39,7 @@ describe("VendingMachine", () => {
       vendingMachineUpgradeInitiator,
       tokenHolder,
       thirdParty,
-    ] = await ethers.getUnnamedSigners()
+    ] = await helpers.signers.getUnnamedSigners()
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ tbtcV1, tbtcV2, vendingMachine } = await waffle.loadFixture(
