@@ -39,16 +39,17 @@ contract Bank is Ownable {
     ///         `transferBalanceFrom`. Zero by default.
     mapping(address => mapping(address => uint256)) public allowance;
 
-    /// @notice Returns the current nonce for EIP2612 permission for the
-    ///         provided balance owner for a replay protection. Used to
-    ///         construct EIP2612 signature provided to `permit` function.
+    /// @notice Returns the current nonce for an EIP2612 permission for the
+    ///         provided balance owner to protect against replay attacks. Used
+    ///         to construct an EIP2612 signature provided to the `permit`
+    ///         function.
     mapping(address => uint256) public nonce;
 
     uint256 public immutable cachedChainId;
     bytes32 public immutable cachedDomainSeparator;
 
-    /// @notice Returns EIP2612 Permit message hash. Used to construct EIP2612
-    ///         signature provided to `permit` function.
+    /// @notice Returns an EIP2612 Permit message hash. Used to construct
+    ///         an EIP2612 signature provided to the `permit` function.
     bytes32 public constant PERMIT_TYPEHASH =
         keccak256(
             "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
@@ -211,12 +212,13 @@ contract Bank is Ownable {
         _transferBalance(spender, recipient, amount);
     }
 
-    /// @notice EIP2612 approval made with secp256k1 signature.
-    ///         Users can authorize a transfer of their balance with a signature
-    ///         conforming EIP712 standard, rather than an on-chain transaction
-    ///         from their address. Anyone can submit this signature on the
-    ///         user's behalf by calling the permit function, paying gas fees,
-    ///         and possibly performing other actions in the same transaction.
+    /// @notice An EIP2612 approval made with secp256k1 signature. Users can
+    ///         authorize a transfer of their balance with a signature
+    ///         conforming to the EIP712 standard, rather than an on-chain 
+    ///         transaction from their address. Anyone can submit this signature
+    ///         on the user's behalf by calling the `permit` function, paying
+    ///         gas fees, and possibly performing other actions in the same
+    ///         transaction.
     /// @dev The deadline argument can be set to `type(uint256).max to create
     ///      permits that effectively never expire.  If the `amount` is set
     ///      to `type(uint256).max` then `transferBalanceFrom` will not
@@ -350,7 +352,7 @@ contract Bank is Ownable {
 
     /// @notice Returns hash of EIP712 Domain struct with `TBTC Bank` as
     ///         a signing domain and Bank contract as a verifying contract.
-    ///         Used to construct EIP2612 signature provided to `permit`
+    ///         Used to construct an EIP2612 signature provided to the `permit`
     ///         function.
     /* solhint-disable-next-line func-name-mixedcase */
     function DOMAIN_SEPARATOR() public view returns (bytes32) {
