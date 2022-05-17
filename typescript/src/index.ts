@@ -33,14 +33,14 @@ export interface TBTC {
    * @param bitcoinClient - Bitcoin client used to interact with the network.
    * @param witness - If true, a witness (P2WSH) transaction will be created.
    *        Otherwise, a legacy P2SH transaction will be made.
-   * @returns Empty promise.
+   * @returns Deposit UTXO.
    */
   makeDeposit(
     deposit: Deposit,
     depositorPrivateKey: string,
     bitcoinClient: BitcoinClient,
     witness: boolean
-  ): Promise<void>
+  ): Promise<UnspentTransactionOutput>
 
   /**
    * Creates a Bitcoin P2(W)SH deposit transaction.
@@ -49,14 +49,14 @@ export interface TBTC {
    * @param depositorPrivateKey - Bitcoin private key of the depositor.
    * @param witness - If true, a witness (P2WSH) transaction will be created.
    *        Otherwise, a legacy P2SH transaction will be made.
-   * @returns Bitcoin P2(W)SH deposit transaction in raw format.
+   * @returns Deposit UTXO with Bitcoin P2(W)SH deposit transaction data in raw format.
    */
   createDepositTransaction(
     deposit: Deposit,
     utxos: (UnspentTransactionOutput & RawTransaction)[],
     depositorPrivateKey: string,
     witness: boolean
-  ): Promise<RawTransaction>
+  ): Promise<UnspentTransactionOutput & RawTransaction>
 
   /**
    * Creates a Bitcoin locking script for P2(W)SH deposit transaction.
@@ -101,13 +101,13 @@ export interface TBTC {
 
   /**
    * Reveals the given deposit to the on-chain Bridge contract.
-   * @param utxo - UTXO that funds the revealed deposit.
+   * @param utxo - Deposit UTXO of the revealed deposit.
    * @param deposit - Data of the revealed deposit.
    * @param bitcoinClient - Bitcoin client used to interact with the network.
    * @param bridge - Handle to the Bridge on-chain contract.
    * @returns Empty promise
    * @dev The caller must ensure that the given deposit data are valid and
-   *      the given funding UTXO actually originates from a funding transaction
+   *      the given deposit UTXO actually originates from a deposit transaction
    *      that matches the given deposit data.
    */
   revealDeposit(

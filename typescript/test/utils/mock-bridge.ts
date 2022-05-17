@@ -13,8 +13,8 @@ interface DepositSweepProofLogEntry {
 }
 
 interface RevealDepositLogEntry {
-  fundingTx: DecomposedRawTransaction
-  fundingOutputIndex: number
+  depositTx: DecomposedRawTransaction
+  depositOutputIndex: number
   deposit: Deposit
 }
 
@@ -46,11 +46,11 @@ export class MockBridge implements Bridge {
   }
 
   revealDeposit(
-    fundingTx: DecomposedRawTransaction,
-    fundingOutputIndex: number,
+    depositTx: DecomposedRawTransaction,
+    depositOutputIndex: number,
     deposit: Deposit
   ): Promise<void> {
-    this._revealDepositLogEntry.push({ fundingTx, fundingOutputIndex, deposit })
+    this._revealDepositLogEntry.push({ depositTx, depositOutputIndex, deposit })
     return new Promise<void>((resolve, _) => {
       resolve()
     })

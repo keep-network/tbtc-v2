@@ -73,14 +73,14 @@ export interface Deposit {
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @returns Empty promise.
+ * @returns Deposit UTXO.
  */
 export async function makeDeposit(
   deposit: Deposit,
   depositorPrivateKey: string,
   bitcoinClient: BitcoinClient,
   witness: boolean
-): Promise<void> {
+): Promise<UnspentTransactionOutput> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
@@ -108,6 +108,8 @@ export async function makeDeposit(
   )
 
   await bitcoinClient.broadcast(transaction)
+
+  return transaction
 }
 
 /**
@@ -117,14 +119,14 @@ export async function makeDeposit(
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @returns Bitcoin P2(W)SH deposit transaction in raw format.
+ * @returns Deposit UTXO with Bitcoin P2(W)SH deposit transaction data in raw format.
  */
 export async function createDepositTransaction(
   deposit: Deposit,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   depositorPrivateKey: string,
   witness: boolean
-): Promise<RawTransaction> {
+): Promise<UnspentTransactionOutput & RawTransaction> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
@@ -139,12 +141,13 @@ export async function createDepositTransaction(
   const transaction = new bcoin.MTX()
 
   const scriptHash = await createDepositScriptHash(deposit, witness)
+  const outputValue = deposit.amount.toNumber()
 
   transaction.addOutput({
     script: witness
       ? bcoin.Script.fromProgram(0, scriptHash)
       : bcoin.Script.fromScripthash(scriptHash),
-    value: deposit.amount.toNumber(),
+    value: outputValue,
   })
 
   await transaction.fund(inputCoins, {
@@ -156,6 +159,9 @@ export async function createDepositTransaction(
   transaction.sign(depositorKeyRing)
 
   return {
+    transactionHash: transaction.txid(),
+    outputIndex: 0, // There is only one output.
+    value: outputValue,
     transactionHex: transaction.toRaw().toString("hex"),
   }
 }
@@ -309,13 +315,13 @@ function createKeyRing(privateKey: string): bcoin.KeyRing {
 
 /**
  * Reveals the given deposit to the on-chain Bridge contract.
- * @param utxo - UTXO that funds the revealed deposit.
+ * @param utxo - Deposit UTXO of the revealed deposit.
  * @param deposit - Data of the revealed deposit.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param bridge - Handle to the Bridge on-chain contract.
  * @returns Empty promise
  * @dev The caller must ensure that the given deposit data are valid and
- *      the given funding UTXO actually originates from a funding transaction
+ *      the given deposit UTXO actually originates from a deposit transaction
  *      that matches the given deposit data.
  */
 export async function revealDeposit(
@@ -324,9 +330,9 @@ export async function revealDeposit(
   bitcoinClient: BitcoinClient,
   bridge: Bridge
 ): Promise<void> {
-  const fundingTx = decomposeRawTransaction(
+  const depositTx = decomposeRawTransaction(
     await bitcoinClient.getRawTransaction(utxo.transactionHash)
   )
 
-  await bridge.revealDeposit(fundingTx, utxo.outputIndex, deposit)
+  await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit)
 }
