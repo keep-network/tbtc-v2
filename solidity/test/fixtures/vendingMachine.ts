@@ -1,4 +1,4 @@
-import { deployments, ethers } from "hardhat"
+import { deployments, helpers } from "hardhat"
 import { TestERC20, TBTC, VendingMachine } from "../../typechain"
 
 // eslint-disable-next-line import/prefer-default-export
@@ -9,10 +9,10 @@ export default async function vendingMachineFixture(): Promise<{
 }> {
   await deployments.fixture("VendingMachine")
 
-  const tbtcV1: TestERC20 = await ethers.getContract("TBTCToken")
-  const tbtcV2: TBTC = await ethers.getContract("TBTC")
+  const tbtcV1: TestERC20 = await helpers.contracts.getContract("TBTCToken")
+  const tbtcV2: TBTC = await helpers.contracts.getContract("TBTC")
 
-  const vendingMachine: VendingMachine = await ethers.getContract(
+  const vendingMachine: VendingMachine = await helpers.contracts.getContract(
     "VendingMachine"
   )
 

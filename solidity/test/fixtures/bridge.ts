@@ -1,4 +1,4 @@
-import { deployments, ethers } from "hardhat"
+import { deployments, ethers, helpers } from "hardhat"
 import { smock } from "@defi-wonderland/smock"
 import type {
   Bank,
@@ -6,7 +6,6 @@ import type {
   Bridge,
   BridgeStub,
   IWalletRegistry,
-  BridgeStub__factory,
   TestRelay,
 } from "../../typechain"
 
@@ -16,12 +15,15 @@ import type {
 export default async function bridgeFixture() {
   await deployments.fixture()
 
-  const { deployer, governance, treasury } = await ethers.getNamedSigners()
-  const [thirdParty] = await ethers.getUnnamedSigners()
+  const { deployer, governance, treasury } =
+    await helpers.signers.getNamedSigners()
+  const [thirdParty] = await helpers.signers.getUnnamedSigners()
 
-  const bank: Bank & BankStub = await ethers.getContract("Bank")
+  const bank: Bank & BankStub = await helpers.contracts.getContract("Bank")
 
-  const bridge: Bridge & BridgeStub = await ethers.getContract("Bridge")
+  const bridge: Bridge & BridgeStub = await helpers.contracts.getContract(
+    "Bridge"
+  )
 
   const walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry", {
     address: await (await bridge.contractReferences()).ecdsaWalletRegistry,
@@ -39,19 +41,18 @@ export default async function bridgeFixture() {
 
   await bank.connect(governance).updateBridge(bridge.address)
 
-  const BridgeFactory = await ethers.getContractFactory<BridgeStub__factory>(
-    "BridgeStub",
-    {
-      libraries: {
-        Deposit: (await ethers.getContract("Deposit")).address,
-        DepositSweep: (await ethers.getContract("DepositSweep")).address,
-        Redemption: (await ethers.getContract("Redemption")).address,
-        Wallets: (await ethers.getContract("Wallets")).address,
-        Fraud: (await ethers.getContract("Fraud")).address,
-        MovingFunds: (await ethers.getContract("MovingFunds")).address,
-      },
-    }
-  )
+  const BridgeFactory = await ethers.getContractFactory("BridgeStub", {
+    libraries: {
+      Deposit: (await helpers.contracts.getContract("Deposit")).address,
+      DepositSweep: (
+        await helpers.contracts.getContract("DepositSweep")
+      ).address,
+      Redemption: (await helpers.contracts.getContract("Redemption")).address,
+      Wallets: (await helpers.contracts.getContract("Wallets")).address,
+      Fraud: (await helpers.contracts.getContract("Fraud")).address,
+      MovingFunds: (await helpers.contracts.getContract("MovingFunds")).address,
+    },
+  })
 
   return {
     governance,

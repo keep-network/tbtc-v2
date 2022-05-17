@@ -1519,10 +1519,10 @@
     "@openzeppelin/contracts-upgradeable" "^4.6.0"
     "@threshold-network/solidity-contracts" ">1.2.0-dev <1.2.0-ropsten"
 
-"@keep-network/hardhat-helpers@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.5.0.tgz#9ff1849fc6786191e29e23751729fca34a8a7faa"
-  integrity sha512-okQ6Pa9Wz0cT6rKik3CVEkhTdmmDGJY3C0RjgjO9AePfy6tJpYinHxTkMJxErux+HeN8gUTTHa+j66/fyu+7Gg==
+"@keep-network/hardhat-helpers@^0.6.0-pre.5":
+  version "0.6.0-pre.5"
+  resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.5.tgz#81cc010d1afac08ec29a09e5846c9f8da28173b6"
+  integrity sha512-hRgQmvhmcayL9kto8xcK3lsfyRMvq/XG+EfQjPM731DOwPJ79kFk6PK3UMw7I+uKIgnZEkh29B+JizDR80Vr2g==
 
 "@keep-network/hardhat-local-networks-config@^0.1.0-pre.4":
   version "0.1.0-pre.4"
@@ -1695,10 +1695,10 @@
     safe-buffer "^5.1.1"
     util.promisify "^1.0.0"
 
-"@nomiclabs/hardhat-ethers@npm:hardhat-deploy-ethers":
-  version "0.3.0-beta.13"
-  resolved "https://registry.yarnpkg.com/hardhat-deploy-ethers/-/hardhat-deploy-ethers-0.3.0-beta.13.tgz#b96086ff768ddf69928984d5eb0a8d78cfca9366"
-  integrity sha512-PdWVcKB9coqWV1L7JTpfXRCI91Cgwsm7KLmBcwZ8f0COSm1xtABHZTyz3fvF6p42cTnz1VM0QnfDvMFlIRkSNw==
+"@nomiclabs/hardhat-ethers@^2.0.6":
+  version "2.0.6"
+  resolved "https://registry.yarnpkg.com/@nomiclabs/hardhat-ethers/-/hardhat-ethers-2.0.6.tgz#1c695263d5b46a375dcda48c248c4fba9dfe2fc2"
+  integrity sha512-q2Cjp20IB48rEn2NPjR1qxsIQBvFVYW9rFRCFq+bC4RUrn1Ljz3g4wM8uSlgIBZYBi2JMXxmOzFqHraczxq4Ng==
 
 "@nomiclabs/hardhat-etherscan@^2.1.4":
   version "2.1.4"
