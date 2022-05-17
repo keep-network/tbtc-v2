@@ -100,16 +100,16 @@ export async function makeDeposit(
     })
   }
 
-  const transaction = await createDepositTransaction(
+  const { transactionHex, ...depositUtxo } = await createDepositTransaction(
     deposit,
     utxosWithRaw,
     depositorPrivateKey,
     witness
   )
 
-  await bitcoinClient.broadcast(transaction)
+  await bitcoinClient.broadcast({ transactionHex })
 
-  return transaction
+  return depositUtxo
 }
 
 /**
