@@ -299,10 +299,10 @@ export async function createDepositAddress(
 
 /**
  * Reveals the given deposit to the on-chain Bridge contract.
- * @param utxo - Deposit UTXO of the revealed deposit.
- * @param deposit - Data of the revealed deposit.
- * @param bitcoinClient - Bitcoin client used to interact with the network.
- * @param bridge - Handle to the Bridge on-chain contract.
+ * @param utxo - Deposit UTXO of the revealed deposit
+ * @param deposit - Data of the revealed deposit
+ * @param bitcoinClient - Bitcoin client used to interact with the network
+ * @param bridge - Handle to the Bridge on-chain contract
  * @returns Empty promise
  * @dev The caller must ensure that the given deposit data are valid and
  *      the given deposit UTXO actually originates from a deposit transaction

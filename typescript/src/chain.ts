@@ -34,10 +34,10 @@ export interface Bridge {
 
   /**
    * Reveals a given deposit to the on-chain contract.
-   * @param depositTx - Deposit transaction data.
+   * @param depositTx - Deposit transaction data
    * @param depositOutputIndex - Index of the deposit transaction output that
-   *        funds the revealed deposit.
-   * @param deposit - Data of the revealed deposit.
+   *        funds the revealed deposit
+   * @param deposit - Data of the revealed deposit
    */
   revealDeposit(
     depositTx: DecomposedRawTransaction,
