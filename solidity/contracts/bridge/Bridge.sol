@@ -19,6 +19,7 @@ import "@keep-network/random-beacon/contracts/Governable.sol";
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./IRelay.sol";
 import "./BridgeState.sol";
@@ -31,6 +32,7 @@ import "./Wallets.sol";
 import "./Fraud.sol";
 import "./MovingFunds.sol";
 
+import "../bank/IReceiveBalanceApproval.sol";
 import "../bank/Bank.sol";
 
 /// @title Bitcoin Bridge
@@ -54,7 +56,12 @@ import "../bank/Bank.sol";
 /// @dev Bridge is an upgradeable component of the Bank. The order of
 ///      functionalities in this contract is: deposit, sweep, redemption,
 ///      moving funds, wallet lifecycle, frauds, parameters.
-contract Bridge is Governable, EcdsaWalletOwner, Initializable {
+contract Bridge is
+    Governable,
+    EcdsaWalletOwner,
+    Initializable,
+    IReceiveBalanceApproval
+{
     using BridgeState for BridgeState.Storage;
     using Deposit for BridgeState.Storage;
     using DepositSweep for BridgeState.Storage;
@@ -386,7 +393,9 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     }
 
     /// @notice Requests redemption of the given amount from the specified
-    ///         wallet to the redeemer Bitcoin output script.
+    ///         wallet to the redeemer Bitcoin output script. Handles the
+    ///         simplest case in which the redeemer's balance is decreased in
+    ///         the Bank.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
     ///        using Bitcoin HASH160 over the compressed ECDSA public key).
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
@@ -394,8 +403,8 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @param redeemerOutputScript The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
     ///        redeemed BTC.
-    /// @param amount Requested amount in satoshi. This is also the TBTC amount
-    ///        that is taken from redeemer's balance in the Bank upon request.
+    /// @param amount Requested amount in satoshi. This is also the Bank balance
+    ///        that is taken from the `balanceOwner` upon request.
     ///        Once the request is handled, the actual amount of BTC locked
     ///        on the redeemer output script will be always lower than this value
     ///        since the treasury and Bitcoin transaction fees must be incurred.
@@ -423,8 +432,78 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
         self.requestRedemption(
             walletPubKeyHash,
             mainUtxo,
+            msg.sender,
             redeemerOutputScript,
             amount
+        );
+    }
+
+    /// @notice Requests redemption of the given amount from the specified
+    ///         wallet to the redeemer Bitcoin output script. Used by
+    ///         `Bank.approveBalanceAndCall`. Can handle more complex cases
+    ///         where balance owner may be someone else than the redeemer.
+    ///         For example, vault redeeming its balance for some depositor.
+    /// @param balanceOwner The address of the Bank balance owner whose balance
+    ///        is getting redeemed.
+    /// @param amount Requested amount in satoshi. This is also the Bank balance
+    ///        that is taken from the `balanceOwner` upon request.
+    ///        Once the request is handled, the actual amount of BTC locked
+    ///        on the redeemer output script will be always lower than this value
+    ///        since the treasury and Bitcoin transaction fees must be incurred.
+    ///        The minimal amount satisfying the request can be computed as:
+    ///        `amount - (amount / redemptionTreasuryFeeDivisor) - redemptionTxMaxFee`.
+    ///        Fees values are taken at the moment of request creation.
+    /// @param redemptionData ABI-encoded redemption data:
+    ///        [
+    ///          address redeemer,
+    ///          bytes20 walletPubKeyHash,
+    ///          bytes32 mainUtxoTxHash,
+    ///          uint32 mainUtxoTxOutputIndex,
+    ///          uint64 mainUtxoTxOutputValue,
+    ///          bytes redeemerOutputScript
+    ///        ]
+    ///
+    ///        - redeemer: The Ethereum address of the redeemer who will be able
+    ///        to claim Bank balance if anything goes wrong during the redemption.
+    ///        In the most basic case, when someone redeems their balance
+    ///        from the Bank, `balanceOwner` is the same as `redemeer`.
+    ///        However, when a Vault is redeeming part of its balance for some
+    ///        redeemer address (for example, someone who has earlier deposited
+    ///        into that Vault), `balanceOwner` is the Vault, and `redemeer` is
+    ///        the address for which the vault is redeeming its balance to,
+    ///        - walletPubKeyHash: The 20-byte wallet public key hash (computed
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key),
+    ///        - mainUtxoTxHash: Data of the wallet's main UTXO TX hash, as
+    ///        currently known on the Ethereum chain,
+    ///        - mainUtxoTxOutputIndex: Data of the wallet's main UTXO output
+    ///        index, as currently known on Ethereum chain,
+    ///        - mainUtxoTxOutputValue: Data of the wallet's main UTXO output
+    ///        value, as currently known on Ethereum chain,
+    ///        - redeemerOutputScript The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
+    ///        redeemed BTC.
+    /// @dev Requirements:
+    ///      - The caller must be the Bank,
+    ///      - Wallet behind `walletPubKeyHash` must be live,
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain,
+    ///      - `redeemerOutputScript` must be a proper Bitcoin script,
+    ///      - `redeemerOutputScript` cannot have wallet PKH as payload,
+    ///      - `amount` must be above or equal the `redemptionDustThreshold`,
+    ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
+    ///        used for only one pending request at the same time,
+    ///      - Wallet must have enough Bitcoin balance to proceed the request,
+    function receiveBalanceApproval(
+        address balanceOwner,
+        uint256 amount,
+        bytes calldata redemptionData
+    ) external override {
+        require(msg.sender == address(self.bank), "Caller is not the bank");
+
+        self.requestRedemption(
+            balanceOwner,
+            SafeCastUpgradeable.toUint64(amount),
+            redemptionData
         );
     }
 
@@ -1115,7 +1194,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     ///        It is the time after which the redemption request can be reported
     ///        as timed out. It is counted from the moment when the redemption
     ///        request was created via `requestRedemption` call. Reported  timed
-    ///        out requests are cancelled and locked TBTC is returned to the
+    ///        out requests are cancelled and locked balance is returned to the
     ///        redeemer in full amount.
     /// @param redemptionTimeoutSlashingAmount New value of the redemption
     ///        timeout slashing amount in T, it is the amount slashed from each
@@ -1502,7 +1581,7 @@ contract Bridge is Governable, EcdsaWalletOwner, Initializable {
     /// @return redemptionTimeout Time after which the redemption request can be
     ///         reported as timed out. It is counted from the moment when the
     ///         redemption request was created via `requestRedemption` call.
-    ///         Reported  timed out requests are cancelled and locked TBTC is
+    ///         Reported  timed out requests are cancelled and locked balance is
     ///         returned to the redeemer in full amount.
     /// @return redemptionTimeoutSlashingAmount The amount of stake slashed
     ///         from each member of a wallet for a redemption timeout.
