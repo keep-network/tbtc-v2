@@ -154,8 +154,10 @@ contract TBTCVault is IVault, Governable {
     /// @param redemptionData Redemption data in a format expected from
     ///        `redemptionData` parameter of Bridge's `receiveBalanceApproval`
     ///        function.
-    function redeem(uint256 amount, bytes calldata redemptionData) external {
-        _redeem(msg.sender, amount, redemptionData);
+    function unmintAndRedeem(uint256 amount, bytes calldata redemptionData)
+        external
+    {
+        _unmintAndRedeem(msg.sender, amount, redemptionData);
     }
 
     /// @notice Burns `amount` of TBTC from the caller's balance. If `extraData`
@@ -163,10 +165,10 @@ contract TBTCVault is IVault, Governable {
     ///         Bank. If `extraData` is not empty, requests redemption in the
     ///         Bridge using the `extraData` as a `redemptionData` parameter to
     ///         Bridge's `receiveBalanceApproval` function.
-    /// @dev This function is doing the same as `unmint` or `redeem` (depending
-    ///      on `extraData` parameter) but it allows to execute unminting
-    ///      without a separate approval transaction. The function can be called
-    ///      only via `approveAndCall` of TBTC token.
+    /// @dev This function is doing the same as `unmint` or `unmintAndRedeem`
+    ///      (depending on `extraData` parameter) but it allows to execute
+    ///      unminting without a separate approval transaction. The function can
+    ///      be called only via `approveAndCall` of TBTC token.
     /// @param from TBTC token holder executing unminting.
     /// @param amount Amount of TBTC to unmint.
     /// @param token TBTC token address.
@@ -186,7 +188,7 @@ contract TBTCVault is IVault, Governable {
         if (extraData.length == 0) {
             _unmint(from, amount);
         } else {
-            _redeem(from, amount, extraData);
+            _unmintAndRedeem(from, amount, extraData);
         }
     }
 
@@ -202,7 +204,7 @@ contract TBTCVault is IVault, Governable {
         bank.transferBalance(unminter, amount);
     }
 
-    function _redeem(
+    function _unmintAndRedeem(
         address redeemer,
         uint256 amount,
         bytes calldata redemptionData

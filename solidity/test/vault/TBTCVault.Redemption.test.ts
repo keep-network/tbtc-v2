@@ -93,7 +93,7 @@ describe("TBTCVault - Redemption", () => {
     await bridge.setWalletMainUtxo(walletPubKeyHash, mainUtxo)
   })
 
-  describe("redeem", () => {
+  describe("unmintAndRedeem", () => {
     const requestRedemption = async (
       redeemer: SignerWithAddress,
       redeemerOutputScript: string,
@@ -111,7 +111,7 @@ describe("TBTCVault - Redemption", () => {
         ]
       )
 
-      return tbtcVault.connect(redeemer).redeem(amount, data)
+      return tbtcVault.connect(redeemer).unmintAndRedeem(amount, data)
     }
 
     context("when the redeemer has no TBTC", () => {
@@ -128,7 +128,7 @@ describe("TBTCVault - Redemption", () => {
 
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(account1).redeem(to1e18(1), [])
+          tbtcVault.connect(account1).unmintAndRedeem(to1e18(1), [])
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
     })
@@ -150,7 +150,7 @@ describe("TBTCVault - Redemption", () => {
 
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(account1).redeem(redeemedAmount, [])
+          tbtcVault.connect(account1).unmintAndRedeem(redeemedAmount, [])
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
     })
