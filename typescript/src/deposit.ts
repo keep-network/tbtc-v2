@@ -72,7 +72,7 @@ export interface Deposit {
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @returns Deposit UTXO.
+ * @returns The deposit UTXO that will be created by the deposit transaction
  */
 export async function makeDeposit(
   deposit: Deposit,
