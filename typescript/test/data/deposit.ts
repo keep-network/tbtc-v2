@@ -1,4 +1,5 @@
 import { RawTransaction, UnspentTransactionOutput } from "../../src/bitcoin"
+import { BigNumber } from "ethers"
 
 /**
  * An example address taken from the BTC testnet and having a non-zero balance.
@@ -40,7 +41,7 @@ export const testnetTransaction: RawTransaction = {
 export const testnetUTXO: UnspentTransactionOutput & RawTransaction = {
   transactionHash: testnetTransactionHash,
   outputIndex: 1,
-  value: 3933200,
+  value: BigNumber.from(3933200),
   ...testnetTransaction,
 }
 

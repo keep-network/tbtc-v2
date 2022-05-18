@@ -374,7 +374,7 @@ describe("Sweep", () => {
         transactionHash:
           "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883",
         outputIndex: 1,
-        value: 3933200,
+        value: BigNumber.from(3933200),
         transactionHex:
           "0100000000010162cae24e74ad64f9f0493b09f3964908b3b3038f4924882d3d" +
           "bd853b4c9bc7390100000000ffffffff02102700000000000017a914867120d5" +
@@ -427,7 +427,7 @@ describe("Sweep", () => {
         transactionHash:
           "025de155e6f2ffbbf4851493e0d28dad54020db221a3f38bf63c1f65e3d3595b",
         outputIndex: 0,
-        value: 5000000000,
+        value: BigNumber.from(5000000000),
         transactionHex:
           "010000000100000000000000000000000000000000000000000000000000000000" +
           "00000000ffffffff0e04db07c34f0103062f503253482fffffffff0100f2052a01" +
