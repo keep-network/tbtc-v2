@@ -4,7 +4,7 @@ import {
   Proof,
   UnspentTransactionOutput,
 } from "../../src/bitcoin"
-import { BigNumberish, BigNumber, BytesLike, utils, constants } from "ethers"
+import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
 import { Deposit } from "../../src/deposit"
 
@@ -24,7 +24,7 @@ interface RedemptionBridgeLogEntry {
   redemptionTx: DecomposedRawTransaction
   redemptionProof: Proof
   mainUtxo: UnspentTransactionOutput
-  walletPubKeyHash: BytesLike
+  walletPubKeyHash: string
 }
 
 /**
@@ -79,7 +79,7 @@ export class MockBridge implements Bridge {
     redemptionTx: DecomposedRawTransaction,
     redemptionProof: Proof,
     mainUtxo: UnspentTransactionOutput,
-    walletPubKeyHash: BytesLike
+    walletPubKeyHash: string
   ): Promise<void> {
     this._redemptionProofLog.push({
       redemptionTx,

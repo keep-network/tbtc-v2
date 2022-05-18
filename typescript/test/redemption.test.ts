@@ -1,5 +1,5 @@
 import TBTC from "./../src"
-import { RawTransaction } from "../src/bitcoin"
+import { Transaction, RawTransaction } from "../src/bitcoin"
 // @ts-ignore
 import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
@@ -12,9 +12,10 @@ import {
   multipleRedemptionsWithWitnessChange,
   multipleRedemptionsWithoutChange,
   singleP2SHRedemptionWithNonWitnessChange,
-  RedemptionTestData,
+  redemptionProof,
   p2pkhWalletAddress,
   p2wpkhWalletAddress,
+  RedemptionTestData,
 } from "./data/redemption"
 import { RedemptionRequest } from "./redemption"
 import { MockBridge } from "./utils/mock-bridge"
@@ -964,7 +965,81 @@ describe("Redemption", () => {
   })
 
   describe("proveRedemption", () => {
-    // TODO: Implement
+    const mainUtxo = {
+      transactionHash:
+        "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
+      outputIndex: 1,
+      value: 1429580,
+    }
+    const walletPubKeyHash = "8db50eb52063ea9d98b3eac91489a90f738986f6"
+
+    let bitcoinClient: MockBitcoinClient
+    let bridge: MockBridge
+
+    beforeEach(async () => {
+      bcoin.set("testnet")
+
+      bitcoinClient = new MockBitcoinClient()
+      bridge = new MockBridge()
+
+      const transactionHash =
+        redemptionProof.bitcoinChainData.transaction.transactionHash
+
+      const transactions = new Map<string, Transaction>()
+      transactions.set(
+        transactionHash,
+        redemptionProof.bitcoinChainData.transaction
+      )
+      bitcoinClient.transactions = transactions
+
+      const rawTransactions = new Map<string, RawTransaction>()
+      rawTransactions.set(
+        transactionHash,
+        redemptionProof.bitcoinChainData.rawTransaction
+      )
+      bitcoinClient.rawTransactions = rawTransactions
+
+      bitcoinClient.latestHeight =
+        redemptionProof.bitcoinChainData.latestBlockHeight
+      bitcoinClient.headersChain = redemptionProof.bitcoinChainData.headersChain
+      bitcoinClient.transactionMerkle =
+        redemptionProof.bitcoinChainData.transactionMerkleBranch
+      const confirmations = new Map<string, number>()
+      confirmations.set(
+        transactionHash,
+        redemptionProof.bitcoinChainData.accumulatedTxConfirmations
+      )
+      bitcoinClient.confirmations = confirmations
+
+      await TBTC.proveRedemption(
+        transactionHash,
+        mainUtxo,
+        walletPubKeyHash,
+        bridge,
+        bitcoinClient
+      )
+    })
+
+    it("should submit redemption proof with correct arguments", () => {
+      const bridgeLog = bridge.redemptionProofLog
+      expect(bridgeLog.length).to.equal(1)
+      expect(bridgeLog[0].mainUtxo).to.equal(mainUtxo)
+      expect(bridgeLog[0].walletPubKeyHash).to.equal(
+        redemptionProof.expectedRedemptionProof.walletPubKeyHash
+      )
+      expect(bridgeLog[0].redemptionTx).to.deep.equal(
+        redemptionProof.expectedRedemptionProof.redemptionTx
+      )
+      expect(bridgeLog[0].redemptionProof.txIndexInBlock).to.deep.equal(
+        redemptionProof.expectedRedemptionProof.redemptionProof.txIndexInBlock
+      )
+      expect(bridgeLog[0].redemptionProof.merkleProof).to.deep.equal(
+        redemptionProof.expectedRedemptionProof.redemptionProof.merkleProof
+      )
+      expect(bridgeLog[0].redemptionProof.bitcoinHeaders).to.deep.equal(
+        redemptionProof.expectedRedemptionProof.redemptionProof.bitcoinHeaders
+      )
+    })
   })
 })
 

@@ -1,5 +1,12 @@
 import { BigNumber, BytesLike } from "ethers"
-import { RawTransaction, UnspentTransactionOutput } from "../../src/bitcoin"
+import {
+  DecomposedRawTransaction,
+  Proof,
+  Transaction,
+  RawTransaction,
+  UnspentTransactionOutput,
+  TransactionMerkleBranch,
+} from "../../src/bitcoin"
 import { RedemptionRequest } from "../../src/redemption"
 
 /**
@@ -480,5 +487,198 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
         "47d65bddf732db3d3074e40910d51964c072e6d012103989d253b17a6a0f41838b8" +
         "4ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
     },
+  },
+}
+
+/**
+ * Represents data for tests of assembling redemption proofs.
+ */
+export interface RedemptionProofTestData {
+  bitcoinChainData: {
+    transaction: Transaction
+    rawTransaction: RawTransaction
+    accumulatedTxConfirmations: number
+    latestBlockHeight: number
+    headersChain: string
+    transactionMerkleBranch: TransactionMerkleBranch
+  }
+  expectedRedemptionProof: {
+    redemptionTx: DecomposedRawTransaction
+    redemptionProof: Proof
+    mainUtxo: UnspentTransactionOutput
+    walletPubKeyHash: string
+  }
+}
+
+/**
+ * Test data that is based on a Bitcoin testnet transaction with multiple redemption outputs
+ * https://live.blockcypher.com/btc-testnet/tx/f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7/
+ */
+export const redemptionProof: RedemptionProofTestData = {
+  bitcoinChainData: {
+    transaction: {
+      transactionHash:
+        "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7",
+      inputs: [
+        {
+          transactionHash:
+            "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
+          outputIndex: 1,
+          scriptSig: { asm: "", hex: "" },
+        },
+      ],
+      outputs: [
+        {
+          outputIndex: 0,
+          value: 15900,
+          scriptPubKey: {
+            asm: "OP_DUP OP_HASH160 4130879211c54df460e484ddf9aac009cb38ee74 OP_EQUALVERIFY OP_CHECKSIG",
+            hex: "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
+            type: "PUBKEYHASH",
+            reqSigs: 1,
+            addresses: ["mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5"],
+          },
+        },
+        {
+          outputIndex: 1,
+          value: 11300,
+          scriptPubKey: {
+            asm: "OP_0 4130879211c54df460e484ddf9aac009cb38ee74",
+            hex: "00144130879211c54df460e484ddf9aac009cb38ee74",
+            type: "WITNESSPUBKEYHASH",
+            reqSigs: 1,
+            addresses: ["tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l"],
+          },
+        },
+        {
+          outputIndex: 2,
+          value: 9900,
+          scriptPubKey: {
+            asm: "OP_HASH160 3ec459d0f3c29286ae5df5fcc421e2786024277e OP_EQUAL",
+            hex: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+            type: "SCRIPTHASH",
+            reqSigs: 1,
+            addresses: ["2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C"],
+          },
+        },
+        {
+          outputIndex: 3,
+          value: 12900,
+          scriptPubKey: {
+            asm: "OP_0 86a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
+            hex: "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
+            type: "WITNESSSCRIPTHASH",
+            reqSigs: 1,
+            addresses: [
+              "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y",
+            ],
+          },
+        },
+        {
+          outputIndex: 4,
+          value: 1375180,
+          scriptPubKey: {
+            asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
+            hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
+            type: "WITNESSPUBKEYHASH",
+            reqSigs: 1,
+            addresses: ["tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"],
+          },
+        },
+      ],
+    },
+    accumulatedTxConfirmations: 50,
+    rawTransaction: {
+      transactionHex:
+        "01000000000101e30b907d077893bd0ed819c66644027b1dd30e4d3f68bc51da7933" +
+        "f75bbb283d0100000000ffffffff051c3e0000000000001976a9144130879211c54d" +
+        "f460e484ddf9aac009cb38ee7488ac242c0000000000001600144130879211c54df4" +
+        "60e484ddf9aac009cb38ee74ac2600000000000017a9143ec459d0f3c29286ae5df5" +
+        "fcc421e2786024277e87643200000000000022002086a303cdd2e2eab1d1679f1a81" +
+        "3835dc5a1b65321077cdccaf08f98cbf04ca96ccfb1400000000001600148db50eb5" +
+        "2063ea9d98b3eac91489a90f738986f602483045022100adc5b0cffc65444cf16873" +
+        "eb57cb702414ee36ca907ad3cf57676abe83c0f80502204a206d9b55eeee05d9647e" +
+        "95d15ed5143eaad6cc8c5bc2c1919b69addc18db29012103989d253b17a6a0f41838" +
+        "b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
+    },
+    latestBlockHeight: 2226015,
+    headersChain:
+      "04e000203d93e4b82b59ccaae5aff315b9319248c1119f8f848e421516000000000000" +
+      "00f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5a2f990" +
+      "5e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4b4ef2cf4d" +
+      "a2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af887ae9b5af064" +
+      "ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47fe867411f520786b" +
+      "bb056d33cc5e412799355f22541600000000000000e428a225d38073c8e8584cf162b4" +
+      "cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff001d5ec11e770000a020bc" +
+      "1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86db93c7e3000000006381e8dd" +
+      "f3245ddd74afb580b6d1e508273673d14b3620c098bde4c50bdbf65de1975e62341f5c" +
+      "195a29773400006020e7fc1afb505baced47a255d8a14cb7162b6f94d6aea6a89f4300" +
+      "000000000000ad26d482c0f48d0aeb1e1d9a8189df9f8dae693203c117a777c6c15522" +
+      "2da759ef975e62341f5c19595dff820000802004bdf8678a1fd09fd50987f884793410" +
+      "62e7f2ad11098bd00800000000000000add66b467729d264031adec83bc06e30781153" +
+      "0b98f49b095bd4c1fee2472e841d995e62341f5c19945d657200004020f8228183708c" +
+      "5f703e673f381ecee895a8642eed9f700b9c2b00000000000000465ec2f30447552a4a" +
+      "30ee63964aaebcb040649269eab449fb51823d58835a4aed9a5e62341f5c192fd94baa",
+    transactionMerkleBranch: {
+      blockHeight: 2196313,
+      merkle: [
+        "2e89760feb82c022f9b6757c0a758f8fea953ffce9051cbe5a7cc20e0603c940",
+        "ad1cae6d060b5dac5d7ff1a933680f15dac822f52316c89e95363856b8a742ae",
+        "acf6ecc3da4654362678ac2bf0abf82aba1f2071e143718df2b079124e88fec7",
+        "65ea59172f35ee6db6e4194227bea23daedbda8299bea94710f21c97f3e9cc17",
+        "8c5b4ce089d0c450bf6125e7d342114246802bf4c9638d222aa9fcbe8e06024e",
+      ],
+      position: 4,
+    },
+  },
+  expectedRedemptionProof: {
+    redemptionTx: {
+      version: "01000000",
+      inputs:
+        "01e30b907d077893bd0ed819c66644027b1dd30e4d3f68bc51da7933f75bbb283d0" +
+        "100000000ffffffff",
+      outputs:
+        "051c3e0000000000001976a9144130879211c54df460e484ddf9aac009cb38ee748" +
+        "8ac242c0000000000001600144130879211c54df460e484ddf9aac009cb38ee74ac" +
+        "2600000000000017a9143ec459d0f3c29286ae5df5fcc421e2786024277e8764320" +
+        "0000000000022002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf" +
+        "08f98cbf04ca96ccfb1400000000001600148db50eb52063ea9d98b3eac91489a90" +
+        "f738986f6",
+      locktime: "00000000",
+    },
+    redemptionProof: {
+      merkleProof:
+        "40c903060ec27c5abe1c05e9fc3f95ea8f8f750a7c75b6f922c082eb0f76892eae4" +
+        "2a7b8563836959ec81623f522c8da150f6833a9f17f5dac5d0b066dae1cadc7fe88" +
+        "4e1279b0f28d7143e171201fba2af8abf02bac7826365446dac3ecf6ac17cce9f39" +
+        "71cf21047a9be9982dadbae3da2be274219e4b66dee352f1759ea654e02068ebefc" +
+        "a92a228d63c9f42b8046421142d3e72561bf50c4d089e04c5b8c",
+      txIndexInBlock: 4,
+      bitcoinHeaders:
+        "04e000203d93e4b82b59ccaae5aff315b9319248c1119f8f848e421516000000000" +
+        "00000f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5" +
+        "a2f9905e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4" +
+        "b4ef2cf4da2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af8" +
+        "87ae9b5af064ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47f" +
+        "e867411f520786bbb056d33cc5e412799355f22541600000000000000e428a225d3" +
+        "8073c8e8584cf162b4cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff0" +
+        "01d5ec11e770000a020bc1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86" +
+        "db93c7e3000000006381e8ddf3245ddd74afb580b6d1e508273673d14b3620c098b" +
+        "de4c50bdbf65de1975e62341f5c195a29773400006020e7fc1afb505baced47a255" +
+        "d8a14cb7162b6f94d6aea6a89f4300000000000000ad26d482c0f48d0aeb1e1d9a8" +
+        "189df9f8dae693203c117a777c6c155222da759ef975e62341f5c19595dff820000" +
+        "802004bdf8678a1fd09fd50987f88479341062e7f2ad11098bd0080000000000000" +
+        "0add66b467729d264031adec83bc06e307811530b98f49b095bd4c1fee2472e841d" +
+        "995e62341f5c19945d657200004020f8228183708c5f703e673f381ecee895a8642" +
+        "eed9f700b9c2b00000000000000465ec2f30447552a4a30ee63964aaebcb0406492" +
+        "69eab449fb51823d58835a4aed9a5e62341f5c192fd94baa",
+    },
+    mainUtxo: {
+      transactionHash:
+        "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
+      outputIndex: 1,
+      value: 1429580,
+    },
+    walletPubKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
   },
 }
