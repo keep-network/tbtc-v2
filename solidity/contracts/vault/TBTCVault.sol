@@ -107,11 +107,11 @@ contract TBTCVault is IVault, Governable {
     /// @dev Can only be called by the Bank via `approveBalanceAndCall`.
     /// @param owner The owner who approved their Bank balance.
     /// @param amount Amount of TBTC to mint.
-    function receiveBalanceApproval(address owner, uint256 amount)
-        external
-        override
-        onlyBank
-    {
+    function receiveBalanceApproval(
+        address owner,
+        uint256 amount,
+        bytes memory
+    ) external override onlyBank {
         require(
             bank.balanceOf(owner) >= amount,
             "Amount exceeds balance in the bank"

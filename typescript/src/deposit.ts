@@ -4,24 +4,24 @@ import bcoin from "bcoin"
 import hash160 from "bcrypto/lib/hash160"
 // @ts-ignore
 import { opcodes } from "bcoin/lib/script/common"
-// @ts-ignore
-import wif from "wif"
 import { BigNumber } from "ethers"
 import {
   Client as BitcoinClient,
   isCompressedPublicKey,
+  createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
 } from "./bitcoin"
+import { Identifier } from "./chain"
 
 /**
  * Contains deposit data.
  */
 export interface DepositData {
   /**
-   * Ethereum address prefixed with '0x' that should be used for TBTC accounting.
+   * Depositor's chain identifier.
    */
-  ethereumAddress: string
+  depositor: Identifier
 
   /**
    * Deposit amount in satoshis.
@@ -155,12 +155,7 @@ export async function createDepositTransaction(
 export async function createDepositScript(
   depositData: DepositData
 ): Promise<string> {
-  // Make sure Ethereum address is prefixed since the prefix is removed
-  // while constructing the script.
-  const ethereumAddress = depositData.ethereumAddress
-  if (ethereumAddress.substring(0, 2) !== "0x") {
-    throw new Error("Ethereum address must be prefixed with 0x")
-  }
+  const depositor = depositData.depositor
 
   // Blinding factor should be an 8 bytes number.
   const blindingFactor = depositData.blindingFactor
@@ -185,7 +180,7 @@ export async function createDepositScript(
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
   script.clear()
-  script.pushData(Buffer.from(ethereumAddress.substring(2), "hex"))
+  script.pushData(Buffer.from(depositor.identifierHex, "hex"))
   script.pushOp(opcodes.OP_DROP)
   script.pushData(Buffer.from(blindingFactor.toHexString().substring(2), "hex"))
   script.pushOp(opcodes.OP_DROP)
@@ -253,21 +248,6 @@ export async function createDepositAddress(
     ? bcoin.Address.fromWitnessScripthash(scriptHash)
     : bcoin.Address.fromScripthash(scriptHash)
   return address.toString(network)
-}
-
-/**
- * Creates a Bitcoin key ring based on given private key.
- * @param privateKey Private key that should be used to create the key ring.
- * @returns Bitcoin key ring.
- */
-function createKeyRing(privateKey: string): bcoin.KeyRing {
-  const decodedPrivateKey = wif.decode(privateKey)
-
-  return new bcoin.KeyRing({
-    witness: true,
-    privateKey: decodedPrivateKey.privateKey,
-    compressed: decodedPrivateKey.compressed,
-  })
 }
 
 // TODO: Implementation and documentation.
