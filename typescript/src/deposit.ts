@@ -6,12 +6,13 @@ import { BigNumber } from "ethers"
 import {
   Client as BitcoinClient,
   computeHash160,
+  decomposeRawTransaction,
   isCompressedPublicKey,
   createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
 } from "./bitcoin"
-import { Identifier } from "./chain"
+import { Bridge, Identifier } from "./chain"
 
 /**
  * Duration of the deposit refund locktime in seconds. After that time, the
@@ -56,6 +57,11 @@ export interface Deposit {
    * A 4-byte little-endian refund locktime as an un-prefixed hex string.
    */
   refundLocktime: string
+
+  /**
+   * Optional identifier of the vault the deposit should be routed in.
+   */
+  vault?: Identifier
 }
 
 /**
@@ -66,14 +72,14 @@ export interface Deposit {
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @returns Empty promise.
+ * @returns The deposit UTXO that will be created by the deposit transaction
  */
 export async function makeDeposit(
   deposit: Deposit,
   depositorPrivateKey: string,
   bitcoinClient: BitcoinClient,
   witness: boolean
-): Promise<void> {
+): Promise<UnspentTransactionOutput> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
@@ -93,14 +99,16 @@ export async function makeDeposit(
     })
   }
 
-  const transaction = await createDepositTransaction(
+  const { transactionHex, ...depositUtxo } = await createDepositTransaction(
     deposit,
     utxosWithRaw,
     depositorPrivateKey,
     witness
   )
 
-  await bitcoinClient.broadcast(transaction)
+  await bitcoinClient.broadcast({ transactionHex })
+
+  return depositUtxo
 }
 
 /**
@@ -110,14 +118,14 @@ export async function makeDeposit(
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @returns Bitcoin P2(W)SH deposit transaction in raw format.
+ * @returns Deposit UTXO with Bitcoin P2(W)SH deposit transaction data in raw format.
  */
 export async function createDepositTransaction(
   deposit: Deposit,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   depositorPrivateKey: string,
   witness: boolean
-): Promise<RawTransaction> {
+): Promise<UnspentTransactionOutput & RawTransaction> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
@@ -132,12 +140,13 @@ export async function createDepositTransaction(
   const transaction = new bcoin.MTX()
 
   const scriptHash = await createDepositScriptHash(deposit, witness)
+  const outputValue = deposit.amount.toNumber()
 
   transaction.addOutput({
     script: witness
       ? bcoin.Script.fromProgram(0, scriptHash)
       : bcoin.Script.fromScripthash(scriptHash),
-    value: deposit.amount.toNumber(),
+    value: outputValue,
   })
 
   await transaction.fund(inputCoins, {
@@ -149,6 +158,9 @@ export async function createDepositTransaction(
   transaction.sign(depositorKeyRing)
 
   return {
+    transactionHash: transaction.txid(),
+    outputIndex: 0, // There is only one output.
+    value: outputValue,
     transactionHex: transaction.toRaw().toString("hex"),
   }
 }
@@ -285,5 +297,26 @@ export async function createDepositAddress(
   return address.toString(network)
 }
 
-// TODO: Implementation and documentation.
-export async function revealDeposit(): Promise<void> {}
+/**
+ * Reveals the given deposit to the on-chain Bridge contract.
+ * @param utxo - Deposit UTXO of the revealed deposit
+ * @param deposit - Data of the revealed deposit
+ * @param bitcoinClient - Bitcoin client used to interact with the network
+ * @param bridge - Handle to the Bridge on-chain contract
+ * @returns Empty promise
+ * @dev The caller must ensure that the given deposit data are valid and
+ *      the given deposit UTXO actually originates from a deposit transaction
+ *      that matches the given deposit data.
+ */
+export async function revealDeposit(
+  utxo: UnspentTransactionOutput,
+  deposit: Deposit,
+  bitcoinClient: BitcoinClient,
+  bridge: Bridge
+): Promise<void> {
+  const depositTx = decomposeRawTransaction(
+    await bitcoinClient.getRawTransaction(utxo.transactionHash)
+  )
+
+  await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit)
+}
