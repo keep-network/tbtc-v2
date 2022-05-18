@@ -505,44 +505,47 @@ describe("TBTCVault", () => {
     })
 
     context("when called via approveAndCall", () => {
-      const mintedAmount = to1e18(10)
-      const unmintedAmount = to1e18(4)
-      const notUnmintedAmount = mintedAmount.sub(unmintedAmount)
+      context("when called with an empty extraData", () => {
+        const mintedAmount = to1e18(10)
+        const unmintedAmount = to1e18(4)
+        const notUnmintedAmount = mintedAmount.sub(unmintedAmount)
 
-      let tx
+        let tx: ContractTransaction
 
-      before(async () => {
-        await createSnapshot()
+        before(async () => {
+          await createSnapshot()
 
-        await vault.connect(account1).mint(mintedAmount)
-        await tbtc.connect(account1).approve(vault.address, unmintedAmount)
-        tx = await tbtc
-          .connect(account1)
-          .approveAndCall(vault.address, unmintedAmount, [])
-      })
+          await vault.connect(account1).mint(mintedAmount)
+          tx = await tbtc
+            .connect(account1)
+            .approveAndCall(vault.address, unmintedAmount, [])
+        })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+        after(async () => {
+          await restoreSnapshot()
+        })
 
-      it("should transfer balance to the unminter", async () => {
-        expect(await bank.balanceOf(vault.address)).to.equal(notUnmintedAmount)
-        expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(notUnmintedAmount)
-        )
-      })
+        it("should transfer balance to the unminter", async () => {
+          expect(await bank.balanceOf(vault.address)).to.equal(
+            notUnmintedAmount
+          )
+          expect(await bank.balanceOf(account1.address)).to.equal(
+            initialBalance.sub(notUnmintedAmount)
+          )
+        })
 
-      it("should burn TBTC", async () => {
-        expect(await tbtc.balanceOf(account1.address)).to.equal(
-          notUnmintedAmount
-        )
-        expect(await tbtc.totalSupply()).to.be.equal(notUnmintedAmount)
-      })
+        it("should burn TBTC", async () => {
+          expect(await tbtc.balanceOf(account1.address)).to.equal(
+            notUnmintedAmount
+          )
+          expect(await tbtc.totalSupply()).to.be.equal(notUnmintedAmount)
+        })
 
-      it("should emit Unminted event", async () => {
-        await expect(tx)
-          .to.emit(vault, "Unminted")
-          .withArgs(account1.address, unmintedAmount)
+        it("should emit Unminted event", async () => {
+          await expect(tx)
+            .to.emit(vault, "Unminted")
+            .withArgs(account1.address, unmintedAmount)
+        })
       })
     })
   })
