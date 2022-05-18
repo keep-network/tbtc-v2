@@ -553,12 +553,14 @@ describe("TBTCVault", () => {
 
       it("should revert", async () => {
         await expect(
-          vault.connect(bridge).receiveBalanceApproval(account1.address, amount)
+          vault
+            .connect(bridge)
+            .receiveBalanceApproval(account1.address, amount, [])
         ).to.be.revertedWith("Caller is not the Bank")
         await expect(
           vault
             .connect(account1)
-            .receiveBalanceApproval(account1.address, amount)
+            .receiveBalanceApproval(account1.address, amount, [])
         ).to.be.revertedWith("Caller is not the Bank")
       })
     })
@@ -568,7 +570,9 @@ describe("TBTCVault", () => {
 
       it("should revert", async () => {
         await expect(
-          bank.connect(account1).approveBalanceAndCall(vault.address, amount)
+          bank
+            .connect(account1)
+            .approveBalanceAndCall(vault.address, amount, [])
         ).to.be.revertedWith("Amount exceeds balance in the bank")
       })
     })
@@ -584,17 +588,17 @@ describe("TBTCVault", () => {
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(4))
+            .approveBalanceAndCall(vault.address, to1e18(4), [])
         )
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(10))
+            .approveBalanceAndCall(vault.address, to1e18(10), [])
         )
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(5))
+            .approveBalanceAndCall(vault.address, to1e18(5), [])
         )
       })
 
@@ -639,27 +643,27 @@ describe("TBTCVault", () => {
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(2))
+            .approveBalanceAndCall(vault.address, to1e18(2), [])
         )
         transactions.push(
           await bank
             .connect(account2)
-            .approveBalanceAndCall(vault.address, to1e18(4))
+            .approveBalanceAndCall(vault.address, to1e18(4), [])
         )
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(1))
+            .approveBalanceAndCall(vault.address, to1e18(1), [])
         )
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(1))
+            .approveBalanceAndCall(vault.address, to1e18(1), [])
         )
         transactions.push(
           await bank
             .connect(account2)
-            .approveBalanceAndCall(vault.address, to1e18(1))
+            .approveBalanceAndCall(vault.address, to1e18(1), [])
         )
       })
 

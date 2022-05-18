@@ -9,6 +9,11 @@ import {
   revealDeposit,
 } from "./deposit"
 import {
+  createRedemptionTransaction,
+  makeRedemptions,
+  RedemptionRequest,
+} from "./redemption"
+import {
   createDepositSweepTransaction,
   sweepDeposits,
   proveDepositSweep,
@@ -167,6 +172,61 @@ export interface TBTC {
     bridge: Bridge,
     bitcoinClient: BitcoinClient
   ): Promise<void>
+
+  /**
+   * Handles pending redemption requests by creating a redemption transaction
+   * transferring Bitcoins from the wallet's main UTXO to the provided redeemer
+   * output scripts and broadcasting it. The change UTXO resulting from the
+   * transaction becomes the new main UTXO of the wallet.
+   * @dev It is up to the caller to ensure the wallet key and each of the redeemer
+   *      output scripts represent a valid pending redemption request in the Bridge.
+   *      If this is not the case, an exception will be thrown.
+   * @param bitcoinClient - The Bitcoin client used to interact with the network
+   * @param bridge - The handle to the Bridge on-chain contract
+   * @param walletPrivateKey - The private kay of the wallet in the WIF format
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
+   *        held by the on-chain Bridge contract
+   * @param redeemerOutputScripts - The list of output scripts that the redeemed
+   *        funds will be locked to. The output scripts must be un-prefixed and
+   *        not prepended with length
+   * @param witness - The parameter used to decide about the type of the change
+   *        output. P2WPKH if `true`, P2PKH if `false`
+   * @returns Empty promise.
+   */
+  makeRedemptions(
+    bitcoinClient: BitcoinClient,
+    bridge: Bridge,
+    walletPrivateKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScripts: string[],
+    witness: boolean
+  ): Promise<void>
+
+  /**
+   * Creates a Bitcoin redemption transaction.
+   * The transaction will have a single input (main UTXO of the wallet making
+   * the redemption), an output for each redemption request provided, and a change
+   * output if the redemption requests do not consume the entire amount of the
+   * single input.
+   * @dev The caller is responsible for ensuring the redemption request list is
+   *      correctly formed:
+   *        - there is at least one redemption
+   *        - the `requestedAmount` in each redemption request is greater than
+   *          the sum of its `txFee` and `treasuryFee`
+   * @param walletPrivateKey - The private key of the wallet in the WIF format
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
+   *        by the on-chain Bridge contract
+   * @param redemptionRequests - The list of redemption requests
+   * @param witness - The parameter used to decide the type of the change output.
+   *        P2WPKH if `true`, P2PKH if `false`
+   * @returns Bitcoin redemption transaction in the raw format.
+   */
+  createRedemptionTransaction(
+    walletPrivateKey: string,
+    mainUtxo: UnspentTransactionOutput & RawTransaction,
+    redemptionRequests: RedemptionRequest[],
+    witness: boolean
+  ): Promise<RawTransaction>
 }
 
 const tbtc: TBTC = {
@@ -180,6 +240,8 @@ const tbtc: TBTC = {
   sweepDeposits,
   createDepositSweepTransaction,
   proveDepositSweep,
+  makeRedemptions,
+  createRedemptionTransaction,
 }
 
 export default tbtc
