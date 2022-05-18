@@ -309,17 +309,6 @@ library Redemption {
     ///          bytes redeemerOutputScript
     ///        ]
     ///
-    ///        - walletPubKeyHash: The 20-byte wallet public key hash (computed
-    ///        using Bitcoin HASH160 over the compressed ECDSA public key),
-    ///        - mainUtxo: Data of the wallet's main UTXO TX hash, as currently
-    ///        known on the Ethereum chain,
-    ///        - mainUtxoTxOutputIndex: Data of the wallet's main UTXO output
-    ///        index, as currently known on Ethereum chain,
-    ///        - mainUtxoTxOutputValue: Data of the wallet's main UTXO output
-    ///        value, as currently known on Ethereum chain,
-    ///        - redeemerOutputScript The redeemer's length-prefixed output
-    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
-    ///        redeemed BTC,
     ///        - redeemer: The Ethereum address of the redeemer who will be able
     ///        to claim Bank balance if anything goes wrong during the redemption.
     ///        In the most basic case, when someone redeems their Bitcoin
@@ -327,7 +316,18 @@ library Redemption {
     ///        However, when a Vault is redeeming part of its balance for some
     ///        redeemer address (for example, someone who has earlier deposited
     ///        into that Vault), `balanceOwner` is the Vault, and `redemeer` is
-    ///        the address for which the vault is redeeming its balance to.
+    ///        the address for which the vault is redeeming its balance to,
+    ///        - walletPubKeyHash: The 20-byte wallet public key hash (computed
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key),
+    ///        - mainUtxoTxHash: Data of the wallet's main UTXO TX hash, as
+    ///        currently known on the Ethereum chain,
+    ///        - mainUtxoTxOutputIndex: Data of the wallet's main UTXO output
+    ///        index, as currently known on Ethereum chain,
+    ///        - mainUtxoTxOutputValue: Data of the wallet's main UTXO output
+    ///        value, as currently known on Ethereum chain,
+    ///        - redeemerOutputScript The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
+    ///        redeemed BTC.
     /// @dev Requirements:
     ///      - Wallet behind `walletPubKeyHash` must be live,
     ///      - `mainUtxo*` components must point to the recent main UTXO
