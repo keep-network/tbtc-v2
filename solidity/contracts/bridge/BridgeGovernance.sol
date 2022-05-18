@@ -16,17 +16,42 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./BridgeGovernanceParams.sol";
 
 import "./Bridge.sol";
 
 // TODO: add desc
 contract BridgeGovernance is Ownable {
-    using BridgeGovernanceParams for BridgeGovernanceParams.Data;
+    Bridge internal bridge;
+    uint256 public governanceDelay;
 
-    BridgeGovernanceParams.Data internal bridgeGovernanceParams;
-
-    Bridge public bridge;
+    uint256 public newGovernanceDelay;
+    uint256 internal governanceDelayChangeInitiated;
+    address public newBridgeGovernance;
+    uint256 internal bridgeGovernanceTransferChangeInitiated;
+    uint64 public newDepositDustThreshold;
+    uint256 internal depositDustThresholdChangeInitiated;
+    uint64 public newDepositTreasuryFeeDivisor;
+    uint256 internal depositTreasuryFeeDivisorChangeInitiated;
+    uint64 public newDepositTxMaxFee;
+    uint256 internal depositTxMaxFeeChangeInitiated;
+    uint64 public newRedemptionDustThreshold;
+    uint256 internal redemptionDustThresholdChangeInitiated;
+    uint64 public newRedemptionTreasuryFeeDivisor;
+    uint256 internal redemptionTreasuryFeeDivisorChangeInitiated;
+    uint64 public newRedemptionTxMaxFee;
+    uint256 internal redemptionTxMaxFeeChangeInitiated;
+    uint64 public newRedemptionTimeout;
+    uint256 internal redemptionTimeoutChangeInitiated;
+    uint64 public newRedemptionTimeoutSlashingAmount;
+    uint256 internal redemptionTimeoutSlashingAmountChangeInitiated;
+    uint64 public newRedemptionTimeoutNotifierRewardMultiplier;
+    uint256 internal redemptionTimeoutNotifierRewardMultiplierChangeInitiated;
+    uint64 public newMovingFundsTxMaxTotalFee;
+    uint256 internal movingFundsTxMaxTotalFeeChangeInitiated;
+    uint64 public newMovingFundsDustThreshold;
+    uint256 internal movingFundsDustThresholdChangeInitiated;
+    uint32 public newMovingFundsTimeoutResetDelay;
+    uint256 internal movingFundsTimeoutResetDelayChangeInitiated;
 
     event GovernanceDelayUpdateStarted(
         uint256 governanceDelay,
@@ -47,29 +72,77 @@ contract BridgeGovernance is Ownable {
     event DepositDustThresholdUpdated(uint64 depositDustThreshold);
 
     event DepositTreasuryFeeDivisorUpdateStarted(
-        uint64 newDepositTreasuryFeeDivisorThreshold,
+        uint64 depositTreasuryFeeDivisor,
         uint256 timestamp
     );
     event DepositTreasuryFeeDivisorUpdated(uint64 depositTreasuryFeeDivisor);
 
     event DepositTxMaxFeeUpdateStarted(
-        uint64 newDepositTxMaxFeeThreshold,
+        uint64 newDepositTxMaxFee,
         uint256 timestamp
     );
     event DepositTxMaxFeeUpdated(uint64 depositTxMaxFee);
 
     event RedemptionDustThresholdUpdateStarted(
-        uint64 newRedemptionDustThresholdThreshold,
+        uint64 newRedemptionDustThreshold,
         uint256 timestamp
     );
     event RedemptionDustThresholdUpdated(uint64 redemptionDustThreshold);
 
     event RedemptionTreasuryFeeDivisorUpdateStarted(
-        uint64 redemptionTreasuryFeeDivisor,
+        uint64 newRedemptionTreasuryFeeDivisor,
         uint256 timestamp
     );
     event RedemptionTreasuryFeeDivisorUpdated(
         uint64 redemptionTreasuryFeeDivisor
+    );
+
+    event RedemptionTxMaxFeeUpdateStarted(
+        uint64 newRedemptionTxMaxFee,
+        uint256 timestamp
+    );
+    event RedemptionTxMaxFeeUpdated(uint64 redemptionTxMaxFee);
+
+    event RedemptionTimeoutUpdateStarted(
+        uint64 newRedemptionTimeout,
+        uint256 timestamp
+    );
+    event RedemptionTimeoutUpdated(uint64 redemptionTimeoutSlashingAmount);
+
+    event RedemptionTimeoutSlashingAmountUpdateStarted(
+        uint96 newRedemptionTimeoutSlashingAmount,
+        uint256 timestamp
+    );
+    event RedemptionTimeoutSlashingAmountUpdated(
+        uint96 redemptionTimeoutSlashingAmount
+    );
+
+    event RedemptionTimeoutNotifierRewardMultiplierUpdateStarted(
+        uint64 newRedemptionTimeoutNotifierRewardMultiplier,
+        uint256 timestamp
+    );
+    event RedemptionTimeoutNotifierRewardMultiplierUpdated(
+        uint64 redemptionTimeoutNotifierRewardMultiplier
+    );
+
+    event MovingFundsTxMaxTotalFeeUpdateStarted(
+        uint64 newMovingFundsTxMaxTotalFeeThreshold,
+        uint256 timestamp
+    );
+    event MovingFundsTxMaxTotalFeeUpdated(uint64 movingFundsTxMaxTotalFee);
+
+    event MovingFundsDustThresholdUpdateStarted(
+        uint64 newMovingFundsDustThresholdThreshold,
+        uint256 timestamp
+    );
+    event MovingFundsDustThresholdUpdated(uint64 movingFundsDustThreshold);
+
+    event MovingFundsTimeoutResetDelayUpdateStarted(
+        uint32 newMovingFundsTimeoutResetDelayThreshold,
+        uint256 timestamp
+    );
+    event MovingFundsTimeoutResetDelayUpdated(
+        uint64 movingFundsTimeoutResetDelay
     );
 
     /// @notice Reverts if called before the governance delay elapses.
@@ -79,8 +152,7 @@ contract BridgeGovernance is Ownable {
         /* solhint-disable not-rely-on-time */
         require(changeInitiatedTimestamp > 0, "Change not initiated");
         require(
-            block.timestamp - changeInitiatedTimestamp >=
-                bridgeGovernanceParams.getGovernanceDelay(),
+            block.timestamp - changeInitiatedTimestamp >= governanceDelay,
             "Governance delay has not elapsed"
         );
         _;
@@ -89,7 +161,7 @@ contract BridgeGovernance is Ownable {
 
     constructor(Bridge _bridge, uint256 _governanceDelay) {
         bridge = _bridge;
-        bridgeGovernanceParams.init(_governanceDelay);
+        governanceDelay = _governanceDelay;
     }
 
     /// @notice Begins the governance delay update process.
@@ -99,14 +171,25 @@ contract BridgeGovernance is Ownable {
         external
         onlyOwner
     {
-        bridgeGovernanceParams.beginGovernanceDelayUpdate(_newGovernanceDelay);
+        newGovernanceDelay = _newGovernanceDelay;
+        /* solhint-disable not-rely-on-time */
+        governanceDelayChangeInitiated = block.timestamp;
+        emit GovernanceDelayUpdateStarted(_newGovernanceDelay, block.timestamp);
+        /* solhint-enable not-rely-on-time */
     }
 
     /// @notice Finalizes the governance delay update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
-    function finalizeGovernanceDelayUpdate() external onlyOwner {
-        bridgeGovernanceParams.finalizeGovernanceDelayUpdate();
+    function finalizeGovernanceDelayUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(governanceDelayChangeInitiated)
+    {
+        emit GovernanceDelayUpdated(newGovernanceDelay);
+        governanceDelay = newGovernanceDelay;
+        governanceDelayChangeInitiated = 0;
+        newGovernanceDelay = 0;
     }
 
     /// @notice Begins the Bridge governance transfer process.
@@ -115,19 +198,32 @@ contract BridgeGovernance is Ownable {
         external
         onlyOwner
     {
-        bridgeGovernanceParams.beginBridgeGovernanceTransfer(
-            _newBridgeGovernance
+        require(
+            address(_newBridgeGovernance) != address(0),
+            "New bridge owner address cannot be zero"
         );
+        newBridgeGovernance = _newBridgeGovernance;
+        /* solhint-disable not-rely-on-time */
+        bridgeGovernanceTransferChangeInitiated = block.timestamp;
+        emit BridgeGovernanceTransferStarted(
+            _newBridgeGovernance,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
     }
 
     /// @notice Finalizes the bridge governance transfer process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
-    function finalizeBridgeGovernanceTransfer() external onlyOwner {
-        bridge.transferGovernance(
-            bridgeGovernanceParams.getNewBridgeGovernance()
-        );
-        bridgeGovernanceParams.finalizeBridgeGovernanceTransfer();
+    function finalizeBridgeGovernanceTransfer()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(bridgeGovernanceTransferChangeInitiated)
+    {
+        bridge.transferGovernance(newBridgeGovernance);
+        emit BridgeGovernanceTransferred(newBridgeGovernance);
+        bridgeGovernanceTransferChangeInitiated = 0;
+        newBridgeGovernance = address(0);
     }
 
     /// @notice Begins the deposit dust threshold amount update process.
@@ -137,24 +233,36 @@ contract BridgeGovernance is Ownable {
         external
         onlyOwner
     {
-        bridgeGovernanceParams.beginDepositDustThresholdUpdate(
-            _newDepositDustThreshold
+        /* solhint-disable not-rely-on-time */
+        newDepositDustThreshold = _newDepositDustThreshold;
+        depositDustThresholdChangeInitiated = block.timestamp;
+        emit DepositDustThresholdUpdateStarted(
+            _newDepositDustThreshold,
+            block.timestamp
         );
+        /* solhint-enable not-rely-on-time */
     }
 
     /// @notice Finalizes the deposit dust threshold amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
-    function finalizeDepositDustThresholdUpdate() external onlyOwner {
+    function finalizeDepositDustThresholdUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(depositDustThresholdChangeInitiated)
+    {
         (, uint64 depositTreasuryFeeDivisor, uint64 depositTxMaxFee) = bridge
             .depositParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateDepositParameters(
-            bridgeGovernanceParams.getNewDepositDustThreshold(),
+            newDepositDustThreshold,
             depositTreasuryFeeDivisor,
             depositTxMaxFee
         );
-        bridgeGovernanceParams.finalizeDepositDustThresholdUpdate();
+        emit DepositDustThresholdUpdated(newDepositDustThreshold);
+
+        newDepositDustThreshold = 0;
+        depositDustThresholdChangeInitiated = 0;
     }
 
     /// @notice Begins the deposit treasury fee divisor amount update process.
@@ -163,24 +271,36 @@ contract BridgeGovernance is Ownable {
     function beginDepositTreasuryFeeDivisorUpdate(
         uint64 _newDepositTreasuryFeeDivisor
     ) external onlyOwner {
-        bridgeGovernanceParams.beginDepositTreasuryFeeDivisorUpdate(
-            _newDepositTreasuryFeeDivisor
+        /* solhint-disable not-rely-on-time */
+        newDepositTreasuryFeeDivisor = _newDepositTreasuryFeeDivisor;
+        depositTreasuryFeeDivisorChangeInitiated = block.timestamp;
+        emit DepositTreasuryFeeDivisorUpdateStarted(
+            _newDepositTreasuryFeeDivisor,
+            block.timestamp
         );
+        /* solhint-enable not-rely-on-time */
     }
 
     /// @notice Finalizes the deposit treasury fee divisor amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
-    function finalizeDepositTreasuryFeeDivisorUpdate() external onlyOwner {
+    function finalizeDepositTreasuryFeeDivisorUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(depositTreasuryFeeDivisorChangeInitiated)
+    {
         (uint64 depositDustThreshold, , uint64 depositTxMaxFee) = bridge
             .depositParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateDepositParameters(
             depositDustThreshold,
-            bridgeGovernanceParams.getNewDepositTreasuryFeeDivisor(),
+            newDepositTreasuryFeeDivisor,
             depositTxMaxFee
         );
-        bridgeGovernanceParams.finalizeDepositTreasuryFeeDivisorUpdate();
+        emit DepositTreasuryFeeDivisorUpdated(newDepositTreasuryFeeDivisor);
+
+        newDepositTreasuryFeeDivisor = 0;
+        depositTreasuryFeeDivisorChangeInitiated = 0;
     }
 
     /// @notice Begins the deposit tx max fee amount update process.
@@ -190,13 +310,21 @@ contract BridgeGovernance is Ownable {
         external
         onlyOwner
     {
-        bridgeGovernanceParams.beginDepositTxMaxFeeUpdate(_newDepositTxMaxFee);
+        /* solhint-disable not-rely-on-time */
+        newDepositTxMaxFee = _newDepositTxMaxFee;
+        depositTxMaxFeeChangeInitiated = block.timestamp;
+        emit DepositTxMaxFeeUpdateStarted(_newDepositTxMaxFee, block.timestamp);
+        /* solhint-enable not-rely-on-time */
     }
 
     /// @notice Finalizes the deposit tx max fee amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
-    function finalizeDepositTxMaxFeeUpdate() external onlyOwner {
+    function finalizeDepositTxMaxFeeUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(depositTxMaxFeeChangeInitiated)
+    {
         (
             uint64 depositDustThreshold,
             uint64 depositTreasuryFeeDivisor,
@@ -206,10 +334,13 @@ contract BridgeGovernance is Ownable {
         bridge.updateDepositParameters(
             depositDustThreshold,
             depositTreasuryFeeDivisor,
-            bridgeGovernanceParams.getNewDepositTxMaxFee()
+            newDepositTxMaxFee
         );
 
-        bridgeGovernanceParams.finalizeDepositTxMaxFeeUpdate();
+        emit DepositTxMaxFeeUpdated(newDepositTxMaxFee);
+
+        newDepositTxMaxFee = 0;
+        depositTxMaxFeeChangeInitiated = 0;
     }
 
     /// @notice Begins the redemption treasury fee divisor amount update process.
@@ -218,15 +349,24 @@ contract BridgeGovernance is Ownable {
     function beginRedemptionDustThresholdUpdate(
         uint64 _newRedemptionDustThreshold
     ) external onlyOwner {
-        bridgeGovernanceParams.beginRedemptionDustThresholdUpdate(
-            _newRedemptionDustThreshold
+        /* solhint-disable not-rely-on-time */
+        newRedemptionDustThreshold = _newRedemptionDustThreshold;
+        redemptionDustThresholdChangeInitiated = block.timestamp;
+        emit RedemptionDustThresholdUpdateStarted(
+            _newRedemptionDustThreshold,
+            block.timestamp
         );
+        /* solhint-enable not-rely-on-time */
     }
 
     /// @notice Finalizes the redemption treasury fee divisor amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
-    function finalizeRedemptionDustThresholdUpdate() external onlyOwner {
+    function finalizeRedemptionDustThresholdUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(redemptionDustThresholdChangeInitiated)
+    {
         (
             ,
             uint64 redemptionTreasuryFeeDivisor,
@@ -237,14 +377,17 @@ contract BridgeGovernance is Ownable {
         ) = bridge.redemptionParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateRedemptionParameters(
-            bridgeGovernanceParams.getNewRedemptionDustThreshold(),
+            newRedemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
         );
-        bridgeGovernanceParams.finalizeRedemptionDustThresholdUpdate();
+        emit RedemptionDustThresholdUpdated(newRedemptionDustThreshold);
+
+        newRedemptionDustThreshold = 0;
+        redemptionDustThresholdChangeInitiated = 0;
     }
 
     /// @notice Begins the redemption treasury fee divisor amount update process.
@@ -253,15 +396,24 @@ contract BridgeGovernance is Ownable {
     function beginRedemptionTreasuryFeeDivisorUpdate(
         uint64 _newRedemptionTreasuryFeeDivisor
     ) external onlyOwner {
-        bridgeGovernanceParams.beginRedemptionTreasuryFeeDivisorUpdate(
-            _newRedemptionTreasuryFeeDivisor
+        /* solhint-disable not-rely-on-time */
+        newRedemptionTreasuryFeeDivisor = _newRedemptionTreasuryFeeDivisor;
+        redemptionTreasuryFeeDivisorChangeInitiated = block.timestamp;
+        emit RedemptionTreasuryFeeDivisorUpdateStarted(
+            _newRedemptionTreasuryFeeDivisor,
+            block.timestamp
         );
+        /* solhint-enable not-rely-on-time */
     }
 
     /// @notice Finalizes the redemption treasury fee divisor amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
-    function finalizeRedemptionTreasuryFeeDivisorUpdate() external onlyOwner {
+    function finalizeRedemptionTreasuryFeeDivisorUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(redemptionTreasuryFeeDivisorChangeInitiated)
+    {
         (
             uint64 redemptionDustThreshold,
             ,
@@ -273,24 +425,383 @@ contract BridgeGovernance is Ownable {
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateRedemptionParameters(
             redemptionDustThreshold,
-            bridgeGovernanceParams.getNewRedemptionTreasuryFeeDivisor(),
+            newRedemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
         );
-        bridgeGovernanceParams.finalizeRedemptionTreasuryFeeDivisorUpdate();
+        emit RedemptionTreasuryFeeDivisorUpdated(
+            newRedemptionTreasuryFeeDivisor
+        );
+
+        newRedemptionTreasuryFeeDivisor = 0;
+        redemptionTreasuryFeeDivisorChangeInitiated = 0;
+    }
+
+    /// @notice Begins the redemption tx max fee amount update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newRedemptionTxMaxFee New redemption tx max fee.
+    function beginRedemptionTxMaxFeeUpdate(uint64 _newRedemptionTxMaxFee)
+        external
+        onlyOwner
+    {
+        /* solhint-disable not-rely-on-time */
+        newRedemptionTxMaxFee = _newRedemptionTxMaxFee;
+        redemptionTxMaxFeeChangeInitiated = block.timestamp;
+        emit RedemptionTxMaxFeeUpdateStarted(
+            _newRedemptionTxMaxFee,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the redemption tx max fee amount update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeRedemptionTxMaxFeeUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(redemptionTxMaxFeeChangeInitiated)
+    {
+        (
+            uint64 redemptionDustThreshold,
+            uint64 redemptionTreasuryFeeDivisor,
+            ,
+            uint256 redemptionTimeout,
+            uint96 redemptionTimeoutSlashingAmount,
+            uint256 redemptionTimeoutNotifierRewardMultiplier
+        ) = bridge.redemptionParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateRedemptionParameters(
+            redemptionDustThreshold,
+            redemptionTreasuryFeeDivisor,
+            newRedemptionTxMaxFee,
+            redemptionTimeout,
+            redemptionTimeoutSlashingAmount,
+            redemptionTimeoutNotifierRewardMultiplier
+        );
+        emit RedemptionTxMaxFeeUpdated(newRedemptionTxMaxFee);
+
+        newRedemptionTxMaxFee = 0;
+        redemptionTxMaxFeeChangeInitiated = 0;
+    }
+
+    /// @notice Begins the redemption timeout amount update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newRedemptionTimeout New redemption timeout.
+    function beginRedemptionTimeoutUpdate(uint64 _newRedemptionTimeout)
+        external
+        onlyOwner
+    {
+        /* solhint-disable not-rely-on-time */
+        newRedemptionTimeout = _newRedemptionTimeout;
+        redemptionTimeoutChangeInitiated = block.timestamp;
+        emit RedemptionTimeoutUpdateStarted(
+            _newRedemptionTimeout,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the redemption timeout amount update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeRedemptionTimeoutUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(redemptionTimeoutChangeInitiated)
+    {
+        (
+            uint64 redemptionDustThreshold,
+            uint64 redemptionTreasuryFeeDivisor,
+            uint64 redemptionTxMaxFee,
+            ,
+            uint96 redemptionTimeoutSlashingAmount,
+            uint256 redemptionTimeoutNotifierRewardMultiplier
+        ) = bridge.redemptionParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateRedemptionParameters(
+            redemptionDustThreshold,
+            redemptionTreasuryFeeDivisor,
+            redemptionTxMaxFee,
+            newRedemptionTimeout,
+            redemptionTimeoutSlashingAmount,
+            redemptionTimeoutNotifierRewardMultiplier
+        );
+        emit RedemptionTimeoutUpdated(newRedemptionTimeout);
+
+        newRedemptionTimeout = 0;
+        redemptionTimeoutChangeInitiated = 0;
+    }
+
+    /// @notice Begins the redemption timeout slashing amount amount update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newRedemptionTimeoutSlashingAmount New redemption timeout slashing amount.
+    function beginRedemptionTimeoutSlashingAmountUpdate(
+        uint64 _newRedemptionTimeoutSlashingAmount
+    ) external onlyOwner {
+        /* solhint-disable not-rely-on-time */
+        newRedemptionTimeoutSlashingAmount = _newRedemptionTimeoutSlashingAmount;
+        redemptionTimeoutSlashingAmountChangeInitiated = block.timestamp;
+        emit RedemptionTimeoutSlashingAmountUpdateStarted(
+            _newRedemptionTimeoutSlashingAmount,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the redemption timeout slashing amount amount update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeRedemptionTimeoutSlashingAmountUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(redemptionTimeoutSlashingAmountChangeInitiated)
+    {
+        (
+            uint64 redemptionDustThreshold,
+            uint64 redemptionTreasuryFeeDivisor,
+            uint64 redemptionTxMaxFee,
+            uint256 redemptionTimeout,
+            ,
+            uint256 redemptionTimeoutNotifierRewardMultiplier
+        ) = bridge.redemptionParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateRedemptionParameters(
+            redemptionDustThreshold,
+            redemptionTreasuryFeeDivisor,
+            redemptionTxMaxFee,
+            redemptionTimeout,
+            newRedemptionTimeoutSlashingAmount,
+            redemptionTimeoutNotifierRewardMultiplier
+        );
+        emit RedemptionTimeoutSlashingAmountUpdated(
+            newRedemptionTimeoutSlashingAmount
+        );
+
+        newRedemptionTimeoutSlashingAmount = 0;
+        redemptionTimeoutSlashingAmountChangeInitiated = 0;
+    }
+
+    /// @notice Begins the redemption timeout notifier reward multiplier amount update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newRedemptionTimeoutNotifierRewardMultiplier New redemption timeout notifier reward multiplier.
+    function beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
+        uint64 _newRedemptionTimeoutNotifierRewardMultiplier
+    ) external onlyOwner {
+        /* solhint-disable not-rely-on-time */
+        newRedemptionTimeoutNotifierRewardMultiplier = _newRedemptionTimeoutNotifierRewardMultiplier;
+        redemptionTimeoutNotifierRewardMultiplierChangeInitiated = block
+            .timestamp;
+        emit RedemptionTimeoutNotifierRewardMultiplierUpdateStarted(
+            _newRedemptionTimeoutNotifierRewardMultiplier,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the redemption timeout notifier reward multiplier amount update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(
+            redemptionTimeoutNotifierRewardMultiplierChangeInitiated
+        )
+    {
+        (
+            uint64 redemptionDustThreshold,
+            uint64 redemptionTreasuryFeeDivisor,
+            uint64 redemptionTxMaxFee,
+            uint256 redemptionTimeout,
+            uint96 redemptionTimeoutSlashingAmount,
+
+        ) = bridge.redemptionParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateRedemptionParameters(
+            redemptionDustThreshold,
+            redemptionTreasuryFeeDivisor,
+            redemptionTxMaxFee,
+            redemptionTimeout,
+            redemptionTimeoutSlashingAmount,
+            newRedemptionTimeoutNotifierRewardMultiplier
+        );
+        emit RedemptionTimeoutNotifierRewardMultiplierUpdated(
+            newRedemptionTimeoutNotifierRewardMultiplier
+        );
+
+        newRedemptionTimeoutNotifierRewardMultiplier = 0;
+        redemptionTimeoutNotifierRewardMultiplierChangeInitiated = 0;
+    }
+
+    /// @notice Begins the moving funds tx max total fee update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newMovingFundsTxMaxTotalFee New moving funds tx max total fee.
+    function beginMovingFundsTxMaxTotalFeeUpdate(
+        uint64 _newMovingFundsTxMaxTotalFee
+    ) external onlyOwner {
+        /* solhint-disable not-rely-on-time */
+        newMovingFundsTxMaxTotalFee = _newMovingFundsTxMaxTotalFee;
+        movingFundsTxMaxTotalFeeChangeInitiated = block.timestamp;
+        emit MovingFundsTxMaxTotalFeeUpdateStarted(
+            _newMovingFundsTxMaxTotalFee,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the moving funds tx max total fee update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeMovingFundsTxMaxTotalFeeUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(movingFundsTxMaxTotalFeeChangeInitiated)
+    {
+        emit MovingFundsTxMaxTotalFeeUpdated(newMovingFundsTxMaxTotalFee);
+        (
+            ,
+            uint64 movingFundsDustThreshold,
+            uint32 movingFundsTimeoutResetDelay,
+            uint32 movingFundsTimeout,
+            uint96 movingFundsTimeoutSlashingAmount,
+            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint64 movedFundsSweepTxMaxTotalFee,
+            uint32 movedFundsSweepTimeout,
+            uint96 movedFundsSweepTimeoutSlashingAmount,
+            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+        ) = bridge.movingFundsParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateMovingFundsParameters(
+            newMovingFundsTxMaxTotalFee,
+            movingFundsDustThreshold,
+            movingFundsTimeoutResetDelay,
+            movingFundsTimeout,
+            movingFundsTimeoutSlashingAmount,
+            movingFundsTimeoutNotifierRewardMultiplier,
+            movedFundsSweepTxMaxTotalFee,
+            movedFundsSweepTimeout,
+            movedFundsSweepTimeoutSlashingAmount,
+            movedFundsSweepTimeoutNotifierRewardMultiplier
+        );
+        newMovingFundsTxMaxTotalFee = 0;
+        movingFundsTxMaxTotalFeeChangeInitiated = 0;
+    }
+
+    /// @notice Begins the moving funds dust threshold update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newMovingFundsDustThreshold New moving funds dust threshold.
+    function beginMovingFundsDustThresholdUpdate(
+        uint64 _newMovingFundsDustThreshold
+    ) external onlyOwner {
+        /* solhint-disable not-rely-on-time */
+        newMovingFundsDustThreshold = _newMovingFundsDustThreshold;
+        movingFundsDustThresholdChangeInitiated = block.timestamp;
+        emit MovingFundsDustThresholdUpdateStarted(
+            _newMovingFundsDustThreshold,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the moving funds dust threshold update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeMovingFundsDustThresholdUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(movingFundsDustThresholdChangeInitiated)
+    {
+        emit MovingFundsDustThresholdUpdated(newMovingFundsDustThreshold);
+        (
+            uint64 movingFundsTxMaxTotalFee,
+            ,
+            uint32 movingFundsTimeoutResetDelay,
+            uint32 movingFundsTimeout,
+            uint96 movingFundsTimeoutSlashingAmount,
+            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint64 movedFundsSweepTxMaxTotalFee,
+            uint32 movedFundsSweepTimeout,
+            uint96 movedFundsSweepTimeoutSlashingAmount,
+            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+        ) = bridge.movingFundsParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateMovingFundsParameters(
+            movingFundsTxMaxTotalFee,
+            newMovingFundsDustThreshold,
+            movingFundsTimeoutResetDelay,
+            movingFundsTimeout,
+            movingFundsTimeoutSlashingAmount,
+            movingFundsTimeoutNotifierRewardMultiplier,
+            movedFundsSweepTxMaxTotalFee,
+            movedFundsSweepTimeout,
+            movedFundsSweepTimeoutSlashingAmount,
+            movedFundsSweepTimeoutNotifierRewardMultiplier
+        );
+        newMovingFundsDustThreshold = 0;
+        movingFundsDustThresholdChangeInitiated = 0;
+    }
+
+    /// @notice Begins the moving funds timeout reset delay update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newMovingFundsTimeoutResetDelay New moving funds timeout reset delay.
+    function beginMovingFundsTimeoutResetDelayUpdate(
+        uint32 _newMovingFundsTimeoutResetDelay
+    ) external onlyOwner {
+        /* solhint-disable not-rely-on-time */
+        newMovingFundsTimeoutResetDelay = _newMovingFundsTimeoutResetDelay;
+        movingFundsTimeoutResetDelayChangeInitiated = block.timestamp;
+        emit MovingFundsTimeoutResetDelayUpdateStarted(
+            _newMovingFundsTimeoutResetDelay,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the moving funds timeout reset delay update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeMovingFundsTimeoutResetDelayUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(movingFundsTimeoutResetDelayChangeInitiated)
+    {
+        emit MovingFundsTimeoutResetDelayUpdated(
+            newMovingFundsTimeoutResetDelay
+        );
+        (
+            uint64 movingFundsTxMaxTotalFee,
+            uint64 movingFundsDustThreshold,
+            ,
+            uint32 movingFundsTimeout,
+            uint96 movingFundsTimeoutSlashingAmount,
+            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint64 movedFundsSweepTxMaxTotalFee,
+            uint32 movedFundsSweepTimeout,
+            uint96 movedFundsSweepTimeoutSlashingAmount,
+            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+        ) = bridge.movingFundsParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateMovingFundsParameters(
+            movingFundsTxMaxTotalFee,
+            movingFundsDustThreshold,
+            newMovingFundsTimeoutResetDelay,
+            movingFundsTimeout,
+            movingFundsTimeoutSlashingAmount,
+            movingFundsTimeoutNotifierRewardMultiplier,
+            movedFundsSweepTxMaxTotalFee,
+            movedFundsSweepTimeout,
+            movedFundsSweepTimeoutSlashingAmount,
+            movedFundsSweepTimeoutNotifierRewardMultiplier
+        );
+        newMovingFundsTimeoutResetDelay = 0;
+        movingFundsTimeoutResetDelayChangeInitiated = 0;
     }
 
     // TODO add:
-    // uint64 redemptionTxMaxFee,
-    // uint256 redemptionTimeout,
-    // uint96 redemptionTimeoutSlashingAmount,
-    // uint256 redemptionTimeoutNotifierRewardMultiplier
 
-    // uint64 movingFundsTxMaxTotalFee,
-    // uint64 movingFundsDustThreshold,
-    // uint32 movingFundsTimeoutResetDelay,
     // uint32 movingFundsTimeout,
     // uint96 movingFundsTimeoutSlashingAmount,
     // uint256 movingFundsTimeoutNotifierRewardMultiplier,
@@ -320,11 +831,7 @@ contract BridgeGovernance is Ownable {
         view
         returns (uint256)
     {
-        return bridgeGovernanceParams.getRemainingGovernanceDelayUpdateTime();
-    }
-
-    function governanceDelay() external view returns (uint256) {
-        return bridgeGovernanceParams.getGovernanceDelay();
+        return getRemainingChangeTime(governanceDelayChangeInitiated);
     }
 
     /// @notice Get the time remaining until the bridge governance transfer can
@@ -335,69 +842,101 @@ contract BridgeGovernance is Ownable {
         view
         returns (uint256)
     {
-        return
-            bridgeGovernanceParams
-                .getRemainingBridgeGovernanceTransferDelayUpdateTime();
+        return getRemainingChangeTime(bridgeGovernanceTransferChangeInitiated);
     }
 
-    /// @notice Get the time deposit dust threshold can be updated.
-    /// @return Remaining time in seconds.
-    function getRemainingDepositDustThresholdDelayUpdateTime()
+    // TODO: add more params here
+    function getChangeInitiatedParams()
         external
         view
-        returns (uint256)
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
     {
-        return
-            bridgeGovernanceParams
-                .getRemainingDepositDustThresholdDelayUpdateTime();
+        return (
+            governanceDelayChangeInitiated,
+            bridgeGovernanceTransferChangeInitiated,
+            depositDustThresholdChangeInitiated,
+            depositTreasuryFeeDivisorChangeInitiated,
+            depositTxMaxFeeChangeInitiated,
+            redemptionDustThresholdChangeInitiated,
+            redemptionTreasuryFeeDivisorChangeInitiated,
+            redemptionTxMaxFeeChangeInitiated,
+            redemptionTimeoutChangeInitiated,
+            redemptionTimeoutSlashingAmountChangeInitiated,
+            redemptionTimeoutNotifierRewardMultiplierChangeInitiated,
+            movingFundsTxMaxTotalFeeChangeInitiated
+        );
     }
 
-    /// @notice Get the time deposit treasury fee divisor can be updated.
-    /// @return Remaining time in seconds.
-    function getRemainingDepositTreasuryFeeDivisorDelayUpdateTime()
+    function getRemainingDepositParamsUpdateTime()
         external
         view
-        returns (uint256)
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
     {
-        return
-            bridgeGovernanceParams
-                .getRemainingDepositTreasuryFeeDivisorDelayUpdateTime();
+        return (
+            getRemainingChangeTime(depositDustThresholdChangeInitiated),
+            getRemainingChangeTime(depositTreasuryFeeDivisorChangeInitiated),
+            getRemainingChangeTime(depositTxMaxFeeChangeInitiated)
+        );
     }
 
-    /// @notice Get the time deposit tx max fee can be updated.
-    /// @return Remaining time in seconds.
-    function getRemainingDepositTxMaxFeeDelayUpdateTime()
+    function getRemainingRedemptionParamsUpdateTime()
         external
         view
-        returns (uint256)
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
     {
-        return
-            bridgeGovernanceParams.getRemainingDepositTxMaxFeeDelayUpdateTime();
+        return (
+            getRemainingChangeTime(redemptionDustThresholdChangeInitiated),
+            getRemainingChangeTime(redemptionTreasuryFeeDivisorChangeInitiated),
+            getRemainingChangeTime(redemptionTxMaxFeeChangeInitiated),
+            getRemainingChangeTime(redemptionTimeoutChangeInitiated),
+            getRemainingChangeTime(
+                redemptionTimeoutSlashingAmountChangeInitiated
+            ),
+            getRemainingChangeTime(
+                redemptionTimeoutNotifierRewardMultiplierChangeInitiated
+            )
+        );
     }
 
-    /// @notice Get the time redemption treasury fee divisor can be updated.
-    /// @return Remaining time in seconds.
-    function getRemainingRedemptionDustThresholdDelayUpdateTime()
-        external
-        view
-        returns (uint256)
-    {
-        return
-            bridgeGovernanceParams
-                .getRemainingRedemptionDustThresholdDelayUpdateTime();
-    }
-
-    /// @notice Get the time redemption treasury fee divisor can be updated.
-    /// @return Remaining time in seconds.
-    function getRemainingRedemptionTreasuryFeeDivisorDelayUpdateTime()
-        external
-        view
-        returns (uint256)
-    {
-        return
-            bridgeGovernanceParams
-                .getRemainingRedemptionTreasuryFeeDivisorDelayUpdateTime();
-    }
+    // TODO: uncomment after all the moving params are added
+    // function getRemainingMovingFundsParamsUpdateTime() external view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256) {
+    //     return (
+    //         getRemainingChangeTime(movingFundsTxMaxTotalFeeChangeInitiated),
+    //         getRemainingChangeTime(movingFundsDustThresholdChangeInitiated),
+    //         getRemainingChangeTime(movingFundsTimeoutResetDelayChangeInitiated),
+    //         getRemainingChangeTime(movingFundsTimeoutChangeInitiated),
+    //         getRemainingChangeTime(movingFundsTimeoutSlashingAmountChangeInitiated),
+    //         getRemainingChangeTime(movingFundsTimeoutNotifierRewardMultiplierChangeInitiated),
+    //         getRemainingChangeTime(movedFundsSweepTxMaxTotalFeeChangeInitiated),
+    //         getRemainingChangeTime(movedFundsSweepTimeoutChangeInitiated),
+    //         getRemainingChangeTime(movedFundsSweepTimeoutSlashingAmountChangeInitiated),
+    //         getRemainingChangeTime(movedFundsSweepTimeoutNotifierRewardMultiplierChangeInitiated),
+    //     );
+    // }
 
     /// @notice Gets the time remaining until the governable parameter update
     ///         can be committed.
@@ -411,10 +950,10 @@ contract BridgeGovernance is Ownable {
         require(changeTimestamp > 0, "Change not initiated");
         /* solhint-disable-next-line not-rely-on-time */
         uint256 elapsed = block.timestamp - changeTimestamp;
-        if (elapsed >= bridgeGovernanceParams.getGovernanceDelay()) {
+        if (elapsed >= governanceDelay) {
             return 0;
         }
 
-        return bridgeGovernanceParams.getGovernanceDelay() - elapsed;
+        return governanceDelay - elapsed;
     }
 }
