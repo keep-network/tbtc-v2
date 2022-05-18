@@ -311,6 +311,35 @@ contract Bank is Ownable {
         emit BalanceDecreased(msg.sender, amount);
     }
 
+
+    function decreaseAndTransferBalance(
+        uint256 burnedAmount,
+        address recipient,
+        uint256 transferAmount
+    ) external {
+        address spender = msg.sender;
+
+        uint256 amount = burnedAmount + transferAmount;
+
+        require(
+            recipient != address(0),
+            "Can not transfer to the zero address"
+        );
+        require(
+            recipient != address(this),
+            "Can not transfer to the Bank address"
+        );
+
+        uint256 spenderBalance = balanceOf[spender];
+        require(spenderBalance >= amount, "Transfer amount exceeds balance");
+        unchecked {
+            balanceOf[spender] = spenderBalance - amount;
+        }
+        balanceOf[recipient] += transferAmount;
+        emit BalanceDecreased(spender, burnedAmount);
+        emit BalanceTransferred(spender, recipient, transferAmount);
+    }
+
     /// @notice Returns hash of EIP712 Domain struct with `TBTC Bank` as
     ///         a signing domain and Bank contract as a verifying contract.
     ///         Used to construct EIP2612 signature provided to `permit`

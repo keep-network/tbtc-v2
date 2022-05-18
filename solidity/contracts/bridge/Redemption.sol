@@ -485,8 +485,15 @@ library Redemption {
 
         emit RedemptionsCompleted(walletPubKeyHash, redemptionTxHash);
 
+/*
         self.bank.decreaseBalance(outputsInfo.totalBurnableValue);
         self.bank.transferBalance(self.treasury, outputsInfo.totalTreasuryFee);
+        */
+        self.bank.decreaseAndTransferBalance(
+            outputsInfo.totalBurnableValue,
+            self.treasury,
+            outputsInfo.totalTreasuryFee
+        );
     }
 
     /// @notice Processes the Bitcoin redemption transaction output vector.
