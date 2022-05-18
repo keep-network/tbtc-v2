@@ -162,13 +162,16 @@ describe("TBTCVault - Redemption", () => {
         "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c"
       const redeemerOutputScriptP2PKH =
         "0x1976a914f4eedc8f40d4b8e30771f792b065ebec0abaddef88ac"
+      const redeemerOutputScriptP2SH =
+        "0x17a914f4eedc8f40d4b8e30771f792b065ebec0abaddef87"
 
       const mintedAmount = 10000000
       const redeemedAmount1 = 1000000
       const redeemedAmount2 = 2000000
       const redeemedAmount3 = 3000000
+      const redeemedAmount4 = 1500000
       const totalRedeemedAmount =
-        redeemedAmount1 + redeemedAmount2 + redeemedAmount3
+        redeemedAmount1 + redeemedAmount2 + redeemedAmount3 + redeemedAmount4
       const notRedeemedAmount = mintedAmount - totalRedeemedAmount
 
       const transactions: ContractTransaction[] = []
@@ -198,6 +201,13 @@ describe("TBTCVault - Redemption", () => {
             account1,
             redeemerOutputScriptP2PKH,
             redeemedAmount3
+          )
+        )
+        transactions.push(
+          await requestRedemption(
+            account1,
+            redeemerOutputScriptP2SH,
+            redeemedAmount4
           )
         )
       })
@@ -233,6 +243,12 @@ describe("TBTCVault - Redemption", () => {
         )
         expect(redemptionRequest3.redeemer).to.be.equal(account1.address)
         expect(redemptionRequest3.requestedAmount).to.be.equal(redeemedAmount3)
+
+        const redemptionRequest4 = await bridge.pendingRedemptions(
+          buildRedemptionKey(walletPubKeyHash, redeemerOutputScriptP2SH)
+        )
+        expect(redemptionRequest4.redeemer).to.be.equal(account1.address)
+        expect(redemptionRequest4.requestedAmount).to.be.equal(redeemedAmount4)
       })
 
       it("should burn TBTC", async () => {
@@ -252,6 +268,9 @@ describe("TBTCVault - Redemption", () => {
         await expect(transactions[2])
           .to.emit(tbtcVault, "Unminted")
           .withArgs(account1.address, redeemedAmount3)
+        await expect(transactions[3])
+          .to.emit(tbtcVault, "Unminted")
+          .withArgs(account1.address, redeemedAmount4)
       })
     })
 
@@ -377,13 +396,19 @@ describe("TBTCVault - Redemption", () => {
             "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c"
           const redeemerOutputScriptP2PKH =
             "0x1976a914f4eedc8f40d4b8e30771f792b065ebec0abaddef88ac"
+          const redeemerOutputScriptP2SH =
+            "0x17a914f4eedc8f40d4b8e30771f792b065ebec0abaddef87"
 
           const mintedAmount = 10000000
           const redeemedAmount1 = 1000000
           const redeemedAmount2 = 2000000
           const redeemedAmount3 = 3000000
+          const redeemedAmount4 = 1500000
           const totalRedeemedAmount =
-            redeemedAmount1 + redeemedAmount2 + redeemedAmount3
+            redeemedAmount1 +
+            redeemedAmount2 +
+            redeemedAmount3 +
+            redeemedAmount4
           const notRedeemedAmount = mintedAmount - totalRedeemedAmount
 
           const transactions: ContractTransaction[] = []
@@ -412,6 +437,13 @@ describe("TBTCVault - Redemption", () => {
                 account1,
                 redeemerOutputScriptP2PKH,
                 redeemedAmount3
+              )
+            )
+            transactions.push(
+              await requestRedemption(
+                account1,
+                redeemerOutputScriptP2SH,
+                redeemedAmount4
               )
             )
           })
@@ -453,6 +485,14 @@ describe("TBTCVault - Redemption", () => {
             expect(redemptionRequest3.requestedAmount).to.be.equal(
               redeemedAmount3
             )
+
+            const redemptionRequest4 = await bridge.pendingRedemptions(
+              buildRedemptionKey(walletPubKeyHash, redeemerOutputScriptP2SH)
+            )
+            expect(redemptionRequest4.redeemer).to.be.equal(account1.address)
+            expect(redemptionRequest4.requestedAmount).to.be.equal(
+              redeemedAmount4
+            )
           })
 
           it("should burn TBTC", async () => {
@@ -472,6 +512,9 @@ describe("TBTCVault - Redemption", () => {
             await expect(transactions[2])
               .to.emit(tbtcVault, "Unminted")
               .withArgs(account1.address, redeemedAmount3)
+            await expect(transactions[3])
+              .to.emit(tbtcVault, "Unminted")
+              .withArgs(account1.address, redeemedAmount4)
           })
         })
 
