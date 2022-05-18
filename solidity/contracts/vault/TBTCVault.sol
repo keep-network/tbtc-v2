@@ -136,7 +136,7 @@ contract TBTCVault is IVault, Governable {
         }
     }
 
-    /// @notice Burns `amount` of TBTC from the caller's account and transfers
+    /// @notice Burns `amount` of TBTC from the caller's balance and transfers
     ///         `amount` back to the caller's balance in the Bank.
     /// @dev Caller must have at least `amount` of TBTC approved to
     ///       TBTC Vault.
@@ -145,23 +145,47 @@ contract TBTCVault is IVault, Governable {
         _unmint(msg.sender, amount);
     }
 
-    /// @notice Burns `amount` of TBTC from the caller's account and transfers
-    ///         `amount` back to the caller's balance in the Bank.
-    /// @dev This function is doing the same as `unmint` but it allows to
-    ///      execute unminting without an additional approval transaction.
-    ///      The function can be called only via `approveAndCall` of TBTC token.
+    /// @notice Burns `amount` of TBTC from the caller's balance and transfers
+    ///         `amount` of Bank balance to the Bridge requesting redemption
+    ///         based on the provided `redemptionData`.
+    /// @param amount Amount of TBTC to unmint and request to redeem in Bridge.
+    /// @param redemptionData Redemption data in a format expected from
+    ///        `redemptionData` parameter of Bridge's `receiveBalanceApproval`
+    ///        function.
+    function redeem(uint256 amount, bytes calldata redemptionData) external {
+        _redeem(msg.sender, amount, redemptionData);
+    }
+
+    /// @notice Burns `amount` of TBTC from the caller's balance. If `extraData`
+    ///         is empty, transfers `amount` back to the caller's balance in the
+    ///         Bank. If `extraData` is not empty, requests redemption in the
+    ///         Bridge using the `extraData` as a `redemptionData` parameter to
+    ///         Bridge's `receiveBalanceApproval` function.
+    /// @dev This function is doing the same as `unmint` or `redeem` (depending
+    ///      on `extraData` parameter) but it allows to execute unminting
+    ///      without a separate approval transaction. The function can be called
+    ///      only via `approveAndCall` of TBTC token.
     /// @param from TBTC token holder executing unminting.
     /// @param amount Amount of TBTC to unmint.
     /// @param token TBTC token address.
+    /// @param extraData Redemption data in a format expected from
+    ///        `redemptionData` parameter of Bridge's `receiveBalanceApproval`
+    ///        function. If empty, `receiveApproval` is not requesting a
+    ///        redemption of Bank balance but is instead performing just TBTC
+    ///        unminting to a Bank balance.
     function receiveApproval(
         address from,
         uint256 amount,
         address token,
-        bytes calldata
+        bytes calldata extraData
     ) external {
         require(token == address(tbtcToken), "Token is not TBTC");
         require(msg.sender == token, "Only TBTC caller allowed");
-        _unmint(from, amount);
+        if (extraData.length == 0) {
+            _unmint(from, amount);
+        } else {
+            _redeem(from, amount, extraData);
+        }
     }
 
     // slither-disable-next-line calls-loop
@@ -174,5 +198,15 @@ contract TBTCVault is IVault, Governable {
         emit Unminted(unminter, amount);
         tbtcToken.burnFrom(unminter, amount);
         bank.transferBalance(unminter, amount);
+    }
+
+    function _redeem(
+        address redeemer,
+        uint256 amount,
+        bytes calldata redemptionData
+    ) internal {
+        emit Unminted(redeemer, amount);
+        tbtcToken.burnFrom(redeemer, amount);
+        bank.approveBalanceAndCall(bank.bridge(), amount, redemptionData);
     }
 }
