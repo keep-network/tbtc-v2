@@ -5,6 +5,8 @@ import wif from "wif"
 // @ts-ignore
 import bufio from "bufio"
 // @ts-ignore
+import hash160 from "bcrypto/lib/hash160"
+// @ts-ignore
 import { StaticWriter, BufferWriter } from "bufio"
 
 /**
@@ -315,4 +317,13 @@ export function createKeyRing(
     privateKey: decodedPrivateKey.privateKey,
     compressed: decodedPrivateKey.compressed,
   })
+}
+
+/**
+ * Computes the HASH160 for the given text.
+ * @param text - Text the HASH160 is computed for.
+ * @returns Hash as a 20-byte un-prefixed hex string.
+ */
+export function computeHash160(text: string): string {
+  return hash160.digest(Buffer.from(text, "hex")).toString("hex")
 }

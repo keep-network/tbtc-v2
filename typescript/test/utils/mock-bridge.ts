@@ -6,11 +6,18 @@ import {
 } from "../../src/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
+import { Deposit } from "../../src/deposit"
 
-interface BridgeLog {
+interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
   sweepProof: Proof
   mainUtxo: UnspentTransactionOutput
+}
+
+interface RevealDepositLogEntry {
+  depositTx: DecomposedRawTransaction
+  depositOutputIndex: number
+  deposit: Deposit
 }
 
 /**
@@ -19,14 +26,19 @@ interface BridgeLog {
 export class MockBridge implements Bridge {
   private _difficultyFactor = 6
   private _pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
-  private _depositSweepProofLog: BridgeLog[] = []
+  private _depositSweepProofLog: DepositSweepProofLogEntry[] = []
+  private _revealDepositLogEntry: RevealDepositLogEntry[] = []
 
   set requestRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
   }
 
-  get depositSweepProofLog(): BridgeLog[] {
+  get depositSweepProofLog(): DepositSweepProofLogEntry[] {
     return this._depositSweepProofLog
+  }
+
+  get revealDepositLogEntry(): RevealDepositLogEntry[] {
+    return this._revealDepositLogEntry
   }
 
   submitDepositSweepProof(
@@ -35,6 +47,17 @@ export class MockBridge implements Bridge {
     mainUtxo: UnspentTransactionOutput
   ): Promise<void> {
     this._depositSweepProofLog.push({ sweepTx, sweepProof, mainUtxo })
+    return new Promise<void>((resolve, _) => {
+      resolve()
+    })
+  }
+
+  revealDeposit(
+    depositTx: DecomposedRawTransaction,
+    depositOutputIndex: number,
+    deposit: Deposit
+  ): Promise<void> {
+    this._revealDepositLogEntry.push({ depositTx, depositOutputIndex, deposit })
     return new Promise<void>((resolve, _) => {
       resolve()
     })
