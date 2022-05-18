@@ -110,7 +110,7 @@ contract TBTCVault is IVault, Governable {
     function receiveBalanceApproval(
         address owner,
         uint256 amount,
-        bytes memory
+        bytes calldata
     ) external override onlyBank {
         require(
             bank.balanceOf(owner) >= amount,
