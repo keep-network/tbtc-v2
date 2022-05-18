@@ -4,12 +4,11 @@ import bcoin from "bcoin"
 import hash160 from "bcrypto/lib/hash160"
 // @ts-ignore
 import { opcodes } from "bcoin/lib/script/common"
-// @ts-ignore
-import wif from "wif"
 import { BigNumber } from "ethers"
 import {
   Client as BitcoinClient,
   isCompressedPublicKey,
+  createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
 } from "./bitcoin"
@@ -249,21 +248,6 @@ export async function createDepositAddress(
     ? bcoin.Address.fromWitnessScripthash(scriptHash)
     : bcoin.Address.fromScripthash(scriptHash)
   return address.toString(network)
-}
-
-/**
- * Creates a Bitcoin key ring based on given private key.
- * @param privateKey Private key that should be used to create the key ring.
- * @returns Bitcoin key ring.
- */
-function createKeyRing(privateKey: string): bcoin.KeyRing {
-  const decodedPrivateKey = wif.decode(privateKey)
-
-  return new bcoin.KeyRing({
-    witness: true,
-    privateKey: decodedPrivateKey.privateKey,
-    compressed: decodedPrivateKey.compressed,
-  })
 }
 
 // TODO: Implementation and documentation.
