@@ -80,11 +80,11 @@ contract DonationVault is IVault {
     ///      - Can only be called by the Bank via `approveBalanceAndCall`,
     ///      - The `owner` balance in the Bank must be greater than or equal
     ///        to the `amount`.
-    function receiveBalanceApproval(address owner, uint256 amount)
-        external
-        override
-        onlyBank
-    {
+    function receiveBalanceApproval(
+        address owner,
+        uint256 amount,
+        bytes memory
+    ) external override onlyBank {
         require(
             bank.balanceOf(owner) >= amount,
             "Amount exceeds balance in the bank"

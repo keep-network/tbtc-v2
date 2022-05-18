@@ -4,6 +4,7 @@ import {
   DecomposedRawTransaction,
 } from "./bitcoin"
 import { Deposit } from "./deposit"
+import { RedemptionRequest } from "./redemption"
 
 /**
  * Represents a generic chain identifier.
@@ -51,4 +52,19 @@ export interface Bridge {
    * @returns Proof difficulty factor.
    */
   txProofDifficultyFactor(): Promise<number>
+
+  /**
+   * Gets a pending redemption from the on-chain contract.
+   * @param walletPubKeyHash The wallet public key hash that identifies the
+   *        pending redemption (along with the redeemer output script). Must be
+   *        unprefixed
+   * @param redeemerOutputScript The redeemer output script that identifies the
+   *        pending redemption (along with the wallet public key hash). Must be
+   *        un-prefixed and not prepended with length
+   * @returns Promise with the pending redemption.
+   */
+  pendingRedemptions(
+    walletPubKeyHash: string,
+    redeemerOutputScript: string
+  ): Promise<RedemptionRequest>
 }
