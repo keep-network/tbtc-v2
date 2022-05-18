@@ -148,6 +148,8 @@ contract TBTCVault is IVault, Governable {
     /// @notice Burns `amount` of TBTC from the caller's balance and transfers
     ///         `amount` of Bank balance to the Bridge requesting redemption
     ///         based on the provided `redemptionData`.
+    /// @dev Caller must have at least `amount` of TBTC approved to
+    ///       TBTC Vault.
     /// @param amount Amount of TBTC to unmint and request to redeem in Bridge.
     /// @param redemptionData Redemption data in a format expected from
     ///        `redemptionData` parameter of Bridge's `receiveBalanceApproval`
