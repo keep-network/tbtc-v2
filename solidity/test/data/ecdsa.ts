@@ -23,7 +23,7 @@ export const ecdsaWalletTestData = {
   // Bitcoin's HASH160 of compressedPublicKey i.e. RIPEMD160(SHA256(compressedPublicKey))
   pubKeyHash160: <BytesLike>"0xf54a5851e9372b87810a8e60cdd2e7cfd80b6e31",
 
-  // ID of the ECDSA Wallet from ECDAS Wallet Registry i.e. Keccak256(uncompressedPublicKey)
+  // ID of the ECDSA Wallet from ECDSA Wallet Registry i.e. Keccak256(uncompressedPublicKey)
   walletID: <BytesLike>(
     "0xdd631e92512809405130763d4da06c2e4e06e2062bdf0e8e79f1c98cf46c3865"
   ),
