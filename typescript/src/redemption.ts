@@ -271,7 +271,8 @@ export async function createRedemptionTransaction(
  * Bridge on-chain contract.
  * @param transactionHash - Hash of the transaction being proven.
  * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
- * @param walletPubKeyHash - 20-byte public key hash of the wallet
+ * @param walletPublicKey - Bitcoin public key of the wallet. Must be in the
+ *        compressed form (33 bytes long with 02 or 03 prefix).
  * @param bridge - Handle to the Bridge on-chain contract.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Empty promise.
@@ -279,7 +280,7 @@ export async function createRedemptionTransaction(
 export async function proveRedemption(
   transactionHash: string,
   mainUtxo: UnspentTransactionOutput,
-  walletPubKeyHash: string,
+  walletPublicKey: string,
   bridge: Bridge,
   bitcoinClient: BitcoinClient
 ): Promise<void> {
@@ -293,10 +294,11 @@ export async function proveRedemption(
   // convert it to raw transaction.
   const rawTransaction = await bitcoinClient.getRawTransaction(transactionHash)
   const decomposedRawTransaction = decomposeRawTransaction(rawTransaction)
+
   await bridge.submitRedemptionProof(
     decomposedRawTransaction,
     proof,
     mainUtxo,
-    walletPubKeyHash
+    walletPublicKey
   )
 }

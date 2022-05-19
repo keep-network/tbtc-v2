@@ -51,13 +51,14 @@ export interface Bridge {
    * @param redemptionTx - Redemption transaction data
    * @param redemptionProof - Redemption proof data
    * @param mainUtxo - Data of the wallet's main UTXO
-   * @param walletPubKeyHash - 20-byte public key hash of the wallet
+   * @param walletPublicKey - Bitcoin public key of the wallet. Must be in the
+   *        compressed form (33 bytes long with 02 or 03 prefix).
    */
   submitRedemptionProof(
     redemptionTx: DecomposedRawTransaction,
     redemptionProof: Proof,
     mainUtxo: UnspentTransactionOutput,
-    walletPubKeyHash: BytesLike
+    walletPublicKey: BytesLike
   ): Promise<void>
 
   /**

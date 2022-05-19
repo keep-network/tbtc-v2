@@ -16,6 +16,13 @@ export const walletPrivateKey =
   "cRk1zdau3jp2X3XsrRKDdviYLuC32fHfyU186wLBEbZWx4uQWW3v"
 
 /**
+ * Public key of the wallet in the compressed form corresponding to
+ * walletPrivateKey.
+ */
+export const walletPublicKey =
+  "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+
+/**
  * P2PKH address corresponding to walletPrivateKey.
  */
 export const p2pkhWalletAddress = "mtSEUCE7G8om9zJttG9twtjoiSsUz7QnY9"
@@ -506,7 +513,7 @@ export interface RedemptionProofTestData {
     redemptionTx: DecomposedRawTransaction
     redemptionProof: Proof
     mainUtxo: UnspentTransactionOutput
-    walletPubKeyHash: string
+    walletPublicKey: string
   }
 }
 
@@ -679,6 +686,7 @@ export const redemptionProof: RedemptionProofTestData = {
       outputIndex: 1,
       value: 1429580,
     },
-    walletPubKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+    walletPublicKey:
+      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
   },
 }

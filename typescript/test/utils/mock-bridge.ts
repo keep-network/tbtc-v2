@@ -24,7 +24,7 @@ interface RedemptionBridgeLogEntry {
   redemptionTx: DecomposedRawTransaction
   redemptionProof: Proof
   mainUtxo: UnspentTransactionOutput
-  walletPubKeyHash: string
+  walletPublicKey: string
 }
 
 /**
@@ -79,13 +79,13 @@ export class MockBridge implements Bridge {
     redemptionTx: DecomposedRawTransaction,
     redemptionProof: Proof,
     mainUtxo: UnspentTransactionOutput,
-    walletPubKeyHash: string
+    walletPublicKey: string
   ): Promise<void> {
     this._redemptionProofLog.push({
       redemptionTx,
       redemptionProof,
       mainUtxo,
-      walletPubKeyHash,
+      walletPublicKey,
     })
     return new Promise<void>((resolve, _) => {
       resolve()

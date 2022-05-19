@@ -5,6 +5,7 @@ import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
   walletPrivateKey,
+  walletPublicKey,
   singleP2PKHRedemptionWithWitnessChange,
   singleP2WPKHRedemptionWithWitnessChange,
   singleP2SHRedemptionWithWitnessChange,
@@ -971,7 +972,6 @@ describe("Redemption", () => {
       outputIndex: 1,
       value: 1429580,
     }
-    const walletPubKeyHash = "8db50eb52063ea9d98b3eac91489a90f738986f6"
 
     let bitcoinClient: MockBitcoinClient
     let bridge: MockBridge
@@ -1014,7 +1014,7 @@ describe("Redemption", () => {
       await TBTC.proveRedemption(
         transactionHash,
         mainUtxo,
-        walletPubKeyHash,
+        walletPublicKey,
         bridge,
         bitcoinClient
       )
@@ -1024,8 +1024,8 @@ describe("Redemption", () => {
       const bridgeLog = bridge.redemptionProofLog
       expect(bridgeLog.length).to.equal(1)
       expect(bridgeLog[0].mainUtxo).to.equal(mainUtxo)
-      expect(bridgeLog[0].walletPubKeyHash).to.equal(
-        redemptionProof.expectedRedemptionProof.walletPubKeyHash
+      expect(bridgeLog[0].walletPublicKey).to.equal(
+        redemptionProof.expectedRedemptionProof.walletPublicKey
       )
       expect(bridgeLog[0].redemptionTx).to.deep.equal(
         redemptionProof.expectedRedemptionProof.redemptionTx
