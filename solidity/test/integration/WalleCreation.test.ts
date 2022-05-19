@@ -36,6 +36,7 @@ describeFn("Integration Test - Wallet Creation", async () => {
 
   // TODO: Generate a random public key
   const walletPublicKey = ecdsaWalletTestData.publicKey
+  const { walletID } = ecdsaWalletTestData
   const walletPubKeyHash = ecdsaWalletTestData.pubKeyHash160
 
   before(async () => {
@@ -52,6 +53,7 @@ describeFn("Integration Test - Wallet Creation", async () => {
 
   describe("new wallet creation (happy path)", async () => {
     let requestNewWalletTx: ContractTransaction
+    let walletRegistrationTx: ContractTransaction
 
     before(async () => {
       expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
@@ -66,15 +68,43 @@ describeFn("Integration Test - Wallet Creation", async () => {
         randomBeacon
       )
 
-      await produceEcdsaDkgResult(
-        walletRegistry,
-        walletPublicKey,
-        relayEntry,
-        startBlock
+      ;({ approveDkgResultTx: walletRegistrationTx } =
+        await produceEcdsaDkgResult(
+          walletRegistry,
+          walletPublicKey,
+          relayEntry,
+          startBlock
+        ))
+
+      await walletRegistrationTx.wait()
+    })
+
+    it("should register a new wallet in the WalletRegistry", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      expect(await walletRegistry.isWalletRegistered(walletID)).to.be.true
+    })
+
+    it("should register a new wallet details in the Bridge", async () => {
+      const storedWallet = await bridge.wallets(walletPubKeyHash)
+
+      expect(storedWallet.ecdsaWalletID).to.be.equal(
+        ecdsaWalletTestData.walletID
+      )
+
+      expect(storedWallet.state).to.be.equal(1)
+
+      expect(storedWallet.createdAt).to.be.equal(
+        (
+          await ethers.provider.getBlock(
+            (
+              await walletRegistrationTx.wait()
+            ).blockNumber
+          )
+        ).timestamp
       )
     })
 
-    it("should register a new wallet", async () => {
+    it("should register a new wallet as active in the Bridge", async () => {
       expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
         walletPubKeyHash
       )

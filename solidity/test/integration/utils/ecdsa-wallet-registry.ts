@@ -42,7 +42,7 @@ export async function produceEcdsaDkgResult(
   groupPublicKey: BytesLike,
   relayEntry: BigNumberish,
   startBlock: number
-): Promise<void> {
+): Promise<{ approveDkgResultTx: ContractTransaction }> {
   const seed = calculateDkgSeed(relayEntry, startBlock)
 
   const {
@@ -63,7 +63,11 @@ export async function produceEcdsaDkgResult(
       ).resultChallengePeriodLength.toNumber()
   )
 
-  await walletRegistry.connect(submitter).approveDkgResult(dkgResult)
+  const approveDkgResultTx = await walletRegistry
+    .connect(submitter)
+    .approveDkgResult(dkgResult)
+
+  return { approveDkgResultTx }
 }
 
 export async function updateWalletRegistryDkgResultChallengePeriodLength(
