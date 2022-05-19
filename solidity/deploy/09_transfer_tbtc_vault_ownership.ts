@@ -5,11 +5,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, helpers } = hre
   const { deployer, governance } = await getNamedAccounts()
 
-  await helpers.ownable.transferOwnership("Bank", governance, deployer)
+  await helpers.ownable.transferOwnership("TBTCVault", governance, deployer)
 }
 
 export default func
 
-func.tags = ["TransferOwnership"]
-func.dependencies = ["Bank"]
+func.tags = ["TransferTBTCVaultOwnership"]
+func.dependencies = ["TBTCVault"]
 func.runAtTheEnd = true

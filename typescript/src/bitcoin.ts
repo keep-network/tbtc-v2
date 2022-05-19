@@ -8,6 +8,7 @@ import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
 // @ts-ignore
 import { StaticWriter, BufferWriter } from "bufio"
+import { BigNumber } from "ethers"
 
 /**
  * Represents a raw transaction.
@@ -76,7 +77,7 @@ export interface TransactionOutput {
   /**
    * The value of the output in satoshis.
    */
-  value: number
+  value: BigNumber
 
   /**
    * The receiving scriptPubKey.
@@ -91,7 +92,7 @@ export type UnspentTransactionOutput = TransactionOutpoint & {
   /**
    * The unspent value in satoshis.
    */
-  value: number
+  value: BigNumber
 }
 
 /**

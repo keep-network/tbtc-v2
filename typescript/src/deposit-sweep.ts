@@ -113,7 +113,7 @@ export async function createDepositSweepTransaction(
   const walletAddress = walletKeyRing.getAddress("string")
 
   const inputCoins = []
-  let totalInputValue = 0
+  let totalInputValue = BigNumber.from(0)
 
   if (mainUtxo) {
     inputCoins.push(
@@ -123,7 +123,7 @@ export async function createDepositSweepTransaction(
         -1
       )
     )
-    totalInputValue += mainUtxo.value
+    totalInputValue = totalInputValue.add(mainUtxo.value)
   }
 
   for (const utxo of utxos) {
@@ -134,14 +134,14 @@ export async function createDepositSweepTransaction(
         -1
       )
     )
-    totalInputValue += utxo.value
+    totalInputValue = totalInputValue.add(utxo.value)
   }
 
   const transaction = new bcoin.MTX()
 
   transaction.addOutput({
     script: bcoin.Script.fromAddress(walletAddress),
-    value: totalInputValue,
+    value: totalInputValue.toNumber(),
   })
 
   await transaction.fund(inputCoins, {

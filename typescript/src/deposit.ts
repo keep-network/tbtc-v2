@@ -140,13 +140,13 @@ export async function createDepositTransaction(
   const transaction = new bcoin.MTX()
 
   const scriptHash = await createDepositScriptHash(deposit, witness)
-  const outputValue = deposit.amount.toNumber()
+  const outputValue = deposit.amount
 
   transaction.addOutput({
     script: witness
       ? bcoin.Script.fromProgram(0, scriptHash)
       : bcoin.Script.fromScripthash(scriptHash),
-    value: outputValue,
+    value: outputValue.toNumber(),
   })
 
   await transaction.fund(inputCoins, {

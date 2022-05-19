@@ -142,7 +142,7 @@ describe("Deposit", () => {
         const expectedDepositUtxo = {
           transactionHash: expectedP2WSHDeposit.transactionHash,
           outputIndex: 0,
-          value: deposit.amount.toNumber(),
+          value: deposit.amount,
         }
 
         expect(depositUtxo).to.be.eql(expectedDepositUtxo)
@@ -172,7 +172,7 @@ describe("Deposit", () => {
         const expectedDepositUtxo = {
           transactionHash: expectedP2SHDeposit.transactionHash,
           outputIndex: 0,
-          value: deposit.amount.toNumber(),
+          value: deposit.amount,
         }
 
         expect(depositUtxo).to.be.eql(expectedDepositUtxo)
@@ -260,7 +260,7 @@ describe("Deposit", () => {
         const expectedDepositUtxo = {
           transactionHash: expectedP2WSHDeposit.transactionHash,
           outputIndex: 0,
-          value: deposit.amount.toNumber(),
+          value: deposit.amount,
         }
 
         expect(depositUtxo).to.be.eql(expectedDepositUtxo)
@@ -346,7 +346,7 @@ describe("Deposit", () => {
         const expectedDepositUtxo = {
           transactionHash: expectedP2SHDeposit.transactionHash,
           outputIndex: 0,
-          value: deposit.amount.toNumber(),
+          value: deposit.amount,
         }
 
         expect(depositUtxo).to.be.eql(expectedDepositUtxo)

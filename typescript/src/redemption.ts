@@ -209,8 +209,8 @@ export async function createRedemptionTransaction(
 
   const transaction = new bcoin.MTX()
 
-  let txTotalFee = 0
-  let totalOutputsValue = 0
+  let txTotalFee = BigNumber.from(0)
+  let totalOutputsValue = BigNumber.from(0)
 
   // Process the requests
   for (const request of redemptionRequests) {
@@ -221,16 +221,15 @@ export async function createRedemptionTransaction(
       .sub(request.treasuryFee)
 
     // Add the output value to the total output value
-    totalOutputsValue += outputValue.toNumber()
+    totalOutputsValue = totalOutputsValue.add(outputValue)
 
     // Add the fee for this particular request to the overall transaction fee
-    txTotalFee += request.txMaxFee.toNumber()
-    // TODO: Use the value of fee that was set in the Bridge (`txMaxFee`) as the
-    // transaction fee for now.
-    // In the future allow the caller to propose the value of transaction fee.
-    // If the proposed transaction fee is smaller than the sum of fee shares from
-    // all the outputs then use the proposed fee and add the difference to outputs
-    // proportionally.
+    // TODO: Using the maximum allowed transaction fee for the request (`txMaxFee`)
+    //       as the transaction fee for now. In the future allow the caller to
+    //       propose the value of the transaction fee. If the proposed transaction
+    //       fee is smaller than the sum of fee shares from all the outputs then
+    //       use the proposed fee and add the difference to outputs proportionally.
+    txTotalFee = txTotalFee.add(request.txMaxFee)
 
     transaction.addOutput({
       script: bcoin.Script.fromRaw(
@@ -245,17 +244,19 @@ export async function createRedemptionTransaction(
   // anyway during funding, but if the value of the change output was very low,
   // the library would consider it "dust" and add it to the fee rather than
   // create a new output.
-  const changeOutputValue = mainUtxo.value - totalOutputsValue - txTotalFee
-  if (changeOutputValue > 0) {
+  const changeOutputValue = mainUtxo.value
+    .sub(totalOutputsValue)
+    .sub(txTotalFee)
+  if (changeOutputValue.gt(0)) {
     transaction.addOutput({
       script: bcoin.Script.fromAddress(walletAddress),
-      value: changeOutputValue,
+      value: changeOutputValue.toNumber(),
     })
   }
 
   await transaction.fund(inputCoins, {
     changeAddress: walletAddress,
-    hardFee: txTotalFee,
+    hardFee: txTotalFee.toNumber(),
     subtractFee: false,
   })
 

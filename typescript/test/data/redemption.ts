@@ -58,7 +58,7 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
     transactionHash:
       "523e4bfb71804e5ed3b76c8933d733339563e560311c1bf835934ee7aae5db20",
     outputIndex: 1,
-    value: 1481680,
+    value: BigNumber.from(1481680),
     transactionHex:
       "0100000000010160d264b34e51e6567254bcaf4cc67e1e069483f4249dc50784eae68" +
       "2645fd11d0100000000ffffffff02d84000000000000022002086a303cdd2e2eab1d1" +
@@ -113,7 +113,7 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
     transactionHash:
       "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20",
     outputIndex: 1,
-    value: 1472680,
+    value: BigNumber.from(1472680),
     transactionHex:
       "0100000000010120dbe5aae74e9335f81b1c3160e563953333d733896cb7d35e4e807" +
       "1fb4b3e520100000000ffffffff02e81c0000000000001976a9144130879211c54df4" +
@@ -167,7 +167,7 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
     transactionHash:
       "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110",
     outputIndex: 1,
-    value: 1458780,
+    value: BigNumber.from(1458780),
     transactionHex:
       "01000000000101208c30867f97695bc376096e2fb4aa423ae6fb713ab534236877b9" +
       "7d11f137c40100000000ffffffff02a82f0000000000001600144130879211c54df4" +
@@ -221,7 +221,7 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
     transactionHash:
       "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521",
     outputIndex: 1,
-    value: 1446580,
+    value: BigNumber.from(1446580),
     transactionHex:
       "0100000000010110a15e879b7e8b07df62772579a64bf2b409409bbcc8bc2c7f6e3" +
       "931dc615e920100000000ffffffff02042900000000000017a9143ec459d0f3c292" +
@@ -276,7 +276,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
     transactionHash:
       "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
     outputIndex: 1,
-    value: 1429580,
+    value: BigNumber.from(1429580),
     transactionHex:
       "0100000000010121c5c291a50190106866a5943c0b03908c2780180c5c03ef3d67d" +
       "ff4c8c925ef0100000000ffffffff02f03c00000000000022002086a303cdd2e2ea" +
@@ -380,7 +380,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
     transactionHash:
       "7dd38b48cb626580d317871c5b716eaf4a952ceb67ba3aa4ca76e3dc7cdcc65b",
     outputIndex: 1,
-    value: 10000,
+    value: BigNumber.from(10000),
     transactionHex:
       "02000000000101c17208c443a3d3d2223884ef11ac83dadb1a3abe4d3474694414c8d" +
       "cd3c697510100000000feffffff0224d38a5b0000000016001414c829f9d1770ebab9" +
@@ -450,7 +450,7 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
     transactionHash:
       "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7",
     outputIndex: 4,
-    value: 1375180,
+    value: BigNumber.from(1375180),
     transactionHex:
       "01000000000101e30b907d077893bd0ed819c66644027b1dd30e4d3f68bc51da7933f" +
       "75bbb283d0100000000ffffffff051c3e0000000000001976a9144130879211c54df4" +
