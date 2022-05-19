@@ -9,6 +9,7 @@ import type {
   TestRelay,
   TBTC,
   TBTCVault,
+  VendingMachine,
 } from "../../typechain"
 
 /**
@@ -22,6 +23,10 @@ export default async function bridgeFixture() {
   const [thirdParty] = await helpers.signers.getUnnamedSigners()
 
   const tbtc: TBTC = await helpers.contracts.getContract("TBTC")
+
+  const vendingMachine: VendingMachine = await helpers.contracts.getContract(
+    "VendingMachine"
+  )
 
   const tbtcVault: TBTCVault = await helpers.contracts.getContract("TBTCVault")
 
@@ -65,6 +70,7 @@ export default async function bridgeFixture() {
     thirdParty,
     treasury,
     tbtc,
+    vendingMachine,
     tbtcVault,
     bank,
     relay,
