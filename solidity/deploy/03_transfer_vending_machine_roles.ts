@@ -38,7 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["TransferRoles"]
+func.tags = ["TransferVendingMachineRoles"]
 func.dependencies = ["TBTC", "VendingMachine"]
 func.runAtTheEnd = true
 func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {

@@ -15,7 +15,7 @@
 
 pragma solidity ^0.8.9;
 
-import "@keep-network/random-beacon/contracts/Governable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IVault.sol";
 import "../bank/Bank.sol";
@@ -30,7 +30,7 @@ import "../GovernanceUtils.sol";
 ///         Bank.
 /// @dev TBTC Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
-contract TBTCVault is IVault, Governable {
+contract TBTCVault is IVault, Ownable {
     using SafeERC20 for IERC20;
 
     /// @notice The time delay that needs to pass between initializing and
@@ -83,8 +83,6 @@ contract TBTCVault is IVault, Governable {
 
         bank = _bank;
         tbtcToken = _tbtcToken;
-
-        _transferGovernance(msg.sender);
     }
 
     /// @notice Transfers the given `amount` of the Bank balance from caller
@@ -197,7 +195,7 @@ contract TBTCVault is IVault, Governable {
     ///         `UPGRADE_GOVERNANCE_DELAY` passes. Only the governance can
     ///         initiate the upgrade.
     /// @param _newVault The new vault address.
-    function initiateUpgrade(address _newVault) external onlyGovernance {
+    function initiateUpgrade(address _newVault) external onlyOwner {
         require(_newVault != address(0), "New vault address cannot be zero");
         /* solhint-disable-next-line not-rely-on-time */
         emit UpgradeInitiated(_newVault, block.timestamp);
@@ -213,7 +211,7 @@ contract TBTCVault is IVault, Governable {
     ///         an owner of TBTC token.
     function finalizeUpgrade()
         external
-        onlyGovernance
+        onlyOwner
         onlyAfterUpgradeGovernanceDelay
     {
         emit UpgradeFinalized(newVault);
@@ -232,7 +230,7 @@ contract TBTCVault is IVault, Governable {
         IERC20 token,
         address recipient,
         uint256 amount
-    ) external onlyGovernance {
+    ) external onlyOwner {
         tbtcToken.recoverERC20(token, recipient, amount);
     }
 
@@ -247,7 +245,7 @@ contract TBTCVault is IVault, Governable {
         address recipient,
         uint256 tokenId,
         bytes calldata data
-    ) external onlyGovernance {
+    ) external onlyOwner {
         tbtcToken.recoverERC721(token, recipient, tokenId, data);
     }
 
@@ -262,7 +260,7 @@ contract TBTCVault is IVault, Governable {
         IERC20 token,
         address recipient,
         uint256 amount
-    ) external onlyGovernance {
+    ) external onlyOwner {
         token.safeTransfer(recipient, amount);
     }
 
@@ -277,7 +275,7 @@ contract TBTCVault is IVault, Governable {
         address recipient,
         uint256 tokenId,
         bytes calldata data
-    ) external onlyGovernance {
+    ) external onlyOwner {
         token.safeTransferFrom(address(this), recipient, tokenId, data);
     }
 
