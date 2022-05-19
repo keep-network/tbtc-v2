@@ -2,7 +2,7 @@
 // We should consider exposing them in @keep-network/ecdsa for an external usage.
 
 /* eslint-disable no-await-in-loop */
-import { ethers, helpers } from "hardhat"
+import { deployments, ethers, helpers } from "hardhat"
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type {
@@ -20,14 +20,21 @@ const WALLET_SIZE = 100
 
 export async function registerOperator(
   walletRegistry: WalletRegistry,
+  sortitionPool: SortitionPool,
   stakingProvider: Signer,
   operator: Signer
-): Promise<void> {
+): Promise<number> {
   await walletRegistry
     .connect(stakingProvider)
     .registerOperator(await operator.getAddress())
 
   await walletRegistry.connect(operator).joinSortitionPool()
+
+  const operatorID = await sortitionPool.getOperatorID(
+    await operator.getAddress()
+  )
+
+  return operatorID
 }
 
 export async function produceEcdsaDkgResult(
