@@ -30,6 +30,6 @@ export const ecdsaWalletTestData = {
 
   // ID of the ECDSA Wallet from ECDSA Wallet Registry i.e. Keccak256(uncompressedPublicKey)
   walletID: <BytesLike>(
-    "0xdd631e92512809405130763d4da06c2e4e06e2062bdf0e8e79f1c98cf46c3865"
+    "0x8c9564d6883a96096c8469d63e9003153d9a39d3f57b126b0c38513d5e289c3e"
   ),
 }
