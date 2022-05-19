@@ -13,6 +13,7 @@ import type {
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
+const { increaseTime, lastBlockTime } = helpers.time
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
@@ -816,6 +817,144 @@ describe("TBTCVault", () => {
         await expect(tx)
           .to.emit(vault, "Minted")
           .withArgs(depositor3, depositedAmount3)
+      })
+    })
+  })
+
+  describe("initiateUpgrade", () => {
+    const newVault = "0xE4d1514C79ae3967f4410Aaf861Bb59307b243a3"
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.connect(account1).initiateUpgrade(newVault)
+        ).to.be.revertedWith("Caller is not the governance")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when called with a zero-address new vault", () => {
+        it("should revert", async () => {
+          await expect(
+            vault.connect(governance).initiateUpgrade(ZERO_ADDRESS)
+          ).to.be.revertedWith("New vault address cannot be zero")
+        })
+      })
+
+      context("when called with a non-zero-address new vault", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+          tx = await vault.connect(governance).initiateUpgrade(newVault)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should not transfer TBTC token ownership", async () => {
+          expect(await tbtc.owner()).is.equal(vault.address)
+        })
+
+        it("should set the upgrade initiation time", async () => {
+          expect(await vault.upgradeInitiatedTimestamp()).to.equal(
+            await lastBlockTime()
+          )
+        })
+
+        it("should set the new vault address", async () => {
+          expect(await vault.newVault()).to.equal(newVault)
+        })
+
+        it("should emit UpgradeInitiated event", async () => {
+          await expect(tx)
+            .to.emit(vault, "UpgradeInitiated")
+            .withArgs(newVault, await lastBlockTime())
+        })
+      })
+    })
+  })
+
+  describe("finalizeUpgrade", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.connect(account1).finalizeUpgrade()
+        ).to.be.revertedWith("Caller is not the governance")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when the upgrade process has not been initiated", () => {
+        it("should revert", async () => {
+          await expect(
+            vault.connect(governance).finalizeUpgrade()
+          ).to.be.revertedWith("Change not initiated")
+        })
+      })
+
+      context("when the upgrade process has been initiated", () => {
+        const newVault = "0x8C338c4222082bdFA5FeC478747Bb1e102A264D9"
+
+        before(async () => {
+          await createSnapshot()
+          await vault.connect(governance).initiateUpgrade(newVault)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context("when the governance delay has not passed", () => {
+          before(async () => {
+            await createSnapshot()
+            await increaseTime(86400 - 60) // 24h - 1min
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              vault.connect(governance).finalizeUpgrade()
+            ).to.be.revertedWith("Governance delay has not elapsed")
+          })
+        })
+
+        context("when the governance delay passed", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+            await increaseTime(86400) // 24h
+
+            tx = await vault.connect(governance).finalizeUpgrade()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should transfer TBTC token ownership", async () => {
+            expect(await tbtc.owner()).is.equal(newVault)
+          })
+
+          it("should emit UpgradeFinalized event", async () => {
+            await expect(tx)
+              .to.emit(vault, "UpgradeFinalized")
+              .withArgs(newVault)
+          })
+
+          it("should reset the upgrade initiation time", async () => {
+            expect(await vault.upgradeInitiatedTimestamp()).to.equal(0)
+          })
+
+          it("should reset the new vault address", async () => {
+            expect(await vault.newVault()).to.equal(ZERO_ADDRESS)
+          })
+        })
       })
     })
   })
