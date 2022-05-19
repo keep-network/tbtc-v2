@@ -39,7 +39,6 @@ import {
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
-import { walletPublicKeyHash } from "../data/fraud"
 
 chai.use(smock.matchers)
 
