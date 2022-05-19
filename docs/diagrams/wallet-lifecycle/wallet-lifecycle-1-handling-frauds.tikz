@@ -109,14 +109,14 @@
 %           remembers the position afterwards
 % To ease edition of the diagram in the future, usage of relative values is
 % recommended.
-\draw[->] (dfwt_start)   --           (dfwt_check1);
-\draw[->] (dfwt_check1)  -|           (dfwt_revert2) \no;
-\draw[->] (dfwt_check1)  -|           (dfwt_check2)  \yes;
-\draw[->] (dfwt_check2)  -|           (dfwt_check3)  \no;
-\draw[->] (dfwt_check2)  -|           (dfwt_revert1) \yes;
-\draw[->] (dfwt_check3)  -|           (dfwt_revert2) \no;
-\draw[->] (dfwt_check3)  -- +(4,0) |- (df_action1)   \yes;
-\draw[->] (df_action1)   --           (df_action2);
+\draw[->] (dfwt_start)   --                (dfwt_check1);
+\draw[->] (dfwt_check1)  -|                (dfwt_revert2) \no;
+\draw[->] (dfwt_check1)  -|                (dfwt_check2)  \yes;
+\draw[->] (dfwt_check2)  -|                (dfwt_check3)  \no;
+\draw[->] (dfwt_check2)  -|                (dfwt_revert1) \yes;
+\draw[->] (dfwt_check3)  -|                (dfwt_revert2) \no;
+\draw[->] (dfwt_check3)  -- +(4,0) \yes |- (df_action1);
+\draw[->] (df_action1)   --                (df_action2);
 
 
 % FRAUD DEFEAT TIMEOUT
@@ -140,21 +140,21 @@
 \node[note2, above=of fdt_note1.north, anchor=south, yshift=-8mm] (fdt_note2)   {Sender incentivized by:\\ \textbf{Fraction of slashed amount for fraud challenge notifier}};
 
 % Arrows
-\draw[->] (fdt_start)   --           (fdt_check1);
-\draw[->] (fdt_check1)  -|           (fdt_revert1)      \no;
-\draw[->] (fdt_check1)  -|           (fdt_check2)       \yes;
-\draw[->] (fdt_check2)  -|           (fdt_revert1)      \no;
-\draw[->] (fdt_check2)  -|           (fdt_action1)      \yes;
-\draw[->] (fdt_action1) --           (fdt_check3);
-\draw[->] (fdt_check3)  -|           (fdt_check4)       \no;
-\draw[->] (fdt_check3)  -|           (fdt_action2)      \yes;
-\draw[->] (fdt_check4)  -|           (fdt_revert1)      \no;
-\draw[->] (fdt_check4)  -| +(4,0) |- (fdt_action5.west) \yes;
-\draw[->] (fdt_action2) --           (fdt_check5);
-\draw[->] (fdt_check5)  -|           (fdt_action4)      \no;
-\draw[->] (fdt_check5)  -|           (fdt_action3)      \yes;
-\draw[->] (fdt_action3) |-           (fdt_action4);
-\draw[->] (fdt_action4) --           (fdt_action5);
+\draw[->] (fdt_start)   --                (fdt_check1);
+\draw[->] (fdt_check1)  -|                (fdt_revert1)       \no;
+\draw[->] (fdt_check1)  -|                (fdt_check2)        \yes;
+\draw[->] (fdt_check2)  -|                (fdt_revert1)       \no;
+\draw[->] (fdt_check2)  -|                (fdt_action1)       \yes;
+\draw[->] (fdt_action1) --                (fdt_check3);
+\draw[->] (fdt_check3)  -|                (fdt_check4)        \no;
+\draw[->] (fdt_check3)  -|                (fdt_action2)       \yes;
+\draw[->] (fdt_check4)  -|                (fdt_revert1)       \no;
+\draw[->] (fdt_check4)  -| +(4,0) \yes |- (fdt_action5.west);
+\draw[->] (fdt_action2) --                (fdt_check5);
+\draw[->] (fdt_check5)  -|                (fdt_action4)       \no;
+\draw[->] (fdt_check5)  -|                (fdt_action3)       \yes;
+\draw[->] (fdt_action3) |-                (fdt_action4);
+\draw[->] (fdt_action4) --                (fdt_action5);
 
 
 % BACKGROUND

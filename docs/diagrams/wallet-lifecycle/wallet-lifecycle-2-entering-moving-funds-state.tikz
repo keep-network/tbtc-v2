@@ -71,27 +71,27 @@
 
 % Arrows
 \draw[->]      (rt_start)    -- (rt_check1);
-\draw[->]      (rt_check1)   -| (rt_revert1) \no;
-\draw[->]      (rt_check1)   -| (rt_check2)  \yes;
-\draw[->]      (rt_check2)   -| (rt_revert1) \no;
-\draw[->]      (rt_check2)   -| (rt_check3)  \yes;
-\draw[->]      (rt_check3)   -| (rt_revert1) \no;
-\draw[->]      (rt_check3)   -| (rt_action1) \yes;
+\draw[->]      (rt_check1)   -| (rt_revert1)  \no;
+\draw[->]      (rt_check1)   -| (rt_check2)   \yes;
+\draw[->]      (rt_check2)   -| (rt_revert1)  \no;
+\draw[->]      (rt_check2)   -| (rt_check3)   \yes;
+\draw[->]      (rt_check3)   -| (rt_revert1)  \no;
+\draw[->]      (rt_check3)   -| (rt_action1)  \yes;
 \draw[->]      (rt_action1)  -- (rt_action2);
 \draw[->]      (rt_action2)  -- (rt_action3);
 \draw[->]      (rt_action3)  -- (rt_action4);
 \draw[->]      (rt_action4)  -- (rt_check4);
-\draw[->, end] (rt_check4)   -| (rt_end1)    \no;
-\draw[->]      (rt_check4)   -| (rt_action5) \yes;
+\draw[->, end] (rt_check4)   -| (rt_end1)     \no;
+\draw[->]      (rt_check4)   -| (rt_action5)  \yes;
 \draw[->]      (rt_action5)  -- (rt_check5);
-\draw[->, end] (rt_check5)   -| (rt_end2)    \no;
-\draw[->]      (rt_check5)   -| (rt_check6)  \yes;
-\draw[->]      (rt_check6)   -| (rt_action6) \no;
+\draw[->, end] (rt_check5)   -| (rt_end2)     \no;
+\draw[->]      (rt_check5)   -| (rt_check6)   \yes;
+\draw[->]      (rt_check6)   -| (rt_action6)  \no;
 \draw[->]      (rt_action6)  -- (rt_action7);
-\draw[->]      (rt_check6)   -| (rt_action8) \yes;
+\draw[->]      (rt_check6)   -| (rt_action8)  \yes;
 \draw[->]      (rt_action8)  -- (rt_check7);
-\draw[->]      (rt_check7)   -| (rt_action9);
-\draw[->]      (rt_check7)   -| (rt_action10);
+\draw[->]      (rt_check7)   -| (rt_action9)  \yes;
+\draw[->]      (rt_check7)   -| (rt_action10) \no;
 \draw[->]      (rt_action9)  |- (rt_action10);
 \draw[->]      (rt_action10) -- (rt_action11);
 
