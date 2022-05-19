@@ -1,12 +1,18 @@
 import {
   createDepositAddress,
   createDepositScript,
+  computeDepositRefundLocktime,
   createDepositScriptHash,
   createDepositTransaction,
-  DepositData,
+  Deposit,
   makeDeposit,
   revealDeposit,
 } from "./deposit"
+import {
+  createRedemptionTransaction,
+  makeRedemptions,
+  RedemptionRequest,
+} from "./redemption"
 import {
   createDepositSweepTransaction,
   sweepDeposits,
@@ -27,58 +33,65 @@ export interface TBTC {
   /**
    * Makes a deposit by creating and broadcasting a Bitcoin P2(W)SH
    * deposit transaction.
-   * @param depositData - Details of the deposit.
+   * @param deposit - Details of the deposit.
    * @param depositorPrivateKey - Bitcoin private key of the depositor.
    * @param bitcoinClient - Bitcoin client used to interact with the network.
    * @param witness - If true, a witness (P2WSH) transaction will be created.
    *        Otherwise, a legacy P2SH transaction will be made.
-   * @returns Empty promise.
+   * @returns The deposit UTXO that will be created by the deposit transaction
    */
   makeDeposit(
-    depositData: DepositData,
+    deposit: Deposit,
     depositorPrivateKey: string,
     bitcoinClient: BitcoinClient,
     witness: boolean
-  ): Promise<void>
+  ): Promise<UnspentTransactionOutput>
 
   /**
    * Creates a Bitcoin P2(W)SH deposit transaction.
-   * @param depositData - Details of the deposit.
+   * @param deposit - Details of the deposit.
    * @param utxos - UTXOs that should be used as transaction inputs.
    * @param depositorPrivateKey - Bitcoin private key of the depositor.
    * @param witness - If true, a witness (P2WSH) transaction will be created.
    *        Otherwise, a legacy P2SH transaction will be made.
-   * @returns Bitcoin P2(W)SH deposit transaction in raw format.
+   * @returns Deposit UTXO with Bitcoin P2(W)SH deposit transaction data in raw format.
    */
   createDepositTransaction(
-    depositData: DepositData,
+    deposit: Deposit,
     utxos: (UnspentTransactionOutput & RawTransaction)[],
     depositorPrivateKey: string,
     witness: boolean
-  ): Promise<RawTransaction>
+  ): Promise<UnspentTransactionOutput & RawTransaction>
 
   /**
    * Creates a Bitcoin locking script for P2(W)SH deposit transaction.
-   * @param depositData - Details of the deposit.
+   * @param deposit - Details of the deposit.
    * @returns Script as an un-prefixed hex string.
    */
-  createDepositScript(depositData: DepositData): Promise<string>
+  createDepositScript(deposit: Deposit): Promise<string>
+
+  /**
+   * Computes a refund locktime parameter for the given deposit creation timestamp.
+   * Throws if the resulting locktime is not a 4-byte number.
+   * @param depositCreatedAt - Unix timestamp in seconds determining the moment
+   *                           of deposit creation.
+   * @returns A 4-byte little-endian deposit refund locktime as an un-prefixed
+   *          hex string.
+   */
+  computeDepositRefundLocktime(depositCreatedAt: number): string
 
   /**
    * Creates a Bitcoin locking script hash for P2(W)SH deposit transaction.
-   * @param depositData - Details of the deposit.
+   * @param deposit - Details of the deposit.
    * @param witness - If true, a witness script hash will be created.
    *        Otherwise, a legacy script hash will be made.
    * @returns Buffer with script hash.
    */
-  createDepositScriptHash(
-    depositData: DepositData,
-    witness: boolean
-  ): Promise<Buffer>
+  createDepositScriptHash(deposit: Deposit, witness: boolean): Promise<Buffer>
 
   /**
    * Creates a Bitcoin target address for P2(W)SH deposit transaction.
-   * @param depositData - Details of the deposit.
+   * @param deposit - Details of the deposit.
    * @param network - Network that the address should be created for.
    *        For example, `main` or `testnet`.
    * @param witness - If true, a witness address will be created.
@@ -86,13 +99,28 @@ export interface TBTC {
    * @returns Address as string.
    */
   createDepositAddress(
-    depositData: DepositData,
+    deposit: Deposit,
     network: string,
     witness: boolean
   ): Promise<string>
 
-  // TODO: Implementation and documentation.
-  revealDeposit(): Promise<void>
+  /**
+   * Reveals the given deposit to the on-chain Bridge contract
+   * @param utxo - Deposit UTXO of the revealed deposit
+   * @param deposit - Data of the revealed deposit
+   * @param bitcoinClient - Bitcoin client used to interact with the network
+   * @param bridge - Handle to the Bridge on-chain contract
+   * @returns Empty promise
+   * @dev The caller must ensure that the given deposit data are valid and
+   *      the given deposit UTXO actually originates from a deposit transaction
+   *      that matches the given deposit data.
+   */
+  revealDeposit(
+    utxo: UnspentTransactionOutput,
+    deposit: Deposit,
+    bitcoinClient: BitcoinClient,
+    bridge: Bridge
+  ): Promise<void>
 
   /**
    * Sweeps deposits P2(W)SH UTXOs by combining all the provided UTXOs and
@@ -106,9 +134,8 @@ export interface TBTC {
    *              values and used as the transaction fee.
    * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
    * @param utxos - P2(W)SH UTXOs to be combined into one output.
-   * @param depositData - data on deposits. Each element corresponds to UTXO.
-   *                      The number of UTXOs and deposit data elements must
-   *                      equal.
+   * @param deposits - Array of deposits. Each element corresponds to UTXO.
+   *                   The number of UTXOs and deposit elements must equal.
    * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
    *                   from the previous wallet transaction (optional).
    * @returns Empty promise.
@@ -118,7 +145,7 @@ export interface TBTC {
     fee: BigNumber,
     walletPrivateKey: string,
     utxos: UnspentTransactionOutput[],
-    depositData: DepositData[],
+    deposits: Deposit[],
     mainUtxo?: UnspentTransactionOutput
   ): Promise<void>
 
@@ -131,8 +158,8 @@ export interface TBTC {
    *              values and used as the transaction fee.
    * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
    * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
-   * @param depositData - data on deposits. Each element corresponds to UTXO.
-   *                      The number of UTXOs and deposit data elements must equal.
+   * @param deposits - Array of deposits. Each element corresponds to UTXO.
+   *                   The number of UTXOs and deposit elements must equal.
    * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
    *                   from the previous wallet transaction (optional).
    * @returns Bitcoin deposit sweep transaction in raw format.
@@ -141,7 +168,7 @@ export interface TBTC {
     fee: BigNumber,
     walletPrivateKey: string,
     utxos: (UnspentTransactionOutput & RawTransaction)[],
-    depositData: DepositData[],
+    deposits: Deposit[],
     mainUtxo?: UnspentTransactionOutput & RawTransaction
   ): Promise<RawTransaction>
 
@@ -160,18 +187,76 @@ export interface TBTC {
     bridge: Bridge,
     bitcoinClient: BitcoinClient
   ): Promise<void>
+
+  /**
+   * Handles pending redemption requests by creating a redemption transaction
+   * transferring Bitcoins from the wallet's main UTXO to the provided redeemer
+   * output scripts and broadcasting it. The change UTXO resulting from the
+   * transaction becomes the new main UTXO of the wallet.
+   * @dev It is up to the caller to ensure the wallet key and each of the redeemer
+   *      output scripts represent a valid pending redemption request in the Bridge.
+   *      If this is not the case, an exception will be thrown.
+   * @param bitcoinClient - The Bitcoin client used to interact with the network
+   * @param bridge - The handle to the Bridge on-chain contract
+   * @param walletPrivateKey - The private kay of the wallet in the WIF format
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
+   *        held by the on-chain Bridge contract
+   * @param redeemerOutputScripts - The list of output scripts that the redeemed
+   *        funds will be locked to. The output scripts must be un-prefixed and
+   *        not prepended with length
+   * @param witness - The parameter used to decide about the type of the change
+   *        output. P2WPKH if `true`, P2PKH if `false`
+   * @returns Empty promise.
+   */
+  makeRedemptions(
+    bitcoinClient: BitcoinClient,
+    bridge: Bridge,
+    walletPrivateKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScripts: string[],
+    witness: boolean
+  ): Promise<void>
+
+  /**
+   * Creates a Bitcoin redemption transaction.
+   * The transaction will have a single input (main UTXO of the wallet making
+   * the redemption), an output for each redemption request provided, and a change
+   * output if the redemption requests do not consume the entire amount of the
+   * single input.
+   * @dev The caller is responsible for ensuring the redemption request list is
+   *      correctly formed:
+   *        - there is at least one redemption
+   *        - the `requestedAmount` in each redemption request is greater than
+   *          the sum of its `txFee` and `treasuryFee`
+   * @param walletPrivateKey - The private key of the wallet in the WIF format
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
+   *        by the on-chain Bridge contract
+   * @param redemptionRequests - The list of redemption requests
+   * @param witness - The parameter used to decide the type of the change output.
+   *        P2WPKH if `true`, P2PKH if `false`
+   * @returns Bitcoin redemption transaction in the raw format.
+   */
+  createRedemptionTransaction(
+    walletPrivateKey: string,
+    mainUtxo: UnspentTransactionOutput & RawTransaction,
+    redemptionRequests: RedemptionRequest[],
+    witness: boolean
+  ): Promise<RawTransaction>
 }
 
 const tbtc: TBTC = {
   makeDeposit,
   createDepositTransaction,
   createDepositScript,
+  computeDepositRefundLocktime,
   createDepositScriptHash,
   createDepositAddress,
   revealDeposit,
   sweepDeposits,
   createDepositSweepTransaction,
   proveDepositSweep,
+  makeRedemptions,
+  createRedemptionTransaction,
 }
 
 export default tbtc
