@@ -34,6 +34,7 @@ describe("TBTCVault - Redemption", () => {
   let bridge: Bridge & BridgeStub
   let bank: Bank & BankStub
   let tbtc: TBTC
+  let vendingMachine: VendingMachine
   let tbtcVault: TBTCVault
 
   let deployer: SignerWithAddress
@@ -45,9 +46,8 @@ describe("TBTCVault - Redemption", () => {
     ;({ deployer } = await helpers.signers.getNamedSigners())
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ bridge, bank, tbtcVault, tbtc } = await waffle.loadFixture(
-      bridgeFixture
-    ))
+    ;({ bridge, bank, tbtcVault, tbtc, vendingMachine } =
+      await waffle.loadFixture(bridgeFixture))
 
     // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
     // do not transfer the ownership of `TBTC` token to `TBTCVault`.
@@ -56,9 +56,6 @@ describe("TBTCVault - Redemption", () => {
     // upgrade initiator role to Keep Technical Wallet is skipped for Hardhat
     // env deployment. That's why the upgrade initiator and `VendingMachine`
     // owner is the deployer.
-    const vendingMachine: VendingMachine = await helpers.contracts.getContract(
-      "VendingMachine"
-    )
     await vendingMachine
       .connect(deployer)
       .initiateVendingMachineUpgrade(tbtcVault.address)
