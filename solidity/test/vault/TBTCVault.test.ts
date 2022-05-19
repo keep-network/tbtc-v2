@@ -123,7 +123,11 @@ describe("TBTCVault", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          vault.recoverERC20FromToken(testToken.address, account1.address, to1e18(800))
+          vault.recoverERC20FromToken(
+            testToken.address,
+            account1.address,
+            to1e18(800)
+          )
         ).to.be.revertedWith("Caller is not the governance")
       })
     })
@@ -138,7 +142,11 @@ describe("TBTCVault", () => {
 
         await vault
           .connect(governance)
-          .recoverERC20FromToken(testToken.address, account1.address, to1e18(800))
+          .recoverERC20FromToken(
+            testToken.address,
+            account1.address,
+            to1e18(800)
+          )
       })
 
       after(async () => {
@@ -172,7 +180,12 @@ describe("TBTCVault", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          vault.recoverERC721FromToken(testToken.address, account1.address, 1, "0x01")
+          vault.recoverERC721FromToken(
+            testToken.address,
+            account1.address,
+            1,
+            "0x01"
+          )
         ).to.be.revertedWith("Caller is not the governance")
       })
     })
@@ -188,7 +201,109 @@ describe("TBTCVault", () => {
 
         await vault
           .connect(governance)
-          .recoverERC721FromToken(testToken.address, account1.address, 1, "0x01")
+          .recoverERC721FromToken(
+            testToken.address,
+            account1.address,
+            1,
+            "0x01"
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should do a successful recovery", async () => {
+        expect(await testToken.ownerOf(1)).to.be.equal(account1.address)
+      })
+    })
+  })
+
+  describe("recoverERC20", () => {
+    let testToken: TestERC20
+
+    before(async () => {
+      await createSnapshot()
+
+      const TestToken = await ethers.getContractFactory("TestERC20")
+      testToken = await TestToken.deploy()
+      await testToken.deployed()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.recoverERC20(testToken.address, account1.address, to1e18(800))
+        ).to.be.revertedWith("Caller is not the governance")
+      })
+    })
+
+    context("when called with correct parameters", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await testToken.mint(account1.address, to1e18(1000))
+        await testToken.connect(account1).transfer(vault.address, to1e18(1000))
+
+        await vault
+          .connect(governance)
+          .recoverERC20(testToken.address, account1.address, to1e18(800))
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should do a successful recovery", async () => {
+        expect(await testToken.balanceOf(account1.address)).to.be.equal(
+          to1e18(800)
+        )
+        expect(await testToken.balanceOf(vault.address)).to.be.equal(
+          to1e18(200)
+        )
+      })
+    })
+  })
+
+  describe("recoverERC721", () => {
+    let testToken: TestERC721
+
+    before(async () => {
+      await createSnapshot()
+
+      const TestToken = await ethers.getContractFactory("TestERC721")
+      testToken = await TestToken.deploy()
+      await testToken.deployed()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.recoverERC721(testToken.address, account1.address, 1, [])
+        ).to.be.revertedWith("Caller is not the governance")
+      })
+    })
+
+    context("when called with correct parameters", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await testToken.mint(account1.address, 1)
+        await testToken
+          .connect(account1)
+          .transferFrom(account1.address, vault.address, 1)
+
+        await vault
+          .connect(governance)
+          .recoverERC721(testToken.address, account1.address, 1, [])
       })
 
       after(async () => {
