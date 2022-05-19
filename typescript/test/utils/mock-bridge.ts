@@ -20,7 +20,7 @@ interface RevealDepositLogEntry {
   deposit: Deposit
 }
 
-interface RedemptionBridgeLogEntry {
+interface RedemptionProofLogEntry {
   redemptionTx: DecomposedRawTransaction
   redemptionProof: Proof
   mainUtxo: UnspentTransactionOutput
@@ -34,8 +34,8 @@ export class MockBridge implements Bridge {
   private _difficultyFactor = 6
   private _pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
   private _depositSweepProofLog: DepositSweepProofLogEntry[] = []
-  private _revealDepositLogEntry: RevealDepositLogEntry[] = []
-  private _redemptionProofLog: RedemptionBridgeLogEntry[] = []
+  private _revealDepositLog: RevealDepositLogEntry[] = []
+  private _redemptionProofLog: RedemptionProofLogEntry[] = []
 
   set requestRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -46,10 +46,10 @@ export class MockBridge implements Bridge {
   }
 
   get revealDepositLogEntry(): RevealDepositLogEntry[] {
-    return this._revealDepositLogEntry
+    return this._revealDepositLog
   }
 
-  get redemptionProofLog(): RedemptionBridgeLogEntry[] {
+  get redemptionProofLog(): RedemptionProofLogEntry[] {
     return this._redemptionProofLog
   }
 
@@ -69,7 +69,7 @@ export class MockBridge implements Bridge {
     depositOutputIndex: number,
     deposit: Deposit
   ): Promise<void> {
-    this._revealDepositLogEntry.push({ depositTx, depositOutputIndex, deposit })
+    this._revealDepositLog.push({ depositTx, depositOutputIndex, deposit })
     return new Promise<void>((resolve, _) => {
       resolve()
     })
