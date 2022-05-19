@@ -537,7 +537,7 @@ export const redemptionProof: RedemptionProofTestData = {
       outputs: [
         {
           outputIndex: 0,
-          value: 15900,
+          value: BigNumber.from(15900),
           scriptPubKey: {
             asm: "OP_DUP OP_HASH160 4130879211c54df460e484ddf9aac009cb38ee74 OP_EQUALVERIFY OP_CHECKSIG",
             hex: "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -548,7 +548,7 @@ export const redemptionProof: RedemptionProofTestData = {
         },
         {
           outputIndex: 1,
-          value: 11300,
+          value: BigNumber.from(11300),
           scriptPubKey: {
             asm: "OP_0 4130879211c54df460e484ddf9aac009cb38ee74",
             hex: "00144130879211c54df460e484ddf9aac009cb38ee74",
@@ -559,7 +559,7 @@ export const redemptionProof: RedemptionProofTestData = {
         },
         {
           outputIndex: 2,
-          value: 9900,
+          value: BigNumber.from(9900),
           scriptPubKey: {
             asm: "OP_HASH160 3ec459d0f3c29286ae5df5fcc421e2786024277e OP_EQUAL",
             hex: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
@@ -570,7 +570,7 @@ export const redemptionProof: RedemptionProofTestData = {
         },
         {
           outputIndex: 3,
-          value: 12900,
+          value: BigNumber.from(12900),
           scriptPubKey: {
             asm: "OP_0 86a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
             hex: "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
@@ -583,7 +583,7 @@ export const redemptionProof: RedemptionProofTestData = {
         },
         {
           outputIndex: 4,
-          value: 1375180,
+          value: BigNumber.from(1375180),
           scriptPubKey: {
             asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
             hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -684,7 +684,7 @@ export const redemptionProof: RedemptionProofTestData = {
       transactionHash:
         "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
       outputIndex: 1,
-      value: 1429580,
+      value: BigNumber.from(1429580),
     },
     walletPublicKey:
       "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",

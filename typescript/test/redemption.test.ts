@@ -23,7 +23,7 @@ import { MockBridge } from "./utils/mock-bridge"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
 import { expect } from "chai"
-import { BigNumberish } from "ethers"
+import { BigNumberish, BigNumber } from "ethers"
 
 chai.use(chaiAsPromised)
 
@@ -970,7 +970,7 @@ describe("Redemption", () => {
       transactionHash:
         "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
       outputIndex: 1,
-      value: 1429580,
+      value: BigNumber.from(1429580),
     }
 
     let bitcoinClient: MockBitcoinClient
