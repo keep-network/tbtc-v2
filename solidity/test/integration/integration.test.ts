@@ -122,8 +122,7 @@ describeFn("Integration Test", async () => {
         walletRegistry,
         ecdsaGroupPublicKey,
         relayEntry,
-        startBlock,
-        groupSize
+        startBlock
       )
     })
 

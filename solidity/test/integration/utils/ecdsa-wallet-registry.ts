@@ -15,6 +15,9 @@ import type {
 } from "ethers"
 import type { WalletRegistry, SortitionPool } from "../../../typechain"
 
+// Number of members in the ECDSA Wallet.
+const WALLET_SIZE = 100
+
 export async function registerOperator(
   walletRegistry: WalletRegistry,
   stakingProvider: Signer,
@@ -31,8 +34,7 @@ export async function produceEcdsaDkgResult(
   walletRegistry: WalletRegistry,
   groupPublicKey: BytesLike,
   relayEntry: BigNumberish,
-  startBlock: number,
-  groupSize: number
+  startBlock: number
 ): Promise<void> {
   const seed = calculateDkgSeed(relayEntry, startBlock)
 
@@ -44,8 +46,7 @@ export async function produceEcdsaDkgResult(
     walletRegistry,
     groupPublicKey,
     seed,
-    startBlock,
-    groupSize
+    startBlock
   )
 
   await helpers.time.mineBlocksTo(
@@ -60,11 +61,10 @@ export async function produceEcdsaDkgResult(
 
 async function selectGroup(
   sortitionPool: Contract,
-  seed: BigNumber,
-  groupSize: number
+  seed: BigNumber
 ): Promise<Operator[]> {
   const identifiers = await sortitionPool.selectGroup(
-    groupSize,
+    WALLET_SIZE,
     ethers.utils.hexZeroPad(seed.toHexString(), 32)
   )
 
@@ -118,7 +118,6 @@ async function signAndSubmitDkgResult(
   groupPublicKey: BytesLike,
   seed: BigNumber,
   startBlock: number,
-  groupSize: number,
   misbehavedIndices = noMisbehaved
 ): Promise<{
   dkgResult: DkgResult
@@ -130,7 +129,7 @@ async function signAndSubmitDkgResult(
     await walletRegistry.sortitionPool()
   )) as SortitionPool
 
-  const signers = await selectGroup(sortitionPool, seed, groupSize)
+  const signers = await selectGroup(sortitionPool, seed)
 
   const submitterIndex = 1
 
