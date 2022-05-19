@@ -207,8 +207,9 @@ contract TBTCVault is IVault, Ownable {
     /// @notice Allows the governance to finalize vault upgrade process. The
     ///         upgrade process needs to be first initiated with a call to
     ///         `initiateUpgrade` and the `UPGRADE_GOVERNANCE_DELAY` needs to
-    ///         pass. Once the upgrade is finalized, the new vault will become
-    ///         an owner of TBTC token.
+    ///         pass. Once the upgrade is finalized, the new vault becomes the
+    ///         owner of TBTC token and receives a whole Bank balance of this
+    ///         vault.
     function finalizeUpgrade()
         external
         onlyOwner
@@ -217,6 +218,7 @@ contract TBTCVault is IVault, Ownable {
         emit UpgradeFinalized(newVault);
         // slither-disable-next-line reentrancy-no-eth
         tbtcToken.transferOwnership(newVault);
+        bank.transferBalance(newVault, bank.balanceOf(address(this)));
         newVault = address(0);
         upgradeInitiatedTimestamp = 0;
     }
