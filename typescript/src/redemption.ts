@@ -272,7 +272,7 @@ export async function createRedemptionTransaction(
  * @param transactionHash - Hash of the transaction being proven.
  * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
  * @param walletPubKeyHash - 20-byte public key hash of the wallet
- * @param bridge - Interface to the Bridge on-chain contract.
+ * @param bridge - Handle to the Bridge on-chain contract.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Empty promise.
  */

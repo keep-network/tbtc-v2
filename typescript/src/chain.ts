@@ -25,7 +25,7 @@ export interface Bridge {
    * Submits a deposit sweep transaction proof to the on-chain contract.
    * @param sweepTx - Sweep transaction data.
    * @param sweepProof - Sweep proof data.
-   * @param mainUtxo - Data of the wallets main UTXO.
+   * @param mainUtxo - Data of the wallet's main UTXO.
    */
   submitDepositSweepProof(
     sweepTx: DecomposedRawTransaction,
@@ -50,7 +50,7 @@ export interface Bridge {
    * Submits a redemption transaction proof to the on-chain contract.
    * @param redemptionTx - Redemption transaction data
    * @param redemptionProof - Redemption proof data
-   * @param mainUtxo - Data of the wallets main UTXO
+   * @param mainUtxo - Data of the wallet's main UTXO
    * @param walletPubKeyHash - 20-byte public key hash of the wallet
    */
   submitRedemptionProof(
