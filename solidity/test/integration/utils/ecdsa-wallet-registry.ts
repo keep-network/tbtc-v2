@@ -59,6 +59,31 @@ export async function produceEcdsaDkgResult(
   await walletRegistry.connect(submitter).approveDkgResult(dkgResult)
 }
 
+export async function updateWalletRegistryDkgResultChallengePeriodLength(
+  walletRegistry: WalletRegistry,
+  governance: Signer,
+  dkgResultChallengePeriodLength: BigNumberish
+): Promise<void> {
+  const walletRegistryGovernance = await ethers.getContractAt(
+    (
+      await deployments.getArtifact("WalletRegistryGovernance")
+    ).abi,
+    await walletRegistry.governance()
+  )
+
+  await walletRegistryGovernance
+    .connect(governance)
+    .beginDkgResultChallengePeriodLengthUpdate(dkgResultChallengePeriodLength)
+
+  await helpers.time.increaseTime(
+    await walletRegistryGovernance.governanceDelay()
+  )
+
+  await walletRegistryGovernance
+    .connect(governance)
+    .finalizeDkgResultChallengePeriodLengthUpdate()
+}
+
 async function selectGroup(
   sortitionPool: Contract,
   seed: BigNumber
