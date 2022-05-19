@@ -22,7 +22,7 @@
     "lint:fix:eslint": "eslint . --fix",
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
-    "test": "hardhat test",
+    "test": "TEST_USE_STUBS_TBTC=true hardhat test",
     "test:integration": "NODE_ENV=integration-test hardhat test ./test/integration/*.test.ts",
     "prepublishOnly": "./scripts/prepare-artifacts.sh --network $npm_config_network"
   },

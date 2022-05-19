@@ -77,6 +77,9 @@ const config: HardhatUserConfig = {
           testConfig.stakingRolesCount * testConfig.operatorsCount,
       },
       tags: ["local"],
+      // Ignore contract size on deployment to hardhat network, to be able to
+      // deploy stub contracts in tests.
+      allowUnlimitedContractSize: process.env.TEST_USE_STUBS_TBTC === "true",
     },
     development: {
       url: "http://localhost:8545",
@@ -173,6 +176,8 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+    // Don't check size of contracts used as stubs in tests.
+    except: ["contracts/test/.*Stub$"],
   },
   typechain: {
     outDir: "typechain",
