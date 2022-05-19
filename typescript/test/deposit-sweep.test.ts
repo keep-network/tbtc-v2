@@ -60,18 +60,16 @@ describe("Sweep", () => {
             return data.utxo
           })
 
-        const depositData = depositSweepWithNoMainUtxo.deposits.map(
-          (deposit) => {
-            return deposit.data
-          }
-        )
+        const deposit = depositSweepWithNoMainUtxo.deposits.map((deposit) => {
+          return deposit.data
+        })
 
         await TBTC.sweepDeposits(
           bitcoinClient,
           fee,
           testnetWalletPrivateKey,
           utxos,
-          depositData
+          deposit
         )
       })
 
@@ -90,7 +88,7 @@ describe("Sweep", () => {
             return deposit.utxo
           })
 
-        const depositData = depositSweepWithMainUtxo.deposits.map((deposit) => {
+        const deposit = depositSweepWithMainUtxo.deposits.map((deposit) => {
           return deposit.data
         })
 
@@ -99,7 +97,7 @@ describe("Sweep", () => {
           fee,
           testnetWalletPrivateKey,
           utxos,
-          depositData,
+          deposit,
           depositSweepWithMainUtxo.mainUtxo
         )
       })
@@ -121,7 +119,7 @@ describe("Sweep", () => {
         return data.utxo
       })
 
-      const depositData = depositSweepWithNoMainUtxo.deposits.map((deposit) => {
+      const deposit = depositSweepWithNoMainUtxo.deposits.map((deposit) => {
         return deposit.data
       })
 
@@ -130,7 +128,7 @@ describe("Sweep", () => {
           fee,
           testnetWalletPrivateKey,
           utxosWithRaw,
-          depositData
+          deposit
         )
       })
 
@@ -208,7 +206,7 @@ describe("Sweep", () => {
         return deposit.utxo
       })
 
-      const depositData = depositSweepWithMainUtxo.deposits.map((deposit) => {
+      const deposit = depositSweepWithMainUtxo.deposits.map((deposit) => {
         return deposit.data
       })
 
@@ -220,7 +218,7 @@ describe("Sweep", () => {
           fee,
           testnetWalletPrivateKey,
           utxosWithRaw,
-          depositData,
+          deposit,
           mainUtxoWithRaw
         )
       })
@@ -321,14 +319,14 @@ describe("Sweep", () => {
     })
 
     context(
-      "when the numbers of UTXOs and deposit data elements are not equal",
+      "when the numbers of UTXOs and deposit elements are not equal",
       () => {
         const utxosWithRaw = depositSweepWithNoMainUtxo.deposits.map((data) => {
           return data.utxo
         })
 
-        // Add only one element to deposit data
-        const depositData = [depositSweepWithNoMainUtxo.deposits[0].data]
+        // Add only one element to the deposit
+        const deposit = [depositSweepWithNoMainUtxo.deposits[0].data]
 
         it("should revert", async () => {
           await expect(
@@ -336,21 +334,21 @@ describe("Sweep", () => {
               fee,
               testnetWalletPrivateKey,
               utxosWithRaw,
-              depositData
+              deposit
             )
           ).to.be.rejectedWith(
-            "Number of UTXOs must equal the number of deposit data elements"
+            "Number of UTXOs must equal the number of deposit elements"
           )
         })
       }
     )
 
     context(
-      "when there is a mismatch between the UTXO's value and amount in deposit data",
+      "when there is a mismatch between the UTXO's value and amount in deposit",
       () => {
         const utxoWithRaw = depositSweepWithNoMainUtxo.deposits[0].utxo
-        // Use a deposit data that does not match the UTXO
-        const depositData = depositSweepWithNoMainUtxo.deposits[1].data
+        // Use a deposit that does not match the UTXO
+        const deposit = depositSweepWithNoMainUtxo.deposits[1].data
 
         it("should revert", async () => {
           await expect(
@@ -358,10 +356,10 @@ describe("Sweep", () => {
               fee,
               testnetWalletPrivateKey,
               [utxoWithRaw],
-              [depositData]
+              [deposit]
             )
           ).to.be.rejectedWith(
-            "Mismatch between amount in deposit data and deposit tx"
+            "Mismatch between amount in deposit and deposit tx"
           )
         })
       }
@@ -369,14 +367,14 @@ describe("Sweep", () => {
 
     context("when the main UTXO does not belong to the wallet", () => {
       const utxoWithRaw = depositSweepWithNoMainUtxo.deposits[0].utxo
-      const depositData = depositSweepWithNoMainUtxo.deposits[0].data
+      const deposit = depositSweepWithNoMainUtxo.deposits[0].data
 
       // The UTXO below does not belong to the wallet
       const mainUtxoWithRaw = {
         transactionHash:
           "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883",
         outputIndex: 1,
-        value: 3933200,
+        value: BigNumber.from(3933200),
         transactionHex:
           "0100000000010162cae24e74ad64f9f0493b09f3964908b3b3038f4924882d3d" +
           "bd853b4c9bc7390100000000ffffffff02102700000000000017a914867120d5" +
@@ -393,7 +391,7 @@ describe("Sweep", () => {
             fee,
             testnetWalletPrivateKey,
             [utxoWithRaw],
-            [depositData],
+            [deposit],
             mainUtxoWithRaw
           )
         ).to.be.rejectedWith("UTXO does not belong to the wallet")
@@ -404,7 +402,7 @@ describe("Sweep", () => {
       "when the wallet private does not correspond to the wallet public key",
       () => {
         const utxoWithRaw = depositSweepWithNoMainUtxo.deposits[0].utxo
-        const depositData = depositSweepWithNoMainUtxo.deposits[0].data
+        const deposit = depositSweepWithNoMainUtxo.deposits[0].data
         const anotherPrivateKey =
           "cRJvyxtoggjAm9A94cB86hZ7Y62z2ei5VNJHLksFi2xdnz1GJ6xt"
 
@@ -414,7 +412,7 @@ describe("Sweep", () => {
               fee,
               anotherPrivateKey,
               [utxoWithRaw],
-              [depositData]
+              [deposit]
             )
           ).to.be.rejectedWith(
             "Wallet public key does not correspond to wallet private key"
@@ -429,14 +427,14 @@ describe("Sweep", () => {
         transactionHash:
           "025de155e6f2ffbbf4851493e0d28dad54020db221a3f38bf63c1f65e3d3595b",
         outputIndex: 0,
-        value: 5000000000,
+        value: BigNumber.from(5000000000),
         transactionHex:
           "010000000100000000000000000000000000000000000000000000000000000000" +
           "00000000ffffffff0e04db07c34f0103062f503253482fffffffff0100f2052a01" +
           "000000232102db6a0f2ef2e970eb1d2a84eabb5337f9cac0d85b49f209bffc4ec6" +
           "805802e6a5ac00000000",
       }
-      const depositData = depositSweepWithNoMainUtxo.deposits[0].data
+      const deposit = depositSweepWithNoMainUtxo.deposits[0].data
 
       it("should revert", async () => {
         await expect(
@@ -444,7 +442,7 @@ describe("Sweep", () => {
             fee,
             testnetWalletPrivateKey,
             [utxoWithRaw],
-            [depositData]
+            [deposit]
           )
         ).to.be.rejectedWith("Unsupported UTXO script type")
       })
