@@ -30,7 +30,7 @@ interface IReceiveBalanceApproval {
     /// @param amount The amount of the Bank balance approved by the owner
     ///        to be used by the contract.
     /// @param extraData The `extraData` passed to `Bank.approveBalanceAndCall`.
-    // @dev The implementation must ensure this function can only be called
+    /// @dev The implementation must ensure this function can only be called
     ///      by the Bank. The Bank does _not_ guarantee that the `amount`
     ///      approved by the `owner` currently exists on their balance. That is,
     ///      the `owner` could approve more balance than they currently have.
@@ -40,6 +40,6 @@ interface IReceiveBalanceApproval {
     function receiveBalanceApproval(
         address owner,
         uint256 amount,
-        bytes memory extraData
+        bytes calldata extraData
     ) external;
 }

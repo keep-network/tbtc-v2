@@ -141,7 +141,7 @@ contract Bank is Ownable {
     function approveBalanceAndCall(
         address spender,
         uint256 amount,
-        bytes memory extraData
+        bytes calldata extraData
     ) external {
         _approveBalance(msg.sender, spender, amount);
         IReceiveBalanceApproval(spender).receiveBalanceApproval(
