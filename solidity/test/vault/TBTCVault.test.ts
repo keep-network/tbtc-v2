@@ -105,7 +105,7 @@ describe("TBTCVault", () => {
     })
   })
 
-  describe("recoverERC20", () => {
+  describe("recoverERC20FromToken", () => {
     let testToken: TestERC20
 
     before(async () => {
@@ -123,7 +123,7 @@ describe("TBTCVault", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          vault.recoverERC20(testToken.address, account1.address, to1e18(800))
+          vault.recoverERC20FromToken(testToken.address, account1.address, to1e18(800))
         ).to.be.revertedWith("Caller is not the governance")
       })
     })
@@ -138,7 +138,7 @@ describe("TBTCVault", () => {
 
         await vault
           .connect(governance)
-          .recoverERC20(testToken.address, account1.address, to1e18(800))
+          .recoverERC20FromToken(testToken.address, account1.address, to1e18(800))
       })
 
       after(async () => {
@@ -154,7 +154,7 @@ describe("TBTCVault", () => {
     })
   })
 
-  describe("recoverERC721", () => {
+  describe("recoverERC721FromToken", () => {
     let testToken: TestERC721
 
     before(async () => {
@@ -172,7 +172,7 @@ describe("TBTCVault", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          vault.recoverERC721(testToken.address, account1.address, 1, "0x01")
+          vault.recoverERC721FromToken(testToken.address, account1.address, 1, "0x01")
         ).to.be.revertedWith("Caller is not the governance")
       })
     })
@@ -188,7 +188,7 @@ describe("TBTCVault", () => {
 
         await vault
           .connect(governance)
-          .recoverERC721(testToken.address, account1.address, 1, "0x01")
+          .recoverERC721FromToken(testToken.address, account1.address, 1, "0x01")
       })
 
       after(async () => {

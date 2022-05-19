@@ -90,7 +90,7 @@ contract TBTCVault is IVault, Governable {
     /// @param token Address of the recovered ERC20 token contract.
     /// @param recipient Address the recovered token should be sent to.
     /// @param amount Recovered amount.
-    function recoverERC20(
+    function recoverERC20FromToken(
         IERC20 token,
         address recipient,
         uint256 amount
@@ -104,7 +104,7 @@ contract TBTCVault is IVault, Governable {
     /// @param recipient Address the recovered token should be sent to.
     /// @param tokenId Identifier of the recovered token.
     /// @param data Additional data.
-    function recoverERC721(
+    function recoverERC721FromToken(
         IERC721 token,
         address recipient,
         uint256 tokenId,
