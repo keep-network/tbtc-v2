@@ -35,7 +35,7 @@ const fixture = async () => {
   await vault.deployed()
 
   await tbtc.connect(deployer).transferOwnership(vault.address)
-  await vault.connect(deployer).transferGovernance(governance.address)
+  await vault.connect(deployer).transferOwnership(governance.address)
 
   return {
     bridge,
@@ -128,7 +128,7 @@ describe("TBTCVault", () => {
             account1.address,
             to1e18(800)
           )
-        ).to.be.revertedWith("Caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -186,7 +186,7 @@ describe("TBTCVault", () => {
             1,
             "0x01"
           )
-        ).to.be.revertedWith("Caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -238,7 +238,7 @@ describe("TBTCVault", () => {
       it("should revert", async () => {
         await expect(
           vault.recoverERC20(testToken.address, account1.address, to1e18(800))
-        ).to.be.revertedWith("Caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -288,7 +288,7 @@ describe("TBTCVault", () => {
       it("should revert", async () => {
         await expect(
           vault.recoverERC721(testToken.address, account1.address, 1, [])
-        ).to.be.revertedWith("Caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -943,7 +943,7 @@ describe("TBTCVault", () => {
       it("should revert", async () => {
         await expect(
           vault.connect(account1).initiateUpgrade(newVault)
-        ).to.be.revertedWith("Caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -996,7 +996,7 @@ describe("TBTCVault", () => {
       it("should revert", async () => {
         await expect(
           vault.connect(account1).finalizeUpgrade()
-        ).to.be.revertedWith("Caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
