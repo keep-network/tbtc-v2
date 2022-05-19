@@ -3,7 +3,7 @@ import { deployments, ethers, helpers } from "hardhat"
 import { expect } from "chai"
 
 import type { FakeContract } from "@defi-wonderland/smock"
-import type { BigNumberish, Contract } from "ethers"
+import type { BigNumberish, Contract, ContractTransaction } from "ethers"
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type { Bridge, IRandomBeacon, WalletRegistry } from "../../typechain"
 
@@ -14,6 +14,7 @@ import {
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { fakeRandomBeacon, produceRelayEntry } from "./utils/random-beacon"
 import { authorizeApplication, stake } from "./utils/staking"
+import { assertGasUsed } from "./utils/gas"
 
 const { to1e18 } = helpers.number
 
@@ -101,29 +102,42 @@ describeFn("Integration Test", async () => {
     }
   })
 
-  it("new wallet creation (happy path)", async () => {
-    expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
-      ethers.constants.AddressZero
-    )
+  describe("new wallet creation (happy path)", async () => {
+    let requestNewWalletTx: ContractTransaction
 
-    const { blockNumber: startBlock } = await bridge.requestNewWallet(
-      NO_MAIN_UTXO
-    )
+    before(async () => {
+      expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
+        ethers.constants.AddressZero
+      )
 
-    const relayEntry: BigNumberish = await produceRelayEntry(
-      walletRegistry,
-      randomBeacon
-    )
+      requestNewWalletTx = await bridge.requestNewWallet(NO_MAIN_UTXO)
+      const startBlock = requestNewWalletTx.blockNumber
 
-    await produceEcdsaDkgResult(
-      walletRegistry,
-      ecdsaGroupPublicKey,
-      relayEntry,
-      startBlock,
-      groupSize
-    )
+      const relayEntry: BigNumberish = await produceRelayEntry(
+        walletRegistry,
+        randomBeacon
+      )
 
-    expect(await bridge.activeWalletPubKeyHash()).to.be.equal(walletPubKeyHash)
+      await produceEcdsaDkgResult(
+        walletRegistry,
+        ecdsaGroupPublicKey,
+        relayEntry,
+        startBlock,
+        groupSize
+      )
+    })
+
+    it("should register a new wallet", async () => {
+      expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
+        walletPubKeyHash
+      )
+    })
+
+    it("should consume around 93 000 gas for Bridge.requestNewWallet transaction", async () => {
+      await assertGasUsed(requestNewWalletTx, 93_000)
+    })
+
+    // TODO: Should we also validate gas used by Random Beacon and ECDSA Wallet Registry transactions?
   })
 
   async function updateWalletRegistryParams() {
