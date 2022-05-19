@@ -20,6 +20,7 @@ import "@keep-network/random-beacon/contracts/Governable.sol";
 import "./IVault.sol";
 import "../bank/Bank.sol";
 import "../token/TBTC.sol";
+import "../GovernanceUtils.sol";
 
 /// @title TBTC application vault
 /// @notice TBTC is a fully Bitcoin-backed ERC-20 token pegged to the price of
@@ -30,15 +31,40 @@ import "../token/TBTC.sol";
 /// @dev TBTC Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
 contract TBTCVault is IVault, Governable {
+    /// @notice The time delay that needs to pass between initializing and
+    ///         finalizing upgrade to a new vault. The time delay forces the
+    ///         upgrading party to reflect on the vault address it is upgrading
+    ///         to and lets all TBTC holders notice the planned
+    ///         upgrade.
+    uint256 public constant UPGRADE_GOVERNANCE_DELAY = 24 hours;
+
     Bank public bank;
     TBTC public tbtcToken;
 
-    event Minted(address indexed to, uint256 amount);
+    /// @notice The address of a new TBTC vault. Set only when the upgrade
+    ///         process is pending. Once the upgrade gets finalized, the new
+    ///         TBTC vault will become an owner of TBTC token.
+    address public newVault;
+    /// @notice The timestamp at which an upgrade to a new TBTC vault was
+    ///         initiated. Set only when the upgrade process is pending.
+    uint256 public upgradeInitiatedTimestamp;
 
+    event Minted(address indexed to, uint256 amount);
     event Unminted(address indexed from, uint256 amount);
+
+    event UpgradeInitiated(address newVault, uint256 timestamp);
+    event UpgradeFinalized(address newVault);
 
     modifier onlyBank() {
         require(msg.sender == address(bank), "Caller is not the Bank");
+        _;
+    }
+
+    modifier onlyAfterUpgradeGovernanceDelay() {
+        GovernanceUtils.onlyAfterGovernanceDelay(
+            upgradeInitiatedTimestamp,
+            UPGRADE_GOVERNANCE_DELAY
+        );
         _;
     }
 
@@ -190,6 +216,37 @@ contract TBTCVault is IVault, Governable {
         } else {
             _unmintAndRedeem(from, amount, extraData);
         }
+    }
+
+    /// @notice Initiates vault upgrade process. The upgrade process needs to be
+    ///         finalized with a call to `finalizeUpgrade` function after the
+    ///         `UPGRADE_GOVERNANCE_DELAY` passes. Only the governance can
+    ///         initiate the upgrade.
+    /// @param _newVault The new vault address.
+    function initiateUpgrade(address _newVault) external onlyGovernance {
+        require(_newVault != address(0), "New vault address cannot be zero");
+        /* solhint-disable-next-line not-rely-on-time */
+        emit UpgradeInitiated(_newVault, block.timestamp);
+        /* solhint-disable-next-line not-rely-on-time */
+        upgradeInitiatedTimestamp = block.timestamp;
+        newVault = _newVault;
+    }
+
+    /// @notice Allows the governance to finalize vault upgrade process. The
+    ///         upgrade process needs to be first initiated with a call to
+    ///         `initiateUpgrade` and the `UPGRADE_GOVERNANCE_DELAY` needs to
+    ///         pass. Once the upgrade is finalized, the new vault will become
+    ///         an owner of TBTC token.
+    function finalizeUpgrade()
+        external
+        onlyGovernance
+        onlyAfterUpgradeGovernanceDelay
+    {
+        emit UpgradeFinalized(newVault);
+        // slither-disable-next-line reentrancy-no-eth
+        tbtcToken.transferOwnership(newVault);
+        newVault = address(0);
+        upgradeInitiatedTimestamp = 0;
     }
 
     // slither-disable-next-line calls-loop
