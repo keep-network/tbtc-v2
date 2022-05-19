@@ -720,6 +720,8 @@ describe("Bridge - Redemption", () => {
     let redeemer: string
 
     before(async () => {
+      await createSnapshot()
+
       redemptionTxMaxFee = (await bridge.redemptionParameters())
         .redemptionTxMaxFee
 
@@ -729,6 +731,10 @@ describe("Bridge - Redemption", () => {
 
       // Simulate the balance owner has a twice Bank balance allowing to make the request.
       await bank.setBalance(balanceOwner.address, requestedAmount.mul(2))
+    })
+
+    after(async () => {
+      await restoreSnapshot()
     })
 
     // Only the most basic path is tested. `receiveBalanceApproval` uses the same
@@ -780,7 +786,7 @@ describe("Bridge - Redemption", () => {
 
           context("when main UTXO data are valid", () => {
             context("when redeemer output script is standard type", () => {
-              // Arbitrary standard output scripts.
+              // Arbitrary standard output script.
               const redeemerOutputScriptP2WPKH =
                 "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef"
 
