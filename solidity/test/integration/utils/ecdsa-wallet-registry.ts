@@ -8,15 +8,10 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type {
   ContractTransaction,
   BytesLike,
-  BigNumber,
   BigNumberish,
-  Contract,
   Signer,
 } from "ethers"
 import type { WalletRegistry, SortitionPool } from "../../../typechain"
-
-// Number of members in the ECDSA Wallet.
-const WALLET_SIZE = 100
 
 export async function registerOperator(
   walletRegistry: WalletRegistry,

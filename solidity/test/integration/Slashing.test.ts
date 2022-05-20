@@ -3,7 +3,7 @@ import { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 
 import type { FakeContract } from "@defi-wonderland/smock"
-import type { BigNumberish, ContractTransaction } from "ethers"
+import type { ContractTransaction } from "ethers"
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type { Bridge, IRandomBeacon, WalletRegistry } from "../../typechain"
 
