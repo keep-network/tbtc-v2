@@ -384,10 +384,10 @@ library Redemption {
     /// @param redeemer The Ethereum address of the redeemer who will be able to
     ///        claim Bank balance if anything goes wrong during the redemption.
     ///        In the most basic case, when someone redeems their Bitcoin
-    ///        balance from the Bank, `balanceOwner` is the same as `redemeer`.
+    ///        balance from the Bank, `balanceOwner` is the same as `redeemer`.
     ///        However, when a Vault is redeeming part of its balance for some
     ///        redeemer address (for example, someone who has earlier deposited
-    ///        into that Vault), `balanceOwner` is the Vault, and `redemeer` is
+    ///        into that Vault), `balanceOwner` is the Vault, and `redeemer` is
     ///        the address for which the vault is redeeming its balance to.
     /// @param redeemerOutputScript The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
