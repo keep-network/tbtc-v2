@@ -20,6 +20,13 @@ interface RevealDepositLogEntry {
   deposit: Deposit
 }
 
+interface RequestRedemptionLogEntry {
+  walletPublicKey: string
+  mainUtxo: UnspentTransactionOutput
+  redeemerOutputScript: string
+  amount: BigNumber
+}
+
 interface RedemptionProofLogEntry {
   redemptionTx: DecomposedRawTransaction
   redemptionProof: Proof
@@ -35,6 +42,7 @@ export class MockBridge implements Bridge {
   private _pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
   private _depositSweepProofLog: DepositSweepProofLogEntry[] = []
   private _revealDepositLog: RevealDepositLogEntry[] = []
+  private _requestRedemptionLog: RequestRedemptionLogEntry[] = []
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
 
   set requestRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
@@ -47,6 +55,10 @@ export class MockBridge implements Bridge {
 
   get revealDepositLogEntry(): RevealDepositLogEntry[] {
     return this._revealDepositLog
+  }
+
+  get requestRedemptionLog(): RequestRedemptionLogEntry[] {
+    return this._requestRedemptionLog
   }
 
   get redemptionProofLog(): RedemptionProofLogEntry[] {
@@ -86,6 +98,23 @@ export class MockBridge implements Bridge {
       redemptionProof,
       mainUtxo,
       walletPublicKey,
+    })
+    return new Promise<void>((resolve, _) => {
+      resolve()
+    })
+  }
+
+  requestRedemption(
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber
+  ) {
+    this._requestRedemptionLog.push({
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript,
+      amount,
     })
     return new Promise<void>((resolve, _) => {
       resolve()
