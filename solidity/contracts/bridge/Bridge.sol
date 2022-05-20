@@ -492,7 +492,19 @@ contract Bridge is
     ///      - `amount` must be above or equal the `redemptionDustThreshold`,
     ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
     ///        used for only one pending request at the same time,
-    ///      - Wallet must have enough Bitcoin balance to proceed the request,
+    ///      - Wallet must have enough Bitcoin balance to proceed the request.
+    ///
+    ///      Note on upgradeability:
+    ///      Bridge is an upgradeable contract deployed behind
+    ///      a TransparentUpgradeableProxy. Accepting redemption data as bytes
+    ///      provides great flexibility. The Bridge is just like any other
+    ///      contract with a balance approved in the Bank and can be upgraded
+    ///      to another version without being bound to a particular interface
+    ///      forever. This flexibility comes with the cost - developers
+    ///      integrating their vaults and dApps with `Bridge` using
+    ///      `approveBalanceAndCall` need to pay extra attention to
+    ///      `redemptionData` and adjust the code in case the expected structure
+    ///      of `redemptionData`  changes.
     function receiveBalanceApproval(
         address balanceOwner,
         uint256 amount,
