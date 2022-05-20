@@ -8,7 +8,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type { Bridge, IRandomBeacon, WalletRegistry } from "../../typechain"
 
 import {
-  produceEcdsaDkgResult,
+  performEcdsaDkg,
   updateWalletRegistryDkgResultChallengePeriodLength,
 } from "./utils/ecdsa-wallet-registry"
 import { ecdsaWalletTestData } from "../data/ecdsa"
@@ -64,12 +64,11 @@ describeFn("Integration Test - Wallet Creation", async () => {
       const startBlock = requestNewWalletTx.blockNumber
 
       await produceRelayEntry(walletRegistry, randomBeacon)
-      ;({ approveDkgResultTx: walletRegistrationTx } =
-        await produceEcdsaDkgResult(
-          walletRegistry,
-          walletPublicKey,
-          startBlock
-        ))
+      ;({ approveDkgResultTx: walletRegistrationTx } = await performEcdsaDkg(
+        walletRegistry,
+        walletPublicKey,
+        startBlock
+      ))
 
       await walletRegistrationTx.wait()
     })

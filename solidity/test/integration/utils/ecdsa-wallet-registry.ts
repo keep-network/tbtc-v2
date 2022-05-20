@@ -37,7 +37,7 @@ export async function registerOperator(
   return operatorID
 }
 
-export async function produceEcdsaDkgResult(
+export async function performEcdsaDkg(
   walletRegistry: WalletRegistry,
   groupPublicKey: BytesLike,
   startBlock: number
