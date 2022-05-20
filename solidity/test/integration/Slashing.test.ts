@@ -25,6 +25,7 @@ import {
   nonWitnessSignSingleInputTx,
 } from "../data/fraud"
 import { SinglePendingRequestedRedemption } from "../data/redemption"
+import { walletState } from "../fixtures"
 
 const { wallet: redemptionWallet } = SinglePendingRequestedRedemption
 
@@ -141,7 +142,7 @@ describeFn("Integration Test - Slashing", async () => {
         it("should close the wallet in the bridge", async () => {
           const storedWallet = await bridge.wallets(walletPubKeyHash160)
 
-          expect(storedWallet.state).to.be.equal(5)
+          expect(storedWallet.state).to.be.equal(walletState.Terminated)
         })
 
         it("should consume around X 000 gas for Bridge.notifyMovingFundsTimeoutTx transaction", async () => {
@@ -255,7 +256,7 @@ describeFn("Integration Test - Slashing", async () => {
         it("should close the wallet in the bridge", async () => {
           const storedWallet = await bridge.wallets(walletPubKeyHash160)
 
-          expect(storedWallet.state).to.be.equal(5)
+          expect(storedWallet.state).to.be.equal(walletState.Terminated)
         })
 
         it("should consume around 100 000 gas for Bridge.notifyMovingFundsTimeoutTx transaction", async () => {
