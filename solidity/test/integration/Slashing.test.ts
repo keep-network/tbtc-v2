@@ -8,7 +8,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type { Bridge, IRandomBeacon, WalletRegistry } from "../../typechain"
 
 import {
-  produceEcdsaDkgResult,
+  performEcdsaDkg,
   updateWalletRegistryDkgResultChallengePeriodLength,
 } from "./utils/ecdsa-wallet-registry"
 import {
@@ -87,15 +87,11 @@ describeFn("Integration Test - Slashing", async () => {
 
         const requestNewWalletTx = await bridge.requestNewWallet(NO_MAIN_UTXO)
 
-        const relayEntry: BigNumberish = await produceRelayEntry(
-          walletRegistry,
-          randomBeacon
-        )
+        await produceRelayEntry(walletRegistry, randomBeacon)
 
-        await produceEcdsaDkgResult(
+        await performEcdsaDkg(
           walletRegistry,
           walletPublicKey,
-          relayEntry,
           requestNewWalletTx.blockNumber
         )
       })
@@ -171,15 +167,11 @@ describeFn("Integration Test - Slashing", async () => {
 
         const requestNewWalletTx = await bridge.requestNewWallet(NO_MAIN_UTXO)
 
-        const relayEntry: BigNumberish = await produceRelayEntry(
-          walletRegistry,
-          randomBeacon
-        )
+        await produceRelayEntry(walletRegistry, randomBeacon)
 
-        await produceEcdsaDkgResult(
+        await performEcdsaDkg(
           walletRegistry,
           walletPublicKey,
-          relayEntry,
           requestNewWalletTx.blockNumber
         )
       })
@@ -213,15 +205,11 @@ describeFn("Integration Test - Slashing", async () => {
 
         const requestNewWalletTx = await bridge.requestNewWallet(NO_MAIN_UTXO)
 
-        const relayEntry: BigNumberish = await produceRelayEntry(
-          walletRegistry,
-          randomBeacon
-        )
+        await produceRelayEntry(walletRegistry, randomBeacon)
 
-        await produceEcdsaDkgResult(
+        await performEcdsaDkg(
           walletRegistry,
           walletPublicKey,
-          relayEntry,
           requestNewWalletTx.blockNumber
         )
       })
