@@ -173,8 +173,6 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
-    // Don't check size of contracts used as stubs in tests.
-    except: ["contracts/test/.*Stub$"],
   },
   typechain: {
     outDir: "typechain",
