@@ -4,6 +4,7 @@ import {
   Transaction,
   TransactionMerkleBranch,
 } from "../../src/bitcoin"
+import { BigNumber } from "ethers"
 
 /**
  * Represents a set of data used for given proof scenario.
@@ -45,7 +46,7 @@ export const singleInputProofTestData: ProofTestData = {
       outputs: [
         {
           outputIndex: 0,
-          value: 8400,
+          value: BigNumber.from(8400),
           scriptPubKey: {
             asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
             hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -120,7 +121,7 @@ export const singleInputProofTestData: ProofTestData = {
     outputs: [
       {
         outputIndex: 0,
-        value: 8400,
+        value: BigNumber.from(8400),
         scriptPubKey: {
           asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
           hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -200,7 +201,7 @@ export const multipleInputsProofTestData: ProofTestData = {
       outputs: [
         {
           outputIndex: 0,
-          value: 39800,
+          value: BigNumber.from(39800),
           scriptPubKey: {
             asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
             hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -308,7 +309,7 @@ export const multipleInputsProofTestData: ProofTestData = {
     outputs: [
       {
         outputIndex: 0,
-        value: 39800,
+        value: BigNumber.from(39800),
         scriptPubKey: {
           asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
           hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",

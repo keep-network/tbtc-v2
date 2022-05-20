@@ -6,7 +6,7 @@ import { FakeContract } from "@defi-wonderland/smock"
 import { walletState } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
 
-import { SingleP2SHDeposit } from "../data/deposit-sweep"
+import { DepositSweepTestData, SingleP2SHDeposit } from "../data/deposit-sweep"
 
 import type {
   Bank,
@@ -32,8 +32,8 @@ const { increaseTime, lastBlockTime } = helpers.time
 //   Governance withdraws TBTC v1 from `VendingMachine` *somewhere*.
 //   Governance unmints TBTC v1 to BTC *somehow*.
 //
-// Step #3 - BTC donation
-//   Governance donates BTC to `TBTCVault`.
+// Step #3 - BTC deposits
+//   Governance deposits BTC to `TBTCVault`.
 //
 // Step #4 - functioning system
 //   The system works. Users can mint and unmint TBTC v2.
@@ -123,9 +123,11 @@ describe("VendingMachine - Upgrade", () => {
       })
     })
 
-    describe("step#3 - BTC donation", () => {
+    describe("step#3 - BTC deposit", () => {
       before(async () => {
-        const data = SingleP2SHDeposit
+        const data: DepositSweepTestData = JSON.parse(
+          JSON.stringify(SingleP2SHDeposit)
+        )
         const { fundingTx, reveal } = data.deposits[0] // it's a single deposit
         reveal.vault = tbtcVault.address
 
