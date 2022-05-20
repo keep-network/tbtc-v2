@@ -25,6 +25,7 @@ export interface DepositSweepTestData {
     data: Deposit
   }[]
   mainUtxo: UnspentTransactionOutput & RawTransaction
+  witness: boolean
   expectedSweep: {
     transactionHash: string
     transaction: RawTransaction
@@ -91,6 +92,7 @@ export const depositSweepWithNoMainUtxo: DepositSweepTestData = {
     },
   ],
   mainUtxo: NO_MAIN_UTXO,
+  witness: true,
   expectedSweep: {
     transactionHash:
       "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
@@ -201,6 +203,7 @@ export const depositSweepWithMainUtxo: DepositSweepTestData = {
       "7576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776a914e257" +
       "eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac6800000000",
   },
+  witness: true,
   expectedSweep: {
     transactionHash:
       "435d4aff6d4bc34134877bd3213c17970142fdd04d4113d534120033b9eecb2e",

@@ -63,11 +63,13 @@ describe("Sweep", () => {
         const deposit = depositSweepWithNoMainUtxo.deposits.map((deposit) => {
           return deposit.data
         })
+        const witness = depositSweepWithNoMainUtxo.witness
 
         await TBTC.sweepDeposits(
           bitcoinClient,
           fee,
           testnetWalletPrivateKey,
+          witness,
           utxos,
           deposit
         )
@@ -92,10 +94,13 @@ describe("Sweep", () => {
           return deposit.data
         })
 
+        const witness = depositSweepWithMainUtxo.witness
+
         await TBTC.sweepDeposits(
           bitcoinClient,
           fee,
           testnetWalletPrivateKey,
+          witness,
           utxos,
           deposit,
           depositSweepWithMainUtxo.mainUtxo
@@ -123,10 +128,13 @@ describe("Sweep", () => {
         return deposit.data
       })
 
+      const witness = depositSweepWithNoMainUtxo.witness
+
       beforeEach(async () => {
         transaction = await TBTC.createDepositSweepTransaction(
           fee,
           testnetWalletPrivateKey,
+          witness,
           utxosWithRaw,
           deposit
         )
@@ -213,10 +221,13 @@ describe("Sweep", () => {
       // P2WKH
       const mainUtxoWithRaw = depositSweepWithMainUtxo.mainUtxo
 
+      const witness = depositSweepWithMainUtxo.witness
+
       beforeEach(async () => {
         transaction = await TBTC.createDepositSweepTransaction(
           fee,
           testnetWalletPrivateKey,
+          witness,
           utxosWithRaw,
           deposit,
           mainUtxoWithRaw
@@ -311,6 +322,7 @@ describe("Sweep", () => {
           TBTC.createDepositSweepTransaction(
             fee,
             testnetWalletPrivateKey,
+            true,
             [],
             []
           )
@@ -328,11 +340,14 @@ describe("Sweep", () => {
         // Add only one element to the deposit
         const deposit = [depositSweepWithNoMainUtxo.deposits[0].data]
 
+        const witness = depositSweepWithNoMainUtxo.witness
+
         it("should revert", async () => {
           await expect(
             TBTC.createDepositSweepTransaction(
               fee,
               testnetWalletPrivateKey,
+              witness,
               utxosWithRaw,
               deposit
             )
@@ -355,6 +370,7 @@ describe("Sweep", () => {
             TBTC.createDepositSweepTransaction(
               fee,
               testnetWalletPrivateKey,
+              true,
               [utxoWithRaw],
               [deposit]
             )
@@ -390,6 +406,7 @@ describe("Sweep", () => {
           TBTC.createDepositSweepTransaction(
             fee,
             testnetWalletPrivateKey,
+            true,
             [utxoWithRaw],
             [deposit],
             mainUtxoWithRaw
@@ -411,6 +428,7 @@ describe("Sweep", () => {
             TBTC.createDepositSweepTransaction(
               fee,
               anotherPrivateKey,
+              true,
               [utxoWithRaw],
               [deposit]
             )
@@ -441,6 +459,7 @@ describe("Sweep", () => {
           TBTC.createDepositSweepTransaction(
             fee,
             testnetWalletPrivateKey,
+            true,
             [utxoWithRaw],
             [deposit]
           )
