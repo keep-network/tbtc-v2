@@ -40,21 +40,13 @@ export async function registerOperator(
 export async function produceEcdsaDkgResult(
   walletRegistry: WalletRegistry,
   groupPublicKey: BytesLike,
-  relayEntry: BigNumberish,
   startBlock: number
 ): Promise<{ approveDkgResultTx: ContractTransaction }> {
-  const seed = calculateDkgSeed(relayEntry, startBlock)
-
   const {
     dkgResult,
     submitter,
     submitDkgResultTx: dkgResultSubmissionTx,
-  } = await signAndSubmitDkgResult(
-    walletRegistry,
-    groupPublicKey,
-    seed,
-    startBlock
-  )
+  } = await signAndSubmitDkgResult(walletRegistry, groupPublicKey, startBlock)
 
   await helpers.time.mineBlocksTo(
     dkgResultSubmissionTx.blockNumber +
@@ -96,13 +88,14 @@ export async function updateWalletRegistryDkgResultChallengePeriodLength(
 }
 
 async function selectGroup(
-  sortitionPool: Contract,
-  seed: BigNumber
+  walletRegistry: WalletRegistry
 ): Promise<Operator[]> {
-  const identifiers = await sortitionPool.selectGroup(
-    WALLET_SIZE,
-    ethers.utils.hexZeroPad(seed.toHexString(), 32)
-  )
+  const sortitionPool = (await ethers.getContractAt(
+    "SortitionPool",
+    await walletRegistry.sortitionPool()
+  )) as SortitionPool
+
+  const identifiers = await walletRegistry.selectGroup()
 
   const addresses = await sortitionPool.getIDOperators(identifiers)
 
@@ -135,24 +128,9 @@ type Operator = {
 
 const noMisbehaved: number[] = []
 
-function calculateDkgSeed(
-  relayEntry: BigNumberish,
-  blockNumber: BigNumberish
-): BigNumber {
-  return ethers.BigNumber.from(
-    ethers.utils.keccak256(
-      ethers.utils.solidityPack(
-        ["uint256", "uint256"],
-        [ethers.BigNumber.from(relayEntry), ethers.BigNumber.from(blockNumber)]
-      )
-    )
-  )
-}
-
 async function signAndSubmitDkgResult(
   walletRegistry: WalletRegistry,
   groupPublicKey: BytesLike,
-  seed: BigNumber,
   startBlock: number,
   misbehavedIndices = noMisbehaved
 ): Promise<{
@@ -160,12 +138,7 @@ async function signAndSubmitDkgResult(
   submitter: SignerWithAddress
   submitDkgResultTx: ContractTransaction
 }> {
-  const sortitionPool = (await ethers.getContractAt(
-    "SortitionPool",
-    await walletRegistry.sortitionPool()
-  )) as SortitionPool
-
-  const signers = await selectGroup(sortitionPool, seed)
+  const signers = await selectGroup(walletRegistry)
 
   const submitterIndex = 1
 

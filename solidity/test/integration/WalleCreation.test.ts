@@ -63,16 +63,11 @@ describeFn("Integration Test - Wallet Creation", async () => {
       requestNewWalletTx = await bridge.requestNewWallet(NO_MAIN_UTXO)
       const startBlock = requestNewWalletTx.blockNumber
 
-      const relayEntry: BigNumberish = await produceRelayEntry(
-        walletRegistry,
-        randomBeacon
-      )
-
+      await produceRelayEntry(walletRegistry, randomBeacon)
       ;({ approveDkgResultTx: walletRegistrationTx } =
         await produceEcdsaDkgResult(
           walletRegistry,
           walletPublicKey,
-          relayEntry,
           startBlock
         ))
 
