@@ -1,4 +1,3 @@
-import { BytesLike } from "ethers"
 import {
   Proof,
   UnspentTransactionOutput,
@@ -58,7 +57,7 @@ export interface Bridge {
     redemptionTx: DecomposedRawTransaction,
     redemptionProof: Proof,
     mainUtxo: UnspentTransactionOutput,
-    walletPublicKey: BytesLike
+    walletPublicKey: string
   ): Promise<void>
 
   /**
