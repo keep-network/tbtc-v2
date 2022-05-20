@@ -1,14 +1,14 @@
 import { helpers, waffle, ethers } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
-import { ContractTransaction } from "ethers"
+import { ContractTransaction, BigNumber } from "ethers"
 import type { BridgeGovernance, Bridge } from "../../typechain"
 import { constants } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
-describe.only("Bridge - Governance", () => {
+describe("Bridge - Governance", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let bridgeGovernance: BridgeGovernance
@@ -45,14 +45,19 @@ describe.only("Bridge - Governance", () => {
       })
 
       it("should not update the governance delay", async () => {
-        expect(await bridgeGovernance.governanceDelay()).to.be.equal(
+        expect(await bridgeGovernance.governanceDelays(0)).to.be.equal(
           constants.governanceDelay
         )
       })
 
       it("should start the governance delay timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = await bridgeGovernance.governanceDelays(2)
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
         expect(
-          await bridgeGovernance.getRemainingGovernanceDelayUpdateTime()
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
         ).to.be.equal(constants.governanceDelay)
       })
 
@@ -129,7 +134,7 @@ describe.only("Bridge - Governance", () => {
         })
 
         it("should update the governance delay", async () => {
-          expect(await bridgeGovernance.governanceDelay()).to.be.equal(7331)
+          expect(await bridgeGovernance.governanceDelays(0)).to.be.equal(7331)
         })
 
         it("should emit GovernanceDelayUpdated event", async () => {
@@ -139,9 +144,9 @@ describe.only("Bridge - Governance", () => {
         })
 
         it("should reset the governance delay timer", async () => {
-          await expect(
-            bridgeGovernance.getRemainingGovernanceDelayUpdateTime()
-          ).to.be.revertedWith("Change not initiated")
+          await expect(await bridgeGovernance.governanceDelays(2)).to.be.equal(
+            0
+          )
         })
       }
     )
@@ -178,8 +183,13 @@ describe.only("Bridge - Governance", () => {
       })
 
       it("should start the bridge governance transfer timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
         expect(
-          await bridgeGovernance.getRemainingBridgeGovernanceTransferDelayUpdateTime()
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
         ).to.be.equal(constants.governanceDelay)
       })
 
@@ -210,7 +220,7 @@ describe.only("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeBridgeGovernanceTransfer()
-        ).to.be.revertedWith("New governance is the zero address")
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -273,8 +283,8 @@ describe.only("Bridge - Governance", () => {
 
         it("should reset the bridge governance transfer timer", async () => {
           await expect(
-            bridgeGovernance.getRemainingBridgeGovernanceTransferDelayUpdateTime()
-          ).to.be.revertedWith("Change not initiated")
+            await bridgeGovernance.bridgeGovernanceTransferChangeInitiated()
+          ).to.be.equal(0)
         })
       }
     )
@@ -312,8 +322,13 @@ describe.only("Bridge - Governance", () => {
       })
 
       it("should start the deposit dust threshold timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
         expect(
-          await bridgeGovernance.getRemainingDepositDustThresholdDelayUpdateTime()
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
         ).to.be.equal(constants.governanceDelay)
       })
 
@@ -405,12 +420,6 @@ describe.only("Bridge - Governance", () => {
             .to.emit(bridgeGovernance, "DepositDustThresholdUpdated")
             .withArgs(7331)
         })
-
-        it("should reset the deposit dust threshold timer", async () => {
-          await expect(
-            bridgeGovernance.getRemainingDepositDustThresholdDelayUpdateTime()
-          ).to.be.revertedWith("Change not initiated")
-        })
       }
     )
   })
@@ -449,8 +458,13 @@ describe.only("Bridge - Governance", () => {
       })
 
       it("should start the deposit treasury fee divisor timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
         expect(
-          await bridgeGovernance.getRemainingDepositTreasuryFeeDivisorDelayUpdateTime()
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
         ).to.be.equal(constants.governanceDelay)
       })
 
@@ -544,12 +558,6 @@ describe.only("Bridge - Governance", () => {
             .to.emit(bridgeGovernance, "DepositTreasuryFeeDivisorUpdated")
             .withArgs(7331)
         })
-
-        it("should reset the deposit treasury fee divisor timer", async () => {
-          await expect(
-            bridgeGovernance.getRemainingDepositTreasuryFeeDivisorDelayUpdateTime()
-          ).to.be.revertedWith("Change not initiated")
-        })
       }
     )
   })
@@ -584,8 +592,13 @@ describe.only("Bridge - Governance", () => {
       })
 
       it("should start the deposit tx max fee timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
         expect(
-          await bridgeGovernance.getRemainingDepositTxMaxFeeDelayUpdateTime()
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
         ).to.be.equal(constants.governanceDelay)
       })
 
@@ -673,12 +686,6 @@ describe.only("Bridge - Governance", () => {
             .to.emit(bridgeGovernance, "DepositTxMaxFeeUpdated")
             .withArgs(7331)
         })
-
-        it("should reset the deposit tx max fee timer", async () => {
-          await expect(
-            bridgeGovernance.getRemainingDepositTxMaxFeeDelayUpdateTime()
-          ).to.be.revertedWith("Change not initiated")
-        })
       }
     )
   })
@@ -717,8 +724,13 @@ describe.only("Bridge - Governance", () => {
       })
 
       it("should start the redemption dust threshold timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
         expect(
-          await bridgeGovernance.getRemainingRedemptionDustThresholdDelayUpdateTime()
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
         ).to.be.equal(constants.governanceDelay)
       })
 
@@ -819,12 +831,6 @@ describe.only("Bridge - Governance", () => {
             .to.emit(bridgeGovernance, "RedemptionDustThresholdUpdated")
             .withArgs(constants.depositDustThreshold + 1)
         })
-
-        it("should reset the redemption dust threshold timer", async () => {
-          await expect(
-            bridgeGovernance.getRemainingRedemptionDustThresholdDelayUpdateTime()
-          ).to.be.revertedWith("Change not initiated")
-        })
       }
     )
   })
@@ -864,8 +870,13 @@ describe.only("Bridge - Governance", () => {
       })
 
       it("should start the redemption treasury fee divisor timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
         expect(
-          await bridgeGovernance.getRemainingRedemptionTreasuryFeeDivisorDelayUpdateTime()
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
         ).to.be.equal(constants.governanceDelay)
       })
 
@@ -963,11 +974,422 @@ describe.only("Bridge - Governance", () => {
             .to.emit(bridgeGovernance, "RedemptionTreasuryFeeDivisorUpdated")
             .withArgs(7331)
         })
+      }
+    )
+  })
 
-        it("should reset the redemption treasury fee divisor timer", async () => {
+  describe("beginRedemptionTimeoutUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(thirdParty).beginRedemptionTimeoutUpdate(1)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bridgeGovernance
+          .connect(governance)
+          .beginRedemptionTimeoutUpdate(1337)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not update the redemption timeout", async () => {
+        const { redemptionTimeout } = await bridge.redemptionParameters()
+        expect(redemptionTimeout).to.be.equal(constants.redemptionTimeout)
+      })
+
+      it("should start the redemption timeout timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
+        expect(
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
+        ).to.be.equal(constants.governanceDelay)
+      })
+
+      it("should emit RedemptionTimeoutUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(bridgeGovernance, "RedemptionTimeoutUpdateStarted")
+          .withArgs(1337, blockTimestamp)
+      })
+    })
+  })
+
+  describe("finalizeRedemptionTimeoutUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(thirdParty).finalizeRedemptionTimeoutUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(governance).finalizeRedemptionTimeoutUpdate()
+        ).to.be.revertedWith("Redemption timeout must be greater than zero")
+      })
+    })
+
+    context("when the redemption timeout has not passed", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridgeGovernance
+          .connect(governance)
+          .beginRedemptionTimeoutUpdate(7331)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(governance).finalizeRedemptionTimeoutUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context(
+      "when the update process is initialized and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTimeoutUpdate(7331)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTimeoutUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the redemption timeout", async () => {
+          const { redemptionTimeout } = await bridge.redemptionParameters()
+          expect(redemptionTimeout).to.be.equal(7331)
+        })
+
+        it("should emitRedemptionTimeoutUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridgeGovernance, "RedemptionTimeoutUpdated")
+            .withArgs(7331)
+        })
+      }
+    )
+  })
+
+  describe("beginRedemptionTimeoutSlashingAmountUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginRedemptionTimeoutSlashingAmountUpdate(1)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bridgeGovernance
+          .connect(governance)
+          .beginRedemptionTimeoutSlashingAmountUpdate(1337)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not update the redemption timeout slashing amount", async () => {
+        const { redemptionTimeoutSlashingAmount } =
+          await bridge.redemptionParameters()
+        expect(redemptionTimeoutSlashingAmount).to.be.equal(
+          constants.redemptionTimeoutSlashingAmount
+        )
+      })
+
+      it("should start the redemption timeout slashing amount timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
+        expect(
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
+        ).to.be.equal(constants.governanceDelay)
+      })
+
+      it("should emit RedemptionTimeoutSlashingAmountUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(
+            bridgeGovernance,
+            "RedemptionTimeoutSlashingAmountUpdateStarted"
+          )
+          .withArgs(1337, blockTimestamp)
+      })
+    })
+  })
+
+  describe("finalizeRedemptionTimeoutSlashingAmountUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .finalizeRedemptionTimeoutSlashingAmountUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTimeoutSlashingAmountUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+
+    context(
+      "when the redemption timeout slashing amount has not passed",
+      () => {
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTimeoutSlashingAmountUpdate(7331)
+
+          await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
           await expect(
-            bridgeGovernance.getRemainingRedemptionTreasuryFeeDivisorDelayUpdateTime()
-          ).to.be.revertedWith("Change not initiated")
+            bridgeGovernance
+              .connect(governance)
+              .finalizeRedemptionTimeoutSlashingAmountUpdate()
+          ).to.be.revertedWith("Governance delay has not elapsed")
+        })
+      }
+    )
+
+    context(
+      "when the update process is initialized and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTimeoutSlashingAmountUpdate(7331)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTimeoutSlashingAmountUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the redemption timeout slashing amount", async () => {
+          const { redemptionTimeoutSlashingAmount } =
+            await bridge.redemptionParameters()
+          expect(redemptionTimeoutSlashingAmount).to.be.equal(7331)
+        })
+
+        it("should emitRedemptionTimeoutSlashingAmountUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridgeGovernance, "RedemptionTimeoutSlashingAmountUpdated")
+            .withArgs(7331)
+        })
+      }
+    )
+  })
+
+  describe("beginRedemptionTimeoutNotifierRewardMultiplierUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginRedemptionTimeoutNotifierRewardMultiplierUpdate(1)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bridgeGovernance
+          .connect(governance)
+          .beginRedemptionTimeoutNotifierRewardMultiplierUpdate(1337)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not update the redemption timeout notifier reward multiplier", async () => {
+        const { redemptionTimeoutNotifierRewardMultiplier } =
+          await bridge.redemptionParameters()
+        expect(redemptionTimeoutNotifierRewardMultiplier).to.be.equal(
+          constants.redemptionTimeoutNotifierRewardMultiplier
+        )
+      })
+
+      it("should start the redemption timeout notifier reward multiplier timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
+        expect(
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
+        ).to.be.equal(constants.governanceDelay)
+      })
+
+      it("should emit RedemptionTimeoutNotifierRewardMultiplierUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(
+            bridgeGovernance,
+            "RedemptionTimeoutNotifierRewardMultiplierUpdateStarted"
+          )
+          .withArgs(1337, blockTimestamp)
+      })
+    })
+  })
+
+  describe("finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+
+    context(
+      "when the redemption timeout notifier reward multiplier has not passed",
+      () => {
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTimeoutNotifierRewardMultiplierUpdate(42)
+
+          await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridgeGovernance
+              .connect(governance)
+              .finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
+          ).to.be.revertedWith("Governance delay has not elapsed")
+        })
+      }
+    )
+
+    context(
+      "when the update process is initialized and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTimeoutNotifierRewardMultiplierUpdate(42)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the redemption timeout notifier reward multiplier", async () => {
+          const { redemptionTimeoutNotifierRewardMultiplier } =
+            await bridge.redemptionParameters()
+          expect(redemptionTimeoutNotifierRewardMultiplier).to.be.equal(42)
+        })
+
+        it("should emitRedemptionTimeoutNotifierRewardMultiplierUpdated event", async () => {
+          await expect(tx)
+            .to.emit(
+              bridgeGovernance,
+              "RedemptionTimeoutNotifierRewardMultiplierUpdated"
+            )
+            .withArgs(42)
         })
       }
     )

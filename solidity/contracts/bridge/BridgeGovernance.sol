@@ -44,7 +44,7 @@ contract BridgeGovernance is Ownable {
     // governanceDelays[2] -> governanceDelayChangeInitiated
     uint256[3] public governanceDelays;
 
-    uint256 internal bridgeGovernanceTransferChangeInitiated;
+    uint256 public bridgeGovernanceTransferChangeInitiated;
     address internal newBridgeGovernance;
 
     event GovernanceDelayUpdateStarted(
@@ -299,8 +299,8 @@ contract BridgeGovernance is Ownable {
         /* solhint-enable not-rely-on-time */
         emit GovernanceDelayUpdated(governanceDelays[1]);
         governanceDelays[0] = governanceDelays[1];
-        governanceDelays[2] = 0;
         governanceDelays[1] = 0;
+        governanceDelays[2] = 0;
     }
 
     /// @notice Begins the Bridge governance transfer process.
@@ -319,7 +319,7 @@ contract BridgeGovernance is Ownable {
         bridgeGovernanceTransferChangeInitiated = block.timestamp;
         emit BridgeGovernanceTransferStarted(
             _newBridgeGovernance,
-            block.timestamp
+            bridgeGovernanceTransferChangeInitiated
         );
         /* solhint-enable not-rely-on-time */
     }

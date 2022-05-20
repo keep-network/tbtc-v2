@@ -7,8 +7,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
 
   const Bridge = await deployments.get("Bridge")
-  const BridgeGovernanceParams = await deployments.deploy(
-    "BridgeGovernanceParams",
+  const BridgeGovernanceParameters = await deployments.deploy(
+    "BridgeGovernanceParameters",
     {
       from: deployer,
       log: true,
@@ -25,7 +25,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [Bridge.address, GOVERNANCE_DELAY],
     log: true,
-    libraries: { BridgeGovernanceParams: BridgeGovernanceParams.address },
+    libraries: {
+      BridgeGovernanceParameters: BridgeGovernanceParameters.address,
+    },
   })
 
   if (hre.network.tags.tenderly) {
