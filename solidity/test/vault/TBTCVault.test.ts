@@ -1015,6 +1015,14 @@ describe("TBTCVault", () => {
         before(async () => {
           await createSnapshot()
           await vault.connect(governance).initiateUpgrade(newVault)
+
+          // Mint some TBTC to increase the balance of TBTCVault
+          await bank
+            .connect(account1)
+            .approveBalanceAndCall(vault.address, initialBalance, [])
+          await bank
+            .connect(account2)
+            .approveBalanceAndCall(vault.address, initialBalance, [])
         })
 
         after(async () => {
@@ -1054,6 +1062,14 @@ describe("TBTCVault", () => {
 
           it("should transfer TBTC token ownership", async () => {
             expect(await tbtc.owner()).is.equal(newVault)
+          })
+
+          it("should transfer the entire bank balance", async () => {
+            expect(await bank.balanceOf(vault.address)).to.equal(0)
+            // In the setup, each account minted `initialBalance` of TBTC.
+            expect(await bank.balanceOf(newVault)).to.equal(
+              initialBalance.mul(2)
+            )
           })
 
           it("should emit UpgradeFinalized event", async () => {
