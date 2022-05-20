@@ -208,8 +208,8 @@ contract TBTCVault is IVault, Ownable {
     ///         upgrade process needs to be first initiated with a call to
     ///         `initiateUpgrade` and the `UPGRADE_GOVERNANCE_DELAY` needs to
     ///         pass. Once the upgrade is finalized, the new vault becomes the
-    ///         owner of TBTC token and receives a whole Bank balance of this
-    ///         vault.
+    ///         owner of the TBTC token and receives the whole Bank balance of
+    ///         this vault.
     function finalizeUpgrade()
         external
         onlyOwner
