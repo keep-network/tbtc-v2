@@ -28,6 +28,38 @@ import { BigNumberish, BigNumber } from "ethers"
 chai.use(chaiAsPromised)
 
 describe("Redemption", () => {
+  describe("requestRedemption", () => {
+    const data: RedemptionTestData = singleP2PKHRedemptionWithWitnessChange
+    const mainUtxo = data.mainUtxo
+    const redeemerOutputScript =
+      data.pendingRedemptions[0].pendingRedemption.redeemerOutputScript
+    const amount = data.pendingRedemptions[0].pendingRedemption.requestedAmount
+    const bridge: MockBridge = new MockBridge()
+
+    beforeEach(async () => {
+      bcoin.set("testnet")
+
+      await TBTC.requestRedemption(
+        walletPublicKey,
+        mainUtxo,
+        redeemerOutputScript,
+        amount,
+        bridge
+      )
+    })
+
+    it("should submit redemption proof with correct arguments", () => {
+      const bridgeLog = bridge.requestRedemptionLog
+      expect(bridgeLog.length).to.equal(1)
+      expect(bridgeLog[0].walletPublicKey).to.equal(
+        redemptionProof.expectedRedemptionProof.walletPublicKey
+      )
+      expect(bridgeLog[0].mainUtxo).to.equal(mainUtxo)
+      expect(bridgeLog[0].redeemerOutputScript).to.equal(redeemerOutputScript)
+      expect(bridgeLog[0].amount).to.equal(amount)
+    })
+  })
+
   describe("makeRedemptions", () => {
     let bitcoinClient: MockBitcoinClient
     let bridge: MockBridge
