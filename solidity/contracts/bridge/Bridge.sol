@@ -420,7 +420,7 @@ contract Bridge is
     ///      - `amount` must be above or equal the `redemptionDustThreshold`,
     ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
     ///        used for only one pending request at the same time,
-    ///      - Wallet must have enough Bitcoin balance to proceed the request,
+    ///      - Wallet must have enough Bitcoin balance to process the request,
     ///      - Redeemer must make an allowance in the Bank that the Bridge
     ///        contract can spend the given `amount`.
     function requestRedemption(
@@ -492,7 +492,7 @@ contract Bridge is
     ///      - `amount` must be above or equal the `redemptionDustThreshold`,
     ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
     ///        used for only one pending request at the same time,
-    ///      - Wallet must have enough Bitcoin balance to proceed the request.
+    ///      - Wallet must have enough Bitcoin balance to process the request.
     ///
     ///      Note on upgradeability:
     ///      Bridge is an upgradeable contract deployed behind
