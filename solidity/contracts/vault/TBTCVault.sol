@@ -15,7 +15,7 @@
 
 pragma solidity ^0.8.9;
 
-import "@keep-network/random-beacon/contracts/Governable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IVault.sol";
 import "../bank/Bank.sol";
@@ -30,7 +30,9 @@ import "../GovernanceUtils.sol";
 ///         Bank.
 /// @dev TBTC Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
-contract TBTCVault is IVault, Governable {
+contract TBTCVault is IVault, Ownable {
+    using SafeERC20 for IERC20;
+
     /// @notice The time delay that needs to pass between initializing and
     ///         finalizing upgrade to a new vault. The time delay forces the
     ///         upgrading party to reflect on the vault address it is upgrading
@@ -81,36 +83,6 @@ contract TBTCVault is IVault, Governable {
 
         bank = _bank;
         tbtcToken = _tbtcToken;
-
-        _transferGovernance(msg.sender);
-    }
-
-    /// @notice Allows the governance of the TBTCVault to recover any ERC20
-    ///         token sent mistakenly to the TBTC token contract address.
-    /// @param token Address of the recovered ERC20 token contract.
-    /// @param recipient Address the recovered token should be sent to.
-    /// @param amount Recovered amount.
-    function recoverERC20(
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyGovernance {
-        tbtcToken.recoverERC20(token, recipient, amount);
-    }
-
-    /// @notice Allows the governance of the TBTCVault to recover any ERC721
-    ///         token sent mistakenly to the TBTC token contract address.
-    /// @param token Address of the recovered ERC721 token contract.
-    /// @param recipient Address the recovered token should be sent to.
-    /// @param tokenId Identifier of the recovered token.
-    /// @param data Additional data.
-    function recoverERC721(
-        IERC721 token,
-        address recipient,
-        uint256 tokenId,
-        bytes calldata data
-    ) external onlyGovernance {
-        tbtcToken.recoverERC721(token, recipient, tokenId, data);
     }
 
     /// @notice Transfers the given `amount` of the Bank balance from caller
@@ -223,7 +195,7 @@ contract TBTCVault is IVault, Governable {
     ///         `UPGRADE_GOVERNANCE_DELAY` passes. Only the governance can
     ///         initiate the upgrade.
     /// @param _newVault The new vault address.
-    function initiateUpgrade(address _newVault) external onlyGovernance {
+    function initiateUpgrade(address _newVault) external onlyOwner {
         require(_newVault != address(0), "New vault address cannot be zero");
         /* solhint-disable-next-line not-rely-on-time */
         emit UpgradeInitiated(_newVault, block.timestamp);
@@ -235,18 +207,78 @@ contract TBTCVault is IVault, Governable {
     /// @notice Allows the governance to finalize vault upgrade process. The
     ///         upgrade process needs to be first initiated with a call to
     ///         `initiateUpgrade` and the `UPGRADE_GOVERNANCE_DELAY` needs to
-    ///         pass. Once the upgrade is finalized, the new vault will become
-    ///         an owner of TBTC token.
+    ///         pass. Once the upgrade is finalized, the new vault becomes the
+    ///         owner of the TBTC token and receives the whole Bank balance of
+    ///         this vault.
     function finalizeUpgrade()
         external
-        onlyGovernance
+        onlyOwner
         onlyAfterUpgradeGovernanceDelay
     {
         emit UpgradeFinalized(newVault);
         // slither-disable-next-line reentrancy-no-eth
         tbtcToken.transferOwnership(newVault);
+        bank.transferBalance(newVault, bank.balanceOf(address(this)));
         newVault = address(0);
         upgradeInitiatedTimestamp = 0;
+    }
+
+    /// @notice Allows the governance of the TBTCVault to recover any ERC20
+    ///         token sent mistakenly to the TBTC token contract address.
+    /// @param token Address of the recovered ERC20 token contract.
+    /// @param recipient Address the recovered token should be sent to.
+    /// @param amount Recovered amount.
+    function recoverERC20FromToken(
+        IERC20 token,
+        address recipient,
+        uint256 amount
+    ) external onlyOwner {
+        tbtcToken.recoverERC20(token, recipient, amount);
+    }
+
+    /// @notice Allows the governance of the TBTCVault to recover any ERC721
+    ///         token sent mistakenly to the TBTC token contract address.
+    /// @param token Address of the recovered ERC721 token contract.
+    /// @param recipient Address the recovered token should be sent to.
+    /// @param tokenId Identifier of the recovered token.
+    /// @param data Additional data.
+    function recoverERC721FromToken(
+        IERC721 token,
+        address recipient,
+        uint256 tokenId,
+        bytes calldata data
+    ) external onlyOwner {
+        tbtcToken.recoverERC721(token, recipient, tokenId, data);
+    }
+
+    /// @notice Allows the governance of the TBTCVault to recover any ERC20
+    ///         token sent - mistakenly or not - to the vault address. This
+    ///         function should be used to withdraw TBTC v1 tokens transferred
+    ///         to TBTCVault as a result of VendingMachine > TBTCVault upgrade.
+    /// @param token Address of the recovered ERC20 token contract.
+    /// @param recipient Address the recovered token should be sent to.
+    /// @param amount Recovered amount.
+    function recoverERC20(
+        IERC20 token,
+        address recipient,
+        uint256 amount
+    ) external onlyOwner {
+        token.safeTransfer(recipient, amount);
+    }
+
+    /// @notice Allows the governance of the TBTCVault to recover any ERC721
+    ///         token sent mistakenly to the vault address.
+    /// @param token Address of the recovered ERC721 token contract.
+    /// @param recipient Address the recovered token should be sent to.
+    /// @param tokenId Identifier of the recovered token.
+    /// @param data Additional data.
+    function recoverERC721(
+        IERC721 token,
+        address recipient,
+        uint256 tokenId,
+        bytes calldata data
+    ) external onlyOwner {
+        token.safeTransferFrom(address(this), recipient, tokenId, data);
     }
 
     // slither-disable-next-line calls-loop

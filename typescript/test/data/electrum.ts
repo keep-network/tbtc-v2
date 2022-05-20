@@ -4,6 +4,7 @@ import {
   UnspentTransactionOutput,
   TransactionMerkleBranch,
 } from "../../src/bitcoin"
+import { BigNumber } from "ethers"
 
 /**
  * Bitcoin testnet address used for Electrum client tests.
@@ -33,7 +34,7 @@ export const testnetTransaction: Transaction = {
   outputs: [
     {
       outputIndex: 0,
-      value: 101,
+      value: BigNumber.from(101),
       scriptPubKey: {
         addresses: ["tb1qfdru0xx39mw30ha5a2vw23reymmxgucujfnc7l"],
         asm: "OP_0 4b47c798d12edd17dfb4ea98e5447926f664731c",
@@ -44,7 +45,7 @@ export const testnetTransaction: Transaction = {
     },
     {
       outputIndex: 1,
-      value: 9125,
+      value: BigNumber.from(9125),
       scriptPubKey: {
         addresses: ["tb1q78ezl08lyhuazzfz592sstenmegdns7durc4cl"],
         asm: "OP_0 f1f22fbcff25f9d10922a155082f33de50d9c3cd",
@@ -76,7 +77,7 @@ export const testnetRawTransaction: RawTransaction = {
 export const testnetUTXO: UnspentTransactionOutput = {
   transactionHash: testnetTransaction.transactionHash,
   outputIndex: 0,
-  value: 101,
+  value: BigNumber.from(101),
 }
 
 /**
