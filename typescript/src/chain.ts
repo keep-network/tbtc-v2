@@ -47,7 +47,7 @@ export interface Bridge {
   ): Promise<void>
 
   /**
-   * Requests the on-chain contract for a redemption.
+   * Requests a redemption from the on-chain contract.
    * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in the
    *        compressed form (33 bytes long with 02 or 03 prefix).
    * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
