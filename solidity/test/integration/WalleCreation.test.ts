@@ -109,6 +109,8 @@ describeFn("Integration Test - Wallet Creation", async () => {
       await assertGasUsed(requestNewWalletTx, 93_000)
     })
 
-    // TODO: Should we also validate gas used by Random Beacon and ECDSA Wallet Registry transactions?
+    it("should consume around 339 000 gas for WalletRegistry.approveDkgResult transaction", async () => {
+      await assertGasUsed(walletRegistrationTx, 339_000)
+    })
   })
 })
