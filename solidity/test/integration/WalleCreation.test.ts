@@ -16,6 +16,7 @@ import { produceRelayEntry } from "./utils/random-beacon"
 
 import { assertGasUsed } from "./utils/gas"
 import { fixture } from "./utils/fixture"
+import { walletState } from "../fixtures"
 
 const NO_MAIN_UTXO = {
   txHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -85,7 +86,7 @@ describeFn("Integration Test - Wallet Creation", async () => {
         ecdsaWalletTestData.walletID
       )
 
-      expect(storedWallet.state).to.be.equal(1)
+      expect(storedWallet.state).to.be.equal(walletState.Live)
 
       expect(storedWallet.createdAt).to.be.equal(
         (
