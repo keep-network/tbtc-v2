@@ -49,15 +49,14 @@
 
 % WALLET CLOSING PERIOD ELAPSED
 % Nodes
-\node[start]                                                       (wcpe_start)   {Somebody notifies about \textbf{wallet exceeding closing period}};
+\node[start]                                                       (wcpe_start)   {\textbf{Notify wallet closing period elapsed}};
 \node[check, below=of wcpe_start]                                  (wcpe_check1)  {Is wallet\\ CLOSING?};
-\node[check, below right=of wcpe_check1]                           (wcpe_check2)  {Has the\\ closing\_period\\ passeed since the wallet\\ channged state\\ to CLOSING?};              
+\node[check, below right=of wcpe_check1]                           (wcpe_check2)  {Has the\\ closing period\\ elapsed?};              
 \node[revert, below left=of wcpe_check2, xshift=-2cm]              (wcpe_revert1) {Transaction reverted};
 \node[action, below right=of wcpe_check2]                          (wcpe_action1) {Wallet's state changed to CLOSED};
-\node[action, below=of wcpe_action1]                               (wcpe_action2) {Emit notification};
 \node[note1, right=of wcpe_start.south east, anchor=south west]    (wcpe_note1)   {Can be successfully called for wallets:\\
                                                                                    \textbf{- CLOSING}};
-\node[note2, above=of wcpe_note1.north, anchor=south, yshift=-8mm] (wcpe_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+\node[note2, above=of wcpe_note1.north, anchor=south, yshift=-8mm] (wcpe_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed}};
 
 % Arrows
 \draw[->] (wcpe_start)   -- (wcpe_check1);
@@ -65,7 +64,6 @@
 \draw[->] (wcpe_check1)  -| (wcpe_check2)  \yes;
 \draw[->] (wcpe_check2)  -| (wcpe_revert1) \no;
 \draw[->] (wcpe_check2)  -| (wcpe_action1) \yes;
-\draw[->] (wcpe_action1) -- (wcpe_action2);
 
 
 % BACKGROUND

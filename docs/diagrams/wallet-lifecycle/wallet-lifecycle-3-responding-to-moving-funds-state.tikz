@@ -51,16 +51,15 @@
 % Nodes
 \node[start]                                                       (rmft_start)   {\textbf{Reset moving funds timeout}};
 \node[check, below=of rmft_start]                                  (rmft_check1)  {Is wallet\\ MOVING\_FUNDS?};
-\node[check, below right=of rmft_check1]                           (rmft_check2)  {Has the\\ moving funds\\ commitment been already\\ submitted for\\ the wallet?};
+\node[check, below right=of rmft_check1]                           (rmft_check2)  {Has the\\ target wallets\\ commitment been already\\ submitted for\\ the wallet?};
 \node[check, below left=of rmft_check2]                            (rmft_check3)  {Is \# of live wallets equal 0?};
 \node[revert, below right=of rmft_check2]                          (rmft_revert1) {Transaction reverted};
-\node[check, below right=of rmft_check3]                           (rmft_check4)  {Has at least\\ moving\_funds\_timeout\_reset\_delay\\ passed since moving\_funds\_timeout\\ was reset for the wallet?};
-\node[revert, below left=of rmft_check4, xshift=-3cm]                           (rmft_revert2) {Transaction reverted};
-\node[action, below right=of rmft_check4]                          (rmft_action1) {Reset the moving\_funds\_timeout};
-\node[action, below=of rmft_action1]                               (rmft_action2) {Notification sent};
+\node[check, below right=of rmft_check3]                           (rmft_check4)  {Has enough\\ time passed since\\ the last timeout reset or since\\ the wallet started\\ moving funds?};
+\node[revert, below left=of rmft_check4, xshift=-3cm]              (rmft_revert2) {Transaction reverted};
+\node[action, below right=of rmft_check4]                          (rmft_action1) {Reset the moving funds timeout};
 \node[note1, right=of rmft_start.south east, anchor=south west]    (rmft_note1)   {Can be successfully called for wallets:\\ 
                                                                                    \textbf{- MOVING\_FUNDS}};
-\node[note2, above=of rmft_note1.north, anchor=south, yshift=-8mm] (rmft_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+\node[note2, above=of rmft_note1.north, anchor=south, yshift=-8mm] (rmft_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed, avoids getting slashed}};
 
 % Arrows
 \draw[->] (rmft_start)   -- (rmft_check1);
@@ -72,26 +71,25 @@
 \draw[->] (rmft_check3)  -| (rmft_check4)  \yes;
 \draw[->] (rmft_check4)  -| (rmft_revert2) \no;
 \draw[->] (rmft_check4)  -| (rmft_action1) \yes;
-\draw[->] (rmft_action1) -- (rmft_action2);
+
 
 % MOVING FUNDS COMMITMENT
 % Nodes
-\node[start, right=of rmft_start, xshift=12cm]                    (mfc_start)   {Somebody sends \textbf{moving funds commitment}};
-\node[check, below=of mfc_start]                                  (mfc_check1)  {Is the\\ source wallet in\\ MOVING\_FUNDS\\ state?};
+\node[start, right=of rmft_start, xshift=12cm]                    (mfc_start)   {\textbf{Submit moving funds commitment}};
+\node[check, below=of mfc_start]                                  (mfc_check1)  {Is the\\ source wallet\\ MOVING\_FUNDS?};
 \node[check, below right=of mfc_check1]                           (mfc_check2)  {Is sender a\\ member of the\\ source wallet?};
-\node[check, below right=of mfc_check2]                           (mfc_check3)  {Hasn't the\\ target\_wallet\_commitment\\ with the same source\\ wallet been already\\ posted?};
+\node[check, below right=of mfc_check2]                           (mfc_check3)  {Hasn't the\\ target wallet commitment\\\ already been submitted for\\ the wallet?};
 \node[check, below right=of mfc_check3]                           (mfc_check4)  {Is \# of pending\\ redemptions on\\ the source wallet\\ equal 0?};
 \node[check, below right=of mfc_check4]                           (mfc_check5)  {Is the source\\ wallet free of pending\\ moved funds\\ sweep requests?};
 \node[check, below right=of mfc_check5]                           (mfc_check6)  {Are the\\ target wallets\\ in LIVE state?};
 \node[check, below right=of mfc_check6]                           (mfc_check7)  {Are the target\\ wallets different\\ than source\\ wallet?};
-\node[check, below right=of mfc_check7]                           (mfc_check8)  {Is \# of target\\ wallets equal to\\ min(\#\_of\_live\_wallets,\\ balance/wallet\_transfer\_max)\\ and \>0?};
+\node[check, below right=of mfc_check7]                           (mfc_check8)  {Is the \# of\\ the target wallets\\ in the commitment\\ as expected??};
 \node[check, below right=of mfc_check8]                           (mfc_check9)  {Are hashes of\\ target wallets ordered\\ ascending, without\\ duplicates?};              
 \node[revert, below left=of mfc_check9, xshift=-28cm]             (mfc_revert1) {Transaction reverted};
 \node[action, below right=of mfc_check9]                          (mfc_action1) {Information about chosen target wallets saved on-chain};
-\node[action, below=of mfc_action1]                               (mfc_action2) {Notification sent};
 \node[note1, right=of mfc_start.south east, anchor=south west]    (mfc_note1)   {Can be successfully called for wallets:\\
                                                                                  \textbf{- MOVING\_FUNDS}};
-\node[note2, above=of mfc_note1.north, anchor=south, yshift=-8mm] (mfc_note2)   {Sender incentivized by:\\ \textbf{Fear of loosing rewards for 2 weeks; reimbursement}};
+\node[note2, above=of mfc_note1.north, anchor=south, yshift=-8mm] (mfc_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed, avoids getting slashed}};
 
 % Arrows
 \draw[->] (mfc_start)   -- (mfc_check1);
@@ -113,20 +111,18 @@
 \draw[->] (mfc_check8)  -| (mfc_check9)  \yes;
 \draw[->] (mfc_check9)  -| (mfc_revert1) \no;
 \draw[->] (mfc_check9)  -| (mfc_action1) \yes;
-\draw[->] (mfc_action1) -- (mfc_action2);
 
 
 % DUST BALANCE
 % Nodes
-\node[start, right=of mfc_start, xshift=30cm]                    (db_start)   {Somebody notifies that \textbf{wallet can be closed due to dust balance}};
+\node[start, right=of mfc_start, xshift=30cm]                    (db_start)   {\textbf{Notify moving funds below dust}};
 \node[check, below=of db_start]                                  (db_check1)  {Is wallet\\ MOVING\_FUNDS?};
-\node[check, below right=of db_check1]                           (db_check2)  {Is wallet's\\ balance $\leq$ wallet\_dust\_leftover?};              
+\node[check, below right=of db_check1]                           (db_check2)  {Is the\\ wallet balance below\\ the moving funds dust\\ threshold?};              
 \node[revert, below left=of db_check2, xshift=-2cm]              (db_revert1) {Transaction reverted};
 \node[action, below right=of db_check2]                          (db_action1) {Wallet's state changed to CLOSING};
-\node[action, below=of db_action1]                               (db_action2) {Wallet contract emits notification about state changed to CLOSING};
 \node[note1, right=of db_start.south east, anchor=south west]    (db_note1)   {Can be successfully called for wallets:\\
                                                                                \textbf{- MOVING\_FUNDS}};
-\node[note2, above=of db_note1.north, anchor=south, yshift=-8mm] (db_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+\node[note2, above=of db_note1.north, anchor=south, yshift=-8mm] (db_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed, avoids getting slashed}};
 
 % Arrows
 \draw[->] (db_start)   -- (db_check1);
@@ -134,7 +130,6 @@
 \draw[->] (db_check1)  -| (db_check2)  \yes;
 \draw[->] (db_check2)  -| (db_revert1) \no;
 \draw[->] (db_check2)  -| (db_action1) \yes;
-\draw[->] (db_action1) -- (db_action2);
 
 
 % BACKGROUND
