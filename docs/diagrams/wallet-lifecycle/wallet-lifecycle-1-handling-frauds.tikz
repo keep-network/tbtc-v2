@@ -78,7 +78,7 @@
 % DEFEAT FRAUD CHALLENGE
 % Nodes
 \node[start, right=of fc_start, xshift=120mm]                    (df_start)   {\textbf{Defeat fraud challenge}};
-\node[check, below=of df_start]                                  (df_check1)  {Does the\\ provided heartbeat\\ message match an\\ existing, unresolved\\ challenge?};
+\node[check, below=of df_start]                                  (df_check1)  {Does the provided\\ preimage match an\\ existing, unresolved\\ challenge?};
 \node[check, below right=of df_check1]                           (df_check2)  {Has the defeat timeout\\ been reported?};
 \node[check, below left=of df_check2]                            (df_check3)  {Was the\\ SIGHASH\_ALL used\\ during preimage\\ signing?};
 \node[revert, below right=of df_check2]                          (df_revert1) {Transaction reverted};
