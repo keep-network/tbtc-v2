@@ -384,10 +384,10 @@ library Redemption {
     /// @param redeemer The Ethereum address of the redeemer who will be able to
     ///        claim Bank balance if anything goes wrong during the redemption.
     ///        In the most basic case, when someone redeems their Bitcoin
-    ///        balance from the Bank, `balanceOwner` is the same as `redemeer`.
+    ///        balance from the Bank, `balanceOwner` is the same as `redeemer`.
     ///        However, when a Vault is redeeming part of its balance for some
     ///        redeemer address (for example, someone who has earlier deposited
-    ///        into that Vault), `balanceOwner` is the Vault, and `redemeer` is
+    ///        into that Vault), `balanceOwner` is the Vault, and `redeemer` is
     ///        the address for which the vault is redeeming its balance to.
     /// @param redeemerOutputScript The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
@@ -982,7 +982,7 @@ library Redemption {
             wallet.state == Wallets.WalletState.Live ||
                 wallet.state == Wallets.WalletState.MovingFunds ||
                 wallet.state == Wallets.WalletState.Terminated,
-            "The wallet must be in Live, MovingFunds or Terminated state"
+            "Wallet must be in Live, MovingFunds or Terminated state"
         );
 
         // It is worth noting that there is no need to check if
@@ -999,9 +999,6 @@ library Redemption {
             wallet.state == Wallets.WalletState.Live ||
             wallet.state == Wallets.WalletState.MovingFunds
         ) {
-            // Propagate timeout consequences to the wallet
-            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
-
             // Slash the wallet operators and reward the notifier
             self.ecdsaWalletRegistry.seize(
                 self.redemptionTimeoutSlashingAmount,
@@ -1010,6 +1007,9 @@ library Redemption {
                 wallet.ecdsaWalletID,
                 walletMembersIDs
             );
+
+            // Propagate timeout consequences to the wallet
+            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
         }
 
         // slither-disable-next-line reentrancy-events
