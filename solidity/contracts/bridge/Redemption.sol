@@ -999,9 +999,6 @@ library Redemption {
             wallet.state == Wallets.WalletState.Live ||
             wallet.state == Wallets.WalletState.MovingFunds
         ) {
-            // Propagate timeout consequences to the wallet
-            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
-
             // Slash the wallet operators and reward the notifier
             self.ecdsaWalletRegistry.seize(
                 self.redemptionTimeoutSlashingAmount,
@@ -1010,6 +1007,9 @@ library Redemption {
                 wallet.ecdsaWalletID,
                 walletMembersIDs
             );
+
+            // Propagate timeout consequences to the wallet
+            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
         }
 
         // slither-disable-next-line reentrancy-events
