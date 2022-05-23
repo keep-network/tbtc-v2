@@ -35,7 +35,7 @@ library BridgeGovernanceParameters {
         uint256 redemptionTxMaxFeeChangeInitiated;
         uint64 newRedemptionTimeout;
         uint256 redemptionTimeoutChangeInitiated;
-        uint64 newRedemptionTimeoutSlashingAmount;
+        uint96 newRedemptionTimeoutSlashingAmount;
         uint256 redemptionTimeoutSlashingAmountChangeInitiated;
         uint64 newRedemptionTimeoutNotifierRewardMultiplier;
         uint256 redemptionTimeoutNotifierRewardMultiplierChangeInitiated;
@@ -647,7 +647,7 @@ library BridgeGovernanceParameters {
     /// @param _newRedemptionTimeoutSlashingAmount New redemption timeout slashing amount amount.
     function beginRedemptionTimeoutSlashingAmountUpdate(
         RedemptionData storage self,
-        uint64 _newRedemptionTimeoutSlashingAmount
+        uint96 _newRedemptionTimeoutSlashingAmount
     ) external {
         /* solhint-disable not-rely-on-time */
         self
@@ -684,7 +684,7 @@ library BridgeGovernanceParameters {
     function getNewRedemptionTimeoutSlashingAmount(RedemptionData storage self)
         internal
         view
-        returns (uint64)
+        returns (uint96)
     {
         return self.newRedemptionTimeoutSlashingAmount;
     }

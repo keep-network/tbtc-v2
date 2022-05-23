@@ -25,7 +25,7 @@ export const constants = {
   walletCreationMinBtcBalance: to1ePrecision(1, 8), // 1 BTC
   walletCreationMaxBtcBalance: to1ePrecision(100, 8), // 100 BTC
   walletClosureMinBtcBalance: to1ePrecision(5, 7), // 0.5 BTC
-  walletMaxAge: 8 * 604800, // 8 weeks,
+  walletMaxAge: 26 * 604800, // 26 weeks,
   walletMaxBtcTransfer: to1ePrecision(10, 8), // 10 BTC
   walletClosingPeriod: 3456000, // 40 days
   fraudChallengeDepositAmount: to1ePrecision(2, 18), // 2 ethers

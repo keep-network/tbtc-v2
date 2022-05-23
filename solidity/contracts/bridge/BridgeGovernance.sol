@@ -317,16 +317,13 @@ contract BridgeGovernance is Ownable {
     }
 
     /// @notice Begins the Bridge governance transfer process.
-    /// @dev Can be called only by the contract owner. It is the governance resposibility
-    ///      to validate the corectness of the new Bridge Governance contract.
+    /// @dev Can be called only by the contract owner. It is the governance
+    ///      resposibility to validate the corectness of the new Bridge
+    ///      Governance contract.
     function beginBridgeGovernanceTransfer(address _newBridgeGovernance)
         external
         onlyOwner
     {
-        require(
-            address(_newBridgeGovernance) != address(0),
-            "New bridge owner address cannot be zero"
-        );
         newBridgeGovernance = _newBridgeGovernance;
         /* solhint-disable not-rely-on-time */
         bridgeGovernanceTransferChangeInitiated = block.timestamp;
@@ -341,21 +338,20 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeBridgeGovernanceTransfer() external onlyOwner {
-        require(
-            bridgeGovernanceTransferChangeInitiated > 0,
-            "Change not initiated"
-        );
+        if (bridgeGovernanceTransferChangeInitiated > 0) {
+            revert("Change not initiated");
+        }
         /* solhint-disable not-rely-on-time */
-        require(
+        if (
             block.timestamp - bridgeGovernanceTransferChangeInitiated >=
-                governanceDelays[0],
-            "Governance delay has not elapsed"
-        );
+            governanceDelays[0]
+        ) {
+            revert("Governance delay has not elapsed");
+        }
         /* solhint-enable not-rely-on-time */
         bridge.transferGovernance(newBridgeGovernance);
         emit BridgeGovernanceTransferred(newBridgeGovernance);
         bridgeGovernanceTransferChangeInitiated = 0;
-        newBridgeGovernance = address(0);
     }
 
     // --- Deposit
@@ -592,7 +588,7 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionTimeoutSlashingAmount New redemption timeout slashing amount.
     function beginRedemptionTimeoutSlashingAmountUpdate(
-        uint64 _newRedemptionTimeoutSlashingAmount
+        uint96 _newRedemptionTimeoutSlashingAmount
     ) external onlyOwner {
         redemptionData.beginRedemptionTimeoutSlashingAmountUpdate(
             _newRedemptionTimeoutSlashingAmount
@@ -853,7 +849,7 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param _newMovingFundsTimeoutSlashingAmount New moving funds timeout slashing amount.
     function beginMovingFundsTimeoutSlashingAmountUpdate(
-        uint64 _newMovingFundsTimeoutSlashingAmount
+        uint96 _newMovingFundsTimeoutSlashingAmount
     ) external onlyOwner {
         movingFundsData.beginMovingFundsTimeoutSlashingAmountUpdate(
             _newMovingFundsTimeoutSlashingAmount
@@ -1040,7 +1036,7 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep timeout slashing amount.
     function beginMovedFundsSweepTimeoutSlashingAmountUpdate(
-        uint64 _newMovedFundsSweepTimeoutSlashingAmount
+        uint96 _newMovedFundsSweepTimeoutSlashingAmount
     ) external onlyOwner {
         movingFundsData.beginMovedFundsSweepTimeoutSlashingAmountUpdate(
             _newMovedFundsSweepTimeoutSlashingAmount
@@ -1403,7 +1399,7 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param _newFraudChallengeDepositAmount New fraud challenge deposit amount.
     function beginFraudChallengeDepositAmountUpdate(
-        uint64 _newFraudChallengeDepositAmount
+        uint256 _newFraudChallengeDepositAmount
     ) external onlyOwner {
         fraudData.beginFraudChallengeDepositAmountUpdate(
             _newFraudChallengeDepositAmount
@@ -1467,7 +1463,7 @@ contract BridgeGovernance is Ownable {
     /// @notice Begins the fraud slashing amount update process.
     /// @dev Can be called only by the contract owner.
     /// @param _newFraudSlashingAmount New fraud slashing amount.
-    function beginFraudSlashingAmountUpdate(uint64 _newFraudSlashingAmount)
+    function beginFraudSlashingAmountUpdate(uint96 _newFraudSlashingAmount)
         external
         onlyOwner
     {
@@ -1497,7 +1493,7 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param _newFraudNotifierRewardMultiplier New fraud notifier reward multiplier.
     function beginFraudNotifierRewardMultiplierUpdate(
-        uint64 _newFraudNotifierRewardMultiplier
+        uint256 _newFraudNotifierRewardMultiplier
     ) external onlyOwner {
         fraudData.beginFraudNotifierRewardMultiplierUpdate(
             _newFraudNotifierRewardMultiplier
