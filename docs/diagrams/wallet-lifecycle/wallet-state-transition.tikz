@@ -58,7 +58,7 @@
 % right` defines where the text should be placed in relation to that position).
 % Style of the labels is defined in `every node/.style`.
 
-\draw[->](unknown)      --  node[below right, pos=0, yshift=-5mm, align=left] {- registerNewWallet}                   (live);
+\draw[->](unknown)      --  node[below right, pos=0, yshift=-5mm, align=left] {- \_\_ecdsaWalletCreatedCallback}     (live);
 \draw[->](live)         --  node[below right, pos=0, yshift=-5mm, align=left] {- \_\_ecdsaWalletHeartbeatFailedCallback\\
                                                                                - notifyCloseableWallet\\
                                                                                - notifyRedemptionTimeout}            (movingFunds);
