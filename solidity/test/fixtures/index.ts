@@ -32,6 +32,7 @@ export const constants = {
   fraudChallengeDefeatTimeout: 604800, // 1 week
   fraudSlashingAmount: to1ePrecision(10000, 18), // 10000 T
   fraudNotifierRewardMultiplier: 100, // 100%
+  governanceDelay: 604800, // 1 week
 }
 
 export const walletState = {
