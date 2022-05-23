@@ -89,52 +89,52 @@ LIVE:\\
   \ttfamily{
   - revealDeposit\\
   - submitDepositSweepProof\\
-  - submitMovedFundsSweepProof\\
-  - notifyMovedFundsSweepTimeout\\
   - requestRedemption\\
   - receiveBalanceApproval\\
   - submitRedemptionProof\\
+  - notifyRedemptionTimeout\\
+  - notifyMovedFundsSweepTimeout\\
+  - submitMovedFundsSweepProof\\
+  - \_\_ecdsaWalletHeartbeatFailedCallback\\
+  - notifyCloseableWallet\\
   - submitFraudChallenge\\
   - defeatFraudChallenge\\
   - defeatFraudChallengeWithHeartbeat\\
-  - notifyFraudChallengeDefeatTimeout\\
-  - \_\_ecdsaWalletHeartbeatFailedCallback\\
-  - notifyCloseableWallet\\
-  - notifyRedemptionTimeout}
+  - notifyFraudChallengeDefeatTimeout}
 \nodepart{two} 
   MOVING\_FUNDS:\\
   \ttfamily{
   - submitDepositSweepProof\\
+  - submitRedemptionProof\\
+  - notifyRedemptionTimeout\\
+  - submitMovingFundsCommitment\\
+  - resetMovingFundsTimeout \\
+  - submitMovingFundsProof\\
+  - notifyMovingFundsTimeout\\
+  - notifyMovingFundsBelowDust\\
   - submitMovedFundsSweepProof\\
   - notifyMovedFundsSweepTimeout\\
-  - submitRedemptionProof\\
   - submitFraudChallenge\\
   - defeatFraudChallenge\\
   - defeatFraudChallengeWithHeartbeat\\
-  - notifyFraudChallengeDefeatTimeout\\
-  - notifyRedemptionTimeout\\
-  - resetMovingFundsTimeout \\
-  - submitMovingFundsCommitment\\
-  - submitMovingFundsProof\\
-  - notifyMovingFundsTimeout\\
-  - notifyMovingFundsBelowDust}
+  - notifyFraudChallengeDefeatTimeout}
 \nodepart{three}
   CLOSING:\\
   \ttfamily{
+  - notifyWalletClosingPeriodElapsed\\
   - submitFraudChallenge\\
   - defeatFraudChallenge\\
   - defeatFraudChallengeWithHeartbeat\\
-  - notifyFraudChallengeDefeatTimeout\\
-  - notifyWalletClosingPeriodElapsed}
+  - notifyFraudChallengeDefeatTimeout}
   \hfill\\
   \hfill\\
   \sffamily{
   TERMINATED:\\}
   \ttfamily{
+  - notifyRedemptionTimeout\\
   - notifyMovedFundsSweepTimeout\\
   - defeatFraudChallenge\\
   - defeatFraudChallengeWithHeartbeat\\
-  - notifyRedemptionTimeout\\
   - notifyFraudChallengeDefeatTimeout}
 };
 
