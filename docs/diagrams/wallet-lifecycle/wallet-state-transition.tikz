@@ -68,7 +68,8 @@
 \draw[->](live)         -|  node[above right, pos=0, xshift=5mm, align=left]  {- \_\_ecdsaWalletHeartbeatFailedCallback *\\
                                                                                - notifyCloseableWallet *\\
                                                                                - notifyRedemptionTimeout *\\
-                                                       \sffamily\footnotesize{(* only if there's no main UTXO)}}     +(10cm,0)
+                                                                               \sffamily\footnotesize{(* only if there is no main UTXO for the wallet)}} 
+                                                                                                                     +(10cm,0)
                         |-                                                                                           (closing);
 \draw[->](live)         -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyFraudChallengeDefeatTimeout\\
                                                                                - notifyMovedFundsSweepTimeout}       ([xshift=-50mm]terminated);
@@ -81,7 +82,7 @@
 % TEXT BOX
 
 \node [box, below = of closed, rectangle, xshift=-10mm, yshift=10mm] (box_label)
-{FUNCTIONS AVAILABLE PER STATE\\ \hfill};
+{FUNCTIONS AVAILABLE PER STATE\\ \hfill\\  \hfill};
 
 \node [box, below of=box_label, rectangle split, rectangle split horizontal, rectangle split parts=3, yshift=-5mm,](box_content)
 {
