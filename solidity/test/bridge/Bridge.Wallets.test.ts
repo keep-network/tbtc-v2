@@ -887,7 +887,7 @@ describe("Bridge - Wallets", () => {
                     ecdsaWalletTestData.publicKeyX,
                     ecdsaWalletTestData.publicKeyY
                   )
-              ).to.be.revertedWith("ECDSA wallet must be in Live state")
+              ).to.be.revertedWith("Wallet must be in Live state")
             })
           })
         })
@@ -1304,7 +1304,7 @@ describe("Bridge - Wallets", () => {
                     ecdsaWalletTestData.pubKeyHash160,
                     NO_MAIN_UTXO
                   )
-              ).to.be.revertedWith("ECDSA wallet must be in Live state")
+              ).to.be.revertedWith("Wallet must be in Live state")
             })
           })
         })
@@ -1497,7 +1497,7 @@ describe("Bridge - Wallets", () => {
               bridge.notifyWalletClosingPeriodElapsed(
                 ecdsaWalletTestData.pubKeyHash160
               )
-            ).to.be.revertedWith("ECDSA wallet must be in Closing state")
+            ).to.be.revertedWith("Wallet must be in Closing state")
           })
         })
       })
