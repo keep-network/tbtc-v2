@@ -58,25 +58,25 @@
 % right` defines where the text should be placed in relation to that position).
 % Style of the labels is defined in `every node/.style`.
 
-\draw[->](unknown)      --  node[below right, pos=0, yshift=-5mm, align=left] {- \_\_ecdsaWalletCreatedCallback}     (live);
-\draw[->](live)         --  node[below right, pos=0, yshift=-5mm, align=left] {- \_\_ecdsaWalletHeartbeatFailedCallback\\
-                                                                               - notifyCloseableWallet\\
-                                                                               - notifyRedemptionTimeout}            (movingFunds);
+\draw[->](unknown)      --  node[below right, pos=0, yshift=-5mm, align=left] {- \_\_ecdsaWalletCreatedCallback}           (live);
+\draw[->](live)         --  node[below right, pos=0, yshift=-5mm, align=left] {- notifyRedemptionTimeout\\
+                                                                               - \_\_ecdsaWalletHeartbeatFailedCallback\\
+                                                                               - notifyCloseableWallet}                   (movingFunds);
 \draw[->](movingFunds)  --  node[below right, pos=0, yshift=-5mm, align=left] {- submitMovingFundsProof\\
-                                                                               - notifyMovingFundsBelowDust}         (closing);
-\draw[->](closing)      --  node[below right, pos=0, yshift=-5mm, align=left] {- notifyWalletClosingPeriodElapsed}   (closed);
-\draw[->](live)         -|  node[above right, pos=0, xshift=5mm, align=left]  {- \_\_ecdsaWalletHeartbeatFailedCallback *\\
+                                                                               - notifyMovingFundsBelowDust}              (closing);
+\draw[->](closing)      --  node[below right, pos=0, yshift=-5mm, align=left] {- notifyWalletClosingPeriodElapsed}        (closed);
+\draw[->](live)         -|  node[above right, pos=0, xshift=5mm, align=left]  {- notifyRedemptionTimeout *\\
+                                                                               - \_\_ecdsaWalletHeartbeatFailedCallback *\\
                                                                                - notifyCloseableWallet *\\
-                                                                               - notifyRedemptionTimeout *\\
                                                                                \sffamily\footnotesize{(* only if there is no main UTXO for the wallet)}} 
-                                                                                                                     +(10cm,0)
-                        |-                                                                                           (closing);
-\draw[->](live)         -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyFraudChallengeDefeatTimeout\\
-                                                                               - notifyMovedFundsSweepTimeout}       ([xshift=-50mm]terminated);
-\draw[->](movingFunds)  -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyFraudChallengeDefeatTimeout\\
-                                                                               - notifyMovingFundsTimeout\\
-                                                                               - notifyMovedFundsSweepTimeout}       (terminated);
-\draw[->](closing)      -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyFraudChallengeDefeatTimeout}  ([xshift=15mm]terminated);
+                                                                                                                          +(10cm,0)
+                        |-                                                                                                (closing);
+\draw[->](live)         -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyMovedFundsSweepTimeout\\
+                                                                               - notifyFraudChallengeDefeatTimeout}       ([xshift=-50mm]terminated);
+\draw[->](movingFunds)  -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyMovingFundsTimeout\\
+                                                                               - notifyMovedFundsSweepTimeout\\
+                                                                               - notifyFraudChallengeDefeatTimeout}       (terminated);
+\draw[->](closing)      -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyFraudChallengeDefeatTimeout}       ([xshift=15mm]terminated);
 
 
 % TEXT BOX
