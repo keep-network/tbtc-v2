@@ -1,4 +1,4 @@
-import {Bridge, Identifier} from "../../src/chain"
+import { Bridge, Identifier } from "../../src/chain"
 import {
   DecomposedRawTransaction,
   Proof,

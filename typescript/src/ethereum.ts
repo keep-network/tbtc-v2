@@ -1,13 +1,5 @@
 import { Bridge as ChainBridge, Identifier } from "./chain"
-import {
-  BigNumber,
-  constants,
-  Contract,
-  ContractInterface,
-  getDefaultProvider,
-  utils,
-  Wallet,
-} from "ethers"
+import { BigNumber, constants, Contract, Signer, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { Deposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
@@ -19,31 +11,6 @@ import {
 } from "./bitcoin"
 
 /**
- * Represents a config set required to instantiate an Ethereum provider.
- */
-export interface ProviderConfig {
-  /**
-   * Network name, e.g. "homestead" or "ropsten". Can be also a URL to
-   * connect to, such as http://localhost:8545 or wss://example.com.
-   */
-  network: string
-  /**
-   * Optional parameters passed to the provider.
-   */
-  options?: any
-}
-
-/**
- * Represents a config set required to instantiate an Ethereum signer.
- */
-export interface SignerConfig {
-  /**
-   * Ethereum private key as a 0x-prefixed hex string.
-   */
-  privateKey: string
-}
-
-/**
  * Represents a config set required to connect an Ethereum contract.
  */
 export interface ContractConfig {
@@ -52,38 +19,9 @@ export interface ContractConfig {
    */
   address: string
   /**
-   * Provider config.
-   * @see {ProviderConfig}
+   * Signer that will sign all contract transactions.
    */
-  provider: ProviderConfig
-  /**
-   * Optional signer config. If not provided, the contract connection handle
-   * will work in the readonly mode.
-   * @see {SignerConfig}
-   */
-  signer?: SignerConfig
-}
-
-/**
- * Returns a handle to an Ethereum contract.
- * @param abi ABI of the contract the handle should point to
- * @param config Config of the contract handle
- * @returns A contract handle.
- */
-function getContractHandle(
-  abi: ContractInterface,
-  config: ContractConfig
-): Contract {
-  const provider = getDefaultProvider(
-    config.provider.network,
-    config.provider.options
-  )
-
-  const signer = config.signer
-    ? new Wallet(config.signer.privateKey, provider)
-    : null
-
-  return new Contract(config.address, abi, signer || provider)
+  signer: Signer
 }
 
 /**
@@ -94,14 +32,18 @@ export class Bridge implements ChainBridge {
   private _bridge: Contract
 
   constructor(config: ContractConfig) {
-    this._bridge = getContractHandle(`${BridgeABI}`, config)
+    this._bridge = new Contract(
+      config.address,
+      `${JSON.stringify(BridgeABI)}`,
+      config.signer
+    )
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
    * @see {ChainBridge#pendingRedemptions}
    */
-  pendingRedemptions(
+  async pendingRedemptions(
     walletPubKeyHash: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
@@ -119,7 +61,7 @@ export class Bridge implements ChainBridge {
       [`0x${walletPubKeyHash}`, prefixedRawRedeemerOutputScript]
     )
 
-    const request = this._bridge.pendingRedemptions(redemptionKey)
+    const request = await this._bridge.pendingRedemptions(redemptionKey)
 
     return Promise.resolve({
       redeemer: {
@@ -129,7 +71,7 @@ export class Bridge implements ChainBridge {
       requestedAmount: BigNumber.from(request.requestedAmount),
       treasuryFee: BigNumber.from(request.treasuryFee),
       txMaxFee: BigNumber.from(request.txMaxFee),
-      requestedAt: request.requestedAt,
+      requestedAt: BigNumber.from(request.requestedAt).toNumber(),
     })
   }
 
@@ -137,7 +79,7 @@ export class Bridge implements ChainBridge {
   /**
    * @see {ChainBridge#revealDeposit}
    */
-  revealDeposit(
+  async revealDeposit(
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
     deposit: Deposit
@@ -161,14 +103,14 @@ export class Bridge implements ChainBridge {
         : constants.AddressZero,
     }
 
-    return this._bridge.revealDeposit(depositTxParam, revealParam)
+    await this._bridge.revealDeposit(depositTxParam, revealParam)
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
    * @see {ChainBridge#submitDepositSweepProof}
    */
-  submitDepositSweepProof(
+  async submitDepositSweepProof(
     sweepTx: DecomposedRawTransaction,
     sweepProof: Proof,
     mainUtxo: UnspentTransactionOutput,
@@ -197,7 +139,7 @@ export class Bridge implements ChainBridge {
       ? `0x${vault.identifierHex}`
       : constants.AddressZero
 
-    return this._bridge.submitDepositSweepProof(
+    await this._bridge.submitDepositSweepProof(
       sweepTxParam,
       sweepProofParam,
       mainUtxoParam,
@@ -209,7 +151,9 @@ export class Bridge implements ChainBridge {
   /**
    * @see {ChainBridge#txProofDifficultyFactor}
    */
-  txProofDifficultyFactor(): Promise<number> {
-    return this._bridge.txProofDifficultyFactor()
+  async txProofDifficultyFactor(): Promise<number> {
+    const txProofDifficultyFactor: BigNumber =
+      await this._bridge.txProofDifficultyFactor()
+    return txProofDifficultyFactor.toNumber()
   }
 }
