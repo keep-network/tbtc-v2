@@ -17,6 +17,7 @@ import type {
   TestERC20,
   VendingMachine,
   IRelay,
+  BridgeGovernance,
 } from "../../typechain"
 
 const { to1e18 } = helpers.number
@@ -40,6 +41,7 @@ const { increaseTime, lastBlockTime } = helpers.time
 describe("VendingMachine - Upgrade", () => {
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
+  let bridgeGovernance: BridgeGovernance
 
   let account1: SignerWithAddress
   let account2: SignerWithAddress
@@ -60,14 +62,23 @@ describe("VendingMachine - Upgrade", () => {
     ;[account1, account2] = await helpers.signers.getUnnamedSigners()
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ tbtcVault, tbtc, vendingMachine, bank, bridge, relay } =
-      await waffle.loadFixture(bridgeFixture))
+    ;({
+      tbtcVault,
+      tbtc,
+      vendingMachine,
+      bank,
+      bridge,
+      relay,
+      bridgeGovernance,
+    } = await waffle.loadFixture(bridgeFixture))
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
     await bridge.setDepositDustThreshold(10000)
 
-    await bridge.connect(governance).setVaultStatus(tbtcVault.address, true)
+    await bridgeGovernance
+      .connect(governance)
+      .setVaultStatus(tbtcVault.address, true)
 
     tbtcV1 = await helpers.contracts.getContract("TBTCToken")
     // Two accounts with 10 TBTC v1 each wrap their holdings to TBTC v2.

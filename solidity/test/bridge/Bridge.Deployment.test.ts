@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
-import { deployments, ethers, helpers, upgrades } from "hardhat"
+import { deployments, ethers, helpers, upgrades, waffle } from "hardhat"
 import chai, { expect } from "chai"
 import chaiAsPromised from "chai-as-promised"
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import type { ProxyAdmin, Bridge } from "../../typechain"
+import bridgeFixture from "../fixtures/bridge"
+import type { ProxyAdmin, Bridge, BridgeGovernance } from "../../typechain"
 import type { TransparentUpgradeableProxy } from "../../typechain/TransparentUpgradeableProxy"
 
 chai.use(chaiAsPromised)
@@ -17,12 +18,15 @@ describe("Bridge - Deployment", async () => {
   let esdm: SignerWithAddress
 
   let bridge: Bridge
+  let bridgeGovernance: BridgeGovernance
   let bridgeProxy: TransparentUpgradeableProxy
   let proxyAdmin: ProxyAdmin
 
   before(async () => {
     await deployments.fixture()
     ;({ deployer, governance, esdm } = await helpers.signers.getNamedSigners())
+    // eslint-disable-next-line @typescript-eslint/no-extra-semi
+    ;({ bridgeGovernance } = await waffle.loadFixture(bridgeFixture))
 
     bridge = await helpers.contracts.getContract("Bridge")
 
@@ -69,21 +73,17 @@ describe("Bridge - Deployment", async () => {
 
   it("should set Bridge governance", async () => {
     expect(await bridge.governance()).to.be.equal(
-      // TODO: Once BridgeGovernance is implemented and set update this expectation
-      // to be equal bridgeGovernance.address.
-      governance.address,
+      bridgeGovernance.address,
       "invalid Bridge governance"
     )
   })
 
-  // TODO: Once BridgeGovernance is implemented and set enable this test
-  // https://github.com/keep-network/tbtc-v2/issues/147
-  // it("should set BridgeGovernance owner", async () => {
-  //   expect(
-  //     await bridgeGovernance.owner(),
-  //     "invalid BridgeGovernance owner"
-  //   ).equal(governance.address)
-  // })
+  it("should set BridgeGovernance owner", async () => {
+    expect(
+      await bridgeGovernance.owner(),
+      "invalid BridgeGovernance owner"
+    ).equal(governance.address)
+  })
 
   it("should revert when initialize called again", async () => {
     await expect(

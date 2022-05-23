@@ -3,7 +3,7 @@ import { ContractTransaction } from "ethers"
 import { helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import bridgeFixture from "../fixtures/bridge"
-import type { Bridge, BridgeStub } from "../../typechain"
+import type { Bridge, BridgeStub, BridgeGovernance } from "../../typechain"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
@@ -11,12 +11,12 @@ describe("Bridge - Vaults", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let bridge: Bridge & BridgeStub
+  let bridgeGovernance: BridgeGovernance
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, thirdParty, bridge } = await waffle.loadFixture(
-      bridgeFixture
-    ))
+    ;({ governance, thirdParty, bridge, bridgeGovernance } =
+      await waffle.loadFixture(bridgeFixture))
   })
 
   describe("isVaultTrusted", () => {
@@ -34,8 +34,8 @@ describe("Bridge - Vaults", () => {
     describe("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          bridge.connect(thirdParty).setVaultStatus(vault, true)
-        ).to.be.revertedWith("Caller is not the governance")
+          bridgeGovernance.connect(thirdParty).setVaultStatus(vault, true)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -45,7 +45,9 @@ describe("Bridge - Vaults", () => {
       describe("when setting vault status as trusted", () => {
         before(async () => {
           await createSnapshot()
-          tx = await bridge.connect(governance).setVaultStatus(vault, true)
+          tx = await bridgeGovernance
+            .connect(governance)
+            .setVaultStatus(vault, true)
         })
 
         after(async () => {
@@ -67,8 +69,10 @@ describe("Bridge - Vaults", () => {
       describe("when setting vault status as no longer trusted", () => {
         before(async () => {
           await createSnapshot()
-          await bridge.connect(governance).setVaultStatus(vault, true)
-          tx = await bridge.connect(governance).setVaultStatus(vault, false)
+          await bridgeGovernance.connect(governance).setVaultStatus(vault, true)
+          tx = await bridgeGovernance
+            .connect(governance)
+            .setVaultStatus(vault, false)
         })
 
         after(async () => {

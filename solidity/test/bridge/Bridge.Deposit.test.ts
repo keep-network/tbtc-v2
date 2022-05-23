@@ -14,6 +14,7 @@ import type {
   BridgeStub__factory,
   IRelay,
   IVault,
+  BridgeGovernance,
 } from "../../typechain"
 import type { DepositRevealInfoStruct } from "../../typechain/Bridge"
 import bridgeFixture from "../fixtures/bridge"
@@ -44,11 +45,19 @@ describe("Bridge - Deposit", () => {
   let relay: FakeContract<IRelay>
   let BridgeFactory: BridgeStub__factory
   let bridge: Bridge & BridgeStub
+  let bridgeGovernance: BridgeGovernance
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, treasury, bank, relay, BridgeFactory, bridge } =
-      await waffle.loadFixture(bridgeFixture))
+    ;({
+      governance,
+      treasury,
+      bank,
+      relay,
+      BridgeFactory,
+      bridge,
+      bridgeGovernance,
+    } = await waffle.loadFixture(bridgeFixture))
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
@@ -106,7 +115,9 @@ describe("Bridge - Deposit", () => {
       before(async () => {
         await createSnapshot()
 
-        await bridge.connect(governance).setVaultStatus(reveal.vault, true)
+        await bridgeGovernance
+          .connect(governance)
+          .setVaultStatus(reveal.vault, true)
 
         // Simulate the wallet is a Live one and is known in the system.
         await bridge.setWallet(reveal.walletPubKeyHash, {
@@ -761,7 +772,7 @@ describe("Bridge - Deposit", () => {
 
                             // Deploy a fake vault and mark it as trusted.
                             vault = await smock.fake<IVault>("IVault")
-                            await bridge
+                            await bridgeGovernance
                               .connect(governance)
                               .setVaultStatus(vault.address, true)
 
@@ -888,7 +899,7 @@ describe("Bridge - Deposit", () => {
 
                             // Deploy a fake vault and mark it as trusted.
                             vault = await smock.fake<IVault>("IVault")
-                            await bridge
+                            await bridgeGovernance
                               .connect(governance)
                               .setVaultStatus(vault.address, true)
 
@@ -902,7 +913,7 @@ describe("Bridge - Deposit", () => {
                             // Mark the vault as non-trusted just before
                             // proof submission.
                             const beforeProofActions = async () => {
-                              await bridge
+                              await bridgeGovernance
                                 .connect(governance)
                                 .setVaultStatus(vault.address, false)
                             }
@@ -1004,7 +1015,7 @@ describe("Bridge - Deposit", () => {
 
                             // Deploy a fake vault and mark it as trusted.
                             vault = await smock.fake<IVault>("IVault")
-                            await bridge
+                            await bridgeGovernance
                               .connect(governance)
                               .setVaultStatus(vault.address, true)
 
@@ -1359,7 +1370,7 @@ describe("Bridge - Deposit", () => {
 
                             // Deploy a fake vault and mark it as trusted.
                             vault = await smock.fake<IVault>("IVault")
-                            await bridge
+                            await bridgeGovernance
                               .connect(governance)
                               .setVaultStatus(vault.address, true)
 
@@ -1553,7 +1564,7 @@ describe("Bridge - Deposit", () => {
 
                             // Deploy a fake vault and mark it as trusted.
                             vault = await smock.fake<IVault>("IVault")
-                            await bridge
+                            await bridgeGovernance
                               .connect(governance)
                               .setVaultStatus(vault.address, true)
 
@@ -1575,7 +1586,7 @@ describe("Bridge - Deposit", () => {
                             // Mark the vault as non-trusted just before
                             // proof submission.
                             const beforeProofActions = async () => {
-                              await bridge
+                              await bridgeGovernance
                                 .connect(governance)
                                 .setVaultStatus(vault.address, false)
                             }
@@ -1745,10 +1756,10 @@ describe("Bridge - Deposit", () => {
                             // Deploy two fake vaults and mark them as trusted.
                             vaultA = await smock.fake<IVault>("IVault")
                             vaultB = await smock.fake<IVault>("IVault")
-                            await bridge
+                            await bridgeGovernance
                               .connect(governance)
                               .setVaultStatus(vaultA.address, true)
-                            await bridge
+                            await bridgeGovernance
                               .connect(governance)
                               .setVaultStatus(vaultB.address, true)
 
