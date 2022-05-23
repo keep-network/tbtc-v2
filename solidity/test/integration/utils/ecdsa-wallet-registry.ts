@@ -88,7 +88,7 @@ async function selectGroup(walletRegistry: WalletRegistry): Promise<Operators> {
     await walletRegistry.sortitionPool()
   )) as SortitionPool
 
-  const identifiers = await walletRegistry.selectGroup()
+  const identifiers: number[] = await walletRegistry.selectGroup()
 
   const addresses = await sortitionPool.getIDOperators(identifiers)
 
@@ -98,6 +98,9 @@ async function selectGroup(walletRegistry: WalletRegistry): Promise<Operators> {
         async (identifier, i): Promise<Operator> => ({
           id: identifier,
           signer: await ethers.getSigner(addresses[i]),
+          stakingProvider: await walletRegistry.operatorToStakingProvider(
+            addresses[i]
+          ),
         })
       )
     ))
@@ -117,6 +120,7 @@ interface DkgResult {
 type Operator = {
   id: number
   signer: SignerWithAddress
+  stakingProvider: string
 }
 
 export class Operators extends Array<Operator> {
