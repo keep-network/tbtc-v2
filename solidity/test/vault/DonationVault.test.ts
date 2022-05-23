@@ -3,27 +3,20 @@ import { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 
 import { ContractTransaction } from "ethers"
-import type {
-  Bank,
-  Bank__factory,
-  DonationVault,
-  DonationVault__factory,
-} from "../../typechain"
+import type { Bank, DonationVault } from "../../typechain"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
 const fixture = async () => {
   const [deployer, bridge, account1, account2] = await ethers.getSigners()
 
-  const Bank = await ethers.getContractFactory<Bank__factory>("Bank")
+  const Bank = await ethers.getContractFactory("Bank")
   const bank = await Bank.deploy()
   await bank.deployed()
 
   await bank.connect(deployer).updateBridge(bridge.address)
 
-  const DonationVault = await ethers.getContractFactory<DonationVault__factory>(
-    "DonationVault"
-  )
+  const DonationVault = await ethers.getContractFactory("DonationVault")
   const vault = await DonationVault.deploy(bank.address)
   await vault.deployed()
 
@@ -154,7 +147,9 @@ describe("DonationVault", () => {
     context("when called not by the bank", () => {
       it("should revert", async () => {
         await expect(
-          vault.connect(bridge).receiveBalanceApproval(account1.address, 1000)
+          vault
+            .connect(bridge)
+            .receiveBalanceApproval(account1.address, 1000, [])
         ).to.be.revertedWith("Caller is not the Bank")
       })
     })
@@ -172,7 +167,7 @@ describe("DonationVault", () => {
 
       it("should revert", async () => {
         await expect(
-          bank.connect(account1).approveBalanceAndCall(vault.address, 1000)
+          bank.connect(account1).approveBalanceAndCall(vault.address, 1000, [])
         ).to.be.revertedWith("Amount exceeds balance in the bank")
       })
     })
@@ -187,7 +182,7 @@ describe("DonationVault", () => {
 
         tx = await bank
           .connect(account1)
-          .approveBalanceAndCall(vault.address, 1000)
+          .approveBalanceAndCall(vault.address, 1000, [])
       })
 
       after(async () => {

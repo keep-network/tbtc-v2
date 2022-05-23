@@ -9,6 +9,32 @@ import "hardhat-contract-sizer"
 import "hardhat-deploy"
 import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
+import "hardhat-dependency-compiler"
+
+const ecdsaSolidityCompilerConfig = {
+  version: "0.8.9",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200,
+    },
+  },
+}
+
+// Configuration for testing environment.
+export const testConfig = {
+  // How many accounts we expect to define for non-staking related signers, e.g.
+  // deployer, thirdParty, governance.
+  // It is used as an offset for getting accounts for operators and stakes registration.
+  nonStakingAccountsCount: 10,
+
+  // How many roles do we need to define for staking, i.e. stakeOwner, stakingProvider,
+  // operator, beneficiary, authorizer.
+  stakingRolesCount: 5,
+
+  // Number of operators to register. Should be at least the same as group size.
+  operatorsCount: 110,
+}
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -23,6 +49,10 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+    overrides: {
+      "@keep-network/ecdsa/contracts/WalletRegistry.sol":
+        ecdsaSolidityCompilerConfig,
+    },
   },
 
   paths: {
@@ -39,6 +69,12 @@ const config: HardhatUserConfig = {
         // latest block is taken if FORKING_BLOCK env is not provided
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK, 10),
+      },
+      accounts: {
+        // Number of accounts that should be predefined on the testing environment.
+        count:
+          testConfig.nonStakingAccountsCount +
+          testConfig.stakingRolesCount * testConfig.operatorsCount,
       },
       tags: ["local"],
     },
@@ -77,6 +113,10 @@ const config: HardhatUserConfig = {
           "node_modules/@threshold-network/solidity-contracts/export/deploy",
       },
       {
+        artifacts: "node_modules/@keep-network/random-beacon/export/artifacts",
+        deploy: "node_modules/@keep-network/random-beacon/export/deploy",
+      },
+      {
         artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
         deploy: "node_modules/@keep-network/ecdsa/export/deploy",
       },
@@ -101,13 +141,30 @@ const config: HardhatUserConfig = {
       default: 3,
     },
     keepTechnicalWalletTeam: {
+      default: 4,
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
+      default: 5,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
+    esdm: {
+      default: 6,
+      // mainnet: ""
+    },
   },
-
+  dependencyCompiler: {
+    paths: [
+      "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol",
+      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
+      // WalletRegistry contract is deployed with @open-zeppelin/hardhat-upgrades
+      // plugin that doesn't work well with hardhat-deploy artifacts defined in
+      // external artifacts section, hence we have to compile the contracts from
+      // sources.
+      "@keep-network/ecdsa/contracts/WalletRegistry.sol",
+    ],
+    keep: true,
+  },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },

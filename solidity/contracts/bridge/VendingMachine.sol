@@ -261,7 +261,7 @@ contract VendingMachine is Ownable, IReceiveApproval {
     /// @notice Transfers vending machine upgrade initiator role to another
     ///         address. Can be called only by the current vending machine
     ///         upgrade initiator.
-    /// @param newInitiator The new vending machine upgrade initator
+    /// @param newInitiator The new vending machine upgrade initiator
     function transferVendingMachineUpgradeInitiatorRole(address newInitiator)
         external
         only(vendingMachineUpgradeInitiator)

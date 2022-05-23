@@ -24,9 +24,9 @@ library GovernanceUtils {
     /// @notice Gets the time remaining until the governable parameter update
     ///         can be committed.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning of
-    ///        the change
-    /// @param delay Governance delay
-    /// @return Remaining time in seconds
+    ///        the change.
+    /// @param delay Governance delay.
+    /// @return Remaining time in seconds.
     function getRemainingGovernanceDelay(
         uint256 changeInitiatedTimestamp,
         uint256 delay

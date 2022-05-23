@@ -27,7 +27,6 @@ import "./MovingFunds.sol";
 import "../bank/Bank.sol";
 
 library BridgeState {
-    // TODO: Make parameters governable
     struct Storage {
         // Address of the Bank the Bridge belongs to.
         Bank bank;
@@ -88,8 +87,18 @@ library BridgeState {
         // the moving funds process. Moving funds wallets having their BTC
         // balance below that value can begin closing immediately as
         // transferring such a low value may not be possible due to
-        // BTC network fees.
+        // BTC network fees. The value of this parameter must always be lower
+        // than `redemptionDustThreshold` in order to prevent redemption requests
+        // with values lower or equal to `movingFundsDustThreshold`.
         uint64 movingFundsDustThreshold;
+        // Time after which the moving funds timeout can be reset in case the
+        // target wallet commitment cannot be submitted due to a lack of live
+        // wallets in the system. It is counted from the moment when the wallet
+        // was requested to move their funds and switched to the MovingFunds
+        // state or from the moment the timeout was reset the last time.
+        // Value in seconds. This value should be lower than the value
+        // of the `movingFundsTimeout`.
+        uint32 movingFundsTimeoutResetDelay;
         // Time after which the moving funds process can be reported as
         // timed out. It is counted from the moment when the wallet
         // was requested to move their funds and switched to the MovingFunds
@@ -133,6 +142,9 @@ library BridgeState {
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
         // parameters in order to make requests that can incur the
         // treasury and transaction fee and still satisfy the redeemer.
+        // Additionally, the value of this parameter must always be greater
+        // than `movingFundsDustThreshold` in order to prevent redemption
+        // requests with values lower or equal to `movingFundsDustThreshold`.
         uint64 redemptionDustThreshold;
         // Divisor used to compute the treasury fee taken from each
         // redemption request and transferred to the treasury upon
@@ -174,9 +186,9 @@ library BridgeState {
         // to this mapping by the `requestRedemption` method (duplicates
         // not allowed) and are removed by one of the following methods:
         // - `submitRedemptionProof` in case the request was handled
-        //    successfully
+        //    successfully,
         // - `notifyRedemptionTimeout` in case the request was reported
-        //    to be timed out
+        //    to be timed out.
         mapping(uint256 => Redemption.RedemptionRequest) pendingRedemptions;
         // Collection of all timed out redemptions requests indexed by
         // redemption key built as
@@ -251,6 +263,14 @@ library BridgeState {
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
         mapping(bytes20 => Wallets.Wallet) registeredWallets;
+        // Reserved storage space in case we need to add more variables.
+        // The convention from OpenZeppelin suggests the storage space should
+        // add up to 50 slots. Here we want to have more slots as there are
+        // planned upgrades of the Bridge contract. If more entires are added to
+        // the struct in the upcoming versions we need to reduce the array size.
+        // See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+        // slither-disable-next-line unused-state
+        uint256[50] __gap;
     }
 
     event DepositParametersUpdated(
@@ -271,6 +291,7 @@ library BridgeState {
     event MovingFundsParametersUpdated(
         uint64 movingFundsTxMaxTotalFee,
         uint64 movingFundsDustThreshold,
+        uint32 movingFundsTimeoutResetDelay,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint256 movingFundsTimeoutNotifierRewardMultiplier,
@@ -303,7 +324,7 @@ library BridgeState {
     ////       deposit. Value of this parameter must take into account the value
     ///        of `depositTreasuryFeeDivisor` and `depositTxMaxFee` parameters
     ///        in order to make requests that can incur the treasury and
-    ///        transaction fee and still satisfy the depositor
+    ///        transaction fee and still satisfy the depositor.
     /// @param _depositTreasuryFeeDivisor New value of the treasury fee divisor.
     ///        It is the divisor used to compute the treasury fee taken from
     ///        each deposit and transferred to the treasury upon sweep proof
@@ -311,16 +332,16 @@ library BridgeState {
     ///        `treasuryFee = depositedAmount / depositTreasuryFeeDivisor`
     ///        For example, if the treasury fee needs to be 2% of each deposit,
     ///        the `depositTreasuryFeeDivisor` should be set to `50`
-    ///        because `1/50 = 0.02 = 2%`
+    ///        because `1/50 = 0.02 = 2%`.
     /// @param _depositTxMaxFee New value of the deposit tx max fee in satoshis.
     ///        It is the maximum amount of BTC transaction fee that can
     ///        be incurred by each swept deposit being part of the given sweep
     ///        transaction. If the maximum BTC transaction fee is exceeded,
-    ///        such transaction is considered a fraud
+    ///        such transaction is considered a fraud.
     /// @dev Requirements:
-    ///      - Deposit dust threshold must be greater than zero
-    ///      - Deposit treasury fee divisor must be greater than zero
-    ///      - Deposit transaction max fee must be greater than zero
+    ///      - Deposit dust threshold must be greater than zero,
+    ///      - Deposit treasury fee divisor must be greater than zero,
+    ///      - Deposit transaction max fee must be greater than zero.
     function updateDepositParameters(
         Storage storage self,
         uint64 _depositDustThreshold,
@@ -385,19 +406,20 @@ library BridgeState {
     ///        redeemer in full amount.
     /// @param _redemptionTimeoutSlashingAmount New value of the redemption
     ///        timeout slashing amount in T, it is the amount slashed from each
-    ///        wallet member for redemption timeout
+    ///        wallet member for redemption timeout.
     /// @param _redemptionTimeoutNotifierRewardMultiplier New value of the
     ///        redemption timeout notifier reward multiplier as percentage,
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a redemption timeout receives.
-    ///        The value must be in the range [0, 100]
+    ///        The value must be in the range [0, 100].
     /// @dev Requirements:
-    ///      - Redemption dust threshold must be greater than zero
-    ///      - Redemption treasury fee divisor must be greater than zero
-    ///      - Redemption transaction max fee must be greater than zero
-    ///      - Redemption timeout must be greater than zero
+    ///      - Redemption dust threshold must be greater than moving funds dust
+    ///        threshold,
+    ///      - Redemption treasury fee divisor must be greater than zero,
+    ///      - Redemption transaction max fee must be greater than zero,
+    ///      - Redemption timeout must be greater than zero,
     ///      - Redemption timeout notifier reward multiplier must be in the
-    ///        range [0, 100]
+    ///        range [0, 100].
     function updateRedemptionParameters(
         Storage storage self,
         uint64 _redemptionDustThreshold,
@@ -408,8 +430,8 @@ library BridgeState {
         uint256 _redemptionTimeoutNotifierRewardMultiplier
     ) internal {
         require(
-            _redemptionDustThreshold > 0,
-            "Redemption dust threshold must be greater than zero"
+            _redemptionDustThreshold > self.movingFundsDustThreshold,
+            "Redemption dust threshold must be greater than moving funds dust threshold"
         );
 
         require(
@@ -458,10 +480,17 @@ library BridgeState {
     ///        funds transaction.
     /// @param _movingFundsDustThreshold New value of the moving funds dust
     ///        threshold. It is the minimal satoshi amount that makes sense to
-    //         be transferred during the moving funds process. Moving funds
-    //         wallets having their BTC balance below that value can begin
-    //         closing immediately as transferring such a low value may not be
-    //         possible due to BTC network fees.
+    ///        be transferred during the moving funds process. Moving funds
+    ///        wallets having their BTC balance below that value can begin
+    ///        closing immediately as transferring such a low value may not be
+    ///        possible due to BTC network fees.
+    /// @param _movingFundsTimeoutResetDelay New value of the moving funds
+    ///        timeout reset delay in seconds. It is the time after which the
+    ///        moving funds timeout can be reset in case the target wallet
+    ///        commitment cannot be submitted due to a lack of live wallets
+    ///        in the system. It is counted from the moment when the wallet
+    ///        was requested to move their funds and switched to the MovingFunds
+    ///        state or from the moment the timeout was reset the last time.
     /// @param _movingFundsTimeout New value of the moving funds timeout in
     ///        seconds. It is the time after which the moving funds process can
     ///        be reported as timed out. It is counted from the moment when the
@@ -469,12 +498,12 @@ library BridgeState {
     ///        MovingFunds state.
     /// @param _movingFundsTimeoutSlashingAmount New value of the moving funds
     ///        timeout slashing amount in T, it is the amount slashed from each
-    ///        wallet member for moving funds timeout
+    ///        wallet member for moving funds timeout.
     /// @param _movingFundsTimeoutNotifierRewardMultiplier New value of the
     ///        moving funds timeout notifier reward multiplier as percentage,
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
-    ///        The value must be in the range [0, 100]
+    ///        The value must be in the range [0, 100].
     /// @param _movedFundsSweepTxMaxTotalFee New value of the moved funds sweep
     ///        transaction max total fee in satoshis. It is the maximum amount
     ///        of the total BTC transaction fee that is acceptable in a single
@@ -487,26 +516,30 @@ library BridgeState {
     ///        funds.
     /// @param _movedFundsSweepTimeoutSlashingAmount New value of the moved
     ///        funds sweep timeout slashing amount in T, it is the amount
-    ///        slashed from each wallet member for moved funds sweep timeout
+    ///        slashed from each wallet member for moved funds sweep timeout.
     /// @param _movedFundsSweepTimeoutNotifierRewardMultiplier New value of
     ///        the moved funds sweep timeout notifier reward multiplier as
     ///        percentage, it determines the percentage of the notifier reward
     ///        from the staking contact the notifier of a moved funds sweep
-    ///        timeout receives. The value must be in the range [0, 100]
+    ///        timeout receives. The value must be in the range [0, 100].
     /// @dev Requirements:
-    ///      - Moving funds transaction max total fee must be greater than zero
-    ///      - Moving funds dust threshold must be greater than zero
-    ///      - Moving funds timeout must be greater than zero
+    ///      - Moving funds transaction max total fee must be greater than zero,
+    ///      - Moving funds dust threshold must be greater than zero and lower
+    ///        than the redemption dust threshold,
+    ///      - Moving funds timeout reset delay must be greater than zero,
+    ///      - Moving funds timeout must be greater than the moving funds
+    ///        timeout reset delay,
     ///      - Moving funds timeout notifier reward multiplier must be in the
-    ///        range [0, 100]
-    ///      - Moved funds sweep transaction max total fee must be greater than zero
-    ///      - Moved funds sweep timeout must be greater than zero
+    ///        range [0, 100],
+    ///      - Moved funds sweep transaction max total fee must be greater than zero,
+    ///      - Moved funds sweep timeout must be greater than zero,
     ///      - Moved funds sweep timeout notifier reward multiplier must be in the
-    ///        range [0, 100]
+    ///        range [0, 100].
     function updateMovingFundsParameters(
         Storage storage self,
         uint64 _movingFundsTxMaxTotalFee,
         uint64 _movingFundsDustThreshold,
+        uint32 _movingFundsTimeoutResetDelay,
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
         uint256 _movingFundsTimeoutNotifierRewardMultiplier,
@@ -521,13 +554,19 @@ library BridgeState {
         );
 
         require(
-            _movingFundsDustThreshold > 0,
-            "Moving funds dust threshold must be greater than zero"
+            _movingFundsDustThreshold > 0 &&
+                _movingFundsDustThreshold < self.redemptionDustThreshold,
+            "Moving funds dust threshold must be greater than zero and lower than redemption dust threshold"
         );
 
         require(
-            _movingFundsTimeout > 0,
-            "Moving funds timeout must be greater than zero"
+            _movingFundsTimeoutResetDelay > 0,
+            "Moving funds timeout reset delay must be greater than zero"
+        );
+
+        require(
+            _movingFundsTimeout > _movingFundsTimeoutResetDelay,
+            "Moving funds timeout must be greater than its reset delay"
         );
 
         require(
@@ -552,6 +591,7 @@ library BridgeState {
 
         self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
         self.movingFundsDustThreshold = _movingFundsDustThreshold;
+        self.movingFundsTimeoutResetDelay = _movingFundsTimeoutResetDelay;
         self.movingFundsTimeout = _movingFundsTimeout;
         self
             .movingFundsTimeoutSlashingAmount = _movingFundsTimeoutSlashingAmount;
@@ -567,6 +607,7 @@ library BridgeState {
         emit MovingFundsParametersUpdated(
             _movingFundsTxMaxTotalFee,
             _movingFundsDustThreshold,
+            _movingFundsTimeoutResetDelay,
             _movingFundsTimeout,
             _movingFundsTimeoutSlashingAmount,
             _movingFundsTimeoutNotifierRewardMultiplier,
@@ -580,29 +621,29 @@ library BridgeState {
     /// @notice Updates parameters of wallets.
     /// @param _walletCreationPeriod New value of the wallet creation period in
     ///        seconds, determines how frequently a new wallet creation can be
-    ///        requested
+    ///        requested.
     /// @param _walletCreationMinBtcBalance New value of the wallet minimum BTC
-    ///        balance in satoshi, used to decide about wallet creation
+    ///        balance in satoshi, used to decide about wallet creation.
     /// @param _walletCreationMaxBtcBalance New value of the wallet maximum BTC
-    ///        balance in satoshi, used to decide about wallet creation
+    ///        balance in satoshi, used to decide about wallet creation.
     /// @param _walletClosureMinBtcBalance New value of the wallet minimum BTC
-    ///        balance in satoshi, used to decide about wallet closure
+    ///        balance in satoshi, used to decide about wallet closure.
     /// @param _walletMaxAge New value of the wallet maximum age in seconds,
     ///        indicates the maximum age of a wallet in seconds, after which
-    ///        the wallet moving funds process can be requested
+    ///        the wallet moving funds process can be requested.
     /// @param _walletMaxBtcTransfer New value of the wallet maximum BTC transfer
     ///        in satoshi, determines the maximum amount that can be transferred
-    ///        to a single target wallet during the moving funds process
+    ///        to a single target wallet during the moving funds process.
     /// @param _walletClosingPeriod New value of the wallet closing period in
     ///        seconds, determines the length of the wallet closing period,
     //         i.e. the period when the wallet remains in the Closing state
-    //         and can be subject of deposit fraud challenges
+    //         and can be subject of deposit fraud challenges.
     /// @dev Requirements:
-    ///      - Wallet minimum BTC balance must be greater than zero
+    ///      - Wallet minimum BTC balance must be greater than zero,
     ///      - Wallet maximum BTC balance must be greater than the wallet
-    ///        minimum BTC balance
-    ///      - Wallet maximum BTC transfer must be greater than zero
-    ///      - Wallet closing period must be greater than zero
+    ///        minimum BTC balance,
+    ///      - Wallet maximum BTC transfer must be greater than zero,
+    ///      - Wallet closing period must be greater than zero.
     function updateWalletParameters(
         Storage storage self,
         uint32 _walletCreationPeriod,
@@ -652,20 +693,20 @@ library BridgeState {
     /// @notice Updates parameters related to frauds.
     /// @param _fraudChallengeDepositAmount New value of the fraud challenge
     ///        deposit amount in wei, it is the amount of ETH the party
-    ///        challenging the wallet for fraud needs to deposit
+    ///        challenging the wallet for fraud needs to deposit.
     /// @param _fraudChallengeDefeatTimeout New value of the challenge defeat
     ///        timeout in seconds, it is the amount of time the wallet has to
-    ///        defeat a fraud challenge. The value must be greater than zero
+    ///        defeat a fraud challenge. The value must be greater than zero.
     /// @param _fraudSlashingAmount New value of the fraud slashing amount in T,
     ///        it is the amount slashed from each wallet member for committing
-    ///        a fraud
+    ///        a fraud.
     /// @param _fraudNotifierRewardMultiplier New value of the fraud notifier
     ///        reward multiplier as percentage, it determines the percentage of
     ///        the notifier reward from the staking contact the notifier of
-    ///        a fraud receives. The value must be in the range [0, 100]
+    ///        a fraud receives. The value must be in the range [0, 100].
     /// @dev Requirements:
-    ///      - Fraud challenge defeat timeout must be greater than 0
-    ///      - Fraud notifier reward multiplier must be in the range [0, 100]
+    ///      - Fraud challenge defeat timeout must be greater than 0,
+    ///      - Fraud notifier reward multiplier must be in the range [0, 100].
     function updateFraudParameters(
         Storage storage self,
         uint256 _fraudChallengeDepositAmount,

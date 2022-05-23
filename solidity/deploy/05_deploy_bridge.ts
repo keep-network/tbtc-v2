@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
+  const { ethers, helpers, deployments, getNamedAccounts } = hre
   const { deploy } = deployments
   const { deployer, treasury } = await getNamedAccounts()
 
@@ -24,39 +24,52 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
   const Redemption = await deploy("Redemption", { from: deployer, log: true })
-  const Wallets = await deploy("Wallets", { from: deployer, log: true })
+  const Wallets = await deploy("Wallets", {
+    contract: "contracts/bridge/Wallets.sol:Wallets",
+    from: deployer,
+    log: true,
+  })
   const Fraud = await deploy("Fraud", { from: deployer, log: true })
   const MovingFunds = await deploy("MovingFunds", {
     from: deployer,
     log: true,
   })
 
-  const Bridge = await deploy("Bridge", {
-    contract:
-      deployments.getNetworkName() === "hardhat" ? "BridgeStub" : undefined,
-    from: deployer,
-    args: [
+  const bridge = await helpers.upgrades.deployProxy("Bridge", {
+    contractName:
+      process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
+    initializerArgs: [
       Bank.address,
       Relay.address,
       treasury,
       WalletRegistry.address,
       txProofDifficultyFactor,
     ],
-    libraries: {
-      Deposit: Deposit.address,
-      DepositSweep: DepositSweep.address,
-      Redemption: Redemption.address,
-      Wallets: Wallets.address,
-      Fraud: Fraud.address,
-      MovingFunds: MovingFunds.address,
+    factoryOpts: {
+      signer: await ethers.getSigner(deployer),
+      libraries: {
+        Deposit: Deposit.address,
+        DepositSweep: DepositSweep.address,
+        Redemption: Redemption.address,
+        Wallets: Wallets.address,
+        Fraud: Fraud.address,
+        MovingFunds: MovingFunds.address,
+      },
     },
-    log: true,
+    proxyOpts: {
+      kind: "transparent",
+      // Allow external libraries linking. We need to ensure manually that the
+      // external  libraries we link are upgrade safe, as the OpenZeppelin plugin
+      // doesn't perform such a validation yet.
+      // See: https://docs.openzeppelin.com/upgrades-plugins/1.x/faq#why-cant-i-use-external-libraries
+      unsafeAllow: ["external-library-linking"],
+    },
   })
 
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
       name: "Bridge",
-      address: Bridge.address,
+      address: bridge.address,
     })
   }
 }

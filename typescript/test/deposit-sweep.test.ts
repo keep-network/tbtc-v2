@@ -8,11 +8,11 @@ import {
   testnetWalletPrivateKey,
 } from "./data/deposit"
 import {
-  sweepWithMainUtxo,
-  sweepWithNoMainUtxo,
-  sweepProof,
+  depositSweepWithMainUtxo,
+  depositSweepWithNoMainUtxo,
+  depositSweepProof,
   NO_MAIN_UTXO,
-} from "./data/sweep"
+} from "./data/deposit-sweep"
 import { Transaction } from "../src/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import { MockBridge } from "./utils/mock-bridge"
@@ -36,19 +36,19 @@ describe("Sweep", () => {
       // Map transaction hashes for UTXOs to transactions in hexadecimal and
       // set the mapping in the mock Bitcoin client
       const rawTransactions = new Map<string, RawTransaction>()
-      for (const deposit of sweepWithNoMainUtxo.deposits) {
+      for (const deposit of depositSweepWithNoMainUtxo.deposits) {
         rawTransactions.set(deposit.utxo.transactionHash, {
           transactionHex: deposit.utxo.transactionHex,
         })
       }
-      for (const deposit of sweepWithMainUtxo.deposits) {
+      for (const deposit of depositSweepWithMainUtxo.deposits) {
         rawTransactions.set(deposit.utxo.transactionHash, {
           transactionHex: deposit.utxo.transactionHex,
         })
       }
       rawTransactions.set(
-        sweepWithNoMainUtxo.expectedSweep.transactionHash,
-        sweepWithNoMainUtxo.expectedSweep.transaction
+        depositSweepWithNoMainUtxo.expectedSweep.transactionHash,
+        depositSweepWithNoMainUtxo.expectedSweep.transaction
       )
       bitcoinClient.rawTransactions = rawTransactions
     })
@@ -56,11 +56,11 @@ describe("Sweep", () => {
     context("when there is no main UTXO", () => {
       beforeEach(async () => {
         const utxos: UnspentTransactionOutput[] =
-          sweepWithNoMainUtxo.deposits.map((data) => {
+          depositSweepWithNoMainUtxo.deposits.map((data) => {
             return data.utxo
           })
 
-        const depositData = sweepWithNoMainUtxo.deposits.map((deposit) => {
+        const deposit = depositSweepWithNoMainUtxo.deposits.map((deposit) => {
           return deposit.data
         })
 
@@ -69,14 +69,14 @@ describe("Sweep", () => {
           fee,
           testnetWalletPrivateKey,
           utxos,
-          depositData
+          deposit
         )
       })
 
       it("should broadcast sweep transaction with proper structure", async () => {
         expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
         expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-          sweepWithNoMainUtxo.expectedSweep.transaction
+          depositSweepWithNoMainUtxo.expectedSweep.transaction
         )
       })
     })
@@ -84,11 +84,11 @@ describe("Sweep", () => {
     context("when there is main UTXO", () => {
       beforeEach(async () => {
         const utxos: UnspentTransactionOutput[] =
-          sweepWithMainUtxo.deposits.map((deposit) => {
+          depositSweepWithMainUtxo.deposits.map((deposit) => {
             return deposit.utxo
           })
 
-        const depositData = sweepWithMainUtxo.deposits.map((deposit) => {
+        const deposit = depositSweepWithMainUtxo.deposits.map((deposit) => {
           return deposit.data
         })
 
@@ -97,45 +97,45 @@ describe("Sweep", () => {
           fee,
           testnetWalletPrivateKey,
           utxos,
-          depositData,
-          sweepWithMainUtxo.mainUtxo
+          deposit,
+          depositSweepWithMainUtxo.mainUtxo
         )
       })
 
       it("should broadcast sweep transaction with proper structure", async () => {
         expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
         expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-          sweepWithMainUtxo.expectedSweep.transaction
+          depositSweepWithMainUtxo.expectedSweep.transaction
         )
       })
     })
   })
 
-  describe("createSweepTransaction", () => {
+  describe("createDepositSweepTransaction", () => {
     context("when there is no main UTXO", () => {
       let transaction: RawTransaction
 
-      const utxosWithRaw = sweepWithNoMainUtxo.deposits.map((data) => {
+      const utxosWithRaw = depositSweepWithNoMainUtxo.deposits.map((data) => {
         return data.utxo
       })
 
-      const depositData = sweepWithNoMainUtxo.deposits.map((deposit) => {
+      const deposit = depositSweepWithNoMainUtxo.deposits.map((deposit) => {
         return deposit.data
       })
 
       beforeEach(async () => {
-        transaction = await TBTC.createSweepTransaction(
+        transaction = await TBTC.createDepositSweepTransaction(
           fee,
           testnetWalletPrivateKey,
           utxosWithRaw,
-          depositData
+          deposit
         )
       })
 
       it("should return sweep transaction with proper structure", () => {
         // Compare HEXes.
         expect(transaction).to.be.eql(
-          sweepWithNoMainUtxo.expectedSweep.transaction
+          depositSweepWithNoMainUtxo.expectedSweep.transaction
         )
 
         // Convert raw transaction to JSON to make detailed comparison.
@@ -143,7 +143,7 @@ describe("Sweep", () => {
         const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
         expect(txJSON.hash).to.be.equal(
-          sweepWithNoMainUtxo.expectedSweep.transactionHash
+          depositSweepWithNoMainUtxo.expectedSweep.transactionHash
         )
         expect(txJSON.version).to.be.equal(1)
 
@@ -152,10 +152,10 @@ describe("Sweep", () => {
 
         const p2shInput = txJSON.inputs[0]
         expect(p2shInput.prevout.hash).to.be.equal(
-          sweepWithNoMainUtxo.deposits[0].utxo.transactionHash
+          depositSweepWithNoMainUtxo.deposits[0].utxo.transactionHash
         )
         expect(p2shInput.prevout.index).to.be.equal(
-          sweepWithNoMainUtxo.deposits[0].utxo.outputIndex
+          depositSweepWithNoMainUtxo.deposits[0].utxo.outputIndex
         )
         // Transaction should be signed. As it's not SegWit input, the `witness`
         // field should be empty, while the `script` field should be filled.
@@ -167,10 +167,10 @@ describe("Sweep", () => {
 
         const p2wshInput = txJSON.inputs[1]
         expect(p2wshInput.prevout.hash).to.be.equal(
-          sweepWithNoMainUtxo.deposits[1].utxo.transactionHash
+          depositSweepWithNoMainUtxo.deposits[1].utxo.transactionHash
         )
         expect(p2wshInput.prevout.index).to.be.equal(
-          sweepWithNoMainUtxo.deposits[1].utxo.outputIndex
+          depositSweepWithNoMainUtxo.deposits[1].utxo.outputIndex
         )
         // Transaction should be signed. As it's a SegWit input, the `witness`
         // field should be filled, while the `script` field should be empty.
@@ -202,23 +202,23 @@ describe("Sweep", () => {
     context("when there is main UTXO", () => {
       let transaction: RawTransaction
 
-      const utxosWithRaw = sweepWithMainUtxo.deposits.map((deposit) => {
+      const utxosWithRaw = depositSweepWithMainUtxo.deposits.map((deposit) => {
         return deposit.utxo
       })
 
-      const depositData = sweepWithMainUtxo.deposits.map((deposit) => {
+      const deposit = depositSweepWithMainUtxo.deposits.map((deposit) => {
         return deposit.data
       })
 
       // P2WKH
-      const mainUtxoWithRaw = sweepWithMainUtxo.mainUtxo
+      const mainUtxoWithRaw = depositSweepWithMainUtxo.mainUtxo
 
       beforeEach(async () => {
-        transaction = await TBTC.createSweepTransaction(
+        transaction = await TBTC.createDepositSweepTransaction(
           fee,
           testnetWalletPrivateKey,
           utxosWithRaw,
-          depositData,
+          deposit,
           mainUtxoWithRaw
         )
       })
@@ -226,7 +226,7 @@ describe("Sweep", () => {
       it("should return sweep transaction with proper structure", () => {
         // Compare HEXes.
         expect(transaction).to.be.eql(
-          sweepWithMainUtxo.expectedSweep.transaction
+          depositSweepWithMainUtxo.expectedSweep.transaction
         )
 
         // Convert raw transaction to JSON to make detailed comparison.
@@ -234,7 +234,7 @@ describe("Sweep", () => {
         const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
         expect(txJSON.hash).to.be.equal(
-          sweepWithMainUtxo.expectedSweep.transactionHash
+          depositSweepWithMainUtxo.expectedSweep.transactionHash
         )
         expect(txJSON.version).to.be.equal(1)
 
@@ -243,10 +243,10 @@ describe("Sweep", () => {
 
         const p2wkhInput = txJSON.inputs[0]
         expect(p2wkhInput.prevout.hash).to.be.equal(
-          sweepWithMainUtxo.mainUtxo.transactionHash
+          depositSweepWithMainUtxo.mainUtxo.transactionHash
         )
         expect(p2wkhInput.prevout.index).to.be.equal(
-          sweepWithMainUtxo.mainUtxo.outputIndex
+          depositSweepWithMainUtxo.mainUtxo.outputIndex
         )
         // Transaction should be signed. As it's a SegWit input, the `witness`
         // field should be filled, while the `script` field should be empty.
@@ -258,10 +258,10 @@ describe("Sweep", () => {
 
         const p2shInput = txJSON.inputs[1]
         expect(p2shInput.prevout.hash).to.be.equal(
-          sweepWithMainUtxo.deposits[0].utxo.transactionHash
+          depositSweepWithMainUtxo.deposits[0].utxo.transactionHash
         )
         expect(p2shInput.prevout.index).to.be.equal(
-          sweepWithMainUtxo.deposits[0].utxo.outputIndex
+          depositSweepWithMainUtxo.deposits[0].utxo.outputIndex
         )
         // Transaction should be signed. As it's not SegWit input, the `witness`
         // field should be empty, while the `script` field should be filled.
@@ -273,10 +273,10 @@ describe("Sweep", () => {
 
         const p2wshInput = txJSON.inputs[2]
         expect(p2wshInput.prevout.hash).to.be.equal(
-          sweepWithMainUtxo.deposits[1].utxo.transactionHash
+          depositSweepWithMainUtxo.deposits[1].utxo.transactionHash
         )
         expect(p2wshInput.prevout.index).to.be.equal(
-          sweepWithMainUtxo.deposits[1].utxo.outputIndex
+          depositSweepWithMainUtxo.deposits[1].utxo.outputIndex
         )
         // Transaction should be signed. As it's a SegWit input, the `witness`
         // field should be filled, while the `script` field should be empty.
@@ -308,68 +308,73 @@ describe("Sweep", () => {
     context("when there are no UTXOs", () => {
       it("should revert", async () => {
         await expect(
-          TBTC.createSweepTransaction(fee, testnetWalletPrivateKey, [], [])
+          TBTC.createDepositSweepTransaction(
+            fee,
+            testnetWalletPrivateKey,
+            [],
+            []
+          )
         ).to.be.rejectedWith("There must be at least one deposit UTXO to sweep")
       })
     })
 
     context(
-      "when the numbers of UTXOs and deposit data elements are not equal",
+      "when the numbers of UTXOs and deposit elements are not equal",
       () => {
-        const utxosWithRaw = sweepWithNoMainUtxo.deposits.map((data) => {
+        const utxosWithRaw = depositSweepWithNoMainUtxo.deposits.map((data) => {
           return data.utxo
         })
 
-        // Add only one element to deposit data
-        const depositData = [sweepWithNoMainUtxo.deposits[0].data]
+        // Add only one element to the deposit
+        const deposit = [depositSweepWithNoMainUtxo.deposits[0].data]
 
         it("should revert", async () => {
           await expect(
-            TBTC.createSweepTransaction(
+            TBTC.createDepositSweepTransaction(
               fee,
               testnetWalletPrivateKey,
               utxosWithRaw,
-              depositData
+              deposit
             )
           ).to.be.rejectedWith(
-            "Number of UTXOs must equal the number of deposit data elements"
+            "Number of UTXOs must equal the number of deposit elements"
           )
         })
       }
     )
 
     context(
-      "when there is a mismatch between the UTXO's value and amount in deposit data",
+      "when there is a mismatch between the UTXO's value and amount in deposit",
       () => {
-        const utxoWithRaw = sweepWithNoMainUtxo.deposits[0].utxo
-        // Use a deposit data that does not match the UTXO
-        const depositData = sweepWithNoMainUtxo.deposits[1].data
+        const utxoWithRaw = depositSweepWithNoMainUtxo.deposits[0].utxo
+        // Use a deposit that does not match the UTXO
+        const deposit = depositSweepWithNoMainUtxo.deposits[1].data
 
         it("should revert", async () => {
           await expect(
-            TBTC.createSweepTransaction(
+            TBTC.createDepositSweepTransaction(
               fee,
               testnetWalletPrivateKey,
               [utxoWithRaw],
-              [depositData]
+              [deposit]
             )
           ).to.be.rejectedWith(
-            "Mismatch between amount in deposit data and deposit tx"
+            "Mismatch between amount in deposit and deposit tx"
           )
         })
       }
     )
 
     context("when the main UTXO does not belong to the wallet", () => {
-      const utxoWithRaw = sweepWithNoMainUtxo.deposits[0].utxo
-      const depositData = sweepWithNoMainUtxo.deposits[0].data
+      const utxoWithRaw = depositSweepWithNoMainUtxo.deposits[0].utxo
+      const deposit = depositSweepWithNoMainUtxo.deposits[0].data
 
       // The UTXO below does not belong to the wallet
       const mainUtxoWithRaw = {
         transactionHash:
           "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883",
         outputIndex: 1,
-        value: 3933200,
+        value: BigNumber.from(3933200),
         transactionHex:
           "0100000000010162cae24e74ad64f9f0493b09f3964908b3b3038f4924882d3d" +
           "bd853b4c9bc7390100000000ffffffff02102700000000000017a914867120d5" +
@@ -382,11 +387,11 @@ describe("Sweep", () => {
 
       it("should revert", async () => {
         await expect(
-          TBTC.createSweepTransaction(
+          TBTC.createDepositSweepTransaction(
             fee,
             testnetWalletPrivateKey,
             [utxoWithRaw],
-            [depositData],
+            [deposit],
             mainUtxoWithRaw
           )
         ).to.be.rejectedWith("UTXO does not belong to the wallet")
@@ -396,18 +401,18 @@ describe("Sweep", () => {
     context(
       "when the wallet private does not correspond to the wallet public key",
       () => {
-        const utxoWithRaw = sweepWithNoMainUtxo.deposits[0].utxo
-        const depositData = sweepWithNoMainUtxo.deposits[0].data
+        const utxoWithRaw = depositSweepWithNoMainUtxo.deposits[0].utxo
+        const deposit = depositSweepWithNoMainUtxo.deposits[0].data
         const anotherPrivateKey =
           "cRJvyxtoggjAm9A94cB86hZ7Y62z2ei5VNJHLksFi2xdnz1GJ6xt"
 
         it("should revert", async () => {
           await expect(
-            TBTC.createSweepTransaction(
+            TBTC.createDepositSweepTransaction(
               fee,
               anotherPrivateKey,
               [utxoWithRaw],
-              [depositData]
+              [deposit]
             )
           ).to.be.rejectedWith(
             "Wallet public key does not correspond to wallet private key"
@@ -422,29 +427,29 @@ describe("Sweep", () => {
         transactionHash:
           "025de155e6f2ffbbf4851493e0d28dad54020db221a3f38bf63c1f65e3d3595b",
         outputIndex: 0,
-        value: 5000000000,
+        value: BigNumber.from(5000000000),
         transactionHex:
           "010000000100000000000000000000000000000000000000000000000000000000" +
           "00000000ffffffff0e04db07c34f0103062f503253482fffffffff0100f2052a01" +
           "000000232102db6a0f2ef2e970eb1d2a84eabb5337f9cac0d85b49f209bffc4ec6" +
           "805802e6a5ac00000000",
       }
-      const depositData = sweepWithNoMainUtxo.deposits[0].data
+      const deposit = depositSweepWithNoMainUtxo.deposits[0].data
 
       it("should revert", async () => {
         await expect(
-          TBTC.createSweepTransaction(
+          TBTC.createDepositSweepTransaction(
             fee,
             testnetWalletPrivateKey,
             [utxoWithRaw],
-            [depositData]
+            [deposit]
           )
         ).to.be.rejectedWith("Unsupported UTXO script type")
       })
     })
   })
 
-  describe("proveSweep", () => {
+  describe("proveDepositSweep", () => {
     let bitcoinClient: MockBitcoinClient
     let bridge: MockBridge
 
@@ -455,29 +460,34 @@ describe("Sweep", () => {
       bridge = new MockBridge()
 
       const transactionHash =
-        sweepProof.bitcoinChainData.transaction.transactionHash
+        depositSweepProof.bitcoinChainData.transaction.transactionHash
       const transactions = new Map<string, Transaction>()
-      transactions.set(transactionHash, sweepProof.bitcoinChainData.transaction)
+      transactions.set(
+        transactionHash,
+        depositSweepProof.bitcoinChainData.transaction
+      )
       bitcoinClient.transactions = transactions
 
       const rawTransactions = new Map<string, RawTransaction>()
       rawTransactions.set(
         transactionHash,
-        sweepProof.bitcoinChainData.rawTransaction
+        depositSweepProof.bitcoinChainData.rawTransaction
       )
       bitcoinClient.rawTransactions = rawTransactions
 
-      bitcoinClient.latestHeight = sweepProof.bitcoinChainData.latestBlockHeight
-      bitcoinClient.headersChain = sweepProof.bitcoinChainData.headersChain
+      bitcoinClient.latestHeight =
+        depositSweepProof.bitcoinChainData.latestBlockHeight
+      bitcoinClient.headersChain =
+        depositSweepProof.bitcoinChainData.headersChain
       bitcoinClient.transactionMerkle =
-        sweepProof.bitcoinChainData.transactionMerkleBranch
+        depositSweepProof.bitcoinChainData.transactionMerkleBranch
       const confirmations = new Map<string, number>()
       confirmations.set(
         transactionHash,
-        sweepProof.bitcoinChainData.accumulatedTxConfirmations
+        depositSweepProof.bitcoinChainData.accumulatedTxConfirmations
       )
       bitcoinClient.confirmations = confirmations
-      await TBTC.proveSweep(
+      await TBTC.proveDepositSweep(
         transactionHash,
         NO_MAIN_UTXO,
         bridge,
@@ -486,20 +496,20 @@ describe("Sweep", () => {
     })
 
     it("should submit sweep proof with correct arguments", () => {
-      const bridgeLog = bridge.sweepProofLog
+      const bridgeLog = bridge.depositSweepProofLog
       expect(bridgeLog.length).to.equal(1)
       expect(bridgeLog[0].mainUtxo).to.equal(NO_MAIN_UTXO)
       expect(bridgeLog[0].sweepTx).to.deep.equal(
-        sweepProof.expectedSweepProof.sweepTx
+        depositSweepProof.expectedSweepProof.sweepTx
       )
       expect(bridgeLog[0].sweepProof.txIndexInBlock).to.deep.equal(
-        sweepProof.expectedSweepProof.sweepProof.txIndexInBlock
+        depositSweepProof.expectedSweepProof.sweepProof.txIndexInBlock
       )
       expect(bridgeLog[0].sweepProof.merkleProof).to.deep.equal(
-        sweepProof.expectedSweepProof.sweepProof.merkleProof
+        depositSweepProof.expectedSweepProof.sweepProof.merkleProof
       )
       expect(bridgeLog[0].sweepProof.bitcoinHeaders).to.deep.equal(
-        sweepProof.expectedSweepProof.sweepProof.bitcoinHeaders
+        depositSweepProof.expectedSweepProof.sweepProof.bitcoinHeaders
       )
     })
   })

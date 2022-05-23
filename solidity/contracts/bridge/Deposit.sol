@@ -74,6 +74,8 @@ library Deposit {
         // Address of the Bank vault to which the deposit is routed to.
         // Optional, can be 0x0. The vault must be trusted by the Bridge.
         address vault;
+        // This struct doesn't contain `__gap` property as the structure is not
+        // stored, it is used as a function's calldata argument.
     }
 
     /// @notice Represents tBTC deposit request data.
@@ -93,15 +95,18 @@ library Deposit {
         // time when the deposit was swept on the Bitcoin chain but actually
         // the time when the sweep proof was delivered to the Ethereum chain.
         uint32 sweptAt;
+        // This struct doesn't contain `__gap` property as the structure is stored
+        // in a mapping, mappings store values in different slots and they are
+        // not contiguous with other values.
     }
 
     event DepositRevealed(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
-        address depositor,
+        address indexed depositor,
         uint64 amount,
         bytes8 blindingFactor,
-        bytes20 walletPubKeyHash,
+        bytes20 indexed walletPubKeyHash,
         bytes20 refundPubKeyHash,
         bytes4 refundLocktime,
         address vault
@@ -118,13 +123,13 @@ library Deposit {
     ///         outputs. The deposit may be routed to one of the trusted vaults.
     ///         When a deposit is routed to a vault, vault gets notified when
     ///         the deposit gets swept and it may execute the appropriate action.
-    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`
-    /// @param reveal Deposit reveal data, see `RevealInfo struct
+    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`.
+    /// @param reveal Deposit reveal data, see `RevealInfo struct.
     /// @dev Requirements:
-    ///      - `reveal.walletPubKeyHash` must identify a `Live` wallet
-    ///      - `reveal.vault` must be 0x0 or point to a trusted vault
+    ///      - `reveal.walletPubKeyHash` must identify a `Live` wallet,
+    ///      - `reveal.vault` must be 0x0 or point to a trusted vault,
     ///      - `reveal.fundingOutputIndex` must point to the actual P2(W)SH
-    ///        output of the BTC deposit transaction
+    ///        output of the BTC deposit transaction,
     ///      - `reveal.depositor` must be the Ethereum address used in the
     ///        P2(W)SH BTC deposit transaction,
     ///      - `reveal.blindingFactor` must be the blinding factor used in the
@@ -156,8 +161,6 @@ library Deposit {
             reveal.vault == address(0) || self.isVaultTrusted[reveal.vault],
             "Vault is not trusted"
         );
-
-        // TODO: Should we enforce a specific locktime at contract level?
 
         bytes memory expectedScript = abi.encodePacked(
             hex"14", // Byte length of depositor Ethereum address.
