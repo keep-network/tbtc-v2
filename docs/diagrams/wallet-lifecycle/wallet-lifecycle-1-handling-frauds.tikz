@@ -1,0 +1,196 @@
+% TIP: To generate `.pdf` file out of this `.tikz` file run:
+% `pdflatex filename.tikz`.
+% To install `pdflatex` on MacOS either run `brew install --cask mactex` (not
+% recommended, downloads 4GB of data) or install `basictex` distribution plus
+% needed packages (recommended, downloads only essential packages):
+% ```
+% brew install --cask basictex
+% sudo tlmgr update --self
+% sudo tlmgr install standalone
+% sudo tlmgr install comment
+% pdflatex <filename>.tikz
+%```
+% 
+% To generate `.png` file out of `.pdf` on MacOS run:
+% `convert -density 300 <filename>.pdf -resize 50% <filename>.png`.
+% This requires installation of the `imagemagick` tool:
+% `brew install imagemagick`.
+
+\documentclass{standalone}%
+\usepackage{tikz}%
+\usetikzlibrary{positioning,shapes,arrows.meta,chains}%
+
+% These commands are used to draw arrow labels
+\newcommand{\yes}{node [auto, pos=0, xshift=5mm]{Y}}%
+\newcommand{\no}{node [auto, swap, pos=0, xshift=-5mm]{N}}%
+
+% We need layers to draw the background
+\pgfdeclarelayer{background}%
+\pgfsetlayers{background,main}%
+
+\begin{document}%
+\begin{tikzpicture}[
+% Specify styles for nodes:
+    base/.style = {rectangle, rounded corners, draw=black,
+                   minimum width=4cm, minimum height=1cm,
+                   text centered, text width=4cm, align=flush center},
+   start/.style = {base, fill=blue!30},
+  revert/.style = {base, fill=red!30},
+  action/.style = {base, fill=black!5},
+   check/.style = {diamond, aspect=1.2, draw=black, fill=black!5,
+                   minimum width=1cm, align=center},
+   note1/.style = {rectangle, draw, dashed, fill=green!10,
+                   align=flush left, text width=5cm},
+   note2/.style = {rectangle, draw, dashed, fill=cyan!10,
+                   align=flush left, text width=5cm},
+              > = Triangle,                  % defines the arrow tip style when `->` is used
+           font = \sffamily,
+]
+
+% FRAUD CHALLENGE
+% Nodes
+\node[start]                                                     (fc_start)   {\textbf{Submit fraud challenge}};
+\node[check, below=of fc_start]                                  (fc_check1)  {Has this\\ preimage sha256 and\\ signature been already\\ challenged?};
+\node[revert, below right=of fc_check1]                          (fc_revert1) {Transaction reverted};
+\node[check, below left=of fc_check1, xshift=-1cm]               (fc_check2)  {Is wallet LIVE,\\ MOVING\_FUNDS\\ or CLOSING?};
+\node[check, below right=of fc_check2]                           (fc_check3)  {Has challenger deposited\\ required amount?};
+\node[check, below right=of fc_check3]                           (fc_check4)  {Is the\\ signature over the\\ sha256(sha256(preimage))\\ valid?};
+\node[revert, below left=of fc_check4, xshift=-6cm]              (fc_revert2) {Transaction reverted};
+\node[action, below right=of fc_check4]                          (fc_action1) {Save the challenge and time (starting point for defeat timeout calculation)};
+\node[note1, right=of fc_start.south east, anchor=south west]    (fc_note1)   {Can be successfully called for wallets:\\
+                                                                               \textbf{- LIVE\\
+                                                                               - MOVING\_FUNDS\\
+                                                                               - CLOSING}};
+\node[note2, above=of fc_note1.north, anchor=south, yshift=-8mm] (fc_note2)   {Sender incentivized by:\\ \textbf{Fraction of slashed amount if fraud doesn't get defeated}};
+
+% Arrows
+\draw[->] (fc_start)   -- (fc_check1);
+\draw[->] (fc_check1)  -| (fc_check2)  \no;
+\draw[->] (fc_check1)  -| (fc_revert1) \yes;
+\draw[->] (fc_check2)  -| (fc_revert2) \no;
+\draw[->] (fc_check2)  -| (fc_check3)  \yes;
+\draw[->] (fc_check3)  -| (fc_revert2) \no;
+\draw[->] (fc_check3)  -| (fc_check4)  \yes;
+\draw[->] (fc_check4)  -| (fc_revert2) \no;
+\draw[->] (fc_check4)  -| (fc_action1) \yes;
+
+
+% DEFEAT FRAUD CHALLENGE
+% Nodes
+\node[start, right=of fc_start, xshift=120mm]                    (df_start)   {\textbf{Defeat fraud challenge}};
+\node[check, below=of df_start]                                  (df_check1)  {Does the provided\\ preimage match an\\ existing, unresolved\\ challenge?};
+\node[check, below right=of df_check1]                           (df_check2)  {Has the defeat timeout\\ been reported?};
+\node[check, below left=of df_check2]                            (df_check3)  {Was the\\ SIGHASH\_ALL used\\ during preimage\\ signing?};
+\node[revert, below right=of df_check2]                          (df_revert1) {Transaction reverted};
+\node[check, below right=of df_check3]                           (df_check4)  {Was the UTXO\\ in the challenged transaction\\ spent non-fraudulently?};
+\node[revert, below left=of df_check4, xshift=-3cm]                           (df_revert2) {Transaction reverted};
+\node[action, below right=of df_check4]                          (df_action1) {Resolve the fraud challenge};
+\node[action, below=of df_action1]                               (df_action2) {Transfer the challenger's deposit to the treasury};
+\node[note1, right=of df_start.south east, anchor=south west]    (df_note1)   {Can be successfully called for wallets:\\ 
+                                                                               \textbf{- LIVE\\
+                                                                               - MOVING\_FUNDS\\
+                                                                               - CLOSING\\
+                                                                               - TERMINATED}};
+\node[note2, above=of df_note1.north, anchor=south, yshift=-8mm] (df_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed, avoids getting slashed}};
+
+% Arrows
+\draw[->] (df_start)   -- (df_check1);
+\draw[->] (df_check1)  -| (df_revert2) \no;
+\draw[->] (df_check1)  -| (df_check2)  \yes;
+\draw[->] (df_check2)  -| (df_check3)  \no;
+\draw[->] (df_check2)  -| (df_revert1) \yes;
+\draw[->] (df_check3)  -| (df_revert2) \no;
+\draw[->] (df_check3)  -| (df_check4)  \yes;
+\draw[->] (df_check4)  -| (df_revert2) \no;
+\draw[->] (df_check4)  -| (df_action1) \yes;
+\draw[->] (df_action1) -- (df_action2);
+
+
+% DEFEAT FRAUD CHALLENGE WITH HEARTBEAT
+% Nodes
+\node[start, right=of df_start, xshift=110mm]                      (dfwt_start)   {\textbf{Defeat fraud challenge with heartbeat}};
+\node[check, below=of dfwt_start]                                  (dfwt_check1)  {Does the\\ provided heartbeat\\ message match an\\ existing, unresolved\\ challenge?};
+\node[check, below right=of dfwt_check1]                           (dfwt_check2)  {Has the defeat timeout\\ been reported?};
+\node[check, below left=of dfwt_check2]                            (dfwt_check3)  {Is the\\ provided message\\ a valid heartbeat\\ message?};
+\node[revert, below right=of dfwt_check2]                          (dfwt_revert1) {Transaction reverted};
+\node[revert, below left=of dfwt_check3]                           (dfwt_revert2) {Transaction reverted};
+\node[note1, right=of dfwt_start.south east, anchor=south west]    (dfwt_note1)   {Can be successfully called for wallets:\\ 
+                                                                                   \textbf{- LIVE\\
+                                                                                   - MOVING\_FUNDS\\
+                                                                                   - CLOSING\\
+                                                                                   - TERMINATED}};
+\node[note2, above=of dfwt_note1.north, anchor=south, yshift=-8mm] (dfwt_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed, avoids getting slashed}};
+
+% Arrows
+% In places where arrows needs to bend more than once, we force the lines to
+% pass through intermediary points. 
+% (a,b) - sets point at an exact (a,b) coordinate
+% +(a,b) - sets point at current point and moves it by (a,b) vector, but doesn't
+%          remember the position afterwards
+% ++(a,b) - sets point at current point and moves it by (a,b) vector and
+%           remembers the position afterwards
+% To ease edition of the diagram in the future, usage of relative values is
+% recommended.
+\draw[->] (dfwt_start)   --                (dfwt_check1);
+\draw[->] (dfwt_check1)  -|                (dfwt_revert2) \no;
+\draw[->] (dfwt_check1)  -|                (dfwt_check2)  \yes;
+\draw[->] (dfwt_check2)  -|                (dfwt_check3)  \no;
+\draw[->] (dfwt_check2)  -|                (dfwt_revert1) \yes;
+\draw[->] (dfwt_check3)  -|                (dfwt_revert2) \no;
+\draw[->] (dfwt_check3)  -- +(4,0) \yes |- (df_action1);
+\draw[->] (df_action1)   --                (df_action2);
+
+
+% FRAUD DEFEAT TIMEOUT
+% Nodes
+\node[start, right=of dfwt_start, xshift=105mm]                   (fdt_start)   {\textbf{Notify fraud challenge defeat timeout}};
+\node[check, below=of fdt_start]                                  (fdt_check1)  {Is the given\\ fraud challenge\\ undefeated?};
+\node[check, below right=of fdt_check1]                           (fdt_check2)  {Has the defeat \\ timeout passed?};
+\node[action, below right=of fdt_check2]                          (fdt_action1) {Return the deposit to the challenger};
+\node[check, below=of fdt_action1]                                (fdt_check3)  {Is wallet LIVE,\\ MOVING\_FUNDS\\ or CLOSING?};
+\node[check, below left=of fdt_check3, xshift=-40mm]              (fdt_check4)  {Is wallet\\ TERMINATED?};
+\node[revert, below left=of fdt_check4]                           (fdt_revert1) {Transaction reverted};
+\node[action, below right=of fdt_check3]                          (fdt_action2) {Slash the wallet, reward the fraud challenge notifier};
+\node[check, below=of fdt_action2]                                (fdt_check5)  {Is wallet marked\\ as ACTIVE?};
+\node[action, below right=of fdt_check5]                          (fdt_action3) {Clear ACTIVE field};
+\node[action, below left=of fdt_action3, xshift=-20mm]            (fdt_action4) {Change wallet's state to TERMINATED, delete wallet from registry};
+\node[action, below=of fdt_action4]                               (fdt_action5) {Close the challenge};
+\node[note1, right=of fdt_start.south east, anchor=south west]    (fdt_note1)   {Can be successfully called for wallets:\\ 
+                                                                                 \textbf{- LIVE\\
+                                                                                 - MOVING\_FUNDS\\
+                                                                                 - CLOSING\\
+                                                                                 - TERMINATED}};
+\node[note2, above=of fdt_note1.north, anchor=south, yshift=-8mm] (fdt_note2)   {Sender incentivized by:\\ \textbf{Fraction of slashed amount for fraud challenge notifier}};
+
+% Arrows
+\draw[->] (fdt_start)   --                (fdt_check1);
+\draw[->] (fdt_check1)  -|                (fdt_revert1)       \no;
+\draw[->] (fdt_check1)  -|                (fdt_check2)        \yes;
+\draw[->] (fdt_check2)  -|                (fdt_revert1)       \no;
+\draw[->] (fdt_check2)  -|                (fdt_action1)       \yes;
+\draw[->] (fdt_action1) --                (fdt_check3);
+\draw[->] (fdt_check3)  -|                (fdt_check4)        \no;
+\draw[->] (fdt_check3)  -|                (fdt_action2)       \yes;
+\draw[->] (fdt_check4)  -|                (fdt_revert1)       \no;
+\draw[->] (fdt_check4)  -| +(4,0) \yes |- (fdt_action5.west);
+\draw[->] (fdt_action2) --                (fdt_check5);
+\draw[->] (fdt_check5)  -|                (fdt_action4)       \no;
+\draw[->] (fdt_check5)  -|                (fdt_action3)       \yes;
+\draw[->] (fdt_action3) |-                (fdt_action4);
+\draw[->] (fdt_action4) --                (fdt_action5);
+
+
+% BACKGROUND
+% To draw the background behind the nodes and other objects we use pgf layers. 
+% We calculate top left and bottom right corners position of current canvas and
+% construct white background between those points expanded by some small amount.
+% This gives us nice little margin around the diagram.
+
+\begin{pgfonlayer}{background}
+  \path (current bounding box.north west)+(-0.2,0.2) node (a) {};
+  \path (current bounding box.south east)+(0.2,-0.2) node (b) {};
+  \path[fill=white] (a) rectangle (b);
+\end{pgfonlayer}
+
+\end{tikzpicture}
+\end{document}

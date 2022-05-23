@@ -982,7 +982,7 @@ library Redemption {
             wallet.state == Wallets.WalletState.Live ||
                 wallet.state == Wallets.WalletState.MovingFunds ||
                 wallet.state == Wallets.WalletState.Terminated,
-            "The wallet must be in Live, MovingFunds or Terminated state"
+            "Wallet must be in Live, MovingFunds or Terminated state"
         );
 
         // It is worth noting that there is no need to check if
@@ -999,9 +999,6 @@ library Redemption {
             wallet.state == Wallets.WalletState.Live ||
             wallet.state == Wallets.WalletState.MovingFunds
         ) {
-            // Propagate timeout consequences to the wallet
-            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
-
             // Slash the wallet operators and reward the notifier
             self.ecdsaWalletRegistry.seize(
                 self.redemptionTimeoutSlashingAmount,
@@ -1010,6 +1007,9 @@ library Redemption {
                 wallet.ecdsaWalletID,
                 walletMembersIDs
             );
+
+            // Propagate timeout consequences to the wallet
+            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
         }
 
         // slither-disable-next-line reentrancy-events
