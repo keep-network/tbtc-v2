@@ -1,0 +1,24 @@
+:toc: macro
+:icons: font
+
+= Threshold tBTCv2
+
+The second generation of tBTC is a truly decentralized bridge between Bitcoin
+and Ethereum, providing Bitcoin holders permissionless access to DeFi and the
+expanding web3 universe.
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+toc::[]
+
+== Overview
+// FIXME
+
+== The Mechanism
+// FIXME

@@ -9,6 +9,7 @@ export.json
 typechain/
 dist/
 .vscode/
+.envrc
 
 */.hardhat/*
 !*/.hardhat/networks_TEMPLATE.ts
