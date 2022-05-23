@@ -43,3 +43,19 @@ This repository contains:
 - TBTC v2 Yearn vault link:yearn/[Solidity smart contracts].
 
 toc::[]
+
+== Overview
+tBTCv2 uses the
+link:https://github.com/keep-network/keep-core/tree/main/solidity/random-beacon[Random
+Beacon] and link:https://github.com/keep-network/sortition-pools[Sortition Pool]
+to generate governable-sized (starting at 51-of-100)
+link:https://eprint.iacr.org/2019/114.pdf[threshold ECDSA]
+Bitcoin wallets at a governable frequency (starting weekly). The youngest
+wallet accepts new deposits, and the oldest wallet serves redemptions.
+
+Depositing Bitcoin into the tBTCv2 bridge grants a transferable balance, which
+can be used to mint a supply-pegged ERC-20: TBTC. For an in-depth explanation
+about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
+
+== The Mechanism
+// FIXME
