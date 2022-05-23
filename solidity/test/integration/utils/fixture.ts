@@ -31,7 +31,6 @@ export const fixture = deployments.createFixture(
     bridge: Bridge
     tbtcVault: TBTCVault
     walletRegistry: WalletRegistry
-    t: Contract
     staking: Contract
     randomBeacon: FakeContract<IRandomBeacon>
     relay: FakeContract<TestRelay>
@@ -121,7 +120,6 @@ export const fixture = deployments.createFixture(
       bridge,
       tbtcVault,
       walletRegistry,
-      t,
       staking,
       randomBeacon,
       relay,

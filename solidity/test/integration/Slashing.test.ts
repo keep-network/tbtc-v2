@@ -1,20 +1,26 @@
+/* eslint-disable no-await-in-loop */
 /* eslint-disable @typescript-eslint/no-extra-semi */
 import { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 
 import type { FakeContract } from "@defi-wonderland/smock"
-import type { ContractTransaction } from "ethers"
+import type { ContractTransaction, Contract, BigNumberish } from "ethers"
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import type { Bridge, IRandomBeacon, WalletRegistry } from "../../typechain"
+
+import type {
+  Bridge,
+  TBTCVault,
+  TestRelay,
+  IRandomBeacon,
+  WalletRegistry,
+} from "../../typechain"
 
 import {
+  Operators,
   performEcdsaDkg,
+  produceOperatorInactivityClaim,
   updateWalletRegistryDkgResultChallengePeriodLength,
 } from "./utils/ecdsa-wallet-registry"
-import {
-  ecdsaWalletTestData,
-  ecdsaWalletTestData as ecdsaWallet,
-} from "../data/ecdsa"
 import { produceRelayEntry } from "./utils/random-beacon"
 
 import { assertGasUsed } from "./utils/gas"
@@ -26,6 +32,7 @@ import {
 } from "../data/fraud"
 import { SinglePendingRequestedRedemption } from "../data/redemption"
 import { walletState } from "../fixtures"
+import { SingleP2SHDeposit } from "../data/deposit-sweep"
 
 const { wallet: redemptionWallet } = SinglePendingRequestedRedemption
 
@@ -43,17 +50,26 @@ const describeFn =
 
 describeFn("Integration Test - Slashing", async () => {
   let bridge: Bridge
+  let tbtcVault: TBTCVault
+  let staking: Contract
   let walletRegistry: WalletRegistry
   let randomBeacon: FakeContract<IRandomBeacon>
+  let relay: FakeContract<TestRelay>
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
-  let walletMembersIDs: number[]
 
   const dkgResultChallengePeriodLength = 10
 
   before(async () => {
-    ;({ governance, bridge, walletRegistry, randomBeacon, walletMembersIDs } =
-      await waffle.loadFixture(fixture))
+    ;({
+      governance,
+      bridge,
+      tbtcVault,
+      staking,
+      walletRegistry,
+      relay,
+      randomBeacon,
+    } = await waffle.loadFixture(fixture))
     ;[thirdParty] = await helpers.signers.getUnnamedSigners()
 
     // Update only the parameters that are crucial for this test.
@@ -127,8 +143,28 @@ describeFn("Integration Test - Slashing", async () => {
             )
         })
 
-        // TODO: Implement validations
-        it("should slash wallet members")
+        it("should slash wallet members", async () => {
+          const { fraudSlashingAmount: amountToSlash } =
+            await bridge.fraudParameters()
+
+          expect(await staking.getSlashingQueueLength()).to.equal(
+            walletMembers.length
+          )
+
+          for (let i = 0; i < walletMembers.length; i++) {
+            const slashing = await staking.slashingQueue(i)
+
+            expect(slashing.amount).to.equal(
+              amountToSlash,
+              `unexpected slashing amount for ${i}`
+            )
+
+            expect(slashing.stakingProvider).to.equal(
+              walletMembers[i].stakingProvider,
+              `unexpected staking provider for ${i}`
+            )
+          }
+        })
 
         it("should close the wallet in the wallet registry", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -142,8 +178,12 @@ describeFn("Integration Test - Slashing", async () => {
           expect(storedWallet.state).to.be.equal(walletState.Terminated)
         })
 
-        it("should consume around X 000 gas for Bridge.notifyMovingFundsTimeoutTx transaction", async () => {
-          await assertGasUsed(notifyFraudChallengeDefeatTimeoutTx, 10) // FIXME: Add gas estimate
+        it("should consume around 3 100 000 gas for Bridge.notifyMovingFundsTimeoutTx transaction", async () => {
+          await assertGasUsed(
+            notifyFraudChallengeDefeatTimeoutTx,
+            3_150_000,
+            100_000
+          )
         })
       })
     })
@@ -193,48 +233,110 @@ describeFn("Integration Test - Slashing", async () => {
     })
 
     describe("when wallet is created", async () => {
-      const {
-        publicKey: walletPublicKey,
-        walletID: ecdsaWalletID,
-        pubKeyHash160: walletPubKeyHash160,
-      } = ecdsaWallet
+      const deposit = SingleP2SHDeposit.deposits[0]
 
-      before("create a wallet", async () => {
-        expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
-          ethers.constants.AddressZero
-        )
+      const walletPubKeyHash160 = deposit.reveal.walletPubKeyHash
+      const { walletPublicKey, walletID: ecdsaWalletID } = deposit.ecdsaWallet
 
+      let walletMembers: Operators
+
+      before(async () => {
         const requestNewWalletTx = await bridge.requestNewWallet(NO_MAIN_UTXO)
 
         await produceRelayEntry(walletRegistry, randomBeacon)
-
-        await performEcdsaDkg(
+        ;({ walletMembers } = await performEcdsaDkg(
           walletRegistry,
           walletPublicKey,
           requestNewWalletTx.blockNumber
+        ))
+
+        const { fundingTx, reveal } = SingleP2SHDeposit.deposits[0]
+        reveal.vault = tbtcVault.address
+
+        // We use a deposit funding bitcoin transaction with a very low amount,
+        // so we need to update the dust threshold to be below it.
+        await updateDepositDustThreshold(10000) // 0.0001 BTC)
+
+        await bridge.revealDeposit(fundingTx, reveal)
+
+        // TODO: Replace mocks with the real implementation
+        relay.getCurrentEpochDifficulty.returns(
+          SingleP2SHDeposit.chainDifficulty
         )
+        relay.getPrevEpochDifficulty.returns(SingleP2SHDeposit.chainDifficulty)
+
+        await bridge.submitDepositSweepProof(
+          SingleP2SHDeposit.sweepTx,
+          SingleP2SHDeposit.sweepProof,
+          SingleP2SHDeposit.mainUtxo,
+          tbtcVault.address
+        )
+
+        // Switch the wallet to moving funds state by reporting wallet members
+        // inactivity.
+        const nonce = 0
+        const walletMembersIDs = walletMembers.getIds()
+
+        const inactiveMembersIndices = [26, 40, 63, 78, 89]
+        const claim = await produceOperatorInactivityClaim(
+          ecdsaWalletID,
+          walletMembers,
+          nonce,
+          walletPublicKey,
+          true,
+          inactiveMembersIndices,
+          walletMembers.length / 2 + 1
+        )
+
+        await walletRegistry
+          .connect(walletMembers[0].signer)
+          .notifyOperatorInactivity(claim, nonce, walletMembersIDs)
       })
 
-      describe.skip("when moving funds timeout is reported", async () => {
+      describe("when moving funds timeout is reported", async () => {
         let notifyMovingFundsTimeoutTx: ContractTransaction
 
         before(async () => {
-          const { movingFundsTimeout } = await bridge.movingFundsParameters()
+          expect(
+            await (
+              await bridge.wallets(walletPubKeyHash160)
+            ).state
+          ).to.be.equal(walletState.MovingFunds)
 
-          // TODO: Implement path to get to `MovingFunds` state.
+          const { movingFundsTimeout } = await bridge.movingFundsParameters()
 
           await helpers.time.increaseTime(movingFundsTimeout)
 
           notifyMovingFundsTimeoutTx = await bridge
             .connect(thirdParty)
             .notifyMovingFundsTimeout(
-              ecdsaWalletTestData.pubKeyHash160,
-              walletMembersIDs
+              walletPubKeyHash160,
+              walletMembers.getIds()
             )
         })
 
-        // TODO: Implement
-        it("should slash wallet members")
+        it("should slash wallet members", async () => {
+          const { movingFundsTimeoutSlashingAmount: amountToSlash } =
+            await bridge.movingFundsParameters()
+
+          expect(await staking.getSlashingQueueLength()).to.equal(
+            walletMembers.length
+          )
+
+          for (let i = 0; i < walletMembers.length; i++) {
+            const slashing = await staking.slashingQueue(i)
+
+            expect(slashing.amount).to.equal(
+              amountToSlash,
+              `unexpected slashing amount for ${i}`
+            )
+
+            expect(slashing.stakingProvider).to.equal(
+              walletMembers[i].stakingProvider,
+              `unexpected staking provider for ${i}`
+            )
+          }
+        })
 
         it("should close the wallet in the wallet registry", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -248,10 +350,23 @@ describeFn("Integration Test - Slashing", async () => {
           expect(storedWallet.state).to.be.equal(walletState.Terminated)
         })
 
-        it("should consume around 100 000 gas for Bridge.notifyMovingFundsTimeoutTx transaction", async () => {
-          await assertGasUsed(notifyMovingFundsTimeoutTx, 100_000)
+        it("should consume around 3 100 000 gas for Bridge.notifyMovingFundsTimeoutTx transaction", async () => {
+          await assertGasUsed(notifyMovingFundsTimeoutTx, 3_100_000, 50_000)
         })
       })
     })
   })
+
+  async function updateDepositDustThreshold(
+    newDepositDustThreshold: BigNumberish
+  ) {
+    const currentDepositParameters = await bridge.depositParameters()
+    await bridge
+      .connect(governance)
+      .updateDepositParameters(
+        newDepositDustThreshold,
+        currentDepositParameters.depositTreasuryFeeDivisor,
+        currentDepositParameters.depositTxMaxFee
+      )
+  }
 })
