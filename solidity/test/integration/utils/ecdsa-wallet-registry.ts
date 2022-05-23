@@ -82,9 +82,7 @@ export async function updateWalletRegistryDkgResultChallengePeriodLength(
     .finalizeDkgResultChallengePeriodLengthUpdate()
 }
 
-async function selectGroup(
-  walletRegistry: WalletRegistry
-): Promise<Operator[]> {
+async function selectGroup(walletRegistry: WalletRegistry): Promise<Operators> {
   const sortitionPool = (await ethers.getContractAt(
     "SortitionPool",
     await walletRegistry.sortitionPool()
@@ -94,13 +92,15 @@ async function selectGroup(
 
   const addresses = await sortitionPool.getIDOperators(identifiers)
 
-  return Promise.all(
-    identifiers.map(
-      async (identifier, i): Promise<Operator> => ({
-        id: identifier,
-        signer: await ethers.getSigner(addresses[i]),
-      })
-    )
+  return new Operators(
+    ...(await Promise.all(
+      identifiers.map(
+        async (identifier, i): Promise<Operator> => ({
+          id: identifier,
+          signer: await ethers.getSigner(addresses[i]),
+        })
+      )
+    ))
   )
 }
 
@@ -114,11 +114,19 @@ interface DkgResult {
   membersHash: string
 }
 
-type OperatorID = number
-
 type Operator = {
-  id: OperatorID
+  id: number
   signer: SignerWithAddress
+}
+
+export class Operators extends Array<Operator> {
+  getIds(): number[] {
+    return this.map((operator) => operator.id)
+  }
+
+  getSigners(): SignerWithAddress[] {
+    return this.map((operator) => operator.signer)
+  }
 }
 
 const noMisbehaved: number[] = []
@@ -159,7 +167,7 @@ async function signAndSubmitDkgResult(
 }
 
 async function signDkgResult(
-  signers: Operator[],
+  signers: Operators,
   groupPublicKey: BytesLike,
   misbehavedMembersIndices: number[],
   startBlock: number,

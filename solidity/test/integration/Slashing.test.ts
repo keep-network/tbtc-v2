@@ -80,6 +80,8 @@ describeFn("Integration Test - Slashing", async () => {
         pubKeyHash160: walletPubKeyHash160,
       } = fraudulentWallet
 
+      let walletMembers: Operators
+
       before("create a wallet", async () => {
         expect(await bridge.activeWalletPubKeyHash()).to.be.equal(
           ethers.constants.AddressZero
@@ -88,12 +90,11 @@ describeFn("Integration Test - Slashing", async () => {
         const requestNewWalletTx = await bridge.requestNewWallet(NO_MAIN_UTXO)
 
         await produceRelayEntry(walletRegistry, randomBeacon)
-
-        await performEcdsaDkg(
+        ;({ walletMembers } = await performEcdsaDkg(
           walletRegistry,
           walletPublicKey,
           requestNewWalletTx.blockNumber
-        )
+        ))
       })
 
       describe("when a fraud is reported", async () => {
@@ -121,7 +122,7 @@ describeFn("Integration Test - Slashing", async () => {
             .connect(thirdParty)
             .notifyFraudChallengeDefeatTimeout(
               walletPublicKey,
-              walletMembersIDs,
+              walletMembers.getIds(),
               fraudulentBtcTx.preimageSha256
             )
         })
