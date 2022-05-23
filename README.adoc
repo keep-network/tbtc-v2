@@ -67,10 +67,10 @@ We kick off the wallet creation mechanism in
 link:https://github.com/keep-network/keep-core/tree/main/solidity/ecdsa[keep-core/ecdsa]
 via `Wallets.requestNewWallet`, which verifies:
 
-+ That we're not currently already creating a wallet
-+ If we have an active wallet it either:
-  + Is old enough and has over `walletCreationMinBtcBalance` 
-  + Has over `walletCreationMaxBtcBalance`
+* That we're not currently already creating a wallet
+* If we have an active wallet it either:
+** Is old enough and has over `walletCreationMinBtcBalance` 
+** Has over `walletCreationMaxBtcBalance`
 
 If everything looks good, we kick off the wallet creation mechanism outlined in 
 link:https://github.com/keep-network/keep-core/tree/main/solidity/ecdsa#the-mechanism[Wallet
