@@ -1,9 +1,14 @@
 // @ts-ignore
-import { TX } from "bcoin"
+import bcoin, { TX } from "bcoin"
+// @ts-ignore
+import wif from "wif"
 // @ts-ignore
 import bufio from "bufio"
 // @ts-ignore
+import hash160 from "bcrypto/lib/hash160"
+// @ts-ignore
 import { StaticWriter, BufferWriter } from "bufio"
+import { BigNumber } from "ethers"
 
 /**
  * Represents a raw transaction.
@@ -72,7 +77,7 @@ export interface TransactionOutput {
   /**
    * The value of the output in satoshis.
    */
-  value: number
+  value: BigNumber
 
   /**
    * The receiving scriptPubKey.
@@ -87,7 +92,7 @@ export type UnspentTransactionOutput = TransactionOutpoint & {
   /**
    * The unspent value in satoshis.
    */
-  value: number
+  value: BigNumber
 }
 
 /**
@@ -293,4 +298,33 @@ export function isCompressedPublicKey(publicKey: string): boolean {
     publicKey.length == 66 &&
     (publicKey.substring(0, 2) == "02" || publicKey.substring(0, 2) == "03")
   )
+}
+
+/**
+ * Creates a Bitcoin key ring based on the given private key.
+ * @param privateKey Private key that should be used to create the key ring
+ * @param witness Flag indicating whether the key ring will create witness
+ *        or non-witness addresses
+ * @returns Bitcoin key ring.
+ */
+export function createKeyRing(
+  privateKey: string,
+  witness: boolean = true
+): bcoin.KeyRing {
+  const decodedPrivateKey = wif.decode(privateKey)
+
+  return new bcoin.KeyRing({
+    witness: witness,
+    privateKey: decodedPrivateKey.privateKey,
+    compressed: decodedPrivateKey.compressed,
+  })
+}
+
+/**
+ * Computes the HASH160 for the given text.
+ * @param text - Text the HASH160 is computed for.
+ * @returns Hash as a 20-byte un-prefixed hex string.
+ */
+export function computeHash160(text: string): string {
+  return hash160.digest(Buffer.from(text, "hex")).toString("hex")
 }

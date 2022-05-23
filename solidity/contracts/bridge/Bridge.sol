@@ -420,7 +420,7 @@ contract Bridge is
     ///      - `amount` must be above or equal the `redemptionDustThreshold`,
     ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
     ///        used for only one pending request at the same time,
-    ///      - Wallet must have enough Bitcoin balance to proceed the request,
+    ///      - Wallet must have enough Bitcoin balance to process the request,
     ///      - Redeemer must make an allowance in the Bank that the Bridge
     ///        contract can spend the given `amount`.
     function requestRedemption(
@@ -463,17 +463,6 @@ contract Bridge is
     ///          bytes redeemerOutputScript
     ///        ]
     ///
-    ///        - walletPubKeyHash: The 20-byte wallet public key hash (computed
-    ///        using Bitcoin HASH160 over the compressed ECDSA public key),
-    ///        - mainUtxo: Data of the wallet's main UTXO TX hash, as currently
-    ///        known on the Ethereum chain,
-    ///        - mainUtxoTxOutputIndex: Data of the wallet's main UTXO output
-    ///        index, as currently known on Ethereum chain,
-    ///        - mainUtxoTxOutputValue: Data of the wallet's main UTXO output
-    ///        value, as currently known on Ethereum chain,
-    ///        - redeemerOutputScript The redeemer's length-prefixed output
-    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
-    ///        redeemed BTC,
     ///        - redeemer: The Ethereum address of the redeemer who will be able
     ///        to claim Bank balance if anything goes wrong during the redemption.
     ///        In the most basic case, when someone redeems their balance
@@ -481,8 +470,20 @@ contract Bridge is
     ///        However, when a Vault is redeeming part of its balance for some
     ///        redeemer address (for example, someone who has earlier deposited
     ///        into that Vault), `balanceOwner` is the Vault, and `redemeer` is
-    ///        the address for which the vault is redeeming its balance to.
+    ///        the address for which the vault is redeeming its balance to,
+    ///        - walletPubKeyHash: The 20-byte wallet public key hash (computed
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key),
+    ///        - mainUtxoTxHash: Data of the wallet's main UTXO TX hash, as
+    ///        currently known on the Ethereum chain,
+    ///        - mainUtxoTxOutputIndex: Data of the wallet's main UTXO output
+    ///        index, as currently known on Ethereum chain,
+    ///        - mainUtxoTxOutputValue: Data of the wallet's main UTXO output
+    ///        value, as currently known on Ethereum chain,
+    ///        - redeemerOutputScript The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
+    ///        redeemed BTC.
     /// @dev Requirements:
+    ///      - The caller must be the Bank,
     ///      - Wallet behind `walletPubKeyHash` must be live,
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain,
@@ -491,9 +492,19 @@ contract Bridge is
     ///      - `amount` must be above or equal the `redemptionDustThreshold`,
     ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
     ///        used for only one pending request at the same time,
-    ///      - Wallet must have enough Bitcoin balance to proceed the request,
-    ///      - Balance owner must make an allowance in the Bank that the Bridge
-    ///        contract can spend the given `amount`.
+    ///      - Wallet must have enough Bitcoin balance to process the request.
+    ///
+    ///      Note on upgradeability:
+    ///      Bridge is an upgradeable contract deployed behind
+    ///      a TransparentUpgradeableProxy. Accepting redemption data as bytes
+    ///      provides great flexibility. The Bridge is just like any other
+    ///      contract with a balance approved in the Bank and can be upgraded
+    ///      to another version without being bound to a particular interface
+    ///      forever. This flexibility comes with the cost - developers
+    ///      integrating their vaults and dApps with `Bridge` using
+    ///      `approveBalanceAndCall` need to pay extra attention to
+    ///      `redemptionData` and adjust the code in case the expected structure
+    ///      of `redemptionData`  changes.
     function receiveBalanceApproval(
         address balanceOwner,
         uint256 amount,

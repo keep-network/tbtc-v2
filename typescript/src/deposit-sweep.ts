@@ -1,7 +1,5 @@
 // @ts-ignore
 import bcoin from "bcoin"
-// @ts-ignore
-import wif from "wif"
 import { BigNumber } from "ethers"
 import {
   RawTransaction,
@@ -9,8 +7,9 @@ import {
   Client as BitcoinClient,
   decomposeRawTransaction,
   isCompressedPublicKey,
+  createKeyRing,
 } from "./bitcoin"
-import { createDepositScript, DepositData } from "./deposit"
+import { createDepositScript, Deposit } from "./deposit"
 import { Bridge } from "./chain"
 import { createTransactionProof } from "./proof"
 
@@ -26,9 +25,8 @@ import { createTransactionProof } from "./proof"
  *              values and used as the transaction fee.
  * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
  * @param utxos - P2(W)SH UTXOs to be combined into one output.
- * @param depositData - data on deposits. Each element corresponds to UTXO.
- *                      The number of UTXOs and deposit data elements must
- *                      equal.
+ * @param deposits - Array of deposits. Each element corresponds to UTXO.
+ *                   The number of UTXOs and deposit elements must equal.
  * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
  *                   from the previous wallet transaction (optional).
  * @returns Empty promise.
@@ -38,7 +36,7 @@ export async function sweepDeposits(
   fee: BigNumber,
   walletPrivateKey: string,
   utxos: UnspentTransactionOutput[],
-  depositData: DepositData[],
+  deposits: Deposit[],
   mainUtxo?: UnspentTransactionOutput
 ): Promise<void> {
   const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
@@ -69,7 +67,7 @@ export async function sweepDeposits(
     fee,
     walletPrivateKey,
     utxosWithRaw,
-    depositData,
+    deposits,
     mainUtxoWithRaw
   )
 
@@ -88,8 +86,8 @@ export async function sweepDeposits(
  *              values and used as the transaction fee.
  * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
  * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
- * @param depositData - data on deposits. Each element corresponds to UTXO.
- *                      The number of UTXOs and deposit data elements must equal.
+ * @param deposits - Array of deposits. Each element corresponds to UTXO.
+ *                   The number of UTXOs and deposit elements must equal.
  * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
  *                   from the previous wallet transaction (optional).
  * @returns Bitcoin deposit sweep transaction in raw format.
@@ -98,30 +96,24 @@ export async function createDepositSweepTransaction(
   fee: BigNumber,
   walletPrivateKey: string,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
-  depositData: DepositData[],
+  deposits: Deposit[],
   mainUtxo?: UnspentTransactionOutput & RawTransaction
 ): Promise<RawTransaction> {
   if (utxos.length < 1) {
     throw new Error("There must be at least one deposit UTXO to sweep")
   }
 
-  if (utxos.length != depositData.length) {
-    throw new Error(
-      "Number of UTXOs must equal the number of deposit data elements"
-    )
+  if (utxos.length != deposits.length) {
+    throw new Error("Number of UTXOs must equal the number of deposit elements")
   }
-  const decodedWalletPrivateKey = wif.decode(walletPrivateKey)
 
-  const walletKeyRing = new bcoin.KeyRing({
-    witness: true,
-    privateKey: decodedWalletPrivateKey.privateKey,
-    compressed: decodedWalletPrivateKey.compressed,
-  })
-
+  // TODO: Type of `walletAddress` decides about the type of the tx output
+  // (new main UTXO). Add possibility to create a non-witness output (P2PKH).
+  const walletKeyRing = createKeyRing(walletPrivateKey)
   const walletAddress = walletKeyRing.getAddress("string")
 
   const inputCoins = []
-  let totalInputValue = 0
+  let totalInputValue = BigNumber.from(0)
 
   if (mainUtxo) {
     inputCoins.push(
@@ -131,7 +123,7 @@ export async function createDepositSweepTransaction(
         -1
       )
     )
-    totalInputValue += mainUtxo.value
+    totalInputValue = totalInputValue.add(mainUtxo.value)
   }
 
   for (const utxo of utxos) {
@@ -142,14 +134,14 @@ export async function createDepositSweepTransaction(
         -1
       )
     )
-    totalInputValue += utxo.value
+    totalInputValue = totalInputValue.add(utxo.value)
   }
 
   const transaction = new bcoin.MTX()
 
   transaction.addOutput({
     script: bcoin.Script.fromAddress(walletAddress),
-    value: totalInputValue,
+    value: totalInputValue.toNumber(),
   })
 
   await transaction.fund(inputCoins, {
@@ -162,13 +154,13 @@ export async function createDepositSweepTransaction(
     throw new Error("Deposit sweep transaction must have only one output")
   }
 
-  // UTXOs must be mapped to deposit data, as `fund` may arrange inputs in any
+  // UTXOs must be mapped to deposits, as `fund` may arrange inputs in any
   // order
-  const utxosWithDepositData: (UnspentTransactionOutput &
+  const utxosWithDeposits: (UnspentTransactionOutput &
     RawTransaction &
-    DepositData)[] = utxos.map((utxo, index) => ({
+    Deposit)[] = utxos.map((utxo, index) => ({
     ...utxo,
-    ...depositData[index],
+    ...deposits[index],
   }))
 
   for (let i = 0; i < transaction.inputs.length; i++) {
@@ -177,34 +169,30 @@ export async function createDepositSweepTransaction(
     const previousScript = previousOutput.script
 
     // P2WKH (main UTXO)
+    // TODO: Main UTXO can be non-witness - handle that case.
     if (previousScript.isWitnessPubkeyhash()) {
       await signMainUtxoInput(transaction, i, walletKeyRing)
       continue
     }
 
-    const utxoWithDepositData = utxosWithDepositData.find(
+    const utxoWithDeposit = utxosWithDeposits.find(
       (u) =>
         u.transactionHash === previousOutpoint.txid() &&
         u.outputIndex == previousOutpoint.index
     )
-    if (!utxoWithDepositData) {
+    if (!utxoWithDeposit) {
       throw new Error("Unknown input")
     }
 
     if (previousScript.isScripthash()) {
       // P2SH (deposit UTXO)
-      await signP2SHDepositInput(
-        transaction,
-        i,
-        utxoWithDepositData,
-        walletKeyRing
-      )
+      await signP2SHDepositInput(transaction, i, utxoWithDeposit, walletKeyRing)
     } else if (previousScript.isWitnessScripthash()) {
       // P2WSH (deposit UTXO)
       await signP2WSHDepositInput(
         transaction,
         i,
-        utxoWithDepositData,
+        utxoWithDeposit,
         walletKeyRing
       )
     } else {
@@ -246,23 +234,18 @@ async function signMainUtxoInput(
  * combining signature, wallet public key and deposit script.
  * @param transaction - Mutable transaction containing the input to be signed.
  * @param inputIndex - Index that points to the input to be signed.
- * @param depositData - Array of deposit data.
+ * @param deposit - Data of the deposit.
  * @param walletKeyRing - Key ring created using the wallet's private key.
  * @returns Empty promise.
  */
 async function signP2SHDepositInput(
   transaction: bcoin.MTX,
   inputIndex: number,
-  depositData: DepositData,
+  deposit: Deposit,
   walletKeyRing: bcoin.KeyRing
 ): Promise<void> {
   const { walletPublicKey, depositScript, previousOutputValue } =
-    await prepareInputSignData(
-      transaction,
-      inputIndex,
-      depositData,
-      walletKeyRing
-    )
+    await prepareInputSignData(transaction, inputIndex, deposit, walletKeyRing)
 
   const signature: Buffer = transaction.signature(
     inputIndex,
@@ -287,23 +270,18 @@ async function signP2SHDepositInput(
  * by combining signature, wallet public key and deposit script.
  * @param transaction - Mutable transaction containing the input to be signed.
  * @param inputIndex - Index that points to the input to be signed.
- * @param depositData - Array of deposit data.
+ * @param deposit - Data of the deposit.
  * @param walletKeyRing - Key ring created using the wallet's private key.
  * @returns Empty promise.
  */
 async function signP2WSHDepositInput(
   transaction: bcoin.MTX,
   inputIndex: number,
-  depositData: DepositData,
+  deposit: Deposit,
   walletKeyRing: bcoin.KeyRing
 ): Promise<void> {
   const { walletPublicKey, depositScript, previousOutputValue } =
-    await prepareInputSignData(
-      transaction,
-      inputIndex,
-      depositData,
-      walletKeyRing
-    )
+    await prepareInputSignData(transaction, inputIndex, deposit, walletKeyRing)
 
   const signature: Buffer = transaction.signature(
     inputIndex,
@@ -328,14 +306,14 @@ async function signP2WSHDepositInput(
  * Creates data needed to sign a deposit input.
  * @param transaction - Mutable transaction containing the input.
  * @param inputIndex - Index that points to the input.
- * @param depositData - Deposit data.
+ * @param deposit - Data of the deposit.
  * @param walletKeyRing - Key ring created using the wallet's private key.
  * @returns Data needed to sign the input.
  */
 async function prepareInputSignData(
   transaction: bcoin.MTX,
   inputIndex: number,
-  depositData: DepositData,
+  deposit: Deposit,
   walletKeyRing: bcoin.KeyRing
 ): Promise<{
   walletPublicKey: string
@@ -345,11 +323,11 @@ async function prepareInputSignData(
   const previousOutpoint = transaction.inputs[inputIndex].prevout
   const previousOutput = transaction.view.getOutput(previousOutpoint)
 
-  if (previousOutput.value != depositData.amount.toNumber()) {
-    throw new Error("Mismatch between amount in deposit data and deposit tx")
+  if (previousOutput.value != deposit.amount.toNumber()) {
+    throw new Error("Mismatch between amount in deposit and deposit tx")
   }
 
-  const walletPublicKey = depositData.walletPublicKey
+  const walletPublicKey = deposit.walletPublicKey
   if (!isCompressedPublicKey(walletPublicKey)) {
     throw new Error("Wallet public key must be compressed")
   }
@@ -361,7 +339,7 @@ async function prepareInputSignData(
   }
 
   const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await createDepositScript(depositData), "hex")
+    Buffer.from(await createDepositScript(deposit), "hex")
   )
 
   return {

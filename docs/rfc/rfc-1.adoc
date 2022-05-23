@@ -79,12 +79,12 @@ Non-Governable Parameters:
 
 `threshold < heartbeat < dkg < group_size`
 
-*Note*: `threshold`, `dkg` and `group_size` are mission-critial, cornerstone
+*Note*: `threshold`, `dkg` and `group_size` are mission-critical, cornerstone
 parameters for the system, and will be hardcoded into the bridge contract. If
 we want to change these parameters, we will need to upgrade the bridge
 contract.
 
-The total gas cost for sortiton increases linearly with group size by at least
+The total gas cost for sortition increases linearly with group size by at least
 20k gas per member (though, we think we can get this down to roughly 6k gas per
 member in the happy path with some upcoming optimizations). Requiring more
 signers to sign messages makes it harder for adversaries to take over the
@@ -123,7 +123,7 @@ contract Balances {
 ```
 
 When bitcoin enters the system, the associated account's unsweptBalance
-increases. When that deposit is swept, that amount is tranfered to the balance.
+increases. When that deposit is swept, that amount is transferred to the balance.
 _If_ a user decides to mint a TBTC bitcoin from their balance, their balance
 would be drained and a TBTC token would be minted. When a user brings back TBTC
 to the system, the token is burned and the account balance increases. If the
@@ -181,7 +181,7 @@ for these sorts of messages and when it sees one, is able to generate a script t
 can spend the funds. Once successful, we increase the account's unswept balance
 and charge a deposit fee.
 
-Addtionally and optionally, as a part of the reveal transaction, the user the
+Additionally and optionally, as a part of the reveal transaction, the user the
 declare that they want their swept funds to be immediately minted into TBTC.
 This saves the user from having to make separate transactions or wait for a
 sweep to occur before an additional transaction.
@@ -218,7 +218,7 @@ Governable Parameters:
 - `base_btc_fee_max`: The highest amount of BTC that operators can
   initially propose as a fee for miners in a sweeping transaction.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
-  tranaction is mined before increasing the fee.
+  transaction is mined before increasing the fee.
 - `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
   multiplier each time a sweeping transaction is not mined within the
   `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
@@ -326,7 +326,7 @@ included in a sweep (maybe because they all got swept in the `sweep_max_btc`
 sweep), then we wait until the next sweep and repeat the process.
 
 *Example*: We have a `sweep_period = 8 hours` and `sweep_max_btc = 10 btc`. At
-13:00, a sweep just occured, and the next is scheduled for 21:00. At 15:00, 13
+13:00, a sweep just occurred, and the next is scheduled for 21:00. At 15:00, 13
 btc gets deposited which triggers a sweep due to `sweep_max_btc`. Rather than
 pushing back the next scheduled sweep to 23:00, it remains at 21:00. If by 21:00
 there are any deposits with a high enough <<bitcoin-sweeping-fee,sweeping fee>>
@@ -345,7 +345,7 @@ Governable Parameters:
 
 Some depositors are not going to want to wait for the next sweep to occur, and
 are willing to pay the entire cost of the sweeping transaction to avoid
-waiting. We can accomodate them with the following flow:
+waiting. We can accommodate them with the following flow:
 
 When the make their reveal transaction, they include a piece of information
 that lets us know that they want their deposit swept **right now**. As soon as
@@ -355,12 +355,12 @@ costs.
 
 We send the account balance to a holding contract locked by the amount
 of ether that the operator had to pay in gas fees, unlockable only by the
-depositor's eth address. Once the depositor has paid the conract, the account
+depositor's eth address. Once the depositor has paid the contract, the account
 balance moves to their address, and the operator who originally paid for the
 transaction is reimbursed.
 
 If the depositor does not pay to unlock their account balance within the
-`skip_sweep_timeout`, then the system siezes the balance, mints TBTC, uses it
+`skip_sweep_timeout`, then the system seizes the balance, mints TBTC, uses it
 to buy back T tokens, and then uses those to reimburse the operator.
 
 [[redemption]]
@@ -368,7 +368,7 @@ to buy back T tokens, and then uses those to reimburse the operator.
 
 Governable Parameters:
 
-- `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
+- `redemption_request_timeout_redeemer_bonus_multiplier`: The percentage of the
   notifier reward from the staking contract the redeemer receives in case of a
   redemption timeout.
 - `redemption_request_timeout_slashing_amount`: The amount of stake slashed
@@ -452,7 +452,7 @@ slashed for a timeout but they continue to earn rewards.
 
 Based on the information provided in the submitted redemption proof, pending
 redemption requests possibly satisfied by the proof should be retrieved and each
-of them should be validated separately. 
+of them should be validated separately.
 
 If a pending redemption request exists for every UTXO of the redemption
 transaction but the main wallet UTXO, and BTC value of each UTXO is within the
@@ -490,7 +490,7 @@ When redemption request timeout is reported, the redeemer receives their balance
 back, no matter if the underlying Bitcoin was redeemed or not. Each wallet
 member is slashed for `redemption_request_timeout_slashing_amount` and redeemer
 receives a percentage of a misbehavior notifier reward, as specified in
-`redemption_request_timeout_redemeer_bonus`. Redemption request is removed from
+`redemption_request_timeout_redeemer_bonus`. Redemption request is removed from
 the list of pending redemption requests and it is marked as timed-out. This way,
 when redemption proof gets submitted, the timed-out redemption request will be
 skipped. This mechanism allows proving whatever can still be proved and
@@ -520,7 +520,7 @@ Governable Parameters:
 For every UTXO spent by the wallet in an incorrect way, anyone should be able
 to provide a fraud proof. Given that a Bitcoin transaction could be so large
 that proving it on Ethereum would be impossible, fraud proofs need to be
-processed with a challenge-response approach. 
+processed with a challenge-response approach.
 
 When a wallet unlocks a UTXO it needs to calculate a sighash and provide
 a signature over that sighash, one for each unlocked UTXO. Fraud is reported
@@ -575,7 +575,7 @@ unlocked by the wallet. The function should validate the wallet state to make
 sure it's neither closed nor terminated. It should also validate if the signature
 over the sighash is valid and if it belongs to the wallet.
 
-The function should require the challenger to provide a deposit in ETH equal to 
+The function should require the challenger to provide a deposit in ETH equal to
 `fraud_challenge_deposit_amount` that is returned to the challenger once the fraud
 is confirmed. If the wallet defends against the challenge, the deposit is sent
 to the treasury. If the wallet does not defend against the challenge, the
@@ -691,7 +691,7 @@ wallet is chosen and how the funds are split up see
 After this transaction is complete, <<public-knowledge,the public>> is able to
 submit a SPV proof to let ethereum know that the funds were transferred
 nonfraudulently (they match the `intention-to-move` wallets, the fee isn't too
-high, and the funds are split evently). Later, a <<donate,donation>> can be
+high, and the funds are split evenly). Later, a <<donate,donation>> can be
 made by governance to handle any difference in outstanding v2 token supply and
 locked BTC due to mining transfer fees.
 
@@ -716,7 +716,7 @@ Governable Parameters:
   single other wallet during a wallet closure.
 
 When a wallet <<closing-a-wallet,closes>>, if there is any amount of bitcoin
-remaining, it needs to be transfered to another _live_ wallet. Our input to the
+remaining, it needs to be transferred to another _live_ wallet. Our input to the
 transaction is the closing wallet's main UTXO, and we create an equal sized
 output for the `N` valid wallets, where `N = min(valid_wallets.size,
 ceil(funds_to_transfer / wallet_transfer_max))`.
@@ -986,7 +986,7 @@ Alphabetized list of Governable Parameters with additional notes.
   <<heartbeat,heartbeat>> to be successful.
 - `max_gas_refund_price`: The highest amount of gwei that the gas refund
   contract will pay out per gas for a refund transaction.
-- `redemption_request_timeout_redemeer_bonus_multiplier`: The percentage of the
+- `redemption_request_timeout_redeemer_bonus_multiplier`: The percentage of the
   notifier reward from the staking contract the redeemer receives in case of a
   redemption timeout.
 - `redemption_request_timeout_slashing_amount`: The amount of stake slashed
@@ -1002,7 +1002,7 @@ Alphabetized list of Governable Parameters with additional notes.
 - `sweep_period`: The amount of time we wait between scheduled sweeps on a
   wallet.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
-  tranaction is mined before increasing the fee.
+  transaction is mined before increasing the fee.
 - `sweeping_fee_max_multiplier`: The highest we will try to increment the fee
   multiplier to before giving up and picking a new base fee and different
   deposits to sweep.

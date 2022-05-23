@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const bridge = await helpers.upgrades.deployProxy("Bridge", {
     contractName:
-      deployments.getNetworkName() === "hardhat" ? "BridgeStub" : undefined,
+      process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
     initializerArgs: [
       Bank.address,
       Relay.address,
