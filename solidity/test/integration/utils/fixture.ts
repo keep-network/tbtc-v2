@@ -5,6 +5,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Contract } from "ethers"
 import { deployments, ethers, helpers } from "hardhat"
 import {
+  TBTC,
   Bridge,
   TBTCVault,
   TestRelay,
@@ -27,7 +28,9 @@ const stakeAmount = to1e18(40_000)
 // eslint-disable-next-line import/prefer-default-export
 export const fixture = deployments.createFixture(
   async (): Promise<{
+    deployer: SignerWithAddress
     governance: SignerWithAddress
+    tbtc: TBTC
     bridge: Bridge
     tbtcVault: TBTCVault
     walletRegistry: WalletRegistry
@@ -38,6 +41,7 @@ export const fixture = deployments.createFixture(
     await deployments.fixture()
     const { deployer, governance } = await helpers.signers.getNamedSigners()
 
+    const tbtc = await helpers.contracts.getContract<TBTC>("TBTC")
     const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
     const tbtcVault: TBTCVault = await helpers.contracts.getContract(
       "TBTCVault"
@@ -116,7 +120,9 @@ export const fixture = deployments.createFixture(
     }
 
     return {
+      deployer,
       governance,
+      tbtc,
       bridge,
       tbtcVault,
       walletRegistry,
