@@ -50,33 +50,28 @@
 
 % REDEMPTION TIMEOUT
 % Nodes
-\node[start]                                                     (rt_start)    {Somebody notifies about \textbf{redemption timeout}};
-\node[check, below=of rt_start]                                  (rt_check1)   {Is wallet LIVE,\\
-                                                                                MOVING\_FUNDS\\ or TERMINATED?};
-\node[check, below right=of rt_check1]                           (rt_check2)   {Is there such\\ pending redemption for\\ such wallet?};
-\node[check, below right=of rt_check2]                           (rt_check3)   {Was there no redemption\\ proof received
-                                                                                before\\ redemption\_request\_timeout?};
+\node[start]                                                     (rt_start)    {\textbf{Notify redemption timeout}};
+\node[check, below=of rt_start]                                  (rt_check1)   {Is wallet LIVE,\\ MOVING\_FUNDS\\ or TERMINATED?};
+\node[check, below right=of rt_check1]                           (rt_check2)   {Does the\\ redemption request\\ exist for the\\ wallet?};
+\node[check, below right=of rt_check2]                           (rt_check3)   {Has the\\ redemption request\\ timed out?};
 \node[revert, below left=of rt_check3, xshift=-6cm]              (rt_revert1)  {Transaction reverted};
-\node[action, below right=of rt_check3]                          (rt_action1)  {Update the total value of pending
-                                                                                redemptions on the wallet: value of
-                                                                                timed out redemption (minus treasury fee)
-                                                                                should be subtracted};
-\node[action, below=of rt_action1]                               (rt_action2)  {Transfer the value of timed out redemption from bank to the redeemer};
+\node[action, below right=of rt_check3]                          (rt_action1)  {Update the total value of pending redemptions on the wallet};
+\node[action, below=of rt_action1]                               (rt_action2)  {Transfer the value of the timed out redemption from the Bridge's
+                                                                                balance to the redeemer's balance in the Bank};
 \node[action, below=of rt_action2]                               (rt_action3)  {Move redemption from pending to timed out};
-\node[action, below=of rt_action3]                               (rt_action4)  {Emit notification about redemption timeout};
-\node[check, below=of rt_action4]                                (rt_check4)   {Is wallet LIVE\\ or MOVING\_FUNDS?};
+
+\node[check, below=of rt_action3]                                (rt_check4)   {Is wallet LIVE\\ or MOVING\_FUNDS?};
 \node[below left=of rt_check4, xshift=-2cm]                      (rt_end1)     {};
-\node[action, below right=of rt_check4]                          (rt_action5)  {Slash the wallet, reward the notifier};
-\node[check, below=of rt_action5]                                (rt_check5)   {Is wallet LIVE?};
+\node[action, below right=of rt_check4]                          (rt_action4)  {Slash the wallet, reward the notifier};
+\node[check, below=of rt_action4]                                (rt_check5)   {Is wallet LIVE?};
 \node[below left=of rt_check5, xshift=-2cm]                      (rt_end2)     {};
 \node[check, below right=of rt_check5, xshift=130mm]             (rt_check6)   {Does wallet have\\ a main UTXO?};
-\node[action, below left=of rt_check6]                           (rt_action6)  {Wallet's state changed to CLOSING};
-\node[action, below=of rt_action6]                               (rt_action7)  {Wallet contract emits notification about state changed to CLOSING};
-\node[action, below right=of rt_check6]                          (rt_action8)  {Start moving funds};
-\node[check, below=of rt_action8]                                (rt_check7)   {Is wallet\\ marked as ACTIVE?};
-\node[action, below right=of rt_check7]                          (rt_action9)  {Clear ACTIVE field};
-\node[action, below left=of rt_action9, xshift=-20mm]            (rt_action10) {Wallet's state changed to MOVING\_FUNDS, time recorded};
-\node[action, below=of rt_action10]                              (rt_action11) {Wallet contract emits notification about state changed to MOVING\_FUNDS};
+\node[action, below left=of rt_check6]                           (rt_action5)  {Wallet's state changed to CLOSING};
+
+\node[action, below right=of rt_check6]                          (rt_action6)  {Start moving funds};
+\node[check, below=of rt_action6]                                (rt_check7)   {Is wallet\\ marked as\\ ACTIVE?};
+\node[action, below right=of rt_check7]                          (rt_action7)  {Clear ACTIVE field};
+\node[action, below left=of rt_action7, xshift=-20mm]            (rt_action8)  {Wallet's state changed to MOVING\_FUNDS, time recorded};
 \node[note1, right=of rt_start.south east, anchor=south west]    (rt_note1)    {Can be successfully called for wallets:\\
                                                                                 \textbf{- LIVE\\
                                                                                 - MOVING\_FUNDS\\
@@ -93,34 +88,31 @@
 \draw[->]      (rt_check3)   -| (rt_action1)  \yes;
 \draw[->]      (rt_action1)  -- (rt_action2);
 \draw[->]      (rt_action2)  -- (rt_action3);
-\draw[->]      (rt_action3)  -- (rt_action4);
-\draw[->]      (rt_action4)  -- (rt_check4);
+\draw[->]      (rt_action3)  -- (rt_check4);
 \draw[->, end] (rt_check4)   -| (rt_end1)     \no;
-\draw[->]      (rt_check4)   -| (rt_action5)  \yes;
-\draw[->]      (rt_action5)  -- (rt_check5);
+\draw[->]      (rt_check4)   -| (rt_action4)  \yes;
+\draw[->]      (rt_action4)  -- (rt_check5);
 \draw[->, end] (rt_check5)   -| (rt_end2)     \no;
 \draw[->]      (rt_check5)   -| (rt_check6)   \yes;
-\draw[->]      (rt_check6)   -| (rt_action6)  \no;
-\draw[->]      (rt_action6)  -- (rt_action7);
-\draw[->]      (rt_check6)   -| (rt_action8)  \yes;
-\draw[->]      (rt_action8)  -- (rt_check7);
-\draw[->]      (rt_check7)   -| (rt_action9)  \yes;
-\draw[->]      (rt_check7)   -| (rt_action10) \no;
-\draw[->]      (rt_action9)  |- (rt_action10);
-\draw[->]      (rt_action10) -- (rt_action11);
+\draw[->]      (rt_check6)   -| (rt_action5)  \no;
+\draw[->]      (rt_check6)   -| (rt_action6)  \yes;
+\draw[->]      (rt_action6)  -- (rt_check7);
+\draw[->]      (rt_check7)   -| (rt_action7)  \yes;
+\draw[->]      (rt_check7)   -| (rt_action8)  \no;
+\draw[->]      (rt_action7)  |- (rt_action8);
 
 
 % CLOSEABLE WALLET
 % Nodes
-\node[start, right=of rt_start, xshift=210mm]                    (cw_start)   {Somebody notifies about \textbf{closeable wallet}};
+\node[start, right=of rt_start, xshift=210mm]                    (cw_start)   {\textbf{Notify closeable wallet}};
 \node[check, below=of cw_start]                                  (cw_check1)  {Is wallet marked\\ as ACTIVE?};
 \node[check, below left=of cw_check1]                            (cw_check2)  {Is wallet LIVE?};
 \node[revert, below right=of cw_check1]                          (cw_revert1) {Transaction reverted};
-\node[check, below right=of cw_check2]                           (cw_check3)  {Is wallet\\ older than\\ wallet\_max\_age or\\ is wallet's balance below\\ wallet\_min\_closure\_btc?};
+\node[check, below right=of cw_check2]                           (cw_check3)  {Is the wallet\\ old enough or does\\ it have too few\\ satoshis left?};
 \node[revert, below left=of cw_check3, xshift=-2cm]              (cw_revert2) {Transaction reverted};
 \node[note1, right=of cw_start.south east, anchor=south west]    (cw_note1)   {Can be successfully called for wallets:\\
                                                                                \textbf{- LIVE}};
-\node[note2, above=of cw_note1.north, anchor=south, yshift=-8mm] (cw_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+\node[note2, above=of cw_note1.north, anchor=south, yshift=-8mm] (cw_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed}};
 
 % Arrows
 \draw[->] (cw_start)  -- (cw_check1);
@@ -134,17 +126,16 @@
 
 % WALLET HEARTBEAT FAILED
 % Nodes
-\node[start, right=of cw_start, xshift=140mm]                     (whf_start)   {Somebody notifies about \textbf{wallet failing heartbeat}};
+\node[start, right=of cw_start, xshift=100mm]                     (whf_start)   {\textbf{Wallet heartbeat failed}};
 \node[check, below=of whf_start]                                  (whf_check1)  {Is sender a\\ wallet member?};
-\node[check, below right=of whf_check1]                           (whf_check2)  {Is the\\ notification\\ supported by at\\ least 51 valid\\ signatures?};
-\node[check, below right=of whf_check2]                           (whf_check3)  {Is wallet LIVE?};
-\node[revert, below left=of whf_check3, xshift=-6cm]              (whf_revert1) {Transaction reverted};
-\node[action, below right=of whf_check3]                          (whf_action1) {Mark inactive operators as ineligible for rewards};
+\node[check, below right=of whf_check1]                           (whf_check2)  {Is the\\ inactivity claim\\ supported by at least 51\\ valid group member\\ signatures?};
+\node[check, below right=of whf_check2]                           (whf_check3)  {Is the notifier\\ one of the inactivity\\ claim signers?};
+\node[check, below right=of whf_check3]                           (whf_check4)  {Is wallet LIVE?};
+\node[revert, below left=of whf_check4, xshift=-10cm]             (whf_revert1) {Transaction reverted};
+\node[action, below right=of whf_check4]                          (whf_action1) {Mark inactive operators as ineligible for rewards};
 \node[note1, right=of whf_start.south east, anchor=south west]    (whf_note1)   {Can be successfully called for wallets:\\
-                                                                                 \textbf{- LIVE\\
-                                                                                 - MOVING\_FUNDS\\
-                                                                                 - CLOSING}};
-\node[note2, above=of whf_note1.north, anchor=south, yshift=-8mm] (whf_note2)   {Sender incentivized by:\\ \textbf{Fear of loosing rewards for 2 weeks; reimbursement}};
+                                                                                 \textbf{- LIVE}};
+\node[note2, above=of whf_note1.north, anchor=south, yshift=-8mm] (whf_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed, closing a problematic wallet to avoid slashing}};
 
 % Arrows
 % In places where arrows needs to bend more than once, we force the lines to
@@ -162,8 +153,10 @@
 \draw[->] (whf_check2)  -|                (whf_revert1) \no;
 \draw[->] (whf_check2)  -|                (whf_check3)  \yes;
 \draw[->] (whf_check3)  -|                (whf_revert1) \no;
-\draw[->] (whf_check3)  -|                (whf_action1) \yes;
-\draw[->] (whf_action1) -- +(0,-18.5) -|  (rt_check6.north);
+\draw[->] (whf_check3)  -|                (whf_check4) \yes;
+\draw[->] (whf_check4)  -|                (whf_revert1) \no;
+\draw[->] (whf_check4)  -|                (whf_action1) \yes;
+\draw[->] (whf_action1) -- +(0,-11.86) -| (rt_check6.north);
 
 
 % BACKGROUND
