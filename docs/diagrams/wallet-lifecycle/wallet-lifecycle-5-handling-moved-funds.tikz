@@ -49,20 +49,18 @@
 
 % MOVED FUNDS SWEEP PROOF
 % Nodes
-\node[start]                                                       (mfsp_start)   {Somebody sends proof of moved funds sweep};
+\node[start]                                                       (mfsp_start)   {\textbf{Submit moved funds sweep proof}};
 \node[check, below=of mfsp_start]                                  (mfsp_check1)  {Is there\\ a pending moved\\ funds sweep\\ request registered\\ for the wallet?};
 \node[check, below right=of mfsp_check1]                           (mfsp_check2)  {Has the\\ sweep transaction\\ occurred on\\ Bitcoin?};
 \node[check, below right=of mfsp_check2]                           (mfsp_check3)  {Does the\\ sweep transaction have\\ a single output?};
 \node[check, below right=of mfsp_check3]                           (mfsp_check4)  {Is wallet LIVE or\\ MOVING\_FUNDS?};
-\node[action, below right=of mfsp_check4]                          (mfsp_action1) {Process the sweep transaction inputs};
-\node[check, below=of mfsp_action1]                                (mfsp_check5)  {Isn't the fee\\ too high?};
-\node[revert, below left=of mfsp_check5, xshift=-15cm]             (mfsp_revert1) {Transaction reverted};
-\node[action, below right=of mfsp_check5]                          (mfsp_action2) {Use the sweep transaction's output as the new main UTXO for the sweeping wallet};
-\node[action, below=of mfsp_action2]                               (mfsp_action3) {Emit notification};
+\node[check, below right=of mfsp_check4]                           (mfsp_check5)  {Isn't the\\ Bitcoin fee\\ too high?}; 
+\node[revert, below left=of mfsp_check5, xshift=-14cm]             (mfsp_revert1) {Transaction reverted};
+\node[action, below right=of mfsp_check5]                          (mfsp_action1) {Use the sweep transaction's output as the new main UTXO for the sweeping wallet};
 \node[note1, right=of mfsp_start.south east, anchor=south west]    (mfsp_note1)   {Can be successfully called for wallets:\\
                                                                                    \textbf{- LIVE\\
                                                                                    - MOVING\_FUNDS}};
-\node[note2, above=of mfsp_note1.north, anchor=south, yshift=-8mm] (mfsp_note2)   {Sender incentivized by:\\ \textbf{Reimbursement, if maintainer}};
+\node[note2, above=of mfsp_note1.north, anchor=south, yshift=-8mm] (mfsp_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed, avoids getting slashed}};
 
 % Arrows
 \draw[->] (mfsp_start)   -- (mfsp_check1);
@@ -73,25 +71,22 @@
 \draw[->] (mfsp_check3)  -| (mfsp_revert1) \no;
 \draw[->] (mfsp_check3)  -| (mfsp_check4)  \yes;
 \draw[->] (mfsp_check4)  -| (mfsp_revert1) \no;
-\draw[->] (mfsp_check4)  -| (mfsp_action1) \yes;
-\draw[->] (mfsp_action1) -- (mfsp_check5);
+\draw[->] (mfsp_check4)  -| (mfsp_check5)  \yes;
 \draw[->] (mfsp_check5)  -| (mfsp_revert1) \no;
-\draw[->] (mfsp_check5)  -| (mfsp_action2) \yes;
-\draw[->] (mfsp_action2) -- (mfsp_action3);
+\draw[->] (mfsp_check5)  -| (mfsp_action1) \yes;
 
 
 % MOVED FUNDS SWEEP TIMEOUT
 % Nodes
-\node[start, right=of mfsp_start, xshift=23cm]                    (mft_start)   {Somebody notifies about \textbf{wallet passing moved funds sweep timeout}};
+\node[start, right=of mfsp_start, xshift=23cm]                    (mft_start)   {\textbf{Notify moved funds sweep timeout}};
 \node[check, below=of mft_start]                                  (mft_check1)  {Is there\\ a pending moved\\ funds sweep\\ request registered\\ for the wallet?};
-\node[check, below right=of mft_check1]                           (mft_check2)  {Has the\\ moved\_funds\_sweep\_timeout\\ passed?};   
+\node[check, below right=of mft_check1]                           (mft_check2)  {Has the timeout\\ for sweeping the moved\\ funds passed?};   
 \node[check, below right=of mft_check2]                           (mft_check3)  {Is wallet LIVE,\\ MOVING\_FUNDS or\\ TERMINATED?};         
 \node[action, below right=of mft_check3]                          (mft_action1) {Mark sweep request as timed out};
 \node[check, below=of mft_action1]                                (mft_check4)  {Is wallet LIVE or\\ MOVING\_FUNDS?};   
 \node[revert, below left=of mft_check4, xshift=-12cm]             (mft_revert1) {Transaction reverted};
 \node[action, below right=of mft_check4]                          (mft_action2) {Slashing, reward for notifier};
 \node[action, below=of mft_action2]                               (mft_action3) {Change wallet state to TERMINATED};
-\node[action, below=of mft_action3]                               (mft_action4) {Emit notification};
 \node[note1, right=of mft_start.south east, anchor=south west]    (mft_note1)   {Can be successfully called for wallets:\\
                                                                                  \textbf{- LIVE\\
                                                                                  - MOVING\_FUNDS\\
@@ -110,7 +105,6 @@
 \draw[->] (mft_check4)  -| (mft_revert1) \no;
 \draw[->] (mft_check4)  -| (mft_action2) \yes;
 \draw[->] (mft_action2) -- (mft_action3);
-\draw[->] (mft_action3) -- (mft_action4);
 
 
 % BACKGROUND
