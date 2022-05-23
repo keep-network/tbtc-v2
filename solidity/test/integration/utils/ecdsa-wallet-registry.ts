@@ -12,6 +12,7 @@ import type {
   Signer,
 } from "ethers"
 import type { WalletRegistry, SortitionPool } from "../../../typechain"
+import type { ClaimStruct } from "../../../typechain/EcdsaInactivity"
 
 export async function registerOperator(
   walletRegistry: WalletRegistry,
@@ -109,6 +110,48 @@ async function selectGroup(walletRegistry: WalletRegistry): Promise<Operators> {
       )
     ))
   )
+}
+
+export async function produceOperatorInactivityClaim(
+  walletID: BytesLike,
+  signers: Operators,
+  nonce: number,
+  groupPubKey: BytesLike,
+  heartbeatFailed: boolean,
+  inactiveMembersIndices: number[],
+  numberOfSignatures: number
+): Promise<ClaimStruct> {
+  const messageHash = ethers.utils.solidityKeccak256(
+    ["uint256", "bytes", "uint8[]", "bool"],
+    [nonce, groupPubKey, inactiveMembersIndices, heartbeatFailed]
+  )
+
+  const signingMembersIndices: number[] = []
+  const signatures: string[] = []
+
+  for (let i = 0; i < signers.length; i++) {
+    if (signatures.length === numberOfSignatures) {
+      // eslint-disable-next-line no-continue
+      continue
+    }
+
+    const signerIndex: number = i + 1
+    signingMembersIndices.push(signerIndex)
+
+    const signature = await signers[i].signer.signMessage(
+      ethers.utils.arrayify(messageHash)
+    )
+
+    signatures.push(signature)
+  }
+
+  return {
+    walletID,
+    inactiveMembersIndices,
+    heartbeatFailed,
+    signatures: ethers.utils.hexConcat(signatures),
+    signingMembersIndices,
+  }
 }
 
 interface DkgResult {
