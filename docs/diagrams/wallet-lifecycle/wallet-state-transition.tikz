@@ -59,13 +59,13 @@
 % Style of the labels is defined in `every node/.style`.
 
 \draw[->](unknown)      --  node[below right, pos=0, yshift=-5mm, align=left] {- registerNewWallet}                   (live);
-\draw[->](live)         --  node[below right, pos=0, yshift=-5mm, align=left] {- notifyWalletHeartbeatFailed\\
+\draw[->](live)         --  node[below right, pos=0, yshift=-5mm, align=left] {- \_\_ecdsaWalletHeartbeatFailedCallback\\
                                                                                - notifyCloseableWallet\\
                                                                                - notifyRedemptionTimeout}            (movingFunds);
 \draw[->](movingFunds)  --  node[below right, pos=0, yshift=-5mm, align=left] {- submitMovingFundsProof\\
                                                                                - notifyMovingFundsBelowDust}         (closing);
 \draw[->](closing)      --  node[below right, pos=0, yshift=-5mm, align=left] {- notifyWalletClosingPeriodElapsed}   (closed);
-\draw[->](live)         -|  node[above right, pos=0, xshift=5mm, align=left]  {- notifyWalletHeartbeatFailed *\\
+\draw[->](live)         -|  node[above right, pos=0, xshift=5mm, align=left]  {- \_\_ecdsaWalletHeartbeatFailedCallback *\\
                                                                                - notifyCloseableWallet *\\
                                                                                - notifyRedemptionTimeout *\\
                                                        \sffamily\footnotesize{(* only if there's no main UTXO)}}     +(10cm,0)
@@ -96,7 +96,7 @@ LIVE:\\
   - submitFraudChallenge\\
   - defeatFraudChallenge\\
   - notifyFraudChallengeDefeatTimeout\\
-  - notifyWalletHeartbeatFailed\\
+  - \_\_ecdsaWalletHeartbeatFailedCallback\\
   - notifyCloseableWallet\\
   - notifyRedemptionTimeout}
 \nodepart{two} 
