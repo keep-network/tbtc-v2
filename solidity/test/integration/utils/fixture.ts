@@ -26,7 +26,6 @@ export const fixture = deployments.createFixture(
     t: Contract
     staking: Contract
     randomBeacon: FakeContract<IRandomBeacon>
-    walletMembersIDs: number[]
   }> => {
     await deployments.fixture()
     const { governance } = await helpers.signers.getNamedSigners()
@@ -57,8 +56,6 @@ export const fixture = deployments.createFixture(
       )
     }
 
-    const walletMembersIDs: number[] = []
-
     for (let i = 0; i < numberOfOperators; i++) {
       const owner: SignerWithAddress = signers[i]
       const stakingProvider: SignerWithAddress =
@@ -83,14 +80,12 @@ export const fixture = deployments.createFixture(
         stakingProvider.address,
         stakeAmount
       )
-      const operatorID = await registerOperator(
+      await registerOperator(
         walletRegistry,
         sortitionPool,
         stakingProvider,
         operator
       )
-
-      walletMembersIDs.push(operatorID)
     }
 
     return {
@@ -100,7 +95,6 @@ export const fixture = deployments.createFixture(
       t,
       staking,
       randomBeacon,
-      walletMembersIDs,
     }
   }
 )
