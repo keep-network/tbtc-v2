@@ -94,8 +94,8 @@ LIVE:\\
   - receiveBalanceApproval\\
   - submitRedemptionProof\\
   - notifyRedemptionTimeout\\
-  - notifyMovedFundsSweepTimeout\\
   - submitMovedFundsSweepProof\\
+  - notifyMovedFundsSweepTimeout\\
   - \_\_ecdsaWalletHeartbeatFailedCallback\\
   - notifyCloseableWallet\\
   - submitFraudChallenge\\
