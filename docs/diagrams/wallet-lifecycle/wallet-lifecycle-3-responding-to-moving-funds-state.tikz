@@ -83,7 +83,7 @@
 \node[check, below right=of mfc_check4]                           (mfc_check5)  {Is the source\\ wallet free of pending\\ moved funds\\ sweep requests?};
 \node[check, below right=of mfc_check5]                           (mfc_check6)  {Are the\\ target wallets\\ in LIVE state?};
 \node[check, below right=of mfc_check6]                           (mfc_check7)  {Are the target\\ wallets different\\ than source\\ wallet?};
-\node[check, below right=of mfc_check7]                           (mfc_check8)  {Is the \# of\\ the target wallets\\ in the commitment\\ as expected??};
+\node[check, below right=of mfc_check7]                           (mfc_check8)  {Is the \# of\\ the target wallets\\ in the commitment\\ as expected?};
 \node[check, below right=of mfc_check8]                           (mfc_check9)  {Are hashes of\\ target wallets ordered\\ ascending, without\\ duplicates?};              
 \node[revert, below left=of mfc_check9, xshift=-28cm]             (mfc_revert1) {Transaction reverted};
 \node[action, below right=of mfc_check9]                          (mfc_action1) {Information about chosen target wallets saved on-chain};

@@ -78,13 +78,13 @@
 % DEFEAT FRAUD CHALLENGE
 % Nodes
 \node[start, right=of fc_start, xshift=120mm]                    (df_start)   {\textbf{Defeat fraud challenge}};
-\node[check, below=of df_start]                                  (df_check1)  {Does the provided\\ preimage match an\\ existing, unresolved\\ challenge??};
+\node[check, below=of df_start]                                  (df_check1)  {Does the\\ provided heartbeat\\ message match an\\ existing, unresolved\\ challenge?};
 \node[check, below right=of df_check1]                           (df_check2)  {Has the defeat timeout\\ been reported?};
 \node[check, below left=of df_check2]                            (df_check3)  {Was the\\ SIGHASH\_ALL used\\ during preimage\\ signing?};
 \node[revert, below right=of df_check2]                          (df_revert1) {Transaction reverted};
 \node[check, below right=of df_check3]                           (df_check4)  {Was the UTXO\\ in the challenged transaction\\ spent non-fraudulently?};
 \node[revert, below left=of df_check4, xshift=-3cm]                           (df_revert2) {Transaction reverted};
-\node[action, below right=of df_check4]                          (df_action1) {Close the fraud challenge};
+\node[action, below right=of df_check4]                          (df_action1) {Resolve the fraud challenge};
 \node[action, below=of df_action1]                               (df_action2) {Transfer the challenger's deposit to the treasury};
 \node[note1, right=of df_start.south east, anchor=south west]    (df_note1)   {Can be successfully called for wallets:\\ 
                                                                                \textbf{- LIVE\\
@@ -109,7 +109,7 @@
 % DEFEAT FRAUD CHALLENGE WITH HEARTBEAT
 % Nodes
 \node[start, right=of df_start, xshift=110mm]                      (dfwt_start)   {\textbf{Defeat fraud challenge with heartbeat}};
-\node[check, below=of dfwt_start]                                  (dfwt_check1)  {Does the provided\\ preimage match an\\ existing, unresolved\\ challenge??};
+\node[check, below=of dfwt_start]                                  (dfwt_check1)  {Does the\\ provided heartbeat\\ message match an\\ existing, unresolved\\ challenge?};
 \node[check, below right=of dfwt_check1]                           (dfwt_check2)  {Has the defeat timeout\\ been reported?};
 \node[check, below left=of dfwt_check2]                            (dfwt_check3)  {Is the\\ provided message\\ a valid heartbeat\\ message?};
 \node[revert, below right=of dfwt_check2]                          (dfwt_revert1) {Transaction reverted};
@@ -150,11 +150,11 @@
 \node[check, below=of fdt_action1]                                (fdt_check3)  {Is wallet LIVE,\\ MOVING\_FUNDS\\ or CLOSING?};
 \node[check, below left=of fdt_check3, xshift=-40mm]              (fdt_check4)  {Is wallet\\ TERMINATED?};
 \node[revert, below left=of fdt_check4]                           (fdt_revert1) {Transaction reverted};
-\node[action, below right=of fdt_check3]                          (fdt_action2) {Slashing, reward for the fraud challenge notifier};
+\node[action, below right=of fdt_check3]                          (fdt_action2) {Slash the wallet, reward the fraud challenge notifier};
 \node[check, below=of fdt_action2]                                (fdt_check5)  {Is wallet marked\\ as ACTIVE?};
 \node[action, below right=of fdt_check5]                          (fdt_action3) {Clear ACTIVE field};
 \node[action, below left=of fdt_action3, xshift=-20mm]            (fdt_action4) {Change wallet's state to TERMINATED, delete wallet from registry};
-\node[action, below=of fdt_action4]                               (fdt_action5) {Resolve the challenge};
+\node[action, below=of fdt_action4]                               (fdt_action5) {Close the challenge};
 \node[note1, right=of fdt_start.south east, anchor=south west]    (fdt_note1)   {Can be successfully called for wallets:\\ 
                                                                                  \textbf{- LIVE\\
                                                                                  - MOVING\_FUNDS\\

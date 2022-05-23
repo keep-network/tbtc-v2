@@ -54,8 +54,8 @@
 \node[check, below right=of mfp_check2]                           (mfp_check3)  {Does the\\ transaction have a\\ main wallet UTXO\\ in its inputs?};
 \node[check, below right=of mfp_check3]                           (mfp_check4)  {Is wallet\\ MOVING\_FUNDS?};
 \node[check, below right=of mfp_check4]                           (mfp_check5)  {Are the\\ outputs of equal\\ value ($\pm$ division\\ reminder)?};
-\node[check, below right=of mfp_check5]                           (mfp_check6)  {Were outputs\\ sent to wallets\\ declared in the\\ target wallet\\ commitment?};
-\node[check, below right=of mfp_check6]                           (mfp_check7)  {Isn't the\\ Bitcoin fee\\ too high?}; 
+\node[check, below right=of mfp_check5]                           (mfp_check6)  {Were outputs\\ sent to wallets\\ declared in the\\ target wallets\\ commitment?};
+\node[check, below right=of mfp_check6]                           (mfp_check7)  {Is the\\ Bitcoin network fee\\ acceptable?}; 
 \node[revert, below left=of mfp_check7, xshift=-19cm]             (mfp_revert1) {Transaction reverted};
 \node[action, below right=of mfp_check7]                          (mfp_action1) {Register moved funds sweep requests for the target wallets};
 \node[action, below=of mfp_action1]                               (mfp_action2) {The source wallet's main UTXO unset, wallet state changed to CLOSING};
