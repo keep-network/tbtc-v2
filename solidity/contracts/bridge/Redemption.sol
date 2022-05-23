@@ -982,7 +982,7 @@ library Redemption {
             wallet.state == Wallets.WalletState.Live ||
                 wallet.state == Wallets.WalletState.MovingFunds ||
                 wallet.state == Wallets.WalletState.Terminated,
-            "The wallet must be in Live, MovingFunds or Terminated state"
+            "Wallet must be in Live, MovingFunds or Terminated state"
         );
 
         // It is worth noting that there is no need to check if
