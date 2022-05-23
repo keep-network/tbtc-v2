@@ -564,8 +564,6 @@ library MovingFunds {
             "Moving funds has not timed out yet"
         );
 
-        self.terminateWallet(walletPubKeyHash);
-
         self.ecdsaWalletRegistry.seize(
             self.movingFundsTimeoutSlashingAmount,
             self.movingFundsTimeoutNotifierRewardMultiplier,
@@ -573,6 +571,8 @@ library MovingFunds {
             wallet.ecdsaWalletID,
             walletMembersIDs
         );
+
+        self.terminateWallet(walletPubKeyHash);
 
         // slither-disable-next-line reentrancy-events
         emit MovingFundsTimedOut(walletPubKeyHash);
@@ -1068,8 +1068,6 @@ library MovingFunds {
             walletState == Wallets.WalletState.Live ||
             walletState == Wallets.WalletState.MovingFunds
         ) {
-            self.terminateWallet(walletPubKeyHash);
-
             self.ecdsaWalletRegistry.seize(
                 self.movedFundsSweepTimeoutSlashingAmount,
                 self.movedFundsSweepTimeoutNotifierRewardMultiplier,
@@ -1077,6 +1075,8 @@ library MovingFunds {
                 wallet.ecdsaWalletID,
                 walletMembersIDs
             );
+
+            self.terminateWallet(walletPubKeyHash);
         }
 
         // slither-disable-next-line reentrancy-events
