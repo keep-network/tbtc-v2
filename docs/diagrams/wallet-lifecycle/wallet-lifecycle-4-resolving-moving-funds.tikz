@@ -1,0 +1,119 @@
+% TIP: To generate `.pdf` file out of this `.tikz` file run:
+% `pdflatex filename.tikz`.
+% To install `pdflatex` on MacOS either run `brew install --cask mactex` (not
+% recommended, downloads 4GB of data) or install `basictex` distribution plus
+% needed packages (recommended, downloads only essential packages):
+% ```
+% brew install --cask basictex
+% sudo tlmgr update --self
+% sudo tlmgr install standalone
+% sudo tlmgr install comment
+% pdflatex <filename>.tikz
+%```
+% 
+% To generate `.png` file out of `.pdf` on MacOS run:
+% `convert -density 300 <filename>.pdf -resize 50% <filename>.png`.
+% This requires installation of the `imagemagick` tool:
+% `brew install imagemagick`.
+\documentclass{standalone}%
+\usepackage{tikz}%
+\usetikzlibrary{positioning,shapes,arrows.meta,chains}%
+
+% These commands are used to draw arrow labels
+\newcommand{\yes}{node [auto, pos=0, xshift=5mm]{Y}}%
+\newcommand{\no}{node [auto, swap, pos=0, xshift=-5mm]{N}}%
+
+% We need layers to draw the background
+\pgfdeclarelayer{background}%
+\pgfsetlayers{background,main}%
+
+\begin{document}%
+\begin{tikzpicture}[
+% Specify styles for nodes:
+    base/.style = {rectangle, rounded corners, draw=black,
+                   minimum width=4cm, minimum height=1cm,
+                   text centered, text width=4cm, align=flush center},
+   start/.style = {base, fill=blue!30},
+  revert/.style = {base, fill=red!30},
+  action/.style = {base, fill=black!5},
+   check/.style = {diamond, aspect=1.2, draw=black, fill=black!5,
+                   minimum width=1cm, align=center},
+   note1/.style = {rectangle, draw, dashed, fill=green!10,
+                   align=flush left, text width=5cm},
+   note2/.style = {rectangle, draw, dashed, fill=cyan!10,
+                   align=flush left, text width=5cm},
+              > = Triangle,                  % defines the arrow tip style when `->` is used
+           font = \sffamily,
+]
+
+% MOVING FUNDS PROOF
+% Nodes
+\node[start]                                                      (mfp_start)   {\textbf{Submit moving funds proof}};
+\node[check, below=of mfp_start]                                  (mfp_check1)  {Has the\\ wallet committed\\ to the target\\ wallets?};
+\node[check, below right=of mfp_check1]                           (mfp_check2)  {Has the\\ transaction\\ occurred on\\ Bitcoin?};
+\node[check, below right=of mfp_check2]                           (mfp_check3)  {Does the\\ transaction have a\\ main wallet UTXO\\ in its inputs?};
+\node[check, below right=of mfp_check3]                           (mfp_check4)  {Is wallet\\ MOVING\_FUNDS?};
+\node[check, below right=of mfp_check4]                           (mfp_check5)  {Are the\\ outputs of equal\\ value ($\pm$ division\\ reminder)?};
+\node[check, below right=of mfp_check5]                           (mfp_check6)  {Were outputs\\ sent to wallets\\ declared in the\\ target wallets\\ commitment?};
+\node[check, below right=of mfp_check6]                           (mfp_check7)  {Is the\\ Bitcoin network fee\\ acceptable?}; 
+\node[revert, below left=of mfp_check7, xshift=-19cm]             (mfp_revert1) {Transaction reverted};
+\node[action, below right=of mfp_check7]                          (mfp_action1) {Register moved funds sweep requests for the target wallets};
+\node[action, below=of mfp_action1]                               (mfp_action2) {The source wallet's main UTXO unset, wallet state changed to CLOSING};
+\node[note1, right=of mfp_start.south east, anchor=south west]    (mfp_note1)   {Can be successfully called for wallets:\\
+                                                                                 \textbf{- MOVING\_FUNDS}};
+\node[note2, above=of mfp_note1.north, anchor=south, yshift=-8mm] (mfp_note2)   {Sender incentivized by:\\ \textbf{Ether reimbursed, avoids getting slashed}};
+
+% Arrows
+\draw[->] (mfp_start)   -- (mfp_check1);
+\draw[->] (mfp_check1)  -| (mfp_revert1) \no;
+\draw[->] (mfp_check1)  -| (mfp_check2)  \yes;
+\draw[->] (mfp_check2)  -| (mfp_revert1) \no;
+\draw[->] (mfp_check2)  -| (mfp_check3)  \yes;
+\draw[->] (mfp_check3)  -| (mfp_revert1) \no;
+\draw[->] (mfp_check3)  -| (mfp_check4)  \yes;
+\draw[->] (mfp_check4)  -| (mfp_revert1) \no;
+\draw[->] (mfp_check4)  -| (mfp_check5)  \yes;
+\draw[->] (mfp_check5)  -| (mfp_revert1) \no;
+\draw[->] (mfp_check5)  -| (mfp_check6)  \yes;
+\draw[->] (mfp_check6)  -| (mfp_revert1) \no;
+\draw[->] (mfp_check6)  -| (mfp_check7) \yes;
+\draw[->] (mfp_check7)  -| (mfp_revert1) \no;
+\draw[->] (mfp_check7)  -| (mfp_action1) \yes;
+\draw[->] (mfp_action1) -- (mfp_action2);
+
+
+% MOVING FUNDS TIMEOUT
+% Nodes
+\node[start, right=of mfp_start, xshift=25cm]                     (mft_start)   {\textbf{Notify moving funds timeout}};
+\node[check, below=of mft_start]                                  (mft_check1)  {Is wallet\\ MOVING\_FUNDS?};
+\node[check, below right=of mft_check1]                           (mft_check2)  {Has the\\ moving funds timeout\\ passed?};              
+\node[revert, below left=of mft_check2, xshift=-2cm]              (mft_revert1) {Transaction reverted};
+\node[action, below right=of mft_check2]                          (mft_action1) {Slash the wallet, reward the notifier};
+\node[action, below=of mft_action1]                               (mft_action2) {Change wallet state to TERMINATED};
+\node[note1, right=of mft_start.south east, anchor=south west]    (mft_note1)   {Can be successfully called for wallets:\\
+                                                                                 \textbf{- MOVING\_FUNDS}};
+\node[note2, above=of mft_note1.north, anchor=south, yshift=-8mm] (mft_note2)   {Sender incentivized by:\\ \textbf{Fraction of slashed amount}};
+
+% Arrows
+\draw[->] (mft_start)   -- (mft_check1);
+\draw[->] (mft_check1)  -| (mft_revert1) \no;
+\draw[->] (mft_check1)  -| (mft_check2)  \yes;
+\draw[->] (mft_check2)  -| (mft_revert1) \no;
+\draw[->] (mft_check2)  -| (mft_action1) \yes;
+\draw[->] (mft_action1) -- (mft_action2);
+
+
+% BACKGROUND
+% To draw the background behind the nodes and other objects we use pgf layers. 
+% We calculate top left and bottom right corners position of current canvas and
+% construct white background between those points expanded by some small amount.
+% This gives us nice little margin around the diagram.
+
+\begin{pgfonlayer}{background}
+  \path (current bounding box.north west)+(-0.2,0.2) node (a) {};
+  \path (current bounding box.south east)+(0.2,-0.2) node (b) {};
+  \path[fill=white] (a) rectangle (b);
+\end{pgfonlayer}
+
+\end{tikzpicture}
+\end{document}
