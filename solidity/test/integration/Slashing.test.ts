@@ -68,6 +68,7 @@ describeFn("Integration Test - Slashing", async () => {
 
   before(async () => {
     ;({
+      deployer,
       governance,
       tbtc,
       bridge,
