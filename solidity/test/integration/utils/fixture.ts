@@ -1,12 +1,13 @@
 /* eslint-disable no-await-in-loop */
 
-import { FakeContract } from "@defi-wonderland/smock"
+import { FakeContract, smock } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Contract } from "ethers"
 import { deployments, ethers, helpers } from "hardhat"
 import {
   Bridge,
   TBTCVault,
+  TestRelay,
   IRandomBeacon,
   WalletRegistry,
   VendingMachine,
@@ -33,6 +34,7 @@ export const fixture = deployments.createFixture(
     t: Contract
     staking: Contract
     randomBeacon: FakeContract<IRandomBeacon>
+    relay: FakeContract<TestRelay>
   }> => {
     await deployments.fixture()
     const { deployer, governance } = await helpers.signers.getNamedSigners()
@@ -65,6 +67,11 @@ export const fixture = deployments.createFixture(
       "SortitionPool",
       await walletRegistry.sortitionPool()
     )
+
+    // TODO: INTEGRATE WITH THE REAL RELAY
+    const relay = await smock.fake<TestRelay>("TestRelay", {
+      address: await (await bridge.contractReferences()).relay,
+    })
 
     const signers = (await helpers.signers.getUnnamedSigners()).slice(
       unnamedSignersOffset
@@ -117,6 +124,7 @@ export const fixture = deployments.createFixture(
       t,
       staking,
       randomBeacon,
+      relay,
     }
   }
 )
