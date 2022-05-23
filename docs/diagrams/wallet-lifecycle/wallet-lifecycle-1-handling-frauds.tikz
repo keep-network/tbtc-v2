@@ -72,7 +72,7 @@
 \draw[->] (fc_check3)  -| (fc_action1) \yes;
 
 
-% DEFEAT FRAUD
+% DEFEAT FRAUD CHALLENGE
 % Nodes
 \node[start, right=of fc_start, xshift=100mm]                    (df_start)   {\textbf{Defeat fraud challenge}};
 \node[check, below=of df_start]                                  (df_check1)  {Is there a pending\\ notification to be defeated?};
@@ -85,7 +85,8 @@
 \node[note1, right=of df_start.south east, anchor=south west]    (df_note1)   {Can be successfully called for wallets:\\ 
                                                                                \textbf{- LIVE\\
                                                                                - MOVING\_FUNDS\\
-                                                                               - CLOSING}};
+                                                                               - CLOSIN\\
+                                                                               - TERMINATED}};
 \node[note2, above=of df_note1.north, anchor=south, yshift=-8mm] (df_note2)   {Sender incentivized by:\\ \textbf{Receiving recompensation from the treasury}};
 
 % Arrows
@@ -110,7 +111,8 @@
 \node[note1, right=of dfwt_start.south east, anchor=south west]    (dfwt_note1)   {Can be successfully called for wallets:\\ 
                                                                                    \textbf{- LIVE\\
                                                                                    - MOVING\_FUNDS\\
-                                                                                   - CLOSING}};
+                                                                                   - CLOSING\\
+                                                                                   - TERMINATED}};
 \node[note2, above=of dfwt_note1.north, anchor=south, yshift=-8mm] (dfwt_note2)   {Sender incentivized by:\\ \textbf{Receiving recompensation from the treasury}};
 
 % Arrows
@@ -150,7 +152,8 @@
 \node[note1, right=of fdt_start.south east, anchor=south west]    (fdt_note1)   {Can be successfully called for wallets:\\ 
                                                                                  \textbf{- LIVE\\
                                                                                  - MOVING\_FUNDS\\
-                                                                                 - CLOSING}};
+                                                                                 - CLOSING\\
+                                                                                 - TERMINATED}};
 \node[note2, above=of fdt_note1.north, anchor=south, yshift=-8mm] (fdt_note2)   {Sender incentivized by:\\ \textbf{Fraction of slashed amount for fraud challenge notifier}};
 
 % Arrows

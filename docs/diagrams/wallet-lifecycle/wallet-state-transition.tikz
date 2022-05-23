@@ -92,9 +92,11 @@ LIVE:\\
   - submitMovedFundsSweepProof\\
   - notifyMovedFundsSweepTimeout\\
   - requestRedemption\\
+  - receiveBalanceApproval\\
   - submitRedemptionProof\\
   - submitFraudChallenge\\
   - defeatFraudChallenge\\
+  - defeatFraudChallengeWithHeartbeat\\
   - notifyFraudChallengeDefeatTimeout\\
   - \_\_ecdsaWalletHeartbeatFailedCallback\\
   - notifyCloseableWallet\\
@@ -108,6 +110,7 @@ LIVE:\\
   - submitRedemptionProof\\
   - submitFraudChallenge\\
   - defeatFraudChallenge\\
+  - defeatFraudChallengeWithHeartbeat\\
   - notifyFraudChallengeDefeatTimeout\\
   - notifyRedemptionTimeout\\
   - resetMovingFundsTimeout \\
@@ -120,6 +123,7 @@ LIVE:\\
   \ttfamily{
   - submitFraudChallenge\\
   - defeatFraudChallenge\\
+  - defeatFraudChallengeWithHeartbeat\\
   - notifyFraudChallengeDefeatTimeout\\
   - notifyWalletClosingPeriodElapsed}
   \hfill\\
@@ -128,6 +132,8 @@ LIVE:\\
   TERMINATED:\\}
   \ttfamily{
   - notifyMovedFundsSweepTimeout\\
+  - defeatFraudChallenge\\
+  - defeatFraudChallengeWithHeartbeat\\
   - notifyRedemptionTimeout\\
   - notifyFraudChallengeDefeatTimeout}
 };
