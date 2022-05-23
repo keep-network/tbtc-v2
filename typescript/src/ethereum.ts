@@ -1,5 +1,6 @@
 import { Bridge as ChainBridge, Identifier } from "./chain"
 import {
+  BigNumber,
   constants,
   Contract,
   ContractInterface,
@@ -118,7 +119,18 @@ export class Bridge implements ChainBridge {
       [`0x${walletPubKeyHash}`, prefixedRawRedeemerOutputScript]
     )
 
-    return this._bridge.pendingRedemptions(redemptionKey)
+    const request = this._bridge.pendingRedemptions(redemptionKey)
+
+    return Promise.resolve({
+      redeemer: {
+        identifierHex: request.redeemer.substring(2).toLowerCase(),
+      },
+      redeemerOutputScript: redeemerOutputScript,
+      requestedAmount: BigNumber.from(request.requestedAmount),
+      treasuryFee: BigNumber.from(request.treasuryFee),
+      txMaxFee: BigNumber.from(request.txMaxFee),
+      requestedAt: request.requestedAt,
+    })
   }
 
   // eslint-disable-next-line valid-jsdoc
