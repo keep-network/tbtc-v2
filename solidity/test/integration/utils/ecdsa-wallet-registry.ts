@@ -36,8 +36,12 @@ export async function performEcdsaDkg(
   walletRegistry: WalletRegistry,
   groupPublicKey: BytesLike,
   startBlock: number
-): Promise<{ approveDkgResultTx: ContractTransaction }> {
+): Promise<{
+  approveDkgResultTx: ContractTransaction
+  walletMembers: Operators
+}> {
   const {
+    signers: walletMembers,
     dkgResult,
     submitter,
     submitDkgResultTx: dkgResultSubmissionTx,
@@ -54,7 +58,7 @@ export async function performEcdsaDkg(
     .connect(submitter)
     .approveDkgResult(dkgResult)
 
-  return { approveDkgResultTx }
+  return { approveDkgResultTx, walletMembers }
 }
 
 export async function updateWalletRegistryDkgResultChallengePeriodLength(
@@ -141,6 +145,7 @@ async function signAndSubmitDkgResult(
   startBlock: number,
   misbehavedIndices = noMisbehaved
 ): Promise<{
+  signers: Operators
   dkgResult: DkgResult
   submitter: SignerWithAddress
   submitDkgResultTx: ContractTransaction
@@ -164,6 +169,7 @@ async function signAndSubmitDkgResult(
     .submitDkgResult(dkgResult)
 
   return {
+    signers,
     dkgResult,
     submitter,
     submitDkgResultTx,
