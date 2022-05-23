@@ -4,7 +4,13 @@ import { FakeContract } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Contract } from "ethers"
 import { deployments, ethers, helpers } from "hardhat"
-import { Bridge, IRandomBeacon, WalletRegistry } from "../../../typechain"
+import {
+  Bridge,
+  TBTCVault,
+  IRandomBeacon,
+  WalletRegistry,
+  VendingMachine,
+} from "../../../typechain"
 import { registerOperator } from "./ecdsa-wallet-registry"
 import { fakeRandomBeacon } from "./random-beacon"
 import { authorizeApplication, stake } from "./staking"
@@ -22,20 +28,35 @@ export const fixture = deployments.createFixture(
   async (): Promise<{
     governance: SignerWithAddress
     bridge: Bridge
+    tbtcVault: TBTCVault
     walletRegistry: WalletRegistry
     t: Contract
     staking: Contract
     randomBeacon: FakeContract<IRandomBeacon>
   }> => {
     await deployments.fixture()
-    const { governance } = await helpers.signers.getNamedSigners()
+    const { deployer, governance } = await helpers.signers.getNamedSigners()
 
     const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
+    const tbtcVault: TBTCVault = await helpers.contracts.getContract(
+      "TBTCVault"
+    )
     const walletRegistry = await helpers.contracts.getContract<WalletRegistry>(
       "WalletRegistry"
     )
     const t = await helpers.contracts.getContract("T")
     const staking = await helpers.contracts.getContract("TokenStaking")
+
+    // TODO: Vault registration and upgrade from VendingMachine should be a part
+    // of the deployment scripts.
+    await prepareVault(
+      bridge,
+      tbtcVault,
+      await helpers.contracts.getContract("VendingMachine"),
+      governance,
+      deployer,
+      deployer
+    )
 
     // TODO: INTEGRATE WITH THE REAL BEACON
     const randomBeacon = await fakeRandomBeacon(walletRegistry)
@@ -91,6 +112,7 @@ export const fixture = deployments.createFixture(
     return {
       governance,
       bridge,
+      tbtcVault,
       walletRegistry,
       t,
       staking,
@@ -98,3 +120,29 @@ export const fixture = deployments.createFixture(
     }
   }
 )
+
+async function prepareVault(
+  bridge: Bridge,
+  tbtcVault: TBTCVault,
+  vendingMachine: VendingMachine,
+  governance: SignerWithAddress,
+  vendingMachineUpgradeInitiator: SignerWithAddress,
+  vendingMachineOwner: SignerWithAddress
+) {
+  // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
+  // do not transfer the ownership of `TBTC` token to `TBTCVault`.
+  // We need to do it manually in tests covering `TBTCVault` behavior.
+  // Also, please note that `03_transfer_roles.ts` assigning `VendingMachine`
+  // upgrade initiator role to Keep Technical Wallet is skipped for Hardhat
+  // env deployment. That's why the upgrade initiator and `VendingMachine`
+  // owner is the deployer.
+  await vendingMachine
+    .connect(vendingMachineUpgradeInitiator)
+    .initiateVendingMachineUpgrade(tbtcVault.address)
+  await helpers.time.increaseTime(await vendingMachine.GOVERNANCE_DELAY())
+  await vendingMachine
+    .connect(vendingMachineOwner)
+    .finalizeVendingMachineUpgrade()
+
+  await bridge.connect(governance).setVaultStatus(tbtcVault.address, true)
+}
