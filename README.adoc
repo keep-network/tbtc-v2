@@ -134,7 +134,7 @@ range no more likely to be picked than ones near the ends. We pick a number of
 wallets equal to `min(liveWalletsCount, ceil(walletBtcBalance /
 walletMaxBtcTransfer))`, where `walletMaxBtcTransfer` is governable.
 
-In `submitMovingFundsProof`, we prove that the bitcoin transaction happened and
+In `submitMovingFundsProof`, we prove that the Bitcoin transaction happened and
 has an appropriate number of confirmations, and then mark the source wallet's
 UTXO as spent via `OutboundTx.processWalletOutboundTxInput`. We pass the
 transaction's outputs into `MovingFunds.processMovingFundsTxOutputs`, sum up
@@ -190,7 +190,7 @@ can be done immediately; no need to wait for confirmations) by calling
 `Bridge.revealDeposit` takes in the funding transaction, and then the necessary
 information to reconstruct the Bitcoin script: `depositor`, `blindingFactor`,
 `walletPubKeyHash` and `refundPubkeyHash`. Then, it makes sure that the funding
-transaction happened on bitcoin, reconstructs the script, hashes it, verifies
+transaction happened on Bitcoin, reconstructs the script, hashes it, verifies
 that the hashes match, and then stores the deposit as waiting to be
 <sweeping,swept> associated to the provided `depositor`.
 
