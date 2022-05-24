@@ -49,7 +49,7 @@ tBTCv2 uses the
 link:https://github.com/keep-network/keep-core/tree/main/solidity/random-beacon[Random
 Beacon] and link:https://github.com/keep-network/sortition-pools[Sortition Pool]
 to generate governable-sized (starting at 51-of-100)
-link:https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm[ECDSA-backed]
+link:https://eprint.iacr.org/2019/114.pdf[threshold ECDSA]
 Bitcoin wallets at a governable frequency (starting weekly). The youngest
 wallet accepts new deposits, and the oldest wallet serves redemptions.
 
