@@ -58,4 +58,54 @@ can be used to mint a supply-pegged ERC-20: TBTC. For an in-depth explanation
 about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
 
 == The Mechanism
-// FIXME
+
+=== Wallet Lifecycle
+
+==== Wallet Creation
+
+We kick off the wallet creation mechanism in
+link:https://github.com/keep-network/keep-core/tree/main/solidity/ecdsa[keep-core/ecdsa]
+via `Bridge.requestNewWallet`, which verifies:
+
+* That we're not currently already creating a wallet
+* If we have an active wallet it either:
+** Is old enough and has over `walletCreationMinBtcBalance` 
+** Has over `walletCreationMaxBtcBalance`
+
+If everything looks good, we kick off the wallet creation mechanism outlined in 
+link:https://github.com/keep-network/keep-core/tree/main/solidity/ecdsa#the-mechanism[Wallet
+Creation] (through keep-core/ecdsa). This leans heavily on the 
+link:https://github.com/keep-network/keep-core/tree/main/solidity/random-beacon#the-mechanism[Random
+Beacon].
+
+Once that is finished, the wallet registry can call
+`Bridge.__ecdsaWalletCreatedCallback`, which sets the new wallet as the active
+wallet. Going forward, it will receive deposits.
+
+== Parameters
+
+[%header,cols="3m,4,^1,^2m"]
+|=== 
+^|Property Name
+^|Description
+|Governable
+|Default Value
+
+4+s|Wallet Creation
+
+|walletCreationPeriod      
+|Length of time a wallet needs to exist for before a new one can be created
+|Yes
+|`1 week`
+
+|walletCreationMinBtcBalance
+|The minimum amount of BTC an active wallet needs to have before we allow for
+the creation of a new active wallet.
+|Yes
+|`5 BTC`
+
+|walletCreationMaxBtcBalance
+|The amount of BTC an active wallet needs to have where we allow for the
+creation of a new active wallet regardless of age.
+|Yes
+|`25 BTC`
