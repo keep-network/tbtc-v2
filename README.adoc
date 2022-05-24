@@ -147,8 +147,11 @@ otherwise users could get a balance and then refund their bitcoin and have
 both.
 
 The entry point is `Bridge.submitDepositSweepProof` which performs the SPV
-proof, updates the wallet with the new UTXO, takes a deposit fee for the
-treasury (5 BPS; governable), and updates the user balances.
+proof, updates the wallet with the new UTXO (from
+`DepositSweep.resolveDepositSweepingWallet`), takes a deposit fee for the
+treasury (5 BPS; governable), and updates the user balances with information
+from `DepositSweep.processDepositSweepTxInputs` and
+`DepositSweep.depositSweepTxFeeDistribution`.
 
 == Parameters
 
