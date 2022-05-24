@@ -184,6 +184,88 @@ describe("Ethereum", () => {
         expect(await bridgeHandle.txProofDifficultyFactor()).to.be.equal(6)
       })
     })
+
+    describe("requestRedemption", () => {
+      beforeEach(async () => {
+        await bridgeContract.mock.requestRedemption.returns()
+
+        await bridgeHandle.requestRedemption(
+          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+          {
+            transactionHash:
+              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            outputIndex: 8,
+            value: BigNumber.from(9999),
+          },
+          "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+          BigNumber.from(10000)
+        )
+      })
+
+      it("should request the redemption", async () => {
+        assertContractCalledWith(bridgeContract, "requestRedemption", [
+          "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+          {
+            txHash:
+              "0xf8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            txOutputIndex: 8,
+            txOutputValue: BigNumber.from(9999),
+          },
+          "0x17a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+          BigNumber.from(10000),
+        ])
+      })
+    })
+
+    describe("submitRedemptionProof", () => {
+      beforeEach(async () => {
+        await bridgeContract.mock.submitRedemptionProof.returns()
+
+        await bridgeHandle.submitRedemptionProof(
+          {
+            version: "00000000",
+            inputs: "11111111",
+            outputs: "22222222",
+            locktime: "33333333",
+          },
+          {
+            merkleProof: "44444444",
+            txIndexInBlock: 5,
+            bitcoinHeaders: "66666666",
+          },
+          {
+            transactionHash:
+              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            outputIndex: 8,
+            value: BigNumber.from(9999),
+          },
+          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+        )
+      })
+
+      it("should submit the redemption proof", () => {
+        assertContractCalledWith(bridgeContract, "submitRedemptionProof", [
+          {
+            version: "0x00000000",
+            inputVector: "0x11111111",
+            outputVector: "0x22222222",
+            locktime: "0x33333333",
+          },
+          {
+            merkleProof: "0x44444444",
+            txIndexInBlock: 5,
+            bitcoinHeaders: "0x66666666",
+          },
+          {
+            txHash:
+              "0xf8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            txOutputIndex: 8,
+            txOutputValue: BigNumber.from(9999),
+          },
+          "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+        ])
+      })
+    })
   })
 
   // eslint-disable-next-line valid-jsdoc

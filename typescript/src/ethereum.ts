@@ -156,4 +156,77 @@ export class Bridge implements ChainBridge {
       await this._bridge.txProofDifficultyFactor()
     return txProofDifficultyFactor.toNumber()
   }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#requestRedemption}
+   */
+  async requestRedemption(
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber
+  ): Promise<void> {
+    const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
+
+    const mainUtxoParam = {
+      txHash: `0x${mainUtxo.transactionHash}`,
+      txOutputIndex: mainUtxo.outputIndex,
+      txOutputValue: mainUtxo.value,
+    }
+
+    // Convert the output script to raw bytes buffer.
+    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    // Prefix the output script bytes buffer with 0x and its own length.
+    const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
+      Buffer.from([rawRedeemerOutputScript.length]),
+      rawRedeemerOutputScript,
+    ]).toString("hex")}`
+
+    await this._bridge.requestRedemption(
+      walletPublicKeyHash,
+      mainUtxoParam,
+      prefixedRawRedeemerOutputScript,
+      amount
+    )
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#submitRedemptionProof}
+   */
+  async submitRedemptionProof(
+    redemptionTx: DecomposedRawTransaction,
+    redemptionProof: Proof,
+    mainUtxo: UnspentTransactionOutput,
+    walletPublicKey: string
+  ): Promise<void> {
+    const redemptionTxParam = {
+      version: `0x${redemptionTx.version}`,
+      inputVector: `0x${redemptionTx.inputs}`,
+      outputVector: `0x${redemptionTx.outputs}`,
+      locktime: `0x${redemptionTx.locktime}`,
+    }
+
+    const redemptionProofParam = {
+      merkleProof: `0x${redemptionProof.merkleProof}`,
+      txIndexInBlock: redemptionProof.txIndexInBlock,
+      bitcoinHeaders: `0x${redemptionProof.bitcoinHeaders}`,
+    }
+
+    const mainUtxoParam = {
+      txHash: `0x${mainUtxo.transactionHash}`,
+      txOutputIndex: mainUtxo.outputIndex,
+      txOutputValue: mainUtxo.value,
+    }
+
+    const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
+
+    await this._bridge.submitRedemptionProof(
+      redemptionTxParam,
+      redemptionProofParam,
+      mainUtxoParam,
+      walletPublicKeyHash
+    )
+  }
 }
