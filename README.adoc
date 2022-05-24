@@ -91,10 +91,10 @@ Wallets can close in a few ways:
 `WalletRegistry.notifyOperatorInactivity`)`
 * Someone notifies the chain that the wallet timed out while filling a
 redemption: `Bridge.notifyRedemptionTimeout`
-* Someone notifies the chain that the wallet is too old:
+* Someone notifies the chain that a non-active wallet is too old:
 `Bridge.notifyCloseableWallet`
-* Someone notifies the chain that the wallet has too few BTC remaining:
-`Bridge.notifyCloseableWallet`
+* Someone notifies the chain that a non-active wallet has too few BTC
+remaining: `Bridge.notifyCloseableWallet`
 
 Each of the above routes into `Wallets.moveFunds`. If the wallet has no main
 UTXO, then we can start closing it immediately via
