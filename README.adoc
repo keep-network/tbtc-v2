@@ -132,12 +132,12 @@ walletMaxBtcTransfer))`, where `walletMaxBtcTransfer` is governable.
 In `submitMovingFundsProof`, we prove that the bitcoin transaction happened and
 has an appropriate number of confirmations, and then mark the source wallet's
 UTXO as spent via `OutboundTx.processWalletOutboundTxInput`. We pass the
-transaction's outputs into `MovingFunds.processMovingFundsTxOutputs`, sums up
-the funds and returns a hash of the target wallets to check against
+transaction's outputs into `MovingFunds.processMovingFundsTxOutputs`, sum up
+the funds and return a hash of the target wallets to check against
 `movingFundsTargetWalletsCommitmentHash` in `notifyWalletFundsMoved`.
 
-If the hashes match, we begin closing the wallet via
-`beginWalletClosing`. After `walletClosingPeriod` has elapsed, anyone can call
+If the hashes match, we begin closing the wallet via `beginWalletClosing`.
+After `walletClosingPeriod` has elapsed, anyone can call
 `Bridge.notifyWalletClosingPeriodElapsed` to close the wallet.
 
 == Parameters
