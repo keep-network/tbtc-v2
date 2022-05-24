@@ -37,17 +37,11 @@ import {
   nonWitnessSignSingleInputTx,
 } from "../data/fraud"
 import { walletState } from "../fixtures"
-import { SingleP2SHDeposit } from "../data/deposit-sweep"
+import { SingleP2SHDeposit, NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { UTXOStruct } from "../../typechain/Bridge"
 
 const { increaseTime } = helpers.time
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-
-const NO_MAIN_UTXO = {
-  txHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-  txOutputIndex: 0,
-  txOutputValue: 0,
-}
 
 const describeFn =
   process.env.NODE_ENV === "integration-test" ? describe : describe.skip
