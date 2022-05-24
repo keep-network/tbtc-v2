@@ -86,10 +86,15 @@ wallet. Going forward, it will receive deposits.
 
 Wallets can close in a few ways:
 
-* The operators notify the chain that the wallet is failing a heartbeat: `Wallets.notifyWalletHeartbeatFailed`
-* Someone notifies the chain that the wallet timed out while filling a redemption: `Wallets.notifyWalletTimedOutRedemption`
-* Someone notifies the chain that the wallet is too old: `Wallets.notifyCloseableWallet`
-* Someone notifies the chain that the wallet has too few BTC remaining: `Wallets.notifyCloseableWallet`
+* The operators notify the chain that the wallet is failing a heartbeat:
+`Bridge. __ecdsaWalletHeartbeatFailedCallback` (called by `ecdsa`
+`WalletRegistry.notifyOperatorInactivity`)`
+* Someone notifies the chain that the wallet timed out while filling a
+redemption: `Bridge.notifyRedemptionTimeout`
+* Someone notifies the chain that the wallet is too old:
+`Bridge.notifyCloseableWallet`
+* Someone notifies the chain that the wallet has too few BTC remaining:
+`Bridge.notifyCloseableWallet`
 
 Each of the above routes into `Wallets.moveFunds`. If the wallet has no main
 UTXO, then we can start closing it immediately via
@@ -99,7 +104,7 @@ a deadline to move its funds to other wallet(s). If this was the active wallet,
 then we currently have no active wallet.
 
 After `movingFundsTimeout` goes by, anyone can call
-`MovingFunds.notifyMovingFundsTimeout` which pipes into
+`Bridge.notifyMovingFundsTimeout` which pipes into
 `Wallets.terminateWallet` followed by `ecdsaWalletRegistry.seize`.
 `terminateWallet`, in this case passes through to
 `ecdsaWalletRegistry.closeWallet` after changing the state to
@@ -111,9 +116,9 @@ multiplier of `movedFundsSweepTimeoutNotifierRewardMultiplier` (the notifier
 gets a percentaged of the slashed stake).
 
 In order to avoid this, the wallet has to commit to which wallets they'll send
-the funds to (`MovingFunds.submitMovingFundsCommitment`), then actually send
+the funds to (`Bridge.submitMovingFundsCommitment`), then actually send
 the funds to those wallets, and then prove that they did it
-(`MovingFunds.submitMovingFundsProof`) before the time runs out.
+(`Bridge.submitMovingFundsProof`) before the time runs out.
 
 The commitment involves submitting a list of wallet public keys that:
 
