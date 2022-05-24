@@ -174,7 +174,7 @@ describeFn("Integration Test - Slashing", async () => {
             .false
         })
 
-        it("should close the wallet in the bridge", async () => {
+        it("should terminate the wallet in the bridge", async () => {
           const storedWallet = await bridge.wallets(walletPubKeyHash160)
 
           expect(storedWallet.state).to.be.equal(walletState.Terminated)
@@ -227,6 +227,8 @@ describeFn("Integration Test - Slashing", async () => {
         await updateDepositDustThreshold(10_000) // 0.0001 BTC
         await updateRedemptionDustThreshold(2_000) // 0.00002 BTC
 
+        // Reveal and sweep the deposit to set up a positive Bank balance for
+        // the redeemer, to be able to request a redemption.
         await bridge.revealDeposit(fundingTx, reveal)
 
         relay.getCurrentEpochDifficulty.returns(
@@ -327,7 +329,8 @@ describeFn("Integration Test - Slashing", async () => {
             .true
         })
 
-        it("should transition the wallet in the bridge to moving funds state", async () => {
+        // Since the wallet's balance was above 0, it switched to MovingFunds state.
+        it("should transition the wallet in the bridge to the MovingFunds state", async () => {
           const storedWallet = await bridge.wallets(walletPubKeyHash160)
 
           expect(storedWallet.state).to.be.equal(walletState.MovingFunds)
@@ -374,6 +377,9 @@ describeFn("Integration Test - Slashing", async () => {
         // so we need to update the dust threshold to be below it.
         await updateDepositDustThreshold(10000) // 0.0001 BTC)
 
+        // Reveal and sweep the deposit to set up a main UTXO for the deposit,
+        // so when operator inactivity is reported the deposit is transferred to
+        // the MovingFunds instead of the Closing state.
         await bridge.revealDeposit(fundingTx, reveal)
 
         relay.getCurrentEpochDifficulty.returns(
@@ -460,7 +466,7 @@ describeFn("Integration Test - Slashing", async () => {
             .false
         })
 
-        it("should close the wallet in the bridge", async () => {
+        it("should terminate the wallet in the bridge", async () => {
           const storedWallet = await bridge.wallets(walletPubKeyHash160)
 
           expect(storedWallet.state).to.be.equal(walletState.Terminated)
