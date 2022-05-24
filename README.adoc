@@ -65,7 +65,7 @@ about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
 
 We kick off the wallet creation mechanism in
 link:https://github.com/keep-network/keep-core/tree/main/solidity/ecdsa[keep-core/ecdsa]
-via `Wallets.requestNewWallet`, which verifies:
+via `Bridge.requestNewWallet`, which verifies:
 
 * That we're not currently already creating a wallet
 * If we have an active wallet it either:
@@ -79,8 +79,8 @@ link:https://github.com/keep-network/keep-core/tree/main/solidity/random-beacon#
 Beacon].
 
 Once that is finished, the wallet registry can call
-`Wallets.registerNewWallet`, which sets the new wallet as the active wallet.
-Going forward, it will receive deposits.
+`Bridge.__ecdsaWalletCreatedCallback`, which sets the new wallet as the active
+wallet. Going forward, it will receive deposits.
 
 == Parameters
 
