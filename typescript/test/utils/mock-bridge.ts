@@ -53,7 +53,7 @@ export class MockBridge implements Bridge {
     return this._depositSweepProofLog
   }
 
-  get revealDepositLogEntry(): RevealDepositLogEntry[] {
+  get revealDepositLog(): RevealDepositLogEntry[] {
     return this._revealDepositLog
   }
 
