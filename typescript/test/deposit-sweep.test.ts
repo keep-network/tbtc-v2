@@ -898,7 +898,7 @@ describe("Sweep", () => {
       )
     })
 
-    it("should submit sweep proof with correct arguments", () => {
+    it("should submit deposit sweep proof with correct arguments", () => {
       const bridgeLog = bridge.depositSweepProofLog
       expect(bridgeLog.length).to.equal(1)
       expect(bridgeLog[0].mainUtxo).to.equal(NO_MAIN_UTXO)

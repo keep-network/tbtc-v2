@@ -1,0 +1,61 @@
+:toc: macro
+
+= TBTC v2
+
+https://github.com/keep-network/tbtc-v2/actions/workflows/contracts.yml[image:https://img.shields.io/github/workflow/status/keep-network/tbtc-v2/Solidity/main?event=push&label=Solidity%20build[Solidity contracts build status]]
+https://discord.gg/g2H4Jn4D[image:https://img.shields.io/badge/chat-Discord-blueViolet.svg[Chat
+with us on Discord]]
+
+
+For many Bitcoin holders, one question remains: how can I move my assets across
+blockchains to make them more useful while maintaining Bitcoin's core values?
+
+Existing solutions that bridge Bitcoin to Ethereum require users to send their
+Bitcoin to an intermediary in exchange for an Ethereum token that represents the
+original asset. This centralized model requires you to trust a third party and
+is prone to censorship, threatening Bitcoin's promise of secure, permissionless
+decentralization.
+
+Threshold aims to solve this problem with TBTC v2.
+
+The second generation of TBTC is a truly decentralized bridge between Bitcoin
+and Ethereum. It provides Bitcoin holders permissionless access to DeFi and the
+expanding web3 universe.
+
+TBTC v2 replaces centralized intermediaries with a randomly selected group of
+node operators on the Threshold Network. This group of independent operators
+works together to secure your deposited Bitcoin through threshold cryptography.
+That means TBTC v2 requires a majority threshold agreement before operators
+perform any action with your Bitcoin. By rotating the selection of operators,
+TBTC v2 protects against any malicious individual or group of operators seizing
+control. Unlike other solutions on the market, users on TBTC v2 are reliant on
+math, not hardware or people. Additionally, TBTC v2 is open and accessible to
+anyone.
+  
+TBTC v2 allows anyone to use Bitcoin in the expanding DeFi and Web3 universe
+without a third-party intermediary. 
+
+This repository contains:
+
+- TBTC v2 link:solidity/[Solidity smart contracts],
+- TBTC v2 link:typescript/[Typescript library],
+- TBTC v2 link:docs/[documentation],
+- TBTC v2 Yearn vault link:yearn/[Solidity smart contracts].
+
+toc::[]
+
+== Overview
+tBTCv2 uses the
+link:https://github.com/keep-network/keep-core/tree/main/solidity/random-beacon[Random
+Beacon] and link:https://github.com/keep-network/sortition-pools[Sortition Pool]
+to generate governable-sized (starting at 51-of-100)
+link:https://eprint.iacr.org/2019/114.pdf[threshold ECDSA]
+Bitcoin wallets at a governable frequency (starting weekly). The youngest
+wallet accepts new deposits, and the oldest wallet serves redemptions.
+
+Depositing Bitcoin into the tBTCv2 bridge grants a transferable balance, which
+can be used to mint a supply-pegged ERC-20: TBTC. For an in-depth explanation
+about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
+
+== The Mechanism
+// FIXME

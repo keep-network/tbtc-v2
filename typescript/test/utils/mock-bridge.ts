@@ -20,6 +20,20 @@ interface RevealDepositLogEntry {
   deposit: Deposit
 }
 
+interface RequestRedemptionLogEntry {
+  walletPublicKey: string
+  mainUtxo: UnspentTransactionOutput
+  redeemerOutputScript: string
+  amount: BigNumber
+}
+
+interface RedemptionProofLogEntry {
+  redemptionTx: DecomposedRawTransaction
+  redemptionProof: Proof
+  mainUtxo: UnspentTransactionOutput
+  walletPublicKey: string
+}
+
 /**
  * Mock Bridge used for test purposes.
  */
@@ -27,7 +41,9 @@ export class MockBridge implements Bridge {
   private _difficultyFactor = 6
   private _pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
   private _depositSweepProofLog: DepositSweepProofLogEntry[] = []
-  private _revealDepositLogEntry: RevealDepositLogEntry[] = []
+  private _revealDepositLog: RevealDepositLogEntry[] = []
+  private _requestRedemptionLog: RequestRedemptionLogEntry[] = []
+  private _redemptionProofLog: RedemptionProofLogEntry[] = []
 
   set requestRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -37,8 +53,16 @@ export class MockBridge implements Bridge {
     return this._depositSweepProofLog
   }
 
-  get revealDepositLogEntry(): RevealDepositLogEntry[] {
-    return this._revealDepositLogEntry
+  get revealDepositLog(): RevealDepositLogEntry[] {
+    return this._revealDepositLog
+  }
+
+  get requestRedemptionLog(): RequestRedemptionLogEntry[] {
+    return this._requestRedemptionLog
+  }
+
+  get redemptionProofLog(): RedemptionProofLogEntry[] {
+    return this._redemptionProofLog
   }
 
   submitDepositSweepProof(
@@ -57,7 +81,41 @@ export class MockBridge implements Bridge {
     depositOutputIndex: number,
     deposit: Deposit
   ): Promise<void> {
-    this._revealDepositLogEntry.push({ depositTx, depositOutputIndex, deposit })
+    this._revealDepositLog.push({ depositTx, depositOutputIndex, deposit })
+    return new Promise<void>((resolve, _) => {
+      resolve()
+    })
+  }
+
+  submitRedemptionProof(
+    redemptionTx: DecomposedRawTransaction,
+    redemptionProof: Proof,
+    mainUtxo: UnspentTransactionOutput,
+    walletPublicKey: string
+  ): Promise<void> {
+    this._redemptionProofLog.push({
+      redemptionTx,
+      redemptionProof,
+      mainUtxo,
+      walletPublicKey,
+    })
+    return new Promise<void>((resolve, _) => {
+      resolve()
+    })
+  }
+
+  requestRedemption(
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber
+  ) {
+    this._requestRedemptionLog.push({
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript,
+      amount,
+    })
     return new Promise<void>((resolve, _) => {
       resolve()
     })

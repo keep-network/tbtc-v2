@@ -358,7 +358,7 @@ async function prepareInputSignData(
  * Bridge on-chain contract.
  * @param transactionHash - Hash of the transaction being proven.
  * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
- * @param bridge - Interface to the Bridge on-chain contract.
+ * @param bridge - Handle to the Bridge on-chain contract.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Empty promise.
  */
@@ -374,8 +374,9 @@ export async function proveDepositSweep(
     confirmations,
     bitcoinClient
   )
-  // TODO: instead of getting rawTransaction, use transaction part of proof and
-  // convert it to raw transaction.
+  // TODO: Write a converter and use it to convert the transaction part of the
+  // proof to the decomposed transaction data (version, inputs, outputs, locktime).
+  // Use raw transaction data for now.
   const rawTransaction = await bitcoinClient.getRawTransaction(transactionHash)
   const decomposedRawTransaction = decomposeRawTransaction(rawTransaction)
   await bridge.submitDepositSweepProof(
