@@ -16,6 +16,7 @@ export interface RedemptionTestData {
    * Wallet that makes the redemption transaction.
    */
   wallet: {
+    publicKey?: BytesLike
     pubKeyHash: BytesLike
     state: BigNumberish
     pendingRedemptionsValue: BigNumberish
@@ -96,6 +97,8 @@ export interface RedemptionBalanceChange {
  */
 export const SinglePendingRequestedRedemption: RedemptionTestData = {
   wallet: {
+    publicKey:
+      "0xee067a0273f2e3ba88d23140a24fdb290f27bbcd0f94117a9c65be3911c5c04efc314aa6ecfea6a43232df446014c41fd7446fe9deed7c2b054f7ea36e396306",
     pubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
     state: walletState.Live,
     pendingRedemptionsValue: 0,
