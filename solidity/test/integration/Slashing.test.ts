@@ -377,8 +377,8 @@ describeFn("Integration Test - Slashing", async () => {
         // so we need to update the dust threshold to be below it.
         await updateDepositDustThreshold(10000) // 0.0001 BTC)
 
-        // Reveal and sweep the deposit to set up a main UTXO for the deposit,
-        // so when operator inactivity is reported the deposit is transferred to
+        // Reveal and sweep the deposit to set up a main UTXO for the wallet,
+        // so when operator inactivity is reported the wallet is transferred to
         // the MovingFunds instead of the Closing state.
         await bridge.revealDeposit(fundingTx, reveal)
 
