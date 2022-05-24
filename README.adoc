@@ -190,6 +190,6 @@ creation of a new active wallet regardless of age.
 |`2000 => 1/2000 = 5 BPS`
 
 |depositTxMaxFee
-|The max amount of satoshis the wallet is allowed to pay to miners.
+|The max amount of satoshis per deposit that the wallet is allowed to pay to miners.
 |Yes
 |`10000 sats`
