@@ -116,8 +116,8 @@ can send their funds back to `refundPubkeyHash` themselves. This would only
 work if the wallet hadn't <sweeping,touched> those funds yet.
 
 Once a Bitcoin user sends such a deposit, because their P2(W)SH address is
-unique to them, _only they_ know that they deposited TBTCv2 until they reveal
-that they did so. To the rest of the Bitcoin world, this looks like a
+unique to them, _only they_ know that they deposited into TBTCv2 until they
+reveal that they did so. To the rest of the Bitcoin world, this looks like a
 nondescript payment to a meaningless P2SH address. They make this reveal (which
 can be done immediately; no need to wait for confirmations) by calling
 `Bridge.revealDeposit`.
