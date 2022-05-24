@@ -131,7 +131,24 @@ waiting to be <sweeping,swept> associated to the provided `depositor`.
 [sweeping]
 ==== Sweeping
 
+Periodically, off-chain clients associated to a wallet collect a batch of
+deposits and create a sweep transaction. This transaction includes all of the
+deposit UTXOs as well as the wallet's UTXO (`Wallet.mainUtxoHash`) as inputs
+and then creates a single UTXO output. This accomplishes two main purposes:
 
+* It amortizes fees (SPV proof fee and Bitcoin tx fee, etc) across all of the deposits.
+* It disables the refund mechanism from the original script.
+
+The first is a cost vs time tradeoff. SPV proofs are expensive, so by dividing
+the cost across all of the deposits in the period, we see massive gas savings.
+This is the same model as individuals driving their own car to work vs waiting
+on the train. The second is a security measure. We need to disable the refund,
+otherwise users could get a balance and then refund their bitcoin and have
+both.
+
+The entry point is `Bridge.submitDepositSweepProof` which performs the SPV
+proof, updates the wallet with the new UTXO, takes a deposit fee for the
+treasury (5 BPS; governable), and updates the user balances.
 
 == Parameters
 
@@ -160,3 +177,15 @@ the creation of a new active wallet.
 creation of a new active wallet regardless of age.
 |Yes
 |`25 BTC`
+
+4+s|Sweeping
+
+|depositTreasuryFeeDivisor
+|The deposit fee divisor of one BTC to take as a treasury fee.
+|Yes
+|`2000 => 1/2000 = 5 BPS`
+
+|depositTxMaxFee
+|The max amount of satoshis the wallet is allowed to pay to miners.
+|Yes
+|`10000 sats`
