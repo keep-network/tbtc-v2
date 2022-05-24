@@ -1,6 +1,6 @@
 {
-  "name": "@keep-network/tbtc.ts",
-  "version": "2.0.0-dev",
+  "name": "@keep-network/tbtc-v2.ts",
+  "version": "1.0.0-dev",
   "license": "MIT",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -10,15 +10,16 @@
     "lint": "eslint . --ext .js,.ts",
     "lint:fix": "eslint . --ext .js,.ts --fix",
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json",
     "postinstall": "npm rebuild"
   },
   "files": [
-    "dist/src/",
+    "dist/",
     "src/",
-    "README.md"
+    "README.adoc"
   ],
   "dependencies": {
+    "@keep-network/tbtc-v2": "0.1.1-dev.84",
     "bcoin": "git+https://github.com/bcoin-org/bcoin.git#semver:~2.2.0",
     "bcrypto": "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0",
     "bufio": "^1.0.6",
@@ -38,6 +39,7 @@
     "chai-as-promised": "^7.1.1",
     "eslint": "^7.30.0",
     "eslint-config-keep": "github:keep-network/eslint-config-keep",
+    "ethereum-waffle": "4.0.0-alpha.25",
     "mocha": "^9.0.2",
     "prettier": "^2.3.2",
     "ts-node": "^10.1.0",
