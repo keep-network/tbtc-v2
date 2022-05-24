@@ -1,4 +1,4 @@
-import { Bridge } from "../../src/chain"
+import { Bridge, Identifier } from "../../src/chain"
 import {
   DecomposedRawTransaction,
   Proof,
@@ -68,7 +68,8 @@ export class MockBridge implements Bridge {
   submitDepositSweepProof(
     sweepTx: DecomposedRawTransaction,
     sweepProof: Proof,
-    mainUtxo: UnspentTransactionOutput
+    mainUtxo: UnspentTransactionOutput,
+    vault?: Identifier
   ): Promise<void> {
     this._depositSweepProofLog.push({ sweepTx, sweepProof, mainUtxo })
     return new Promise<void>((resolve, _) => {

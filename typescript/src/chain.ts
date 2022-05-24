@@ -26,11 +26,14 @@ export interface Bridge {
    * @param sweepTx - Sweep transaction data.
    * @param sweepProof - Sweep proof data.
    * @param mainUtxo - Data of the wallet's main UTXO.
+   * @param vault - Optional identifier of the vault the swept deposits should
+   *        be routed in.
    */
   submitDepositSweepProof(
     sweepTx: DecomposedRawTransaction,
     sweepProof: Proof,
-    mainUtxo: UnspentTransactionOutput
+    mainUtxo: UnspentTransactionOutput,
+    vault?: Identifier
   ): Promise<void>
 
   /**

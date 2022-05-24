@@ -46,6 +46,14 @@ jobs:
           cache: "yarn"
           cache-dependency-path: typescript/yarn.lock
 
+      # We need this step because the `@keep-network/tbtc-v2` which we update in
+      # next step has an indirect dependency to `@summa-tx/relay-sol@2.0.2`
+      # package, which downloads one of its sub-dependencies via unathenticated
+      # `git://` protocol. That protocol is no longer supported. Thanks to this
+      # step `https://` is used instead of `git://`.
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
       - name: Install dependencies
         run: yarn install
 
@@ -72,6 +80,14 @@ jobs:
           node-version: "14.x"
           cache: "yarn"
           cache-dependency-path: typescript/yarn.lock
+
+      # We need this step because the `@keep-network/tbtc-v2` which we update in
+      # next step has an indirect dependency to `@summa-tx/relay-sol@2.0.2`
+      # package, which downloads one of its sub-dependencies via unathenticated
+      # `git://` protocol. That protocol is no longer supported. Thanks to this
+      # step `https://` is used instead of `git://`.
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
 
       - name: Install dependencies
         run: yarn install
