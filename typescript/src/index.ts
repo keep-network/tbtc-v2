@@ -9,6 +9,7 @@ import {
   revealDeposit,
 } from "./deposit"
 import {
+  requestRedemption,
   createRedemptionTransaction,
   makeRedemptions,
   proveRedemption,
@@ -190,6 +191,26 @@ export interface TBTC {
   ): Promise<void>
 
   /**
+   * Requests a redemption from the on-chain Bridge contract.
+   * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in the
+   *        compressed form (33 bytes long with 02 or 03 prefix).
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
+   *        held by the on-chain Bridge contract.
+   * @param redeemerOutputScript - The output script that the redeemed funds will
+   *        be locked to. Must be un-prefixed and not prepended with length.
+   * @param amount - The amount to be redeemed in satoshis.
+   * @param bridge - Handle to the Bridge on-chain contract.
+   * @returns Empty promise.
+   */
+  requestRedemption(
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber,
+    bridge: Bridge
+  ): Promise<void>
+
+  /**
    * Handles pending redemption requests by creating a redemption transaction
    * transferring Bitcoins from the wallet's main UTXO to the provided redeemer
    * output scripts and broadcasting it. The change UTXO resulting from the
@@ -275,6 +296,7 @@ const tbtc: TBTC = {
   sweepDeposits,
   createDepositSweepTransaction,
   proveDepositSweep,
+  requestRedemption,
   makeRedemptions,
   createRedemptionTransaction,
   proveRedemption,
