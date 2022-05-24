@@ -71,7 +71,6 @@ export const fixture = deployments.createFixture(
       await walletRegistry.sortitionPool()
     )
 
-    // TODO: INTEGRATE WITH THE REAL RELAY
     const relay = await smock.fake<TestRelay>("TestRelay", {
       address: await (await bridge.contractReferences()).relay,
     })

@@ -229,7 +229,6 @@ describeFn("Integration Test - Slashing", async () => {
 
         await bridge.revealDeposit(fundingTx, reveal)
 
-        // TODO: Replace mocks with the real implementation
         relay.getCurrentEpochDifficulty.returns(
           SingleP2SHDeposit.chainDifficulty
         )
@@ -377,7 +376,6 @@ describeFn("Integration Test - Slashing", async () => {
 
         await bridge.revealDeposit(fundingTx, reveal)
 
-        // TODO: Replace mocks with the real implementation
         relay.getCurrentEpochDifficulty.returns(
           SingleP2SHDeposit.chainDifficulty
         )
