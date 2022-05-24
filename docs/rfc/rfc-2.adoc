@@ -210,7 +210,7 @@ Instead, the group will clear the list of inactive participants
 and wait 12h before making another attempt with the entire group.
 This repeats until 7 days have elapsed
 since the timestamp of the sortition transaction.
-If this ultimate timeout is reached without succesful key generation,
+If this ultimate timeout is reached without successful key generation,
 the group dissolves and makes no further attempts.
 
 The intent of the two-phase retry protocol is
