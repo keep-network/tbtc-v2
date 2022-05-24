@@ -123,7 +123,7 @@ can be done immediately; no need to wait for confirmations) by calling
 `Bridge.revealDeposit`.
 
 `Bridge.revealDeposit` takes in the funding transaction, and then the necessary
-information to reconstruct the bitcoin script: `depositor`, `blindingFactor`,
+information to reconstruct the Bitcoin script: `depositor`, `blindingFactor`,
 `walletPubKeyHash` and `refundPubkeyHash`. Then, it makes sure that the funding
 transaction happened on bitcoin, reconstructs the script, hashes it, verifies
 that the hashes match, and then stores the deposit as waiting to be
