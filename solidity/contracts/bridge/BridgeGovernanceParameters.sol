@@ -237,10 +237,10 @@ library BridgeGovernanceParameters {
     );
 
     event WalletCreationPeriodUpdateStarted(
-        uint64 newWalletCreationPeriodThreshold,
+        uint32 newWalletCreationPeriodThreshold,
         uint256 timestamp
     );
-    event WalletCreationPeriodUpdated(uint64 walletCreationPeriod);
+    event WalletCreationPeriodUpdated(uint32 walletCreationPeriod);
 
     event WalletCreationMinBtcBalanceUpdateStarted(
         uint64 newWalletCreationMinBtcBalanceThreshold,

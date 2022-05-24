@@ -147,11 +147,11 @@ contract BridgeGovernance is Ownable {
     event MovingFundsTimeoutUpdated(uint64 movingFundsTimeout);
 
     event MovingFundsTimeoutSlashingAmountUpdateStarted(
-        uint64 newMovingFundsTimeoutSlashingAmountThreshold,
+        uint96 newMovingFundsTimeoutSlashingAmountThreshold,
         uint256 timestamp
     );
     event MovingFundsTimeoutSlashingAmountUpdated(
-        uint64 movingFundsTimeoutSlashingAmount
+        uint96 movingFundsTimeoutSlashingAmount
     );
 
     event MovingFundsTimeoutNotifierRewardMultiplierUpdateStarted(
@@ -171,32 +171,32 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovedFundsSweepTimeoutUpdateStarted(
-        uint64 newMovedFundsSweepTimeoutThreshold,
+        uint32 newMovedFundsSweepTimeoutThreshold,
         uint256 timestamp
     );
-    event MovedFundsSweepTimeoutUpdated(uint64 movedFundsSweepTimeout);
+    event MovedFundsSweepTimeoutUpdated(uint32 movedFundsSweepTimeout);
 
     event MovedFundsSweepTimeoutSlashingAmountUpdateStarted(
-        uint64 newMovedFundsSweepTimeoutSlashingAmountThreshold,
+        uint96 newMovedFundsSweepTimeoutSlashingAmountThreshold,
         uint256 timestamp
     );
     event MovedFundsSweepTimeoutSlashingAmountUpdated(
-        uint64 movedFundsSweepTimeoutSlashingAmount
+        uint96 movedFundsSweepTimeoutSlashingAmount
     );
 
     event MovedFundsSweepTimeoutNotifierRewardMultiplierUpdateStarted(
-        uint64 newMovedFundsSweepTimeoutNotifierRewardMultiplierThreshold,
+        uint256 newMovedFundsSweepTimeoutNotifierRewardMultiplierThreshold,
         uint256 timestamp
     );
     event MovedFundsSweepTimeoutNotifierRewardMultiplierUpdated(
-        uint64 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
     );
 
     event WalletCreationPeriodUpdateStarted(
-        uint64 newWalletCreationPeriodThreshold,
+        uint32 newWalletCreationPeriodThreshold,
         uint256 timestamp
     );
-    event WalletCreationPeriodUpdated(uint64 walletCreationPeriod);
+    event WalletCreationPeriodUpdated(uint32 walletCreationPeriod);
 
     event WalletCreationMinBtcBalanceUpdateStarted(
         uint64 newWalletCreationMinBtcBalanceThreshold,
@@ -261,11 +261,11 @@ contract BridgeGovernance is Ownable {
     event FraudSlashingAmountUpdated(uint96 fraudSlashingAmount);
 
     event FraudNotifierRewardMultiplierUpdateStarted(
-        uint96 newFraudNotifierRewardMultiplier,
+        uint256 newFraudNotifierRewardMultiplier,
         uint256 timestamp
     );
     event FraudNotifierRewardMultiplierUpdated(
-        uint96 fraudNotifierRewardMultiplier
+        uint256 fraudNotifierRewardMultiplier
     );
 
     constructor(Bridge _bridge, uint256 _governanceDelay) {
@@ -338,16 +338,16 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeBridgeGovernanceTransfer() external onlyOwner {
-        if (bridgeGovernanceTransferChangeInitiated > 0) {
-            revert("Change not initiated");
-        }
+        require(
+            bridgeGovernanceTransferChangeInitiated > 0,
+            "Change not initiated"
+        );
         /* solhint-disable not-rely-on-time */
-        if (
+        require(
             block.timestamp - bridgeGovernanceTransferChangeInitiated >=
-            governanceDelays[0]
-        ) {
-            revert("Governance delay has not elapsed");
-        }
+                governanceDelays[0],
+            "Governance delay has not elapsed"
+        );
         /* solhint-enable not-rely-on-time */
         bridge.transferGovernance(newBridgeGovernance);
         emit BridgeGovernanceTransferred(newBridgeGovernance);
