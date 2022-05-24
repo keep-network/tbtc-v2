@@ -132,9 +132,10 @@ waiting to be <sweeping,swept> associated to the provided `depositor`.
 ==== Sweeping
 
 Periodically, off-chain clients associated to a wallet collect a batch of
-deposits and create a sweep transaction. This transaction includes all of the
-deposit UTXOs as well as the wallet's UTXO (`Wallet.mainUtxoHash`) as inputs
-and then creates a single UTXO output. This accomplishes two main purposes:
+deposits and create a sweep transaction. This transaction includes revealed and
+valid deposit UTXOs as well as the wallet's UTXO (`Wallet.mainUtxoHash`) as
+inputs and then creates a single UTXO output. This accomplishes two main
+purposes:
 
 * It amortizes fees (SPV proof fee and Bitcoin tx fee, etc) across all of the deposits.
 * It disables the refund mechanism from the original script.
