@@ -1,6 +1,6 @@
 {
-  "name": "@keep-network/tbtc.ts",
-  "version": "2.0.0-dev",
+  "name": "@keep-network/tbtc-v2.ts",
+  "version": "1.0.0-dev",
   "license": "MIT",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -14,9 +14,9 @@
     "postinstall": "npm rebuild"
   },
   "files": [
-    "dist/src/",
+    "dist/",
     "src/",
-    "README.md"
+    "README.adoc"
   ],
   "dependencies": {
     "@keep-network/tbtc-v2": "0.1.1-dev.84",
