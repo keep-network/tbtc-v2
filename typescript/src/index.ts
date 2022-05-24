@@ -9,8 +9,10 @@ import {
   revealDeposit,
 } from "./deposit"
 import {
+  requestRedemption,
   createRedemptionTransaction,
   makeRedemptions,
+  proveRedemption,
   RedemptionRequest,
 } from "./redemption"
 import {
@@ -177,7 +179,7 @@ export interface TBTC {
    * Bridge on-chain contract.
    * @param transactionHash - Hash of the transaction being proven.
    * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
-   * @param bridge - Interface to the Bridge on-chain contract.
+   * @param bridge - Handle to the Bridge on-chain contract.
    * @param bitcoinClient - Bitcoin client used to interact with the network.
    * @returns Empty promise.
    */
@@ -186,6 +188,26 @@ export interface TBTC {
     mainUtxo: UnspentTransactionOutput,
     bridge: Bridge,
     bitcoinClient: BitcoinClient
+  ): Promise<void>
+
+  /**
+   * Requests a redemption from the on-chain Bridge contract.
+   * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in the
+   *        compressed form (33 bytes long with 02 or 03 prefix).
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
+   *        held by the on-chain Bridge contract.
+   * @param redeemerOutputScript - The output script that the redeemed funds will
+   *        be locked to. Must be un-prefixed and not prepended with length.
+   * @param amount - The amount to be redeemed in satoshis.
+   * @param bridge - Handle to the Bridge on-chain contract.
+   * @returns Empty promise.
+   */
+  requestRedemption(
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber,
+    bridge: Bridge
   ): Promise<void>
 
   /**
@@ -242,6 +264,25 @@ export interface TBTC {
     redemptionRequests: RedemptionRequest[],
     witness: boolean
   ): Promise<RawTransaction>
+
+  /**
+   * Prepares the proof of a redemption transaction and submits it to the
+   * Bridge on-chain contract.
+   * @param transactionHash - Hash of the transaction being proven.
+   * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
+   * @param walletPublicKey - Bitcoin public key of the wallet. Must be in the
+   *        compressed form (33 bytes long with 02 or 03 prefix).
+   * @param bridge - Handle to the Bridge on-chain contract.
+   * @param bitcoinClient - Bitcoin client used to interact with the network.
+   * @returns Empty promise.
+   */
+  proveRedemption(
+    transactionHash: string,
+    mainUtxo: UnspentTransactionOutput,
+    walletPublicKey: string,
+    bridge: Bridge,
+    bitcoinClient: BitcoinClient
+  ): Promise<void>
 }
 
 const tbtc: TBTC = {
@@ -255,8 +296,10 @@ const tbtc: TBTC = {
   sweepDeposits,
   createDepositSweepTransaction,
   proveDepositSweep,
+  requestRedemption,
   makeRedemptions,
   createRedemptionTransaction,
+  proveRedemption,
 }
 
 export default tbtc

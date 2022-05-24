@@ -638,9 +638,9 @@ describe("Deposit", () => {
     })
 
     it("should reveal the deposit to the Bridge", () => {
-      expect(bridge.revealDepositLogEntry.length).to.be.equal(1)
+      expect(bridge.revealDepositLog.length).to.be.equal(1)
 
-      const revealDepositLogEntry = bridge.revealDepositLogEntry[0]
+      const revealDepositLogEntry = bridge.revealDepositLog[0]
       expect(revealDepositLogEntry.depositTx).to.be.eql(
         decomposeRawTransaction({ transactionHex })
       )
