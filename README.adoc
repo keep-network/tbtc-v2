@@ -140,6 +140,8 @@ If the hashes match, we begin closing the wallet via `beginWalletClosing`.
 After `walletClosingPeriod` has elapsed, anyone can call
 `Bridge.notifyWalletClosingPeriodElapsed` to close the wallet.
 
+=== Transfering Bitcoin
+
 ==== Depositing
 
 When the system has an active wallet (denoted by
