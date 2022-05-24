@@ -22,19 +22,22 @@ import { createTransactionProof } from "./proof"
  *      when the provided UTXOs are not spendable) and no error will be returned.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param fee - the value that should be subtracted from the sum of the UTXOs
- *              values and used as the transaction fee.
+ *        values and used as the transaction fee.
  * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
+ * @param witness - The parameter used to decide about the type of the new main
+ *        UTXO output. P2WPKH if `true`, P2PKH if `false`.
  * @param utxos - P2(W)SH UTXOs to be combined into one output.
  * @param deposits - Array of deposits. Each element corresponds to UTXO.
- *                   The number of UTXOs and deposit elements must equal.
+ *        The number of UTXOs and deposit elements must equal.
  * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
- *                   from the previous wallet transaction (optional).
+ *        from the previous wallet transaction (optional).
  * @returns Empty promise.
  */
 export async function sweepDeposits(
   bitcoinClient: BitcoinClient,
   fee: BigNumber,
   walletPrivateKey: string,
+  witness: boolean,
   utxos: UnspentTransactionOutput[],
   deposits: Deposit[],
   mainUtxo?: UnspentTransactionOutput
@@ -66,6 +69,7 @@ export async function sweepDeposits(
   const transaction = await createDepositSweepTransaction(
     fee,
     walletPrivateKey,
+    witness,
     utxosWithRaw,
     deposits,
     mainUtxoWithRaw
@@ -83,18 +87,21 @@ export async function sweepDeposits(
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee.
  * @param fee - the value that should be subtracted from the sum of the UTXOs
- *              values and used as the transaction fee.
+ *        values and used as the transaction fee.
  * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
+ * @param witness - The parameter used to decide about the type of the new main
+ *        UTXO output. P2WPKH if `true`, P2PKH if `false`.
  * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
  * @param deposits - Array of deposits. Each element corresponds to UTXO.
- *                   The number of UTXOs and deposit elements must equal.
+ *        The number of UTXOs and deposit elements must equal.
  * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
- *                   from the previous wallet transaction (optional).
+ *        from the previous wallet transaction (optional).
  * @returns Bitcoin deposit sweep transaction in raw format.
  */
 export async function createDepositSweepTransaction(
   fee: BigNumber,
   walletPrivateKey: string,
+  witness: boolean,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   deposits: Deposit[],
   mainUtxo?: UnspentTransactionOutput & RawTransaction
@@ -107,9 +114,7 @@ export async function createDepositSweepTransaction(
     throw new Error("Number of UTXOs must equal the number of deposit elements")
   }
 
-  // TODO: Type of `walletAddress` decides about the type of the tx output
-  // (new main UTXO). Add possibility to create a non-witness output (P2PKH).
-  const walletKeyRing = createKeyRing(walletPrivateKey)
+  const walletKeyRing = createKeyRing(walletPrivateKey, witness)
   const walletAddress = walletKeyRing.getAddress("string")
 
   const inputCoins = []
@@ -168,9 +173,8 @@ export async function createDepositSweepTransaction(
     const previousOutput = transaction.view.getOutput(previousOutpoint)
     const previousScript = previousOutput.script
 
-    // P2WKH (main UTXO)
-    // TODO: Main UTXO can be non-witness - handle that case.
-    if (previousScript.isWitnessPubkeyhash()) {
+    // P2(W)PKH (main UTXO)
+    if (previousScript.isPubkeyhash() || previousScript.isWitnessPubkeyhash()) {
       await signMainUtxoInput(transaction, i, walletKeyRing)
       continue
     }

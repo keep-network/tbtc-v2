@@ -125,27 +125,30 @@ export interface TBTC {
   ): Promise<void>
 
   /**
-   * Sweeps deposits P2(W)SH UTXOs by combining all the provided UTXOs and
-   * broadcasting a Bitcoin P2WPKH deposit sweep transaction.
+   * Sweeps P2(W)SH UTXOs by combining all the provided UTXOs and broadcasting
+   * a Bitcoin P2WPKH deposit sweep transaction.
    * @dev The caller is responsible for ensuring the provided UTXOs are correctly
    *      formed, can be spent by the wallet and their combined value is greater
    *      then the fee. Note that broadcasting transaction may fail silently (e.g.
    *      when the provided UTXOs are not spendable) and no error will be returned.
    * @param bitcoinClient - Bitcoin client used to interact with the network.
    * @param fee - the value that should be subtracted from the sum of the UTXOs
-   *              values and used as the transaction fee.
+   *        values and used as the transaction fee.
    * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
+   * @param witness - The parameter used to decide about the type of the new main
+   *        UTXO output. P2WPKH if `true`, P2PKH if `false`.
    * @param utxos - P2(W)SH UTXOs to be combined into one output.
    * @param deposits - Array of deposits. Each element corresponds to UTXO.
-   *                   The number of UTXOs and deposit elements must equal.
+   *        The number of UTXOs and deposit elements must equal.
    * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
-   *                   from the previous wallet transaction (optional).
+   *        from the previous wallet transaction (optional).
    * @returns Empty promise.
    */
   sweepDeposits(
     bitcoinClient: BitcoinClient,
     fee: BigNumber,
     walletPrivateKey: string,
+    witness: boolean,
     utxos: UnspentTransactionOutput[],
     deposits: Deposit[],
     mainUtxo?: UnspentTransactionOutput
@@ -157,18 +160,21 @@ export interface TBTC {
    *      formed, can be spent by the wallet and their combined value is greater
    *      then the fee.
    * @param fee - the value that should be subtracted from the sum of the UTXOs
-   *              values and used as the transaction fee.
+   *        values and used as the transaction fee.
    * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
+   * @param witness - The parameter used to decide about the type of the new main
+   *        UTXO output. P2WPKH if `true`, P2PKH if `false`.
    * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
    * @param deposits - Array of deposits. Each element corresponds to UTXO.
-   *                   The number of UTXOs and deposit elements must equal.
+   *        The number of UTXOs and deposit elements must equal.
    * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
-   *                   from the previous wallet transaction (optional).
+   *        from the previous wallet transaction (optional).
    * @returns Bitcoin deposit sweep transaction in raw format.
    */
   createDepositSweepTransaction(
     fee: BigNumber,
     walletPrivateKey: string,
+    witness: boolean,
     utxos: (UnspentTransactionOutput & RawTransaction)[],
     deposits: Deposit[],
     mainUtxo?: UnspentTransactionOutput & RawTransaction
