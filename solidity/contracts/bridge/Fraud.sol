@@ -432,8 +432,6 @@ library Fraud {
             walletState == Wallets.WalletState.MovingFunds ||
             walletState == Wallets.WalletState.Closing
         ) {
-            self.terminateWallet(walletPubKeyHash);
-
             self.ecdsaWalletRegistry.seize(
                 self.fraudSlashingAmount,
                 self.fraudNotifierRewardMultiplier,
@@ -441,6 +439,8 @@ library Fraud {
                 wallet.ecdsaWalletID,
                 walletMembersIDs
             );
+
+            self.terminateWallet(walletPubKeyHash);
         } else if (walletState == Wallets.WalletState.Terminated) {
             // This is a special case when the wallet was already terminated
             // due to a previous deliberate protocol violation. In that

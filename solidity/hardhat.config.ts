@@ -11,6 +11,31 @@ import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
 import "hardhat-dependency-compiler"
 
+const ecdsaSolidityCompilerConfig = {
+  version: "0.8.9",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200,
+    },
+  },
+}
+
+// Configuration for testing environment.
+export const testConfig = {
+  // How many accounts we expect to define for non-staking related signers, e.g.
+  // deployer, thirdParty, governance.
+  // It is used as an offset for getting accounts for operators and stakes registration.
+  nonStakingAccountsCount: 10,
+
+  // How many roles do we need to define for staking, i.e. stakeOwner, stakingProvider,
+  // operator, beneficiary, authorizer.
+  stakingRolesCount: 5,
+
+  // Number of operators to register. Should be at least the same as group size.
+  operatorsCount: 110,
+}
+
 const config: HardhatUserConfig = {
   solidity: {
     compilers: [
@@ -24,6 +49,10 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+    overrides: {
+      "@keep-network/ecdsa/contracts/WalletRegistry.sol":
+        ecdsaSolidityCompilerConfig,
+    },
   },
 
   paths: {
@@ -40,6 +69,12 @@ const config: HardhatUserConfig = {
         // latest block is taken if FORKING_BLOCK env is not provided
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK, 10),
+      },
+      accounts: {
+        // Number of accounts that should be predefined on the testing environment.
+        count:
+          testConfig.nonStakingAccountsCount +
+          testConfig.stakingRolesCount * testConfig.operatorsCount,
       },
       tags: ["local"],
       // we use higher gas price for tests to obtain more realistic results
@@ -82,11 +117,12 @@ const config: HardhatUserConfig = {
           "node_modules/@threshold-network/solidity-contracts/export/deploy",
       },
       {
+        artifacts: "node_modules/@keep-network/random-beacon/export/artifacts",
+        deploy: "node_modules/@keep-network/random-beacon/export/deploy",
+      },
+      {
         artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
-        // FIXME: Instead of deploying WalletRegistry in `00_resolve_wallet_registry.ts`
-        // we want to use external deployment.
-        // See: https://github.com/keep-network/tbtc-v2/issues/267
-        //   deploy: "node_modules/@keep-network/ecdsa/export/deploy",
+        deploy: "node_modules/@keep-network/ecdsa/export/deploy",
       },
     ],
     deployments: {
@@ -125,6 +161,11 @@ const config: HardhatUserConfig = {
     paths: [
       "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol",
       "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
+      // WalletRegistry contract is deployed with @open-zeppelin/hardhat-upgrades
+      // plugin that doesn't work well with hardhat-deploy artifacts defined in
+      // external artifacts section, hence we have to compile the contracts from
+      // sources.
+      "@keep-network/ecdsa/contracts/WalletRegistry.sol",
     ],
     keep: true,
   },
@@ -136,6 +177,9 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+  },
+  mocha: {
+    timeout: 60_000,
   },
   typechain: {
     outDir: "typechain",

@@ -17,20 +17,21 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "./IReceiveBalanceApproval.sol";
 import "../vault/IVault.sol";
 
 /// @title Bitcoin Bank
 /// @notice Bank is a central component tracking Bitcoin balances. Balances can
-///         be transferred between holders and holders can approve their
-///         balances to be spent by others. Balances in the Bank are updated for
-///         depositors who deposit their Bitcoin into the Bridge and only the
-///         Bridge can increase balances.
+///         be transferred between balance owners, and balance owners can
+///         approve their balances to be spent by others. Balances in the Bank
+///         are updated for depositors who deposited their Bitcoin into the
+///         Bridge and only the Bridge can increase balances.
 /// @dev Bank is a governable contract and the Governance can upgrade the Bridge
 ///      address.
 contract Bank is Ownable {
     address public bridge;
 
-    /// @notice The balance of a given account in the Bank. Zero by default.
+    /// @notice The balance of the given account in the Bank. Zero by default.
     mapping(address => uint256) public balanceOf;
 
     /// @notice The remaining amount of balance a spender will be
@@ -38,16 +39,17 @@ contract Bank is Ownable {
     ///         `transferBalanceFrom`. Zero by default.
     mapping(address => mapping(address => uint256)) public allowance;
 
-    /// @notice Returns the current nonce for EIP2612 permission for the
-    ///         provided balance owner for a replay protection. Used to
-    ///         construct EIP2612 signature provided to `permit` function.
+    /// @notice Returns the current nonce for an EIP2612 permission for the
+    ///         provided balance owner to protect against replay attacks. Used
+    ///         to construct an EIP2612 signature provided to the `permit`
+    ///         function.
     mapping(address => uint256) public nonce;
 
     uint256 public immutable cachedChainId;
     bytes32 public immutable cachedDomainSeparator;
 
-    /// @notice Returns EIP2612 Permit message hash. Used to construct EIP2612
-    ///         signature provided to `permit` function.
+    /// @notice Returns an EIP2612 Permit message hash. Used to construct
+    ///         an EIP2612 signature provided to the `permit` function.
     bytes32 public constant PERMIT_TYPEHASH =
         keccak256(
             "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
@@ -86,6 +88,9 @@ contract Bank is Ownable {
     ///      check the status of the Bridge. The Governance implementation needs
     ///      to ensure all requirements for the upgrade are satisfied before
     ///      executing this function.
+    ///      Requirements:
+    ///      - The new Bridge address must not be zero.
+    /// @param _bridge The new Bridge address.
     function updateBridge(address _bridge) external onlyOwner {
         require(_bridge != address(0), "Bridge address must not be 0x0");
         bridge = _bridge;
@@ -97,40 +102,59 @@ contract Bank is Ownable {
     /// @dev Requirements:
     ///       - `recipient` cannot be the zero address,
     ///       - the caller must have a balance of at least `amount`.
+    /// @param recipient The recipient of the balance.
+    /// @param amount The amount of the balance transferred.
     function transferBalance(address recipient, uint256 amount) external {
         _transferBalance(msg.sender, recipient, amount);
     }
 
     /// @notice Sets `amount` as the allowance of `spender` over the caller's
     ///         balance.
-    /// @dev If the `amount` is set to `type(uint256).max` then
+    /// @dev If the `amount` is set to `type(uint256).max`,
     ///      `transferBalanceFrom` will not reduce an allowance.
     ///      Beware that changing an allowance with this function brings the
     ///      risk that someone may use both the old and the new allowance by
     ///      unfortunate transaction ordering. Please use
     ///      `increaseBalanceAllowance` and `decreaseBalanceAllowance` to
     ///      eliminate the risk.
+    /// @param spender The address that will be allowed to spend the balance.
+    /// @param amount The amount the spender is allowed to spend.
     function approveBalance(address spender, uint256 amount) external {
         _approveBalance(msg.sender, spender, amount);
     }
 
-    /// @notice Sets `amount` as the allowance of a smart contract `vault` over
-    ///         the caller's balance and calls the vault via
+    /// @notice Sets the `amount` as an allowance of a smart contract `spender`
+    ///         over the caller's balance and calls the `spender` via
     ///         `receiveBalanceApproval`.
-    /// @dev If the `amount` is set to `type(uint256).max` then the logic in
-    ///     `receiveBalanceApproval` or later call to `transferBalanceFrom` by
-    ///      the vault will not reduce an allowance. Beware that changing an
-    ///      allowance with this function brings the risk that vault may use
+    /// @dev If the `amount` is set to `type(uint256).max`, the potential
+    ///     `transferBalanceFrom` executed in `receiveBalanceApproval` of
+    ///      `spender` will not reduce an allowance. Beware that changing an
+    ///      allowance with this function brings the risk that `spender` may use
     ///      both the old and the new allowance by unfortunate transaction
     ///      ordering. Please use `increaseBalanceAllowance` and
     ///      `decreaseBalanceAllowance` to eliminate the risk.
-    function approveBalanceAndCall(address vault, uint256 amount) external {
-        _approveBalance(msg.sender, vault, amount);
-        IVault(vault).receiveBalanceApproval(msg.sender, amount);
+    /// @param spender The smart contract that will be allowed to spend the
+    ///        balance.
+    /// @param amount The amount the spender contract is allowed to spend.
+    /// @param extraData Extra data passed to the `spender` contract via
+    ///        `receiveBalanceApproval` call.
+    function approveBalanceAndCall(
+        address spender,
+        uint256 amount,
+        bytes calldata extraData
+    ) external {
+        _approveBalance(msg.sender, spender, amount);
+        IReceiveBalanceApproval(spender).receiveBalanceApproval(
+            msg.sender,
+            amount,
+            extraData
+        );
     }
 
-    /// @notice Atomically increases the balance allowance granted to `spender`
-    ///         by the caller by the given `addedValue`.
+    /// @notice Atomically increases the caller's balance allowance granted to
+    ///         `spender` by the given `addedValue`.
+    /// @param spender The spender address for which the allowance is increased.
+    /// @param addedValue The amount by which the allowance is increased.
     function increaseBalanceAllowance(address spender, uint256 addedValue)
         external
     {
@@ -141,8 +165,14 @@ contract Bank is Ownable {
         );
     }
 
-    /// @notice Atomically decreases the balance allowance granted to `spender`
-    ///         by the caller by the given `subtractedValue`.
+    /// @notice Atomically decreases the caller's balance allowance granted to
+    ///         `spender` by the given `subtractedValue`.
+    /// @dev Requirements:
+    ///      - `spender` must not be the zero address,
+    ///      - the current allowance for `spender` must not be lower than
+    ///        the `subtractedValue`.
+    /// @param spender The spender address for which the allowance is decreased.
+    /// @param subtractedValue The amount by which the allowance is decreased.
     function decreaseBalanceAllowance(address spender, uint256 subtractedValue)
         external
     {
@@ -166,8 +196,11 @@ contract Bank is Ownable {
     /// @dev Requirements:
     ///      - `recipient` cannot be the zero address,
     ///      - `spender` must have a balance of at least `amount`,
-    ///      - the caller must have allowance for `spender`'s balance of at
+    ///      - the caller must have an allowance for `spender`'s balance of at
     ///        least `amount`.
+    /// @param spender The address from which the balance is transferred.
+    /// @param recipient The address to which the balance is transferred.
+    /// @param amount The amount of balance that is transferred.
     function transferBalanceFrom(
         address spender,
         address recipient,
@@ -186,12 +219,13 @@ contract Bank is Ownable {
         _transferBalance(spender, recipient, amount);
     }
 
-    /// @notice EIP2612 approval made with secp256k1 signature.
-    ///         Users can authorize a transfer of their balance with a signature
-    ///         conforming EIP712 standard, rather than an on-chain transaction
-    ///         from their address. Anyone can submit this signature on the
-    ///         user's behalf by calling the permit function, paying gas fees,
-    ///         and possibly performing other actions in the same transaction.
+    /// @notice An EIP2612 approval made with secp256k1 signature. Users can
+    ///         authorize a transfer of their balance with a signature
+    ///         conforming to the EIP712 standard, rather than an on-chain
+    ///         transaction from their address. Anyone can submit this signature
+    ///         on the user's behalf by calling the `permit` function, paying
+    ///         gas fees, and possibly performing other actions in the same
+    ///         transaction.
     /// @dev The deadline argument can be set to `type(uint256).max to create
     ///      permits that effectively never expire.  If the `amount` is set
     ///      to `type(uint256).max` then `transferBalanceFrom` will not
@@ -200,6 +234,13 @@ contract Bank is Ownable {
     ///      new allowance by unfortunate transaction ordering. Please use
     ///      `increaseBalanceAllowance` and `decreaseBalanceAllowance` to
     ///      eliminate the risk.
+    /// @param owner The balance owner who signed the permission.
+    /// @param spender The address that will be allowed to spend the balance.
+    /// @param amount The amount the spender is allowed to spend.
+    /// @param deadline The UNIX time until which the permit is valid.
+    /// @param v V part of the permit signature.
+    /// @param r R part of the permit signature.
+    /// @param s S part of the permit signature.
     function permit(
         address owner,
         address spender,
@@ -249,7 +290,10 @@ contract Bank is Ownable {
     /// @notice Increases balances of the provided `recipients` by the provided
     ///         `amounts`. Can only be called by the Bridge.
     /// @dev Requirements:
-    ///       - length of `recipients` and `amounts` must be the same.
+    ///       - length of `recipients` and `amounts` must be the same,
+    ///       - none of `recipients` addresses must point to the Bank.
+    /// @param recipients Balance increase recipients.
+    /// @param amounts Amounts by which balances are increased.
     function increaseBalances(
         address[] calldata recipients,
         uint256[] calldata amounts
@@ -265,6 +309,10 @@ contract Bank is Ownable {
 
     /// @notice Increases balance of the provided `recipient` by the provided
     ///         `amount`. Can only be called by the Bridge.
+    /// @dev Requirements:
+    ///      - `recipient` address must not point to the Bank.
+    /// @param recipient Balance increase recipient.
+    /// @param amount Amount by which the balance is increased.
     function increaseBalance(address recipient, uint256 amount)
         external
         onlyBridge
@@ -273,39 +321,37 @@ contract Bank is Ownable {
     }
 
     /// @notice Increases the given smart contract `vault`'s balance and
-    ///         notifies the `vault` contract. Called by the Bridge after
-    ///         the deposits routed by depositors to that `vault` have been
-    ///         swept by the Bridge. This way, the depositor does not have to
-    ///         issue a separate  transaction to the `vault` contract.
+    ///         notifies the `vault` contract about it.
     ///         Can be called only by the Bridge.
     /// @dev Requirements:
     ///       - `vault` must implement `IVault` interface,
-    ///       - length of `depositors` and `depositedAmounts` must be the same.
+    ///       - length of `recipients` and `amounts` must be the same.
     /// @param vault Address of `IVault` recipient contract.
-    /// @param depositors Addresses of depositors whose deposits have been swept.
-    /// @param depositedAmounts Amounts deposited by individual depositors and
-    ///        swept. The `vault`'s balance in the Bank will be increased by the
-    ///        sum of all elements in this array.
+    /// @param recipients Balance increase recipients.
+    /// @param amounts Amounts by which balances are increased.
     function increaseBalanceAndCall(
         address vault,
-        address[] calldata depositors,
-        uint256[] calldata depositedAmounts
+        address[] calldata recipients,
+        uint256[] calldata amounts
     ) external onlyBridge {
         require(
-            depositors.length == depositedAmounts.length,
+            recipients.length == amounts.length,
             "Arrays must have the same length"
         );
         uint256 totalAmount = 0;
-        for (uint256 i = 0; i < depositedAmounts.length; i++) {
-            totalAmount += depositedAmounts[i];
+        for (uint256 i = 0; i < amounts.length; i++) {
+            totalAmount += amounts[i];
         }
         _increaseBalance(vault, totalAmount);
-        IVault(vault).receiveBalanceIncrease(depositors, depositedAmounts);
+        IVault(vault).receiveBalanceIncrease(recipients, amounts);
     }
 
     /// @notice Decreases caller's balance by the provided `amount`. There is no
     ///         way to restore the balance so do not call this function unless
     ///         you really know what you are doing!
+    /// @dev Requirements:
+    ///      - The caller must have a balance of at least `amount`.
+    /// @param amount The amount by which the balance is decreased.
     function decreaseBalance(uint256 amount) external {
         balanceOf[msg.sender] -= amount;
         emit BalanceDecreased(msg.sender, amount);
@@ -313,7 +359,7 @@ contract Bank is Ownable {
 
     /// @notice Returns hash of EIP712 Domain struct with `TBTC Bank` as
     ///         a signing domain and Bank contract as a verifying contract.
-    ///         Used to construct EIP2612 signature provided to `permit`
+    ///         Used to construct an EIP2612 signature provided to the `permit`
     ///         function.
     /* solhint-disable-next-line func-name-mixedcase */
     function DOMAIN_SEPARATOR() public view returns (bytes32) {

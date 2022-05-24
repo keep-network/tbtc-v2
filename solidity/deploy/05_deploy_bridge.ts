@@ -24,7 +24,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
   const Redemption = await deploy("Redemption", { from: deployer, log: true })
-  const Wallets = await deploy("Wallets", { from: deployer, log: true })
+  const Wallets = await deploy("Wallets", {
+    contract: "contracts/bridge/Wallets.sol:Wallets",
+    from: deployer,
+    log: true,
+  })
   const Fraud = await deploy("Fraud", { from: deployer, log: true })
   const MovingFunds = await deploy("MovingFunds", {
     from: deployer,
@@ -33,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const bridge = await helpers.upgrades.deployProxy("Bridge", {
     contractName:
-      deployments.getNetworkName() === "hardhat" ? "BridgeStub" : undefined,
+      process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
     initializerArgs: [
       Bank.address,
       Relay.address,

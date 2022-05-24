@@ -9,7 +9,7 @@ import {
   to1ePrecision,
   getBlockTime,
 } from "../helpers/contract-test-helpers"
-import vendingMachineFixture from "../fixtures/vendingMachine"
+import bridgeFixture from "../fixtures/bridge"
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
@@ -31,7 +31,7 @@ describe("VendingMachine", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ deployer, governance } = await ethers.getNamedSigners())
+    ;({ deployer, governance } = await helpers.signers.getNamedSigners())
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[
@@ -39,12 +39,12 @@ describe("VendingMachine", () => {
       vendingMachineUpgradeInitiator,
       tokenHolder,
       thirdParty,
-    ] = await ethers.getUnnamedSigners()
+    ] = await helpers.signers.getUnnamedSigners()
 
-    // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ tbtcV1, tbtcV2, vendingMachine } = await waffle.loadFixture(
-      vendingMachineFixture
-    ))
+    await waffle.loadFixture(bridgeFixture)
+    tbtcV1 = await helpers.contracts.getContract("TBTCToken")
+    tbtcV2 = await helpers.contracts.getContract("TBTC")
+    vendingMachine = await helpers.contracts.getContract("VendingMachine")
 
     await tbtcV1
       .connect(deployer)
