@@ -601,6 +601,9 @@ describe("Sweep", () => {
     })
 
     context("when the new main UTXO is requested to be non-witness", () => {
+      // The only difference between deposit sweep transactions with witness and
+      // non-witness output is the output type itself.
+      // Therefore only one test case was added for non-witness transactions.
       let transaction: RawTransaction
 
       const utxosWithRaw =
