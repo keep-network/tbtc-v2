@@ -85,6 +85,7 @@ Going forward, it will receive deposits.
 ==== Wallet Closure
 
 Wallets can close in a few ways:
+
 * The operators notify the chain that the wallet is failing a heartbeat: `Wallets.notifyWalletHeartbeatFailed`
 * Someone notifies the chain that the wallet timed out while filling a redemption: `Wallets.notifyWalletTimedOutRedemption`
 * Someone notifies the chain that the wallet is too old: `Wallets.notifyCloseableWallet`
