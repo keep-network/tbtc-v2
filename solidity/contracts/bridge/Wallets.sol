@@ -317,7 +317,7 @@ library Wallets {
             walletState == WalletState.Live ||
                 walletState == WalletState.MovingFunds ||
                 walletState == WalletState.Terminated,
-            "Wallet must be in Live, MovingFunds or Terminated state"
+            "Wallet must be in Live or MovingFunds or Terminated state"
         );
 
         if (
@@ -570,8 +570,10 @@ library Wallets {
         beginWalletClosing(self, walletPubKeyHash);
     }
 
-    /// @notice Called when the timeout for MovingFunds wallet elapsed.
+    /// @notice Called when the timeout for MovingFunds for the wallet elapsed.
     ///         Slashes wallet members and terminates the wallet.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
     /// @dev Requirements:
     ///      - The wallet must be in the MovingFunds state.
     function notifyWalletMovingFundsTimeout(
@@ -601,6 +603,7 @@ library Wallets {
 
     /// @notice Called when a MovingFunds wallet has a balance below the dust
     ///         threshold. Begins the wallet closing.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @dev Requirements:
     ///      - The wallet must be in the MovingFunds state.
     function notifyWalletMovingFundsBelowDust(
@@ -617,5 +620,45 @@ library Wallets {
         );
 
         beginWalletClosing(self, walletPubKeyHash);
+    }
+
+    /// @notice Called when a wallet which was asked to sweep funds moved from
+    ///         another wallet did not provide a sweeping proof before a timeout.
+    ///         Slashes and terminates the wallet who failed to provide a proof.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet which was
+    ///        supposed to sweep funds.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
+    /// @dev Requirements:
+    ///      - The wallet must be in the `Live`, `MovingFunds`,
+    ///        or `Terminated` state.
+    function notifyWalletMovedFundsSweepTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        WalletState walletState = wallet.state;
+
+        require(
+            walletState == WalletState.Live ||
+                walletState == WalletState.MovingFunds ||
+                walletState == WalletState.Terminated,
+            "Wallet must be in Live or MovingFunds or Terminated state"
+        );
+
+        if (
+            walletState == Wallets.WalletState.Live ||
+            walletState == Wallets.WalletState.MovingFunds
+        ) {
+            self.ecdsaWalletRegistry.seize(
+                self.movedFundsSweepTimeoutSlashingAmount,
+                self.movedFundsSweepTimeoutNotifierRewardMultiplier,
+                msg.sender,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
+
+            terminateWallet(self, walletPubKeyHash);
+        }
     }
 }

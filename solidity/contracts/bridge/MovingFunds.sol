@@ -1032,35 +1032,17 @@ library MovingFunds {
         );
 
         bytes20 walletPubKeyHash = sweepRequest.walletPubKeyHash;
+
+        self.notifyWalletMovedFundsSweepTimeout(
+            walletPubKeyHash,
+            walletMembersIDs
+        );
+
         Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
         ];
-        Wallets.WalletState walletState = wallet.state;
-
-        require(
-            walletState == Wallets.WalletState.Live ||
-                walletState == Wallets.WalletState.MovingFunds ||
-                walletState == Wallets.WalletState.Terminated,
-            "Wallet must be in Live or MovingFunds or Terminated state"
-        );
-
         sweepRequest.state = MovedFundsSweepRequestState.TimedOut;
         wallet.pendingMovedFundsSweepRequestsCount--;
-
-        if (
-            walletState == Wallets.WalletState.Live ||
-            walletState == Wallets.WalletState.MovingFunds
-        ) {
-            self.ecdsaWalletRegistry.seize(
-                self.movedFundsSweepTimeoutSlashingAmount,
-                self.movedFundsSweepTimeoutNotifierRewardMultiplier,
-                msg.sender,
-                wallet.ecdsaWalletID,
-                walletMembersIDs
-            );
-
-            self.terminateWallet(walletPubKeyHash);
-        }
 
         // slither-disable-next-line reentrancy-events
         emit MovedFundsSweepTimedOut(
