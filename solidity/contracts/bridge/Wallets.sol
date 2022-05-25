@@ -569,4 +569,33 @@ library Wallets {
 
         beginWalletClosing(self, walletPubKeyHash);
     }
+
+    /// @notice Called when the timeout for MovingFunds wallet elapsed.
+    ///         Slashes wallet members and terminates the wallet.
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state.
+    function notifyWalletMovingFundsTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs
+    ) internal {
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        require(
+            wallet.state == Wallets.WalletState.MovingFunds,
+            "Wallet must be in MovingFunds state"
+        );
+
+        self.ecdsaWalletRegistry.seize(
+            self.movingFundsTimeoutSlashingAmount,
+            self.movingFundsTimeoutNotifierRewardMultiplier,
+            msg.sender,
+            wallet.ecdsaWalletID,
+            walletMembersIDs
+        );
+
+        terminateWallet(self, walletPubKeyHash);
+    }
 }

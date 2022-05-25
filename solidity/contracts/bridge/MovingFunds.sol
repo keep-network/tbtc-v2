@@ -359,6 +359,8 @@ library MovingFunds {
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) external {
+        // Wallet state is validated in `notifyWalletFundsMoved`.
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -548,31 +550,19 @@ library MovingFunds {
         bytes20 walletPubKeyHash,
         uint32[] calldata walletMembersIDs
     ) external {
-        Wallets.Wallet storage wallet = self.registeredWallets[
-            walletPubKeyHash
-        ];
+        // Wallet state is validated in `notifyWalletMovingFundsTimeout`.
 
-        require(
-            wallet.state == Wallets.WalletState.MovingFunds,
-            "Wallet must be in MovingFunds state"
-        );
+        uint32 movingFundsRequestedAt = self
+            .registeredWallets[walletPubKeyHash]
+            .movingFundsRequestedAt;
 
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp >
-                wallet.movingFundsRequestedAt + self.movingFundsTimeout,
+            block.timestamp > movingFundsRequestedAt + self.movingFundsTimeout,
             "Moving funds has not timed out yet"
         );
 
-        self.ecdsaWalletRegistry.seize(
-            self.movingFundsTimeoutSlashingAmount,
-            self.movingFundsTimeoutNotifierRewardMultiplier,
-            msg.sender,
-            wallet.ecdsaWalletID,
-            walletMembersIDs
-        );
-
-        self.terminateWallet(walletPubKeyHash);
+        self.notifyWalletMovingFundsTimeout(walletPubKeyHash, walletMembersIDs);
 
         // slither-disable-next-line reentrancy-events
         emit MovingFundsTimedOut(walletPubKeyHash);
