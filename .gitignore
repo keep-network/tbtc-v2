@@ -9,6 +9,7 @@ export.json
 
 typechain/
 dist/
+external/
 .vscode/
 .envrc
 
