@@ -8,15 +8,11 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type {
   ContractTransaction,
   BytesLike,
-  BigNumber,
   BigNumberish,
-  Contract,
   Signer,
 } from "ethers"
 import type { WalletRegistry, SortitionPool } from "../../../typechain"
-
-// Number of members in the ECDSA Wallet.
-const WALLET_SIZE = 100
+import type { ClaimStruct } from "../../../typechain/EcdsaInactivity"
 
 export async function registerOperator(
   walletRegistry: WalletRegistry,
@@ -41,8 +37,12 @@ export async function performEcdsaDkg(
   walletRegistry: WalletRegistry,
   groupPublicKey: BytesLike,
   startBlock: number
-): Promise<{ approveDkgResultTx: ContractTransaction }> {
+): Promise<{
+  approveDkgResultTx: ContractTransaction
+  walletMembers: Operators
+}> {
   const {
+    signers: walletMembers,
     dkgResult,
     submitter,
     submitDkgResultTx: dkgResultSubmissionTx,
@@ -59,7 +59,7 @@ export async function performEcdsaDkg(
     .connect(submitter)
     .approveDkgResult(dkgResult)
 
-  return { approveDkgResultTx }
+  return { approveDkgResultTx, walletMembers }
 }
 
 export async function updateWalletRegistryDkgResultChallengePeriodLength(
@@ -87,26 +87,71 @@ export async function updateWalletRegistryDkgResultChallengePeriodLength(
     .finalizeDkgResultChallengePeriodLengthUpdate()
 }
 
-async function selectGroup(
-  walletRegistry: WalletRegistry
-): Promise<Operator[]> {
+async function selectGroup(walletRegistry: WalletRegistry): Promise<Operators> {
   const sortitionPool = (await ethers.getContractAt(
     "SortitionPool",
     await walletRegistry.sortitionPool()
   )) as SortitionPool
 
-  const identifiers = await walletRegistry.selectGroup()
+  const identifiers: number[] = await walletRegistry.selectGroup()
 
   const addresses = await sortitionPool.getIDOperators(identifiers)
 
-  return Promise.all(
-    identifiers.map(
-      async (identifier, i): Promise<Operator> => ({
-        id: identifier,
-        signer: await ethers.getSigner(addresses[i]),
-      })
-    )
+  return new Operators(
+    ...(await Promise.all(
+      identifiers.map(
+        async (identifier, i): Promise<Operator> => ({
+          id: identifier,
+          signer: await ethers.getSigner(addresses[i]),
+          stakingProvider: await walletRegistry.operatorToStakingProvider(
+            addresses[i]
+          ),
+        })
+      )
+    ))
   )
+}
+
+export async function produceOperatorInactivityClaim(
+  walletID: BytesLike,
+  signers: Operators,
+  nonce: number,
+  groupPubKey: BytesLike,
+  heartbeatFailed: boolean,
+  inactiveMembersIndices: number[],
+  numberOfSignatures: number
+): Promise<ClaimStruct> {
+  const messageHash = ethers.utils.solidityKeccak256(
+    ["uint256", "bytes", "uint8[]", "bool"],
+    [nonce, groupPubKey, inactiveMembersIndices, heartbeatFailed]
+  )
+
+  const signingMembersIndices: number[] = []
+  const signatures: string[] = []
+
+  for (let i = 0; i < signers.length; i++) {
+    if (signatures.length === numberOfSignatures) {
+      // eslint-disable-next-line no-continue
+      continue
+    }
+
+    const signerIndex: number = i + 1
+    signingMembersIndices.push(signerIndex)
+
+    const signature = await signers[i].signer.signMessage(
+      ethers.utils.arrayify(messageHash)
+    )
+
+    signatures.push(signature)
+  }
+
+  return {
+    walletID,
+    inactiveMembersIndices,
+    heartbeatFailed,
+    signatures: ethers.utils.hexConcat(signatures),
+    signingMembersIndices,
+  }
 }
 
 interface DkgResult {
@@ -119,11 +164,20 @@ interface DkgResult {
   membersHash: string
 }
 
-type OperatorID = number
-
 type Operator = {
-  id: OperatorID
+  id: number
   signer: SignerWithAddress
+  stakingProvider: string
+}
+
+export class Operators extends Array<Operator> {
+  getIds(): number[] {
+    return this.map((operator) => operator.id)
+  }
+
+  getSigners(): SignerWithAddress[] {
+    return this.map((operator) => operator.signer)
+  }
 }
 
 const noMisbehaved: number[] = []
@@ -134,6 +188,7 @@ async function signAndSubmitDkgResult(
   startBlock: number,
   misbehavedIndices = noMisbehaved
 ): Promise<{
+  signers: Operators
   dkgResult: DkgResult
   submitter: SignerWithAddress
   submitDkgResultTx: ContractTransaction
@@ -157,6 +212,7 @@ async function signAndSubmitDkgResult(
     .submitDkgResult(dkgResult)
 
   return {
+    signers,
     dkgResult,
     submitter,
     submitDkgResultTx,
@@ -164,7 +220,7 @@ async function signAndSubmitDkgResult(
 }
 
 async function signDkgResult(
-  signers: Operator[],
+  signers: Operators,
   groupPublicKey: BytesLike,
   misbehavedMembersIndices: number[],
   startBlock: number,
