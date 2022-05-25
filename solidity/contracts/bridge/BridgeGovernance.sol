@@ -40,6 +40,7 @@ contract BridgeGovernance is Ownable {
 
     Bridge internal bridge;
 
+    // Array is used to mitigate the problem with the contract size limit.
     // governanceDelays[0] -> governanceDelay
     // governanceDelays[1] -> newGovernanceDelay
     // governanceDelays[2] -> governanceDelayChangeInitiated
