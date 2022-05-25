@@ -545,7 +545,7 @@ describe("Bridge - Governance", () => {
           expect(depositTreasuryFeeDivisor).to.be.equal(7331)
         })
 
-        it("should emitDepositTreasuryFeeDivisorUpdated event", async () => {
+        it("should emit DepositTreasuryFeeDivisorUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "DepositTreasuryFeeDivisorUpdated")
             .withArgs(7331)
@@ -673,7 +673,7 @@ describe("Bridge - Governance", () => {
           expect(depositTxMaxFee).to.be.equal(7331)
         })
 
-        it("should emitDepositTxMaxFeeUpdated event", async () => {
+        it("should emit DepositTxMaxFeeUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "DepositTxMaxFeeUpdated")
             .withArgs(7331)
@@ -818,7 +818,7 @@ describe("Bridge - Governance", () => {
           )
         })
 
-        it("should emitRedemptionDustThresholdUpdated event", async () => {
+        it("should emit RedemptionDustThresholdUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "RedemptionDustThresholdUpdated")
             .withArgs(constants.depositDustThreshold + 1)
@@ -961,7 +961,7 @@ describe("Bridge - Governance", () => {
           expect(redemptionTreasuryFeeDivisor).to.be.equal(7331)
         })
 
-        it("should emitRedemptionTreasuryFeeDivisorUpdated event", async () => {
+        it("should emit RedemptionTreasuryFeeDivisorUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "RedemptionTreasuryFeeDivisorUpdated")
             .withArgs(7331)
@@ -1087,7 +1087,7 @@ describe("Bridge - Governance", () => {
           expect(redemptionTimeout).to.be.equal(7331)
         })
 
-        it("should emitRedemptionTimeoutUpdated event", async () => {
+        it("should emit RedemptionTimeoutUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "RedemptionTimeoutUpdated")
             .withArgs(7331)
@@ -1228,7 +1228,7 @@ describe("Bridge - Governance", () => {
           expect(redemptionTimeoutSlashingAmount).to.be.equal(7331)
         })
 
-        it("should emitRedemptionTimeoutSlashingAmountUpdated event", async () => {
+        it("should emit RedemptionTimeoutSlashingAmountUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "RedemptionTimeoutSlashingAmountUpdated")
             .withArgs(7331)
@@ -1369,7 +1369,7 @@ describe("Bridge - Governance", () => {
           expect(redemptionTimeoutNotifierRewardMultiplier).to.be.equal(42)
         })
 
-        it("should emitRedemptionTimeoutNotifierRewardMultiplierUpdated event", async () => {
+        it("should emit RedemptionTimeoutNotifierRewardMultiplierUpdated event", async () => {
           await expect(tx)
             .to.emit(
               bridgeGovernance,
@@ -1512,7 +1512,7 @@ describe("Bridge - Governance", () => {
           expect(movingFundsTxMaxTotalFee).to.be.equal(7331)
         })
 
-        it("should emitMovingFundsTxMaxTotalFeeUpdated event", async () => {
+        it("should emit MovingFundsTxMaxTotalFeeUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "MovingFundsTxMaxTotalFeeUpdated")
             .withArgs(7331)
@@ -1652,7 +1652,7 @@ describe("Bridge - Governance", () => {
           expect(movingFundsDustThreshold).to.be.equal(7331)
         })
 
-        it("should emitMovingFundsDustThresholdUpdated event", async () => {
+        it("should emit MovingFundsDustThresholdUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "MovingFundsDustThresholdUpdated")
             .withArgs(7331)
@@ -1795,7 +1795,7 @@ describe("Bridge - Governance", () => {
           expect(movingFundsTimeoutResetDelay).to.be.equal(7331)
         })
 
-        it("should emitMovingFundsTimeoutResetDelayUpdated event", async () => {
+        it("should emit MovingFundsTimeoutResetDelayUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "MovingFundsTimeoutResetDelayUpdated")
             .withArgs(7331)
@@ -1933,7 +1933,7 @@ describe("Bridge - Governance", () => {
           )
         })
 
-        it("should emitMovingFundsTimeoutUpdated event", async () => {
+        it("should emit MovingFundsTimeoutUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "MovingFundsTimeoutUpdated")
             .withArgs(constants.movingFundsTimeout + 1)
@@ -2074,7 +2074,7 @@ describe("Bridge - Governance", () => {
           expect(movingFundsTimeoutSlashingAmount).to.be.equal(7331)
         })
 
-        it("should emitMovingFundsTimeoutSlashingAmountUpdated event", async () => {
+        it("should emit MovingFundsTimeoutSlashingAmountUpdated event", async () => {
           await expect(tx)
             .to.emit(
               bridgeGovernance,
@@ -2218,7 +2218,7 @@ describe("Bridge - Governance", () => {
           expect(movingFundsTimeoutNotifierRewardMultiplier).to.be.equal(42)
         })
 
-        it("should emitMovingFundsTimeoutNotifierRewardMultiplierUpdated event", async () => {
+        it("should emit MovingFundsTimeoutNotifierRewardMultiplierUpdated event", async () => {
           await expect(tx)
             .to.emit(
               bridgeGovernance,
@@ -2364,7 +2364,7 @@ describe("Bridge - Governance", () => {
           expect(movedFundsSweepTxMaxTotalFee).to.be.equal(7331)
         })
 
-        it("should emitMovedFundsSweepTxMaxTotalFeeUpdated event", async () => {
+        it("should emit MovedFundsSweepTxMaxTotalFeeUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "MovedFundsSweepTxMaxTotalFeeUpdated")
             .withArgs(7331)
@@ -2503,7 +2503,7 @@ describe("Bridge - Governance", () => {
           expect(movedFundsSweepTimeout).to.be.equal(7331)
         })
 
-        it("should emitMovedFundsSweepTimeoutUpdated event", async () => {
+        it("should emit MovedFundsSweepTimeoutUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "MovedFundsSweepTimeoutUpdated")
             .withArgs(7331)
@@ -2644,7 +2644,7 @@ describe("Bridge - Governance", () => {
           expect(movedFundsSweepTimeoutSlashingAmount).to.be.equal(7331)
         })
 
-        it("should emitMovedFundsSweepTimeoutSlashingAmountUpdated event", async () => {
+        it("should emit MovedFundsSweepTimeoutSlashingAmountUpdated event", async () => {
           await expect(tx)
             .to.emit(
               bridgeGovernance,
@@ -2788,7 +2788,7 @@ describe("Bridge - Governance", () => {
           expect(movedFundsSweepTimeoutNotifierRewardMultiplier).to.be.equal(42)
         })
 
-        it("should emitMovedFundsSweepTimeoutNotifierRewardMultiplierUpdated event", async () => {
+        it("should emit MovedFundsSweepTimeoutNotifierRewardMultiplierUpdated event", async () => {
           await expect(tx)
             .to.emit(
               bridgeGovernance,
@@ -2925,7 +2925,7 @@ describe("Bridge - Governance", () => {
           expect(walletCreationPeriod).to.be.equal(7331)
         })
 
-        it("should emitWalletCreationPeriodUpdated event", async () => {
+        it("should emit WalletCreationPeriodUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "WalletCreationPeriodUpdated")
             .withArgs(7331)
@@ -3062,7 +3062,7 @@ describe("Bridge - Governance", () => {
           expect(walletCreationMinBtcBalance).to.be.equal(7331)
         })
 
-        it("should emitWalletCreationMinBtcBalanceUpdated event", async () => {
+        it("should emit WalletCreationMinBtcBalanceUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "WalletCreationMinBtcBalanceUpdated")
             .withArgs(7331)
@@ -3207,7 +3207,7 @@ describe("Bridge - Governance", () => {
           )
         })
 
-        it("should emitWalletCreationMaxBtcBalanceUpdated event", async () => {
+        it("should emit WalletCreationMaxBtcBalanceUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "WalletCreationMaxBtcBalanceUpdated")
             .withArgs(constants.walletCreationMinBtcBalance.add(1))
@@ -3345,7 +3345,7 @@ describe("Bridge - Governance", () => {
           expect(walletClosureMinBtcBalance).to.be.equal(7331)
         })
 
-        it("should emitWalletClosureMinBtcBalanceUpdated event", async () => {
+        it("should emit WalletClosureMinBtcBalanceUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "WalletClosureMinBtcBalanceUpdated")
             .withArgs(7331)
@@ -3469,7 +3469,7 @@ describe("Bridge - Governance", () => {
           expect(walletMaxAge).to.be.equal(7331)
         })
 
-        it("should emitWalletMaxAgeUpdated event", async () => {
+        it("should emit WalletMaxAgeUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "WalletMaxAgeUpdated")
             .withArgs(7331)
@@ -3605,7 +3605,7 @@ describe("Bridge - Governance", () => {
           expect(walletMaxBtcTransfer).to.be.equal(7331)
         })
 
-        it("should emitWalletMaxBtcTransferUpdated event", async () => {
+        it("should emit WalletMaxBtcTransferUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "WalletMaxBtcTransferUpdated")
             .withArgs(7331)
@@ -3737,7 +3737,7 @@ describe("Bridge - Governance", () => {
           expect(walletClosingPeriod).to.be.equal(7331)
         })
 
-        it("should emitWalletClosingPeriodUpdated event", async () => {
+        it("should emit WalletClosingPeriodUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "WalletClosingPeriodUpdated")
             .withArgs(7331)
@@ -3873,7 +3873,7 @@ describe("Bridge - Governance", () => {
           expect(fraudChallengeDepositAmount).to.be.equal(7331)
         })
 
-        it("should emitFraudChallengeDepositAmountUpdated event", async () => {
+        it("should emit FraudChallengeDepositAmountUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "FraudChallengeDepositAmountUpdated")
             .withArgs(7331)
@@ -4011,7 +4011,7 @@ describe("Bridge - Governance", () => {
           expect(fraudChallengeDefeatTimeout).to.be.equal(7331)
         })
 
-        it("should emitFraudChallengeDefeatTimeoutUpdated event", async () => {
+        it("should emit FraudChallengeDefeatTimeoutUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "FraudChallengeDefeatTimeoutUpdated")
             .withArgs(7331)
@@ -4143,7 +4143,7 @@ describe("Bridge - Governance", () => {
           expect(fraudSlashingAmount).to.be.equal(7331)
         })
 
-        it("should emitFraudSlashingAmountUpdated event", async () => {
+        it("should emit FraudSlashingAmountUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "FraudSlashingAmountUpdated")
             .withArgs(7331)
@@ -4283,7 +4283,7 @@ describe("Bridge - Governance", () => {
           expect(fraudNotifierRewardMultiplier).to.be.equal(42)
         })
 
-        it("should emitFraudNotifierRewardMultiplierUpdated event", async () => {
+        it("should emit FraudNotifierRewardMultiplierUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "FraudNotifierRewardMultiplierUpdated")
             .withArgs(42)
