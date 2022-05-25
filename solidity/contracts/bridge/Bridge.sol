@@ -944,11 +944,11 @@ contract Bridge is
     ///        can be empty as it is ignored since the wallet balance is
     ///        assumed to be zero,
     ///      - Wallet must be in Live state.
-    function notifyCloseableWallet(
+    function notifyWalletCloseable(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
     ) external {
-        self.notifyCloseableWallet(walletPubKeyHash, walletMainUtxo);
+        self.notifyWalletCloseable(walletPubKeyHash, walletMainUtxo);
     }
 
     /// @notice Notifies about the end of the closing period for the given wallet.

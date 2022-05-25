@@ -4148,7 +4148,7 @@ describe("Bridge - Redemption", () => {
                         data.redemptionRequests[0].redeemerOutputScript
                       )
                   ).to.be.revertedWith(
-                    "Wallet must be in Live, MovingFunds or Terminated state"
+                    "Wallet must be in Live or MovingFunds or Terminated state"
                   )
                 })
               })
