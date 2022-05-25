@@ -510,7 +510,7 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the redemption treasury fee divisor amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newRedemptionTreasuryFeeDivisor New redemption treasury fee divisor 
+    /// @param _newRedemptionTreasuryFeeDivisor New redemption treasury fee divisor
     ///         amount.
     function beginRedemptionTreasuryFeeDivisorUpdate(
         RedemptionData storage self,
