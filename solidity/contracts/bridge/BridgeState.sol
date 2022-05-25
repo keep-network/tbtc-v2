@@ -61,6 +61,8 @@ library BridgeState {
         //
         // This is a per-deposit input max fee for the sweep transaction.
         uint64 depositTxMaxFee;
+        // Move movingFundsTxMaxTotalFee to the next storage slot for a more
+        // efficient variable layout
         // slither-disable-next-line unused-state
         bytes8 __depositAlignmentGap;
         // Maximum amount of the total BTC transaction fee that is acceptable in
@@ -143,6 +145,8 @@ library BridgeState {
         // This is a per-redemption output max fee for the redemption
         // transaction.
         uint64 redemptionTxMaxFee;
+        // Move redemptionTimeout to the next storage slot for a more efficient
+        // variable layout
         // slither-disable-next-line unused-state
         bytes8 __redemptionAlignmentGap;
         // Time after which the redemption request can be reported as
