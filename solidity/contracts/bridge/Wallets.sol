@@ -234,6 +234,7 @@ library Wallets {
     ///         redemption timeout also for a Terminated wallet in case the
     ///         redemption was requested before the wallet got terminated.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
     /// @dev Requirements:
     ///      - The wallet must be in the `Live`, `MovingFunds`,
     ///        or `Terminated` state.
