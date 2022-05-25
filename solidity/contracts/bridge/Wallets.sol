@@ -297,23 +297,42 @@ library Wallets {
     ///         Triggers the wallet moving funds process only if the wallet is
     ///         still in the Live state. That means multiple action timeouts can
     ///         be reported for the same wallet but only the first report
-    ///         requests the wallet to move their funds.
+    ///         requests the wallet to move their funds. Executes slashing if
+    ///         the wallet is in Live or MovingFunds state. Allows to notify
+    ///         redemption timeout also for a Terminated wallet in case the
+    ///         redemption was requested before the wallet got terminated.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet.
     /// @dev Requirements:
-    ///      - The wallet must be in the `Live` or `MovingFunds` state.
-    function notifyWalletTimedOutRedemption(
+    ///      - The wallet must be in the `Live`, `MovingFunds`,
+    ///        or `Terminated` state.
+    function notifyWalletRedemptionTimeout(
         BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs
     ) internal {
-        WalletState walletState = self
-            .registeredWallets[walletPubKeyHash]
-            .state;
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        WalletState walletState = wallet.state;
 
         require(
             walletState == WalletState.Live ||
-                walletState == WalletState.MovingFunds,
-            "Wallet must be in Live or MovingFunds state"
+                walletState == WalletState.MovingFunds ||
+                walletState == WalletState.Terminated,
+            "Wallet must be in Live, MovingFunds or Terminated state"
         );
+
+        if (
+            walletState == Wallets.WalletState.Live ||
+            walletState == Wallets.WalletState.MovingFunds
+        ) {
+            // Slash the wallet operators and reward the notifier
+            self.ecdsaWalletRegistry.seize(
+                self.redemptionTimeoutSlashingAmount,
+                self.redemptionTimeoutNotifierRewardMultiplier,
+                msg.sender,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
+        }
 
         if (walletState == WalletState.Live) {
             moveFunds(self, walletPubKeyHash);
