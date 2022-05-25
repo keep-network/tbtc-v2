@@ -614,7 +614,10 @@ function buildRedemptionKey(
   redeemerOutputScript: BytesLike
 ): string {
   return ethers.utils.solidityKeccak256(
-    ["bytes20", "bytes"],
-    [walletPubKeyHash, redeemerOutputScript]
+    ["bytes32", "bytes20"],
+    [
+      ethers.utils.solidityKeccak256(["bytes"], [redeemerOutputScript]),
+      walletPubKeyHash
+    ]
   )
 }
