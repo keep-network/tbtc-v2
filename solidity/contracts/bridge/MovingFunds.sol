@@ -368,13 +368,31 @@ library MovingFunds {
             movingFundsProof
         );
 
+        // Assert that main UTXO for passed wallet exists in storage.
+        bytes32 mainUtxoHash = self
+            .registeredWallets[walletPubKeyHash]
+            .mainUtxoHash;
+        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
+
+        // Assert that passed main UTXO parameter is the same as in storage and
+        // can be used for further processing.
+        require(
+            keccak256(
+                abi.encodePacked(
+                    mainUtxo.txHash,
+                    mainUtxo.txOutputIndex,
+                    mainUtxo.txOutputValue
+                )
+            ) == mainUtxoHash,
+            "Invalid main UTXO data"
+        );
+
         // Process the moving funds transaction input. Specifically, check if
         // it refers to the expected wallet's main UTXO.
         OutboundTx.processWalletOutboundTxInput(
             self,
             movingFundsTx.inputVector,
-            mainUtxo,
-            walletPubKeyHash
+            mainUtxo
         );
 
         (
@@ -666,6 +684,9 @@ library MovingFunds {
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
+        // Wallet state validation is performed in the
+        // `resolveMovedFundsSweepingWallet` function.
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
