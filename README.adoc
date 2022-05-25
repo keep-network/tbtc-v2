@@ -228,6 +228,11 @@ and destination. There can only be one pending redemption per PKH-destination
 pair. The treasury takes a cut (`Bridge.redemptionTreasuryFeeDivisor`, 5 BPS),
 and then we reduce the account's Bank balance and start a timer.
 
+[TIP]
+`Bridge.requestRedemption` requires a Bank balance approval to the Bridge. This
+can either be made in a separate transaction first via `Bank.approveBalance` or
+in a single transaction via `Bank.approveBalanceAndCall`.
+
 After `Bridge.redemptionTimeout` (48 hours), anyone may call
 `Bridge.notifyRedemptionTimeout`. This will decrease
 `wallet.pendingRedemptionsValue`, mark the redemption as "timed out", punish
