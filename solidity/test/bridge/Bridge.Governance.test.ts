@@ -144,9 +144,7 @@ describe("Bridge - Governance", () => {
         })
 
         it("should reset the governance delay timer", async () => {
-          await expect(await bridgeGovernance.governanceDelays(2)).to.be.equal(
-            0
-          )
+          expect(await bridgeGovernance.governanceDelays(2)).to.be.equal(0)
         })
       }
     )
