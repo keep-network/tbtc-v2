@@ -487,8 +487,8 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @notice Unauthorize a maintainer that was previously authorized to interact
     ///         with the Maintainer Proxy contract. Can be unauthorized by the
     ///         owner only.
-    /// @dev    The last maintainer is swapped with the one to unauthorized. The
-    ///         unauthorized maintainer is then removed from the list. An index
+    /// @dev    The last maintainer is swapped with the one to be unauthorized.
+    ///         The unauthorized maintainer is then removed from the list. An index
     ///         of the last maintainer is changed with the removed maintainer.
     ///         Ex.
     ///         'maintainers' list: [0x1, 0x2, 0x3, 0x4, 0x5]
