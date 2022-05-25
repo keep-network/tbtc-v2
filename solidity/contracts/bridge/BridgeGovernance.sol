@@ -640,7 +640,7 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Finalizes the redemption timeout notifier reward multiplier amount 
+    /// @notice Finalizes the redemption timeout notifier reward multiplier amount
     ///         update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
@@ -853,7 +853,7 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the moving funds timeout slashing amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovingFundsTimeoutSlashingAmount New moving funds timeout 
+    /// @param _newMovingFundsTimeoutSlashingAmount New moving funds timeout
     ///         slashing amount.
     function beginMovingFundsTimeoutSlashingAmountUpdate(
         uint96 _newMovingFundsTimeoutSlashingAmount
@@ -913,7 +913,7 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Finalizes the moving funds timeout notifier reward multiplier 
+    /// @notice Finalizes the moving funds timeout notifier reward multiplier
     ///         update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
@@ -1044,7 +1044,7 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the moved funds sweep timeout slashing amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep 
+    /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep
     ///         timeout slashing amount.
     function beginMovedFundsSweepTimeoutSlashingAmountUpdate(
         uint96 _newMovedFundsSweepTimeoutSlashingAmount
@@ -1095,7 +1095,7 @@ contract BridgeGovernance is Ownable {
     /// @notice Begins the moved funds sweep timeout notifier reward multiplier
     ///         update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovedFundsSweepTimeoutNotifierRewardMultiplier New moved funds 
+    /// @param _newMovedFundsSweepTimeoutNotifierRewardMultiplier New moved funds
     ///         sweep timeout notifier reward multiplier.
     function beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
         uint64 _newMovedFundsSweepTimeoutNotifierRewardMultiplier

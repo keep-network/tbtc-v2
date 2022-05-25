@@ -691,7 +691,7 @@ library BridgeGovernanceParameters {
         return self.newRedemptionTimeoutSlashingAmount;
     }
 
-    /// @notice Begins the redemption timeout notifier reward multiplier amount 
+    /// @notice Begins the redemption timeout notifier reward multiplier amount
     ///         update process.
     /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionTimeoutNotifierRewardMultiplier New redemption
@@ -831,7 +831,7 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the moving funds timeout reset delay amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovingFundsTimeoutResetDelay New moving funds timeout reset 
+    /// @param _newMovingFundsTimeoutResetDelay New moving funds timeout reset
     ///         delay amount.
     function beginMovingFundsTimeoutResetDelayUpdate(
         MovingFundsData storage self,
@@ -1109,7 +1109,7 @@ library BridgeGovernanceParameters {
     /// @notice Begins the moved funds sweep timeout slashing amount update
     ///         process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep 
+    /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep
     ///         timeout slashing amount.
     function beginMovedFundsSweepTimeoutSlashingAmountUpdate(
         MovingFundsData storage self,
