@@ -911,7 +911,7 @@ describe("Bridge - Wallets", () => {
     })
   })
 
-  describe("notifyCloseableWallet", () => {
+  describe("notifyWalletCloseable", () => {
     context("when the reported wallet is not the active one", () => {
       context("when wallet is in Live state", () => {
         before(async () => {
@@ -953,7 +953,7 @@ describe("Bridge - Wallets", () => {
 
               tx = await bridge
                 .connect(walletRegistry.wallet)
-                .notifyCloseableWallet(
+                .notifyWalletCloseable(
                   ecdsaWalletTestData.pubKeyHash160,
                   NO_MAIN_UTXO
                 )
@@ -1012,7 +1012,7 @@ describe("Bridge - Wallets", () => {
 
               tx = await bridge
                 .connect(walletRegistry.wallet)
-                .notifyCloseableWallet(
+                .notifyWalletCloseable(
                   ecdsaWalletTestData.pubKeyHash160,
                   walletMainUtxo
                 )
@@ -1064,7 +1064,7 @@ describe("Bridge - Wallets", () => {
 
                 tx = await bridge
                   .connect(walletRegistry.wallet)
-                  .notifyCloseableWallet(
+                  .notifyWalletCloseable(
                     ecdsaWalletTestData.pubKeyHash160,
                     NO_MAIN_UTXO
                   )
@@ -1125,7 +1125,7 @@ describe("Bridge - Wallets", () => {
 
                 tx = await bridge
                   .connect(walletRegistry.wallet)
-                  .notifyCloseableWallet(
+                  .notifyWalletCloseable(
                     ecdsaWalletTestData.pubKeyHash160,
                     walletMainUtxo
                   )
@@ -1196,7 +1196,7 @@ describe("Bridge - Wallets", () => {
               await expect(
                 bridge
                   .connect(walletRegistry.wallet)
-                  .notifyCloseableWallet(
+                  .notifyWalletCloseable(
                     ecdsaWalletTestData.pubKeyHash160,
                     walletMainUtxo
                   )
@@ -1239,7 +1239,7 @@ describe("Bridge - Wallets", () => {
               await expect(
                 bridge
                   .connect(walletRegistry.wallet)
-                  .notifyCloseableWallet(
+                  .notifyWalletCloseable(
                     ecdsaWalletTestData.pubKeyHash160,
                     corruptedWalletMainUtxo
                   )
@@ -1300,7 +1300,7 @@ describe("Bridge - Wallets", () => {
               await expect(
                 bridge
                   .connect(walletRegistry.wallet)
-                  .notifyCloseableWallet(
+                  .notifyWalletCloseable(
                     ecdsaWalletTestData.pubKeyHash160,
                     NO_MAIN_UTXO
                   )
@@ -1339,7 +1339,7 @@ describe("Bridge - Wallets", () => {
         await expect(
           bridge
             .connect(walletRegistry.wallet)
-            .notifyCloseableWallet(
+            .notifyWalletCloseable(
               ecdsaWalletTestData.pubKeyHash160,
               NO_MAIN_UTXO
             )

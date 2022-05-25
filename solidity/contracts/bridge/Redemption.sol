@@ -974,6 +974,8 @@ library Redemption {
         uint32[] calldata walletMembersIDs,
         bytes calldata redeemerOutputScript
     ) external {
+        // Wallet state is validated in `notifyWalletRedemptionTimeout`.
+
         uint256 redemptionKey = uint256(
             keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
         );
@@ -996,39 +998,18 @@ library Redemption {
             request.requestedAmount -
             request.treasuryFee;
 
-        require(
-            wallet.state == Wallets.WalletState.Live ||
-                wallet.state == Wallets.WalletState.MovingFunds ||
-                wallet.state == Wallets.WalletState.Terminated,
-            "Wallet must be in Live, MovingFunds or Terminated state"
-        );
-
         // It is worth noting that there is no need to check if
         // `timedOutRedemption` mapping already contains the given redemption
         // key. There is no possibility to re-use a key of a reported timed-out
         // redemption because the wallet responsible for causing the timeout is
         // moved to a state that prevents it to receive new redemption requests.
 
+        // Propagate timeout consequences to the wallet
+        self.notifyWalletRedemptionTimeout(walletPubKeyHash, walletMembersIDs);
+
         // Move the redemption from pending redemptions to timed-out redemptions
         self.timedOutRedemptions[redemptionKey] = request;
         delete self.pendingRedemptions[redemptionKey];
-
-        if (
-            wallet.state == Wallets.WalletState.Live ||
-            wallet.state == Wallets.WalletState.MovingFunds
-        ) {
-            // Slash the wallet operators and reward the notifier
-            self.ecdsaWalletRegistry.seize(
-                self.redemptionTimeoutSlashingAmount,
-                self.redemptionTimeoutNotifierRewardMultiplier,
-                msg.sender,
-                wallet.ecdsaWalletID,
-                walletMembersIDs
-            );
-
-            // Propagate timeout consequences to the wallet
-            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
-        }
 
         // slither-disable-next-line reentrancy-events
         emit RedemptionTimedOut(walletPubKeyHash, redeemerOutputScript);
