@@ -53,9 +53,6 @@ link:https://eprint.iacr.org/2019/114.pdf[threshold ECDSA]
 Bitcoin wallets at a governable frequency (starting weekly). The youngest
 wallet accepts new deposits, and the oldest wallet serves redemptions.
 
-Depositing Bitcoin into the tBTCv2 bridge grants a transferable balance, which
+Depositing Bitcoin into the tBTCv2 bridge grants a transferable Bank balance, which
 can be used to mint a supply-pegged ERC-20: TBTC. For an in-depth explanation
 about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
-
-== The Mechanism
-// FIXME
