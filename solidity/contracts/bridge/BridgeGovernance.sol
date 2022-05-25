@@ -352,6 +352,7 @@ contract BridgeGovernance is Ownable {
         bridge.transferGovernance(newBridgeGovernance);
         emit BridgeGovernanceTransferred(newBridgeGovernance);
         bridgeGovernanceTransferChangeInitiated = 0;
+        newBridgeGovernance = address(0);
     }
 
     // --- Deposit
@@ -438,7 +439,7 @@ contract BridgeGovernance is Ownable {
 
     // --- Redemption
 
-    /// @notice Begins the redemption treasury fee divisor amount update process.
+    /// @notice Begins the redemption dust threshold amount update process.
     /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionDustThreshold New redemption treasury fee divisor.
     function beginRedemptionDustThresholdUpdate(
