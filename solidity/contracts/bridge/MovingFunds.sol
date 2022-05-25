@@ -1007,6 +1007,8 @@ library MovingFunds {
         uint32 movingFundsTxOutputIndex,
         uint32[] calldata walletMembersIDs
     ) external {
+        // Wallet state is validated in `notifyWalletMovedFundsSweepTimeout`.
+
         MovedFundsSweepRequest storage sweepRequest = self
             .movedFundsSweepRequests[
                 uint256(
