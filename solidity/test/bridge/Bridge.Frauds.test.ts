@@ -10,8 +10,7 @@ import { BytesLike } from "@ethersproject/bytes"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import type { IWalletRegistry, Bridge, BridgeStub } from "../../typechain"
 import {
-  walletPublicKey,
-  walletPublicKeyHash,
+  wallet as fraudWallet,
   nonWitnessSignSingleInputTx,
   nonWitnessSignMultipleInputsTx,
   witnessSignSingleInputTx,
@@ -27,6 +26,9 @@ chai.use(smock.matchers)
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 const { keccak256, sha256 } = ethers.utils
+
+const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
+  fraudWallet
 
 describe("Bridge - Fraud", () => {
   let thirdParty: SignerWithAddress

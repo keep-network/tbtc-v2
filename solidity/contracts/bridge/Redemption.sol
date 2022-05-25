@@ -42,34 +42,11 @@ library OutboundTx {
     ///        before it is passed here.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain.
-    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the outbound transaction.
     function processWalletOutboundTxInput(
         BridgeState.Storage storage self,
         bytes memory walletOutboundTxInputVector,
-        BitcoinTx.UTXO calldata mainUtxo,
-        bytes20 walletPubKeyHash
+        BitcoinTx.UTXO calldata mainUtxo
     ) internal {
-        // Assert that main UTXO for passed wallet exists in storage.
-        bytes32 mainUtxoHash = self
-            .registeredWallets[walletPubKeyHash]
-            .mainUtxoHash;
-        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
-
-        // Assert that passed main UTXO parameter is the same as in storage and
-        // can be used for further processing.
-        require(
-            keccak256(
-                abi.encodePacked(
-                    mainUtxo.txHash,
-                    mainUtxo.txOutputIndex,
-                    mainUtxo.txOutputValue
-                )
-            ) == mainUtxoHash,
-            "Invalid main UTXO data"
-        );
-
         // Assert that the single outbound transaction input actually
         // refers to the wallet's main UTXO.
         (
@@ -233,15 +210,21 @@ library Redemption {
 
     /// @notice Requests redemption of the given amount from the specified
     ///         wallet to the redeemer Bitcoin output script.
+    ///         This function handles the simplest case, where balance owner is
+    ///         the redeemer.
     /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
     ///        using Bitcoin HASH160 over the compressed ECDSA public key).
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain.
+    /// @param balanceOwner The address of the Bank balance owner whose balance
+    ///        is getting redeemed. Balance owner address is stored as
+    ///        a redemeer address who will be able co claim back the Bank
+    ///        balance if anything goes wrong during the redemption.
     /// @param redeemerOutputScript The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
     ///        redeemed BTC.
-    /// @param amount Requested amount in satoshi. This is also the TBTC amount
-    ///        that is taken from redeemer's balance in the Bank upon request.
+    /// @param amount Requested amount in satoshi. This is also the Bank balance
+    ///        that is taken from the `balanceOwner` upon request.
     ///        Once the request is handled, the actual amount of BTC locked
     ///        on the redeemer output script will be always lower than this value
     ///        since the treasury and Bitcoin transaction fees must be incurred.
@@ -258,15 +241,163 @@ library Redemption {
     ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
     ///        used for only one pending request at the same time,
     ///      - Wallet must have enough Bitcoin balance to proceed the request,
-    ///      - Redeemer must make an allowance in the Bank that the Bridge
+    ///      - Balance owner must make an allowance in the Bank that the Bridge
     ///        contract can spend the given `amount`.
     function requestRedemption(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo,
+        address balanceOwner,
         bytes calldata redeemerOutputScript,
         uint64 amount
     ) external {
+        requestRedemption(
+            self,
+            walletPubKeyHash,
+            mainUtxo,
+            balanceOwner,
+            balanceOwner,
+            redeemerOutputScript,
+            amount
+        );
+    }
+
+    /// @notice Requests redemption of the given amount from the specified
+    ///         wallet to the redeemer Bitcoin output script. Used by
+    ///         `Bridge.receiveBalanceApproval`. Can handle more complex cases
+    ///         where balance owner may be someone else than the redeemer.
+    /// @param balanceOwner The address of the Bank balance owner whose balance
+    ///        is getting redeemed.
+    /// @param amount Requested amount in satoshi. This is also the Bank balance
+    ///        that is taken from the `balanceOwner` upon request.
+    ///        Once the request is handled, the actual amount of BTC locked
+    ///        on the redeemer output script will be always lower than this value
+    ///        since the treasury and Bitcoin transaction fees must be incurred.
+    ///        The minimal amount satisfying the request can be computed as:
+    ///        `amount - (amount / redemptionTreasuryFeeDivisor) - redemptionTxMaxFee`.
+    ///        Fees values are taken at the moment of request creation.
+    /// @param redemptionData ABI-encoded redemption data:
+    ///        [
+    ///          address redeemer,
+    ///          bytes20 walletPubKeyHash,
+    ///          bytes32 mainUtxoTxHash,
+    ///          uint32 mainUtxoTxOutputIndex,
+    ///          uint64 mainUtxoTxOutputValue,
+    ///          bytes redeemerOutputScript
+    ///        ]
+    ///
+    ///        - redeemer: The Ethereum address of the redeemer who will be able
+    ///        to claim Bank balance if anything goes wrong during the redemption.
+    ///        In the most basic case, when someone redeems their Bitcoin
+    ///        balance from the Bank, `balanceOwner` is the same as `redemeer`.
+    ///        However, when a Vault is redeeming part of its balance for some
+    ///        redeemer address (for example, someone who has earlier deposited
+    ///        into that Vault), `balanceOwner` is the Vault, and `redemeer` is
+    ///        the address for which the vault is redeeming its balance to,
+    ///        - walletPubKeyHash: The 20-byte wallet public key hash (computed
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key),
+    ///        - mainUtxoTxHash: Data of the wallet's main UTXO TX hash, as
+    ///        currently known on the Ethereum chain,
+    ///        - mainUtxoTxOutputIndex: Data of the wallet's main UTXO output
+    ///        index, as currently known on Ethereum chain,
+    ///        - mainUtxoTxOutputValue: Data of the wallet's main UTXO output
+    ///        value, as currently known on Ethereum chain,
+    ///        - redeemerOutputScript The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
+    ///        redeemed BTC.
+    /// @dev Requirements:
+    ///      - Wallet behind `walletPubKeyHash` must be live,
+    ///      - `mainUtxo*` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain,
+    ///      - `redeemerOutputScript` must be a proper Bitcoin script,
+    ///      - `redeemerOutputScript` cannot have wallet PKH as payload,
+    ///      - `amount` must be above or equal the `redemptionDustThreshold`,
+    ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
+    ///        used for only one pending request at the same time,
+    ///      - Wallet must have enough Bitcoin balance to proceed the request,
+    ///      - Balance owner must make an allowance in the Bank that the Bridge
+    ///        contract can spend the given `amount`.
+    function requestRedemption(
+        BridgeState.Storage storage self,
+        address balanceOwner,
+        uint64 amount,
+        bytes calldata redemptionData
+    ) external {
+        (
+            address redeemer,
+            bytes20 walletPubKeyHash,
+            bytes32 mainUtxoTxHash,
+            uint32 mainUtxoTxOutputIndex,
+            uint64 mainUtxoTxOutputValue,
+            bytes memory redeemerOutputScript
+        ) = abi.decode(
+                redemptionData,
+                (address, bytes20, bytes32, uint32, uint64, bytes)
+            );
+
+        requestRedemption(
+            self,
+            walletPubKeyHash,
+            BitcoinTx.UTXO(
+                mainUtxoTxHash,
+                mainUtxoTxOutputIndex,
+                mainUtxoTxOutputValue
+            ),
+            balanceOwner,
+            redeemer,
+            redeemerOutputScript,
+            amount
+        );
+    }
+
+    /// @notice Requests redemption of the given amount from the specified
+    ///         wallet to the redeemer Bitcoin output script.
+    /// @param walletPubKeyHash The 20-byte wallet public key hash (computed
+    ///        using Bitcoin HASH160 over the compressed ECDSA public key).
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain.
+    /// @param balanceOwner The address of the Bank balance owner whose balance
+    ///        is getting redeemed.
+    /// @param redeemer The Ethereum address of the redeemer who will be able to
+    ///        claim Bank balance if anything goes wrong during the redemption.
+    ///        In the most basic case, when someone redeems their Bitcoin
+    ///        balance from the Bank, `balanceOwner` is the same as `redeemer`.
+    ///        However, when a Vault is redeeming part of its balance for some
+    ///        redeemer address (for example, someone who has earlier deposited
+    ///        into that Vault), `balanceOwner` is the Vault, and `redeemer` is
+    ///        the address for which the vault is redeeming its balance to.
+    /// @param redeemerOutputScript The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
+    ///        redeemed BTC.
+    /// @param amount Requested amount in satoshi. This is also the Bank balance
+    ///        that is taken from the `balanceOwner` upon request.
+    ///        Once the request is handled, the actual amount of BTC locked
+    ///        on the redeemer output script will be always lower than this value
+    ///        since the treasury and Bitcoin transaction fees must be incurred.
+    ///        The minimal amount satisfying the request can be computed as:
+    ///        `amount - (amount / redemptionTreasuryFeeDivisor) - redemptionTxMaxFee`.
+    ///        Fees values are taken at the moment of request creation.
+    /// @dev Requirements:
+    ///      - Wallet behind `walletPubKeyHash` must be live,
+    ///      - `mainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain,
+    ///      - `redeemerOutputScript` must be a proper Bitcoin script,
+    ///      - `redeemerOutputScript` cannot have wallet PKH as payload,
+    ///      - `amount` must be above or equal the `redemptionDustThreshold`,
+    ///      - Given `walletPubKeyHash` and `redeemerOutputScript` pair can be
+    ///        used for only one pending request at the same time,
+    ///      - Wallet must have enough Bitcoin balance to proceed the request,
+    ///      - Balance owner must make an allowance in the Bank that the Bridge
+    ///        contract can spend the given `amount`.
+    function requestRedemption(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO memory mainUtxo,
+        address balanceOwner,
+        address redeemer,
+        bytes memory redeemerOutputScript,
+        uint64 amount
+    ) internal {
         Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
         ];
@@ -356,7 +487,7 @@ library Redemption {
         );
 
         self.pendingRedemptions[redemptionKey] = RedemptionRequest(
-            msg.sender,
+            redeemer,
             amount,
             treasuryFee,
             txMaxFee,
@@ -367,13 +498,13 @@ library Redemption {
         emit RedemptionRequested(
             walletPubKeyHash,
             redeemerOutputScript,
-            msg.sender,
+            redeemer,
             amount,
             treasuryFee,
             txMaxFee
         );
 
-        self.bank.transferBalanceFrom(msg.sender, address(this), amount);
+        self.bank.transferBalanceFrom(balanceOwner, address(this), amount);
     }
 
     /// @notice Used by the wallet to prove the BTC redemption transaction
@@ -427,6 +558,9 @@ library Redemption {
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) external {
+        // Wallet state validation is performed in the `resolveRedeemingWallet`
+        // function.
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -436,24 +570,18 @@ library Redemption {
             redemptionProof
         );
 
+        Wallets.Wallet storage wallet = resolveRedeemingWallet(
+            self,
+            walletPubKeyHash,
+            mainUtxo
+        );
+
         // Process the redemption transaction input. Specifically, check if it
         // refers to the expected wallet's main UTXO.
         OutboundTx.processWalletOutboundTxInput(
             self,
             redemptionTx.inputVector,
-            mainUtxo,
-            walletPubKeyHash
-        );
-
-        Wallets.Wallet storage wallet = self.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        Wallets.WalletState walletState = wallet.state;
-        require(
-            walletState == Wallets.WalletState.Live ||
-                walletState == Wallets.WalletState.MovingFunds,
-            "Wallet must be in Live or MovingFunds state"
+            mainUtxo
         );
 
         // Process redemption transaction outputs to extract some info required
@@ -487,6 +615,50 @@ library Redemption {
 
         self.bank.decreaseBalance(outputsInfo.totalBurnableValue);
         self.bank.transferBalance(self.treasury, outputsInfo.totalTreasuryFee);
+    }
+
+    /// @notice Resolves redeeming wallet based on the provided wallet public
+    ///         key hash. Validates the wallet state and current main UTXO, as
+    ///         currently known on the Ethereum chain.
+    /// @param walletPubKeyHash public key hash of the wallet proving the sweep
+    ///        Bitcoin transaction.
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain.
+    /// @return wallet Data of the sweeping wallet.
+    /// @dev Requirements:
+    ///     - Sweeping wallet must be either in Live or MovingFunds state,
+    ///     - Main UTXO of the redeeming wallet must exists in the storage,
+    ///     - The passed `mainUTXO` parameter must be equal to the stored one.
+    function resolveRedeemingWallet(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata mainUtxo
+    ) internal view returns (Wallets.Wallet storage wallet) {
+        wallet = self.registeredWallets[walletPubKeyHash];
+
+        // Assert that main UTXO for passed wallet exists in storage.
+        bytes32 mainUtxoHash = wallet.mainUtxoHash;
+        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
+
+        // Assert that passed main UTXO parameter is the same as in storage and
+        // can be used for further processing.
+        require(
+            keccak256(
+                abi.encodePacked(
+                    mainUtxo.txHash,
+                    mainUtxo.txOutputIndex,
+                    mainUtxo.txOutputValue
+                )
+            ) == mainUtxoHash,
+            "Invalid main UTXO data"
+        );
+
+        Wallets.WalletState walletState = wallet.state;
+        require(
+            walletState == Wallets.WalletState.Live ||
+                walletState == Wallets.WalletState.MovingFunds,
+            "Wallet must be in Live or MovingFunds state"
+        );
     }
 
     /// @notice Processes the Bitcoin redemption transaction output vector.
@@ -825,7 +997,7 @@ library Redemption {
             wallet.state == Wallets.WalletState.Live ||
                 wallet.state == Wallets.WalletState.MovingFunds ||
                 wallet.state == Wallets.WalletState.Terminated,
-            "The wallet must be in Live, MovingFunds or Terminated state"
+            "Wallet must be in Live, MovingFunds or Terminated state"
         );
 
         // It is worth noting that there is no need to check if
@@ -842,9 +1014,6 @@ library Redemption {
             wallet.state == Wallets.WalletState.Live ||
             wallet.state == Wallets.WalletState.MovingFunds
         ) {
-            // Propagate timeout consequences to the wallet
-            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
-
             // Slash the wallet operators and reward the notifier
             self.ecdsaWalletRegistry.seize(
                 self.redemptionTimeoutSlashingAmount,
@@ -853,6 +1022,9 @@ library Redemption {
                 wallet.ecdsaWalletID,
                 walletMembersIDs
             );
+
+            // Propagate timeout consequences to the wallet
+            self.notifyWalletTimedOutRedemption(walletPubKeyHash);
         }
 
         // slither-disable-next-line reentrancy-events

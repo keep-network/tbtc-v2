@@ -13,6 +13,7 @@ import type {
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
+const { increaseTime, lastBlockTime } = helpers.time
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
@@ -34,7 +35,7 @@ const fixture = async () => {
   await vault.deployed()
 
   await tbtc.connect(deployer).transferOwnership(vault.address)
-  await vault.connect(deployer).transferGovernance(governance.address)
+  await vault.connect(deployer).transferOwnership(governance.address)
 
   return {
     bridge,
@@ -104,6 +105,120 @@ describe("TBTCVault", () => {
     })
   })
 
+  describe("recoverERC20FromToken", () => {
+    let testToken: TestERC20
+
+    before(async () => {
+      await createSnapshot()
+
+      const TestToken = await ethers.getContractFactory("TestERC20")
+      testToken = await TestToken.deploy()
+      await testToken.deployed()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.recoverERC20FromToken(
+            testToken.address,
+            account1.address,
+            to1e18(800)
+          )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called with correct parameters", () => {
+      before(async () => {
+        await createSnapshot()
+
+        // Do the misfund.
+        await testToken.mint(account1.address, to1e18(1000))
+        await testToken.connect(account1).transfer(tbtc.address, to1e18(1000))
+
+        await vault
+          .connect(governance)
+          .recoverERC20FromToken(
+            testToken.address,
+            account1.address,
+            to1e18(800)
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should do a successful recovery", async () => {
+        expect(await testToken.balanceOf(account1.address)).to.be.equal(
+          to1e18(800)
+        )
+        expect(await testToken.balanceOf(tbtc.address)).to.be.equal(to1e18(200))
+      })
+    })
+  })
+
+  describe("recoverERC721FromToken", () => {
+    let testToken: TestERC721
+
+    before(async () => {
+      await createSnapshot()
+
+      const TestToken = await ethers.getContractFactory("TestERC721")
+      testToken = await TestToken.deploy()
+      await testToken.deployed()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.recoverERC721FromToken(
+            testToken.address,
+            account1.address,
+            1,
+            "0x01"
+          )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called with correct parameters", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await testToken.mint(account1.address, 1)
+        await testToken
+          .connect(account1)
+          .transferFrom(account1.address, tbtc.address, 1)
+
+        await vault
+          .connect(governance)
+          .recoverERC721FromToken(
+            testToken.address,
+            account1.address,
+            1,
+            "0x01"
+          )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should do a successful recovery", async () => {
+        expect(await testToken.ownerOf(1)).to.be.equal(account1.address)
+      })
+    })
+  })
+
   describe("recoverERC20", () => {
     let testToken: TestERC20
 
@@ -123,7 +238,7 @@ describe("TBTCVault", () => {
       it("should revert", async () => {
         await expect(
           vault.recoverERC20(testToken.address, account1.address, to1e18(800))
-        ).to.be.revertedWith("Caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -131,9 +246,8 @@ describe("TBTCVault", () => {
       before(async () => {
         await createSnapshot()
 
-        // Do the misfund.
         await testToken.mint(account1.address, to1e18(1000))
-        await testToken.connect(account1).transfer(tbtc.address, to1e18(1000))
+        await testToken.connect(account1).transfer(vault.address, to1e18(1000))
 
         await vault
           .connect(governance)
@@ -148,7 +262,9 @@ describe("TBTCVault", () => {
         expect(await testToken.balanceOf(account1.address)).to.be.equal(
           to1e18(800)
         )
-        expect(await testToken.balanceOf(tbtc.address)).to.be.equal(to1e18(200))
+        expect(await testToken.balanceOf(vault.address)).to.be.equal(
+          to1e18(200)
+        )
       })
     })
   })
@@ -171,8 +287,8 @@ describe("TBTCVault", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          vault.recoverERC721(testToken.address, account1.address, 1, "0x01")
-        ).to.be.revertedWith("Caller is not the governance")
+          vault.recoverERC721(testToken.address, account1.address, 1, [])
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -183,11 +299,11 @@ describe("TBTCVault", () => {
         await testToken.mint(account1.address, 1)
         await testToken
           .connect(account1)
-          .transferFrom(account1.address, tbtc.address, 1)
+          .transferFrom(account1.address, vault.address, 1)
 
         await vault
           .connect(governance)
-          .recoverERC721(testToken.address, account1.address, 1, "0x01")
+          .recoverERC721(testToken.address, account1.address, 1, [])
       })
 
       after(async () => {
@@ -320,8 +436,8 @@ describe("TBTCVault", () => {
     })
   })
 
-  describe("redeem", () => {
-    context("when the redeemer has no TBTC", () => {
+  describe("unmint", () => {
+    context("when the unminter has no TBTC", () => {
       const amount = to1e18(1)
       before(async () => {
         await createSnapshot()
@@ -335,20 +451,20 @@ describe("TBTCVault", () => {
 
       it("should revert", async () => {
         await expect(
-          vault.connect(account1).redeem(to1e18(1))
+          vault.connect(account1).unmint(to1e18(1))
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
     })
 
-    context("when the redeemer has not enough TBTC", () => {
+    context("when the unminter has not enough TBTC", () => {
       const mintedAmount = to1e18(1)
-      const redeemedAmount = mintedAmount.add(1)
+      const unmintedAmount = mintedAmount.add(1)
 
       before(async () => {
         await createSnapshot()
 
         await vault.connect(account1).mint(mintedAmount)
-        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
+        await tbtc.connect(account1).approve(vault.address, unmintedAmount)
       })
 
       after(async () => {
@@ -357,15 +473,15 @@ describe("TBTCVault", () => {
 
       it("should revert", async () => {
         await expect(
-          vault.connect(account1).redeem(redeemedAmount)
+          vault.connect(account1).unmint(unmintedAmount)
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
     })
 
-    context("when there is a single redeemer", () => {
+    context("when there is a single unminter", () => {
       const mintedAmount = to1e18(20)
-      const redeemedAmount = to1e18(12) // 1 + 3 + 8 = 12
-      const notRedeemedAmount = mintedAmount.sub(redeemedAmount)
+      const unmintedAmount = to1e18(12) // 1 + 3 + 8 = 12
+      const notUnmintedAmount = mintedAmount.sub(unmintedAmount)
 
       const transactions: ContractTransaction[] = []
 
@@ -373,51 +489,51 @@ describe("TBTCVault", () => {
         await createSnapshot()
 
         await vault.connect(account1).mint(mintedAmount)
-        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
-        transactions.push(await vault.connect(account1).redeem(to1e18(1)))
-        transactions.push(await vault.connect(account1).redeem(to1e18(3)))
-        transactions.push(await vault.connect(account1).redeem(to1e18(8)))
+        await tbtc.connect(account1).approve(vault.address, unmintedAmount)
+        transactions.push(await vault.connect(account1).unmint(to1e18(1)))
+        transactions.push(await vault.connect(account1).unmint(to1e18(3)))
+        transactions.push(await vault.connect(account1).unmint(to1e18(8)))
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should transfer balance to the redeemer", async () => {
-        expect(await bank.balanceOf(vault.address)).to.equal(notRedeemedAmount)
+      it("should transfer balance to the unminter", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(notUnmintedAmount)
         expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(notRedeemedAmount)
+          initialBalance.sub(notUnmintedAmount)
         )
       })
 
       it("should burn TBTC", async () => {
         expect(await tbtc.balanceOf(account1.address)).to.equal(
-          notRedeemedAmount
+          notUnmintedAmount
         )
-        expect(await tbtc.totalSupply()).to.be.equal(notRedeemedAmount)
+        expect(await tbtc.totalSupply()).to.be.equal(notUnmintedAmount)
       })
 
-      it("should emit Redeemed events", async () => {
+      it("should emit Unminted events", async () => {
         await expect(transactions[0])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(1))
         await expect(transactions[1])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(3))
         await expect(transactions[2])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(8))
       })
     })
 
-    context("when there are multiple redeemers", () => {
+    context("when there are multiple unminters", () => {
       const mintedAmount1 = to1e18(20)
-      const redeemedAmount1 = to1e18(12) // 1 + 3 + 8 = 12
-      const notRedeemedAmount1 = mintedAmount1.sub(redeemedAmount1)
+      const unmintedAmount1 = to1e18(12) // 1 + 3 + 8 = 12
+      const notUnmintedAmount1 = mintedAmount1.sub(unmintedAmount1)
 
       const mintedAmount2 = to1e18(41)
-      const redeemedAmount2 = to1e18(30) // 20 + 10 = 30
-      const notRedeemedAmount2 = mintedAmount2.sub(redeemedAmount2)
+      const unmintedAmount2 = to1e18(30) // 20 + 10 = 30
+      const notUnmintedAmount2 = mintedAmount2.sub(unmintedAmount2)
 
       const transactions: ContractTransaction[] = []
 
@@ -426,58 +542,58 @@ describe("TBTCVault", () => {
 
         await vault.connect(account1).mint(mintedAmount1)
         await vault.connect(account2).mint(mintedAmount2)
-        await tbtc.connect(account1).approve(vault.address, redeemedAmount1)
-        await tbtc.connect(account2).approve(vault.address, redeemedAmount2)
-        transactions.push(await vault.connect(account1).redeem(to1e18(1)))
-        transactions.push(await vault.connect(account2).redeem(to1e18(20)))
-        transactions.push(await vault.connect(account1).redeem(to1e18(3)))
-        transactions.push(await vault.connect(account1).redeem(to1e18(8)))
-        transactions.push(await vault.connect(account2).redeem(to1e18(10)))
+        await tbtc.connect(account1).approve(vault.address, unmintedAmount1)
+        await tbtc.connect(account2).approve(vault.address, unmintedAmount2)
+        transactions.push(await vault.connect(account1).unmint(to1e18(1)))
+        transactions.push(await vault.connect(account2).unmint(to1e18(20)))
+        transactions.push(await vault.connect(account1).unmint(to1e18(3)))
+        transactions.push(await vault.connect(account1).unmint(to1e18(8)))
+        transactions.push(await vault.connect(account2).unmint(to1e18(10)))
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should transfer balances to redeemers", async () => {
+      it("should transfer balances to unminters", async () => {
         expect(await bank.balanceOf(vault.address)).to.equal(
-          notRedeemedAmount1.add(notRedeemedAmount2)
+          notUnmintedAmount1.add(notUnmintedAmount2)
         )
         expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(notRedeemedAmount1)
+          initialBalance.sub(notUnmintedAmount1)
         )
         expect(await bank.balanceOf(account2.address)).to.equal(
-          initialBalance.sub(notRedeemedAmount2)
+          initialBalance.sub(notUnmintedAmount2)
         )
       })
 
       it("should burn TBTC", async () => {
         expect(await tbtc.balanceOf(account1.address)).to.equal(
-          notRedeemedAmount1
+          notUnmintedAmount1
         )
         expect(await tbtc.balanceOf(account2.address)).to.equal(
-          notRedeemedAmount2
+          notUnmintedAmount2
         )
         expect(await tbtc.totalSupply()).to.be.equal(
-          notRedeemedAmount1.add(notRedeemedAmount2)
+          notUnmintedAmount1.add(notUnmintedAmount2)
         )
       })
 
-      it("should emit Redeemed events", async () => {
+      it("should emit Unminted events", async () => {
         await expect(transactions[0])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(1))
         await expect(transactions[1])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account2.address, to1e18(20))
         await expect(transactions[2])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(3))
         await expect(transactions[3])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account1.address, to1e18(8))
         await expect(transactions[4])
-          .to.emit(vault, "Redeemed")
+          .to.emit(vault, "Unminted")
           .withArgs(account2.address, to1e18(10))
       })
     })
@@ -505,44 +621,47 @@ describe("TBTCVault", () => {
     })
 
     context("when called via approveAndCall", () => {
-      const mintedAmount = to1e18(10)
-      const redeemedAmount = to1e18(4)
-      const notRedeemedAmount = mintedAmount.sub(redeemedAmount)
+      context("when called with an empty extraData", () => {
+        const mintedAmount = to1e18(10)
+        const unmintedAmount = to1e18(4)
+        const notUnmintedAmount = mintedAmount.sub(unmintedAmount)
 
-      let tx
+        let tx: ContractTransaction
 
-      before(async () => {
-        await createSnapshot()
+        before(async () => {
+          await createSnapshot()
 
-        await vault.connect(account1).mint(mintedAmount)
-        await tbtc.connect(account1).approve(vault.address, redeemedAmount)
-        tx = await tbtc
-          .connect(account1)
-          .approveAndCall(vault.address, redeemedAmount, [])
-      })
+          await vault.connect(account1).mint(mintedAmount)
+          tx = await tbtc
+            .connect(account1)
+            .approveAndCall(vault.address, unmintedAmount, [])
+        })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+        after(async () => {
+          await restoreSnapshot()
+        })
 
-      it("should transfer balance to the redeemer", async () => {
-        expect(await bank.balanceOf(vault.address)).to.equal(notRedeemedAmount)
-        expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(notRedeemedAmount)
-        )
-      })
+        it("should transfer balance to the unminter", async () => {
+          expect(await bank.balanceOf(vault.address)).to.equal(
+            notUnmintedAmount
+          )
+          expect(await bank.balanceOf(account1.address)).to.equal(
+            initialBalance.sub(notUnmintedAmount)
+          )
+        })
 
-      it("should burn TBTC", async () => {
-        expect(await tbtc.balanceOf(account1.address)).to.equal(
-          notRedeemedAmount
-        )
-        expect(await tbtc.totalSupply()).to.be.equal(notRedeemedAmount)
-      })
+        it("should burn TBTC", async () => {
+          expect(await tbtc.balanceOf(account1.address)).to.equal(
+            notUnmintedAmount
+          )
+          expect(await tbtc.totalSupply()).to.be.equal(notUnmintedAmount)
+        })
 
-      it("should emit Redeemed event", async () => {
-        await expect(tx)
-          .to.emit(vault, "Redeemed")
-          .withArgs(account1.address, redeemedAmount)
+        it("should emit Unminted event", async () => {
+          await expect(tx)
+            .to.emit(vault, "Unminted")
+            .withArgs(account1.address, unmintedAmount)
+        })
       })
     })
   })
@@ -813,6 +932,160 @@ describe("TBTCVault", () => {
         await expect(tx)
           .to.emit(vault, "Minted")
           .withArgs(depositor3, depositedAmount3)
+      })
+    })
+  })
+
+  describe("initiateUpgrade", () => {
+    const newVault = "0xE4d1514C79ae3967f4410Aaf861Bb59307b243a3"
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.connect(account1).initiateUpgrade(newVault)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when called with a zero-address new vault", () => {
+        it("should revert", async () => {
+          await expect(
+            vault.connect(governance).initiateUpgrade(ZERO_ADDRESS)
+          ).to.be.revertedWith("New vault address cannot be zero")
+        })
+      })
+
+      context("when called with a non-zero-address new vault", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+          tx = await vault.connect(governance).initiateUpgrade(newVault)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should not transfer TBTC token ownership", async () => {
+          expect(await tbtc.owner()).is.equal(vault.address)
+        })
+
+        it("should set the upgrade initiation time", async () => {
+          expect(await vault.upgradeInitiatedTimestamp()).to.equal(
+            await lastBlockTime()
+          )
+        })
+
+        it("should set the new vault address", async () => {
+          expect(await vault.newVault()).to.equal(newVault)
+        })
+
+        it("should emit UpgradeInitiated event", async () => {
+          await expect(tx)
+            .to.emit(vault, "UpgradeInitiated")
+            .withArgs(newVault, await lastBlockTime())
+        })
+      })
+    })
+  })
+
+  describe("finalizeUpgrade", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          vault.connect(account1).finalizeUpgrade()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when the upgrade process has not been initiated", () => {
+        it("should revert", async () => {
+          await expect(
+            vault.connect(governance).finalizeUpgrade()
+          ).to.be.revertedWith("Change not initiated")
+        })
+      })
+
+      context("when the upgrade process has been initiated", () => {
+        const newVault = "0x8C338c4222082bdFA5FeC478747Bb1e102A264D9"
+
+        before(async () => {
+          await createSnapshot()
+          await vault.connect(governance).initiateUpgrade(newVault)
+
+          // Mint some TBTC to increase the balance of TBTCVault
+          await bank
+            .connect(account1)
+            .approveBalanceAndCall(vault.address, initialBalance, [])
+          await bank
+            .connect(account2)
+            .approveBalanceAndCall(vault.address, initialBalance, [])
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context("when the governance delay has not passed", () => {
+          before(async () => {
+            await createSnapshot()
+            await increaseTime(86400 - 60) // 24h - 1min
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              vault.connect(governance).finalizeUpgrade()
+            ).to.be.revertedWith("Governance delay has not elapsed")
+          })
+        })
+
+        context("when the governance delay passed", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+            await increaseTime(86400) // 24h
+
+            tx = await vault.connect(governance).finalizeUpgrade()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should transfer TBTC token ownership", async () => {
+            expect(await tbtc.owner()).is.equal(newVault)
+          })
+
+          it("should transfer the entire bank balance", async () => {
+            expect(await bank.balanceOf(vault.address)).to.equal(0)
+            // In the setup, each account minted `initialBalance` of TBTC.
+            expect(await bank.balanceOf(newVault)).to.equal(
+              initialBalance.mul(2)
+            )
+          })
+
+          it("should emit UpgradeFinalized event", async () => {
+            await expect(tx)
+              .to.emit(vault, "UpgradeFinalized")
+              .withArgs(newVault)
+          })
+
+          it("should reset the upgrade initiation time", async () => {
+            expect(await vault.upgradeInitiatedTimestamp()).to.equal(0)
+          })
+
+          it("should reset the new vault address", async () => {
+            expect(await vault.newVault()).to.equal(ZERO_ADDRESS)
+          })
+        })
       })
     })
   })

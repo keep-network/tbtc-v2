@@ -13,6 +13,7 @@ import {
 import Electrum from "electrum-client-js"
 // @ts-ignore
 import sha256 from "bcrypto/lib/sha256-browser.js"
+import { BigNumber } from "ethers"
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.
@@ -98,7 +99,7 @@ export class Client implements BitcoinClient {
         return unspentTransactions.reverse().map((tx: any) => ({
           transactionHash: tx.tx_hash,
           outputIndex: tx.tx_pos,
-          value: tx.value,
+          value: BigNumber.from(tx.value),
         }))
       }
     )
@@ -127,7 +128,7 @@ export class Client implements BitcoinClient {
         (output: any): TransactionOutput => ({
           outputIndex: output.n,
           // The `output.value` is in BTC so it must be converted to satoshis.
-          value: parseFloat(output.value) * 1e8,
+          value: BigNumber.from(parseFloat(output.value) * 1e8),
           scriptPubKey: output.scriptPubKey,
         })
       )

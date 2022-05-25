@@ -75,6 +75,9 @@ jobs:
       - name: Run tests
         run: yarn test
 
+      - name: Run integration tests
+        run: yarn test:integration
+
   contracts-deployment-dry-run:
     needs: contracts-detect-changes
     if: |

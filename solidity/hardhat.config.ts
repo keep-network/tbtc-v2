@@ -21,6 +21,21 @@ const ecdsaSolidityCompilerConfig = {
   },
 }
 
+// Configuration for testing environment.
+export const testConfig = {
+  // How many accounts we expect to define for non-staking related signers, e.g.
+  // deployer, thirdParty, governance.
+  // It is used as an offset for getting accounts for operators and stakes registration.
+  nonStakingAccountsCount: 10,
+
+  // How many roles do we need to define for staking, i.e. stakeOwner, stakingProvider,
+  // operator, beneficiary, authorizer.
+  stakingRolesCount: 5,
+
+  // Number of operators to register. Should be at least the same as group size.
+  operatorsCount: 110,
+}
+
 const config: HardhatUserConfig = {
   solidity: {
     compilers: [
@@ -54,6 +69,12 @@ const config: HardhatUserConfig = {
         // latest block is taken if FORKING_BLOCK env is not provided
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK, 10),
+      },
+      accounts: {
+        // Number of accounts that should be predefined on the testing environment.
+        count:
+          testConfig.nonStakingAccountsCount +
+          testConfig.stakingRolesCount * testConfig.operatorsCount,
       },
       tags: ["local"],
     },
@@ -152,6 +173,9 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+  },
+  mocha: {
+    timeout: 60_000,
   },
   typechain: {
     outDir: "typechain",

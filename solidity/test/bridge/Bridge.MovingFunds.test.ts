@@ -39,7 +39,6 @@ import {
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
-import { walletPublicKeyHash } from "../data/fraud"
 
 chai.use(smock.matchers)
 
@@ -965,7 +964,7 @@ describe("Bridge - Moving funds", () => {
           it("should revert", async () => {
             await expect(
               bridge.resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
-            ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
+            ).to.be.revertedWith("Wallet must be in MovingFunds state")
           })
         })
       })
@@ -1434,7 +1433,7 @@ describe("Bridge - Moving funds", () => {
 
                                         it("should revert", async () => {
                                           await expect(tx).to.be.revertedWith(
-                                            "ECDSA wallet must be in MovingFunds state"
+                                            "Wallet must be in MovingFunds state"
                                           )
                                         })
                                       })
@@ -2141,7 +2140,7 @@ describe("Bridge - Moving funds", () => {
                 ecdsaWalletTestData.pubKeyHash160,
                 []
               )
-            ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
+            ).to.be.revertedWith("Wallet must be in MovingFunds state")
           })
         })
       })
@@ -2353,7 +2352,7 @@ describe("Bridge - Moving funds", () => {
                 ecdsaWalletTestData.pubKeyHash160,
                 NO_MAIN_UTXO
               )
-            ).to.be.revertedWith("ECDSA wallet must be in MovingFunds state")
+            ).to.be.revertedWith("Wallet must be in MovingFunds state")
           })
         })
       })
@@ -3787,7 +3786,7 @@ describe("Bridge - Moving funds", () => {
                       walletMembersIDs
                     )
                   ).to.be.revertedWith(
-                    "ECDSA wallet must be in Live or MovingFunds or Terminated state"
+                    "Wallet must be in Live or MovingFunds or Terminated state"
                   )
                 })
               })

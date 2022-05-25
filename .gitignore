@@ -1,4 +1,5 @@
 node_modules/
+*.DS_Store
 
 artifacts/
 build/
@@ -9,6 +10,7 @@ export.json
 typechain/
 dist/
 .vscode/
+.envrc
 
 */.hardhat/*
 !*/.hardhat/networks_TEMPLATE.ts

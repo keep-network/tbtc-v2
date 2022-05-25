@@ -5,12 +5,13 @@ import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
 import {
   createKeyRing,
+  decomposeRawTransaction,
   RawTransaction,
   UnspentTransactionOutput,
   Client as BitcoinClient,
 } from "./bitcoin"
-import { Bridge } from "./chain"
-import { Identifier } from "./chain"
+import { Bridge, Identifier } from "./chain"
+import { createTransactionProof } from "./proof"
 
 /**
  * Represents a redemption request.
@@ -52,6 +53,33 @@ export interface RedemptionRequest {
    * UNIX timestamp the request was created at.
    */
   requestedAt: number
+}
+
+/**
+ * Requests a redemption from the on-chain Bridge contract.
+ * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in the
+ *        compressed form (33 bytes long with 02 or 03 prefix).
+ * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
+ *        held by the on-chain Bridge contract.
+ * @param redeemerOutputScript - The output script that the redeemed funds will
+ *        be locked to. Must be un-prefixed and not prepended with length.
+ * @param amount - The amount to be redeemed in satoshis.
+ * @param bridge - Handle to the Bridge on-chain contract.
+ * @returns Empty promise.
+ */
+export async function requestRedemption(
+  walletPublicKey: string,
+  mainUtxo: UnspentTransactionOutput,
+  redeemerOutputScript: string,
+  amount: BigNumber,
+  bridge: Bridge
+): Promise<void> {
+  await bridge.requestRedemption(
+    walletPublicKey,
+    mainUtxo,
+    redeemerOutputScript,
+    amount
+  )
 }
 
 /**
@@ -208,8 +236,8 @@ export async function createRedemptionTransaction(
 
   const transaction = new bcoin.MTX()
 
-  let txTotalFee = 0
-  let totalOutputsValue = 0
+  let txTotalFee = BigNumber.from(0)
+  let totalOutputsValue = BigNumber.from(0)
 
   // Process the requests
   for (const request of redemptionRequests) {
@@ -220,16 +248,15 @@ export async function createRedemptionTransaction(
       .sub(request.treasuryFee)
 
     // Add the output value to the total output value
-    totalOutputsValue += outputValue.toNumber()
+    totalOutputsValue = totalOutputsValue.add(outputValue)
 
     // Add the fee for this particular request to the overall transaction fee
-    txTotalFee += request.txMaxFee.toNumber()
-    // TODO: Use the value of fee that was set in the Bridge (`txMaxFee`) as the
-    // transaction fee for now.
-    // In the future allow the caller to propose the value of transaction fee.
-    // If the proposed transaction fee is smaller than the sum of fee shares from
-    // all the outputs then use the proposed fee and add the difference to outputs
-    // proportionally.
+    // TODO: Using the maximum allowed transaction fee for the request (`txMaxFee`)
+    //       as the transaction fee for now. In the future allow the caller to
+    //       propose the value of the transaction fee. If the proposed transaction
+    //       fee is smaller than the sum of fee shares from all the outputs then
+    //       use the proposed fee and add the difference to outputs proportionally.
+    txTotalFee = txTotalFee.add(request.txMaxFee)
 
     transaction.addOutput({
       script: bcoin.Script.fromRaw(
@@ -244,17 +271,19 @@ export async function createRedemptionTransaction(
   // anyway during funding, but if the value of the change output was very low,
   // the library would consider it "dust" and add it to the fee rather than
   // create a new output.
-  const changeOutputValue = mainUtxo.value - totalOutputsValue - txTotalFee
-  if (changeOutputValue > 0) {
+  const changeOutputValue = mainUtxo.value
+    .sub(totalOutputsValue)
+    .sub(txTotalFee)
+  if (changeOutputValue.gt(0)) {
     transaction.addOutput({
       script: bcoin.Script.fromAddress(walletAddress),
-      value: changeOutputValue,
+      value: changeOutputValue.toNumber(),
     })
   }
 
   await transaction.fund(inputCoins, {
     changeAddress: walletAddress,
-    hardFee: txTotalFee,
+    hardFee: txTotalFee.toNumber(),
     subtractFee: false,
   })
 
@@ -263,4 +292,42 @@ export async function createRedemptionTransaction(
   return {
     transactionHex: transaction.toRaw().toString("hex"),
   }
+}
+
+/**
+ * Prepares the proof of a redemption transaction and submits it to the
+ * Bridge on-chain contract.
+ * @param transactionHash - Hash of the transaction being proven.
+ * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
+ * @param walletPublicKey - Bitcoin public key of the wallet. Must be in the
+ *        compressed form (33 bytes long with 02 or 03 prefix).
+ * @param bridge - Handle to the Bridge on-chain contract.
+ * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * @returns Empty promise.
+ */
+export async function proveRedemption(
+  transactionHash: string,
+  mainUtxo: UnspentTransactionOutput,
+  walletPublicKey: string,
+  bridge: Bridge,
+  bitcoinClient: BitcoinClient
+): Promise<void> {
+  const confirmations = await bridge.txProofDifficultyFactor()
+  const proof = await createTransactionProof(
+    transactionHash,
+    confirmations,
+    bitcoinClient
+  )
+  // TODO: Write a converter and use it to convert the transaction part of the
+  // proof to the decomposed transaction data (version, inputs, outputs, locktime).
+  // Use raw transaction data for now.
+  const rawTransaction = await bitcoinClient.getRawTransaction(transactionHash)
+  const decomposedRawTransaction = decomposeRawTransaction(rawTransaction)
+
+  await bridge.submitRedemptionProof(
+    decomposedRawTransaction,
+    proof,
+    mainUtxo,
+    walletPublicKey
+  )
 }
