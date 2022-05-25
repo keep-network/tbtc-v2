@@ -225,20 +225,20 @@ An account with a Bank balance can request a redemption via
 `Bridge.requestRedemption`. We verify that the destination is valid (P2PKH,
 P2WPKH, P2SH or P2WSH), and build a redemption key based on the wallet's PKH
 and destination. There can only be one pending redemption per PKH-destination
-pair. The treasury takes a cut (`Bridge.redemptionTreasuryFeeDivisor`, 5 BPS),
-and then we reduce the account's Bank balance and start a timer.
+pair. The treasury takes a cut (`Bridge.redemptionTreasuryFeeDivisor`), and
+then we reduce the account's Bank balance and start a timer.
 
 [TIP]
 `Bridge.requestRedemption` requires a Bank balance approval to the Bridge. This
 can either be made in a separate transaction first via `Bank.approveBalance` or
 in a single transaction via `Bank.approveBalanceAndCall`.
 
-After `Bridge.redemptionTimeout` (48 hours), anyone may call
+After `Bridge.redemptionTimeout`, anyone may call
 `Bridge.notifyRedemptionTimeout`. This will decrease
 `wallet.pendingRedemptionsValue`, mark the redemption as "timed out", punish
 the operators for `Bridge.redemptionTimeoutSlashingAmount`, and reward the
-notifier for a percentage (`Bridge.redemptionTimeoutNotifierRewardMultiplier`,
-100%) of the slashed stake. The redeemer is reimbursed the Bank balance of the
+notifier for a percentage (`Bridge.redemptionTimeoutNotifierRewardMultiplier`)
+of the slashed stake. The redeemer is reimbursed the Bank balance of the
 redemption, and the wallet begins to move its funds and eventually close via
 `Wallets.notifyWalletTimedOutRedemption`.
 
