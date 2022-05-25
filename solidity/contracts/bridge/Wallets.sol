@@ -287,7 +287,7 @@ library Wallets {
 
         require(
             self.registeredWallets[walletPubKeyHash].state == WalletState.Live,
-            "ECDSA wallet must be in Live state"
+            "Wallet must be in Live state"
         );
 
         moveFunds(self, walletPubKeyHash);
@@ -312,7 +312,7 @@ library Wallets {
         require(
             walletState == WalletState.Live ||
                 walletState == WalletState.MovingFunds,
-            "ECDSA wallet must be in Live or MovingFunds state"
+            "Wallet must be in Live or MovingFunds state"
         );
 
         if (walletState == WalletState.Live) {
@@ -348,7 +348,7 @@ library Wallets {
         Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
         require(
             wallet.state == WalletState.Live,
-            "ECDSA wallet must be in Live state"
+            "Wallet must be in Live state"
         );
 
         /* solhint-disable-next-line not-rely-on-time */
@@ -435,7 +435,7 @@ library Wallets {
 
         require(
             wallet.state == WalletState.Closing,
-            "ECDSA wallet must be in Closing state"
+            "Wallet must be in Closing state"
         );
 
         require(
@@ -527,7 +527,7 @@ library Wallets {
         // not reported yet.
         require(
             wallet.state == WalletState.MovingFunds,
-            "ECDSA wallet must be in MovingFunds state"
+            "Wallet must be in MovingFunds state"
         );
 
         bytes32 targetWalletsCommitmentHash = wallet

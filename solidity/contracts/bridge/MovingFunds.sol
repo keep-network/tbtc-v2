@@ -280,7 +280,7 @@ library MovingFunds {
 
         require(
             wallet.state == Wallets.WalletState.MovingFunds,
-            "ECDSA wallet must be in MovingFunds state"
+            "Wallet must be in MovingFunds state"
         );
 
         // If the moving funds wallet already submitted their target wallets
@@ -368,13 +368,31 @@ library MovingFunds {
             movingFundsProof
         );
 
+        // Assert that main UTXO for passed wallet exists in storage.
+        bytes32 mainUtxoHash = self
+            .registeredWallets[walletPubKeyHash]
+            .mainUtxoHash;
+        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
+
+        // Assert that passed main UTXO parameter is the same as in storage and
+        // can be used for further processing.
+        require(
+            keccak256(
+                abi.encodePacked(
+                    mainUtxo.txHash,
+                    mainUtxo.txOutputIndex,
+                    mainUtxo.txOutputValue
+                )
+            ) == mainUtxoHash,
+            "Invalid main UTXO data"
+        );
+
         // Process the moving funds transaction input. Specifically, check if
         // it refers to the expected wallet's main UTXO.
         OutboundTx.processWalletOutboundTxInput(
             self,
             movingFundsTx.inputVector,
-            mainUtxo,
-            walletPubKeyHash
+            mainUtxo
         );
 
         (
@@ -554,7 +572,7 @@ library MovingFunds {
 
         require(
             wallet.state == Wallets.WalletState.MovingFunds,
-            "ECDSA wallet must be in MovingFunds state"
+            "Wallet must be in MovingFunds state"
         );
 
         require(
@@ -564,8 +582,6 @@ library MovingFunds {
             "Moving funds has not timed out yet"
         );
 
-        self.terminateWallet(walletPubKeyHash);
-
         self.ecdsaWalletRegistry.seize(
             self.movingFundsTimeoutSlashingAmount,
             self.movingFundsTimeoutNotifierRewardMultiplier,
@@ -573,6 +589,8 @@ library MovingFunds {
             wallet.ecdsaWalletID,
             walletMembersIDs
         );
+
+        self.terminateWallet(walletPubKeyHash);
 
         // slither-disable-next-line reentrancy-events
         emit MovingFundsTimedOut(walletPubKeyHash);
@@ -602,7 +620,7 @@ library MovingFunds {
 
         require(
             wallet.state == Wallets.WalletState.MovingFunds,
-            "ECDSA wallet must be in MovingFunds state"
+            "Wallet must be in MovingFunds state"
         );
 
         uint64 walletBtcBalance = self.getWalletBtcBalance(
@@ -666,6 +684,9 @@ library MovingFunds {
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
+        // Wallet state validation is performed in the
+        // `resolveMovedFundsSweepingWallet` function.
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -1058,7 +1079,7 @@ library MovingFunds {
             walletState == Wallets.WalletState.Live ||
                 walletState == Wallets.WalletState.MovingFunds ||
                 walletState == Wallets.WalletState.Terminated,
-            "ECDSA wallet must be in Live or MovingFunds or Terminated state"
+            "Wallet must be in Live or MovingFunds or Terminated state"
         );
 
         sweepRequest.state = MovedFundsSweepRequestState.TimedOut;
@@ -1068,8 +1089,6 @@ library MovingFunds {
             walletState == Wallets.WalletState.Live ||
             walletState == Wallets.WalletState.MovingFunds
         ) {
-            self.terminateWallet(walletPubKeyHash);
-
             self.ecdsaWalletRegistry.seize(
                 self.movedFundsSweepTimeoutSlashingAmount,
                 self.movedFundsSweepTimeoutNotifierRewardMultiplier,
@@ -1077,6 +1096,8 @@ library MovingFunds {
                 wallet.ecdsaWalletID,
                 walletMembersIDs
             );
+
+            self.terminateWallet(walletPubKeyHash);
         }
 
         // slither-disable-next-line reentrancy-events

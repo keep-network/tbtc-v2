@@ -51,7 +51,7 @@ export async function createTransactionProof(
 
   const headersChain = await bitcoinClient.getHeadersChain(
     txBlockHeight,
-    confirmations
+    requiredConfirmations
   )
 
   const merkleBranch = await bitcoinClient.getTransactionMerkle(

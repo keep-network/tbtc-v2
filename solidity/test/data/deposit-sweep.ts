@@ -31,6 +31,10 @@ export interface DepositSweepTestData {
       refundLocktime: BytesLike
       vault: string
     }
+    ecdsaWallet?: {
+      walletPublicKey: BytesLike
+      walletID: BytesLike
+    }
   }[]
 
   /**
@@ -122,6 +126,15 @@ export const SingleP2SHDeposit: DepositSweepTestData = {
         refundPubKeyHash: "0xe257eccafbc07c381642ce6e7e55120fb077fbed",
         refundLocktime: "0xe0250162",
         vault: "0x0000000000000000000000000000000000000000",
+      },
+      ecdsaWallet: {
+        // Uncompressed and un-prefixed public key X and Y coordinates derived from
+        // compressed public key 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
+        walletPublicKey:
+          "0x989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9d218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af",
+        // keccak256 hash of 989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9d218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af
+        walletID:
+          "0x9ff37567d973e4d884bc42d2d1a6cb1ff22676ab64f82c62b58e2b0ffd3fff71",
       },
     },
   ],
