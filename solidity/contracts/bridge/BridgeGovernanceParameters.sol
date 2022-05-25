@@ -598,9 +598,9 @@ library BridgeGovernanceParameters {
         return self.newRedemptionTxMaxFee;
     }
 
-    /// @notice Begins the redemption timeout slashing amount amount update process.
+    /// @notice Begins the redemption timeout slashing amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newRedemptionTimeout New redemption timeout slashing amount amount.
+    /// @param _newRedemptionTimeout New redemption timeout slashing amount.
     function beginRedemptionTimeoutUpdate(
         RedemptionData storage self,
         uint64 _newRedemptionTimeout
@@ -615,7 +615,8 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the redemption timeout slashing amount amount update process.
+    /// @notice Finalizes the redemption timeout slashing amount update
+    ///         process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeRedemptionTimeoutUpdate(
@@ -642,9 +643,10 @@ library BridgeGovernanceParameters {
         return self.newRedemptionTimeout;
     }
 
-    /// @notice Begins the redemption timeout slashing amount amount update process.
+    /// @notice Begins the redemption timeout slashing amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newRedemptionTimeoutSlashingAmount New redemption timeout slashing amount amount.
+    /// @param _newRedemptionTimeoutSlashingAmount New redemption timeout slashing
+    ///         amount.
     function beginRedemptionTimeoutSlashingAmountUpdate(
         RedemptionData storage self,
         uint96 _newRedemptionTimeoutSlashingAmount
@@ -660,7 +662,7 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the redemption timeout slashing amount amount update process.
+    /// @notice Finalizes the redemption timeout slashing amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeRedemptionTimeoutSlashingAmountUpdate(
@@ -689,9 +691,11 @@ library BridgeGovernanceParameters {
         return self.newRedemptionTimeoutSlashingAmount;
     }
 
-    /// @notice Begins the redemption timeout notifier reward multiplier amount update process.
+    /// @notice Begins the redemption timeout notifier reward multiplier amount 
+    ///         update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newRedemptionTimeoutNotifierRewardMultiplier New redemption timeout notifier reward multiplier amount.
+    /// @param _newRedemptionTimeoutNotifierRewardMultiplier New redemption
+    ///         timeout notifier reward multiplier amount.
     function beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
         RedemptionData storage self,
         uint64 _newRedemptionTimeoutNotifierRewardMultiplier
@@ -827,7 +831,8 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the moving funds timeout reset delay amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovingFundsTimeoutResetDelay New moving funds timeout reset delay amount.
+    /// @param _newMovingFundsTimeoutResetDelay New moving funds timeout reset 
+    ///         delay amount.
     function beginMovingFundsTimeoutResetDelayUpdate(
         MovingFundsData storage self,
         uint32 _newMovingFundsTimeoutResetDelay
@@ -915,9 +920,9 @@ library BridgeGovernanceParameters {
         return self.newMovingFundsTimeout;
     }
 
-    /// @notice Begins the moving funds timeout slashing amount amount update process.
+    /// @notice Begins the moving funds timeout slashing amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovingFundsTimeoutSlashingAmount New moving funds timeout slashing amount amount.
+    /// @param _newMovingFundsTimeoutSlashingAmount New moving funds timeout slashing amount.
     function beginMovingFundsTimeoutSlashingAmountUpdate(
         MovingFundsData storage self,
         uint96 _newMovingFundsTimeoutSlashingAmount
@@ -933,7 +938,7 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the moving funds timeout slashing amount amount update process.
+    /// @notice Finalizes the moving funds timeout slashing amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeMovingFundsTimeoutSlashingAmountUpdate(
@@ -960,9 +965,11 @@ library BridgeGovernanceParameters {
         return self.newMovingFundsTimeoutSlashingAmount;
     }
 
-    /// @notice Begins the moving funds timeout notifier reward multiplier amount update process.
+    /// @notice Begins the moving funds timeout notifier reward multiplier amount
+    ///         update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovingFundsTimeoutNotifierRewardMultiplier New moving funds timeout notifier reward multiplier amount.
+    /// @param _newMovingFundsTimeoutNotifierRewardMultiplier New moving funds
+    ///         timeout notifier reward multiplier amount.
     function beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(
         MovingFundsData storage self,
         uint256 _newMovingFundsTimeoutNotifierRewardMultiplier
@@ -979,7 +986,8 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the moving funds timeout notifier reward multiplier amount update process.
+    /// @notice Finalizes the moving funds timeout notifier reward multiplier
+    ///         amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate(
@@ -1008,7 +1016,8 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the moved funds sweep tx max total fee amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovedFundsSweepTxMaxTotalFee New moved funds sweep tx max total fee amount.
+    /// @param _newMovedFundsSweepTxMaxTotalFee New moved funds sweep tx max total
+    ///         fee amount.
     function beginMovedFundsSweepTxMaxTotalFeeUpdate(
         MovingFundsData storage self,
         uint64 _newMovedFundsSweepTxMaxTotalFee
@@ -1023,7 +1032,8 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the moved funds sweep tx max total fee amount update process.
+    /// @notice Finalizes the moved funds sweep tx max total fee amount update
+    ///         process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeMovedFundsSweepTxMaxTotalFeeUpdate(
@@ -1096,9 +1106,11 @@ library BridgeGovernanceParameters {
         return self.newMovedFundsSweepTimeout;
     }
 
-    /// @notice Begins the moved funds sweep timeout slashing amount amount update process.
+    /// @notice Begins the moved funds sweep timeout slashing amount update
+    ///         process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep timeout slashing amount amount.
+    /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep 
+    ///         timeout slashing amount.
     function beginMovedFundsSweepTimeoutSlashingAmountUpdate(
         MovingFundsData storage self,
         uint96 _newMovedFundsSweepTimeoutSlashingAmount
@@ -1115,7 +1127,8 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the moved funds sweep timeout slashing amount amount update process.
+    /// @notice Finalizes the moved funds sweep timeout slashing amount
+    ///         update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeMovedFundsSweepTimeoutSlashingAmountUpdate(
@@ -1142,9 +1155,11 @@ library BridgeGovernanceParameters {
         return self.newMovedFundsSweepTimeoutSlashingAmount;
     }
 
-    /// @notice Begins the moved funds sweep timeout notifier reward multiplier amount update process.
+    /// @notice Begins the moved funds sweep timeout notifier reward multiplier
+    ///         amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovedFundsSweepTimeoutNotifierRewardMultiplier New moved funds sweep timeout notifier reward multiplier amount.
+    /// @param _newMovedFundsSweepTimeoutNotifierRewardMultiplier New moved funds
+    ///         sweep timeout notifier reward multiplier amount.
     function beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
         MovingFundsData storage self,
         uint256 _newMovedFundsSweepTimeoutNotifierRewardMultiplier
@@ -1162,7 +1177,8 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the moved funds sweep timeout notifier reward multiplier amount update process.
+    /// @notice Finalizes the moved funds sweep timeout notifier reward multiplier
+    ///         amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
@@ -1237,7 +1253,8 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the wallet creation min btc balance amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newWalletCreationMinBtcBalance New wallet creation min btc balance amount.
+    /// @param _newWalletCreationMinBtcBalance New wallet creation min btc balance
+    ///         amount.
     function beginWalletCreationMinBtcBalanceUpdate(
         WalletData storage self,
         uint64 _newWalletCreationMinBtcBalance
@@ -1283,7 +1300,8 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the wallet creation max btc balance amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newWalletCreationMaxBtcBalance New wallet creation max btc balance amount.
+    /// @param _newWalletCreationMaxBtcBalance New wallet creation max btc balance
+    ///         amount.
     function beginWalletCreationMaxBtcBalanceUpdate(
         WalletData storage self,
         uint64 _newWalletCreationMaxBtcBalance
@@ -1504,9 +1522,9 @@ library BridgeGovernanceParameters {
 
     // --- Fraud
 
-    /// @notice Begins the fraud challenge deposit amount amount update process.
+    /// @notice Begins the fraud challenge deposit amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newFraudChallengeDepositAmount New fraud challenge deposit amount amount.
+    /// @param _newFraudChallengeDepositAmount New fraud challenge deposit amount.
     function beginFraudChallengeDepositAmountUpdate(
         FraudData storage self,
         uint256 _newFraudChallengeDepositAmount
@@ -1521,7 +1539,7 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the fraud challenge deposit amount amount update process.
+    /// @notice Finalizes the fraud challenge deposit amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeFraudChallengeDepositAmountUpdate(
@@ -1596,9 +1614,9 @@ library BridgeGovernanceParameters {
         return self.newFraudChallengeDefeatTimeout;
     }
 
-    /// @notice Begins the fraud slashing amount amount update process.
+    /// @notice Begins the fraud slashing amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newFraudSlashingAmount New fraud slashing amount amount.
+    /// @param _newFraudSlashingAmount New fraud slashing amount.
     function beginFraudSlashingAmountUpdate(
         FraudData storage self,
         uint96 _newFraudSlashingAmount
@@ -1613,7 +1631,7 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the fraud slashing amount amount update process.
+    /// @notice Finalizes the fraud slashing amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeFraudSlashingAmountUpdate(
@@ -1642,7 +1660,8 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the fraud notifier reward multiplier amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newFraudNotifierRewardMultiplier New fraud notifier reward multiplier amount.
+    /// @param _newFraudNotifierRewardMultiplier New fraud notifier reward multiplier
+    ///         amount.
     function beginFraudNotifierRewardMultiplierUpdate(
         FraudData storage self,
         uint256 _newFraudNotifierRewardMultiplier

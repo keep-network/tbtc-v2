@@ -2823,7 +2823,6 @@ describe("Bridge - Governance", () => {
     )
   })
 
-  // continue here with wallet params
   describe("beginWalletCreationPeriodUpdate", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {

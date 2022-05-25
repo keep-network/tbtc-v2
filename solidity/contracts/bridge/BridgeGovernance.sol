@@ -23,7 +23,7 @@ import "./Bridge.sol";
 /// @title Bridge Governance
 /// @notice Owns the `Bridge` contract and is responsible for updating
 ///         its governable parameters in respect to governance delay individual
-///         for each parameter. The other resposibility is marking a vault
+///         for each parameter. The other responsibility is marking a vault
 ///         address as trusted or no longer trusted.
 contract BridgeGovernance is Ownable {
     using BridgeGovernanceParameters for BridgeGovernanceParameters.DepositData;
@@ -318,7 +318,7 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the Bridge governance transfer process.
     /// @dev Can be called only by the contract owner. It is the governance
-    ///      resposibility to validate the corectness of the new Bridge
+    ///      responsibility to validate the correctness of the new Bridge
     ///      Governance contract.
     function beginBridgeGovernanceTransfer(address _newBridgeGovernance)
         external
@@ -584,9 +584,10 @@ contract BridgeGovernance is Ownable {
         redemptionData.finalizeRedemptionTimeoutUpdate(governanceDelays[0]);
     }
 
-    /// @notice Begins the redemption timeout slashing amount amount update process.
+    /// @notice Begins the redemption timeout slashing amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newRedemptionTimeoutSlashingAmount New redemption timeout slashing amount.
+    /// @param _newRedemptionTimeoutSlashingAmount New redemption timeout slashing
+    ///         amount.
     function beginRedemptionTimeoutSlashingAmountUpdate(
         uint96 _newRedemptionTimeoutSlashingAmount
     ) external onlyOwner {
@@ -595,7 +596,7 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Finalizes the redemption timeout slashing amount amount update process.
+    /// @notice Finalizes the redemption timeout slashing amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeRedemptionTimeoutSlashingAmountUpdate()
@@ -625,9 +626,11 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Begins the redemption timeout notifier reward multiplier amount update process.
+    /// @notice Begins the redemption timeout notifier reward multiplier amount
+    ///         update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newRedemptionTimeoutNotifierRewardMultiplier New redemption timeout notifier reward multiplier.
+    /// @param _newRedemptionTimeoutNotifierRewardMultiplier New redemption timeout
+    ///         notifier reward multiplier.
     function beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
         uint64 _newRedemptionTimeoutNotifierRewardMultiplier
     ) external onlyOwner {
@@ -636,7 +639,8 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Finalizes the redemption timeout notifier reward multiplier amount update process.
+    /// @notice Finalizes the redemption timeout notifier reward multiplier amount 
+    ///         update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
@@ -760,7 +764,8 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the moving funds timeout reset delay update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovingFundsTimeoutResetDelay New moving funds timeout reset delay.
+    /// @param _newMovingFundsTimeoutResetDelay New moving funds timeout reset
+    ///         delay.
     function beginMovingFundsTimeoutResetDelayUpdate(
         uint32 _newMovingFundsTimeoutResetDelay
     ) external onlyOwner {
@@ -847,7 +852,8 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the moving funds timeout slashing amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovingFundsTimeoutSlashingAmount New moving funds timeout slashing amount.
+    /// @param _newMovingFundsTimeoutSlashingAmount New moving funds timeout 
+    ///         slashing amount.
     function beginMovingFundsTimeoutSlashingAmountUpdate(
         uint96 _newMovingFundsTimeoutSlashingAmount
     ) external onlyOwner {
@@ -893,9 +899,11 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Begins the moving funds timeout notifier reward multiplier update process.
+    /// @notice Begins the moving funds timeout notifier reward multiplier update
+    ///         process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovingFundsTimeoutNotifierRewardMultiplier New moving funds timeout notifier reward multiplier.
+    /// @param _newMovingFundsTimeoutNotifierRewardMultiplier New moving funds
+    ///         timeout notifier reward multiplier.
     function beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(
         uint64 _newMovingFundsTimeoutNotifierRewardMultiplier
     ) external onlyOwner {
@@ -904,7 +912,8 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Finalizes the moving funds timeout notifier reward multiplier update process.
+    /// @notice Finalizes the moving funds timeout notifier reward multiplier 
+    ///         update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate()
@@ -1034,7 +1043,8 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the moved funds sweep timeout slashing amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep timeout slashing amount.
+    /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep 
+    ///         timeout slashing amount.
     function beginMovedFundsSweepTimeoutSlashingAmountUpdate(
         uint96 _newMovedFundsSweepTimeoutSlashingAmount
     ) external onlyOwner {
@@ -1043,7 +1053,8 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Finalizes the moved funds sweep timeout slashing amount update process.
+    /// @notice Finalizes the moved funds sweep timeout slashing amount update
+    ///         process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeMovedFundsSweepTimeoutSlashingAmountUpdate()
@@ -1080,9 +1091,11 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Begins the moved funds sweep timeout notifier reward multiplier update process.
+    /// @notice Begins the moved funds sweep timeout notifier reward multiplier
+    ///         update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovedFundsSweepTimeoutNotifierRewardMultiplier New moved funds sweep timeout notifier reward multiplier.
+    /// @param _newMovedFundsSweepTimeoutNotifierRewardMultiplier New moved funds 
+    ///         sweep timeout notifier reward multiplier.
     function beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
         uint64 _newMovedFundsSweepTimeoutNotifierRewardMultiplier
     ) external onlyOwner {
@@ -1092,7 +1105,8 @@ contract BridgeGovernance is Ownable {
             );
     }
 
-    /// @notice Finalizes the moved funds sweep timeout notifier reward multiplier update process.
+    /// @notice Finalizes the moved funds sweep timeout notifier reward multiplier
+    ///         update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate()
@@ -1209,7 +1223,8 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the wallet creation max btc balance update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newWalletCreationMaxBtcBalance New wallet creation max btc balance.
+    /// @param _newWalletCreationMaxBtcBalance New wallet creation max btc
+    ///         balance.
     function beginWalletCreationMaxBtcBalanceUpdate(
         uint64 _newWalletCreationMaxBtcBalance
     ) external onlyOwner {
@@ -1491,7 +1506,8 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the fraud notifier reward multiplier update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newFraudNotifierRewardMultiplier New fraud notifier reward multiplier.
+    /// @param _newFraudNotifierRewardMultiplier New fraud notifier reward
+    ///         multiplier.
     function beginFraudNotifierRewardMultiplierUpdate(
         uint256 _newFraudNotifierRewardMultiplier
     ) external onlyOwner {
