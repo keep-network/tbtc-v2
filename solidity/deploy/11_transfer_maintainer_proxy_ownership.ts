@@ -5,14 +5,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, helpers } = hre
   const { deployer, governance } = await getNamedAccounts()
 
-  await helpers.ownable.transferOwnership("Bank", governance, deployer)
-
-  await helpers.ownable.transferOwnership(
-    "ReimbursementPool",
-    governance,
-    deployer
-  )
-
   await helpers.ownable.transferOwnership(
     "MaintainerProxy",
     governance,
@@ -22,6 +14,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["TransferBankOwnership"]
-func.dependencies = ["Bank"]
+func.tags = ["TransferMaintainerProxyOwnership"]
+func.dependencies = ["MaintainerProxy"]
 func.runAtTheEnd = true
