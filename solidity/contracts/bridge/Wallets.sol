@@ -354,7 +354,7 @@ library Wallets {
     ///        can be empty as it is ignored since the wallet balance is
     ///        assumed to be zero,
     ///      - Wallet must be in Live state.
-    function notifyCloseableWallet(
+    function notifyWalletCloseable(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
