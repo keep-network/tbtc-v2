@@ -53,7 +53,7 @@ link:https://eprint.iacr.org/2019/114.pdf[threshold ECDSA]
 Bitcoin wallets at a governable frequency (starting weekly). The youngest
 wallet accepts new deposits, and the oldest wallet serves redemptions.
 
-Depositing Bitcoin into the tBTCv2 bridge grants a transferable balance, which
+Depositing Bitcoin into the tBTCv2 bridge grants a transferable Bank balance, which
 can be used to mint a supply-pegged ERC-20: TBTC. For an in-depth explanation
 about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
 
@@ -209,31 +209,31 @@ The first is a cost vs time tradeoff. SPV proofs are expensive, so by dividing
 the cost across all of the deposits in the period, we see massive gas savings.
 This is the same model as individuals driving their own car to work vs waiting
 on the train. The second is a security measure. We need to disable the refund,
-otherwise users could get a balance and then refund their bitcoin and have
+otherwise users could get a Bank balance and then refund their bitcoin and have
 both.
 
 The entry point is `Bridge.submitDepositSweepProof` which performs the SPV
 proof, updates the wallet with the new UTXO (from
 `DepositSweep.resolveDepositSweepingWallet`), takes a deposit fee for the
-treasury (5 BPS; governable), and updates the user balances with information
+treasury (5 BPS; governable), and updates the user Bank balances with information
 from `DepositSweep.processDepositSweepTxInputs` and
 `DepositSweep.depositSweepTxFeeDistribution`.
 
 ==== Redeeming
 
-An account with a balance can request a redemption via
+An account with a Bank balance can request a redemption via
 `Bridge.requestRedemption`. We verify that the destination is valid (P2PKH,
 P2WPKH, P2SH or P2WSH), and build a redemption key based on the wallet's PKH
 and destination. There can only be one pending redemption per PKH-destination
 pair. The treasury takes a cut (`Bridge.redemptionTreasuryFeeDivisor`, 5 BPS),
-and then we reduce the account's balance and start a timer.
+and then we reduce the account's Bank balance and start a timer.
 
 After `Bridge.redemptionTimeout` (48 hours), anyone may call
 `Bridge.notifyRedemptionTimeout`. This will decrease
 `wallet.pendingRedemptionsValue`, mark the redemption as "timed out", punish
 the operators for `Bridge.redemptionTimeoutSlashingAmount`, and reward the
 notifier for a percentage (`Bridge.redemptionTimeoutNotifierRewardMultiplier`,
-100%) of the slashed stake. The redeemer is reimbursed the balance of the
+100%) of the slashed stake. The redeemer is reimbursed the Bank balance of the
 redemption, and the wallet begins to move its funds and eventually close via
 `Wallets.notifyWalletTimedOutRedemption`.
 
@@ -241,8 +241,8 @@ To avoid this, the operators must fulfill the redemption by signing a
 transaction off-chain (potentially in a batch), submitting it to the Bitcoin
 chain, and then proving that they did so via `Bridge.submitRedemptionProof`. We
 perform an SPV proof to ensure the transaction occurred, it is well-formed, and
-then we decrease all of the redeemer's balances and increase the treasury's
-balance with its cut. 
+then we decrease all of the redeemer's Bank balances and increase the treasury's
+Bank balance with its cut. 
 
 == Parameters
 
