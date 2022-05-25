@@ -71,7 +71,7 @@ If desired, a suggestion on how to fix the issue.
 
 FOLLOWUP INFO (optional)
 
-If this is an encrypted message, include your PGP key for an encrypted reponse.
+If this is an encrypted message, include your PGP key for an encrypted response.
 Alternatively, you can include a Keybase handle,  Signal number, or a Telegram
 handle (in order of the Keep team's preference).
 ```
