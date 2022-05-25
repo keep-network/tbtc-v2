@@ -230,8 +230,9 @@ then we reduce the account's Bank balance and start a timer.
 
 [TIP]
 `Bridge.requestRedemption` requires a Bank balance approval to the Bridge. This
-can either be made in a separate transaction first via `Bank.approveBalance` or
-in a single transaction via `Bank.approveBalanceAndCall`.
+can either be made in a separate transaction first via
+`Bank.approveBalance(Bridge.address, ...)` or in a single transaction via
+`Bank.approveBalanceAndCall(Bridge.address, ...)`.
 
 After `Bridge.redemptionTimeout`, anyone may call
 `Bridge.notifyRedemptionTimeout`. This will decrease
