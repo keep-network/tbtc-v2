@@ -15,6 +15,28 @@ Please make sure you have the following prerequisites installed on your machine:
 - https://nodejs.org[Node.js] >14.17.4
 - https://yarnpkg.com[Yarn] >1.22.10
 
+=== Install dependencies
+
+To install dependencies, run:
+```
+yarn install
+```
+
+**NOTE:** The `@keep-network/tbtc.ts` package contains an indirect dependency to
+`@summa-tx/relay-sol@2.0.2` package, which downloads one of its sub-dependencies
+via unathenticated `git://` protocol. That protocol is no longer supported by
+GitHub. This means that in certain situations installation of the package or
+update of its dependencies using Yarn may result in `The unauthenticated git
+protocol on port 9418 is no longer supported` or `fatal: unable to connect
+to github.com` errors.
+
+As a workaround, we advise changing Git configuration to use `https://` protocol
+instead of `git://` by executing:
+
+```
+git config --global url."https://".insteadOf git://
+```
+
 === Build
 
 To build the library, invoke:

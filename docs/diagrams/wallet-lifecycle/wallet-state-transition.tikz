@@ -1,0 +1,159 @@
+% TIP: To generate `.pdf` file out of this `.tikz` file run:
+% `pdflatex filename.tikz`.
+% To install `pdflatex` on MacOS either run `brew install --cask mactex` (not
+% recommended, downloads 4GB of data) or install `basictex` distribution plus
+% needed packages (recommended, downloads only essential packages):
+% ```
+% brew install --cask basictex
+% sudo tlmgr update --self
+% sudo tlmgr install standalone
+% sudo tlmgr install comment
+% pdflatex <filename>.tikz
+%```
+% 
+% To generate `.png` file out of `.pdf` on MacOS run:
+% `convert -density 300 <filename>.pdf -resize 50% <filename>.png`.
+% This requires installation of the `imagemagick` tool:
+% `brew install imagemagick`.
+
+\documentclass{standalone}%
+\usepackage{tikz}%
+\usepackage{comment}%
+\usetikzlibrary{positioning,arrows.meta,backgrounds,shapes.multipart}%
+\begin{document}%
+
+% We need layers to draw the background
+\pgfdeclarelayer{background}%
+\pgfsetlayers{background,main}%
+
+\begin{tikzpicture}[
+% STYLES FOR NODES AND ARROWS
+  every node/.style = {align=left,    % thanks to alignment we can have line breaks
+                       font=\ttfamily\small},
+        base/.style = {rectangle, draw=gray!50, rounded corners,
+                       minimum width=5cm, minimum height=1cm,
+                       text width=4.8cm, text centered, font=\sffamily\small},
+       state/.style = {base, fill=gray!10},
+         box/.style = {rectangle,
+                       minimum width=7cm,
+                       text width=6.8cm, font=\sffamily\small},
+      node distance = 25mm,
+                  > = Triangle,       % defines the arrow tip style when `->` is used
+]
+% STATES
+% We position the nodes in relation to each other.
+
+\node[state]                               (unknown)      {UNKNOWN};
+\node[state, below=of unknown]             (live)         {LIVE};
+\node[state, below=of live]                (movingFunds)  {MOVING\_FUNDS};
+\node[state, below=of movingFunds]         (closing)      {CLOSING};
+\node[state, below=of closing]             (closed)       {CLOSED};
+\node[state, left=of closed, xshift=-3cm]  (terminated)   {TERMINATED};
+
+% ARROWS
+% 1. In place when line needed to bend more than once we specified relative
+%  coordinates of the point that the arrow needs to pass.
+% 2. To label the lines we create nodes with labels which we place 5mm from the
+% beginning of the arrows (`pos=0` positions them at the beginning, `below
+% right` defines where the text should be placed in relation to that position).
+% Style of the labels is defined in `every node/.style`.
+
+\draw[->](unknown)      --  node[below right, pos=0, yshift=-5mm, align=left] {- \_\_ecdsaWalletCreatedCallback}           (live);
+\draw[->](live)         --  node[below right, pos=0, yshift=-5mm, align=left] {- notifyRedemptionTimeout\\
+                                                                               - \_\_ecdsaWalletHeartbeatFailedCallback\\
+                                                                               - notifyCloseableWallet}                   (movingFunds);
+\draw[->](movingFunds)  --  node[below right, pos=0, yshift=-5mm, align=left] {- submitMovingFundsProof\\
+                                                                               - notifyMovingFundsBelowDust}              (closing);
+\draw[->](closing)      --  node[below right, pos=0, yshift=-5mm, align=left] {- notifyWalletClosingPeriodElapsed}        (closed);
+\draw[->](live)         -|  node[above right, pos=0, xshift=5mm, align=left]  {- notifyRedemptionTimeout *\\
+                                                                               - \_\_ecdsaWalletHeartbeatFailedCallback *\\
+                                                                               - notifyCloseableWallet *\\
+                                                                               \sffamily\footnotesize{(* only if there is no main UTXO for the wallet)}} 
+                                                                                                                          +(10cm,0)
+                        |-                                                                                                (closing);
+\draw[->](live)         -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyMovedFundsSweepTimeout\\
+                                                                               - notifyFraudChallengeDefeatTimeout}       ([xshift=-50mm]terminated);
+\draw[->](movingFunds)  -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyMovingFundsTimeout\\
+                                                                               - notifyMovedFundsSweepTimeout\\
+                                                                               - notifyFraudChallengeDefeatTimeout}       (terminated);
+\draw[->](closing)      -|  node[above left, pos=0, xshift=-5mm, align=right] {- notifyFraudChallengeDefeatTimeout}       ([xshift=15mm]terminated);
+
+
+% TEXT BOX
+
+\node [box, below = of closed, rectangle, xshift=-10mm, yshift=10mm] (box_label)
+{FUNCTIONS AVAILABLE PER STATE\\ \hfill\\  \hfill};
+
+\node [box, below of=box_label, rectangle split, rectangle split horizontal, rectangle split parts=3, yshift=-5mm,](box_content)
+{
+LIVE:\\
+  \ttfamily{
+  - revealDeposit\\
+  - submitDepositSweepProof\\
+  - requestRedemption\\
+  - receiveBalanceApproval\\
+  - submitRedemptionProof\\
+  - notifyRedemptionTimeout\\
+  - submitMovedFundsSweepProof\\
+  - notifyMovedFundsSweepTimeout\\
+  - \_\_ecdsaWalletHeartbeatFailedCallback\\
+  - notifyCloseableWallet\\
+  - submitFraudChallenge\\
+  - defeatFraudChallenge\\
+  - defeatFraudChallengeWithHeartbeat\\
+  - notifyFraudChallengeDefeatTimeout}
+\nodepart{two} 
+  MOVING\_FUNDS:\\
+  \ttfamily{
+  - submitDepositSweepProof\\
+  - submitRedemptionProof\\
+  - notifyRedemptionTimeout\\
+  - submitMovingFundsCommitment\\
+  - resetMovingFundsTimeout \\
+  - submitMovingFundsProof\\
+  - notifyMovingFundsTimeout\\
+  - notifyMovingFundsBelowDust\\
+  - submitMovedFundsSweepProof\\
+  - notifyMovedFundsSweepTimeout\\
+  - submitFraudChallenge\\
+  - defeatFraudChallenge\\
+  - defeatFraudChallengeWithHeartbeat\\
+  - notifyFraudChallengeDefeatTimeout}
+\nodepart{three}
+  CLOSING:\\
+  \ttfamily{
+  - notifyWalletClosingPeriodElapsed\\
+  - submitFraudChallenge\\
+  - defeatFraudChallenge\\
+  - defeatFraudChallengeWithHeartbeat\\
+  - notifyFraudChallengeDefeatTimeout}
+  \hfill\\
+  \hfill\\
+  \sffamily{
+  TERMINATED:\\}
+  \ttfamily{
+  - notifyRedemptionTimeout\\
+  - notifyMovedFundsSweepTimeout\\
+  - defeatFraudChallenge\\
+  - defeatFraudChallengeWithHeartbeat\\
+  - notifyFraudChallengeDefeatTimeout}
+};
+
+\path (box_content.west |- box_label.north)+(-0.2,0.2) node (a) {};
+\path (box_content.south -| box_content.east)+(-0.9,-0.2) node (b) {};
+\path[rounded corners, draw=black!50, dashed] (a) rectangle (b);
+
+% BACKGROUND
+% To draw the background behind the nodes and other objects we use pgf layers. 
+% We calculate top left and bottom right corners position of current canvas and
+% construct white background between those points expanded by some small amount.
+% This gives us nice little margin around the diagram.
+
+\begin{pgfonlayer}{background}
+  \path (current bounding box.north west)+(-0.2,0.2) node (a) {};
+  \path (current bounding box.south east)+(+0.2,0) node (b) {};
+  \path[fill=white] (a) rectangle (b);
+\end{pgfonlayer}
+
+\end{tikzpicture}
+\end{document}
