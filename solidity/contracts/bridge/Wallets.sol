@@ -661,4 +661,53 @@ library Wallets {
             terminateWallet(self, walletPubKeyHash);
         }
     }
+
+    /// @notice Called when a wallet which was challenged for a fraud did not
+    ///         defeat the challenge before the timeout. Slashes and terminates
+    ///         the wallet who failed to defeat the challenge. If the wallet is
+    ///         already terminated, it does nothing.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet which was
+    ///        supposed to sweep funds.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
+    /// @param challenger Address of the party which submitted the fraud
+    ///        challenge.
+    /// @dev Requirements:
+    ///      - The wallet must be in the `Live`, `MovingFunds`, `Closing`
+    ///        or `Terminated` state.
+    function notifyWalletFraudChallengeDefeatTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs,
+        address challenger
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        WalletState walletState = wallet.state;
+
+        if (
+            walletState == Wallets.WalletState.Live ||
+            walletState == Wallets.WalletState.MovingFunds ||
+            walletState == Wallets.WalletState.Closing
+        ) {
+            self.ecdsaWalletRegistry.seize(
+                self.fraudSlashingAmount,
+                self.fraudNotifierRewardMultiplier,
+                challenger,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
+
+            terminateWallet(self, walletPubKeyHash);
+        } else if (walletState == Wallets.WalletState.Terminated) {
+            // This is a special case when the wallet was already terminated
+            // due to a previous deliberate protocol violation. In that
+            // case, this function should be still callable for other fraud
+            // challenges timeouts in order to let the challenger unlock its
+            // ETH deposit back. However, the wallet termination logic is
+            // not called and the challenger is not rewarded.
+        } else {
+            revert(
+                "Wallet must be in Live or MovingFunds or Closing or Terminated state"
+            );
+        }
+    }
 }
