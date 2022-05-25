@@ -286,6 +286,14 @@ and if we find it, we make a call to `Bank.increaseBalanceAndCall` rather than
 `Bank.increaseBalances` which routes to `vault.receiveBalanceIncrease`, which
 in turn calls `TBTC._mint`, in TBTC's case.
 
+==== Unminting
+
+Anyone with TBTC tokens can unmint them in exchange for Bank balance by calling
+`TBTCVault.unmint`. Alternatively, if the user is attempting to exit the system
+entirely, they can save a transaction and gas by calling
+`TBTCVault.unmintAndRedeem` which routes into authorizing the Bridge to
+<redeeming,redeem> via `bank.approveBalanceAndCall`.
+
 == Parameters
 
 [%header,cols="3m,4,^1,^2m"]
