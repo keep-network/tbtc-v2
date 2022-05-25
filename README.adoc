@@ -197,7 +197,7 @@ that the hashes match, and then stores the deposit as waiting to be
 [sweeping]
 ==== Sweeping
 
-==== Redemptions
+==== Redeeming
 
 An account with a balance can request a redemption via
 `Bridge.requestRedemption`. We verify that the destination is valid (P2PKH,
