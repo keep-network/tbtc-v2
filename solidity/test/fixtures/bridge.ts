@@ -50,12 +50,11 @@ export default async function bridgeFixture() {
     value: ethers.utils.parseEther("100"),
   })
 
-  const reimbursementPool: ReimbursementPool = await ethers.getContract(
-    "ReimbursementPool"
-  )
+  const reimbursementPool: ReimbursementPool =
+    await helpers.contracts.getContract("ReimbursementPool")
 
   const maintainerProxy: MaintainerProxy & MaintainerProxyStub =
-    await ethers.getContract("MaintainerProxy")
+    await helpers.contracts.getContract("MaintainerProxy")
 
   const relay = await smock.fake<TestRelay>("TestRelay", {
     address: await (await bridge.contractReferences()).relay,

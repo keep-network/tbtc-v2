@@ -38,8 +38,7 @@ import {
 } from "../data/deposit-sweep"
 
 import {
-  walletPublicKey,
-  walletPublicKeyHash,
+  wallet as fraudWallet,
   nonWitnessSignSingleInputTx,
   nonWitnessSignMultipleInputsTx,
   witnessSignSingleInputTx,
@@ -65,6 +64,9 @@ const { impersonateAccount } = helpers.account
 
 const { lastBlockTime, increaseTime } = helpers.time
 const { keccak256, sha256 } = ethers.utils
+
+const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
+  fraudWallet
 
 // Most of the tests around specific bridge functionality were ported from the
 // other tbtc-v2 tests suites and adjusted to check the refund functionality of
@@ -2837,7 +2839,7 @@ describe("Maintainer", () => {
           () => {
             before(async () => {
               await createSnapshot()
-              const signers = await ethers.getUnnamedSigners()
+              const signers = await helpers.signers.getUnnamedSigners()
               const maintainers = [
                 signers[1],
                 signers[2],
@@ -2918,7 +2920,7 @@ describe("Maintainer", () => {
 
         before(async () => {
           await createSnapshot()
-          const signers = await ethers.getUnnamedSigners()
+          const signers = await helpers.signers.getUnnamedSigners()
           /* eslint-disable */
           maintainer1 = signers[1]
           maintainer2 = signers[2]
