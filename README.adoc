@@ -234,8 +234,8 @@ can either be made in a separate transaction first via
 `Bank.approveBalance(Bridge.address, ...)` or in a single transaction via
 `Bank.approveBalanceAndCall(Bridge.address, ...)`.
 
-After `Bridge.redemptionTimeout`, anyone may call
-`Bridge.notifyRedemptionTimeout`. This will decrease
+If the redemption was not performed by the wallet, after the redemption
+timeout, anyone may call `Bridge.notifyRedemptionTimeout`. This will decrease
 `wallet.pendingRedemptionsValue`, mark the redemption as "timed out", punish
 the operators for `Bridge.redemptionTimeoutSlashingAmount`, and reward the
 notifier for a percentage (`Bridge.redemptionTimeoutNotifierRewardMultiplier`)
