@@ -149,6 +149,9 @@ library DepositSweep {
         BitcoinTx.UTXO calldata mainUtxo,
         address vault
     ) external {
+        // Wallet state validation is performed in the
+        // `resolveDepositSweepingWallet` function.
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by

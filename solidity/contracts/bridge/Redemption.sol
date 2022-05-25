@@ -42,34 +42,11 @@ library OutboundTx {
     ///        before it is passed here.
     /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
     ///        the Ethereum chain.
-    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the outbound transaction.
     function processWalletOutboundTxInput(
         BridgeState.Storage storage self,
         bytes memory walletOutboundTxInputVector,
-        BitcoinTx.UTXO calldata mainUtxo,
-        bytes20 walletPubKeyHash
+        BitcoinTx.UTXO calldata mainUtxo
     ) internal {
-        // Assert that main UTXO for passed wallet exists in storage.
-        bytes32 mainUtxoHash = self
-            .registeredWallets[walletPubKeyHash]
-            .mainUtxoHash;
-        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
-
-        // Assert that passed main UTXO parameter is the same as in storage and
-        // can be used for further processing.
-        require(
-            keccak256(
-                abi.encodePacked(
-                    mainUtxo.txHash,
-                    mainUtxo.txOutputIndex,
-                    mainUtxo.txOutputValue
-                )
-            ) == mainUtxoHash,
-            "Invalid main UTXO data"
-        );
-
         // Assert that the single outbound transaction input actually
         // refers to the wallet's main UTXO.
         (
@@ -583,6 +560,9 @@ library Redemption {
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) external {
+        // Wallet state validation is performed in the `resolveRedeemingWallet`
+        // function.
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -592,24 +572,18 @@ library Redemption {
             redemptionProof
         );
 
+        Wallets.Wallet storage wallet = resolveRedeemingWallet(
+            self,
+            walletPubKeyHash,
+            mainUtxo
+        );
+
         // Process the redemption transaction input. Specifically, check if it
         // refers to the expected wallet's main UTXO.
         OutboundTx.processWalletOutboundTxInput(
             self,
             redemptionTx.inputVector,
-            mainUtxo,
-            walletPubKeyHash
-        );
-
-        Wallets.Wallet storage wallet = self.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        Wallets.WalletState walletState = wallet.state;
-        require(
-            walletState == Wallets.WalletState.Live ||
-                walletState == Wallets.WalletState.MovingFunds,
-            "Wallet must be in Live or MovingFunds state"
+            mainUtxo
         );
 
         // Process redemption transaction outputs to extract some info required
@@ -643,6 +617,50 @@ library Redemption {
 
         self.bank.decreaseBalance(outputsInfo.totalBurnableValue);
         self.bank.transferBalance(self.treasury, outputsInfo.totalTreasuryFee);
+    }
+
+    /// @notice Resolves redeeming wallet based on the provided wallet public
+    ///         key hash. Validates the wallet state and current main UTXO, as
+    ///         currently known on the Ethereum chain.
+    /// @param walletPubKeyHash public key hash of the wallet proving the sweep
+    ///        Bitcoin transaction.
+    /// @param mainUtxo Data of the wallet's main UTXO, as currently known on
+    ///        the Ethereum chain.
+    /// @return wallet Data of the sweeping wallet.
+    /// @dev Requirements:
+    ///     - Sweeping wallet must be either in Live or MovingFunds state,
+    ///     - Main UTXO of the redeeming wallet must exists in the storage,
+    ///     - The passed `mainUTXO` parameter must be equal to the stored one.
+    function resolveRedeemingWallet(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata mainUtxo
+    ) internal view returns (Wallets.Wallet storage wallet) {
+        wallet = self.registeredWallets[walletPubKeyHash];
+
+        // Assert that main UTXO for passed wallet exists in storage.
+        bytes32 mainUtxoHash = wallet.mainUtxoHash;
+        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
+
+        // Assert that passed main UTXO parameter is the same as in storage and
+        // can be used for further processing.
+        require(
+            keccak256(
+                abi.encodePacked(
+                    mainUtxo.txHash,
+                    mainUtxo.txOutputIndex,
+                    mainUtxo.txOutputValue
+                )
+            ) == mainUtxoHash,
+            "Invalid main UTXO data"
+        );
+
+        Wallets.WalletState walletState = wallet.state;
+        require(
+            walletState == Wallets.WalletState.Live ||
+                walletState == Wallets.WalletState.MovingFunds,
+            "Wallet must be in Live or MovingFunds state"
+        );
     }
 
     /// @notice Processes the Bitcoin redemption transaction output vector.
