@@ -586,14 +586,7 @@ library MovingFunds {
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
-        Wallets.Wallet storage wallet = self.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        require(
-            wallet.state == Wallets.WalletState.MovingFunds,
-            "Wallet must be in MovingFunds state"
-        );
+        // Wallet state is validated in `notifyWalletMovingFundsBelowDust`.
 
         uint64 walletBtcBalance = self.getWalletBtcBalance(
             walletPubKeyHash,
@@ -605,7 +598,7 @@ library MovingFunds {
             "Wallet BTC balance must be below the moving funds dust threshold"
         );
 
-        self.beginWalletClosing(walletPubKeyHash);
+        self.notifyWalletMovingFundsBelowDust(walletPubKeyHash);
 
         // slither-disable-next-line reentrancy-events
         emit MovingFundsBelowDustReported(walletPubKeyHash);

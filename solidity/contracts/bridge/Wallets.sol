@@ -598,4 +598,24 @@ library Wallets {
 
         terminateWallet(self, walletPubKeyHash);
     }
+
+    /// @notice Called when a MovingFunds wallet has a balance below the dust
+    ///         threshold. Begins the wallet closing.
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state.
+    function notifyWalletMovingFundsBelowDust(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
+        WalletState walletState = self
+            .registeredWallets[walletPubKeyHash]
+            .state;
+
+        require(
+            walletState == Wallets.WalletState.MovingFunds,
+            "Wallet must be in MovingFunds state"
+        );
+
+        beginWalletClosing(self, walletPubKeyHash);
+    }
 }
