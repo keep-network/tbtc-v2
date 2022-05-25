@@ -355,7 +355,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the deposit dust threshold has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -407,7 +407,7 @@ describe("Bridge - Governance", () => {
           expect(depositDustThreshold).to.be.equal(7331)
         })
 
-        it("should emitDepositDustThresholdUpdated event", async () => {
+        it("should emit DepositDustThresholdUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "DepositDustThresholdUpdated")
             .withArgs(7331)
