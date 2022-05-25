@@ -293,20 +293,20 @@ library BitcoinTx {
             // Compare to the expected P2PKH script.
             bytes26 script = bytes26(output.slice32(8));
 
-            require (
+            require(
                 script == makeP2PKHScript(pubKeyHash),
                 "Invalid P2PKH script"
             );
         }
-        
+
         if (scriptLen == 23) {
             // Compare to the expected P2WPKH script.
             bytes23 script = bytes23(output.slice32(8));
 
-            require (
+            require(
                 script == makeP2WPKHScript(pubKeyHash),
                 "Invalid P2WPKH script"
-            );            
+            );
         }
 
         return pubKeyHash;
@@ -326,7 +326,11 @@ library BitcoinTx {
     ///      - 0xac: OP_CHECKSIG
     ///      which matches the P2PKH structure as per:
     ///      https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
-    function makeP2PKHScript(bytes20 pubKeyHash) internal pure returns (bytes26) {
+    function makeP2PKHScript(bytes20 pubKeyHash)
+        internal
+        pure
+        returns (bytes26)
+    {
         bytes26 P2PKHScriptMask = hex"1976a914000000000000000000000000000000000000000088ac";
 
         return ((bytes26(pubKeyHash) >> 32) | P2PKHScriptMask);
@@ -343,7 +347,11 @@ library BitcoinTx {
     ///      - 0x14: Byte length of the public key hash
     ///      which matches the P2WPKH structure as per:
     ///      https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
-    function makeP2WPKHScript(bytes20 pubKeyHash) internal pure returns (bytes23) {
+    function makeP2WPKHScript(bytes20 pubKeyHash)
+        internal
+        pure
+        returns (bytes23)
+    {
         bytes23 P2WPKHScriptMask = hex"1600140000000000000000000000000000000000000000";
 
         return ((bytes23(pubKeyHash) >> 24) | P2WPKHScriptMask);

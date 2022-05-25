@@ -30,25 +30,16 @@ library BridgeState {
     struct Storage {
         // Address of the Bank the Bridge belongs to.
         Bank bank;
-
-
         // Bitcoin relay providing the current Bitcoin network difficulty.
         IRelay relay;
         // The number of confirmations on the Bitcoin chain required to
         // successfully evaluate an SPV proof.
         uint96 txProofDifficultyFactor;
-        
-        
         // ECDSA Wallet Registry contract handle.
         EcdsaWalletRegistry ecdsaWalletRegistry;
-
-
         // Address where the deposit and redemption treasury fees will be sent
         // to. Treasury takes part in the operators rewarding process.
         address treasury;
-
-
-
         // The minimal amount that can be requested to deposit.
         // Value of this parameter must take into account the value of
         // `depositTreasuryFeeDivisor` and `depositTxMaxFee` parameters in order
@@ -70,11 +61,8 @@ library BridgeState {
         //
         // This is a per-deposit input max fee for the sweep transaction.
         uint64 depositTxMaxFee;
-
         // slither-disable-next-line unused-state
         bytes8 __depositAlignmentGap;
-
-
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moving funds transaction.
         //
@@ -107,14 +95,10 @@ library BridgeState {
         // The amount of stake slashed from each member of a wallet for a moving
         // funds timeout.
         uint96 movingFundsTimeoutSlashingAmount;
-
-
         // The percentage of the notifier reward from the staking contract
         // the notifier of a moving funds timeout receives. The value is in the
         // range [0, 100].
         uint256 movingFundsTimeoutNotifierRewardMultiplier;
-
-
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moved funds sweep transaction.
         //
@@ -134,8 +118,6 @@ library BridgeState {
         // the notifier of a moved funds sweep timeout receives. The value is
         // in the range [0, 100].
         uint64 movedFundsSweepTimeoutNotifierRewardMultiplier;
-
-
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
@@ -161,11 +143,8 @@ library BridgeState {
         // This is a per-redemption output max fee for the redemption
         // transaction.
         uint64 redemptionTxMaxFee;
-
         // slither-disable-next-line unused-state
         bytes8 __redemptionAlignmentGap;
-
-
         // Time after which the redemption request can be reported as
         // timed out. It is counted from the moment when the redemption
         // request was created via `requestRedemption` call. Reported
@@ -179,8 +158,6 @@ library BridgeState {
         // the notifier of a redemption timeout receives. The value is in the
         // range [0, 100].
         uint64 redemptionTimeoutNotifierRewardMultiplier;
-
-
         // The amount of ETH in wei the party challenging the wallet for fraud
         // needs to deposit.
         uint96 fraudChallengeDepositAmount;
@@ -191,8 +168,6 @@ library BridgeState {
         // The percentage of the notifier reward from the staking contract
         // the notifier of a fraud receives. The value is in the range [0, 100].
         uint32 fraudNotifierRewardMultiplier;
-
-
         // Determines how frequently a new wallet creation can be requested.
         // Value in seconds.
         uint32 walletCreationPeriod;
@@ -214,8 +189,6 @@ library BridgeState {
         // The maximum age of a wallet in seconds, after which the wallet
         // moving funds process can be requested.
         uint32 walletMaxAge;
-
-
         // 20-byte wallet public key hash being reference to the currently
         // active wallet. Can be unset to the zero value under certain
         // circumstances.
@@ -225,15 +198,11 @@ library BridgeState {
         // The maximum BTC amount in satoshi than can be transferred to a single
         // target wallet during the moving funds process.
         uint64 walletMaxBtcTransfer;
-
-
         // Determines the length of the wallet closing period, i.e. the period
         // when the wallet remains in the Closing state and can be subject
         // of deposit fraud challenges. This value is in seconds and should be
         // greater than the deposit refund time plus some time margin.
         uint32 walletClosingPeriod;
-
-
         // Collection of all revealed deposits indexed by
         // `keccak256(fundingTxHash | fundingOutputIndex)`.
         // The `fundingTxHash` is `bytes32` (ordered as in Bitcoin internally)
@@ -298,7 +267,6 @@ library BridgeState {
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
         mapping(bytes20 => Wallets.Wallet) registeredWallets;
-
         // Reserved storage space in case we need to add more variables.
         // The convention from OpenZeppelin suggests the storage space should
         // add up to 50 slots. Here we want to have more slots as there are
@@ -495,8 +463,8 @@ library BridgeState {
         self.redemptionTxMaxFee = _redemptionTxMaxFee;
         self.redemptionTimeout = _redemptionTimeout;
         self.redemptionTimeoutSlashingAmount = _redemptionTimeoutSlashingAmount;
-        self.redemptionTimeoutNotifierRewardMultiplier
-            = _redemptionTimeoutNotifierRewardMultiplier;
+        self
+            .redemptionTimeoutNotifierRewardMultiplier = _redemptionTimeoutNotifierRewardMultiplier;
 
         emit RedemptionParametersUpdated(
             _redemptionDustThreshold,

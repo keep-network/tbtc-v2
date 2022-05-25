@@ -424,9 +424,9 @@ library Redemption {
         );
 
         // Validate if redeemer output script is a correct standard type
-        // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by using 
+        // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by using
         // `BTCUtils.extractHashAt` on it. Such a function extracts the payload
-        // properly only from standard outputs so if it succeeds, we have a 
+        // properly only from standard outputs so if it succeeds, we have a
         // guarantee the redeemer output script is proper. The underlying way
         // of validation is the same as in tBTC v1.
         bytes memory redeemerOutputScriptPayload = redeemerOutputScript
@@ -440,7 +440,7 @@ library Redemption {
         // wallet public key hash.
         require(
             redeemerOutputScriptPayload.length != 20 ||
-            walletPubKeyHash != redeemerOutputScriptPayload.slice20(0),
+                walletPubKeyHash != redeemerOutputScriptPayload.slice20(0),
             "Redeemer output script must not point to the wallet PKH"
         );
 
@@ -454,7 +454,8 @@ library Redemption {
         // request asking for redemption from the given wallet to the given
         // BTC script at the same time.
         uint256 redemptionKey = getRedemptionKey(
-            walletPubKeyHash, redeemerOutputScript
+            walletPubKeyHash,
+            redeemerOutputScript
         );
 
         // Check if given redemption key is not used by a pending redemption.
@@ -783,8 +784,9 @@ library Redemption {
                 .determineOutputLengthAt(processInfo.outputStartingIndex);
 
             // Extract the value from given output.
-            uint64 outputValue = redemptionTxOutputVector
-                .extractValueAt(processInfo.outputStartingIndex);
+            uint64 outputValue = redemptionTxOutputVector.extractValueAt(
+                processInfo.outputStartingIndex
+            );
 
             uint256 scriptLength = outputLength - 8;
 
@@ -805,10 +807,8 @@ library Redemption {
 
             if (
                 resultInfo.changeValue == 0 &&
-                (outputScriptHash ==
-                    processInfo.walletP2PKHScriptKeccak ||
-                    outputScriptHash ==
-                    processInfo.walletP2WPKHScriptKeccak) &&
+                (outputScriptHash == processInfo.walletP2PKHScriptKeccak ||
+                    outputScriptHash == processInfo.walletP2WPKHScriptKeccak) &&
                 outputValue > 0
             ) {
                 // If we entered here, that means the change output with a
@@ -871,7 +871,6 @@ library Redemption {
         uint256 redemptionKey,
         uint64 outputValue
     ) internal returns (uint64 burnableValue, uint64 treasuryFee) {
-
         if (self.pendingRedemptions[redemptionKey].requestedAt != 0) {
             // If we entered here, that means the output was identified
             // as a pending redemption request.
@@ -973,7 +972,7 @@ library Redemption {
     ) external {
         // Wallet state is validated in `notifyWalletRedemptionTimeout`.
         uint256 redemptionKey = getRedemptionKey(
-            walletPubKeyHash, 
+            walletPubKeyHash,
             redeemerOutputScript
         );
         Redemption.RedemptionRequest memory request = self.pendingRedemptions[
@@ -1019,10 +1018,11 @@ library Redemption {
     /// @param walletPubKeyHash the pubkey hash of the wallet
     /// @param script the output script of the redemption
     /// @return The key = keccak256(keccak256(script), walletPubKeyHash)
-    function getRedemptionKey(
-        bytes20 walletPubKeyHash,
-        bytes memory script
-    ) internal pure returns (uint256) {
+    function getRedemptionKey(bytes20 walletPubKeyHash, bytes memory script)
+        internal
+        pure
+        returns (uint256)
+    {
         bytes32 scriptHash = keccak256(script);
         uint256 key;
         /* solhint-disable-next-line no-inline-assembly */
@@ -1038,10 +1038,11 @@ library Redemption {
     /// @param walletPubKeyHash the pubkey hash of the wallet
     /// @param scriptHash the output script hash of the redemption
     /// @return The key = keccak256(scriptHash, walletPubKeyHash)
-    function _getRedemptionKey(
-        bytes20 walletPubKeyHash,
-        bytes32 scriptHash
-    ) internal pure returns (uint256) {
+    function _getRedemptionKey(bytes20 walletPubKeyHash, bytes32 scriptHash)
+        internal
+        pure
+        returns (uint256)
+    {
         uint256 key;
         /* solhint-disable-next-line no-inline-assembly */
         assembly {
