@@ -359,6 +359,8 @@ library MovingFunds {
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
     ) external {
+        // Wallet state is validated in `notifyWalletFundsMoved`.
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -368,13 +370,31 @@ library MovingFunds {
             movingFundsProof
         );
 
+        // Assert that main UTXO for passed wallet exists in storage.
+        bytes32 mainUtxoHash = self
+            .registeredWallets[walletPubKeyHash]
+            .mainUtxoHash;
+        require(mainUtxoHash != bytes32(0), "No main UTXO for given wallet");
+
+        // Assert that passed main UTXO parameter is the same as in storage and
+        // can be used for further processing.
+        require(
+            keccak256(
+                abi.encodePacked(
+                    mainUtxo.txHash,
+                    mainUtxo.txOutputIndex,
+                    mainUtxo.txOutputValue
+                )
+            ) == mainUtxoHash,
+            "Invalid main UTXO data"
+        );
+
         // Process the moving funds transaction input. Specifically, check if
         // it refers to the expected wallet's main UTXO.
         OutboundTx.processWalletOutboundTxInput(
             self,
             movingFundsTx.inputVector,
-            mainUtxo,
-            walletPubKeyHash
+            mainUtxo
         );
 
         (
@@ -548,31 +568,19 @@ library MovingFunds {
         bytes20 walletPubKeyHash,
         uint32[] calldata walletMembersIDs
     ) external {
-        Wallets.Wallet storage wallet = self.registeredWallets[
-            walletPubKeyHash
-        ];
+        // Wallet state is validated in `notifyWalletMovingFundsTimeout`.
 
-        require(
-            wallet.state == Wallets.WalletState.MovingFunds,
-            "Wallet must be in MovingFunds state"
-        );
+        uint32 movingFundsRequestedAt = self
+            .registeredWallets[walletPubKeyHash]
+            .movingFundsRequestedAt;
 
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp >
-                wallet.movingFundsRequestedAt + self.movingFundsTimeout,
+            block.timestamp > movingFundsRequestedAt + self.movingFundsTimeout,
             "Moving funds has not timed out yet"
         );
 
-        self.ecdsaWalletRegistry.seize(
-            self.movingFundsTimeoutSlashingAmount,
-            self.movingFundsTimeoutNotifierRewardMultiplier,
-            msg.sender,
-            wallet.ecdsaWalletID,
-            walletMembersIDs
-        );
-
-        self.terminateWallet(walletPubKeyHash);
+        self.notifyWalletMovingFundsTimeout(walletPubKeyHash, walletMembersIDs);
 
         // slither-disable-next-line reentrancy-events
         emit MovingFundsTimedOut(walletPubKeyHash);
@@ -596,14 +604,7 @@ library MovingFunds {
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
-        Wallets.Wallet storage wallet = self.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        require(
-            wallet.state == Wallets.WalletState.MovingFunds,
-            "Wallet must be in MovingFunds state"
-        );
+        // Wallet state is validated in `notifyWalletMovingFundsBelowDust`.
 
         uint64 walletBtcBalance = self.getWalletBtcBalance(
             walletPubKeyHash,
@@ -615,7 +616,7 @@ library MovingFunds {
             "Wallet BTC balance must be below the moving funds dust threshold"
         );
 
-        self.beginWalletClosing(walletPubKeyHash);
+        self.notifyWalletMovingFundsBelowDust(walletPubKeyHash);
 
         // slither-disable-next-line reentrancy-events
         emit MovingFundsBelowDustReported(walletPubKeyHash);
@@ -666,6 +667,9 @@ library MovingFunds {
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
     ) external {
+        // Wallet state validation is performed in the
+        // `resolveMovedFundsSweepingWallet` function.
+
         // The actual transaction proof is performed here. After that point, we
         // can assume the transaction happened on Bitcoin chain and has
         // a sufficient number of confirmations as determined by
@@ -1024,6 +1028,8 @@ library MovingFunds {
         uint32 movingFundsTxOutputIndex,
         uint32[] calldata walletMembersIDs
     ) external {
+        // Wallet state is validated in `notifyWalletMovedFundsSweepTimeout`.
+
         MovedFundsSweepRequest storage sweepRequest = self
             .movedFundsSweepRequests[
                 uint256(
@@ -1049,35 +1055,17 @@ library MovingFunds {
         );
 
         bytes20 walletPubKeyHash = sweepRequest.walletPubKeyHash;
+
+        self.notifyWalletMovedFundsSweepTimeout(
+            walletPubKeyHash,
+            walletMembersIDs
+        );
+
         Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
         ];
-        Wallets.WalletState walletState = wallet.state;
-
-        require(
-            walletState == Wallets.WalletState.Live ||
-                walletState == Wallets.WalletState.MovingFunds ||
-                walletState == Wallets.WalletState.Terminated,
-            "Wallet must be in Live or MovingFunds or Terminated state"
-        );
-
         sweepRequest.state = MovedFundsSweepRequestState.TimedOut;
         wallet.pendingMovedFundsSweepRequestsCount--;
-
-        if (
-            walletState == Wallets.WalletState.Live ||
-            walletState == Wallets.WalletState.MovingFunds
-        ) {
-            self.ecdsaWalletRegistry.seize(
-                self.movedFundsSweepTimeoutSlashingAmount,
-                self.movedFundsSweepTimeoutNotifierRewardMultiplier,
-                msg.sender,
-                wallet.ecdsaWalletID,
-                walletMembersIDs
-            );
-
-            self.terminateWallet(walletPubKeyHash);
-        }
 
         // slither-disable-next-line reentrancy-events
         emit MovedFundsSweepTimedOut(

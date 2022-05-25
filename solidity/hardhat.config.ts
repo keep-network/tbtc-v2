@@ -174,6 +174,9 @@ const config: HardhatUserConfig = {
     runOnCompile: true,
     strict: true,
   },
+  mocha: {
+    timeout: 60_000,
+  },
   typechain: {
     outDir: "typechain",
   },

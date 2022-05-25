@@ -61,13 +61,13 @@
 \draw[->](unknown)      --  node[below right, pos=0, yshift=-5mm, align=left] {- \_\_ecdsaWalletCreatedCallback}           (live);
 \draw[->](live)         --  node[below right, pos=0, yshift=-5mm, align=left] {- notifyRedemptionTimeout\\
                                                                                - \_\_ecdsaWalletHeartbeatFailedCallback\\
-                                                                               - notifyCloseableWallet}                   (movingFunds);
+                                                                               - notifyWalletCloseable}                   (movingFunds);
 \draw[->](movingFunds)  --  node[below right, pos=0, yshift=-5mm, align=left] {- submitMovingFundsProof\\
                                                                                - notifyMovingFundsBelowDust}              (closing);
 \draw[->](closing)      --  node[below right, pos=0, yshift=-5mm, align=left] {- notifyWalletClosingPeriodElapsed}        (closed);
 \draw[->](live)         -|  node[above right, pos=0, xshift=5mm, align=left]  {- notifyRedemptionTimeout *\\
                                                                                - \_\_ecdsaWalletHeartbeatFailedCallback *\\
-                                                                               - notifyCloseableWallet *\\
+                                                                               - notifyWalletCloseable *\\
                                                                                \sffamily\footnotesize{(* only if there is no main UTXO for the wallet)}} 
                                                                                                                           +(10cm,0)
                         |-                                                                                                (closing);
@@ -97,7 +97,7 @@ LIVE:\\
   - submitMovedFundsSweepProof\\
   - notifyMovedFundsSweepTimeout\\
   - \_\_ecdsaWalletHeartbeatFailedCallback\\
-  - notifyCloseableWallet\\
+  - notifyWalletCloseable\\
   - submitFraudChallenge\\
   - defeatFraudChallenge\\
   - defeatFraudChallengeWithHeartbeat\\
