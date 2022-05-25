@@ -589,6 +589,7 @@ library Wallets {
             /* solhint-disable-next-line not-rely-on-time */
             wallet.movingFundsRequestedAt = uint32(block.timestamp);
 
+            // slither-disable-next-line reentrancy-events
             emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
         }
 
@@ -617,6 +618,7 @@ library Wallets {
         /* solhint-disable-next-line not-rely-on-time */
         wallet.closingStartedAt = uint32(block.timestamp);
 
+        // slither-disable-next-line reentrancy-events
         emit WalletClosing(wallet.ecdsaWalletID, walletPubKeyHash);
     }
 
@@ -659,6 +661,7 @@ library Wallets {
 
         wallet.state = WalletState.Terminated;
 
+        // slither-disable-next-line reentrancy-events
         emit WalletTerminated(wallet.ecdsaWalletID, walletPubKeyHash);
 
         if (self.activeWalletPubKeyHash == walletPubKeyHash) {
