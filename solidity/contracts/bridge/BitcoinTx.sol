@@ -313,8 +313,8 @@ library BitcoinTx {
     }
 
     /// @notice Build the P2PKH script from the given public key hash.
-    /// @param pubKeyHash The 20-byte public key hash
-    /// @return The P2PKH script
+    /// @param pubKeyHash The 20-byte public key hash.
+    /// @return The P2PKH script.
     /// @dev The P2PKH script has the following byte format:
     ///      <0x1976a914> <20-byte PKH> <0x88ac>. According to
     ///      https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
@@ -337,8 +337,8 @@ library BitcoinTx {
     }
 
     /// @notice Build the P2WPKH script from the given public key hash.
-    /// @param pubKeyHash The 20-byte public key hash
-    /// @return The P2WPKH script
+    /// @param pubKeyHash The 20-byte public key hash.
+    /// @return The P2WPKH script.
     /// @dev The P2WPKH script has the following format:
     ///      <0x160014> <20-byte PKH>. According to
     ///      https://en.bitcoin.it/wiki/Script#Opcodes this translates to:

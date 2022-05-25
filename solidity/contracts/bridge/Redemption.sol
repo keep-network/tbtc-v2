@@ -673,7 +673,7 @@ library Redemption {
     ///        must be validated using e.g. `BTCUtils.validateVout` function
     ///        before it is passed here.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
+    ///        HASH160 over the compressed ECDSA public key) of the wallet which
     ///        performed the redemption transaction.
     /// @return info Outcomes of the processing.
     function processRedemptionTxOutputs(
@@ -750,7 +750,7 @@ library Redemption {
 
     /// @notice Processes all outputs from the redemption transaction. Tries to
     ///         identify output as a change output, pending redemption request
-    //          or reported redemption. Reverts if one of the outputs cannot be
+    ///         or reported redemption. Reverts if one of the outputs cannot be
     ///         recognized properly. Marks each request as processed by removing
     ///         them from `pendingRedemptions` mapping.
     /// @param redemptionTxOutputVector Bitcoin redemption transaction output
@@ -758,7 +758,7 @@ library Redemption {
     ///        must be validated using e.g. `BTCUtils.validateVout` function
     ///        before it is passed here.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
+    ///        HASH160 over the compressed ECDSA public key) of the wallet which
     ///        performed the redemption transaction.
     /// @param processInfo RedemptionTxOutputsProcessingInfo identifying output
     ///        starting index, the number of outputs and possible wallet change
@@ -854,8 +854,8 @@ library Redemption {
     ///         requested and reported timed-out redemption.
     ///         This function also marks each pending request as processed by
     ///         removing them from `pendingRedemptions` mapping.
-    /// @param redemptionKey Redemption key of the output being processed
-    /// @param outputValue Value of the output being processed
+    /// @param redemptionKey Redemption key of the output being processed.
+    /// @param outputValue Value of the output being processed.
     /// @return burnableValue The value burnable as a result of processing this
     ///         single redemption output. This value needs to be summed up with
     ///         burnable values of all other outputs to evaluate total burnable
@@ -1014,10 +1014,10 @@ library Redemption {
         self.bank.transferBalance(request.redeemer, request.requestedAmount);
     }
 
-    /// @notice Calculate redemption key without allocations
-    /// @param walletPubKeyHash the pubkey hash of the wallet
-    /// @param script the output script of the redemption
-    /// @return The key = keccak256(keccak256(script), walletPubKeyHash)
+    /// @notice Calculate redemption key without allocations.
+    /// @param walletPubKeyHash the pubkey hash of the wallet.
+    /// @param script the output script of the redemption.
+    /// @return The key = keccak256(keccak256(script), walletPubKeyHash).
     function getRedemptionKey(bytes20 walletPubKeyHash, bytes memory script)
         internal
         pure
@@ -1034,10 +1034,10 @@ library Redemption {
         return key;
     }
 
-    /// @notice Finish calculating redemption key without allocations
-    /// @param walletPubKeyHash the pubkey hash of the wallet
-    /// @param scriptHash the output script hash of the redemption
-    /// @return The key = keccak256(scriptHash, walletPubKeyHash)
+    /// @notice Finish calculating redemption key without allocations.
+    /// @param walletPubKeyHash the pubkey hash of the wallet.
+    /// @param scriptHash the output script hash of the redemption.
+    /// @return The key = keccak256(scriptHash, walletPubKeyHash).
     function _getRedemptionKey(bytes20 walletPubKeyHash, bytes32 scriptHash)
         internal
         pure
