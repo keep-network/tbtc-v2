@@ -82,6 +82,71 @@ Once that is finished, the wallet registry can call
 `Bridge.__ecdsaWalletCreatedCallback`, which sets the new wallet as the active
 wallet. Going forward, it will receive deposits.
 
+==== Wallet Closure
+
+Wallets can close in a few ways:
+
+* The operators notify the chain that the wallet is failing a heartbeat:
+`Bridge. __ecdsaWalletHeartbeatFailedCallback` (called by `ecdsa`
+`WalletRegistry.notifyOperatorInactivity`)`
+* Someone notifies the chain that the wallet timed out while filling a
+redemption: `Bridge.notifyRedemptionTimeout`
+* Someone notifies the chain that a non-active wallet is too old:
+`Bridge.notifyCloseableWallet`
+* Someone notifies the chain that a non-active wallet has too few BTC
+remaining: `Bridge.notifyCloseableWallet`
+
+Each of the above routes into `Wallets.moveFunds`. If the wallet has no main
+UTXO, then we can start closing it immediately via
+`Wallets.beginWalletClosing`. Otherwise, we change it's state to
+`WalletState.MovingFunds`, decrease the live wallet count, and give the wallet
+a deadline to move its funds to other wallet(s). If this was the active wallet,
+then we currently have no active wallet.
+
+After `movingFundsTimeout` goes by, anyone can call
+`Bridge.notifyMovingFundsTimeout` which pipes into
+`Wallets.terminateWallet` followed by `ecdsaWalletRegistry.seize`.
+`terminateWallet`, in this case passes through to
+`ecdsaWalletRegistry.closeWallet` after changing the state to
+`WalletState.Terminated`.
+
+Furthermore, the `ecdsaWalletRegistry.seize` call is punishing the operators by
+`movedFundsSweepTimeoutSlashingAmount` and rewarding the notifier with a reward
+multiplier of `movedFundsSweepTimeoutNotifierRewardMultiplier` (the notifier
+gets a percentaged of the slashed stake).
+
+In order to avoid this, the wallet has to commit to which wallets they'll send
+the funds to (`Bridge.submitMovingFundsCommitment`), then actually send
+the funds to those wallets, and then prove that they did it
+(`Bridge.submitMovingFundsProof`) before the time runs out.
+
+The commitment involves submitting a list of wallet public keys that:
+
+* Aren't the source wallet 
+* Are in ascending order
+* Are Live
+
+We store the hash of the list in `movingFundsTargetWalletsCommitmentHash`.
+Off-chain we come to consensus by picking the Live wallets whose public key
+hashes are the closest to the source wallet's public key hash in terms of clock
+distance (modulus distance). This makes public key hashes in the middle of the
+range no more likely to be picked than ones near the ends. We pick a number of
+wallets equal to `min(liveWalletsCount, ceil(walletBtcBalance /
+walletMaxBtcTransfer))`, where `walletMaxBtcTransfer` is governable.
+
+In `submitMovingFundsProof`, we prove that the Bitcoin transaction happened and
+has an appropriate number of confirmations, and then mark the source wallet's
+UTXO as spent via `OutboundTx.processWalletOutboundTxInput`. We pass the
+transaction's outputs into `MovingFunds.processMovingFundsTxOutputs`, sum up
+the funds and return a hash of the target wallets to check against
+`movingFundsTargetWalletsCommitmentHash` in `notifyWalletFundsMoved`.
+
+If the hashes match, we begin closing the wallet via `beginWalletClosing`.
+After `walletClosingPeriod` has elapsed, anyone can call
+`Bridge.notifyWalletClosingPeriodElapsed` to close the wallet.
+
+=== Transfering Bitcoin
+
 ==== Depositing
 
 When the system has an active wallet (denoted by
@@ -125,7 +190,7 @@ can be done immediately; no need to wait for confirmations) by calling
 `Bridge.revealDeposit` takes in the funding transaction, and then the necessary
 information to reconstruct the Bitcoin script: `depositor`, `blindingFactor`,
 `walletPubKeyHash` and `refundPubkeyHash`. Then, it makes sure that the funding
-transaction happened on bitcoin, reconstructs the script, hashes it, verifies
+transaction happened on Bitcoin, reconstructs the script, hashes it, verifies
 that the hashes match, and then stores the deposit as waiting to be
 <sweeping,swept> associated to the provided `depositor`.
 
@@ -184,6 +249,33 @@ the creation of a new active wallet.
 creation of a new active wallet regardless of age.
 |Yes
 |`25 BTC`
+
+4+s|Wallet Closure
+
+|movingFundsTimeout
+|The amount of time a wallet has to move funds before facing penalty.
+|Yes
+|`1 week`
+
+|movedFundsSweepTimeoutSlashingAmount
+|The amount of stake to slash if the wallet does not move its funds in time.
+|Yes
+|`100% of min-stake`
+
+|movedFundsSweepTimeoutNotifierRewardMultiplier
+|The the percentage of the slashed stake that the notifier receives as a reward.
+|Yes
+|`5%`
+
+|walletMaxBtcTransfer
+|The threshold at which we try to divide up a closing wallet into multiple target wallets
+|Yes
+|`50 BTC`
+
+|walletClosingPeriod
+|The amount of time the wallet remains in the `Closing` state before it is closed.
+|Yes
+|`3 days`
 
 4+s|Redemption
 
