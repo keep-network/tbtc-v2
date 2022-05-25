@@ -41,17 +41,19 @@ library Wallets {
         ///      redemption requests and new deposit reveals are not accepted.
         MovingFunds,
         /// @dev The wallet moved or redeemed all their funds and is in the
-        ///      closing period where they can be subject of fraud challenges
+        ///      closing period where it is still a subject of fraud challenges
         ///      and must defend against them. This state is needed to protect
         ///      against deposit frauds on deposits revealed but not swept.
         ///      The closing period must be greater that the deposit refund
         ///      time plus some time margin.
         Closing,
         /// @dev The wallet finalized the closing period successfully and
-        ///      cannot perform any action in the Bridge.
+        ///      can no longer perform any action in the Bridge.
         Closed,
-        /// @dev The wallet committed a fraud that was reported. The wallet is
-        ///      blocked and can not perform any actions in the Bridge.
+        /// @dev The wallet committed a fraud that was reported, did not move
+        ///      funds to another wallet before a timeout, or did not sweep
+        ///      funds moved to if from another wallet before a timeout. The
+        ///      wallet is blocked and can not perform any actions in the Bridge.
         ///      Off-chain coordination with the wallet operators is needed to
         ///      recover funds.
         Terminated
