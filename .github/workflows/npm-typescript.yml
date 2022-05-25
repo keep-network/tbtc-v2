@@ -1,0 +1,54 @@
+name: NPM
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "typescript/**"
+  workflow_dispatch:
+  pull_request: # TODO: remove
+
+jobs:
+  npm-compile-publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./typescript
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          registry-url: "https://registry.npmjs.org"
+          cache: "yarn"
+          cache-dependency-path: typescript/yarn.lock
+
+      # We need this step because the `@keep-network/tbtc-v2` which we update in
+      # next step has an indirect dependency to `@summa-tx/relay-sol@2.0.2`
+      # package, which downloads one of its sub-dependencies via unathenticated
+      # `git://` protocol. That protocol is no longer supported. Thanks to this
+      # step `https://` is used instead of `git://`.
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
+      - name: Resolve latest contracts
+        run: yarn upgrade @keep-network/tbtc-v2
+
+      - name: Compile
+        run: yarn build
+
+      - name: Bump up package version
+        id: npm-version-bump
+        uses: keep-network/npm-version-bump@v2
+        with:
+          work-dir: ./typescript
+          environment: dev
+          branch: ${{ github.ref }}
+          commit: ${{ github.sha }}
+
+      - name: Publish package # TODO: Remove --dry-run before merge to main
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access=public --tag=development --dry-run
