@@ -120,6 +120,17 @@ describe("Maintainer", () => {
       to: walletRegistry.address,
       value: ethers.utils.parseEther("100"),
     })
+
+    await deployer.sendTransaction({
+      to: reimbursementPool.address,
+      value: ethers.utils.parseEther("100"),
+    })
+
+    await helpers.ownable.transferOwnership(
+      "ReimbursementPool",
+      governance.address,
+      deployer.address
+    )
     ;({ fraudChallengeDepositAmount } = await bridge.fraudParameters())
   })
 
