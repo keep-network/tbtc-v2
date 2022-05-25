@@ -598,9 +598,9 @@ library BridgeGovernanceParameters {
         return self.newRedemptionTxMaxFee;
     }
 
-    /// @notice Begins the redemption timeout slashing amount update process.
+    /// @notice Begins the redemption timeout amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newRedemptionTimeout New redemption timeout slashing amount.
+    /// @param _newRedemptionTimeout New redemption timeout amount.
     function beginRedemptionTimeoutUpdate(
         RedemptionData storage self,
         uint64 _newRedemptionTimeout
@@ -615,7 +615,7 @@ library BridgeGovernanceParameters {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the redemption timeout slashing amount update
+    /// @notice Finalizes the redemption timeout amount update
     ///         process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.

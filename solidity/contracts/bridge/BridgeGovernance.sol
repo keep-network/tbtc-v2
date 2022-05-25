@@ -441,7 +441,7 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the redemption dust threshold amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newRedemptionDustThreshold New redemption treasury fee divisor.
+    /// @param _newRedemptionDustThreshold New redemption dust threshold.
     function beginRedemptionDustThresholdUpdate(
         uint64 _newRedemptionDustThreshold
     ) external onlyOwner {
@@ -450,7 +450,7 @@ contract BridgeGovernance is Ownable {
         );
     }
 
-    /// @notice Finalizes the redemption treasury fee divisor amount update process.
+    /// @notice Finalizes the dust threshold amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeRedemptionDustThresholdUpdate() external onlyOwner {
