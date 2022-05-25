@@ -53,7 +53,7 @@
 \node[check, below=of mfsp_start]                                  (mfsp_check1)  {Is there\\ a pending moved\\ funds sweep\\ request registered\\ for the wallet?};
 \node[check, below right=of mfsp_check1]                           (mfsp_check2)  {Has the\\ sweep transaction\\ occurred on\\ Bitcoin?};
 \node[check, below right=of mfsp_check2]                           (mfsp_check3)  {Does the\\ sweep transaction have\\ a single output?};
-\node[check, below right=of mfsp_check3]                           (mfsp_check4)  {Does the sweep transaction\\ have correct number of inputs?\\ (2 for wallet with the main\\ UTXO, 1 for wallet without)};
+\node[check, below right=of mfsp_check3]                           (mfsp_check4)  {Does the sweep transaction\\ have correct number of inputs?\\ (2 for a wallet with the main\\ UTXO, 1 for a wallet without)};
 \node[check, below right=of mfsp_check4, xshift=5mm]               (mfsp_check5)  {Is wallet LIVE or\\ MOVING\_FUNDS?};
 \node[check, below right=of mfsp_check5]                           (mfsp_check6)  {Is the\\ Bitcoin network fee\\ acceptable?}; 
 \node[revert, below left=of mfsp_check6, xshift=-18cm]             (mfsp_revert1) {Transaction reverted};
