@@ -239,7 +239,7 @@ After `Bridge.redemptionTimeout`, anyone may call
 the operators for `Bridge.redemptionTimeoutSlashingAmount`, and reward the
 notifier for a percentage (`Bridge.redemptionTimeoutNotifierRewardMultiplier`)
 of the slashed stake. The redeemer is reimbursed the Bank balance of the
-redemption, and the wallet begins to move its funds and eventually close via
+redemption, and the wallet begins to move its funds via
 `Wallets.notifyWalletTimedOutRedemption`.
 
 To avoid this, the operators must fulfill the redemption by signing a
