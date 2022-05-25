@@ -222,7 +222,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the bridge governance transfer has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -493,7 +493,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the deposit treasury fee divisor has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -623,7 +623,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the deposit tx max fee has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -759,7 +759,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the redemption dust threshold has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -908,7 +908,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the redemption treasury fee divisor has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -1037,7 +1037,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the redemption timeout has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -1175,32 +1175,29 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context(
-      "when the redemption timeout slashing amount has not passed",
-      () => {
-        before(async () => {
-          await createSnapshot()
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
 
-          await bridgeGovernance
+        await bridgeGovernance
+          .connect(governance)
+          .beginRedemptionTimeoutSlashingAmountUpdate(7331)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
             .connect(governance)
-            .beginRedemptionTimeoutSlashingAmountUpdate(7331)
-
-          await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeRedemptionTimeoutSlashingAmountUpdate()
-          ).to.be.revertedWith("Governance delay has not elapsed")
-        })
-      }
-    )
+            .finalizeRedemptionTimeoutSlashingAmountUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
 
     context(
       "when the update process is initialized and governance delay passed",
@@ -1319,32 +1316,29 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context(
-      "when the redemption timeout notifier reward multiplier has not passed",
-      () => {
-        before(async () => {
-          await createSnapshot()
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
 
-          await bridgeGovernance
+        await bridgeGovernance
+          .connect(governance)
+          .beginRedemptionTimeoutNotifierRewardMultiplierUpdate(42)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
             .connect(governance)
-            .beginRedemptionTimeoutNotifierRewardMultiplierUpdate(42)
-
-          await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
-          ).to.be.revertedWith("Governance delay has not elapsed")
-        })
-      }
-    )
+            .finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
 
     context(
       "when the update process is initialized and governance delay passed",
@@ -1465,7 +1459,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the moving funds tx max total fee has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -1605,7 +1599,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the moving funds dust threshold has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -1748,7 +1742,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the moving funds timeout reset delay has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -1883,7 +1877,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the moving funds timeout has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -2027,32 +2021,29 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context(
-      "when the moving funds timeout slashing amount has not passed",
-      () => {
-        before(async () => {
-          await createSnapshot()
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
 
-          await bridgeGovernance
+        await bridgeGovernance
+          .connect(governance)
+          .beginMovingFundsTimeoutSlashingAmountUpdate(7331)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
             .connect(governance)
-            .beginMovingFundsTimeoutSlashingAmountUpdate(7331)
-
-          await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeMovingFundsTimeoutSlashingAmountUpdate()
-          ).to.be.revertedWith("Governance delay has not elapsed")
-        })
-      }
-    )
+            .finalizeMovingFundsTimeoutSlashingAmountUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
 
     context(
       "when the update process is initialized and governance delay passed",
@@ -2174,32 +2165,29 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context(
-      "when the moving funds timeout notifier reward multiplier has not passed",
-      () => {
-        before(async () => {
-          await createSnapshot()
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
 
-          await bridgeGovernance
+        await bridgeGovernance
+          .connect(governance)
+          .beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(42)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
             .connect(governance)
-            .beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(42)
-
-          await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate()
-          ).to.be.revertedWith("Governance delay has not elapsed")
-        })
-      }
-    )
+            .finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
 
     context(
       "when the update process is initialized and governance delay passed",
@@ -2323,32 +2311,29 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context(
-      "when the moved funds sweep tx max total fee has not passed",
-      () => {
-        before(async () => {
-          await createSnapshot()
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
 
-          await bridgeGovernance
+        await bridgeGovernance
+          .connect(governance)
+          .beginMovedFundsSweepTxMaxTotalFeeUpdate(7331)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
             .connect(governance)
-            .beginMovedFundsSweepTxMaxTotalFeeUpdate(7331)
-
-          await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeMovedFundsSweepTxMaxTotalFeeUpdate()
-          ).to.be.revertedWith("Governance delay has not elapsed")
-        })
-      }
-    )
+            .finalizeMovedFundsSweepTxMaxTotalFeeUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
 
     context(
       "when the update process is initialized and governance delay passed",
@@ -2465,7 +2450,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the moved funds sweep timeout has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -2606,32 +2591,29 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context(
-      "when the moved funds sweep timeout slashing amount has not passed",
-      () => {
-        before(async () => {
-          await createSnapshot()
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
 
-          await bridgeGovernance
+        await bridgeGovernance
+          .connect(governance)
+          .beginMovedFundsSweepTimeoutSlashingAmountUpdate(7331)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
             .connect(governance)
-            .beginMovedFundsSweepTimeoutSlashingAmountUpdate(7331)
-
-          await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeMovedFundsSweepTimeoutSlashingAmountUpdate()
-          ).to.be.revertedWith("Governance delay has not elapsed")
-        })
-      }
-    )
+            .finalizeMovedFundsSweepTimeoutSlashingAmountUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
 
     context(
       "when the update process is initialized and governance delay passed",
@@ -2753,32 +2735,29 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context(
-      "when the moved funds sweep timeout notifier reward multiplier has not passed",
-      () => {
-        before(async () => {
-          await createSnapshot()
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
 
-          await bridgeGovernance
+        await bridgeGovernance
+          .connect(governance)
+          .beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(42)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
             .connect(governance)
-            .beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(42)
-
-          await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate()
-          ).to.be.revertedWith("Governance delay has not elapsed")
-        })
-      }
-    )
+            .finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
 
     context(
       "when the update process is initialized and governance delay passed",
@@ -2894,7 +2873,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the wallet creation period has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -3030,7 +3009,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the wallet creation min btc balance has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -3169,7 +3148,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the wallet creation max btc balance has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -3314,7 +3293,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the wallet closure min btc balance has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -3442,7 +3421,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the wallet max age has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -3574,7 +3553,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the wallet max btc transfer has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -3706,7 +3685,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the wallet closing period has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -3842,7 +3821,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the fraud challenge deposit amount has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -3980,7 +3959,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the fraud challenge defeat timeout has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -4112,7 +4091,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the fraud slashing amount has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
@@ -4251,7 +4230,7 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    context("when the fraud notifier reward multiplier has not passed", () => {
+    context("when the governance delay has not passed", () => {
       before(async () => {
         await createSnapshot()
 
