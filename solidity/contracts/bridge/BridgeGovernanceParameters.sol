@@ -510,7 +510,8 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the redemption treasury fee divisor amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newRedemptionTreasuryFeeDivisor New redemption treasury fee divisor amount.
+    /// @param _newRedemptionTreasuryFeeDivisor New redemption treasury fee divisor 
+    ///         amount.
     function beginRedemptionTreasuryFeeDivisorUpdate(
         RedemptionData storage self,
         uint64 _newRedemptionTreasuryFeeDivisor
@@ -1570,7 +1571,8 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the fraud challenge defeat timeout amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newFraudChallengeDefeatTimeout New fraud challenge defeat timeout amount.
+    /// @param _newFraudChallengeDefeatTimeout New fraud challenge defeat timeout
+    ///         amount.
     function beginFraudChallengeDefeatTimeoutUpdate(
         FraudData storage self,
         uint256 _newFraudChallengeDefeatTimeout

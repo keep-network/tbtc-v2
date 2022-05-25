@@ -954,7 +954,8 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Begins the moved funds sweep tx max total fee update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newMovedFundsSweepTxMaxTotalFee New moved funds sweep tx max total fee.
+    /// @param _newMovedFundsSweepTxMaxTotalFee New moved funds sweep tx max total
+    ///         fee.
     function beginMovedFundsSweepTxMaxTotalFeeUpdate(
         uint64 _newMovedFundsSweepTxMaxTotalFee
     ) external onlyOwner {
@@ -1337,9 +1338,9 @@ contract BridgeGovernance is Ownable {
         walletData.finalizeWalletMaxAgeUpdate(governanceDelays[0]);
     }
 
-    /// @notice Begins the wallet closing period update process.
+    /// @notice Begins the wallet max btc transafer amount update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newWalletMaxBtcTransfer New wallet closing period.
+    /// @param _newWalletMaxBtcTransfer New wallet max btc transfer.
     function beginWalletMaxBtcTransferUpdate(uint64 _newWalletMaxBtcTransfer)
         external
         onlyOwner
@@ -1347,7 +1348,7 @@ contract BridgeGovernance is Ownable {
         walletData.beginWalletMaxBtcTransferUpdate(_newWalletMaxBtcTransfer);
     }
 
-    /// @notice Finalizes the wallet closing period update process.
+    /// @notice Finalizes the wallet max btc transfer amount update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeWalletMaxBtcTransferUpdate() external onlyOwner {
