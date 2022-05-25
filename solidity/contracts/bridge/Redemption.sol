@@ -795,6 +795,7 @@ library Redemption {
             uint256 outputScriptStart = processInfo.outputStartingIndex + 8;
 
             bytes32 outputScriptHash;
+            /* solhint-disable-next-line no-inline-assembly */
             assembly {
                 outputScriptHash := keccak256(
                     add(redemptionTxOutputVector, add(outputScriptStart, 32)),
@@ -1024,6 +1025,7 @@ library Redemption {
     ) internal pure returns (uint256) {
         bytes32 scriptHash = keccak256(script);
         uint256 key;
+        /* solhint-disable-next-line no-inline-assembly */
         assembly {
             mstore(0, scriptHash)
             mstore(32, walletPubKeyHash)
@@ -1041,6 +1043,7 @@ library Redemption {
         bytes32 scriptHash
     ) internal pure returns (uint256) {
         uint256 key;
+        /* solhint-disable-next-line no-inline-assembly */
         assembly {
             mstore(0, scriptHash)
             mstore(32, walletPubKeyHash)

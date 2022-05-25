@@ -4377,7 +4377,7 @@ describe("Bridge - Redemption", () => {
       ["bytes32", "bytes20"],
       [
         ethers.utils.solidityKeccak256(["bytes"], [redeemerOutputScript]),
-        walletPubKeyHash
+        walletPubKeyHash,
       ]
     )
   }
