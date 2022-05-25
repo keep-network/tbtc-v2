@@ -41,17 +41,19 @@ library Wallets {
         ///      redemption requests and new deposit reveals are not accepted.
         MovingFunds,
         /// @dev The wallet moved or redeemed all their funds and is in the
-        ///      closing period where they can be subject of fraud challenges
+        ///      closing period where it is still a subject of fraud challenges
         ///      and must defend against them. This state is needed to protect
         ///      against deposit frauds on deposits revealed but not swept.
         ///      The closing period must be greater that the deposit refund
         ///      time plus some time margin.
         Closing,
         /// @dev The wallet finalized the closing period successfully and
-        ///      cannot perform any action in the Bridge.
+        ///      can no longer perform any action in the Bridge.
         Closed,
-        /// @dev The wallet committed a fraud that was reported. The wallet is
-        ///      blocked and can not perform any actions in the Bridge.
+        /// @dev The wallet committed a fraud that was reported, did not move
+        ///      funds to another wallet before a timeout, or did not sweep
+        ///      funds moved to if from another wallet before a timeout. The
+        ///      wallet is blocked and can not perform any actions in the Bridge.
         ///      Off-chain coordination with the wallet operators is needed to
         ///      recover funds.
         Terminated
@@ -180,46 +182,6 @@ library Wallets {
         self.ecdsaWalletRegistry.requestNewWallet();
     }
 
-    /// @notice Gets BTC balance for given the wallet.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
-    /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
-    ///        known on the Ethereum chain.
-    /// @return walletBtcBalance Current BTC balance for the given wallet.
-    /// @dev Requirements:
-    ///      - `walletMainUtxo` components must point to the recent main UTXO
-    ///        of the given wallet, as currently known on the Ethereum chain.
-    ///        If the wallet has no main UTXO, this parameter can be empty as it
-    ///        is ignored.
-    function getWalletBtcBalance(
-        BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash,
-        BitcoinTx.UTXO calldata walletMainUtxo
-    ) internal view returns (uint64 walletBtcBalance) {
-        bytes32 walletMainUtxoHash = self
-            .registeredWallets[walletPubKeyHash]
-            .mainUtxoHash;
-
-        // If the wallet has a main UTXO hash set, cross-check it with the
-        // provided plain-text parameter and get the transaction output value
-        // as BTC balance. Otherwise, the BTC balance is just zero.
-        if (walletMainUtxoHash != bytes32(0)) {
-            require(
-                keccak256(
-                    abi.encodePacked(
-                        walletMainUtxo.txHash,
-                        walletMainUtxo.txOutputIndex,
-                        walletMainUtxo.txOutputValue
-                    )
-                ) == walletMainUtxoHash,
-                "Invalid wallet main UTXO data"
-            );
-
-            walletBtcBalance = walletMainUtxo.txOutputValue;
-        }
-
-        return walletBtcBalance;
-    }
-
     /// @notice Registers a new wallet. This function should be called
     ///         after the wallet creation process initiated using
     ///         `requestNewWallet` completes and brings the outcomes.
@@ -263,6 +225,53 @@ library Wallets {
         emit NewWalletRegistered(ecdsaWalletID, walletPubKeyHash);
     }
 
+    /// @notice Handles a notification about a wallet redemption timeout.
+    ///         Triggers the wallet moving funds process only if the wallet is
+    ///         still in the Live state. That means multiple action timeouts can
+    ///         be reported for the same wallet but only the first report
+    ///         requests the wallet to move their funds. Executes slashing if
+    ///         the wallet is in Live or MovingFunds state. Allows to notify
+    ///         redemption timeout also for a Terminated wallet in case the
+    ///         redemption was requested before the wallet got terminated.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
+    /// @dev Requirements:
+    ///      - The wallet must be in the `Live`, `MovingFunds`,
+    ///        or `Terminated` state.
+    function notifyWalletRedemptionTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        WalletState walletState = wallet.state;
+
+        require(
+            walletState == WalletState.Live ||
+                walletState == WalletState.MovingFunds ||
+                walletState == WalletState.Terminated,
+            "Wallet must be in Live or MovingFunds or Terminated state"
+        );
+
+        if (
+            walletState == Wallets.WalletState.Live ||
+            walletState == Wallets.WalletState.MovingFunds
+        ) {
+            // Slash the wallet operators and reward the notifier
+            self.ecdsaWalletRegistry.seize(
+                self.redemptionTimeoutSlashingAmount,
+                self.redemptionTimeoutNotifierRewardMultiplier,
+                msg.sender,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
+        }
+
+        if (walletState == WalletState.Live) {
+            moveFunds(self, walletPubKeyHash);
+        }
+    }
+
     /// @notice Handles a notification about a wallet heartbeat failure and
     ///         triggers the wallet moving funds process.
     /// @param publicKeyX Wallet's public key's X coordinate.
@@ -293,33 +302,6 @@ library Wallets {
         moveFunds(self, walletPubKeyHash);
     }
 
-    /// @notice Handles a notification about a wallet redemption timeout.
-    ///         Triggers the wallet moving funds process only if the wallet is
-    ///         still in the Live state. That means multiple action timeouts can
-    ///         be reported for the same wallet but only the first report
-    ///         requests the wallet to move their funds.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
-    /// @dev Requirements:
-    ///      - The wallet must be in the `Live` or `MovingFunds` state.
-    function notifyWalletTimedOutRedemption(
-        BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash
-    ) internal {
-        WalletState walletState = self
-            .registeredWallets[walletPubKeyHash]
-            .state;
-
-        require(
-            walletState == WalletState.Live ||
-                walletState == WalletState.MovingFunds,
-            "Wallet must be in Live or MovingFunds state"
-        );
-
-        if (walletState == WalletState.Live) {
-            moveFunds(self, walletPubKeyHash);
-        }
-    }
-
     /// @notice Notifies that the wallet is either old enough or has too few
     ///         satoshis left and qualifies to be closed.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet.
@@ -335,7 +317,7 @@ library Wallets {
     ///        can be empty as it is ignored since the wallet balance is
     ///        assumed to be zero,
     ///      - Wallet must be in Live state.
-    function notifyCloseableWallet(
+    function notifyWalletCloseable(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
@@ -365,61 +347,6 @@ library Wallets {
         moveFunds(self, walletPubKeyHash);
     }
 
-    /// @notice Requests a wallet to move their funds. If the wallet balance
-    ///         is zero, the wallet closing begins immediately. If the move
-    ///         funds request refers to the current active wallet, such a wallet
-    ///         is no longer considered active and the active wallet slot
-    ///         is unset allowing to trigger a new wallet creation immediately.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
-    /// @dev Requirements:
-    ///      - The caller must make sure that the wallet is in the Live state.
-    function moveFunds(
-        BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash
-    ) internal {
-        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-
-        if (wallet.mainUtxoHash == bytes32(0)) {
-            // If the wallet has no main UTXO, that means its BTC balance
-            // is zero and the wallet closing should begin immediately.
-            beginWalletClosing(self, walletPubKeyHash);
-        } else {
-            // Otherwise, initialize the moving funds process.
-            wallet.state = WalletState.MovingFunds;
-            /* solhint-disable-next-line not-rely-on-time */
-            wallet.movingFundsRequestedAt = uint32(block.timestamp);
-
-            emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
-        }
-
-        if (self.activeWalletPubKeyHash == walletPubKeyHash) {
-            // If the move funds request refers to the current active wallet,
-            // unset the active wallet and make the wallet creation process
-            // possible in order to get a new healthy active wallet.
-            delete self.activeWalletPubKeyHash;
-        }
-
-        self.liveWalletsCount--;
-    }
-
-    /// @notice Begins the closing period of the given wallet.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
-    /// @dev Requirements:
-    ///      - The caller must make sure that the wallet is in the
-    ///        MovingFunds state.
-    function beginWalletClosing(
-        BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash
-    ) internal {
-        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-        // Initialize the closing period.
-        wallet.state = WalletState.Closing;
-        /* solhint-disable-next-line not-rely-on-time */
-        wallet.closingStartedAt = uint32(block.timestamp);
-
-        emit WalletClosing(wallet.ecdsaWalletID, walletPubKeyHash);
-    }
-
     /// @notice Notifies about the end of the closing period for the given wallet.
     ///         Closes the wallet ultimately and notifies the ECDSA registry
     ///         about this fact.
@@ -446,57 +373,6 @@ library Wallets {
         );
 
         finalizeWalletClosing(self, walletPubKeyHash);
-    }
-
-    /// @notice Finalizes the closing period of the given wallet and notifies
-    ///         the ECDSA registry about this fact.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
-    /// @dev Requirements:
-    ///      - The caller must make sure that the wallet is in the Closing state.
-    function finalizeWalletClosing(
-        BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash
-    ) internal {
-        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-
-        wallet.state = WalletState.Closed;
-
-        emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
-
-        self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
-    }
-
-    /// @notice Terminates the given wallet and notifies the ECDSA registry
-    ///         about this fact. If the wallet termination refers to the current
-    ///         active wallet, such a wallet is no longer considered active and
-    ///         the active wallet slot is unset allowing to trigger a new wallet
-    ///         creation immediately.
-    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
-    /// @dev Requirements:
-    ///      - The caller must make sure that the wallet is in the
-    ///        Live or MovingFunds or Closing state.
-    function terminateWallet(
-        BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash
-    ) internal {
-        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
-
-        if (wallet.state == WalletState.Live) {
-            self.liveWalletsCount--;
-        }
-
-        wallet.state = WalletState.Terminated;
-
-        emit WalletTerminated(wallet.ecdsaWalletID, walletPubKeyHash);
-
-        if (self.activeWalletPubKeyHash == walletPubKeyHash) {
-            // If termination refers to the current active wallet,
-            // unset the active wallet and make the wallet creation process
-            // possible in order to get a new healthy active wallet.
-            delete self.activeWalletPubKeyHash;
-        }
-
-        self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
     }
 
     /// @notice Notifies that the wallet completed the moving funds process
@@ -549,5 +425,295 @@ library Wallets {
         delete wallet.mainUtxoHash;
 
         beginWalletClosing(self, walletPubKeyHash);
+    }
+
+    /// @notice Called when a MovingFunds wallet has a balance below the dust
+    ///         threshold. Begins the wallet closing.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state.
+    function notifyWalletMovingFundsBelowDust(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
+        WalletState walletState = self
+            .registeredWallets[walletPubKeyHash]
+            .state;
+
+        require(
+            walletState == Wallets.WalletState.MovingFunds,
+            "Wallet must be in MovingFunds state"
+        );
+
+        beginWalletClosing(self, walletPubKeyHash);
+    }
+
+    /// @notice Called when the timeout for MovingFunds for the wallet elapsed.
+    ///         Slashes wallet members and terminates the wallet.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
+    /// @dev Requirements:
+    ///      - The wallet must be in the MovingFunds state.
+    function notifyWalletMovingFundsTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs
+    ) internal {
+        Wallets.Wallet storage wallet = self.registeredWallets[
+            walletPubKeyHash
+        ];
+
+        require(
+            wallet.state == Wallets.WalletState.MovingFunds,
+            "Wallet must be in MovingFunds state"
+        );
+
+        self.ecdsaWalletRegistry.seize(
+            self.movingFundsTimeoutSlashingAmount,
+            self.movingFundsTimeoutNotifierRewardMultiplier,
+            msg.sender,
+            wallet.ecdsaWalletID,
+            walletMembersIDs
+        );
+
+        terminateWallet(self, walletPubKeyHash);
+    }
+
+    /// @notice Called when a wallet which was asked to sweep funds moved from
+    ///         another wallet did not provide a sweeping proof before a timeout.
+    ///         Slashes and terminates the wallet who failed to provide a proof.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet which was
+    ///        supposed to sweep funds.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
+    /// @dev Requirements:
+    ///      - The wallet must be in the `Live`, `MovingFunds`,
+    ///        or `Terminated` state.
+    function notifyWalletMovedFundsSweepTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        WalletState walletState = wallet.state;
+
+        require(
+            walletState == WalletState.Live ||
+                walletState == WalletState.MovingFunds ||
+                walletState == WalletState.Terminated,
+            "Wallet must be in Live or MovingFunds or Terminated state"
+        );
+
+        if (
+            walletState == Wallets.WalletState.Live ||
+            walletState == Wallets.WalletState.MovingFunds
+        ) {
+            self.ecdsaWalletRegistry.seize(
+                self.movedFundsSweepTimeoutSlashingAmount,
+                self.movedFundsSweepTimeoutNotifierRewardMultiplier,
+                msg.sender,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
+
+            terminateWallet(self, walletPubKeyHash);
+        }
+    }
+
+    /// @notice Called when a wallet which was challenged for a fraud did not
+    ///         defeat the challenge before the timeout. Slashes and terminates
+    ///         the wallet who failed to defeat the challenge. If the wallet is
+    ///         already terminated, it does nothing.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet which was
+    ///        supposed to sweep funds.
+    /// @param walletMembersIDs Identifiers of the wallet signing group members.
+    /// @param challenger Address of the party which submitted the fraud
+    ///        challenge.
+    /// @dev Requirements:
+    ///      - The wallet must be in the `Live`, `MovingFunds`, `Closing`
+    ///        or `Terminated` state.
+    function notifyWalletFraudChallengeDefeatTimeout(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        uint32[] calldata walletMembersIDs,
+        address challenger
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        WalletState walletState = wallet.state;
+
+        if (
+            walletState == Wallets.WalletState.Live ||
+            walletState == Wallets.WalletState.MovingFunds ||
+            walletState == Wallets.WalletState.Closing
+        ) {
+            self.ecdsaWalletRegistry.seize(
+                self.fraudSlashingAmount,
+                self.fraudNotifierRewardMultiplier,
+                challenger,
+                wallet.ecdsaWalletID,
+                walletMembersIDs
+            );
+
+            terminateWallet(self, walletPubKeyHash);
+        } else if (walletState == Wallets.WalletState.Terminated) {
+            // This is a special case when the wallet was already terminated
+            // due to a previous deliberate protocol violation. In that
+            // case, this function should be still callable for other fraud
+            // challenges timeouts in order to let the challenger unlock its
+            // ETH deposit back. However, the wallet termination logic is
+            // not called and the challenger is not rewarded.
+        } else {
+            revert(
+                "Wallet must be in Live or MovingFunds or Closing or Terminated state"
+            );
+        }
+    }
+
+    /// @notice Requests a wallet to move their funds. If the wallet balance
+    ///         is zero, the wallet closing begins immediately. If the move
+    ///         funds request refers to the current active wallet, such a wallet
+    ///         is no longer considered active and the active wallet slot
+    ///         is unset allowing to trigger a new wallet creation immediately.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @dev Requirements:
+    ///      - The caller must make sure that the wallet is in the Live state.
+    function moveFunds(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        if (wallet.mainUtxoHash == bytes32(0)) {
+            // If the wallet has no main UTXO, that means its BTC balance
+            // is zero and the wallet closing should begin immediately.
+            beginWalletClosing(self, walletPubKeyHash);
+        } else {
+            // Otherwise, initialize the moving funds process.
+            wallet.state = WalletState.MovingFunds;
+            /* solhint-disable-next-line not-rely-on-time */
+            wallet.movingFundsRequestedAt = uint32(block.timestamp);
+
+            // slither-disable-next-line reentrancy-events
+            emit WalletMovingFunds(wallet.ecdsaWalletID, walletPubKeyHash);
+        }
+
+        if (self.activeWalletPubKeyHash == walletPubKeyHash) {
+            // If the move funds request refers to the current active wallet,
+            // unset the active wallet and make the wallet creation process
+            // possible in order to get a new healthy active wallet.
+            delete self.activeWalletPubKeyHash;
+        }
+
+        self.liveWalletsCount--;
+    }
+
+    /// @notice Begins the closing period of the given wallet.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @dev Requirements:
+    ///      - The caller must make sure that the wallet is in the
+    ///        MovingFunds state.
+    function beginWalletClosing(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        // Initialize the closing period.
+        wallet.state = WalletState.Closing;
+        /* solhint-disable-next-line not-rely-on-time */
+        wallet.closingStartedAt = uint32(block.timestamp);
+
+        // slither-disable-next-line reentrancy-events
+        emit WalletClosing(wallet.ecdsaWalletID, walletPubKeyHash);
+    }
+
+    /// @notice Finalizes the closing period of the given wallet and notifies
+    ///         the ECDSA registry about this fact.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @dev Requirements:
+    ///      - The caller must make sure that the wallet is in the Closing state.
+    function finalizeWalletClosing(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        wallet.state = WalletState.Closed;
+
+        emit WalletClosed(wallet.ecdsaWalletID, walletPubKeyHash);
+
+        self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
+    }
+
+    /// @notice Terminates the given wallet and notifies the ECDSA registry
+    ///         about this fact. If the wallet termination refers to the current
+    ///         active wallet, such a wallet is no longer considered active and
+    ///         the active wallet slot is unset allowing to trigger a new wallet
+    ///         creation immediately.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @dev Requirements:
+    ///      - The caller must make sure that the wallet is in the
+    ///        Live or MovingFunds or Closing state.
+    function terminateWallet(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash
+    ) internal {
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+
+        if (wallet.state == WalletState.Live) {
+            self.liveWalletsCount--;
+        }
+
+        wallet.state = WalletState.Terminated;
+
+        // slither-disable-next-line reentrancy-events
+        emit WalletTerminated(wallet.ecdsaWalletID, walletPubKeyHash);
+
+        if (self.activeWalletPubKeyHash == walletPubKeyHash) {
+            // If termination refers to the current active wallet,
+            // unset the active wallet and make the wallet creation process
+            // possible in order to get a new healthy active wallet.
+            delete self.activeWalletPubKeyHash;
+        }
+
+        self.ecdsaWalletRegistry.closeWallet(wallet.ecdsaWalletID);
+    }
+
+    /// @notice Gets BTC balance for given the wallet.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
+    ///        known on the Ethereum chain.
+    /// @return walletBtcBalance Current BTC balance for the given wallet.
+    /// @dev Requirements:
+    ///      - `walletMainUtxo` components must point to the recent main UTXO
+    ///        of the given wallet, as currently known on the Ethereum chain.
+    ///        If the wallet has no main UTXO, this parameter can be empty as it
+    ///        is ignored.
+    function getWalletBtcBalance(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        BitcoinTx.UTXO calldata walletMainUtxo
+    ) internal view returns (uint64 walletBtcBalance) {
+        bytes32 walletMainUtxoHash = self
+            .registeredWallets[walletPubKeyHash]
+            .mainUtxoHash;
+
+        // If the wallet has a main UTXO hash set, cross-check it with the
+        // provided plain-text parameter and get the transaction output value
+        // as BTC balance. Otherwise, the BTC balance is just zero.
+        if (walletMainUtxoHash != bytes32(0)) {
+            require(
+                keccak256(
+                    abi.encodePacked(
+                        walletMainUtxo.txHash,
+                        walletMainUtxo.txOutputIndex,
+                        walletMainUtxo.txOutputValue
+                    )
+                ) == walletMainUtxoHash,
+                "Invalid wallet main UTXO data"
+            );
+
+            walletBtcBalance = walletMainUtxo.txOutputValue;
+        }
+
+        return walletBtcBalance;
     }
 }

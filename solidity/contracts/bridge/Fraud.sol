@@ -384,6 +384,8 @@ library Fraud {
         uint32[] calldata walletMembersIDs,
         bytes memory preimageSha256
     ) external {
+        // Wallet state is validated in `notifyWalletFraudChallengeDefeatTimeout`.
+
         bytes32 sighash = sha256(preimageSha256);
 
         uint256 challengeKey = uint256(
@@ -421,38 +423,11 @@ library Fraud {
         );
         bytes20 walletPubKeyHash = compressedWalletPublicKey.hash160View();
 
-        Wallets.Wallet storage wallet = self.registeredWallets[
-            walletPubKeyHash
-        ];
-
-        Wallets.WalletState walletState = wallet.state;
-
-        if (
-            walletState == Wallets.WalletState.Live ||
-            walletState == Wallets.WalletState.MovingFunds ||
-            walletState == Wallets.WalletState.Closing
-        ) {
-            self.ecdsaWalletRegistry.seize(
-                self.fraudSlashingAmount,
-                self.fraudNotifierRewardMultiplier,
-                challenge.challenger,
-                wallet.ecdsaWalletID,
-                walletMembersIDs
-            );
-
-            self.terminateWallet(walletPubKeyHash);
-        } else if (walletState == Wallets.WalletState.Terminated) {
-            // This is a special case when the wallet was already terminated
-            // due to a previous deliberate protocol violation. In that
-            // case, this function should be still callable for other fraud
-            // challenges timeouts in order to let the challenger unlock its
-            // ETH deposit back. However, the wallet termination logic is
-            // not called and the challenger is not rewarded.
-        } else {
-            revert(
-                "Wallet must be in Live or MovingFunds or Closing or Terminated state"
-            );
-        }
+        self.notifyWalletFraudChallengeDefeatTimeout(
+            walletPubKeyHash,
+            walletMembersIDs,
+            challenge.challenger
+        );
 
         // slither-disable-next-line reentrancy-events
         emit FraudChallengeDefeatTimedOut(walletPubKeyHash, sighash);
