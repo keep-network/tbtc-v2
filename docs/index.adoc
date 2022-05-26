@@ -62,7 +62,7 @@ image::diagrams/wallet-lifecycle/wallet-state-transition.png[Wallet State Transi
 
 `Bank` is a central, non-upgradeable contract keeping track of Bitcoin balances. 
 
-`Bridge` is deployed behind a `TransaprentUpgradeableProxy` and can be upgraded
+`Bridge` is deployed behind a `TransparentUpgradeableProxy` and can be upgraded
 by a `ProxyAdmin`, eventually Threshold DAO.
 
 `TBTCVault` upgrade happens in two steps with a 24-hour governance delay. The
@@ -70,8 +70,72 @@ owner of `TBTCVault` can initiate and finalize an upgrade to another vault.
 The new vault receives ownership of TBTC token as well as the entire `TBTCVault`
 balance in the Bank.
 
+=== Bridge, Bank, Vault Separation
+
+The system is decomposed into three separate pieces to separate concerns. The
+<<bridge,Bridge>> is concerned with being a decentralized Bitcoin custody, and
+providing a way to let the <<bank,Bank>> know whenever Bitcoin has successfully
+crossed from Bitcoin to another chain or visa versa.
+
+The <<bank,Bank>> is concerned with keeping track of Bitcoin account balances on
+Ethereum. It tracks when folks send those balances to each other, and when
+folks lock up their balances in <<vault,Vaults>>.
+
+Vaults are authorized smart contracts that can custody a balance and then do
+_anything_. For example, TBTC (the token) is implemented as our flagship Vault.
+You let it custody your Bank balance and it gives you TBTC tokens. You give it
+back TBTC tokens and it gives you back your Bank balance.
+
+[bridge]
+==== Bridge
+
+The Bridge is our interface to the Bitcoin blockchain and the off-chain
+clients. It is the Bridge's responsibility to listen to <<depositing,deposit
+reveals>>, <<sweeping,sweep>> them, prove it did it, and then report any relevant
+information to the <<bank,Bank>>.
+
+When it comes time to redeem, it is the Bridge's responsibility to listen to
+<<redeeming,redemption requests>>, disperse the funds, prove it did it, and then
+report any relevant information to the <<bank,Bank>>.
+
+Finally, everything about Bitcoin <<wallet-lifecycle,wallets>> falls in the
+purview of the Bridge.
+
+[bank]
+==== Bank
+
+The Bank provides Bitcoin balance accounting for Ethereum addresses with two mappings:
+
+```
+mapping(address => uint256) public balanceOf;
+mapping(address => mapping(address => uint256)) public allowance;
+```
+
+Notably, the Bank does not issue an ERC-20 token, it just does accounting. The
+`balanceOf` mapping keeps track of an Ethereum address's Bitcoin balance (in
+satoshis). Meanwhile, the `allowance` mapping keeps track of how many satoshis
+a _spender_ may transfer on an Ethereum address's behalf. Each Ethereum address
+may have many spenders, each with different allowances.
+
+A notable use of an `allowance` is to authorize a <<vault,Vault>> to custody your
+funds, but allowances are more general.
+
+[vault]
+==== Vault
+
+A Vault is an authorized Contract that interfaces with the <<bank,Bank>>. These
+are flexible, and allow us (and third parties) to write logic on top of the
+Bank architecture to implement financial systems built from Bitcoin balances.
+
+For example, TBTC is implemented as a Vault. A user with a Bank balance gives
+the `TBTCVault` an `allowance`, and then it uses that allowance to transfer
+itself Bank Balance to hold on behalf of the user, in exchange for minting the
+user the equivalent amount of TBTC tokens. Later, anyone with TBTC tokens can
+send them back to the `TBTCVault` and the vault will grant them Bank balance.
+
 == The Mechanism
 
+[wallet-lifecycle]
 === Wallet Lifecycle
 
 ==== Wallet Creation
@@ -158,7 +222,7 @@ If the hashes match, we begin closing the wallet via `beginWalletClosing`.
 After `walletClosingPeriod` has elapsed, anyone can call
 `Bridge.notifyWalletClosingPeriodElapsed` to close the wallet.
 
-=== Transfering Bitcoin
+=== Transferring Bitcoin
 
 [depositing]
 ==== Depositing
@@ -192,7 +256,7 @@ a user-provided refund address, and it's only available after `refundLocktime`.
 The idea is that they can send funds to this script hash, and if the system is
 broken or if something goes wrong, then after `refundLocktime` (30 days), they
 can send their funds back to `refundPubkeyHash` themselves. This would only
-work if the wallet hadn't <sweeping,touched> those funds yet.
+work if the wallet hadn't <<sweeping,touched>> those funds yet.
 
 Once a Bitcoin user sends such a deposit, because their P2(W)SH address is
 unique to them, _only they_ know that they deposited into TBTCv2 until they
@@ -205,7 +269,7 @@ can be done immediately; no need to wait for confirmations) by calling
 information to reconstruct the Bitcoin script: `depositor`, `blindingFactor`,
 `walletPubKeyHash` and `refundPubkeyHash`. Then it reconstructs the script,
 hashes it, verifies that the hashes match, and then stores the deposit as
-waiting to be <sweeping,swept> associated to the provided `depositor`.
+waiting to be <<sweeping,swept>> associated to the provided `depositor`.
 
 [sweeping]
 ==== Sweeping
@@ -223,7 +287,7 @@ The first is a cost vs time tradeoff. SPV proofs are expensive, so by dividing
 the cost across all of the deposits in the period, we see massive gas savings.
 This is the same model as individuals driving their own car to work vs waiting
 on the train. The second is a security measure. We need to disable the refund,
-otherwise users could get a Bank balance and then refund their bitcoin and have
+otherwise users could get a Bank balance and then refund their Bitcoin and have
 both.
 
 The entry point is `Bridge.submitDepositSweepProof` which performs the SPV
@@ -233,6 +297,7 @@ treasury (5 BPS; governable), and updates the user Bank balances with informatio
 from `DepositSweep.processDepositSweepTxInputs` and
 `DepositSweep.depositSweepTxFeeDistribution`.
 
+[redeeming]
 ==== Redeeming
 
 An account with a Bank balance can request a redemption via
@@ -272,7 +337,7 @@ Up until this point, no TBTC has been created. We have dealt strictly with Bank
 balances. Anyone with a Bank balance can transfer that Bank balance to the
 TBTCVault to mint the equivalent amount of TBTC via `TBTCVault.mint`.
 
-A <depositing,depositor> can specify in their reveal call
+A <<depositing,depositor>> can specify in their reveal call
 (`Bridge.revealDeposit`) a `vault`. If they do, rather than getting a balance
 and having to come back later to submit additional transactions, the system
 automatically commits any funds to the requested vault, and propagates any
@@ -281,7 +346,7 @@ their deposit reveal that they wish for their balance to be put toward the
 `TBTCVault`, and as soon as everything goes through they will automatically be
 minted TBTC tokens.
 
-During <sweeping,sweeping>, we look for `vault` information in the call data,
+During <<sweeping,sweeping>>, we look for `vault` information in the call data,
 and if we find it, we make a call to `Bank.increaseBalanceAndCall` rather than
 `Bank.increaseBalances` which routes to `vault.receiveBalanceIncrease`, which
 in turn calls `TBTC._mint`, in TBTC's case.
@@ -292,7 +357,7 @@ Anyone with TBTC tokens can unmint them in exchange for Bank balance by calling
 `TBTCVault.unmint`. Alternatively, if the user is attempting to exit the system
 entirely, they can save a transaction and gas by calling
 `TBTCVault.unmintAndRedeem` which routes into authorizing the Bridge to
-<redeeming,redeem> via `bank.approveBalanceAndCall`.
+<<redeeming,redeem>> via `bank.approveBalanceAndCall`.
 
 == Parameters
 
