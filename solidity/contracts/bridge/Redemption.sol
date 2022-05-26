@@ -424,16 +424,14 @@ library Redemption {
         );
 
         // Validate if redeemer output script is a correct standard type
-        // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by building a stub
-        // output with 0 as value and using `BTCUtils.extractHash` on it. Such
-        // a function extracts the payload properly only from standard outputs
-        // so if it succeeds, we have a guarantee the redeemer output script
-        // is proper. Worth to note `extractHash` ignores the value at all
-        // so this is why we can use 0 safely. This way of validation is the
-        // same as in tBTC v1.
-        bytes memory redeemerOutputScriptPayload = abi
-            .encodePacked(bytes8(0), redeemerOutputScript)
-            .extractHash();
+        // (P2PKH, P2WPKH, P2SH or P2WSH). This is done by using
+        // `BTCUtils.extractHashAt` on it. Such a function extracts the payload
+        // properly only from standard outputs so if it succeeds, we have a
+        // guarantee the redeemer output script is proper. The underlying way
+        // of validation is the same as in tBTC v1.
+        bytes memory redeemerOutputScriptPayload = redeemerOutputScript
+            .extractHashAt(0, redeemerOutputScript.length);
+
         require(
             redeemerOutputScriptPayload.length > 0,
             "Redeemer output script must be a standard type"
@@ -441,8 +439,8 @@ library Redemption {
         // Check if the redeemer output script payload does not point to the
         // wallet public key hash.
         require(
-            keccak256(abi.encodePacked(walletPubKeyHash)) !=
-                keccak256(redeemerOutputScriptPayload),
+            redeemerOutputScriptPayload.length != 20 ||
+                walletPubKeyHash != redeemerOutputScriptPayload.slice20(0),
             "Redeemer output script must not point to the wallet PKH"
         );
 
@@ -455,8 +453,9 @@ library Redemption {
         // and redeemer output script pair. That means there can be only one
         // request asking for redemption from the given wallet to the given
         // BTC script at the same time.
-        uint256 redemptionKey = uint256(
-            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
+        uint256 redemptionKey = getRedemptionKey(
+            walletPubKeyHash,
+            redeemerOutputScript
         );
 
         // Check if given redemption key is not used by a pending redemption.
@@ -497,6 +496,7 @@ library Redemption {
             uint32(block.timestamp)
         );
 
+        // slither-disable-next-line reentrancy-events
         emit RedemptionRequested(
             walletPubKeyHash,
             redeemerOutputScript,
@@ -674,7 +674,7 @@ library Redemption {
     ///        must be validated using e.g. `BTCUtils.validateVout` function
     ///        before it is passed here.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
+    ///        HASH160 over the compressed ECDSA public key) of the wallet which
     ///        performed the redemption transaction.
     /// @return info Outcomes of the processing.
     function processRedemptionTxOutputs(
@@ -722,7 +722,7 @@ library Redemption {
         // which matches the P2PKH structure as per:
         // https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash
         bytes32 walletP2PKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"1976a914", walletPubKeyHash, hex"88ac")
+            abi.encodePacked(BitcoinTx.makeP2PKHScript(walletPubKeyHash))
         );
         // The P2WPKH script has the byte format: <0x160014> <20-byte PKH>.
         // According to https://en.bitcoin.it/wiki/Script#Opcodes this translates to:
@@ -732,7 +732,7 @@ library Redemption {
         // which matches the P2WPKH structure as per:
         // https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH
         bytes32 walletP2WPKHScriptKeccak = keccak256(
-            abi.encodePacked(hex"160014", walletPubKeyHash)
+            abi.encodePacked(BitcoinTx.makeP2WPKHScript(walletPubKeyHash))
         );
 
         return
@@ -751,7 +751,7 @@ library Redemption {
 
     /// @notice Processes all outputs from the redemption transaction. Tries to
     ///         identify output as a change output, pending redemption request
-    //          or reported redemption. Reverts if one of the outputs cannot be
+    ///         or reported redemption. Reverts if one of the outputs cannot be
     ///         recognized properly. Marks each request as processed by removing
     ///         them from `pendingRedemptions` mapping.
     /// @param redemptionTxOutputVector Bitcoin redemption transaction output
@@ -759,7 +759,7 @@ library Redemption {
     ///        must be validated using e.g. `BTCUtils.validateVout` function
     ///        before it is passed here.
     /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
+    ///        HASH160 over the compressed ECDSA public key) of the wallet which
     ///        performed the redemption transaction.
     /// @param processInfo RedemptionTxOutputsProcessingInfo identifying output
     ///        starting index, the number of outputs and possible wallet change
@@ -783,24 +783,33 @@ library Redemption {
             //       https://github.com/keep-network/tbtc-v2/issues/257
             uint256 outputLength = redemptionTxOutputVector
                 .determineOutputLengthAt(processInfo.outputStartingIndex);
-            bytes memory output = redemptionTxOutputVector.slice(
-                processInfo.outputStartingIndex,
-                outputLength
-            );
 
             // Extract the value from given output.
-            uint64 outputValue = output.extractValue();
+            uint64 outputValue = redemptionTxOutputVector.extractValueAt(
+                processInfo.outputStartingIndex
+            );
+
+            uint256 scriptLength = outputLength - 8;
+
             // The output consists of an 8-byte value and a variable length
-            // script. To extract that script we slice the output starting from
+            // script. To hash that script we slice the output starting from
             // 9th byte until the end.
-            bytes memory outputScript = output.slice(8, output.length - 8);
+
+            uint256 outputScriptStart = processInfo.outputStartingIndex + 8;
+
+            bytes32 outputScriptHash;
+            /* solhint-disable-next-line no-inline-assembly */
+            assembly {
+                outputScriptHash := keccak256(
+                    add(redemptionTxOutputVector, add(outputScriptStart, 32)),
+                    scriptLength
+                )
+            }
 
             if (
                 resultInfo.changeValue == 0 &&
-                (keccak256(outputScript) ==
-                    processInfo.walletP2PKHScriptKeccak ||
-                    keccak256(outputScript) ==
-                    processInfo.walletP2WPKHScriptKeccak) &&
+                (outputScriptHash == processInfo.walletP2PKHScriptKeccak ||
+                    outputScriptHash == processInfo.walletP2WPKHScriptKeccak) &&
                 outputValue > 0
             ) {
                 // If we entered here, that means the change output with a
@@ -815,8 +824,7 @@ library Redemption {
                     uint64 treasuryFee
                 ) = processNonChangeRedemptionTxOutput(
                         self,
-                        walletPubKeyHash,
-                        outputScript,
+                        _getRedemptionKey(walletPubKeyHash, outputScriptHash),
                         outputValue
                     );
                 resultInfo.totalBurnableValue += burnableValue;
@@ -847,10 +855,7 @@ library Redemption {
     ///         requested and reported timed-out redemption.
     ///         This function also marks each pending request as processed by
     ///         removing them from `pendingRedemptions` mapping.
-    /// @param walletPubKeyHash 20-byte public key hash (computed using Bitcoin
-    //         HASH160 over the compressed ECDSA public key) of the wallet which
-    ///        performed the redemption transaction.
-    /// @param outputScript Non-change output script to be processed.
+    /// @param redemptionKey Redemption key of the output being processed.
     /// @param outputValue Value of the output being processed.
     /// @return burnableValue The value burnable as a result of processing this
     ///         single redemption output. This value needs to be summed up with
@@ -864,17 +869,9 @@ library Redemption {
     ///         redemption request.
     function processNonChangeRedemptionTxOutput(
         BridgeState.Storage storage self,
-        bytes20 walletPubKeyHash,
-        bytes memory outputScript,
+        uint256 redemptionKey,
         uint64 outputValue
     ) internal returns (uint64 burnableValue, uint64 treasuryFee) {
-        // This function should be called only if the given output is
-        // supposed to represent a redemption. Build the redemption key
-        // to perform that check.
-        uint256 redemptionKey = uint256(
-            keccak256(abi.encodePacked(walletPubKeyHash, outputScript))
-        );
-
         if (self.pendingRedemptions[redemptionKey].requestedAt != 0) {
             // If we entered here, that means the output was identified
             // as a pending redemption request.
@@ -975,9 +972,9 @@ library Redemption {
         bytes calldata redeemerOutputScript
     ) external {
         // Wallet state is validated in `notifyWalletRedemptionTimeout`.
-
-        uint256 redemptionKey = uint256(
-            keccak256(abi.encodePacked(walletPubKeyHash, redeemerOutputScript))
+        uint256 redemptionKey = getRedemptionKey(
+            walletPubKeyHash,
+            redeemerOutputScript
         );
         Redemption.RedemptionRequest memory request = self.pendingRedemptions[
             redemptionKey
@@ -1016,5 +1013,44 @@ library Redemption {
 
         // Return the requested amount of tokens to the redeemer
         self.bank.transferBalance(request.redeemer, request.requestedAmount);
+    }
+
+    /// @notice Calculate redemption key without allocations.
+    /// @param walletPubKeyHash the pubkey hash of the wallet.
+    /// @param script the output script of the redemption.
+    /// @return The key = keccak256(keccak256(script), walletPubKeyHash).
+    function getRedemptionKey(bytes20 walletPubKeyHash, bytes memory script)
+        internal
+        pure
+        returns (uint256)
+    {
+        bytes32 scriptHash = keccak256(script);
+        uint256 key;
+        /* solhint-disable-next-line no-inline-assembly */
+        assembly {
+            mstore(0, scriptHash)
+            mstore(32, walletPubKeyHash)
+            key := keccak256(0, 52)
+        }
+        return key;
+    }
+
+    /// @notice Finish calculating redemption key without allocations.
+    /// @param walletPubKeyHash the pubkey hash of the wallet.
+    /// @param scriptHash the output script hash of the redemption.
+    /// @return The key = keccak256(scriptHash, walletPubKeyHash).
+    function _getRedemptionKey(bytes20 walletPubKeyHash, bytes32 scriptHash)
+        internal
+        pure
+        returns (uint256)
+    {
+        uint256 key;
+        /* solhint-disable-next-line no-inline-assembly */
+        assembly {
+            mstore(0, scriptHash)
+            mstore(32, walletPubKeyHash)
+            key := keccak256(0, 52)
+        }
+        return key;
     }
 }

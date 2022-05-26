@@ -239,7 +239,7 @@ contract Bridge is
         address _relay,
         address _treasury,
         address _ecdsaWalletRegistry,
-        uint256 _txProofDifficultyFactor
+        uint96 _txProofDifficultyFactor
     ) external initializer {
         require(_bank != address(0), "Bank address cannot be zero");
         self.bank = Bank(_bank);
@@ -1228,9 +1228,9 @@ contract Bridge is
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout,
+        uint64 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
-        uint256 redemptionTimeoutNotifierRewardMultiplier
+        uint64 redemptionTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateRedemptionParameters(
             redemptionDustThreshold,
@@ -1315,7 +1315,7 @@ contract Bridge is
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
-        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint64 movedFundsSweepTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
@@ -1395,10 +1395,10 @@ contract Bridge is
     ///      - Fraud challenge defeat timeout must be greater than 0,
     ///      - Fraud notifier reward multiplier must be in the range [0, 100].
     function updateFraudParameters(
-        uint256 fraudChallengeDepositAmount,
-        uint256 fraudChallengeDefeatTimeout,
+        uint96 fraudChallengeDepositAmount,
+        uint32 fraudChallengeDefeatTimeout,
         uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier
+        uint32 fraudNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateFraudParameters(
             fraudChallengeDepositAmount,
@@ -1607,9 +1607,9 @@ contract Bridge is
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout,
+            uint64 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
-            uint256 redemptionTimeoutNotifierRewardMultiplier
+            uint64 redemptionTimeoutNotifierRewardMultiplier
         )
     {
         redemptionDustThreshold = self.redemptionDustThreshold;
@@ -1748,10 +1748,10 @@ contract Bridge is
         external
         view
         returns (
-            uint256 fraudChallengeDepositAmount,
-            uint256 fraudChallengeDefeatTimeout,
+            uint96 fraudChallengeDepositAmount,
+            uint32 fraudChallengeDefeatTimeout,
             uint96 fraudSlashingAmount,
-            uint256 fraudNotifierRewardMultiplier
+            uint32 fraudNotifierRewardMultiplier
         )
     {
         fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;
