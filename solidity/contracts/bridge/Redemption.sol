@@ -788,12 +788,10 @@ library Redemption {
                 processInfo.outputStartingIndex
             );
 
-            uint256 scriptLength = outputLength - 8;
-
             // The output consists of an 8-byte value and a variable length
             // script. To hash that script we slice the output starting from
             // 9th byte until the end.
-
+            uint256 scriptLength = outputLength - 8;
             uint256 outputScriptStart = processInfo.outputStartingIndex + 8;
 
             bytes32 outputScriptHash;
