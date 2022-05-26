@@ -34,7 +34,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     ///         contract. Authorization can be granted and removed by the governance.
     /// @dev    'Key' is the address of the maintainer. 'Value' represents an index+1
     ///         in the 'maintainers' array. 1 was added so the maintainer index can
-    ///         never be 0 which is a reserved index for a non-existant maintainer
+    ///         never be 0 which is a reserved index for a non-existent maintainer
     ///         in ths map.
     mapping(address => uint256) public isAuthorized;
 
@@ -151,7 +151,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         _defeatFraudChallengeWithHeartbeatGasOffset = 5000;
     }
 
-    /// @notice Wraps submit sweep proof call and reimburses a caller's
+    /// @notice Wraps submit deposit sweep proof call and reimburses a caller's
     ///         transaction cost.
     /// @param sweepTx Bitcoin sweep transaction data
     /// @param sweepProof Bitcoin sweep proof data
@@ -204,7 +204,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Submits the moving funds target wallets commitment.
+    /// @notice Wraps submit the moving funds target wallets commitment.
     ///         Once all requirements are met, that function registers the
     ///         target wallets commitment and opens the way for moving funds
     ///         proof submission.
@@ -240,7 +240,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Resets the moving funds timeout for the given wallet if the
+    /// @notice Wraps reset the moving funds timeout for the given wallet if the
     ///         target wallet commitment cannot be submitted due to a lack
     ///         of live wallets in the system.
     /// @param walletPubKeyHash 20-byte public key hash of the moving funds wallet.
@@ -255,9 +255,9 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Used by the wallet to prove the BTC moving funds transaction
-    ///         and to make the necessary state changes. Moving funds is only
-    ///         accepted if it satisfies SPV proof.
+    /// @notice Wraps submit moving funds which is used by the wallet to prove
+    ///         the BTC moving funds transaction and to make the necessary state
+    ///         changes. Moving funds is only accepted if it satisfies SPV proof.
     ///
     ///         The function validates the moving funds transaction structure
     ///         by checking if it actually spends the main UTXO of the declared
@@ -295,7 +295,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Notifies about a moving funds wallet whose BTC balance is
+    /// @notice Wraps notify about a moving funds wallet whose BTC balance is
     ///         below the moving funds dust threshold. Ends the moving funds
     ///         process and begins wallet closing immediately.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
@@ -315,9 +315,10 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Used by the wallet to prove the BTC moved funds sweep
-    ///         transaction and to make the necessary state changes. Moved
-    ///         funds sweep is only accepted if it satisfies SPV proof.
+    /// @notice Wraps submit moved funds sweep proof which is used by the wallet
+    ///         to prove the BTC moved funds sweep transaction and to make the
+    ///         necessary state changes. Moved funds sweep is only accepted if 
+    ///         it satisfies SPV proof.
     ///
     ///         The function validates the sweep transaction structure by
     ///         checking if it actually spends the moved funds UTXO and the
@@ -366,7 +367,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Notifies that the wallet is either old enough or has too few
+    /// @notice Wraps notify that the wallet is either old enough or has too few
     ///         satoshis left and qualifies to be closed.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
@@ -385,7 +386,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Notifies about the end of the closing period for the given wallet.
+    /// @notice Wraps motify about the end of the closing period for the given wallet.
     ///         Closes the wallet ultimately and notifies the ECDSA registry
     ///         about this fact.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
@@ -403,8 +404,9 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Allows to defeat a pending fraud challenge against a wallet if
-    ///         the transaction that spends the UTXO follows the protocol rules.
+    /// @notice Wraps defeat fraud challenge that allows to defeat a pending
+    ///         fraud challenge against a wallet if the transaction that spends
+    ///         the UTXO follows the protocol rules.
     ///         In order to defeat the challenge the same `walletPublicKey` and
     ///         signature (represented by `r`, `s` and `v`) must be provided as
     ///         were used to calculate the sighash during input signing.
@@ -439,9 +441,10 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Allows to defeat a pending fraud challenge against a wallet by
-    ///         proving the sighash and signature were produced for an off-chain
-    ///         wallet heartbeat message following a strict format.
+    /// @notice Wraps defeat fraud challenge with heartbeat which allows to
+    ///         defeat a pending fraud challenge against a wallet by proving the
+    ///         sighash and signature were produced for an off-chain wallet 
+    ///         heartbeat message following a strict format.
     ///         In order to defeat the challenge the same `walletPublicKey` and
     ///         signature (represented by `r`, `s` and `v`) must be provided as
     ///         were used to calculate the sighash during heartbeat message
@@ -474,7 +477,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Authorize a maintainer that can interact with this reimbursment pool.
+    /// @notice Authorize a maintainer that can interact with this reimbursement pool.
     ///         Can be authorized by the owner only.
     /// @param maintainer Maintainer to authorize.
     function authorize(address maintainer) external onlyOwner {
