@@ -1,4 +1,4 @@
-name: NPM
+name: NPM TBTCv2 Contracts
 
 on:
   push:

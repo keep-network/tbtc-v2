@@ -57,9 +57,9 @@ describe("Bridge - Redemption", () => {
   let bridge: Bridge & BridgeStub
   let walletRegistry: FakeContract<IWalletRegistry>
 
-  let redemptionTimeout: BigNumber
+  let redemptionTimeout: number
   let redemptionTimeoutSlashingAmount: BigNumber
-  let redemptionTimeoutNotifierRewardMultiplier: BigNumber
+  let redemptionTimeoutNotifierRewardMultiplier: number
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -4198,7 +4198,7 @@ describe("Bridge - Redemption", () => {
               data.redemptionRequests[0].amount
             )
 
-          await increaseTime(redemptionTimeout.sub(1))
+          await increaseTime(redemptionTimeout - 1)
         })
 
         after(async () => {
@@ -4374,8 +4374,11 @@ describe("Bridge - Redemption", () => {
     redeemerOutputScript: BytesLike
   ): string {
     return ethers.utils.solidityKeccak256(
-      ["bytes20", "bytes"],
-      [walletPubKeyHash, redeemerOutputScript]
+      ["bytes32", "bytes20"],
+      [
+        ethers.utils.solidityKeccak256(["bytes"], [redeemerOutputScript]),
+        walletPubKeyHash,
+      ]
     )
   }
 
