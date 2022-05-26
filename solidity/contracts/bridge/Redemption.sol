@@ -776,10 +776,6 @@ library Redemption {
 
         // Outputs processing loop.
         for (uint256 i = 0; i < processInfo.outputsCount; i++) {
-            // TODO: Check if we can optimize gas costs by adding
-            //       `extractValueAt` and `extractHashAt` in `bitcoin-spv-sol`
-            //       in order to avoid allocating bytes in memory.
-            //       https://github.com/keep-network/tbtc-v2/issues/257
             uint256 outputLength = redemptionTxOutputVector
                 .determineOutputLengthAt(processInfo.outputStartingIndex);
 
