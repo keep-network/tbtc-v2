@@ -230,7 +230,7 @@ library BridgeState {
         mapping(uint256 => MovingFunds.MovedFundsSweepRequest) movedFundsSweepRequests;
         // Collection of all pending redemption requests indexed by
         // redemption key built as
-        // `keccak256(walletPubKeyHash | redeemerOutputScript)`.
+        // `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
         // The `walletPubKeyHash` is the 20-byte wallet's public key hash
         // (computed using Bitcoin HASH160 over the compressed ECDSA
         // public key) and `redeemerOutputScript` is a Bitcoin script
@@ -245,8 +245,8 @@ library BridgeState {
         mapping(uint256 => Redemption.RedemptionRequest) pendingRedemptions;
         // Collection of all timed out redemptions requests indexed by
         // redemption key built as
-        // `keccak256(walletPubKeyHash | redeemerOutputScript)`. The
-        // `walletPubKeyHash` is the 20-byte wallet's public key hash
+        // `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
+        // The `walletPubKeyHash` is the 20-byte wallet's public key hash
         // (computed using Bitcoin HASH160 over the compressed ECDSA
         // public key) and `redeemerOutputScript` is the Bitcoin script
         // (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed

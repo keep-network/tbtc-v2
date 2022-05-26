@@ -580,7 +580,7 @@ contract Bridge is
     /// @notice Notifies that there is a pending redemption request associated
     ///         with the given wallet, that has timed out. The redemption
     ///         request is identified by the key built as
-    ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
+    ///         `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
     ///         The results of calling this function:
     ///         - The pending redemptions value for the wallet will be decreased
     ///           by the requested amount (minus treasury fee),
@@ -1424,10 +1424,10 @@ contract Bridge is
 
     /// @notice Collection of all pending redemption requests indexed by
     ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
-    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
+    ///         The walletPubKeyHash is the 20-byte wallet's public key hash
     ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputScript is a Bitcoin script
+    ///         public key) and `redeemerOutputScript` is a Bitcoin script
     ///         (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
     ///         redeemed BTC as requested by the redeemer. Requests are added
     ///         to this mapping by the `requestRedemption` method (duplicates
@@ -1446,10 +1446,10 @@ contract Bridge is
 
     /// @notice Collection of all timed out redemptions requests indexed by
     ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
-    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
+    ///         The walletPubKeyHash is the 20-byte wallet's public key hash
     ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputScript is the Bitcoin script
+    ///         public key) and `redeemerOutputScript` is the Bitcoin script
     ///         (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed
     ///         out request. Timed out requests are stored in this mapping to
     ///         avoid slashing the wallets multiple times for the same timeout.

@@ -934,7 +934,7 @@ library Redemption {
     /// @notice Notifies that there is a pending redemption request associated
     ///         with the given wallet, that has timed out. The redemption
     ///         request is identified by the key built as
-    ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
+    ///         `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
     ///         The results of calling this function:
     ///         - the pending redemptions value for the wallet will be decreased
     ///           by the requested amount (minus treasury fee),
@@ -1019,7 +1019,7 @@ library Redemption {
     /// @notice Calculate redemption key without allocations.
     /// @param walletPubKeyHash the pubkey hash of the wallet.
     /// @param script the output script of the redemption.
-    /// @return The key = keccak256(keccak256(script), walletPubKeyHash).
+    /// @return The key = keccak256(keccak256(script) | walletPubKeyHash).
     function getRedemptionKey(bytes20 walletPubKeyHash, bytes memory script)
         internal
         pure
@@ -1039,7 +1039,7 @@ library Redemption {
     /// @notice Finish calculating redemption key without allocations.
     /// @param walletPubKeyHash the pubkey hash of the wallet.
     /// @param scriptHash the output script hash of the redemption.
-    /// @return The key = keccak256(scriptHash, walletPubKeyHash).
+    /// @return The key = keccak256(scriptHash | walletPubKeyHash).
     function _getRedemptionKey(bytes20 walletPubKeyHash, bytes32 scriptHash)
         internal
         pure
