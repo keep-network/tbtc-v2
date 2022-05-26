@@ -9,7 +9,8 @@
     "format:fix": "yarn run lint:fix && prettier --write .",
     "lint": "eslint . --ext .js,.ts",
     "lint:fix": "eslint . --ext .js,.ts --fix",
-    "test": "mocha --exit --recursive 'test/**/*.test.ts'"
+    "test": "mocha --exit --recursive 'test/**/*.test.ts'",
+    "postinstall": "npm rebuild"
   },
   "files": [
     "test/**/*"
@@ -19,7 +20,11 @@
     "@keep-network/tbtc-v2.ts": "development"
   },
   "devDependencies": {
+    "@keep-network/hardhat-helpers": "^0.6.0-pre.7",
     "@keep-network/prettier-config-keep": "github:keep-network/prettier-config-keep",
+    "@nomiclabs/hardhat-ethers": "^2.0.6",
+    "@nomiclabs/hardhat-waffle": "^2.0.2",
+    "@openzeppelin/hardhat-upgrades": "^1.17.0",
     "@types/chai": "^4.2.21",
     "@types/chai-as-promised": "^7.1.4",
     "@types/mocha": "^8.2.3",
@@ -30,6 +35,10 @@
     "chai-as-promised": "^7.1.1",
     "eslint": "^7.30.0",
     "eslint-config-keep": "github:keep-network/eslint-config-keep",
+    "ethereum-waffle": "4.0.0-alpha.25",
+    "ethers": "^5.5.3",
+    "hardhat": "^2.8.3",
+    "hardhat-deploy": "^0.11.10",
     "mocha": "^9.0.2",
     "prettier": "^2.3.2",
     "ts-node": "^10.1.0",

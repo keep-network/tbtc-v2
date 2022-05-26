@@ -11,6 +11,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
+  "files": ["hardhat.config.ts"],
   "include": ["test"],
   "exclude": ["node_modules"]
 }
