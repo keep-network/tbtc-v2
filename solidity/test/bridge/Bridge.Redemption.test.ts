@@ -59,7 +59,7 @@ describe("Bridge - Redemption", () => {
 
   let redemptionTimeout: BigNumber
   let redemptionTimeoutSlashingAmount: BigNumber
-  let redemptionTimeoutNotifierRewardMultiplier: BigNumber
+  let redemptionTimeoutNotifierRewardMultiplier: number
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi

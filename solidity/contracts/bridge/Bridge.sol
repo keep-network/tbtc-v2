@@ -190,9 +190,9 @@ contract Bridge is
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint64 redemptionTimeout,
+        uint32 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
-        uint64 redemptionTimeoutNotifierRewardMultiplier
+        uint32 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsParametersUpdated(
@@ -201,11 +201,11 @@ contract Bridge is
         uint32 movingFundsTimeoutResetDelay,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
-        uint256 movingFundsTimeoutNotifierRewardMultiplier,
+        uint32 movingFundsTimeoutNotifierRewardMultiplier,
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
-        uint64 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -1228,9 +1228,9 @@ contract Bridge is
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint64 redemptionTimeout,
+        uint32 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
-        uint64 redemptionTimeoutNotifierRewardMultiplier
+        uint32 redemptionTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateRedemptionParameters(
             redemptionDustThreshold,
@@ -1311,11 +1311,11 @@ contract Bridge is
         uint32 movingFundsTimeoutResetDelay,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
-        uint256 movingFundsTimeoutNotifierRewardMultiplier,
+        uint32 movingFundsTimeoutNotifierRewardMultiplier,
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
-        uint64 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
@@ -1607,9 +1607,9 @@ contract Bridge is
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint64 redemptionTimeout,
+            uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
-            uint64 redemptionTimeoutNotifierRewardMultiplier
+            uint32 redemptionTimeoutNotifierRewardMultiplier
         )
     {
         redemptionDustThreshold = self.redemptionDustThreshold;
@@ -1672,11 +1672,11 @@ contract Bridge is
             uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;

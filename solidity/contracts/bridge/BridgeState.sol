@@ -62,9 +62,9 @@ library BridgeState {
         // This is a per-deposit input max fee for the sweep transaction.
         uint64 depositTxMaxFee;
         // Move movingFundsTxMaxTotalFee to the next storage slot for a more
-        // efficient variable layout
+        // efficient variable layout in the storage.
         // slither-disable-next-line unused-state
-        bytes8 __depositAlignmentGap;
+        bytes16 __depositAlignmentGap;
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moving funds transaction.
         //
@@ -100,7 +100,11 @@ library BridgeState {
         // The percentage of the notifier reward from the staking contract
         // the notifier of a moving funds timeout receives. The value is in the
         // range [0, 100].
-        uint256 movingFundsTimeoutNotifierRewardMultiplier;
+        uint32 movingFundsTimeoutNotifierRewardMultiplier;
+        // Move movedFundsSweepTxMaxTotalFee to the next storage slot for a more
+        // efficient variable layout in the storage.
+        // slither-disable-next-line unused-state
+        bytes16 __movingFundsAlignmentGap;
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moved funds sweep transaction.
         //
@@ -119,7 +123,7 @@ library BridgeState {
         // The percentage of the notifier reward from the staking contract
         // the notifier of a moved funds sweep timeout receives. The value is
         // in the range [0, 100].
-        uint64 movedFundsSweepTimeoutNotifierRewardMultiplier;
+        uint32 movedFundsSweepTimeoutNotifierRewardMultiplier;
         // The minimal amount that can be requested for redemption.
         // Value of this parameter must take into account the value of
         // `redemptionTreasuryFeeDivisor` and `redemptionTxMaxFee`
@@ -146,7 +150,7 @@ library BridgeState {
         // transaction.
         uint64 redemptionTxMaxFee;
         // Move redemptionTimeout to the next storage slot for a more efficient
-        // variable layout
+        // variable layout in the storage.
         // slither-disable-next-line unused-state
         bytes8 __redemptionAlignmentGap;
         // Time after which the redemption request can be reported as
@@ -154,14 +158,14 @@ library BridgeState {
         // request was created via `requestRedemption` call. Reported
         // timed out requests are cancelled and locked TBTC is returned
         // to the redeemer in full amount.
-        uint64 redemptionTimeout;
+        uint32 redemptionTimeout;
         // The amount of stake slashed from each member of a wallet for a
         // redemption timeout.
         uint96 redemptionTimeoutSlashingAmount;
         // The percentage of the notifier reward from the staking contract
         // the notifier of a redemption timeout receives. The value is in the
         // range [0, 100].
-        uint64 redemptionTimeoutNotifierRewardMultiplier;
+        uint32 redemptionTimeoutNotifierRewardMultiplier;
         // The amount of ETH in wei the party challenging the wallet for fraud
         // needs to deposit.
         uint96 fraudChallengeDepositAmount;
@@ -291,9 +295,9 @@ library BridgeState {
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint64 redemptionTimeout,
+        uint32 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
-        uint64 redemptionTimeoutNotifierRewardMultiplier
+        uint32 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsParametersUpdated(
@@ -302,11 +306,11 @@ library BridgeState {
         uint32 movingFundsTimeoutResetDelay,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
-        uint256 movingFundsTimeoutNotifierRewardMultiplier,
+        uint32 movingFundsTimeoutNotifierRewardMultiplier,
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
-        uint64 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -433,9 +437,9 @@ library BridgeState {
         uint64 _redemptionDustThreshold,
         uint64 _redemptionTreasuryFeeDivisor,
         uint64 _redemptionTxMaxFee,
-        uint64 _redemptionTimeout,
+        uint32 _redemptionTimeout,
         uint96 _redemptionTimeoutSlashingAmount,
-        uint64 _redemptionTimeoutNotifierRewardMultiplier
+        uint32 _redemptionTimeoutNotifierRewardMultiplier
     ) internal {
         require(
             _redemptionDustThreshold > self.movingFundsDustThreshold,
@@ -550,11 +554,11 @@ library BridgeState {
         uint32 _movingFundsTimeoutResetDelay,
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
-        uint256 _movingFundsTimeoutNotifierRewardMultiplier,
+        uint32 _movingFundsTimeoutNotifierRewardMultiplier,
         uint64 _movedFundsSweepTxMaxTotalFee,
         uint32 _movedFundsSweepTimeout,
         uint96 _movedFundsSweepTimeoutSlashingAmount,
-        uint64 _movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 _movedFundsSweepTimeoutNotifierRewardMultiplier
     ) internal {
         require(
             _movingFundsTxMaxTotalFee > 0,
