@@ -646,10 +646,10 @@
     "@openzeppelin/contracts" "^4.3.2"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
-"@keep-network/tbtc-v2.ts@1.0.0-dev.2":
-  version "1.0.0-dev.2"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2.ts/-/tbtc-v2.ts-1.0.0-dev.2.tgz#7b7a73a3b6df2faa749ae7cd9c743003663e3d62"
-  integrity sha512-nAhOHLMcOOa43eB29z85wj93R+LV5kjtuQIYzGNLviFqLc5Fyc2LJgGZrFGvHvEcJKHPqspB7tPc7qxH1lPCZw==
+"@keep-network/tbtc-v2.ts@development":
+  version "1.0.0-dev.3"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2.ts/-/tbtc-v2.ts-1.0.0-dev.3.tgz#280505774b429ca30b4a3c4e99326a7f4a32f924"
+  integrity sha512-e9/DLcHZa3gVWag9Q3UtPs9MQN5jKHng5NymJ/a1o9a3WHApKRwfVAp9Eq4wmExZ6BUOstzBmLMG8I6i2MgViA==
   dependencies:
     "@keep-network/tbtc-v2" "0.1.1-dev.84"
     bcoin "git+https://github.com/bcoin-org/bcoin.git#semver:~2.2.0"
@@ -663,6 +663,20 @@
   version "0.1.1-dev.84"
   resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-0.1.1-dev.84.tgz#a9ddc6872669dc06d5eb98e6fca6f9464379732f"
   integrity sha512-H4stvgAbt4cKScrDo1sgyRb4lvFNKg00fhwZf/qWECnSmxhVy37tDPLLkYxgmVSKVshwL+EYbbhPkrKqh9shww==
+  dependencies:
+    "@keep-network/bitcoin-spv-sol" "3.3.0-solc-0.8"
+    "@keep-network/ecdsa" development
+    "@keep-network/random-beacon" development
+    "@keep-network/tbtc" ">1.1.2-dev <1.1.2-pre"
+    "@openzeppelin/contracts" "^4.6.0"
+    "@openzeppelin/contracts-upgradeable" "^4.6.0"
+    "@tenderly/hardhat-tenderly" "^1.0.12"
+    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
+
+"@keep-network/tbtc-v2@development":
+  version "0.1.1-dev.97"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-0.1.1-dev.97.tgz#3d014034238d44362dbdfd0203f0f8a64f43661e"
+  integrity sha512-Q/N5FWeMc6HqtPCrMUJsVVmNThquh5L6credSU04ARjoeuOcJQQ/JGOulIdVzum23MAEABEowBF4mF6Rx0qKPA==
   dependencies:
     "@keep-network/bitcoin-spv-sol" "3.3.0-solc-0.8"
     "@keep-network/ecdsa" development
@@ -1831,14 +1845,9 @@ bs58check@<3.0.0, bs58check@^2.1.1, bs58check@^2.1.2:
     create-hash "^1.1.0"
     safe-buffer "^5.1.2"
 
-"bsert@git+https://github.com/chjj/bsert.git#semver:~0.0.10":
+"bsert@git+https://github.com/chjj/bsert.git#semver:~0.0.10", bsert@~0.0.10:
   version "0.0.10"
   resolved "git+https://github.com/chjj/bsert.git#bd09d49eab8644bca08ae8259a3d8756e7d453fc"
-
-bsert@~0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/bsert/-/bsert-0.0.10.tgz#231ac82873a1418c6ade301ab5cd9ae385895597"
-  integrity sha512-NHNwlac+WPy4t2LoNh8pXk8uaIGH3NSaIUbTTRXGpE2WEbq0te/tDykYHkFK57YKLPjv/aGHmbqvnGeVWDz57Q==
 
 "bsock@git+https://github.com/bcoin-org/bsock.git#semver:~0.1.9", bsock@~0.1.8, bsock@~0.1.9:
   version "0.1.9"
@@ -4173,14 +4182,9 @@ levn@^0.4.1:
     prelude-ls "^1.2.1"
     type-check "~0.4.0"
 
-"loady@git+https://github.com/chjj/loady.git#semver:~0.0.1":
+"loady@git+https://github.com/chjj/loady.git#semver:~0.0.1", loady@~0.0.1, loady@~0.0.5:
   version "0.0.5"
   resolved "git+https://github.com/chjj/loady.git#b94958b7ee061518f4b85ea6da380e7ee93222d5"
-
-loady@~0.0.1, loady@~0.0.5:
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/loady/-/loady-0.0.5.tgz#b17adb52d2fb7e743f107b0928ba0b591da5d881"
-  integrity sha512-uxKD2HIj042/HBx77NBcmEPsD+hxCgAtjEWlYNScuUjIsh/62Uyu39GOR68TBR68v+jqDL9zfftCWoUo4y03sQ==
 
 locate-path@^2.0.0:
   version "2.0.0"

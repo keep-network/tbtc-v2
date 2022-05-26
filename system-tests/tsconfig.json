@@ -6,12 +6,11 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist",
     "strict": true,
-    "rootDirs": ["src"],
+    "rootDirs": ["test"],
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["src"],
+  "include": ["test"],
   "exclude": ["node_modules"]
 }

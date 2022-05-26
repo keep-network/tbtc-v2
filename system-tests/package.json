@@ -8,13 +8,15 @@
     "format": "yarn run lint && prettier --check .",
     "format:fix": "yarn run lint:fix && prettier --write .",
     "lint": "eslint . --ext .js,.ts",
-    "lint:fix": "eslint . --ext .js,.ts --fix"
+    "lint:fix": "eslint . --ext .js,.ts --fix",
+    "test": "mocha --exit --recursive 'test/**/*.test.ts'"
   },
   "files": [
-    "dist/**/*"
+    "test/**/*"
   ],
   "dependencies": {
-    "@keep-network/tbtc-v2.ts": "1.0.0-dev.2"
+    "@keep-network/tbtc-v2": "development",
+    "@keep-network/tbtc-v2.ts": "development"
   },
   "devDependencies": {
     "@keep-network/prettier-config-keep": "github:keep-network/prettier-config-keep",
