@@ -866,6 +866,9 @@ library Redemption {
     ///         outputs to evaluate the total treasury fee for the entire
     ///         redemption transaction. This value is 0 for a timed-out
     ///         redemption request.
+    /// @dev Requirements:
+    ///      - This function should be called only if the given output
+    ///        represents redemption. It must not be the change output.
     function processNonChangeRedemptionTxOutput(
         BridgeState.Storage storage self,
         uint256 redemptionKey,
