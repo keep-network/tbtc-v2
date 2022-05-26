@@ -40,6 +40,10 @@ library BridgeState {
         // Address where the deposit and redemption treasury fees will be sent
         // to. Treasury takes part in the operators rewarding process.
         address treasury;
+        // Move depositDustThreshold to the next storage slot for a more
+        // efficient variable layout in the storage.
+        // slither-disable-next-line unused-state
+        bytes12 __treasuryAlignmentGap;
         // The minimal amount that can be requested to deposit.
         // Value of this parameter must take into account the value of
         // `depositTreasuryFeeDivisor` and `depositTxMaxFee` parameters in order
@@ -64,7 +68,7 @@ library BridgeState {
         // Move movingFundsTxMaxTotalFee to the next storage slot for a more
         // efficient variable layout in the storage.
         // slither-disable-next-line unused-state
-        bytes16 __depositAlignmentGap;
+        bytes8 __depositAlignmentGap;
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moving funds transaction.
         //
