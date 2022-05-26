@@ -793,6 +793,11 @@ library Redemption {
             bytes32 outputScriptHash;
             /* solhint-disable-next-line no-inline-assembly */
             assembly {
+                // The first argument to assembly keccak256 is the pointer.
+                // We point to `redemptionTxOutputVector` but at the position
+                // indicated by `outputScriptStart`. To load that position, we
+                // need to call `add(outputScriptStart, 32)` because
+                // `outputScriptStart` has 32 bytes.
                 outputScriptHash := keccak256(
                     add(redemptionTxOutputVector, add(outputScriptStart, 32)),
                     scriptLength
