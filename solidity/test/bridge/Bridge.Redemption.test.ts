@@ -57,7 +57,7 @@ describe("Bridge - Redemption", () => {
   let bridge: Bridge & BridgeStub
   let walletRegistry: FakeContract<IWalletRegistry>
 
-  let redemptionTimeout: BigNumber
+  let redemptionTimeout: number
   let redemptionTimeoutSlashingAmount: BigNumber
   let redemptionTimeoutNotifierRewardMultiplier: number
 
@@ -4198,7 +4198,7 @@ describe("Bridge - Redemption", () => {
               data.redemptionRequests[0].amount
             )
 
-          await increaseTime(redemptionTimeout.sub(1))
+          await increaseTime(redemptionTimeout - 1)
         })
 
         after(async () => {
