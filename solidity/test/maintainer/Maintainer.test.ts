@@ -2652,7 +2652,6 @@ describe("Maintainer", () => {
 
     context("when called by an authorized third party", async () => {
       let heartbeatWalletPublicKey: string
-      let heartbeatWalletPublicKeyHash: string
       let heartbeatWalletSigningKey: SigningKey
 
       before(async () => {
@@ -2696,7 +2695,6 @@ describe("Maintainer", () => {
             walletPublicKeyX,
             walletPublicKeyY
           )
-        heartbeatWalletPublicKeyHash = await bridge.activeWalletPubKeyHash()
       })
 
       after(async () => {
@@ -2796,7 +2794,7 @@ describe("Maintainer", () => {
       })
 
       it("should authorize a contract", async () => {
-        await expect(
+        expect(
           await maintainerProxy.isAuthorized(thirdPartyContract.address)
         ).to.be.not.equal(0)
       })
@@ -2906,7 +2904,7 @@ describe("Maintainer", () => {
           })
 
           it("should unauthorize a contract", async () => {
-            await expect(
+            expect(
               await maintainerProxy.isAuthorized(thirdPartyContract.address)
             ).to.be.equal(0)
           })
