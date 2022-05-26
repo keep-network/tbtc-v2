@@ -777,10 +777,6 @@ library Redemption {
 
         // Outputs processing loop.
         for (uint256 i = 0; i < processInfo.outputsCount; i++) {
-            // TODO: Check if we can optimize gas costs by adding
-            //       `extractValueAt` and `extractHashAt` in `bitcoin-spv-sol`
-            //       in order to avoid allocating bytes in memory.
-            //       https://github.com/keep-network/tbtc-v2/issues/257
             uint256 outputLength = redemptionTxOutputVector
                 .determineOutputLengthAt(processInfo.outputStartingIndex);
 
@@ -789,17 +785,20 @@ library Redemption {
                 processInfo.outputStartingIndex
             );
 
-            uint256 scriptLength = outputLength - 8;
-
             // The output consists of an 8-byte value and a variable length
             // script. To hash that script we slice the output starting from
             // 9th byte until the end.
-
+            uint256 scriptLength = outputLength - 8;
             uint256 outputScriptStart = processInfo.outputStartingIndex + 8;
 
             bytes32 outputScriptHash;
             /* solhint-disable-next-line no-inline-assembly */
             assembly {
+                // The first argument to assembly keccak256 is the pointer.
+                // We point to `redemptionTxOutputVector` but at the position
+                // indicated by `outputScriptStart`. To load that position, we
+                // need to call `add(outputScriptStart, 32)` because
+                // `outputScriptStart` has 32 bytes.
                 outputScriptHash := keccak256(
                     add(redemptionTxOutputVector, add(outputScriptStart, 32)),
                     scriptLength
@@ -867,6 +866,9 @@ library Redemption {
     ///         outputs to evaluate the total treasury fee for the entire
     ///         redemption transaction. This value is 0 for a timed-out
     ///         redemption request.
+    /// @dev Requirements:
+    ///      - This function should be called only if the given output
+    ///        represents redemption. It must not be the change output.
     function processNonChangeRedemptionTxOutput(
         BridgeState.Storage storage self,
         uint256 redemptionKey,
@@ -933,7 +935,7 @@ library Redemption {
     /// @notice Notifies that there is a pending redemption request associated
     ///         with the given wallet, that has timed out. The redemption
     ///         request is identified by the key built as
-    ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
+    ///         `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
     ///         The results of calling this function:
     ///         - the pending redemptions value for the wallet will be decreased
     ///           by the requested amount (minus treasury fee),
@@ -1018,7 +1020,7 @@ library Redemption {
     /// @notice Calculate redemption key without allocations.
     /// @param walletPubKeyHash the pubkey hash of the wallet.
     /// @param script the output script of the redemption.
-    /// @return The key = keccak256(keccak256(script), walletPubKeyHash).
+    /// @return The key = keccak256(keccak256(script) | walletPubKeyHash).
     function getRedemptionKey(bytes20 walletPubKeyHash, bytes memory script)
         internal
         pure
@@ -1038,7 +1040,7 @@ library Redemption {
     /// @notice Finish calculating redemption key without allocations.
     /// @param walletPubKeyHash the pubkey hash of the wallet.
     /// @param scriptHash the output script hash of the redemption.
-    /// @return The key = keccak256(scriptHash, walletPubKeyHash).
+    /// @return The key = keccak256(scriptHash | walletPubKeyHash).
     function _getRedemptionKey(bytes20 walletPubKeyHash, bytes32 scriptHash)
         internal
         pure
