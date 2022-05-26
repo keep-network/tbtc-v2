@@ -1,4 +1,4 @@
-name: NPM
+name: NPM Typescript
 
 on:
   push:
