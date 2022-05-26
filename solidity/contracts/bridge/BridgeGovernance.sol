@@ -320,11 +320,13 @@ contract BridgeGovernance is Ownable {
     /// @notice Begins the Bridge governance transfer process.
     /// @dev Can be called only by the contract owner. It is the governance
     ///      responsibility to validate the correctness of the new Bridge
-    ///      Governance contract.
+    ///      Governance contract. The other reason for not adding this check is
+    ///      to go down with the contract size and leaving only the essential code.
     function beginBridgeGovernanceTransfer(address _newBridgeGovernance)
         external
         onlyOwner
     {
+        // slither-disable-next-line missing-zero-check
         newBridgeGovernance = _newBridgeGovernance;
         /* solhint-disable not-rely-on-time */
         bridgeGovernanceTransferChangeInitiated = block.timestamp;
@@ -350,8 +352,9 @@ contract BridgeGovernance is Ownable {
             "Governance delay has not elapsed"
         );
         /* solhint-enable not-rely-on-time */
-        bridge.transferGovernance(newBridgeGovernance);
         emit BridgeGovernanceTransferred(newBridgeGovernance);
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.transferGovernance(newBridgeGovernance);
         bridgeGovernanceTransferChangeInitiated = 0;
         newBridgeGovernance = address(0);
     }
