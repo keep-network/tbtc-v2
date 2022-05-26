@@ -103,7 +103,7 @@ contract BridgeGovernance is Ownable {
         uint64 newRedemptionTimeout,
         uint256 timestamp
     );
-    event RedemptionTimeoutUpdated(uint64 redemptionTimeoutSlashingAmount);
+    event RedemptionTimeoutUpdated(uint64 redemptionTimeout);
 
     event RedemptionTimeoutSlashingAmountUpdateStarted(
         uint96 newRedemptionTimeoutSlashingAmount,
@@ -241,7 +241,7 @@ contract BridgeGovernance is Ownable {
         uint256 timestamp
     );
     event FraudChallengeDepositAmountUpdated(
-        uint256 fraudChallengeDefeatTimeout
+        uint256 fraudChallengeDepositAmount
     );
 
     event FraudChallengeDefeatTimeoutUpdateStarted(
