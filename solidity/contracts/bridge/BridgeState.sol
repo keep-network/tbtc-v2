@@ -43,7 +43,7 @@ library BridgeState {
         // Move depositDustThreshold to the next storage slot for a more
         // efficient variable layout in the storage.
         // slither-disable-next-line unused-state
-        bytes12 __treasuryAlignmentGap;
+        bytes32 __treasuryAlignmentGap;
         // The minimal amount that can be requested to deposit.
         // Value of this parameter must take into account the value of
         // `depositTreasuryFeeDivisor` and `depositTxMaxFee` parameters in order
@@ -68,7 +68,7 @@ library BridgeState {
         // Move movingFundsTxMaxTotalFee to the next storage slot for a more
         // efficient variable layout in the storage.
         // slither-disable-next-line unused-state
-        bytes8 __depositAlignmentGap;
+        bytes32 __depositAlignmentGap;
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moving funds transaction.
         //
@@ -108,7 +108,7 @@ library BridgeState {
         // Move movedFundsSweepTxMaxTotalFee to the next storage slot for a more
         // efficient variable layout in the storage.
         // slither-disable-next-line unused-state
-        bytes16 __movingFundsAlignmentGap;
+        bytes32 __movingFundsAlignmentGap;
         // Maximum amount of the total BTC transaction fee that is acceptable in
         // a single moved funds sweep transaction.
         //
@@ -156,7 +156,7 @@ library BridgeState {
         // Move redemptionTimeout to the next storage slot for a more efficient
         // variable layout in the storage.
         // slither-disable-next-line unused-state
-        bytes8 __redemptionAlignmentGap;
+        bytes32 __redemptionAlignmentGap;
         // Time after which the redemption request can be reported as
         // timed out. It is counted from the moment when the redemption
         // request was created via `requestRedemption` call. Reported
