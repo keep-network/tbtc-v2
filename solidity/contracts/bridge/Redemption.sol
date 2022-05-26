@@ -496,6 +496,7 @@ library Redemption {
             uint32(block.timestamp)
         );
 
+        // slither-disable-next-line reentrancy-events
         emit RedemptionRequested(
             walletPubKeyHash,
             redeemerOutputScript,
