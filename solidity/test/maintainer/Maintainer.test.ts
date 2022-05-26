@@ -1211,7 +1211,7 @@ describe("Maintainer", () => {
     })
   })
 
-  describe("notifyCloseableWallet", () => {
+  describe("notifyWalletCloseable", () => {
     before(async () => {
       await createSnapshot()
     })
@@ -1226,7 +1226,7 @@ describe("Maintainer", () => {
         await expect(
           maintainerProxy
             .connect(thirdParty)
-            .notifyCloseableWallet(
+            .notifyWalletCloseable(
               ecdsaWalletTestData.pubKeyHash160,
               NO_MAIN_UTXO
             )
@@ -1296,7 +1296,7 @@ describe("Maintainer", () => {
 
                 tx = await maintainerProxy
                   .connect(walletRegistry.wallet)
-                  .notifyCloseableWallet(
+                  .notifyWalletCloseable(
                     ecdsaWalletTestData.pubKeyHash160,
                     NO_MAIN_UTXO
                   )
@@ -1349,7 +1349,7 @@ describe("Maintainer", () => {
                 )
                 tx = await maintainerProxy
                   .connect(walletRegistry.wallet)
-                  .notifyCloseableWallet(
+                  .notifyWalletCloseable(
                     ecdsaWalletTestData.pubKeyHash160,
                     walletMainUtxo
                   )
@@ -1394,7 +1394,7 @@ describe("Maintainer", () => {
                   )
                   tx = maintainerProxy
                     .connect(walletRegistry.wallet)
-                    .notifyCloseableWallet(
+                    .notifyWalletCloseable(
                       ecdsaWalletTestData.pubKeyHash160,
                       NO_MAIN_UTXO
                     )
@@ -1447,7 +1447,7 @@ describe("Maintainer", () => {
                   )
                   tx = await maintainerProxy
                     .connect(walletRegistry.wallet)
-                    .notifyCloseableWallet(
+                    .notifyWalletCloseable(
                       ecdsaWalletTestData.pubKeyHash160,
                       walletMainUtxo
                     )

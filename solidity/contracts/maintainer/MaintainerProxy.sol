@@ -86,7 +86,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @notice Gas that is meant to balance the notification of closeable wallet
     ///         overall cost. Can be updated by the governance based on the current
     ///         market conditions.
-    uint256 internal _notifyCloseableWalletGasOffset;
+    uint256 internal _notifyWalletCloseableGasOffset;
 
     /// @notice Gas that is meant to balance the notification of wallet closing
     ///         period elapsed overall cost. Can be updated by the governance
@@ -118,7 +118,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         uint256 notifyMovingFundsBelowDustGasOffset,
         uint256 submitMovedFundsSweepProofGasOffset,
         uint256 requestNewWalletGasOffset,
-        uint256 notifyCloseableWalletGasOffset,
+        uint256 notifyWalletCloseableGasOffset,
         uint256 notifyWalletClosingPeriodElapsedGasOffset,
         uint256 defeatFraudChallengeGasOffset,
         uint256 defeatFraudChallengeWithHeartbeatGasOffset
@@ -145,7 +145,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         _notifyMovingFundsBelowDustGasOffset = 3500;
         _submitMovedFundsSweepProofGasOffset = 22000;
         _requestNewWalletGasOffset = 3000;
-        _notifyCloseableWalletGasOffset = 4000;
+        _notifyWalletCloseableGasOffset = 4000;
         _notifyWalletClosingPeriodElapsedGasOffset = 3000;
         _defeatFraudChallengeGasOffset = 10000;
         _defeatFraudChallengeWithHeartbeatGasOffset = 5000;
@@ -317,7 +317,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
 
     /// @notice Wraps submit moved funds sweep proof which is used by the wallet
     ///         to prove the BTC moved funds sweep transaction and to make the
-    ///         necessary state changes. Moved funds sweep is only accepted if 
+    ///         necessary state changes. Moved funds sweep is only accepted if
     ///         it satisfies SPV proof.
     ///
     ///         The function validates the sweep transaction structure by
@@ -372,16 +372,16 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
     /// @param walletMainUtxo Data of the wallet's main UTXO, as currently
     ///        known on the Ethereum chain.
-    function notifyCloseableWallet(
+    function notifyWalletCloseable(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
     ) external onlyMaintainer {
         uint256 gasStart = gasleft();
 
-        bridge.notifyCloseableWallet(walletPubKeyHash, walletMainUtxo);
+        bridge.notifyWalletCloseable(walletPubKeyHash, walletMainUtxo);
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) + _notifyCloseableWalletGasOffset,
+            (gasStart - gasleft()) + _notifyWalletCloseableGasOffset,
             msg.sender
         );
     }
@@ -443,7 +443,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
 
     /// @notice Wraps defeat fraud challenge with heartbeat which allows to
     ///         defeat a pending fraud challenge against a wallet by proving the
-    ///         sighash and signature were produced for an off-chain wallet 
+    ///         sighash and signature were produced for an off-chain wallet
     ///         heartbeat message following a strict format.
     ///         In order to defeat the challenge the same `walletPublicKey` and
     ///         signature (represented by `r`, `s` and `v`) must be provided as
@@ -542,7 +542,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @param notifyMovingFundsBelowDustGasOffset New notification moving funds below dust gas offset
     /// @param submitMovedFundsSweepProofGasOffset New submit moved funds sweep proof gas offset
     /// @param requestNewWalletGasOffset New request wallet gas offset
-    /// @param notifyCloseableWalletGasOffset New notify closeable wallet gas offset
+    /// @param notifyWalletCloseableGasOffset New notify closeable wallet gas offset
     /// @param notifyWalletClosingPeriodElapsedGasOffset New notify wallet closing period elapsed gas offset
     /// @param defeatFraudChallengeGasOffset New defeat fraud challenge gas offset
     /// @param defeatFraudChallengeWithHeartbeatGasOffset New defeat fraud challenge with heartbeat gas offset
@@ -555,7 +555,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         uint256 notifyMovingFundsBelowDustGasOffset,
         uint256 submitMovedFundsSweepProofGasOffset,
         uint256 requestNewWalletGasOffset,
-        uint256 notifyCloseableWalletGasOffset,
+        uint256 notifyWalletCloseableGasOffset,
         uint256 notifyWalletClosingPeriodElapsedGasOffset,
         uint256 defeatFraudChallengeGasOffset,
         uint256 defeatFraudChallengeWithHeartbeatGasOffset
@@ -568,7 +568,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         _notifyMovingFundsBelowDustGasOffset = notifyMovingFundsBelowDustGasOffset;
         _submitMovedFundsSweepProofGasOffset = submitMovedFundsSweepProofGasOffset;
         _requestNewWalletGasOffset = requestNewWalletGasOffset;
-        _notifyCloseableWalletGasOffset = notifyCloseableWalletGasOffset;
+        _notifyWalletCloseableGasOffset = notifyWalletCloseableGasOffset;
         _notifyWalletClosingPeriodElapsedGasOffset = notifyWalletClosingPeriodElapsedGasOffset;
         _defeatFraudChallengeGasOffset = defeatFraudChallengeGasOffset;
         _defeatFraudChallengeWithHeartbeatGasOffset = defeatFraudChallengeWithHeartbeatGasOffset;
@@ -582,7 +582,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
             notifyMovingFundsBelowDustGasOffset,
             submitMovedFundsSweepProofGasOffset,
             requestNewWalletGasOffset,
-            notifyCloseableWalletGasOffset,
+            notifyWalletCloseableGasOffset,
             notifyWalletClosingPeriodElapsedGasOffset,
             defeatFraudChallengeGasOffset,
             defeatFraudChallengeWithHeartbeatGasOffset
