@@ -386,7 +386,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Wraps motify about the end of the closing period for the given wallet.
+    /// @notice Wraps notify about the end of the closing period for the given wallet.
     ///         Closes the wallet ultimately and notifies the ECDSA registry
     ///         about this fact.
     /// @param walletPubKeyHash 20-byte public key hash of the wallet
