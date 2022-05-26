@@ -190,9 +190,9 @@ contract Bridge is
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout,
+        uint64 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
-        uint256 redemptionTimeoutNotifierRewardMultiplier
+        uint64 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsParametersUpdated(
@@ -205,7 +205,7 @@ contract Bridge is
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
-        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint64 movedFundsSweepTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -219,10 +219,10 @@ contract Bridge is
     );
 
     event FraudParametersUpdated(
-        uint256 fraudChallengeDepositAmount,
-        uint256 fraudChallengeDefeatTimeout,
+        uint96 fraudChallengeDepositAmount,
+        uint32 fraudChallengeDefeatTimeout,
         uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier
+        uint32 fraudNotifierRewardMultiplier
     );
 
     /// @dev Initializes upgradable contract on deployment.
