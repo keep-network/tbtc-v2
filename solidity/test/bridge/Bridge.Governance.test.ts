@@ -4304,11 +4304,25 @@ describe("Bridge - Governance", () => {
     })
 
     context("when the caller is the owner", () => {
-      it("should emit VaultStatusUpdated event", async () => {
-        const tx = await bridgeGovernance
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bridgeGovernance
           .connect(governance)
           .setVaultStatus(thirdParty.address, true)
+      })
 
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should mark the vault as trusted", async () => {
+        await expect(await bridge.isVaultTrusted(thirdParty.address)).to.be.true
+      })
+
+      it("should emit VaultStatusUpdated event", async () => {
         await expect(tx)
           .to.emit(bridge, "VaultStatusUpdated")
           .withArgs(thirdParty.address, true)
