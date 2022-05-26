@@ -122,19 +122,19 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovingFundsTxMaxTotalFeeUpdateStarted(
-        uint64 newMovingFundsTxMaxTotalFeeThreshold,
+        uint64 newMovingFundsTxMaxTotalFee,
         uint256 timestamp
     );
     event MovingFundsTxMaxTotalFeeUpdated(uint64 movingFundsTxMaxTotalFee);
 
     event MovingFundsDustThresholdUpdateStarted(
-        uint64 newMovingFundsDustThresholdThreshold,
+        uint64 newMovingFundsDustThreshold,
         uint256 timestamp
     );
     event MovingFundsDustThresholdUpdated(uint64 movingFundsDustThreshold);
 
     event MovingFundsTimeoutResetDelayUpdateStarted(
-        uint32 newMovingFundsTimeoutResetDelayThreshold,
+        uint32 newMovingFundsTimeoutResetDelay,
         uint256 timestamp
     );
     event MovingFundsTimeoutResetDelayUpdated(
@@ -142,13 +142,13 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovingFundsTimeoutUpdateStarted(
-        uint64 newMovingFundsTimeoutThreshold,
+        uint64 newMovingFundsTimeout,
         uint256 timestamp
     );
     event MovingFundsTimeoutUpdated(uint64 movingFundsTimeout);
 
     event MovingFundsTimeoutSlashingAmountUpdateStarted(
-        uint96 newMovingFundsTimeoutSlashingAmountThreshold,
+        uint96 newMovingFundsTimeoutSlashingAmount,
         uint256 timestamp
     );
     event MovingFundsTimeoutSlashingAmountUpdated(
@@ -156,7 +156,7 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovingFundsTimeoutNotifierRewardMultiplierUpdateStarted(
-        uint256 newMovingFundsTimeoutNotifierRewardMultiplierThreshold,
+        uint256 newMovingFundsTimeoutNotifierRewardMultiplier,
         uint256 timestamp
     );
     event MovingFundsTimeoutNotifierRewardMultiplierUpdated(
@@ -164,7 +164,7 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovedFundsSweepTxMaxTotalFeeUpdateStarted(
-        uint64 newMovedFundsSweepTxMaxTotalFeeThreshold,
+        uint64 newMovedFundsSweepTxMaxTotalFee,
         uint256 timestamp
     );
     event MovedFundsSweepTxMaxTotalFeeUpdated(
@@ -172,13 +172,13 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovedFundsSweepTimeoutUpdateStarted(
-        uint32 newMovedFundsSweepTimeoutThreshold,
+        uint32 newMovedFundsSweepTimeout,
         uint256 timestamp
     );
     event MovedFundsSweepTimeoutUpdated(uint32 movedFundsSweepTimeout);
 
     event MovedFundsSweepTimeoutSlashingAmountUpdateStarted(
-        uint96 newMovedFundsSweepTimeoutSlashingAmountThreshold,
+        uint96 newMovedFundsSweepTimeoutSlashingAmount,
         uint256 timestamp
     );
     event MovedFundsSweepTimeoutSlashingAmountUpdated(
@@ -186,7 +186,7 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovedFundsSweepTimeoutNotifierRewardMultiplierUpdateStarted(
-        uint256 newMovedFundsSweepTimeoutNotifierRewardMultiplierThreshold,
+        uint256 newMovedFundsSweepTimeoutNotifierRewardMultiplier,
         uint256 timestamp
     );
     event MovedFundsSweepTimeoutNotifierRewardMultiplierUpdated(
@@ -194,13 +194,13 @@ contract BridgeGovernance is Ownable {
     );
 
     event WalletCreationPeriodUpdateStarted(
-        uint32 newWalletCreationPeriodThreshold,
+        uint32 newWalletCreationPeriod,
         uint256 timestamp
     );
     event WalletCreationPeriodUpdated(uint32 walletCreationPeriod);
 
     event WalletCreationMinBtcBalanceUpdateStarted(
-        uint64 newWalletCreationMinBtcBalanceThreshold,
+        uint64 newWalletCreationMinBtcBalance,
         uint256 timestamp
     );
     event WalletCreationMinBtcBalanceUpdated(
@@ -208,7 +208,7 @@ contract BridgeGovernance is Ownable {
     );
 
     event WalletCreationMaxBtcBalanceUpdateStarted(
-        uint64 newWalletCreationMaxBtcBalanceThreshold,
+        uint64 newWalletCreationMaxBtcBalance,
         uint256 timestamp
     );
     event WalletCreationMaxBtcBalanceUpdated(
@@ -216,31 +216,28 @@ contract BridgeGovernance is Ownable {
     );
 
     event WalletClosureMinBtcBalanceUpdateStarted(
-        uint64 newWalletClosureMinBtcBalanceThreshold,
+        uint64 newWalletClosureMinBtcBalance,
         uint256 timestamp
     );
     event WalletClosureMinBtcBalanceUpdated(uint64 walletClosureMinBtcBalance);
 
-    event WalletMaxAgeUpdateStarted(
-        uint32 newWalletMaxAgeThreshold,
-        uint256 timestamp
-    );
+    event WalletMaxAgeUpdateStarted(uint32 newWalletMaxAge, uint256 timestamp);
     event WalletMaxAgeUpdated(uint32 walletMaxAge);
 
     event WalletMaxBtcTransferUpdateStarted(
-        uint64 newWalletMaxBtcTransferThreshold,
+        uint64 newWalletMaxBtcTransfer,
         uint256 timestamp
     );
     event WalletMaxBtcTransferUpdated(uint64 walletMaxBtcTransfer);
 
     event WalletClosingPeriodUpdateStarted(
-        uint32 newWalletClosingPeriodThreshold,
+        uint32 newWalletClosingPeriod,
         uint256 timestamp
     );
     event WalletClosingPeriodUpdated(uint32 walletClosingPeriod);
 
     event FraudChallengeDepositAmountUpdateStarted(
-        uint256 newFraudChallengeDepositAmountThreshold,
+        uint256 newFraudChallengeDepositAmount,
         uint256 timestamp
     );
     event FraudChallengeDepositAmountUpdated(
@@ -248,7 +245,7 @@ contract BridgeGovernance is Ownable {
     );
 
     event FraudChallengeDefeatTimeoutUpdateStarted(
-        uint256 newFraudChallengeDefeatTimeoutThreshold,
+        uint256 newFraudChallengeDefeatTimeout,
         uint256 timestamp
     );
     event FraudChallengeDefeatTimeoutUpdated(
@@ -256,7 +253,7 @@ contract BridgeGovernance is Ownable {
     );
 
     event FraudSlashingAmountUpdateStarted(
-        uint96 newFraudSlashingAmountThreshold,
+        uint96 newFraudSlashingAmount,
         uint256 timestamp
     );
     event FraudSlashingAmountUpdated(uint96 fraudSlashingAmount);
