@@ -62,7 +62,7 @@ image::diagrams/wallet-lifecycle/wallet-state-transition.png[Wallet State Transi
 
 `Bank` is a central, non-upgradeable contract keeping track of Bitcoin balances. 
 
-`Bridge` is deployed behind a `TransaprentUpgradeableProxy` and can be upgraded
+`Bridge` is deployed behind a `TransparentUpgradeableProxy` and can be upgraded
 by a `ProxyAdmin`, eventually Threshold DAO.
 
 `TBTCVault` upgrade happens in two steps with a 24-hour governance delay. The
@@ -222,7 +222,7 @@ If the hashes match, we begin closing the wallet via `beginWalletClosing`.
 After `walletClosingPeriod` has elapsed, anyone can call
 `Bridge.notifyWalletClosingPeriodElapsed` to close the wallet.
 
-=== Transfering Bitcoin
+=== Transferring Bitcoin
 
 [depositing]
 ==== Depositing
