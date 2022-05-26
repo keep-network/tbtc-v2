@@ -278,6 +278,8 @@ library BitcoinTx {
 
         pubKeyHash = pubKeyHashBytes.slice20(0);
 
+        // The output consists of an 8-byte value and a variable length script.
+        // To extract just the script, we ignore the first 8 bytes.
         uint256 scriptLen = output.length - 8;
 
         // The P2PKH script is 26 bytes long.
