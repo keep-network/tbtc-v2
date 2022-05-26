@@ -2,8 +2,8 @@
   "name": "@keep-network/tbtc-v2.ts",
   "version": "1.0.0-dev",
   "license": "MIT",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "format": "yarn run lint && prettier --check .",
     "format:fix": "yarn run lint:fix && prettier --write .",
@@ -14,9 +14,7 @@
     "postinstall": "npm rebuild"
   },
   "files": [
-    "dist/",
-    "src/",
-    "README.adoc"
+    "dist/**/*"
   ],
   "dependencies": {
     "@keep-network/tbtc-v2": "0.1.1-dev.84",
