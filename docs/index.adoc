@@ -160,6 +160,7 @@ After `walletClosingPeriod` has elapsed, anyone can call
 
 === Transfering Bitcoin
 
+[depositing]
 ==== Depositing
 
 When the system has an active wallet (denoted by
@@ -262,6 +263,36 @@ chain, and then proving that they did so via `Bridge.submitRedemptionProof`. We
 perform an SPV proof to ensure the transaction occurred, it is well-formed, and
 then we decrease all of the redeemer's Bank balances and increase the treasury's
 Bank balance with its cut. 
+
+=== Tokenizing
+
+==== Minting
+
+Up until this point, no TBTC has been created. We have dealt strictly with Bank
+balances. Anyone with a Bank balance can transfer that Bank balance to the
+TBTCVault to mint the equivalent amount of TBTC via `TBTCVault.mint`.
+
+A <depositing,depositor> can specify in their reveal call
+(`Bridge.revealDeposit`) a `vault`. If they do, rather than getting a balance
+and having to come back later to submit additional transactions, the system
+automatically commits any funds to the requested vault, and propagates any
+results. In the case of the `TBTCVault`, this means that one can specify during
+their deposit reveal that they wish for their balance to be put toward the
+`TBTCVault`, and as soon as everything goes through they will automatically be
+minted TBTC tokens.
+
+During <sweeping,sweeping>, we look for `vault` information in the call data,
+and if we find it, we make a call to `Bank.increaseBalanceAndCall` rather than
+`Bank.increaseBalances` which routes to `vault.receiveBalanceIncrease`, which
+in turn calls `TBTC._mint`, in TBTC's case.
+
+==== Unminting
+
+Anyone with TBTC tokens can unmint them in exchange for Bank balance by calling
+`TBTCVault.unmint`. Alternatively, if the user is attempting to exit the system
+entirely, they can save a transaction and gas by calling
+`TBTCVault.unmintAndRedeem` which routes into authorizing the Bridge to
+<redeeming,redeem> via `bank.approveBalanceAndCall`.
 
 == Parameters
 
