@@ -90,11 +90,11 @@ back TBTC tokens and it gives you back your Bank balance.
 ==== Bridge
 
 The Bridge is our interface to the Bitcoin blockchain and the off-chain
-clients. It is the Bridge's responsiblity to listen to <<depositing,deposit
+clients. It is the Bridge's responsibility to listen to <<depositing,deposit
 reveals>>, <<sweeping,sweep>> them, prove it did it, and then report any relevant
 information to the <<bank,Bank>>.
 
-When it comes time to redeem, it is the Bridge's responsiblity to listen to
+When it comes time to redeem, it is the Bridge's responsibility to listen to
 <<redeeming,redemption requests>>, disperse the funds, prove it did it, and then
 report any relevant information to the <<bank,Bank>>.
 
