@@ -39,10 +39,10 @@ frozen Bitcoin assets to maintain account balances. Depositors send Bitcoin to
 the most-recently-created wallet by using pay-to-script-hash (P2SH) or
 pay-to-witness-script-hash (P2WSH) which contains hashed information about the
 depositor’s Ethereum address. The depositor <<depositing,reveals>> their P2(W)SH
-deposit to Ethereum chain. The Bridge listens for these sorts of messages and
+deposit to the Ethereum chain. The Bridge listens for these sorts of messages and
 when it gets one, it checks the Bitcoin network to make sure the funds line up.
-If everything checks out, wallet <<sweeping,sweeps>> funds and updates
-Ethereum-side account balances.
+If everything checks out, the wallet <<sweeping,sweeps>> funds and updates
+the Ethereum-side account balances.
 
 === Redemption
 
