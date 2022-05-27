@@ -412,7 +412,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
             maintainerToUnauthorize
         ];
 
-        require(maintainerIdToUnauthorize != 0, "No contract to unauthorize");
+        require(maintainerIdToUnauthorize != 0, "No maintainer to unauthorize");
 
         address lastMaintainerAddress = maintainers[maintainers.length - 1];
 

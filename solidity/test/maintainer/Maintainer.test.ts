@@ -2838,7 +2838,7 @@ describe("Maintainer", () => {
             maintainerProxy
               .connect(governance)
               .unauthorize(thirdPartyContract.address)
-          ).to.be.revertedWith("No contract to unauthorize")
+          ).to.be.revertedWith("No maintainer to unauthorize")
         })
       })
 
@@ -2877,7 +2877,7 @@ describe("Maintainer", () => {
                 maintainerProxy
                   .connect(governance)
                   .unauthorize(governance.address)
-              ).to.be.revertedWith("No contract to unauthorize")
+              ).to.be.revertedWith("No maintainer to unauthorize")
             })
           }
         )
