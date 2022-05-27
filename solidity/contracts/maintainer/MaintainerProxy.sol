@@ -352,7 +352,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         bytes calldata walletPublicKey,
         bytes calldata preimage,
         bool witness
-    ) external onlyMaintainer {
+    ) external {
         uint256 gasStart = gasleft();
 
         bridge.defeatFraudChallenge(walletPublicKey, preimage, witness);
