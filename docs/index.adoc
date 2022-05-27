@@ -30,6 +30,28 @@ anyone.
 TBTC v2 allows anyone to use Bitcoin in the expanding DeFi and Web3 universe
 without a third-party intermediary. 
 
+== Overview
+
+=== Deposit
+
+Stakers periodically create 51-of-100 threshold-ECDSA-backed wallets to hold
+frozen Bitcoin assets to maintain account balances. Depositors send Bitcoin to
+the most-recently-created wallet by using pay-to-script-hash (P2SH) or
+pay-to-witness-script-hash (P2WSH) which contains hashed information about the
+depositor’s Ethereum address. The depositor <<depositing,reveals>> their P2(W)SH
+deposit to Ethereum chain. The Bridge listens for these sorts of messages and
+when it gets one, it checks the Bitcoin network to make sure the funds line up.
+If everything checks out, wallet <<sweeping,sweeps>> funds and updates
+Ethereum-side account balances.
+
+=== Redemption
+
+A user with an account balance <<redeeming,supplies>> a Bitcoin address. The
+system decreases their account balance and releases the equivalent amount of
+Bitcoin to the user from the redeeming Bitcoin wallet. The maximum redemption
+size is capped by the size of the largest wallet, and any redemption bigger than
+that will need to be split into multiple redemptions.
+
 == System Architecture
 
 === Bridge, Bank, Vault Separation
