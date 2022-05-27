@@ -71,7 +71,7 @@ const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
 // Most of the tests around specific bridge functionality were ported from the
 // other tbtc-v2 tests suites and adjusted to check the refund functionality of
 // the Maintainer Proxy contract.
-describe.only("Maintainer Proxy", () => {
+describe("Maintainer Proxy", () => {
   const activeWalletMainUtxo = {
     txHash:
       "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
@@ -82,6 +82,7 @@ describe.only("Maintainer Proxy", () => {
   let governance: SignerWithAddress
   let bridge: Bridge & BridgeStub
   let thirdParty: SignerWithAddress
+  let authorizedMaintainer: SignerWithAddress
   let deployer: SignerWithAddress
 
   let maintainerProxy: MaintainerProxy
@@ -98,7 +99,6 @@ describe.only("Maintainer Proxy", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
-      thirdParty,
       governance,
       bridge,
       maintainerProxy,
@@ -134,6 +134,15 @@ describe.only("Maintainer Proxy", () => {
       deployer.address
     )
     ;({ fraudChallengeDepositAmount } = await bridge.fraudParameters())
+    ;[thirdParty, authorizedMaintainer] =
+      await helpers.signers.getUnnamedSigners()
+
+    await maintainerProxy
+      .connect(governance)
+      .authorize(authorizedMaintainer.address)
+    await reimbursementPool
+      .connect(governance)
+      .authorize(maintainerProxy.address)
   })
 
   describe("requestNewWallet", () => {
@@ -145,22 +154,19 @@ describe.only("Maintainer Proxy", () => {
       })
     })
 
-    context("when called by an authorized third party", async () => {
+    context("when called by an authorized maintainer", async () => {
       let tx: ContractTransaction
       let initThirdPartyBalance: BigNumber
 
       before(async () => {
         await createSnapshot()
 
-        initThirdPartyBalance = await provider.getBalance(thirdParty.address)
-
-        await maintainerProxy.connect(governance).authorize(thirdParty.address)
-        await reimbursementPool
-          .connect(governance)
-          .authorize(maintainerProxy.address)
+        initThirdPartyBalance = await provider.getBalance(
+          authorizedMaintainer.address
+        )
 
         tx = await maintainerProxy
-          .connect(thirdParty)
+          .connect(authorizedMaintainer)
           .requestNewWallet(activeWalletMainUtxo)
       })
 
@@ -174,7 +180,7 @@ describe.only("Maintainer Proxy", () => {
 
       it("should refund ETH", async () => {
         const postNotifyThirdPartyBalance = await provider.getBalance(
-          thirdParty.address
+          authorizedMaintainer.address
         )
         const diff = postNotifyThirdPartyBalance.sub(initThirdPartyBalance)
 
@@ -229,23 +235,22 @@ describe.only("Maintainer Proxy", () => {
       })
 
       it("should revert", async () => {
-        const sweepOutcome: Promise<ScenarioOutcome> =
-          runDepositSweepScenario(data)
+        const tx = maintainerProxy
+          .connect(thirdParty)
+          .submitDepositSweepProof(
+            data.sweepTx,
+            data.sweepProof,
+            data.mainUtxo,
+            data.vault
+          )
 
-        await expect(sweepOutcome).to.be.revertedWith(
-          "Caller is not authorized"
-        )
+        await expect(tx).to.be.revertedWith("Caller is not authorized")
       })
     })
 
     context("when called by an authorized maintainer", async () => {
       before(async () => {
         await createSnapshot()
-
-        await maintainerProxy.connect(governance).authorize(thirdParty.address)
-        await reimbursementPool
-          .connect(governance)
-          .authorize(maintainerProxy.address)
       })
 
       after(async () => {
@@ -275,7 +280,7 @@ describe.only("Maintainer Proxy", () => {
 
             it("should refund ETH", async () => {
               const postNotifyThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               const diff = postNotifyThirdPartyBalance.sub(
                 sweepOutcome.initThirdPartyBalance
@@ -310,7 +315,7 @@ describe.only("Maintainer Proxy", () => {
 
             it("should refund ETH", async () => {
               const postNotifyThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               const diff = postNotifyThirdPartyBalance.sub(
                 sweepOutcome.initThirdPartyBalance
@@ -363,7 +368,7 @@ describe.only("Maintainer Proxy", () => {
 
             it("should refund ETH", async () => {
               const postNotifyThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               const diff = postNotifyThirdPartyBalance.sub(
                 sweepOutcome.initThirdPartyBalance
@@ -384,10 +389,6 @@ describe.only("Maintainer Proxy", () => {
             let sweepOutcome: ScenarioOutcome
 
             const data: DepositSweepTestData = SingleP2WSHDeposit
-            // Take wallet public key hash from first deposit. All
-            // deposits in same sweep batch should have the same value
-            // of that field.
-            const { walletPubKeyHash } = data.deposits[0].reveal
 
             before(async () => {
               await createSnapshot()
@@ -429,7 +430,7 @@ describe.only("Maintainer Proxy", () => {
 
             it("should refund ETH", async () => {
               const postNotifyThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               const diff = postNotifyThirdPartyBalance.sub(
                 sweepOutcome.initThirdPartyBalance
@@ -474,7 +475,7 @@ describe.only("Maintainer Proxy", () => {
 
             it("should refund ETH", async () => {
               const postNotifyThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               const diff = postNotifyThirdPartyBalance.sub(
                 sweepOutcome.initThirdPartyBalance
@@ -511,7 +512,7 @@ describe.only("Maintainer Proxy", () => {
 
             it("should refund ETH", async () => {
               const postNotifyThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               const diff = postNotifyThirdPartyBalance.sub(
                 sweepOutcome.initThirdPartyBalance
@@ -583,7 +584,7 @@ describe.only("Maintainer Proxy", () => {
 
             it("should refund ETH", async () => {
               const postNotifyThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               const diff = postNotifyThirdPartyBalance.sub(
                 sweepOutcome.initThirdPartyBalance
@@ -619,7 +620,7 @@ describe.only("Maintainer Proxy", () => {
 
             it("should refund ETH", async () => {
               const postNotifyThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               const diff = postNotifyThirdPartyBalance.sub(
                 sweepOutcome.initThirdPartyBalance
@@ -655,9 +656,16 @@ describe.only("Maintainer Proxy", () => {
         // to fulfill the redemption request.
         await bridge.setRedemptionTreasuryFeeDivisor(0)
         const data: RedemptionTestData = SinglePendingRequestedRedemption
-        await expect(runRedemptionScenario(data)).to.be.revertedWith(
-          "Caller is not authorized"
-        )
+
+        const tx = maintainerProxy
+          .connect(thirdParty)
+          .submitRedemptionProof(
+            data.redemptionTx,
+            data.redemptionProof,
+            data.mainUtxo,
+            data.wallet.pubKeyHash
+          )
+        await expect(tx).to.be.revertedWith("Caller is not authorized")
       })
     })
 
@@ -665,13 +673,6 @@ describe.only("Maintainer Proxy", () => {
       context("when transaction proof is valid", () => {
         before(async () => {
           await createSnapshot()
-
-          await maintainerProxy
-            .connect(governance)
-            .authorize(thirdParty.address)
-          await reimbursementPool
-            .connect(governance)
-            .authorize(maintainerProxy.address)
         })
 
         after(async () => {
@@ -710,7 +711,7 @@ describe.only("Maintainer Proxy", () => {
                 const resolvedOutcome = await outcome
 
                 const postThirdPartyBalance = await provider.getBalance(
-                  thirdParty.address
+                  authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
@@ -762,7 +763,7 @@ describe.only("Maintainer Proxy", () => {
                 const resolvedOutcome = await outcome
 
                 const postThirdPartyBalance = await provider.getBalance(
-                  thirdParty.address
+                  authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
@@ -819,7 +820,7 @@ describe.only("Maintainer Proxy", () => {
                 const resolvedOutcome = await outcome
 
                 const postThirdPartyBalance = await provider.getBalance(
-                  thirdParty.address
+                  authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
@@ -868,7 +869,7 @@ describe.only("Maintainer Proxy", () => {
                 const resolvedOutcome = await outcome
 
                 const postThirdPartyBalance = await provider.getBalance(
-                  thirdParty.address
+                  authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
@@ -909,7 +910,7 @@ describe.only("Maintainer Proxy", () => {
                 const resolvedOutcome = await outcome
 
                 const postThirdPartyBalance = await provider.getBalance(
-                  thirdParty.address
+                  authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
@@ -971,7 +972,7 @@ describe.only("Maintainer Proxy", () => {
                 const resolvedOutcome = await outcome
 
                 const postThirdPartyBalance = await provider.getBalance(
-                  thirdParty.address
+                  authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
@@ -1030,7 +1031,7 @@ describe.only("Maintainer Proxy", () => {
                 const resolvedOutcome = await outcome
 
                 const postThirdPartyBalance = await provider.getBalance(
-                  thirdParty.address
+                  authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
@@ -1097,7 +1098,7 @@ describe.only("Maintainer Proxy", () => {
                 const resolvedOutcome = await outcome
 
                 const postThirdPartyBalance = await provider.getBalance(
-                  thirdParty.address
+                  authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
@@ -1157,7 +1158,7 @@ describe.only("Maintainer Proxy", () => {
                 const resolvedOutcome = await outcome
 
                 const postThirdPartyBalance = await provider.getBalance(
-                  thirdParty.address
+                  authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
@@ -1207,9 +1208,6 @@ describe.only("Maintainer Proxy", () => {
             await maintainerProxy
               .connect(governance)
               .authorize(walletRegistry.address)
-            await reimbursementPool
-              .connect(governance)
-              .authorize(maintainerProxy.address)
 
             // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
             // the initial value in the Bridge in order to save test Bitcoins.
@@ -1478,11 +1476,6 @@ describe.only("Maintainer Proxy", () => {
     context("when called by an authorized maintainer", async () => {
       before(async () => {
         await createSnapshot()
-
-        await maintainerProxy.connect(governance).authorize(thirdParty.address)
-        await reimbursementPool
-          .connect(governance)
-          .authorize(maintainerProxy.address)
       })
 
       after(async () => {
@@ -1532,11 +1525,11 @@ describe.only("Maintainer Proxy", () => {
                     )
 
                   initThirdPartyBalance = await provider.getBalance(
-                    thirdParty.address
+                    authorizedMaintainer.address
                   )
 
                   tx = maintainerProxy
-                    .connect(thirdParty)
+                    .connect(authorizedMaintainer)
                     .defeatFraudChallenge(
                       walletPublicKey,
                       data.preimage,
@@ -1548,13 +1541,13 @@ describe.only("Maintainer Proxy", () => {
                   await restoreSnapshot()
                 })
 
-                it("should not revert 1", async () => {
+                it("should not revert", async () => {
                   await expect(tx).not.to.be.reverted
                 })
 
-                it("should refund ETH 1", async () => {
+                it("should refund ETH", async () => {
                   const postWalletRegistryBalance = await provider.getBalance(
-                    thirdParty.address
+                    authorizedMaintainer.address
                   )
                   const diff = postWalletRegistryBalance.sub(
                     initThirdPartyBalance
@@ -1607,11 +1600,11 @@ describe.only("Maintainer Proxy", () => {
                     )
 
                   initThirdPartyBalance = await provider.getBalance(
-                    thirdParty.address
+                    authorizedMaintainer.address
                   )
 
                   tx = maintainerProxy
-                    .connect(thirdParty)
+                    .connect(authorizedMaintainer)
                     .defeatFraudChallenge(
                       walletPublicKey,
                       data.preimage,
@@ -1629,7 +1622,7 @@ describe.only("Maintainer Proxy", () => {
 
                 it("should refund ETH", async () => {
                   const postWalletRegistryBalance = await provider.getBalance(
-                    thirdParty.address
+                    authorizedMaintainer.address
                   )
                   const diff = postWalletRegistryBalance.sub(
                     initThirdPartyBalance
@@ -1684,11 +1677,11 @@ describe.only("Maintainer Proxy", () => {
                     )
 
                   initThirdPartyBalance = await provider.getBalance(
-                    thirdParty.address
+                    authorizedMaintainer.address
                   )
 
                   tx = maintainerProxy
-                    .connect(thirdParty)
+                    .connect(authorizedMaintainer)
                     .defeatFraudChallenge(
                       walletPublicKey,
                       data.preimage,
@@ -1706,7 +1699,7 @@ describe.only("Maintainer Proxy", () => {
 
                 it("should refund ETH", async () => {
                   const postWalletRegistryBalance = await provider.getBalance(
-                    thirdParty.address
+                    authorizedMaintainer.address
                   )
                   const diff = postWalletRegistryBalance.sub(
                     initThirdPartyBalance
@@ -1759,11 +1752,11 @@ describe.only("Maintainer Proxy", () => {
                     )
 
                   initThirdPartyBalance = await provider.getBalance(
-                    thirdParty.address
+                    authorizedMaintainer.address
                   )
 
                   tx = maintainerProxy
-                    .connect(thirdParty)
+                    .connect(authorizedMaintainer)
                     .defeatFraudChallenge(
                       walletPublicKey,
                       data.preimage,
@@ -1781,7 +1774,7 @@ describe.only("Maintainer Proxy", () => {
 
                 it("should refund ETH", async () => {
                   const postWalletRegistryBalance = await provider.getBalance(
-                    thirdParty.address
+                    authorizedMaintainer.address
                   )
                   const diff = postWalletRegistryBalance.sub(
                     initThirdPartyBalance
@@ -1804,11 +1797,6 @@ describe.only("Maintainer Proxy", () => {
     context("when there is only one input", () => {
       before(async () => {
         await createSnapshot()
-
-        await maintainerProxy.connect(governance).authorize(thirdParty.address)
-        await reimbursementPool
-          .connect(governance)
-          .authorize(maintainerProxy.address)
       })
 
       after(async () => {
@@ -1857,7 +1845,7 @@ describe.only("Maintainer Proxy", () => {
 
           it("should refund ETH", async () => {
             const postThirdPartyBalance = await provider.getBalance(
-              thirdParty.address
+              authorizedMaintainer.address
             )
             const diff = postThirdPartyBalance.sub(
               outcome.initThirdPartyBalance
@@ -1913,9 +1901,6 @@ describe.only("Maintainer Proxy", () => {
             caller = thirdParty
 
             await maintainerProxy.connect(governance).authorize(caller.address)
-            await reimbursementPool
-              .connect(governance)
-              .authorize(maintainerProxy.address)
 
             walletRegistry.isWalletMember
               .whenCalledWith(
@@ -2071,11 +2056,6 @@ describe.only("Maintainer Proxy", () => {
       before(async () => {
         await createSnapshot()
 
-        await maintainerProxy.connect(governance).authorize(thirdParty.address)
-        await reimbursementPool
-          .connect(governance)
-          .authorize(maintainerProxy.address)
-
         await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
           ...walletDraft,
           state: walletState.MovingFunds,
@@ -2108,10 +2088,10 @@ describe.only("Maintainer Proxy", () => {
             await increaseTime(movingFundsTimeoutResetDelay)
 
             initThirdPartyBalance = await provider.getBalance(
-              thirdParty.address
+              authorizedMaintainer.address
             )
             tx = await maintainerProxy
-              .connect(thirdParty)
+              .connect(authorizedMaintainer)
               .resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
           })
 
@@ -2125,7 +2105,7 @@ describe.only("Maintainer Proxy", () => {
 
           it("should refund ETH", async () => {
             const postThirdPartyBalance = await provider.getBalance(
-              thirdParty.address
+              authorizedMaintainer.address
             )
             const diff = postThirdPartyBalance.sub(initThirdPartyBalance)
 
@@ -2155,11 +2135,6 @@ describe.only("Maintainer Proxy", () => {
     context("when the wallet is in the MovingFunds state", () => {
       before(async () => {
         await createSnapshot()
-
-        await maintainerProxy.connect(governance).authorize(thirdParty.address)
-        await reimbursementPool
-          .connect(governance)
-          .authorize(maintainerProxy.address)
 
         await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
           ...walletDraft,
@@ -2191,11 +2166,11 @@ describe.only("Maintainer Proxy", () => {
             )
 
             initThirdPartyBalance = await provider.getBalance(
-              thirdParty.address
+              authorizedMaintainer.address
             )
 
             tx = await maintainerProxy
-              .connect(thirdParty)
+              .connect(authorizedMaintainer)
               .notifyMovingFundsBelowDust(
                 ecdsaWalletTestData.pubKeyHash160,
                 mainUtxo
@@ -2212,7 +2187,7 @@ describe.only("Maintainer Proxy", () => {
 
           it("should refund ETH", async () => {
             const postThirdPartyBalance = await provider.getBalance(
-              thirdParty.address
+              authorizedMaintainer.address
             )
             const diff = postThirdPartyBalance.sub(initThirdPartyBalance)
 
@@ -2230,20 +2205,20 @@ describe.only("Maintainer Proxy", () => {
     context("when called by an unauthorized third party", async () => {
       it("should revert", async () => {
         const data: MovedFundsSweepTestData = MovedFundsSweepWithoutMainUtxo
-        await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
-          "Caller is not authorized"
-        )
+        const tx = maintainerProxy
+          .connect(thirdParty)
+          .submitMovedFundsSweepProof(
+            data.sweepTx,
+            data.sweepProof,
+            data.mainUtxo
+          )
+        await expect(tx).to.be.revertedWith("Caller is not authorized")
       })
     })
 
     context("when transaction proof is valid", () => {
       before(async () => {
         await createSnapshot()
-
-        await maintainerProxy.connect(governance).authorize(thirdParty.address)
-        await reimbursementPool
-          .connect(governance)
-          .authorize(maintainerProxy.address)
       })
 
       after(async () => {
@@ -2282,7 +2257,7 @@ describe.only("Maintainer Proxy", () => {
                         const resolvedOutcome = await outcome
 
                         const postThirdPartyBalance = await provider.getBalance(
-                          thirdParty.address
+                          authorizedMaintainer.address
                         )
 
                         const diff = postThirdPartyBalance.sub(
@@ -2324,7 +2299,7 @@ describe.only("Maintainer Proxy", () => {
                         const resolvedOutcome = await outcome
 
                         const postThirdPartyBalance = await provider.getBalance(
-                          thirdParty.address
+                          authorizedMaintainer.address
                         )
 
                         const diff = postThirdPartyBalance.sub(
@@ -2372,7 +2347,7 @@ describe.only("Maintainer Proxy", () => {
             const resolvedOutcome = await outcome
 
             const postThirdPartyBalance = await provider.getBalance(
-              thirdParty.address
+              authorizedMaintainer.address
             )
 
             const diff = postThirdPartyBalance.sub(
@@ -2404,11 +2379,6 @@ describe.only("Maintainer Proxy", () => {
     context("when the wallet is in the Closing state", () => {
       before(async () => {
         await createSnapshot()
-
-        await maintainerProxy.connect(governance).authorize(thirdParty.address)
-        await reimbursementPool
-          .connect(governance)
-          .authorize(maintainerProxy.address)
 
         await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
           ...walletDraft,
@@ -2443,9 +2413,11 @@ describe.only("Maintainer Proxy", () => {
             ).walletClosingPeriod
           )
 
-          initThirdPartyBalance = await provider.getBalance(thirdParty.address)
+          initThirdPartyBalance = await provider.getBalance(
+            authorizedMaintainer.address
+          )
           tx = await maintainerProxy
-            .connect(thirdParty)
+            .connect(authorizedMaintainer)
             .notifyWalletClosingPeriodElapsed(ecdsaWalletTestData.pubKeyHash160)
         })
 
@@ -2461,7 +2433,7 @@ describe.only("Maintainer Proxy", () => {
 
         it("should refund ETH", async () => {
           const postNotifyThirdPartyBalance = await provider.getBalance(
-            thirdParty.address
+            authorizedMaintainer.address
           )
           const diff = postNotifyThirdPartyBalance.sub(initThirdPartyBalance)
 
@@ -2491,17 +2463,12 @@ describe.only("Maintainer Proxy", () => {
       })
     })
 
-    context("when called by an authorized third party", async () => {
+    context("when called by an authorized maintainer", async () => {
       let heartbeatWalletPublicKey: string
       let heartbeatWalletSigningKey: SigningKey
 
       before(async () => {
         await createSnapshot()
-
-        await maintainerProxy.connect(governance).authorize(thirdParty.address)
-        await reimbursementPool
-          .connect(governance)
-          .authorize(maintainerProxy.address)
 
         // For `defeatFraudChallengeWithHeartbeat` unit tests we do not use test
         // data from `fraud.ts`. Instead, we create random wallet and use its
@@ -2571,10 +2538,10 @@ describe.only("Maintainer Proxy", () => {
                 )
 
               initThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               tx = await maintainerProxy
-                .connect(thirdParty)
+                .connect(authorizedMaintainer)
                 .defeatFraudChallengeWithHeartbeat(
                   heartbeatWalletPublicKey,
                   heartbeatMessage
@@ -2591,7 +2558,7 @@ describe.only("Maintainer Proxy", () => {
 
             it("should refund ETH", async () => {
               const postNotifyThirdPartyBalance = await provider.getBalance(
-                thirdParty.address
+                authorizedMaintainer.address
               )
               const diff = postNotifyThirdPartyBalance.sub(
                 initThirdPartyBalance
@@ -2622,6 +2589,8 @@ describe.only("Maintainer Proxy", () => {
 
       before(async () => {
         await createSnapshot()
+        const maintainers = await maintainerProxy.getAllMaintainers()
+        console.log("maintainers.length", maintainers[0])
 
         tx = await maintainerProxy
           .connect(governance)
@@ -2632,14 +2601,25 @@ describe.only("Maintainer Proxy", () => {
         await restoreSnapshot()
       })
 
-      it("should authorize a contract", async () => {
+      it("should be already populated with the authorized maintainer", async () => {
         expect(
-          await maintainerProxy.isAuthorized(thirdParty.address)
-        ).to.be.not.equal(0)
+          await maintainerProxy.isAuthorized(authorizedMaintainer.address)
+        ).to.be.equal(1)
       })
 
-      it("should add a maintainer to a maintainers list", async () => {
-        const contract = await maintainerProxy.maintainers(0)
+      it("should authorize a thirdParty", async () => {
+        expect(
+          await maintainerProxy.isAuthorized(thirdParty.address)
+        ).to.be.equal(2)
+      })
+
+      it("should be total of 2 authorized maintainers", async () => {
+        const maintainers = await maintainerProxy.getAllMaintainers()
+        expect(maintainers.length).to.be.equal(2)
+      })
+
+      it("should add a thirdParty to a maintainers list", async () => {
+        const contract = await maintainerProxy.maintainers(1)
         expect(contract).to.be.equal(thirdParty.address)
       })
 
@@ -2652,6 +2632,18 @@ describe.only("Maintainer Proxy", () => {
   })
 
   describe("unauthorize", () => {
+    before(async () => {
+      await createSnapshot()
+
+      await maintainerProxy
+        .connect(governance)
+        .unauthorize(authorizedMaintainer.address)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
@@ -2661,6 +2653,11 @@ describe.only("Maintainer Proxy", () => {
     })
 
     context("when the caller is the owner", () => {
+      it("should be a total of 0 authorized maintainers", async () => {
+        const authorizedMaintainers = await maintainerProxy.getAllMaintainers()
+        await expect(authorizedMaintainers.length).to.be.equal(0)
+      })
+
       context("when there are no authorized maintainers", () => {
         before(async () => {
           await createSnapshot()
@@ -3148,6 +3145,71 @@ describe.only("Maintainer Proxy", () => {
           .to.emit(maintainerProxy, "GasOffsetParametersUpdated")
           .withArgs(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51)
       })
+
+      it("should update submitRedemptionProofGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.submitRedemptionProofGasOffset()
+        expect(updatedOffset).to.be.equal(41)
+      })
+
+      it("should update submitMovingFundsCommitmentGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.submitMovingFundsCommitmentGasOffset()
+        expect(updatedOffset).to.be.equal(42)
+      })
+
+      it("should update resetMovingFundsTimeoutGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.resetMovingFundsTimeoutGasOffset()
+        expect(updatedOffset).to.be.equal(43)
+      })
+
+      it("should update submitMovingFundsProofGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.submitMovingFundsProofGasOffset()
+        expect(updatedOffset).to.be.equal(44)
+      })
+
+      it("should update notifyMovingFundsBelowDustGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.notifyMovingFundsBelowDustGasOffset()
+        expect(updatedOffset).to.be.equal(45)
+      })
+
+      it("should update submitMovedFundsSweepProofGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.submitMovedFundsSweepProofGasOffset()
+        expect(updatedOffset).to.be.equal(46)
+      })
+
+      it("should update requestNewWalletGasOffset", async () => {
+        const updatedOffset = await maintainerProxy.requestNewWalletGasOffset()
+        expect(updatedOffset).to.be.equal(47)
+      })
+
+      it("should update notifyWalletCloseableGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.notifyWalletCloseableGasOffset()
+        expect(updatedOffset).to.be.equal(48)
+      })
+
+      it("should update notifyWalletClosingPeriodElapsedGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.notifyWalletClosingPeriodElapsedGasOffset()
+        expect(updatedOffset).to.be.equal(49)
+      })
+
+      it("should update defeatFraudChallengeGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.defeatFraudChallengeGasOffset()
+        expect(updatedOffset).to.be.equal(50)
+      })
+
+      it("should update defeatFraudChallengeWithHeartbeatGasOffset", async () => {
+        const updatedOffset =
+          await maintainerProxy.defeatFraudChallengeWithHeartbeatGasOffset()
+        expect(updatedOffset).to.be.equal(51)
+      })
     })
   })
 
@@ -3226,10 +3288,12 @@ describe.only("Maintainer Proxy", () => {
       await beforeProofActions()
     }
 
-    const initThirdPartyBalance = await provider.getBalance(thirdParty.address)
+    const initThirdPartyBalance = await provider.getBalance(
+      authorizedMaintainer.address
+    )
 
     const tx = await maintainerProxy
-      .connect(thirdParty)
+      .connect(authorizedMaintainer)
       .submitDepositSweepProof(
         data.sweepTx,
         data.sweepProof,
@@ -3291,10 +3355,12 @@ describe.only("Maintainer Proxy", () => {
       await beforeProofActions()
     }
 
-    const initThirdPartyBalance = await provider.getBalance(thirdParty.address)
+    const initThirdPartyBalance = await provider.getBalance(
+      authorizedMaintainer.address
+    )
 
     const tx = await maintainerProxy
-      .connect(thirdParty)
+      .connect(authorizedMaintainer)
       .submitRedemptionProof(
         data.redemptionTx,
         data.redemptionProof,
@@ -3340,10 +3406,12 @@ describe.only("Maintainer Proxy", () => {
       await beforeProofActions()
     }
 
-    const initThirdPartyBalance = await provider.getBalance(thirdParty.address)
+    const initThirdPartyBalance = await provider.getBalance(
+      authorizedMaintainer.address
+    )
 
     const tx = await maintainerProxy
-      .connect(thirdParty)
+      .connect(authorizedMaintainer)
       .submitMovingFundsProof(
         data.movingFundsTx,
         data.movingFundsProof,
@@ -3400,10 +3468,12 @@ describe.only("Maintainer Proxy", () => {
       await beforeProofActions()
     }
 
-    const initThirdPartyBalance = await provider.getBalance(thirdParty.address)
+    const initThirdPartyBalance = await provider.getBalance(
+      authorizedMaintainer.address
+    )
 
     const tx = await maintainerProxy
-      .connect(thirdParty)
+      .connect(authorizedMaintainer)
       .submitMovedFundsSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
 
     relay.getCurrentEpochDifficulty.reset()
