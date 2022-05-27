@@ -643,7 +643,9 @@ describe("Maintainer Proxy", () => {
     context("when called by an unauthorized third party", async () => {
       before(async () => {
         await createSnapshot()
-        ;({ redemptionTimeout } = await bridge.redemptionParameters())
+        redemptionTimeout = BigNumber.from(
+          (await bridge.redemptionParameters()).redemptionTimeout
+        )
       })
 
       after(async () => {
