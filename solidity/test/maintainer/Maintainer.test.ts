@@ -223,7 +223,7 @@ describe("Maintainer", () => {
       })
     })
 
-    context("when called by an authorized party", async () => {
+    context("when called by an authorized maintainer", async () => {
       before(async () => {
         await createSnapshot()
 
@@ -610,7 +610,7 @@ describe("Maintainer", () => {
       })
     })
 
-    context("when called by an authorized party", async () => {
+    context("when called by an authorized maintainer", async () => {
       context("when transaction proof is valid", () => {
         before(async () => {
           await createSnapshot()
@@ -1232,7 +1232,7 @@ describe("Maintainer", () => {
       })
     })
 
-    context("when called by an authorized party", async () => {
+    context("when called by an authorized maintainer", async () => {
       context("when the reported wallet is not the active one", () => {
         context("when wallet is in Live state", () => {
           before(async () => {
@@ -1509,7 +1509,7 @@ describe("Maintainer", () => {
       })
     })
 
-    context("when called by an authorized party", async () => {
+    context("when called by an authorized maintainer", async () => {
       before(async () => {
         await createSnapshot()
 
