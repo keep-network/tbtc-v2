@@ -407,7 +407,9 @@ DAO-authorized maintainers can call `Bridge` via `MaintainerProxy` and get
 reimbursed for the call but it does not block anyone from calling `Bridge`
 directly. The only difference is that those calling `Bridge` directly will not
 get reimbursed. This should be enough to prevent malicious actors from
-front-running honest maintainers.
+front-running honest maintainers. Maintainers are getting authorized by a DAO
+with a call to `MaintainerProxy.authorize` and can be deauthorized by a DAO with
+a call to `MaintainerProxy.unauthorize`.
 
 `Bridge.submitDepositSweepProof` and `Bridge.submitRedemptionProof` are
 functions that must be called often and they execute quite an expensive SPV
