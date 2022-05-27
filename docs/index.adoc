@@ -376,16 +376,16 @@ entirely, they can save a transaction and gas by calling
 |`1 week`
 
 |walletCreationMinBtcBalance
-|The minimum amount of BTC an active wallet needs to have before we allow for
+|The minimum amount of satoshis an active wallet needs to have before we allow for
 the creation of a new active wallet.
 |Yes
-|`5 BTC`
+|`1e8 satoshis`
 
 |walletCreationMaxBtcBalance
-|The amount of BTC an active wallet needs to have where we allow for the
+|The amount of satoshis an active wallet needs to have before we allow for the
 creation of a new active wallet regardless of age.
 |Yes
-|`25 BTC`
+|`100e8 satoshis`
 
 4+s|Wallet Closure
 
@@ -394,25 +394,87 @@ creation of a new active wallet regardless of age.
 |Yes
 |`1 week`
 
-|movedFundsSweepTimeoutSlashingAmount
-|The amount of stake to slash if the wallet does not move its funds in time.
-|Yes
-|`100% of min-stake`
-
 |movedFundsSweepTimeoutNotifierRewardMultiplier
 |The the percentage of the slashed stake that the notifier receives as a reward.
 |Yes
 |`5%`
 
 |walletMaxBtcTransfer
-|The threshold at which we try to divide up a closing wallet into multiple target wallets
+|The amount of satoshis at which we try to divide up a closing wallet into multiple target wallets.
 |Yes
-|`50 BTC`
+|`10e8`
 
 |walletClosingPeriod
 |The amount of time the wallet remains in the `Closing` state before it is closed.
 |Yes
-|`3 days`
+|`40 days`
+
+|walletClosureMinBtcBalance
+|The minimum amount of satoshis at which a wallet is eligible to begin closing.
+|Yes
+|`5 * 1e7`
+
+|walletMaxAge
+|The age at which a wallet is eligible to begin closing.
+|Yes
+|`26 weeks`
+
+|movingFundsTxMaxTotalFee
+|The max amount of satoshis that the wallet is allowed to pay miners for a moving funds transaction.
+|Yes
+|`10000 satoshis`
+
+|movingFundsDustThreshold
+|The minimum amount of satoshis that we move from wallet to wallet when closing a wallet.
+|Yes
+|`20000 satoshis`
+
+|movingFundsTimeoutResetDelay
+|The amount of time operators must wait to request a timeout reset on moving funds when there is no active wallet.
+|Yes
+|`6 days`
+
+|movingFundsTimeout
+|The amount of time operators have to move their wallet's funds to another live wallet(s).
+|Yes
+|`7 days`
+
+|movingFundsTimeoutSlashingAmount
+|The amount of stake in T tokens that operators lose if they do not move fulfill a moving funds request.
+|Yes
+|`10000 * 1e18`
+
+|movingFundsTimeoutNotifierRewardMultiplier
+|The percentage of slashed stake that the notifier receives when they notify the system about a wallet that has failed fulfill a moving funds request.
+|Yes
+|`100`
+
+|movedFundsSweepTxMaxTotalFee
+|The max amount of satoshis that the target wallet is allowed to pay miners to sweep a moving funds transaction.
+|Yes
+|`10000`
+
+|movedFundsSweepTimeout
+|The amount of time that the target wallet has to sweep the moved funds once they arrive.
+|Yes
+|`7 days`
+
+|movedFundsSweepTimeoutSlashingAmount
+|The amount of stake in T tokens that operators of the target wallet lose if they do not sweep moved funds.
+|Yes
+|`7 days`
+
+|movedFundsSweepTimeoutNotifierRewardMultiplier
+|The percentage of slashed stake that the notifier receives when they notify the system about a wallet that has failed to sweep the moved funds.
+|Yes
+|`100`
+
+4+s|Depositing
+
+|depositDustThreshold
+|The minimum amount of satoshis in a valid deposit.
+|Yes
+|`1000000 satoshis`
 
 4+s|Sweeping
 
@@ -424,9 +486,14 @@ creation of a new active wallet regardless of age.
 |depositTxMaxFee
 |The max amount of satoshis per deposit that the wallet is allowed to pay to miners.
 |Yes
-|`10000 sats`
+|`10000 satoshis`
 
 4+s|Redeeming
+
+|redemptionDustThreshold
+|The minimum amount of satoshis in a valid redemption.
+|Yes
+|`1000000 satoshis`
 
 |redemptionTreasuryFeeDivisor
 |The redemption fee divisor of one BTC to take as a treasury fee.
@@ -437,3 +504,46 @@ creation of a new active wallet regardless of age.
 |Length of time a wallet has to fulfill a redemption.
 |Yes
 |`48 hours`
+
+|redemptionTxMaxFee
+|The max amount of satoshis per redemption that the wallet is allowed to pay miners.
+|Yes
+|`10000 satoshis`
+
+|redemptionTimeout
+|The amount of seconds a wallet has to fulfill a redemption request.
+|Yes
+|`172800 seconds = 48 hours`
+
+|redemptionTimeoutSlashingAmount
+|The amount of stake in T tokens that operators will lose if they do not fulfill a redemption request.
+|Yes
+|`10000 * 1e18` 
+
+|redemptionTimeoutNotifierRewardMultiplier 
+|The percentage of slashed stake from a redemption timeout that the notifier receives as a reward.
+|Yes
+|`100`
+
+4+s|Fraud 
+
+|fraudChallengeDepositAmount
+|The amount of ether a challenger must deposit in order to make a wallet prove honesty.
+|Yes
+|`2 ether`
+
+|fraudChallengeDefeatTimeout
+|The amount of time wallet has to wallet has to defend itself from a fraud challenge.
+|Yes
+|`7 days`
+
+|fraudSlashingAmount
+|The amount of T tokens that the operators of a wallet lose if they are defeated by a fraud challenge.
+|Yes
+|`10000 * 1e18`
+
+|fraudNotifierRewardMultiplier
+|The percentage of slashed stake from a fraud challenge that the challenger receives as a reward.
+|Yes
+|`100`
+
