@@ -2,8 +2,6 @@
   "name": "@keep-network/tbtc-v2-system-tests",
   "version": "1.0.0-dev",
   "license": "MIT",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "scripts": {
     "format": "yarn run lint && prettier --check .",
     "format:fix": "yarn run lint:fix && prettier --write .",
