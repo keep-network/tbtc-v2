@@ -359,6 +359,100 @@ entirely, they can save a transaction and gas by calling
 `TBTCVault.unmintAndRedeem` which routes into authorizing the Bridge to
 <<redeeming,redeem>> via `bank.approveBalanceAndCall`.
 
+=== Maintainers
+
+`Bridge` has a set of public knowledge functions that need to be called from
+time to time. A public-knowledge function is where anyone has access to the
+information required to assemble the transaction and the transaction does not
+lead to punishment (slashing).
+
+To compensate for calling these transactions, the caller has the gas spent
+reimbursed by a DAO-funded ETH pool in the same transaction. This works only if
+callers follow the order and do not try to front-run each other. Given that the
+reimbursement code is constructed in such a way that the caller is net-zero or
+minimally positive after the refund, there should be no reason for callers to
+front-run each other. On the other hand, a single malicious front-runner can
+break this scheme. If there is someone who does not follow the order and keeps
+submitting transactions - for which they are reimbursed - everyone else will
+stop doing that because they will only burn gas on reverted transactions.
+
+One approach to address this problem could be to enforce the submission order
+on-chain. Although it sounds easy at first, it is complicated and expensive in
+practice. The code needs to take into account scenarios when someone is
+temporarily offline and missed their submission round or when someone is
+permanently offline and keeps missing their round all the time which causes
+delays and slows down the network. Attempts to address these problems by marking
+someone as ineligible for rewards in case they missed their round are making the
+on-chain submission order enforcement mechanism only more expensive.
+
+Another approach is to not enforce the order on-chain, have everyone with at
+least the minimum stake be able to submit public-knowledge transactions, and
+expect that everyone respects the informal agreement about the submission order.
+This approach works fine as long as there is no single malicious player with the
+minimum stake to break this scheme. To address this problem, we could introduce
+a mechanism for slashing submitters not respecting the order but it is again,
+complex in practice, and makes us reimplement solutions like Gelato Network.
+
+We approach this problem in the easiest way possible by reducing a problem to
+a smaller group and introducing a list of submitters who are getting reimbursed
+for their calls. We call them maintainers. Maintainers are third-party bots who
+are expected to follow an off-chain informal agreement about the submission
+order and do not front-run each other. If they do, they can get deauthorized for
+reimbursements by the DAO. Maintainers are no more trusted than any other
+address on Ethereum. Anyone can submit public-knowledge `Bridge` transactions
+but they will not get reimbursed for doing so. To not mix the concept of
+reimbursement with the logic of the `Bridge` contract, we placed the
+reimbursement logic in a special contract called `MaintainerProxy`. Only
+DAO-authorized maintainers can call `Bridge` via `MaintainerProxy` and get
+reimbursed for the call but it does not block anyone from calling `Bridge`
+directly. The only difference is that those calling `Bridge` directly will not
+get reimbursed. This should be enough to prevent malicious actors from
+front-running honest maintainers.
+
+`Bridge.submitDepositSweepProof` and `Bridge.submitRedemptionProof` are
+functions that must be called often and they execute quite an expensive SPV
+proof. These functions need to be protected with `onlyMaintainer` notifier in
+`MaintainerProxy`.
+
+`Bridge.submitMovingFundsProof` and `Bridge.submitMovedFundsSweepProof` are
+functions that are called less often but they also execute an expensive SPV
+proof. The input parameters to them are pretty much the same as for
+`Bridge.submitDepositSweepProof` and `Bridge.submitRedemptionProof` so we assume
+calling them is also the maintainer's responsibility and we protect them in
+`MaintainerProxy` with `onlyMaintainer` modifier.
+
+It is important to note that the off-chain client software should not rely
+entirely on maintainers to call these functions. If proofs are not submitted on
+time, the wallet can be accused of fraud, or it can get slashed because of
+exceeding redemption timeout, moving funds timeout, or sweeping moved funds
+timeout. The wallet should expect the maintainer bots to do their work but it
+should also monitor if that actually happens. If not, the wallet should submit
+the proof itself - directly to the `Bridge` - to avoid slashing. Such a call
+would not be reimbursed but it should also never be needed.
+
+Functions like `Bridge.requestNewWallet`, `Bridge.notifyMovingFundsBelowDust`,
+`Bridge.notifyWalletCloseable`, or `Bridge.notifyWalletClosingPeriodElapsed`
+are typical cleanup, maintenance functions. A wallet does not lose anything if
+these functions are not called on time so the responsibility of calling them can
+be left entirely to maintainers. This is why these functions are protected with
+`onlyMaintainer` modifier in the `MaintainerProxy` contract.
+
+The last category of functions are functions that can be called only by the
+wallet or that are only in the wallet's interest to be called.
+`Bridge.submitMovingFundsCommitment` can be called only by the wallet.
+`Bridge.resetMovingFundsTimeout` can be called by anyone but is highly
+associated with `Bridge.submitMovingFundsCommitment`.
+`Bridge.defeatFraudChallenge` and `Bridge.defeatFraudChallengeWithHeartbeat` can
+be called by anyone but they are in the best interest of the wallet to be called
+(otherwise, the wallet can get slashed) and they should be called rarely, if
+ever. Since there is practically no problem with front-running for the functions
+from this category, they do not need to be protected with `onlyMaintainer`
+modifier in `MaintainerProxy`. We could even place them outside of the
+`MaintainerProxy` but to avoid introducing an additional `WalletProxy` contract
+or mixing reimbursement code with `Bridge` contract, they are placed in
+`MaintainerProxy` contract even though they are expected to be called by the
+wallet.
+
 == Parameters
 
 [%header,cols="3m,4,^1,^2m"]
