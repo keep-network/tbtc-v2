@@ -32,44 +32,6 @@ without a third-party intermediary.
 
 == System Architecture
 
-=== Wallet States
-
-There are six states for a wallet:
-
-- `UNKNOWN`: The wallet is unknown to the Bridge.
-- `LIVE`: The wallet can sweep deposits and accept redemption requests.
-- `MOVING_FUNDS`: The wallet was deemed unhealthy and is expected to move its
-  outstanding funds to another wallet. The wallet can still fulfill its
-  pending redemption requests although new redemption requests and new deposit
-  reveals are not accepted.
-- `CLOSING`: The wallet moved or redeemed all its funds and is in the closing
-  period where it is still a subject of fraud challenges and must defend against
-  them. This state is needed to protect against deposit frauds on deposits
-  revealed but not swept.
-- `CLOSED`: The wallet finalized the closing period successfully and can no
-  longer perform any action in the Bridge.
-- `TERMINATED`: The wallet committed a fraud that was reported, did not move
-  funds to another wallet before a timeout, or did not sweep funds moved to it
-  from another wallet before a timeout. The wallet is blocked and can not
-  perform any actions in the Bridge. Off-chain coordination with the wallet
-  operators is needed to recover funds.
-
-
-image::diagrams/wallet-lifecycle/wallet-state-transition.png[Wallet State Transition]
-
-
-=== Upgradeability
-
-`Bank` is a central, non-upgradeable contract keeping track of Bitcoin balances. 
-
-`Bridge` is deployed behind a `TransparentUpgradeableProxy` and can be upgraded
-by a `ProxyAdmin`, eventually Threshold DAO.
-
-`TBTCVault` upgrade happens in two steps with a 24-hour governance delay. The
-owner of `TBTCVault` can initiate and finalize an upgrade to another vault.
-The new vault receives ownership of TBTC token as well as the entire `TBTCVault`
-balance in the Bank.
-
 === Bridge, Bank, Vault Separation
 
 The system is decomposed into three separate pieces to separate concerns. The
@@ -132,6 +94,44 @@ the `TBTCVault` an `allowance`, and then it uses that allowance to transfer
 itself Bank Balance to hold on behalf of the user, in exchange for minting the
 user the equivalent amount of TBTC tokens. Later, anyone with TBTC tokens can
 send them back to the `TBTCVault` and the vault will grant them Bank balance.
+
+=== Upgradeability
+
+`Bank` is a central, non-upgradeable contract keeping track of Bitcoin balances. 
+
+`Bridge` is deployed behind a `TransparentUpgradeableProxy` and can be upgraded
+by a `ProxyAdmin`, eventually Threshold DAO.
+
+`TBTCVault` upgrade happens in two steps with a 24-hour governance delay. The
+owner of `TBTCVault` can initiate and finalize an upgrade to another vault.
+The new vault receives ownership of TBTC token as well as the entire `TBTCVault`
+balance in the Bank.
+
+=== Wallet States
+
+There are six states for a wallet:
+
+- `UNKNOWN`: The wallet is unknown to the Bridge.
+- `LIVE`: The wallet can sweep deposits and accept redemption requests.
+- `MOVING_FUNDS`: The wallet was deemed unhealthy and is expected to move its
+  outstanding funds to another wallet. The wallet can still fulfill its
+  pending redemption requests although new redemption requests and new deposit
+  reveals are not accepted.
+- `CLOSING`: The wallet moved or redeemed all its funds and is in the closing
+  period where it is still a subject of fraud challenges and must defend against
+  them. This state is needed to protect against deposit frauds on deposits
+  revealed but not swept.
+- `CLOSED`: The wallet finalized the closing period successfully and can no
+  longer perform any action in the Bridge.
+- `TERMINATED`: The wallet committed a fraud that was reported, did not move
+  funds to another wallet before a timeout, or did not sweep funds moved to it
+  from another wallet before a timeout. The wallet is blocked and can not
+  perform any actions in the Bridge. Off-chain coordination with the wallet
+  operators is needed to recover funds.
+
+
+image::diagrams/wallet-lifecycle/wallet-state-transition.png[Wallet State Transition]
+
 
 == The Mechanism
 
