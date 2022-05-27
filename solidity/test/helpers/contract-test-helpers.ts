@@ -1,6 +1,9 @@
 import { BigNumber } from "@ethersproject/bignumber"
 import { ethers } from "hardhat"
 
+// TODO: It is deprecated and `to1ePrecision` from the
+// https://github.com/keep-network/hardhat-helpers/blob/main/src/number.ts should
+// be used instead.
 export function to1ePrecision(n: number, precision: number): BigNumber {
   const decimalMultiplier = ethers.BigNumber.from(10).pow(precision)
   return ethers.BigNumber.from(n).mul(decimalMultiplier)
