@@ -500,11 +500,6 @@ creation of a new active wallet regardless of age.
 |Yes
 |`2000 => 1/2000 = 5 BPS`
 
-|redemptionTimeout
-|Length of time a wallet has to fulfill a redemption.
-|Yes
-|`48 hours`
-
 |redemptionTxMaxFee
 |The max amount of satoshis per redemption that the wallet is allowed to pay miners.
 |Yes
