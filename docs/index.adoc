@@ -385,7 +385,7 @@ the creation of a new active wallet.
 |The amount of satoshis an active wallet needs to have before we allow for the
 creation of a new active wallet regardless of age.
 |Yes
-|`100e8 satoshis`
+|`100e8 satoshis = 100 BTC`
 
 4+s|Wallet Closure
 
@@ -394,15 +394,10 @@ creation of a new active wallet regardless of age.
 |Yes
 |`1 week`
 
-|movedFundsSweepTimeoutNotifierRewardMultiplier
-|The the percentage of the slashed stake that the notifier receives as a reward.
-|Yes
-|`5%`
-
 |walletMaxBtcTransfer
 |The amount of satoshis at which we try to divide up a closing wallet into multiple target wallets.
 |Yes
-|`10e8`
+|`10e8 = 10 BTC`
 
 |walletClosingPeriod
 |The amount of time the wallet remains in the `Closing` state before it is closed.
@@ -412,7 +407,7 @@ creation of a new active wallet regardless of age.
 |walletClosureMinBtcBalance
 |The minimum amount of satoshis at which a wallet is eligible to begin closing.
 |Yes
-|`5 * 1e7`
+|`5e7 = 0.5 BTC`
 
 |walletMaxAge
 |The age at which a wallet is eligible to begin closing.
@@ -422,12 +417,12 @@ creation of a new active wallet regardless of age.
 |movingFundsTxMaxTotalFee
 |The max amount of satoshis that the wallet is allowed to pay miners for a moving funds transaction.
 |Yes
-|`10000 satoshis`
+|`10_000 satoshis`
 
 |movingFundsDustThreshold
 |The minimum amount of satoshis that we move from wallet to wallet when closing a wallet.
 |Yes
-|`20000 satoshis`
+|`20_000 satoshis`
 
 |movingFundsTimeoutResetDelay
 |The amount of time operators must wait to request a timeout reset on moving funds when there is no active wallet.
@@ -442,17 +437,17 @@ creation of a new active wallet regardless of age.
 |movingFundsTimeoutSlashingAmount
 |The amount of stake in T tokens that operators lose if they do not move fulfill a moving funds request.
 |Yes
-|`10000 * 1e18`
+|`10_000 * 1e18 = 10_000 T`
 
 |movingFundsTimeoutNotifierRewardMultiplier
 |The percentage of slashed stake that the notifier receives when they notify the system about a wallet that has failed fulfill a moving funds request.
 |Yes
-|`100`
+|`100%`
 
 |movedFundsSweepTxMaxTotalFee
 |The max amount of satoshis that the target wallet is allowed to pay miners to sweep a moving funds transaction.
 |Yes
-|`10000`
+|`10_000 satoshis`
 
 |movedFundsSweepTimeout
 |The amount of time that the target wallet has to sweep the moved funds once they arrive.
@@ -467,58 +462,58 @@ creation of a new active wallet regardless of age.
 |movedFundsSweepTimeoutNotifierRewardMultiplier
 |The percentage of slashed stake that the notifier receives when they notify the system about a wallet that has failed to sweep the moved funds.
 |Yes
-|`100`
+|`100%`
 
 4+s|Depositing
 
 |depositDustThreshold
 |The minimum amount of satoshis in a valid deposit.
 |Yes
-|`1000000 satoshis`
+|`1_000_000 satoshis`
 
 4+s|Sweeping
 
 |depositTreasuryFeeDivisor
 |The deposit fee divisor of one BTC to take as a treasury fee.
 |Yes
-|`2000 => 1/2000 = 5 BPS`
+|`2_000 => 1/2_000 = 5 BPS`
 
 |depositTxMaxFee
 |The max amount of satoshis per deposit that the wallet is allowed to pay to miners.
 |Yes
-|`10000 satoshis`
+|`10_000 satoshis`
 
 4+s|Redeeming
 
 |redemptionDustThreshold
 |The minimum amount of satoshis in a valid redemption.
 |Yes
-|`1000000 satoshis`
+|`1_000_000 satoshis`
 
 |redemptionTreasuryFeeDivisor
 |The redemption fee divisor of one BTC to take as a treasury fee.
 |Yes
-|`2000 => 1/2000 = 5 BPS`
+|`2_000 => 1/2_000 = 5 BPS`
 
 |redemptionTxMaxFee
 |The max amount of satoshis per redemption that the wallet is allowed to pay miners.
 |Yes
-|`10000 satoshis`
+|`10_000 satoshis`
 
 |redemptionTimeout
 |The amount of seconds a wallet has to fulfill a redemption request.
 |Yes
-|`172800 seconds = 48 hours`
+|`172_800 seconds = 48 hours`
 
 |redemptionTimeoutSlashingAmount
 |The amount of stake in T tokens that operators will lose if they do not fulfill a redemption request.
 |Yes
-|`10000 * 1e18` 
+|`10_000 * 1e18 = 10_000 T tokens` 
 
 |redemptionTimeoutNotifierRewardMultiplier 
 |The percentage of slashed stake from a redemption timeout that the notifier receives as a reward.
 |Yes
-|`100`
+|`100%`
 
 4+s|Fraud 
 
@@ -535,10 +530,10 @@ creation of a new active wallet regardless of age.
 |fraudSlashingAmount
 |The amount of T tokens that the operators of a wallet lose if they are defeated by a fraud challenge.
 |Yes
-|`10000 * 1e18`
+|`10_000 * 1e18 = 10_000 T`
 
 |fraudNotifierRewardMultiplier
 |The percentage of slashed stake from a fraud challenge that the challenger receives as a reward.
 |Yes
-|`100`
+|`100%`
 
