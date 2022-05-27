@@ -378,8 +378,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
 
         reimbursementPool.refund(
-            (gasStart - gasleft()) +
-                defeatFraudChallengeWithHeartbeatGasOffset,
+            (gasStart - gasleft()) + defeatFraudChallengeWithHeartbeatGasOffset,
             msg.sender
         );
     }
@@ -494,5 +493,10 @@ contract MaintainerProxy is Ownable, Reimbursable {
             defeatFraudChallengeGasOffset,
             defeatFraudChallengeWithHeartbeatGasOffset
         );
+    }
+
+    /// @notice Gets an entire array of maintainer addresses.
+    function getAllMaintainers() external view returns (address[] memory) {
+        return maintainers;
     }
 }

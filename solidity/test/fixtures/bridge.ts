@@ -9,7 +9,6 @@ import type {
   TestRelay,
   ReimbursementPool,
   MaintainerProxy,
-  MaintainerProxyStub,
   TBTC,
   TBTCVault,
   VendingMachine,
@@ -52,8 +51,9 @@ export default async function bridgeFixture() {
   const reimbursementPool: ReimbursementPool =
     await helpers.contracts.getContract("ReimbursementPool")
 
-  const maintainerProxy: MaintainerProxy & MaintainerProxyStub =
-    await helpers.contracts.getContract("MaintainerProxy")
+  const maintainerProxy: MaintainerProxy = await helpers.contracts.getContract(
+    "MaintainerProxy"
+  )
 
   const relay = await smock.fake<TestRelay>("TestRelay", {
     address: await (await bridge.contractReferences()).relay,

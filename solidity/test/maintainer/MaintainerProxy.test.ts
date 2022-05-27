@@ -15,7 +15,6 @@ import type {
   Bank,
   BankStub,
   MaintainerProxy,
-  MaintainerProxyStub,
   ReimbursementPool,
   Bridge,
   IRelay,
@@ -84,7 +83,7 @@ describe("Maintainer Proxy", () => {
   let thirdParty: SignerWithAddress
   let deployer: SignerWithAddress
 
-  let maintainerProxy: MaintainerProxy & MaintainerProxyStub
+  let maintainerProxy: MaintainerProxy
   let reimbursementPool: ReimbursementPool
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
