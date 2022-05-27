@@ -23,8 +23,7 @@ export default async function bridgeFixture() {
 
   const { deployer, governance, treasury } =
     await helpers.signers.getNamedSigners()
-  const [thirdParty, thirdPartyContract] =
-    await helpers.signers.getUnnamedSigners()
+  const [thirdParty] = await helpers.signers.getUnnamedSigners()
 
   const tbtc: TBTC = await helpers.contracts.getContract("TBTC")
 
@@ -90,6 +89,5 @@ export default async function bridgeFixture() {
     deployer,
     reimbursementPool,
     maintainerProxy,
-    thirdPartyContract,
   }
 }

@@ -90,7 +90,6 @@ describe("Maintainer", () => {
   let walletRegistry: FakeContract<IWalletRegistry>
 
   let bank: Bank & BankStub
-  let thirdPartyContract: SignerWithAddress
 
   let fraudChallengeDepositAmount: BigNumber
 
@@ -108,7 +107,6 @@ describe("Maintainer", () => {
       reimbursementPool,
       maintainerProxy,
       deployer,
-      thirdPartyContract,
     } = await waffle.loadFixture(bridgeFixture))
     ;({ movingFundsTimeoutResetDelay } = await bridge.movingFundsParameters())
 
@@ -2771,9 +2769,7 @@ describe("Maintainer", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          maintainerProxy
-            .connect(thirdParty)
-            .authorize(thirdPartyContract.address)
+          maintainerProxy.connect(thirdParty).authorize(thirdParty.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -2786,7 +2782,7 @@ describe("Maintainer", () => {
 
         tx = await maintainerProxy
           .connect(governance)
-          .authorize(thirdPartyContract.address)
+          .authorize(thirdParty.address)
       })
 
       after(async () => {
@@ -2795,19 +2791,19 @@ describe("Maintainer", () => {
 
       it("should authorize a contract", async () => {
         expect(
-          await maintainerProxy.isAuthorized(thirdPartyContract.address)
+          await maintainerProxy.isAuthorized(thirdParty.address)
         ).to.be.not.equal(0)
       })
 
       it("should add a maintainer to a maintainers list", async () => {
         const contract = await maintainerProxy.maintainers(0)
-        expect(contract).to.be.equal(thirdPartyContract.address)
+        expect(contract).to.be.equal(thirdParty.address)
       })
 
       it("should emit a MaintainerAuthorized event", async () => {
         await expect(tx)
           .to.emit(maintainerProxy, "MaintainerAuthorized")
-          .withArgs(thirdPartyContract.address)
+          .withArgs(thirdParty.address)
       })
     })
   })
@@ -2816,9 +2812,7 @@ describe("Maintainer", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          maintainerProxy
-            .connect(thirdParty)
-            .unauthorize(thirdPartyContract.address)
+          maintainerProxy.connect(thirdParty).unauthorize(thirdParty.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -2835,9 +2829,7 @@ describe("Maintainer", () => {
 
         it("should revert", async () => {
           await expect(
-            maintainerProxy
-              .connect(governance)
-              .unauthorize(thirdPartyContract.address)
+            maintainerProxy.connect(governance).unauthorize(thirdParty.address)
           ).to.be.revertedWith("No maintainer to unauthorize")
         })
       })
@@ -2892,11 +2884,11 @@ describe("Maintainer", () => {
 
             await maintainerProxy
               .connect(governance)
-              .authorize(thirdPartyContract.address)
+              .authorize(thirdParty.address)
 
             tx = await maintainerProxy
               .connect(governance)
-              .unauthorize(thirdPartyContract.address)
+              .unauthorize(thirdParty.address)
           })
 
           after(async () => {
@@ -2905,14 +2897,14 @@ describe("Maintainer", () => {
 
           it("should unauthorize a contract", async () => {
             expect(
-              await maintainerProxy.isAuthorized(thirdPartyContract.address)
+              await maintainerProxy.isAuthorized(thirdParty.address)
             ).to.be.equal(0)
           })
 
           it("should emit a MaintainerUnauthorized event", async () => {
             await expect(tx)
               .to.emit(maintainerProxy, "MaintainerUnauthorized")
-              .withArgs(thirdPartyContract.address)
+              .withArgs(thirdParty.address)
           })
         })
       })
@@ -3330,7 +3322,7 @@ describe("Maintainer", () => {
         await expect(
           maintainerProxy
             .connect(thirdParty)
-            .updateReimbursementPool(thirdPartyContract.address)
+            .updateReimbursementPool(thirdParty.address)
         ).to.be.revertedWith("Caller is not the owner")
       })
     })
@@ -3342,7 +3334,7 @@ describe("Maintainer", () => {
         await createSnapshot()
         tx = await maintainerProxy
           .connect(governance)
-          .updateReimbursementPool(thirdPartyContract.address)
+          .updateReimbursementPool(thirdParty.address)
       })
 
       after(async () => {
@@ -3352,7 +3344,7 @@ describe("Maintainer", () => {
       it("should emit the ReimbursementPoolUpdated event", async () => {
         await expect(tx)
           .to.emit(maintainerProxy, "ReimbursementPoolUpdated")
-          .withArgs(thirdPartyContract.address)
+          .withArgs(thirdParty.address)
       })
     })
   })
