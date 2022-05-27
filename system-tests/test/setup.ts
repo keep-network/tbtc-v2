@@ -12,13 +12,25 @@ export interface SystemTestsContext {
    */
   electrumUrl: string
   /**
-   * Signer representing the depositor.
-   */
-  depositor: SignerWithAddress
-  /**
    * Bridge address.
    */
   bridgeAddress: string
+  /**
+   * Bridge ABI.
+   */
+  bridgeAbi: any
+  /**
+   * Ethereum signer representing the system maintainer.
+   */
+  maintainer: SignerWithAddress
+  /**
+   * Ethereum signer representing the depositor.
+   */
+  depositor: SignerWithAddress
+  /**
+   * Bitcoin private key of the depositor.
+   */
+  depositorBitcoinPrivateKey: string
 }
 
 /**
@@ -26,32 +38,44 @@ export interface SystemTestsContext {
  * @returns System tests context.
  */
 export async function setupSystemTests(): Promise<SystemTestsContext> {
-  if (network.name === "hardhat") {
-    throw new Error("Built-in Hardhat network is not supported")
-  }
-
   const electrumUrl = process.env.ELECTRUM_URL
   if (!electrumUrl) {
     throw new Error(`ELECTRUM_URL is not set`)
   }
 
+  if (network.name === "hardhat") {
+    throw new Error("Built-in Hardhat network is not supported")
+  }
+
   const deploymentExportFile = getDeploymentExportFile()
   const bridgeAddress = deploymentExportFile.contracts["Bridge"].address
+  const bridgeAbi = deploymentExportFile.contracts["Bridge"].abi
 
-  const { depositor } = await helpers.signers.getNamedSigners()
+  const { maintainer, depositor } = await helpers.signers.getNamedSigners()
+
+  const depositorBitcoinPrivateKey = process.env
+    .DEPOSITOR_BITCOIN_PRIVATE_KEY as string
+  if (!depositorBitcoinPrivateKey) {
+    throw new Error(`DEPOSITOR_BITCOIN_PRIVATE_KEY is not set`)
+  }
 
   console.log(`
     System tests context:
     - Electrum URL: ${electrumUrl}
     - Ethereum network: ${network.name}
     - Bridge address ${bridgeAddress}
-    - Depositor address ${depositor.address}
+    - Maintainer Ethereum address ${maintainer.address}
+    - Depositor Ethereum address ${depositor.address}
+    - Depositor Bitcoin private key ${depositorBitcoinPrivateKey}
   `)
 
   return {
     electrumUrl,
-    depositor,
     bridgeAddress,
+    bridgeAbi,
+    maintainer,
+    depositor,
+    depositorBitcoinPrivateKey,
   }
 }
 

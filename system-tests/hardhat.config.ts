@@ -13,9 +13,19 @@ const config: HardhatUserConfig = {
   },
 
   namedAccounts: {
-    depositor: {
+    deployer: {
       default: 0,
     },
+    maintainer: {
+      default: 1,
+    },
+    depositor: {
+      default: 2,
+    },
+  },
+
+  mocha: {
+    timeout: 14400000, // 4 hours
   },
 }
 
