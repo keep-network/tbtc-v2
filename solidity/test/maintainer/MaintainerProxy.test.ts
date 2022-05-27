@@ -71,7 +71,7 @@ const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
 // Most of the tests around specific bridge functionality were ported from the
 // other tbtc-v2 tests suites and adjusted to check the refund functionality of
 // the Maintainer Proxy contract.
-describe("Maintainer", () => {
+describe("Maintainer Proxy", () => {
   const activeWalletMainUtxo = {
     txHash:
       "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
