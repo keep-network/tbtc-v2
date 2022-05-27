@@ -138,7 +138,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     constructor(Bridge _bridge, ReimbursementPool _reimbursementPool) {
         bridge = _bridge;
         reimbursementPool = _reimbursementPool;
-        submitDepositSweepProofGasOffset = 26750;
+        submitDepositSweepProofGasOffset = 27000;
         submitRedemptionProofGasOffset = 9750;
         submitMovingFundsCommitmentGasOffset = 8000;
         resetMovingFundsTimeoutGasOffset = 1000;
