@@ -183,27 +183,41 @@ describe("Maintainer Proxy", () => {
   })
 
   describe("submitDepositSweepProof", () => {
-    context("when called by an unauthorized third party", async () => {
+    before(async () => {
+      await createSnapshot()
+
       const data: DepositSweepTestData = SingleP2SHDeposit
       // Take wallet public key hash from first deposit. All
       // deposits in same sweep batch should have the same value
       // of that field.
       const { walletPubKeyHash } = data.deposits[0].reveal
 
+      // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
+      // the initial value in the Bridge in order to save test Bitcoins.
+      await bridge.setDepositDustThreshold(10000)
+
+      await bridge.setWallet(walletPubKeyHash, {
+        ecdsaWalletID: ethers.constants.HashZero,
+        mainUtxoHash: ethers.constants.HashZero,
+        pendingRedemptionsValue: 0,
+        createdAt: await lastBlockTime(),
+        movingFundsRequestedAt: 0,
+        closingStartedAt: 0,
+        pendingMovedFundsSweepRequestsCount: 0,
+        state: walletState.Live,
+        movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+      })
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called by an unauthorized third party", async () => {
+      const data: DepositSweepTestData = SingleP2SHDeposit
+
       before(async () => {
         await createSnapshot()
-
-        await bridge.setWallet(walletPubKeyHash, {
-          ecdsaWalletID: ethers.constants.HashZero,
-          mainUtxoHash: ethers.constants.HashZero,
-          pendingRedemptionsValue: 0,
-          createdAt: await lastBlockTime(),
-          movingFundsRequestedAt: 0,
-          closingStartedAt: 0,
-          pendingMovedFundsSweepRequestsCount: 0,
-          state: walletState.Live,
-          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
-        })
       })
 
       after(async () => {
@@ -211,10 +225,6 @@ describe("Maintainer Proxy", () => {
       })
 
       it("should revert", async () => {
-        // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
-        // the initial value in the Bridge in order to save test Bitcoins.
-        await bridge.setDepositDustThreshold(10000)
-
         const sweepOutcome: Promise<ScenarioOutcome> = runSweepScenario(data)
 
         await expect(sweepOutcome).to.be.revertedWith(
@@ -250,33 +260,10 @@ describe("Maintainer Proxy", () => {
                         "when the single input is a revealed unswept P2SH deposit",
                         () => {
                           const data: DepositSweepTestData = SingleP2SHDeposit
-                          // Take wallet public key hash from first deposit. All
-                          // deposits in same sweep batch should have the same value
-                          // of that field.
-                          const { walletPubKeyHash } = data.deposits[0].reveal
                           let sweepOutcome: ScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
-
-                            // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
-                            // the initial value in the Bridge in order to save test Bitcoins.
-                            await bridge.setDepositDustThreshold(10000)
-
-                            // Simulate the wallet is an Live one and is known in
-                            // the system.
-                            await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
-                              state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
-                            })
 
                             sweepOutcome = await runSweepScenario(data)
                           })
@@ -309,34 +296,10 @@ describe("Maintainer Proxy", () => {
                         "when the single input is a revealed unswept P2WSH deposit",
                         () => {
                           const data: DepositSweepTestData = SingleP2WSHDeposit
-                          // Take wallet public key hash from first deposit. All
-                          // deposits in same sweep batch should have the same value
-                          // of that field.
-                          const { walletPubKeyHash } = data.deposits[0].reveal
                           let sweepOutcome: ScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
-
-                            // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
-                            // the initial value in the Bridge in order to save test Bitcoins.
-                            await bridge.setDepositDustThreshold(10000)
-
-                            // Simulate the wallet is an Live one and is known in
-                            // the system.
-                            await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
-                              state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
-                            })
-
                             sweepOutcome = await runSweepScenario(data)
                           })
 
@@ -374,33 +337,10 @@ describe("Maintainer Proxy", () => {
                             MultipleDepositsNoMainUtxo
                           const data: DepositSweepTestData =
                             MultipleDepositsWithMainUtxo
-                          // Take wallet public key hash from first deposit. All
-                          // deposits in same sweep batch should have the same value
-                          // of that field.
-                          const { walletPubKeyHash } = data.deposits[0].reveal
                           let sweepOutcome: ScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
-
-                            // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
-                            // the initial value in the Bridge in order to save test Bitcoins.
-                            await bridge.setDepositDustThreshold(10000)
-
-                            // Simulate the wallet is an Live one and is known in
-                            // the system.
-                            await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
-                              state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
-                            })
 
                             // Make the first sweep which is actually the predecessor
                             // of the sweep tested within this scenario.
@@ -439,33 +379,10 @@ describe("Maintainer Proxy", () => {
                         () => {
                           const data: DepositSweepTestData =
                             MultipleDepositsNoMainUtxo
-                          // Take wallet public key hash from first deposit. All
-                          // deposits in same sweep batch should have the same value
-                          // of that field.
-                          const { walletPubKeyHash } = data.deposits[0].reveal
                           let sweepOutcome: ScenarioOutcome
 
                           before(async () => {
                             await createSnapshot()
-
-                            // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
-                            // the initial value in the Bridge in order to save test Bitcoins.
-                            await bridge.setDepositDustThreshold(10000)
-
-                            // Simulate the wallet is an Live one and is known in
-                            // the system.
-                            await bridge.setWallet(walletPubKeyHash, {
-                              ecdsaWalletID: ethers.constants.HashZero,
-                              mainUtxoHash: ethers.constants.HashZero,
-                              pendingRedemptionsValue: 0,
-                              createdAt: await lastBlockTime(),
-                              movingFundsRequestedAt: 0,
-                              closingStartedAt: 0,
-                              pendingMovedFundsSweepRequestsCount: 0,
-                              state: walletState.Live,
-                              movingFundsTargetWalletsCommitmentHash:
-                                ethers.constants.HashZero,
-                            })
 
                             sweepOutcome = await runSweepScenario(data)
                           })
