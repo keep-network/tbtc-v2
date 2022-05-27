@@ -407,11 +407,6 @@ for the creation of a new active wallet regardless of age.
 
 4+s|Wallet Closure
 
-|movingFundsTimeout
-|The amount of time a wallet has to move funds before facing penalty.
-|Yes
-|`1 week`
-
 |walletMaxBtcTransfer
 |The amount of satoshis held by the closing wallet at which it should try to
 split the moved funds to multiple target wallets.
