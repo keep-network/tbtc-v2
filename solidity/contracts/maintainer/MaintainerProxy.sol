@@ -415,9 +415,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
 
         address lastMaintainerAddress = maintainers[maintainers.length - 1];
 
-        maintainers[maintainerIdToUnauthorize - 1] = maintainers[
-            maintainers.length - 1
-        ];
+        maintainers[maintainerIdToUnauthorize - 1] = lastMaintainerAddress;
         maintainers.pop();
 
         isAuthorized[lastMaintainerAddress] = maintainerIdToUnauthorize;
