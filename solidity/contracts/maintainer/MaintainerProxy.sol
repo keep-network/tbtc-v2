@@ -369,7 +369,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     function defeatFraudChallengeWithHeartbeat(
         bytes calldata walletPublicKey,
         bytes calldata heartbeatMessage
-    ) external onlyMaintainer {
+    ) external {
         uint256 gasStart = gasleft();
 
         bridge.defeatFraudChallengeWithHeartbeat(

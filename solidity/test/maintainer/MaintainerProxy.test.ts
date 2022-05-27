@@ -2447,128 +2447,103 @@ describe("Maintainer Proxy", () => {
   })
 
   describe("defeatFraudChallengeWithHeartbeat", () => {
-    context("when called by an unauthorized third party", async () => {
-      it("should revert", async () => {
-        const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
-        const wallet = ethers.Wallet.createRandom()
-        const heartbeatWalletPublicKey = `0x${wallet.publicKey.substring(4)}`
-        await expect(
-          maintainerProxy
-            .connect(thirdParty)
-            .defeatFraudChallengeWithHeartbeat(
-              heartbeatWalletPublicKey,
-              heartbeatMessage
-            )
-        ).to.be.revertedWith("Caller is not authorized")
-      })
+    let heartbeatWalletPublicKey: string
+    let heartbeatWalletSigningKey: SigningKey
+
+    before(async () => {
+      await createSnapshot()
+
+      // For `defeatFraudChallengeWithHeartbeat` unit tests we do not use test
+      // data from `fraud.ts`. Instead, we create random wallet and use its
+      // SigningKey.
+      //
+      // This approach is better long-term. In case the format of the heartbeat
+      // message changes or in case we want to add more unit tests, we can simply
+      // call appropriate function to compute another signature. Also, we do not
+      // use any BTC-specific data for this set of unit tests.
+      const wallet = ethers.Wallet.createRandom()
+      // We use `ethers.utils.SigningKey` for a `Wallet` instead of
+      // `Signer.signMessage` to do not add '\x19Ethereum Signed Message:\n'
+      // prefix to the signed message. The format of the heartbeat message is
+      // the same no matter on which host chain TBTC is deployed.
+      heartbeatWalletSigningKey = new ethers.utils.SigningKey(wallet.privateKey)
+      // Public key obtained as `wallet.publicKey` is an uncompressed key,
+      // prefixed with `0x04`. To compute raw ECDSA key, we need to drop `0x04`.
+      heartbeatWalletPublicKey = `0x${wallet.publicKey.substring(4)}`
+
+      const walletID = keccak256(heartbeatWalletPublicKey)
+      const walletPublicKeyX = `0x${heartbeatWalletPublicKey.substring(2, 66)}`
+      const walletPublicKeyY = `0x${heartbeatWalletPublicKey.substring(66)}`
+      await bridge
+        .connect(walletRegistry.wallet)
+        .__ecdsaWalletCreatedCallback(
+          walletID,
+          walletPublicKeyX,
+          walletPublicKeyY
+        )
     })
 
-    context("when called by an authorized maintainer", async () => {
-      let heartbeatWalletPublicKey: string
-      let heartbeatWalletSigningKey: SigningKey
+    after(async () => {
+      await restoreSnapshot()
+    })
 
-      before(async () => {
-        await createSnapshot()
+    context("when the challenge exists", () => {
+      context("when the challenge is open", () => {
+        context("when the heartbeat message has correct format", () => {
+          const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+          const heartbeatMessageSha256 = sha256(heartbeatMessage)
+          const sighash = sha256(sha256(heartbeatMessage))
 
-        // For `defeatFraudChallengeWithHeartbeat` unit tests we do not use test
-        // data from `fraud.ts`. Instead, we create random wallet and use its
-        // SigningKey.
-        //
-        // This approach is better long-term. In case the format of the heartbeat
-        // message changes or in case we want to add more unit tests, we can simply
-        // call appropriate function to compute another signature. Also, we do not
-        // use any BTC-specific data for this set of unit tests.
-        const wallet = ethers.Wallet.createRandom()
-        // We use `ethers.utils.SigningKey` for a `Wallet` instead of
-        // `Signer.signMessage` to do not add '\x19Ethereum Signed Message:\n'
-        // prefix to the signed message. The format of the heartbeat message is
-        // the same no matter on which host chain TBTC is deployed.
-        heartbeatWalletSigningKey = new ethers.utils.SigningKey(
-          wallet.privateKey
-        )
-        // Public key obtained as `wallet.publicKey` is an uncompressed key,
-        // prefixed with `0x04`. To compute raw ECDSA key, we need to drop `0x04`.
-        heartbeatWalletPublicKey = `0x${wallet.publicKey.substring(4)}`
+          let tx: ContractTransaction
+          let initThirdPartyBalance: BigNumber
 
-        const walletID = keccak256(heartbeatWalletPublicKey)
-        const walletPublicKeyX = `0x${heartbeatWalletPublicKey.substring(
-          2,
-          66
-        )}`
-        const walletPublicKeyY = `0x${heartbeatWalletPublicKey.substring(66)}`
-        await bridge
-          .connect(walletRegistry.wallet)
-          .__ecdsaWalletCreatedCallback(
-            walletID,
-            walletPublicKeyX,
-            walletPublicKeyY
-          )
-      })
+          before(async () => {
+            await createSnapshot()
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+            const signature = ethers.utils.splitSignature(
+              heartbeatWalletSigningKey.signDigest(sighash)
+            )
 
-      context("when the challenge exists", () => {
-        context("when the challenge is open", () => {
-          context("when the heartbeat message has correct format", () => {
-            const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
-            const heartbeatMessageSha256 = sha256(heartbeatMessage)
-            const sighash = sha256(sha256(heartbeatMessage))
-
-            let tx: ContractTransaction
-            let initThirdPartyBalance: BigNumber
-
-            before(async () => {
-              await createSnapshot()
-
-              const signature = ethers.utils.splitSignature(
-                heartbeatWalletSigningKey.signDigest(sighash)
+            await bridge
+              .connect(thirdParty)
+              .submitFraudChallenge(
+                heartbeatWalletPublicKey,
+                heartbeatMessageSha256,
+                signature,
+                {
+                  value: fraudChallengeDepositAmount,
+                }
               )
 
-              await bridge
-                .connect(thirdParty)
-                .submitFraudChallenge(
-                  heartbeatWalletPublicKey,
-                  heartbeatMessageSha256,
-                  signature,
-                  {
-                    value: fraudChallengeDepositAmount,
-                  }
-                )
-
-              initThirdPartyBalance = await provider.getBalance(
-                authorizedMaintainer.address
+            initThirdPartyBalance = await provider.getBalance(
+              authorizedMaintainer.address
+            )
+            tx = await maintainerProxy
+              .connect(authorizedMaintainer)
+              .defeatFraudChallengeWithHeartbeat(
+                heartbeatWalletPublicKey,
+                heartbeatMessage
               )
-              tx = await maintainerProxy
-                .connect(authorizedMaintainer)
-                .defeatFraudChallengeWithHeartbeat(
-                  heartbeatWalletPublicKey,
-                  heartbeatMessage
-                )
-            })
+          })
 
-            after(async () => {
-              await restoreSnapshot()
-            })
+          after(async () => {
+            await restoreSnapshot()
+          })
 
-            it("should not revert", async () => {
-              await expect(tx.wait()).not.to.be.reverted
-            })
+          it("should not revert", async () => {
+            await expect(tx.wait()).not.to.be.reverted
+          })
 
-            it("should refund ETH", async () => {
-              const postNotifyThirdPartyBalance = await provider.getBalance(
-                authorizedMaintainer.address
-              )
-              const diff = postNotifyThirdPartyBalance.sub(
-                initThirdPartyBalance
-              )
+          it("should refund ETH", async () => {
+            const postNotifyThirdPartyBalance = await provider.getBalance(
+              authorizedMaintainer.address
+            )
+            const diff = postNotifyThirdPartyBalance.sub(initThirdPartyBalance)
 
-              expect(diff).to.be.gt(0)
-              expect(diff).to.be.lt(
-                ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-              )
-            })
+            expect(diff).to.be.gt(0)
+            expect(diff).to.be.lt(
+              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+            )
           })
         })
       })
