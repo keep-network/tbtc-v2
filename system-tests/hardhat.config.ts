@@ -7,24 +7,14 @@ import "hardhat-deploy"
 
 const config: HardhatUserConfig = {
   networks: {
-    hardhat: {},
-  },
-
-  external: {
-    contracts: [
-      {
-        artifacts: "node_modules/@keep-network/tbtc-v2/artifacts",
-        deploy: "node_modules/@keep-network/tbtc-v2/deploy",
-      },
-    ],
+    development: {
+      url: "http://localhost:8545",
+    },
   },
 
   namedAccounts: {
-    deployer: {
-      default: 0,
-    },
     depositor: {
-      default: 1,
+      default: 0,
     },
   },
 }

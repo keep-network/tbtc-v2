@@ -7,14 +7,13 @@
     "format:fix": "yarn run lint:fix && prettier --write .",
     "lint": "eslint . --ext .js,.ts",
     "lint:fix": "eslint . --ext .js,.ts --fix",
-    "test": "mocha --exit --recursive 'test/**/*.test.ts'",
+    "test": "hardhat test",
     "postinstall": "npm rebuild"
   },
   "files": [
     "test/**/*"
   ],
   "dependencies": {
-    "@keep-network/tbtc-v2": "development",
     "@keep-network/tbtc-v2.ts": "development"
   },
   "devDependencies": {
