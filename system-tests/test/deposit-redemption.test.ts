@@ -57,7 +57,9 @@ describe("System Test - Deposit and redemption", () => {
           walletPublicKey
         )
 
-        console.log(`Generated deposit data`)
+        console.log(`
+          Generated deposit data
+        `)
 
         depositUtxo = await TBTC.makeDeposit(
           deposit,
@@ -69,7 +71,7 @@ describe("System Test - Deposit and redemption", () => {
         console.log(`
           Deposit made on BTC chain:
           - Transaction hash: ${depositUtxo.transactionHash}
-          - Output index: ${depositUtxo.value}
+          - Output index: ${depositUtxo.outputIndex}
         `)
 
         await TBTC.revealDeposit(
@@ -79,7 +81,9 @@ describe("System Test - Deposit and redemption", () => {
           depositorBridgeHandle
         )
 
-        console.log(`Deposit revealed on Ethereum chain`)
+        console.log(`
+          Deposit revealed on Ethereum chain
+        `)
       })
 
       // TODO: Temporary assertion.
