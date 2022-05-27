@@ -1,7 +1,6 @@
 import fs from "fs"
 import { helpers, network } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { Credentials as ElectrumCredentials } from "@keep-network/tbtc-v2.ts/dist/electrum"
 
 /**
  * Represents a context of the given system tests scenario.
@@ -37,7 +36,7 @@ export interface SystemTestsContext {
  * Sets up the system tests context.
  * @returns System tests context.
  */
-export async function setupSystemTests(): Promise<SystemTestsContext> {
+export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
   const electrumUrl = process.env.ELECTRUM_URL
   if (!electrumUrl) {
     throw new Error(`ELECTRUM_URL is not set`)
@@ -106,19 +105,4 @@ function getDeploymentExportFile(): DeploymentExportFile {
   }
 
   throw new Error(`"DEPLOYMENT_EXPORT_FILE_PATH is not set`)
-}
-
-export function parseElectrumCredentials(url: string): ElectrumCredentials {
-  const urlObj = new URL(url)
-
-  return {
-    host: urlObj.hostname,
-    port: Number.parseInt(urlObj.port),
-    protocol: urlObj.protocol.replace(":", "") as
-      | "tcp"
-      | "tls"
-      | "ssl"
-      | "ws"
-      | "wss",
-  }
 }

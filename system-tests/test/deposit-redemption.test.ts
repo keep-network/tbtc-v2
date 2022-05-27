@@ -1,14 +1,12 @@
 import TBTC, { ElectrumClient, EthereumBridge } from "@keep-network/tbtc-v2.ts"
 import { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 import { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import {
-  parseElectrumCredentials,
-  setupSystemTests,
-  SystemTestsContext,
-} from "./setup"
 import { BigNumber } from "ethers"
-import { createWallet, generateDeposit } from "./utils"
 import { expect } from "chai"
+import { parseElectrumCredentials } from "./utils/electrum"
+import { setupSystemTestsContext, SystemTestsContext } from "./utils/context"
+import { createWallet } from "./utils/wallet"
+import { generateDeposit } from "./utils/deposit"
 
 describe("System Test - Deposit and redemption", () => {
   let systemTestsContext: SystemTestsContext
@@ -18,7 +16,7 @@ describe("System Test - Deposit and redemption", () => {
   let depositorBridgeHandle: EthereumBridge
 
   before(async () => {
-    systemTestsContext = await setupSystemTests()
+    systemTestsContext = await setupSystemTestsContext()
     const { electrumUrl, maintainer, depositor, bridgeAddress } =
       systemTestsContext
 
