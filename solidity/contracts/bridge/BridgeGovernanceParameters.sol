@@ -181,7 +181,7 @@ library BridgeGovernanceParameters {
         uint256 timestamp
     );
     event MovingFundsTimeoutResetDelayUpdated(
-        uint64 movingFundsTimeoutResetDelay
+        uint32 movingFundsTimeoutResetDelay
     );
 
     event MovingFundsTimeoutUpdateStarted(
