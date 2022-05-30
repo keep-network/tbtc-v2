@@ -49,12 +49,6 @@ contract BridgeGovernance is Ownable {
     uint256 public bridgeGovernanceTransferChangeInitiated;
     address internal newBridgeGovernance;
 
-    event GovernanceDelayUpdateStarted(
-        uint256 newGovernanceDelay,
-        uint256 timestamp
-    );
-    event GovernanceDelayUpdated(uint256 governanceDelay);
-
     event BridgeGovernanceTransferStarted(
         address newBridgeGovernance,
         uint256 timestamp
@@ -284,7 +278,10 @@ contract BridgeGovernance is Ownable {
     }
 
     /// @notice Begins the governance delay update process.
-    /// @dev Can be called only by the contract owner.
+    /// @dev Can be called only by the contract owner. The event that informs about
+    ///      the start of the governance delay was skipped on purpose to trim
+    ///      the contract size. All the params inside of the `governanceDelays`
+    ///      array are public and can be easily fetched.
     /// @param _newGovernanceDelay New governance delay
     function beginGovernanceDelayUpdate(uint256 _newGovernanceDelay)
         external
@@ -293,13 +290,14 @@ contract BridgeGovernance is Ownable {
         governanceDelays[1] = _newGovernanceDelay;
         /* solhint-disable not-rely-on-time */
         governanceDelays[2] = block.timestamp;
-        emit GovernanceDelayUpdateStarted(_newGovernanceDelay, block.timestamp);
         /* solhint-enable not-rely-on-time */
     }
 
     /// @notice Finalizes the governance delay update process.
     /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    ///      delay elapses. Updated event was skipped on purpose to trim the
+    ///      contract size. All the params inside of the `governanceDelays`
+    ///      array are public and can be easily fetched.
     function finalizeGovernanceDelayUpdate() external onlyOwner {
         require(governanceDelays[2] > 0, "Change not initiated");
         /* solhint-disable not-rely-on-time */
@@ -308,7 +306,6 @@ contract BridgeGovernance is Ownable {
             "Governance delay has not elapsed"
         );
         /* solhint-enable not-rely-on-time */
-        emit GovernanceDelayUpdated(governanceDelays[1]);
         governanceDelays[0] = governanceDelays[1];
         governanceDelays[1] = 0;
         governanceDelays[2] = 0;

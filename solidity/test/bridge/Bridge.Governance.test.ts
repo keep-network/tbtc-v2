@@ -60,14 +60,6 @@ describe("Bridge - Governance", () => {
           BigNumber.from(constants.governanceDelay).sub(elapsedTime)
         ).to.be.equal(constants.governanceDelay)
       })
-
-      it("should emit GovernanceDelayUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        await expect(tx)
-          .to.emit(bridgeGovernance, "GovernanceDelayUpdateStarted")
-          .withArgs(1337, blockTimestamp)
-      })
     })
   })
 
@@ -135,12 +127,6 @@ describe("Bridge - Governance", () => {
 
         it("should update the governance delay", async () => {
           expect(await bridgeGovernance.governanceDelays(0)).to.be.equal(7331)
-        })
-
-        it("should emit GovernanceDelayUpdated event", async () => {
-          await expect(tx)
-            .to.emit(bridgeGovernance, "GovernanceDelayUpdated")
-            .withArgs(7331)
         })
 
         it("should reset the governance delay timer", async () => {
