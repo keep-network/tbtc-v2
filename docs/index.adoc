@@ -30,45 +30,29 @@ anyone.
 TBTC v2 allows anyone to use Bitcoin in the expanding DeFi and Web3 universe
 without a third-party intermediary. 
 
+== Overview
+
+=== Deposit
+
+Stakers periodically create 51-of-100 threshold-ECDSA-backed wallets to hold
+frozen Bitcoin assets to maintain account balances. Depositors send Bitcoin to
+the most-recently-created wallet by using pay-to-script-hash (P2SH) or
+pay-to-witness-script-hash (P2WSH) which contains hashed information about the
+depositor’s Ethereum address. The depositor <<depositing,reveals>> their P2(W)SH
+deposit to the Ethereum chain. The Bridge listens for these sorts of messages and
+when it gets one, it checks the Bitcoin network to make sure the funds line up.
+If everything checks out, the wallet <<sweeping,sweeps>> funds and updates
+the Ethereum-side account balances.
+
+=== Redemption
+
+A user with an account balance <<redeeming,supplies>> a Bitcoin address. The
+system decreases their account balance and releases the equivalent amount of
+Bitcoin to the user from the redeeming Bitcoin wallet. The maximum redemption
+size is capped by the size of the largest wallet, and any redemption bigger than
+that will need to be split into multiple redemptions.
+
 == System Architecture
-
-=== Wallet States
-
-There are six states for a wallet:
-
-- `UNKNOWN`: The wallet is unknown to the Bridge.
-- `LIVE`: The wallet can sweep deposits and accept redemption requests.
-- `MOVING_FUNDS`: The wallet was deemed unhealthy and is expected to move its
-  outstanding funds to another wallet. The wallet can still fulfill its
-  pending redemption requests although new redemption requests and new deposit
-  reveals are not accepted.
-- `CLOSING`: The wallet moved or redeemed all its funds and is in the closing
-  period where it is still a subject of fraud challenges and must defend against
-  them. This state is needed to protect against deposit frauds on deposits
-  revealed but not swept.
-- `CLOSED`: The wallet finalized the closing period successfully and can no
-  longer perform any action in the Bridge.
-- `TERMINATED`: The wallet committed a fraud that was reported, did not move
-  funds to another wallet before a timeout, or did not sweep funds moved to it
-  from another wallet before a timeout. The wallet is blocked and can not
-  perform any actions in the Bridge. Off-chain coordination with the wallet
-  operators is needed to recover funds.
-
-
-image::diagrams/wallet-lifecycle/wallet-state-transition.png[Wallet State Transition]
-
-
-=== Upgradeability
-
-`Bank` is a central, non-upgradeable contract keeping track of Bitcoin balances. 
-
-`Bridge` is deployed behind a `TransparentUpgradeableProxy` and can be upgraded
-by a `ProxyAdmin`, eventually Threshold DAO.
-
-`TBTCVault` upgrade happens in two steps with a 24-hour governance delay. The
-owner of `TBTCVault` can initiate and finalize an upgrade to another vault.
-The new vault receives ownership of TBTC token as well as the entire `TBTCVault`
-balance in the Bank.
 
 === Bridge, Bank, Vault Separation
 
@@ -132,6 +116,44 @@ the `TBTCVault` an `allowance`, and then it uses that allowance to transfer
 itself Bank Balance to hold on behalf of the user, in exchange for minting the
 user the equivalent amount of TBTC tokens. Later, anyone with TBTC tokens can
 send them back to the `TBTCVault` and the vault will grant them Bank balance.
+
+=== Upgradeability
+
+`Bank` is a central, non-upgradeable contract keeping track of Bitcoin balances. 
+
+`Bridge` is deployed behind a `TransparentUpgradeableProxy` and can be upgraded
+by a `ProxyAdmin`, eventually Threshold DAO.
+
+`TBTCVault` upgrade happens in two steps with a 24-hour governance delay. The
+owner of `TBTCVault` can initiate and finalize an upgrade to another vault.
+The new vault receives ownership of TBTC token as well as the entire `TBTCVault`
+balance in the Bank.
+
+=== Wallet States
+
+There are six states for a wallet:
+
+- `UNKNOWN`: The wallet is unknown to the Bridge.
+- `LIVE`: The wallet can sweep deposits and accept redemption requests.
+- `MOVING_FUNDS`: The wallet was deemed unhealthy and is expected to move its
+  outstanding funds to another wallet. The wallet can still fulfill its
+  pending redemption requests although new redemption requests and new deposit
+  reveals are not accepted.
+- `CLOSING`: The wallet moved or redeemed all its funds and is in the closing
+  period where it is still a subject of fraud challenges and must defend against
+  them. This state is needed to protect against deposit frauds on deposits
+  revealed but not swept.
+- `CLOSED`: The wallet finalized the closing period successfully and can no
+  longer perform any action in the Bridge.
+- `TERMINATED`: The wallet committed a fraud that was reported, did not move
+  funds to another wallet before a timeout, or did not sweep funds moved to it
+  from another wallet before a timeout. The wallet is blocked and can not
+  perform any actions in the Bridge. Off-chain coordination with the wallet
+  operators is needed to recover funds.
+
+
+image::diagrams/wallet-lifecycle/wallet-state-transition.png[Wallet State Transition]
+
 
 == The Mechanism
 
@@ -454,6 +476,45 @@ modifier in `MaintainerProxy`. We could even place them outside of the
 or mixing reimbursement code with `Bridge` contract, they are placed in
 `MaintainerProxy` contract even though they are expected to be called by the
 wallet.
+
+== Wallet Lifecycle Diagrams
+
+==== Handling Fraud
+
+image::diagrams/wallet-lifecycle/wallet-lifecycle-1-handling-frauds.png[Handling Fraud]
+This diagram covers the aspects of fraud: how to notify the system of fraudlent
+operator behavior, and how operators defend themselves from false charges.
+
+==== Entering The Moving Funds State
+
+image::diagrams/wallet-lifecycle/wallet-lifecycle-2-entering-moving-funds-state.png[Entering The Moving Funds State]
+This diagram maps out the different ways a wallet can enter the `MOVING_FUNDS`
+state, along with the necessary conditions to do so.
+
+==== Responding To The Moving Funds State
+
+image::diagrams/wallet-lifecycle/wallet-lifecycle-3-responding-to-moving-funds-state.png[Responding To The Moving Funds State]
+This diagram maps out the ways that a wallet in the `MOVING_FUNDS` state can
+respond: by asking for more time, by commiting to move its funds to other
+wallet(s), or by letting the system know that it has insufficient funds to
+continue.
+
+==== Resolving Moving Funds
+
+image::diagrams/wallet-lifecycle/wallet-lifecycle-4-resolving-moving-funds.png[Resolving Moving Funds]
+This diagram maps out the ways that a wallet in the `MOVING_FUNDS` state can
+complete the process.
+
+==== Handling Moved Funds
+
+image::diagrams/wallet-lifecycle/wallet-lifecycle-5-handling-moved-funds.png[Handling Moved Funds]
+This diagram maps out the ways that the recipient signing group of moved funds
+can handle those funds.
+
+==== Transitioning From Closing To Closed
+
+image::diagrams/wallet-lifecycle/wallet-lifecycle-6-going-from-closing-to-closed-state.png[Transitioning From Closing To Closed]
+This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 
 == Parameters
 
