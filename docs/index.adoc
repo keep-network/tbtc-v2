@@ -553,7 +553,7 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |walletCreationMinBtcBalance 
 |The minimum amount of satoshis an active wallet needs to hold before we allow for the creation of a new active wallet. 
 |Yes 
-|`1e8 satoshis`
+|`1e8 satoshis = 1 BTC`
 
 |walletCreationPeriod      
 |The length of time a wallet needs to exist for before a new one can be created 
@@ -580,12 +580,12 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |movedFundsSweepTxMaxTotalFee 
 |The max amount of satoshis that the target wallet is allowed to pay miners to process a moved funds sweep transaction. 
 |Yes 
-|`100_000 satoshis`
+|`100_000 satoshis = 0.001 BTC`
 
 |movingFundsDustThreshold 
 |The minimum amount of satoshis held by a closing wallet that needs to be moved to a different wallet before closing. 
 |Yes 
-|`200_000 satoshis`
+|`200_000 satoshis = 0.002 BTC`
 
 |movingFundsTimeout 
 |The amount of time group members have to move their wallet's funds to another live wallet(s). 
@@ -610,7 +610,7 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |movingFundsTxMaxTotalFee 
 |The max amount of satoshis that the wallet is allowed to pay miners for a moving funds transaction. 
 |Yes 
-|`100_000 satoshis`
+|`100_000 satoshis = 0.001 BTC`
 
 |walletClosingPeriod 
 |The amount of time the wallet remains in the `Closing` state before it can be closed. 
@@ -620,7 +620,7 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |walletClosureMinBtcBalance 
 |The minimum amount of satoshis at which a non-active wallet is eligible to begin closing. 
 |Yes 
-|`5e7 = 0.5 BTC`
+|`5e7 satoshis = 0.5 BTC`
 
 |walletMaxAge 
 |The age at which a non-active wallet is eligible to begin closing. 
@@ -630,14 +630,14 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |walletMaxBtcTransfer 
 |The amount of satoshis held by the closing wallet at which it should try to split the moved funds to multiple target wallets. 
 |Yes 
-|`10e8 = 10 BTC`
+|`10e8 satoshis = 10 BTC`
 
 4+s|Depositing
 
 |depositDustThreshold
 |The minimum amount of satoshis in a valid deposit.
 |Yes
-|`1_000_000 satoshis`
+|`1_000_000 satoshis = 0.01 BTC`
 
 4+s|Sweeping
 
@@ -645,19 +645,19 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |A divisor used to compute the treasury fee taken from each deposit and transferred to the treasury upon sweep proof submission.
 |The deposit fee divisor of one BTC to take as a treasury fee. 
 |Yes 
-|`2_000 => 1/2_000 = 5 BPS`
+|`1/2_000 = 0.05%`
 
 |depositTxMaxFee 
 |The max amount of satoshis per deposit that the wallet is allowed to pay to miners for processing the sweep transaction. 
 |Yes 
-|`100_000 satoshis`
+|`100_000 satoshis = 0.001 BTC`
 
 4+s|Redeeming
 
 |redemptionDustThreshold 
 |The minimum amount of satoshis in a valid redemption. 
 |Yes 
-|`1_000_000 satoshis`
+|`1_000_000 satoshis = 0.01 BTC`
 
 |redemptionTimeout 
 |The amount of time a wallet has to fulfill a redemption request. 
@@ -677,12 +677,12 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |redemptionTreasuryFeeDivisor 
 |A divisor used to compute the treasury fee taken from each redemption request and transferred to the treasury upon successful request finalization. 
 |Yes 
-|`2_000 => 1/2_000 = 5 BPS`
+|`1/2_000 = 0.05%`
 
 |redemptionTxMaxFee 
 |The max amount of satoshis per redemption that the wallet is allowed to pay miners for processing the redemption transaction. 
 |Yes 
-|`100_000 satoshis`
+|`100_000 satoshis = 0.001 BTC`
 
 4+s|Fraud 
 
