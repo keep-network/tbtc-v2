@@ -85,6 +85,8 @@ describe("Bridge - Redemption", () => {
     // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
     await bridge.setRedemptionDustThreshold(100000)
+    // Adjust redemption TX max fee by the same - 10x smaller - scale.
+    await bridge.setRedemptionTxMaxFee(10000)
 
     redemptionTimeout = (await bridge.redemptionParameters()).redemptionTimeout
   })

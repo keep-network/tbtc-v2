@@ -103,8 +103,13 @@ describeFn("Integration Test - Full flow", async () => {
 
           // We use a deposit funding bitcoin transaction with a very low amount,
           // so we need to update the dust and redemption thresholds to be below it.
-          await updateDepositDustThreshold(10000) // 0.0001 BTC
-          await updateRedemptionDustThreshold(2000) // 0.00002 BTC
+          // TX max fees need to be adjusted as well given that they need to
+          // be lower than dust thresholds.
+
+          // 0.001 BTC, 0.0001 BTC
+          await updateDepositDustThresholdAndTxMaxFee(100_000, 10_000)
+          // 0.0005 BTC, 0.0001 BTC
+          await updateRedemptionDustThresholdAndTxMaxFee(50_000, 10_000)
 
           await bridge.revealDeposit(
             revealDepositData.fundingTx,
@@ -288,8 +293,9 @@ describeFn("Integration Test - Full flow", async () => {
     })
   })
 
-  async function updateDepositDustThreshold(
-    newDepositDustThreshold: BigNumberish
+  async function updateDepositDustThresholdAndTxMaxFee(
+    newDepositDustThreshold: BigNumberish,
+    newDepositTxMaxFee: BigNumberish
   ) {
     const currentDepositParameters = await bridge.depositParameters()
     await bridge
@@ -297,12 +303,13 @@ describeFn("Integration Test - Full flow", async () => {
       .updateDepositParameters(
         newDepositDustThreshold,
         currentDepositParameters.depositTreasuryFeeDivisor,
-        currentDepositParameters.depositTxMaxFee
+        newDepositTxMaxFee
       )
   }
 
-  async function updateRedemptionDustThreshold(
-    newRedemptionDustThreshold: number
+  async function updateRedemptionDustThresholdAndTxMaxFee(
+    newRedemptionDustThreshold: number,
+    newRedemptionTxMaxFee: number
   ) {
     // Redemption dust threshold has to be greater than moving funds dust threshold,
     // so first we need to align the moving funds dust threshold.
@@ -329,7 +336,7 @@ describeFn("Integration Test - Full flow", async () => {
       .updateRedemptionParameters(
         newRedemptionDustThreshold,
         currentRedemptionParameters.redemptionTreasuryFeeDivisor,
-        currentRedemptionParameters.redemptionTxMaxFee,
+        newRedemptionTxMaxFee,
         currentRedemptionParameters.redemptionTimeout,
         currentRedemptionParameters.redemptionTimeoutSlashingAmount,
         currentRedemptionParameters.redemptionTimeoutNotifierRewardMultiplier

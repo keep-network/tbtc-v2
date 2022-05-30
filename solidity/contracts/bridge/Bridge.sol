@@ -258,30 +258,36 @@ contract Bridge is
 
         self.txProofDifficultyFactor = _txProofDifficultyFactor;
 
-        // TODO: Revisit initial values.
-        //       https://github.com/keep-network/tbtc-v2/issues/258
+        //
+        // All parameters set in the constructor are initial ones, used at the
+        // moment contracts were deployed for the first time. Parameters are
+        // governable and values assigned in the constructor do not need to
+        // reflect the current ones. Keep in mind the initial parameters are
+        // pretty forgiving and valid only for the early stage of the network.
+        //
+
         self.depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
-        self.depositTxMaxFee = 10000; // 10000 satoshi
+        self.depositTxMaxFee = 100000; // 100000 satoshi = 0.001 BTC
         self.depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         self.redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         self.redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
-        self.redemptionTxMaxFee = 10000; // 10000 satoshi
-        self.redemptionTimeout = 172800; // 48 hours
-        self.redemptionTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.redemptionTxMaxFee = 100000; // 100000 satoshi = 0.001 BTC
+        self.redemptionTimeout = 5 days;
+        self.redemptionTimeoutSlashingAmount = 100 * 1e18; // 100 T
         self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
-        self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
-        self.movingFundsDustThreshold = 20000; // 20000 satoshi
+        self.movingFundsTxMaxTotalFee = 100000; // 100000 satoshi = 0.001 BTC
+        self.movingFundsDustThreshold = 200000; // 200000 satoshi = 0.002 BTC
         self.movingFundsTimeoutResetDelay = 6 days;
         self.movingFundsTimeout = 7 days;
-        self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.movingFundsTimeoutSlashingAmount = 100 * 1e18; // 100 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
-        self.movedFundsSweepTxMaxTotalFee = 10000; // 10000 satoshi
+        self.movedFundsSweepTxMaxTotalFee = 100000; // 100000 satoshi = 0.001 BTC
         self.movedFundsSweepTimeout = 7 days;
-        self.movedFundsSweepTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.movedFundsSweepTimeoutSlashingAmount = 100 * 1e18; // 100 T
         self.movedFundsSweepTimeoutNotifierRewardMultiplier = 100; //100%
-        self.fraudChallengeDepositAmount = 2 ether;
+        self.fraudChallengeDepositAmount = 5 ether;
         self.fraudChallengeDefeatTimeout = 7 days;
-        self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
+        self.fraudSlashingAmount = 100 * 1e18; // 100 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.walletCreationPeriod = 1 weeks;
         self.walletCreationMinBtcBalance = 1e8; // 1 BTC
