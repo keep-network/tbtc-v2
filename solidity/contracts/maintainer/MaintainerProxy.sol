@@ -36,7 +36,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @dev    'Key' is the address of the maintainer. 'Value' represents an index+1
     ///         in the 'maintainers' array. 1 was added so the maintainer index can
     ///         never be 0 which is a reserved index for a non-existent maintainer
-    ///         in ths map.
+    ///         in this map.
     mapping(address => uint256) public isAuthorized;
 
     /// @notice This list of maintainers keeps the order of which maintainer should
@@ -439,17 +439,29 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @notice Updates the values of gas offset parameters.
     /// @dev Can be called only by the contract owner. The caller is responsible
     ///      for validating parameters.
-    /// @param newSubmitDepositSweepProofGasOffset New submit deposit sweep proof gas offset
-    /// @param newSubmitRedemptionProofGasOffset New submit redemption proof gas offset
-    /// @param newSubmitMovingFundsCommitmentGasOffset New submit moving funds commitment gas offset
-    /// @param newSubmitMovingFundsProofGasOffset New submit moving funds proof gas offset
-    /// @param newNotifyMovingFundsBelowDustGasOffset New notify moving funds below dust gas offset
-    /// @param newSubmitMovedFundsSweepProofGasOffset New submit moved funds sweep proof gas offset
-    /// @param newRequestNewWalletGasOffset New request new wallet gas offset
-    /// @param newNotifyWalletCloseableGasOffset New notify closeable wallet gas offset
-    /// @param newNotifyWalletClosingPeriodElapsedGasOffset New notify wallet closing period elapsed gas offset
-    /// @param newDefeatFraudChallengeGasOffset New defeat fraud challenge gas offset
-    /// @param newDefeatFraudChallengeWithHeartbeatGasOffset New defeat fraud challenge with heartbeat gas offset
+    /// @param newSubmitDepositSweepProofGasOffset New submit deposit sweep
+    ///        proof gas offset.
+    /// @param newSubmitRedemptionProofGasOffset New submit redemption proof gas
+    ///        offset.
+    /// @param newSubmitMovingFundsCommitmentGasOffset New submit moving funds
+    ///        commitment gas offset.
+    /// @param newResetMovingFundsTimeoutGasOffset New reset moving funds
+    ///        timeout gas offset.
+    /// @param newSubmitMovingFundsProofGasOffset New submit moving funds proof
+    ///        gas offset.
+    /// @param newNotifyMovingFundsBelowDustGasOffset New notify moving funds
+    ///        below dust gas offset.
+    /// @param newSubmitMovedFundsSweepProofGasOffset New submit moved funds
+    ///        sweep proof gas offset.
+    /// @param newRequestNewWalletGasOffset New request new wallet gas offset.
+    /// @param newNotifyWalletCloseableGasOffset New notify closeable wallet gas
+    ///        offset.
+    /// @param newNotifyWalletClosingPeriodElapsedGasOffset New notify wallet
+    ///        closing period elapsed gas offset.
+    /// @param newDefeatFraudChallengeGasOffset New defeat fraud challenge gas
+    ///        offset.
+    /// @param newDefeatFraudChallengeWithHeartbeatGasOffset New defeat fraud
+    ///        challenge with heartbeat gas offset.
     function updateGasOffsetParameters(
         uint256 newSubmitDepositSweepProofGasOffset,
         uint256 newSubmitRedemptionProofGasOffset,
