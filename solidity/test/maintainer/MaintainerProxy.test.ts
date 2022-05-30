@@ -128,7 +128,6 @@ describe("MaintainerProxy", () => {
       to: reimbursementPool.address,
       value: ethers.utils.parseEther("100"),
     })
-
     ;({ fraudChallengeDepositAmount } = await bridge.fraudParameters())
     ;[thirdParty, authorizedMaintainer] =
       await helpers.signers.getUnnamedSigners()
@@ -136,9 +135,6 @@ describe("MaintainerProxy", () => {
     await maintainerProxy
       .connect(governance)
       .authorize(authorizedMaintainer.address)
-    await reimbursementPool
-      .connect(governance)
-      .authorize(maintainerProxy.address)
   })
 
   describe("requestNewWallet", () => {

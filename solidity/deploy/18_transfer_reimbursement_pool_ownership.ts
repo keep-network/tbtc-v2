@@ -5,7 +5,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, helpers } = hre
   const { deployer, governance } = await getNamedAccounts()
 
-  await helpers.ownable.transferOwnership("ReimbursementPool", governance, deployer)
+  await helpers.ownable.transferOwnership(
+    "ReimbursementPool",
+    governance,
+    deployer
+  )
 }
 
 export default func
