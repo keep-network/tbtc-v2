@@ -166,6 +166,10 @@ describe("Bridge - Governance", () => {
         expect(await bridge.governance()).to.be.equal(bridgeGovernance.address)
       })
 
+      it("should not update the bridge governance owner", async () => {
+        expect(await bridgeGovernance.owner()).to.be.equal(governance.address)
+      })
+
       it("should start the bridge governance transfer timer", async () => {
         const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
           .timestamp
