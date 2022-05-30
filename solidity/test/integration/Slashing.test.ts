@@ -503,9 +503,7 @@ describeFn("Integration Test - Slashing", async () => {
     await bridgeGovernance
       .connect(governance)
       .finalizeDepositDustThresholdUpdate()
-    await bridgeGovernance
-      .connect(governance)
-      .finalizeDepositTxMaxFeeUpdate()
+    await bridgeGovernance.connect(governance).finalizeDepositTxMaxFeeUpdate()
   }
 
   async function updateRedemptionDustThresholdAndTxMaxFee(

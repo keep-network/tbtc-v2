@@ -131,14 +131,16 @@ describe("Bridge - Parameters", () => {
         "when new deposit dust threshold is same as deposit TX max fee",
         () => {
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginDepositDustThresholdUpdate(constants.depositTxMaxFee)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateDepositParameters(
-                  constants.depositTxMaxFee,
-                  constants.depositTreasuryFeeDivisor,
-                  constants.depositTxMaxFee
-                )
+                .finalizeDepositDustThresholdUpdate()
             ).to.be.revertedWith(
               "Deposit dust threshold must be greater than deposit TX max fee"
             )
@@ -150,14 +152,16 @@ describe("Bridge - Parameters", () => {
         "when new deposit dust threshold is lower than deposit TX max fee",
         () => {
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginDepositDustThresholdUpdate(constants.depositTxMaxFee - 1)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateDepositParameters(
-                  constants.depositTxMaxFee - 1,
-                  constants.depositTreasuryFeeDivisor,
-                  constants.depositTxMaxFee
-                )
+                .finalizeDepositDustThresholdUpdate()
             ).to.be.revertedWith(
               "Deposit dust threshold must be greater than deposit TX max fee"
             )
@@ -441,18 +445,37 @@ describe("Bridge - Parameters", () => {
       context(
         "when new redemption dust threshold is same as redemption tx max fee",
         () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridgeGovernance
+              .connect(governance)
+              .beginMovingFundsDustThresholdUpdate(
+                constants.redemptionTxMaxFee - 1
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
+            await bridgeGovernance
+              .connect(governance)
+              .finalizeMovingFundsDustThresholdUpdate()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginRedemptionDustThresholdUpdate(constants.redemptionTxMaxFee)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateRedemptionParameters(
-                  constants.redemptionDustThreshold,
-                  constants.redemptionTreasuryFeeDivisor,
-                  constants.redemptionDustThreshold,
-                  constants.redemptionTimeout,
-                  constants.redemptionTimeoutSlashingAmount,
-                  constants.redemptionTimeoutNotifierRewardMultiplier
-                )
+                .finalizeRedemptionDustThresholdUpdate()
             ).to.be.revertedWith(
               "Redemption dust threshold must be greater than redemption TX max fee"
             )
@@ -463,18 +486,39 @@ describe("Bridge - Parameters", () => {
       context(
         "when new redemption dust threshold is lower than redemption tx max fee",
         () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridgeGovernance
+              .connect(governance)
+              .beginMovingFundsDustThresholdUpdate(
+                constants.redemptionTxMaxFee - 2
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
+            await bridgeGovernance
+              .connect(governance)
+              .finalizeMovingFundsDustThresholdUpdate()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginRedemptionDustThresholdUpdate(
+                constants.redemptionTxMaxFee - 1
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateRedemptionParameters(
-                  constants.redemptionDustThreshold - 1,
-                  constants.redemptionTreasuryFeeDivisor,
-                  constants.redemptionDustThreshold,
-                  constants.redemptionTimeout,
-                  constants.redemptionTimeoutSlashingAmount,
-                  constants.redemptionTimeoutNotifierRewardMultiplier
-                )
+                .finalizeRedemptionDustThresholdUpdate()
             ).to.be.revertedWith(
               "Redemption dust threshold must be greater than redemption TX max fee"
             )

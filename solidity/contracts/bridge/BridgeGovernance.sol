@@ -97,7 +97,7 @@ contract BridgeGovernance is Ownable {
     event RedemptionTxMaxFeeUpdated(uint64 redemptionTxMaxFee);
 
     event RedemptionTimeoutUpdateStarted(
-        uint64 newRedemptionTimeout,
+        uint32 newRedemptionTimeout,
         uint256 timestamp
     );
     event RedemptionTimeoutUpdated(uint32 redemptionTimeout);
@@ -139,10 +139,10 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovingFundsTimeoutUpdateStarted(
-        uint64 newMovingFundsTimeout,
+        uint32 newMovingFundsTimeout,
         uint256 timestamp
     );
-    event MovingFundsTimeoutUpdated(uint64 movingFundsTimeout);
+    event MovingFundsTimeoutUpdated(uint32 movingFundsTimeout);
 
     event MovingFundsTimeoutSlashingAmountUpdateStarted(
         uint96 newMovingFundsTimeoutSlashingAmount,
@@ -183,7 +183,7 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovedFundsSweepTimeoutNotifierRewardMultiplierUpdateStarted(
-        uint256 newMovedFundsSweepTimeoutNotifierRewardMultiplier,
+        uint32 newMovedFundsSweepTimeoutNotifierRewardMultiplier,
         uint256 timestamp
     );
     event MovedFundsSweepTimeoutNotifierRewardMultiplierUpdated(
@@ -234,7 +234,7 @@ contract BridgeGovernance is Ownable {
     event WalletClosingPeriodUpdated(uint32 walletClosingPeriod);
 
     event FraudChallengeDepositAmountUpdateStarted(
-        uint256 newFraudChallengeDepositAmount,
+        uint96 newFraudChallengeDepositAmount,
         uint256 timestamp
     );
     event FraudChallengeDepositAmountUpdated(

@@ -341,7 +341,7 @@ describe("Bridge - Governance", () => {
 
         await bridgeGovernance
           .connect(governance)
-          .beginDepositDustThresholdUpdate(7331)
+          .beginDepositDustThresholdUpdate(constants.depositTxMaxFee + 1)
 
         await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
       })
@@ -369,7 +369,7 @@ describe("Bridge - Governance", () => {
 
           await bridgeGovernance
             .connect(governance)
-            .beginDepositDustThresholdUpdate(7331)
+            .beginDepositDustThresholdUpdate(constants.depositTxMaxFee + 1)
 
           await helpers.time.increaseTime(constants.governanceDelay)
 
@@ -384,13 +384,15 @@ describe("Bridge - Governance", () => {
 
         it("should update the deposit dust threshold", async () => {
           const { depositDustThreshold } = await bridge.depositParameters()
-          expect(depositDustThreshold).to.be.equal(7331)
+          expect(depositDustThreshold).to.be.equal(
+            constants.depositTxMaxFee + 1
+          )
         })
 
         it("should emit DepositDustThresholdUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "DepositDustThresholdUpdated")
-            .withArgs(7331)
+            .withArgs(constants.depositTxMaxFee + 1)
         })
       }
     )
