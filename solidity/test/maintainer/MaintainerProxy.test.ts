@@ -115,7 +115,9 @@ describe("MaintainerProxy", () => {
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
+    // Scaling down deposit TX max fee as well.
     await bridge.setDepositDustThreshold(10000)
+    await bridge.setDepositTxMaxFee(2000)
 
     await deployer.sendTransaction({
       to: walletRegistry.address,
@@ -203,7 +205,9 @@ describe("MaintainerProxy", () => {
 
       // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
       // the initial value in the Bridge in order to save test Bitcoins.
+      // Scaling down deposit TX max fee as well.
       await bridge.setDepositDustThreshold(10000)
+      await bridge.setDepositTxMaxFee(2000)
 
       await bridge.setWallet(walletPubKeyHash, {
         ecdsaWalletID: ethers.constants.HashZero,
@@ -1212,7 +1216,9 @@ describe("MaintainerProxy", () => {
 
             // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
             // the initial value in the Bridge in order to save test Bitcoins.
+            // Scaling down deposit TX max fee as well.
             await bridge.setDepositDustThreshold(10000)
+            await bridge.setDepositTxMaxFee(2000)
 
             await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
               ecdsaWalletID: ecdsaWalletTestData.walletID,
@@ -3257,7 +3263,10 @@ describe("MaintainerProxy", () => {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
+    // Scaling down deposit dust threshold 100x to what is in Bridge default
+    // parameters. Scaling down redemption TX max fee accordingly.
     await bridge.setRedemptionDustThreshold(10000)
+    await bridge.setRedemptionTxMaxFee(1000)
 
     // Simulate the wallet is a registered one.
     await bridge.setWallet(data.wallet.pubKeyHash, {
