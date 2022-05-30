@@ -2231,46 +2231,6 @@ describe("MaintainerProxy", () => {
             )
           })
         })
-
-        context("when sweeping wallet is in the MovingFunds state", () => {
-          const data: MovedFundsSweepTestData = MovedFundsSweepWithoutMainUtxo
-
-          let tx: ContractTransaction
-
-          before(async () => {
-            await createSnapshot()
-
-            tx = await runMovedFundsSweepScenario({
-              ...data,
-              wallet: {
-                ...data.wallet,
-                state: walletState.MovingFunds,
-              },
-            })
-          })
-
-          after(async () => {
-            await restoreSnapshot()
-          })
-
-          it("should emit MovedFundsSwept event", async () => {
-            await expect(tx).to.emit(bridge, "MovedFundsSwept")
-          })
-
-          it("should refund ETH", async () => {
-            const postThirdPartyBalance = await provider.getBalance(
-              authorizedMaintainer.address
-            )
-            const diff = postThirdPartyBalance.sub(
-              initialAuthorizedMaintainerBalance
-            )
-
-            expect(diff).to.be.gt(0)
-            expect(diff).to.be.lt(
-              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-            )
-          })
-        })
       })
     })
   })
