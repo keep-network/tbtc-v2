@@ -194,12 +194,6 @@ describe("MaintainerProxy", () => {
       // of that field.
       const { walletPubKeyHash } = data.deposits[0].reveal
 
-      // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
-      // the initial value in the Bridge in order to save test Bitcoins.
-      // Scaling down deposit TX max fee as well.
-      await bridge.setDepositDustThreshold(10000)
-      await bridge.setDepositTxMaxFee(2000)
-
       await bridge.setWallet(walletPubKeyHash, {
         ecdsaWalletID: ethers.constants.HashZero,
         mainUtxoHash: ethers.constants.HashZero,
@@ -1204,12 +1198,6 @@ describe("MaintainerProxy", () => {
             await maintainerProxy
               .connect(governance)
               .authorize(walletRegistry.address)
-
-            // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
-            // the initial value in the Bridge in order to save test Bitcoins.
-            // Scaling down deposit TX max fee as well.
-            await bridge.setDepositDustThreshold(10000)
-            await bridge.setDepositTxMaxFee(2000)
 
             await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
               ecdsaWalletID: ecdsaWalletTestData.walletID,
