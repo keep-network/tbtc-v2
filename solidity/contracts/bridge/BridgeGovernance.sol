@@ -259,7 +259,7 @@ contract BridgeGovernance is Ownable {
     event FraudSlashingAmountUpdated(uint96 fraudSlashingAmount);
 
     event FraudNotifierRewardMultiplierUpdateStarted(
-        uint256 newFraudNotifierRewardMultiplier,
+        uint32 newFraudNotifierRewardMultiplier,
         uint256 timestamp
     );
     event FraudNotifierRewardMultiplierUpdated(

@@ -185,7 +185,7 @@ library BridgeGovernanceParameters {
     );
 
     event MovingFundsTimeoutUpdateStarted(
-        uint64 newMovingFundsTimeout,
+        uint32 newMovingFundsTimeout,
         uint256 timestamp
     );
     event MovingFundsTimeoutUpdated(uint64 movingFundsTimeout);
@@ -292,7 +292,7 @@ library BridgeGovernanceParameters {
         uint256 timestamp
     );
     event FraudChallengeDefeatTimeoutUpdated(
-        uint256 fraudChallengeDefeatTimeout
+        uint32 fraudChallengeDefeatTimeout
     );
 
     event FraudSlashingAmountUpdateStarted(
