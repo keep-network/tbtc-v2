@@ -506,7 +506,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     }
 
     /// @notice Gets an entire array of maintainer addresses.
-    function getAllMaintainers() external view returns (address[] memory) {
+    function allMaintainers() external view returns (address[] memory) {
         return maintainers;
     }
 }

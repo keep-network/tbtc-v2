@@ -71,7 +71,7 @@ const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
 // Most of the tests around specific bridge functionality were ported from the
 // other tbtc-v2 tests suites and adjusted to check the refund functionality of
 // the Maintainer Proxy contract.
-describe("Maintainer Proxy", () => {
+describe("MaintainerProxy", () => {
   const activeWalletMainUtxo = {
     txHash:
       "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
@@ -2536,7 +2536,7 @@ describe("Maintainer Proxy", () => {
 
       before(async () => {
         await createSnapshot()
-        const maintainers = await maintainerProxy.getAllMaintainers()
+        const maintainers = await maintainerProxy.allMaintainers()
         console.log("maintainers.length", maintainers[0])
 
         tx = await maintainerProxy
@@ -2561,7 +2561,7 @@ describe("Maintainer Proxy", () => {
       })
 
       it("should be total of 2 authorized maintainers", async () => {
-        const maintainers = await maintainerProxy.getAllMaintainers()
+        const maintainers = await maintainerProxy.allMaintainers()
         expect(maintainers.length).to.be.equal(2)
       })
 
@@ -2601,7 +2601,7 @@ describe("Maintainer Proxy", () => {
 
     context("when the caller is the owner", () => {
       it("should be a total of 0 authorized maintainers", async () => {
-        const authorizedMaintainers = await maintainerProxy.getAllMaintainers()
+        const authorizedMaintainers = await maintainerProxy.allMaintainers()
         await expect(authorizedMaintainers.length).to.be.equal(0)
       })
 
@@ -2793,7 +2793,7 @@ describe("Maintainer Proxy", () => {
 
             it("should remove 2 maintainers from the maintainers array", async () => {
               const authorizedMaintainers =
-                await maintainerProxy.getAllMaintainers()
+                await maintainerProxy.allMaintainers()
 
               expect(authorizedMaintainers.length).to.be.equal(6)
               const expectedMaintainers = [
@@ -2875,7 +2875,7 @@ describe("Maintainer Proxy", () => {
 
             it("should remove 2 maintainers from the maintainers array", async () => {
               const authorizedMaintainers =
-                await maintainerProxy.getAllMaintainers()
+                await maintainerProxy.allMaintainers()
 
               expect(authorizedMaintainers.length).to.be.equal(6)
               const expectedMaintainers = [
@@ -2951,7 +2951,7 @@ describe("Maintainer Proxy", () => {
 
             it("should remove 2 maintainers from the maintainers array", async () => {
               const authorizedMaintainers =
-                await maintainerProxy.getAllMaintainers()
+                await maintainerProxy.allMaintainers()
 
               expect(authorizedMaintainers.length).to.be.equal(6)
               const expectedMaintainers = [
