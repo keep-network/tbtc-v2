@@ -258,6 +258,10 @@ describe("Bridge - Governance", () => {
         it("should update the bridge governance", async () => {
           expect(await bridge.governance()).to.be.equal(thirdParty.address)
         })
+
+        it("should not update the bridgeGovernance owner", async () => {
+          expect(await bridgeGovernance.owner()).to.be.equal(governance.address)
+        })
       }
     )
   })
