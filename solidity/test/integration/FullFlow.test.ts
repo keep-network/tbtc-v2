@@ -113,7 +113,7 @@ describeFn("Integration Test - Full flow", async () => {
           // 0.001 BTC, 0.0001 BTC
           await updateDepositDustThresholdAndTxMaxFee(100_000, 10_000)
           // 0.0005 BTC, 0.0001 BTC
-          await updateRedemptionDustThresholdAndTxMaxFee(50_000, 10_000, 5_000)
+          await updateRedemptionParameters(50_000, 10_000, 5_000)
 
           await bridge.revealDeposit(
             revealDepositData.fundingTx,
@@ -301,7 +301,6 @@ describeFn("Integration Test - Full flow", async () => {
     newDepositDustThreshold: BigNumberish,
     newDepositTxMaxFee: BigNumberish
   ) {
-    console.log("duuupa")
     await bridgeGovernance
       .connect(governance)
       .beginDepositDustThresholdUpdate(newDepositDustThreshold)
@@ -317,20 +316,9 @@ describeFn("Integration Test - Full flow", async () => {
     await bridgeGovernance
       .connect(governance)
       .finalizeDepositDustThresholdUpdate()
-
-    console.log("duuupa23")
-
-    // const currentDepositParameters = await bridge.depositParameters()
-    // await bridge
-    //   .connect(governance)
-    //   .updateDepositParameters(
-    //     newDepositDustThreshold,
-    //     currentDepositParameters.depositTreasuryFeeDivisor,
-    //     newDepositTxMaxFee
-    //   )
   }
 
-  async function updateRedemptionDustThresholdAndTxMaxFee(
+  async function updateRedemptionParameters(
     newRedemptionDustThreshold: number,
     newRedemptionTxMaxFee: number,
     newMovingFundsDustThreshold: number

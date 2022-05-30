@@ -4,7 +4,6 @@ import chai, { expect } from "chai"
 import chaiAsPromised from "chai-as-promised"
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import bridgeFixture from "../fixtures/bridge"
 import type { ProxyAdmin, Bridge, BridgeGovernance } from "../../typechain"
 import type { TransparentUpgradeableProxy } from "../../typechain/TransparentUpgradeableProxy"
 
@@ -25,7 +24,6 @@ describe("Bridge - Deployment", async () => {
   before(async () => {
     await deployments.fixture()
     ;({ deployer, governance, esdm } = await helpers.signers.getNamedSigners())
-    // eslint-disable-next-line @typescript-eslint/no-extra-semi
     bridgeGovernance = await helpers.contracts.getContract("BridgeGovernance")
 
     bridge = await helpers.contracts.getContract("Bridge")

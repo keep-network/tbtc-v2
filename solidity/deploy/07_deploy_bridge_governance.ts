@@ -19,7 +19,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const GOVERNANCE_DELAY = 604800 // 1 week
 
   const BridgeGovernance = await deploy("BridgeGovernance", {
-    contract: "BridgeGovernance",
     from: deployer,
     args: [Bridge.address, GOVERNANCE_DELAY],
     log: true,
