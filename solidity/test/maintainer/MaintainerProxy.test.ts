@@ -2467,7 +2467,6 @@ describe("MaintainerProxy", () => {
       before(async () => {
         await createSnapshot()
         const maintainers = await maintainerProxy.allMaintainers()
-        console.log("maintainers.length", maintainers[0])
 
         tx = await maintainerProxy
           .connect(governance)
