@@ -37,7 +37,7 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const describeFn =
   process.env.NODE_ENV === "integration-test" ? describe : describe.skip
 
-describe("Integration Test - Full flow", async () => {
+describeFn("Integration Test - Full flow", async () => {
   let tbtc: TBTC
   let bridge: Bridge
   let bridgeGovernance: BridgeGovernance
