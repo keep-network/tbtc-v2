@@ -568,7 +568,7 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |`7 days`
 
 |movedFundsSweepTimeoutNotifierRewardMultiplier 
-|The percentage of the slashed stake that the notifier receives when they notify the system about a wallet that has failed to sweep the moved funds. 
+|The percentage of the staking contract notifier reward that the notifier receives when they notify the system about a wallet that has failed to sweep the moved funds. 
 |Yes 
 |`100%`
 
@@ -593,7 +593,7 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |`7 days`
 
 |movingFundsTimeoutNotifierRewardMultiplier 
-|The percentage of the slashed stake that the notifier receives when they notify the system about a wallet that has failed to fulfill a moving funds request. 
+|The percentage of the staking contract notifier reward that the notifier receives when they notify the system about a wallet that has failed to fulfill a moving funds request. 
 |Yes 
 |`100%`
 
@@ -618,7 +618,7 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |`40 days`
 
 |walletClosureMinBtcBalance 
-|The minimum amount of satoshis at which a non-active wallet is eligible to begin closing. 
+|The minimum amount of satoshis at which a non-active wallet is eligible to begin closing, regardless of the wallet's age.
 |Yes 
 |`5e7 satoshis = 0.5 BTC`
 
@@ -643,7 +643,6 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 
 |depositTreasuryFeeDivisor 
 |A divisor used to compute the treasury fee taken from each deposit and transferred to the treasury upon sweep proof submission.
-|The deposit fee divisor of one BTC to take as a treasury fee. 
 |Yes 
 |`1/2_000 = 0.05%`
 
@@ -665,7 +664,7 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |`5 days`
 
 |redemptionTimeoutNotifierRewardMultiplier 
-|The percentage of the slashed stake from a redemption timeout that the notifier receives as a reward. 
+|The percentage of the staking contract notifier reward that the notifier receives when they notify the system about a wallet that has failed to fulfill a redemption request.
 |Yes 
 |`100%`
 
@@ -697,7 +696,7 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 |`5 ether`
 
 |fraudNotifierRewardMultiplier 
-|The percentage of the slashed stake from a fraud challenge that the challenger receives as a reward. 
+|The percentage of the staking contract notifier reward that the fraud challenger receives as a reward if the wallet did not defeat the challenge.
 |Yes 
 |`100%`
 
