@@ -294,7 +294,7 @@ contract Bridge is
         self.walletCreationMaxBtcBalance = 100e8; // 100 BTC
         self.walletClosureMinBtcBalance = 5 * 1e7; // 0.5 BTC
         self.walletMaxAge = 26 weeks; // ~6 months
-        self.walletMaxBtcTransfer = 50e8; // 50 BTC
+        self.walletMaxBtcTransfer = 10e8; // 10 BTC
         self.walletClosingPeriod = 40 days;
 
         _transferGovernance(msg.sender);

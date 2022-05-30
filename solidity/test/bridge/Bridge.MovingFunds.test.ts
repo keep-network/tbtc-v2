@@ -157,12 +157,12 @@ describe("Bridge - Moving funds", () => {
 
                   context("when passed wallet main UTXO is valid", () => {
                     context("when wallet balance is greater than zero", () => {
-                      // Just an arbitrary main UTXO with value of 130 BTC.
+                      // Just an arbitrary main UTXO with value of 26 BTC.
                       const mainUtxo = {
                         txHash:
                           "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                         txOutputIndex: 0,
-                        txOutputValue: to1ePrecision(130, 8),
+                        txOutputValue: to1ePrecision(26, 8),
                       }
 
                       before(async () => {
@@ -213,13 +213,13 @@ describe("Bridge - Moving funds", () => {
                           context(
                             "when the submitted target wallets count is same as the expected",
                             () => {
-                              // The source wallet has a main UTXO with value of 130 BTC,
-                              // the max BTC transfer is 50 BTC by default (see
+                              // The source wallet has a main UTXO with value of 26 BTC,
+                              // the max BTC transfer is 10 BTC by default (see
                               // `constants.walletMaxBtcTransfer`) and the count of
                               // live wallets is `5`. We compute the expected target
                               // wallets count as:
                               // `N = min(liveWalletsCount, ceil(walletBtcBalance / walletMaxBtcTransfer))`
-                              // so we have `N = min(5, 130 / 50) = min(5, 3) = 3`
+                              // so we have `N = min(5, 26 / 10) = min(5, 3) = 3`
                               const expectedTargetWalletsCount = 3
 
                               context(
@@ -441,7 +441,7 @@ describe("Bridge - Moving funds", () => {
                       txHash:
                         "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
                       txOutputIndex: 0,
-                      txOutputValue: to1ePrecision(130, 8), // 130 BTC
+                      txOutputValue: to1ePrecision(26, 8), // 26 BTC
                     }
 
                     before(async () => {
