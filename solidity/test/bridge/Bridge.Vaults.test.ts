@@ -37,6 +37,12 @@ describe("Bridge - Vaults", () => {
           bridgeGovernance.connect(thirdParty).setVaultStatus(vault, true)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
+
+      it("should revert", async () => {
+        await expect(
+          bridge.connect(governance).setVaultStatus(vault, true)
+        ).to.be.revertedWith("Caller is not the governance")
+      })
     })
 
     describe("when called by the governance", () => {
