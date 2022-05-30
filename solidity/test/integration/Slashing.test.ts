@@ -224,8 +224,10 @@ describeFn("Integration Test - Slashing", async () => {
 
         // We use a deposit funding bitcoin transaction with a very low amount,
         // so we need to update the dust and redemption thresholds to be below it.
-        await updateDepositDustThreshold(10_000) // 0.0001 BTC
-        await updateRedemptionDustThreshold(2_000) // 0.00002 BTC
+        // TX max fees need to be adjusted as well given that they need to
+        // be lower than dust thresholds.
+        await updateDepositDustThresholdAndTxMaxFee(10_000, 2_000) // 0.0001 BTC, 0.00002 BTC
+        await updateRedemptionDustThresholdAndTxMaxFee(2_000, 200) // 0.00002 BTC, 0.000002 BTC
 
         // Reveal and sweep the deposit to set up a positive Bank balance for
         // the redeemer, to be able to request a redemption.
@@ -374,7 +376,9 @@ describeFn("Integration Test - Slashing", async () => {
 
         // We use a deposit funding bitcoin transaction with a very low amount,
         // so we need to update the dust threshold to be below it.
-        await updateDepositDustThreshold(10000) // 0.0001 BTC)
+        // TX max fee needs to be updated as well given it has to be lower
+        // than the dust threshold.
+        await updateDepositDustThresholdAndTxMaxFee(10_000, 2_000) // 0.0001 BTC, 0.00002 BTC
 
         // Reveal and sweep the deposit to set up a main UTXO for the wallet,
         // so when operator inactivity is reported the wallet is transferred to
@@ -478,8 +482,9 @@ describeFn("Integration Test - Slashing", async () => {
     })
   })
 
-  async function updateDepositDustThreshold(
-    newDepositDustThreshold: BigNumberish
+  async function updateDepositDustThresholdAndTxMaxFee(
+    newDepositDustThreshold: BigNumberish,
+    newDepositTxMaxFee: BigNumberish
   ) {
     const currentDepositParameters = await bridge.depositParameters()
     await bridge
@@ -487,12 +492,13 @@ describeFn("Integration Test - Slashing", async () => {
       .updateDepositParameters(
         newDepositDustThreshold,
         currentDepositParameters.depositTreasuryFeeDivisor,
-        currentDepositParameters.depositTxMaxFee
+        newDepositTxMaxFee
       )
   }
 
-  async function updateRedemptionDustThreshold(
-    newRedemptionDustThreshold: number
+  async function updateRedemptionDustThresholdAndTxMaxFee(
+    newRedemptionDustThreshold: number,
+    newRedemptionTxMaxFee: number
   ) {
     // Redemption dust threshold has to be greater than moving funds dust threshold,
     // so first we need to align the moving funds dust threshold.
@@ -519,7 +525,7 @@ describeFn("Integration Test - Slashing", async () => {
       .updateRedemptionParameters(
         newRedemptionDustThreshold,
         currentRedemptionParameters.redemptionTreasuryFeeDivisor,
-        currentRedemptionParameters.redemptionTxMaxFee,
+        newRedemptionTxMaxFee,
         currentRedemptionParameters.redemptionTimeout,
         currentRedemptionParameters.redemptionTimeoutSlashingAmount,
         currentRedemptionParameters.redemptionTimeoutNotifierRewardMultiplier

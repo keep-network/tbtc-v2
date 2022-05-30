@@ -85,6 +85,44 @@ describe("Bridge - Parameters", () => {
         })
       })
 
+      context(
+        "when new deposit dust threshold is same as deposit TX max fee",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateDepositParameters(
+                  constants.depositTxMaxFee,
+                  constants.depositTreasuryFeeDivisor,
+                  constants.depositTxMaxFee
+                )
+            ).to.be.revertedWith(
+              "Deposit dust threshold must be greater than deposit TX max fee"
+            )
+          })
+        }
+      )
+
+      context(
+        "when new deposit dust threshold is lower than deposit TX max fee",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateDepositParameters(
+                  constants.depositTxMaxFee - 1,
+                  constants.depositTreasuryFeeDivisor,
+                  constants.depositTxMaxFee
+                )
+            ).to.be.revertedWith(
+              "Deposit dust threshold must be greater than deposit TX max fee"
+            )
+          })
+        }
+      )
+
       context("when new deposit treasury fee divisor is zero", () => {
         it("should revert", async () => {
           await expect(
@@ -220,6 +258,50 @@ describe("Bridge - Parameters", () => {
                 )
             ).to.be.revertedWith(
               "Redemption dust threshold must be greater than moving funds dust threshold"
+            )
+          })
+        }
+      )
+
+      context(
+        "when new redemption dust threshold is same as redemption tx max fee",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateRedemptionParameters(
+                  constants.redemptionDustThreshold,
+                  constants.redemptionTreasuryFeeDivisor,
+                  constants.redemptionDustThreshold,
+                  constants.redemptionTimeout,
+                  constants.redemptionTimeoutSlashingAmount,
+                  constants.redemptionTimeoutNotifierRewardMultiplier
+                )
+            ).to.be.revertedWith(
+              "Redemption dust threshold must be greater than redemption TX max fee"
+            )
+          })
+        }
+      )
+
+      context(
+        "when new redemption dust threshold is lower than redemption tx max fee",
+        () => {
+          it("should revert", async () => {
+            await expect(
+              bridge
+                .connect(governance)
+                .updateRedemptionParameters(
+                  constants.redemptionDustThreshold - 1,
+                  constants.redemptionTreasuryFeeDivisor,
+                  constants.redemptionDustThreshold,
+                  constants.redemptionTimeout,
+                  constants.redemptionTimeoutSlashingAmount,
+                  constants.redemptionTimeoutNotifierRewardMultiplier
+                )
+            ).to.be.revertedWith(
+              "Redemption dust threshold must be greater than redemption TX max fee"
             )
           })
         }
