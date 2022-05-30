@@ -33,11 +33,11 @@ library BridgeGovernanceParameters {
         uint256 redemptionTreasuryFeeDivisorChangeInitiated;
         uint64 newRedemptionTxMaxFee;
         uint256 redemptionTxMaxFeeChangeInitiated;
-        uint64 newRedemptionTimeout;
+        uint32 newRedemptionTimeout;
         uint256 redemptionTimeoutChangeInitiated;
         uint96 newRedemptionTimeoutSlashingAmount;
         uint256 redemptionTimeoutSlashingAmountChangeInitiated;
-        uint64 newRedemptionTimeoutNotifierRewardMultiplier;
+        uint32 newRedemptionTimeoutNotifierRewardMultiplier;
         uint256 redemptionTimeoutNotifierRewardMultiplierChangeInitiated;
     }
 
@@ -52,7 +52,7 @@ library BridgeGovernanceParameters {
         uint256 movingFundsTimeoutChangeInitiated;
         uint96 newMovingFundsTimeoutSlashingAmount;
         uint256 movingFundsTimeoutSlashingAmountChangeInitiated;
-        uint256 newMovingFundsTimeoutNotifierRewardMultiplier;
+        uint32 newMovingFundsTimeoutNotifierRewardMultiplier;
         uint256 movingFundsTimeoutNotifierRewardMultiplierChangeInitiated;
         uint64 newMovedFundsSweepTxMaxTotalFee;
         uint256 movedFundsSweepTxMaxTotalFeeChangeInitiated;
@@ -60,7 +60,7 @@ library BridgeGovernanceParameters {
         uint256 movedFundsSweepTimeoutChangeInitiated;
         uint96 newMovedFundsSweepTimeoutSlashingAmount;
         uint256 movedFundsSweepTimeoutSlashingAmountChangeInitiated;
-        uint256 newMovedFundsSweepTimeoutNotifierRewardMultiplier;
+        uint32 newMovedFundsSweepTimeoutNotifierRewardMultiplier;
         uint256 movedFundsSweepTimeoutNotifierRewardMultiplierChangeInitiated;
     }
 
@@ -82,13 +82,13 @@ library BridgeGovernanceParameters {
     }
 
     struct FraudData {
-        uint256 newFraudChallengeDepositAmount;
+        uint96 newFraudChallengeDepositAmount;
         uint256 fraudChallengeDepositAmountChangeInitiated;
-        uint256 newFraudChallengeDefeatTimeout;
+        uint32 newFraudChallengeDefeatTimeout;
         uint256 fraudChallengeDefeatTimeoutChangeInitiated;
         uint96 newFraudSlashingAmount;
         uint256 fraudSlashingAmountChangeInitiated;
-        uint256 newFraudNotifierRewardMultiplier;
+        uint32 newFraudNotifierRewardMultiplier;
         uint256 fraudNotifierRewardMultiplierChangeInitiated;
     }
 
@@ -143,10 +143,10 @@ library BridgeGovernanceParameters {
     event RedemptionTxMaxFeeUpdated(uint64 redemptionTxMaxFee);
 
     event RedemptionTimeoutUpdateStarted(
-        uint64 newRedemptionTimeout,
+        uint32 newRedemptionTimeout,
         uint256 timestamp
     );
-    event RedemptionTimeoutUpdated(uint64 redemptionTimeout);
+    event RedemptionTimeoutUpdated(uint32 redemptionTimeout);
 
     event RedemptionTimeoutSlashingAmountUpdateStarted(
         uint96 newRedemptionTimeoutSlashingAmount,
@@ -157,11 +157,11 @@ library BridgeGovernanceParameters {
     );
 
     event RedemptionTimeoutNotifierRewardMultiplierUpdateStarted(
-        uint64 newRedemptionTimeoutNotifierRewardMultiplier,
+        uint32 newRedemptionTimeoutNotifierRewardMultiplier,
         uint256 timestamp
     );
     event RedemptionTimeoutNotifierRewardMultiplierUpdated(
-        uint64 redemptionTimeoutNotifierRewardMultiplier
+        uint32 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsTxMaxTotalFeeUpdateStarted(
@@ -199,11 +199,11 @@ library BridgeGovernanceParameters {
     );
 
     event MovingFundsTimeoutNotifierRewardMultiplierUpdateStarted(
-        uint256 newMovingFundsTimeoutNotifierRewardMultiplier,
+        uint32 newMovingFundsTimeoutNotifierRewardMultiplier,
         uint256 timestamp
     );
     event MovingFundsTimeoutNotifierRewardMultiplierUpdated(
-        uint256 movingFundsTimeoutNotifierRewardMultiplier
+        uint32 movingFundsTimeoutNotifierRewardMultiplier
     );
 
     event MovedFundsSweepTxMaxTotalFeeUpdateStarted(
@@ -229,11 +229,11 @@ library BridgeGovernanceParameters {
     );
 
     event MovedFundsSweepTimeoutNotifierRewardMultiplierUpdateStarted(
-        uint256 newMovedFundsSweepTimeoutNotifierRewardMultiplier,
+        uint32 newMovedFundsSweepTimeoutNotifierRewardMultiplier,
         uint256 timestamp
     );
     event MovedFundsSweepTimeoutNotifierRewardMultiplierUpdated(
-        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
     );
 
     event WalletCreationPeriodUpdateStarted(
@@ -280,15 +280,15 @@ library BridgeGovernanceParameters {
     event WalletClosingPeriodUpdated(uint32 walletClosingPeriod);
 
     event FraudChallengeDepositAmountUpdateStarted(
-        uint256 newFraudChallengeDepositAmount,
+        uint96 newFraudChallengeDepositAmount,
         uint256 timestamp
     );
     event FraudChallengeDepositAmountUpdated(
-        uint256 fraudChallengeDepositAmount
+        uint96 fraudChallengeDepositAmount
     );
 
     event FraudChallengeDefeatTimeoutUpdateStarted(
-        uint256 newFraudChallengeDefeatTimeout,
+        uint32 newFraudChallengeDefeatTimeout,
         uint256 timestamp
     );
     event FraudChallengeDefeatTimeoutUpdated(
@@ -302,11 +302,11 @@ library BridgeGovernanceParameters {
     event FraudSlashingAmountUpdated(uint96 fraudSlashingAmount);
 
     event FraudNotifierRewardMultiplierUpdateStarted(
-        uint256 newFraudNotifierRewardMultiplier,
+        uint32 newFraudNotifierRewardMultiplier,
         uint256 timestamp
     );
     event FraudNotifierRewardMultiplierUpdated(
-        uint256 fraudNotifierRewardMultiplier
+        uint32 fraudNotifierRewardMultiplier
     );
 
     /// @notice Reverts if called before the governance delay elapses.
@@ -601,7 +601,7 @@ library BridgeGovernanceParameters {
     /// @param _newRedemptionTimeout New redemption timeout amount.
     function beginRedemptionTimeoutUpdate(
         RedemptionData storage self,
-        uint64 _newRedemptionTimeout
+        uint32 _newRedemptionTimeout
     ) external {
         /* solhint-disable not-rely-on-time */
         self.newRedemptionTimeout = _newRedemptionTimeout;
@@ -636,7 +636,7 @@ library BridgeGovernanceParameters {
     function getNewRedemptionTimeout(RedemptionData storage self)
         internal
         view
-        returns (uint64)
+        returns (uint32)
     {
         return self.newRedemptionTimeout;
     }
@@ -696,7 +696,7 @@ library BridgeGovernanceParameters {
     ///         timeout notifier reward multiplier amount.
     function beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
         RedemptionData storage self,
-        uint64 _newRedemptionTimeoutNotifierRewardMultiplier
+        uint32 _newRedemptionTimeoutNotifierRewardMultiplier
     ) internal {
         /* solhint-disable not-rely-on-time */
         self
@@ -733,7 +733,7 @@ library BridgeGovernanceParameters {
 
     function getNewRedemptionTimeoutNotifierRewardMultiplier(
         RedemptionData storage self
-    ) internal view returns (uint64) {
+    ) internal view returns (uint32) {
         return self.newRedemptionTimeoutNotifierRewardMultiplier;
     }
 
@@ -970,7 +970,7 @@ library BridgeGovernanceParameters {
     ///         timeout notifier reward multiplier amount.
     function beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(
         MovingFundsData storage self,
-        uint256 _newMovingFundsTimeoutNotifierRewardMultiplier
+        uint32 _newMovingFundsTimeoutNotifierRewardMultiplier
     ) external {
         /* solhint-disable not-rely-on-time */
         self
@@ -1008,7 +1008,7 @@ library BridgeGovernanceParameters {
 
     function getNewMovingFundsTimeoutNotifierRewardMultiplier(
         MovingFundsData storage self
-    ) internal view returns (uint256) {
+    ) internal view returns (uint32) {
         return self.newMovingFundsTimeoutNotifierRewardMultiplier;
     }
 
@@ -1160,7 +1160,7 @@ library BridgeGovernanceParameters {
     ///         sweep timeout notifier reward multiplier amount.
     function beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
         MovingFundsData storage self,
-        uint256 _newMovedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 _newMovedFundsSweepTimeoutNotifierRewardMultiplier
     ) external {
         /* solhint-disable not-rely-on-time */
         self
@@ -1199,7 +1199,7 @@ library BridgeGovernanceParameters {
 
     function getNewMovedFundsSweepTimeoutNotifierRewardMultiplier(
         MovingFundsData storage self
-    ) internal view returns (uint256) {
+    ) internal view returns (uint32) {
         return self.newMovedFundsSweepTimeoutNotifierRewardMultiplier;
     }
 
@@ -1525,7 +1525,7 @@ library BridgeGovernanceParameters {
     /// @param _newFraudChallengeDepositAmount New fraud challenge deposit amount.
     function beginFraudChallengeDepositAmountUpdate(
         FraudData storage self,
-        uint256 _newFraudChallengeDepositAmount
+        uint96 _newFraudChallengeDepositAmount
     ) external {
         /* solhint-disable not-rely-on-time */
         self.newFraudChallengeDepositAmount = _newFraudChallengeDepositAmount;
@@ -1561,7 +1561,7 @@ library BridgeGovernanceParameters {
     function getNewFraudChallengeDepositAmount(FraudData storage self)
         internal
         view
-        returns (uint256)
+        returns (uint96)
     {
         return self.newFraudChallengeDepositAmount;
     }
@@ -1572,7 +1572,7 @@ library BridgeGovernanceParameters {
     ///         amount.
     function beginFraudChallengeDefeatTimeoutUpdate(
         FraudData storage self,
-        uint256 _newFraudChallengeDefeatTimeout
+        uint32 _newFraudChallengeDefeatTimeout
     ) external {
         /* solhint-disable not-rely-on-time */
         self.newFraudChallengeDefeatTimeout = _newFraudChallengeDefeatTimeout;
@@ -1608,7 +1608,7 @@ library BridgeGovernanceParameters {
     function getNewFraudChallengeDefeatTimeout(FraudData storage self)
         internal
         view
-        returns (uint256)
+        returns (uint32)
     {
         return self.newFraudChallengeDefeatTimeout;
     }
@@ -1663,7 +1663,7 @@ library BridgeGovernanceParameters {
     ///         amount.
     function beginFraudNotifierRewardMultiplierUpdate(
         FraudData storage self,
-        uint256 _newFraudNotifierRewardMultiplier
+        uint32 _newFraudNotifierRewardMultiplier
     ) external {
         /* solhint-disable not-rely-on-time */
         self
@@ -1700,7 +1700,7 @@ library BridgeGovernanceParameters {
     function getNewFraudNotifierRewardMultiplier(FraudData storage self)
         internal
         view
-        returns (uint256)
+        returns (uint32)
     {
         return self.newFraudNotifierRewardMultiplier;
     }

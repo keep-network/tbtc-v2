@@ -103,7 +103,7 @@ contract BridgeGovernance is Ownable {
         uint64 newRedemptionTimeout,
         uint256 timestamp
     );
-    event RedemptionTimeoutUpdated(uint64 redemptionTimeout);
+    event RedemptionTimeoutUpdated(uint32 redemptionTimeout);
 
     event RedemptionTimeoutSlashingAmountUpdateStarted(
         uint96 newRedemptionTimeoutSlashingAmount,
@@ -114,11 +114,11 @@ contract BridgeGovernance is Ownable {
     );
 
     event RedemptionTimeoutNotifierRewardMultiplierUpdateStarted(
-        uint64 newRedemptionTimeoutNotifierRewardMultiplier,
+        uint32 newRedemptionTimeoutNotifierRewardMultiplier,
         uint256 timestamp
     );
     event RedemptionTimeoutNotifierRewardMultiplierUpdated(
-        uint64 redemptionTimeoutNotifierRewardMultiplier
+        uint32 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsTxMaxTotalFeeUpdateStarted(
@@ -156,11 +156,11 @@ contract BridgeGovernance is Ownable {
     );
 
     event MovingFundsTimeoutNotifierRewardMultiplierUpdateStarted(
-        uint256 newMovingFundsTimeoutNotifierRewardMultiplier,
+        uint32 newMovingFundsTimeoutNotifierRewardMultiplier,
         uint256 timestamp
     );
     event MovingFundsTimeoutNotifierRewardMultiplierUpdated(
-        uint256 movingFundsTimeoutNotifierRewardMultiplier
+        uint32 movingFundsTimeoutNotifierRewardMultiplier
     );
 
     event MovedFundsSweepTxMaxTotalFeeUpdateStarted(
@@ -190,7 +190,7 @@ contract BridgeGovernance is Ownable {
         uint256 timestamp
     );
     event MovedFundsSweepTimeoutNotifierRewardMultiplierUpdated(
-        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
     );
 
     event WalletCreationPeriodUpdateStarted(
@@ -241,15 +241,15 @@ contract BridgeGovernance is Ownable {
         uint256 timestamp
     );
     event FraudChallengeDepositAmountUpdated(
-        uint256 fraudChallengeDepositAmount
+        uint96 fraudChallengeDepositAmount
     );
 
     event FraudChallengeDefeatTimeoutUpdateStarted(
-        uint256 newFraudChallengeDefeatTimeout,
+        uint32 newFraudChallengeDefeatTimeout,
         uint256 timestamp
     );
     event FraudChallengeDefeatTimeoutUpdated(
-        uint256 fraudChallengeDefeatTimeout
+        uint32 fraudChallengeDefeatTimeout
     );
 
     event FraudSlashingAmountUpdateStarted(
@@ -263,7 +263,7 @@ contract BridgeGovernance is Ownable {
         uint256 timestamp
     );
     event FraudNotifierRewardMultiplierUpdated(
-        uint256 fraudNotifierRewardMultiplier
+        uint32 fraudNotifierRewardMultiplier
     );
 
     constructor(Bridge _bridge, uint256 _governanceDelay) {
@@ -459,9 +459,9 @@ contract BridgeGovernance is Ownable {
             ,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout,
+            uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
-            uint256 redemptionTimeoutNotifierRewardMultiplier
+            uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateRedemptionParameters(
@@ -497,9 +497,9 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionDustThreshold,
             ,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout,
+            uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
-            uint256 redemptionTimeoutNotifierRewardMultiplier
+            uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateRedemptionParameters(
@@ -534,9 +534,9 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             ,
-            uint256 redemptionTimeout,
+            uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
-            uint256 redemptionTimeoutNotifierRewardMultiplier
+            uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateRedemptionParameters(
@@ -554,7 +554,7 @@ contract BridgeGovernance is Ownable {
     /// @notice Begins the redemption timeout amount update process.
     /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionTimeout New redemption timeout.
-    function beginRedemptionTimeoutUpdate(uint64 _newRedemptionTimeout)
+    function beginRedemptionTimeoutUpdate(uint32 _newRedemptionTimeout)
         external
         onlyOwner
     {
@@ -571,7 +571,7 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionTxMaxFee,
             ,
             uint96 redemptionTimeoutSlashingAmount,
-            uint256 redemptionTimeoutNotifierRewardMultiplier
+            uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateRedemptionParameters(
@@ -609,9 +609,9 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout,
+            uint32 redemptionTimeout,
             ,
-            uint256 redemptionTimeoutNotifierRewardMultiplier
+            uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateRedemptionParameters(
@@ -634,7 +634,7 @@ contract BridgeGovernance is Ownable {
     /// @param _newRedemptionTimeoutNotifierRewardMultiplier New redemption timeout
     ///         notifier reward multiplier.
     function beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
-        uint64 _newRedemptionTimeoutNotifierRewardMultiplier
+        uint32 _newRedemptionTimeoutNotifierRewardMultiplier
     ) external onlyOwner {
         redemptionData.beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
             _newRedemptionTimeoutNotifierRewardMultiplier
@@ -653,7 +653,7 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout,
+            uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
 
         ) = bridge.redemptionParameters();
@@ -695,11 +695,11 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateMovingFundsParameters(
@@ -740,11 +740,11 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateMovingFundsParameters(
@@ -786,11 +786,11 @@ contract BridgeGovernance is Ownable {
             ,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateMovingFundsParameters(
@@ -830,11 +830,11 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeoutResetDelay,
             ,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateMovingFundsParameters(
@@ -877,11 +877,11 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             ,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateMovingFundsParameters(
@@ -907,7 +907,7 @@ contract BridgeGovernance is Ownable {
     /// @param _newMovingFundsTimeoutNotifierRewardMultiplier New moving funds
     ///         timeout notifier reward multiplier.
     function beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(
-        uint64 _newMovingFundsTimeoutNotifierRewardMultiplier
+        uint32 _newMovingFundsTimeoutNotifierRewardMultiplier
     ) external onlyOwner {
         movingFundsData.beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(
             _newMovingFundsTimeoutNotifierRewardMultiplier
@@ -932,7 +932,7 @@ contract BridgeGovernance is Ownable {
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateMovingFundsParameters(
@@ -975,11 +975,11 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             ,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateMovingFundsParameters(
@@ -1020,11 +1020,11 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             ,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateMovingFundsParameters(
@@ -1070,11 +1070,11 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             ,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateMovingFundsParameters(
@@ -1100,7 +1100,7 @@ contract BridgeGovernance is Ownable {
     /// @param _newMovedFundsSweepTimeoutNotifierRewardMultiplier New moved funds
     ///         sweep timeout notifier reward multiplier.
     function beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
-        uint64 _newMovedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 _newMovedFundsSweepTimeoutNotifierRewardMultiplier
     ) external onlyOwner {
         movingFundsData
             .beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
@@ -1122,7 +1122,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -1417,7 +1417,7 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param _newFraudChallengeDepositAmount New fraud challenge deposit amount.
     function beginFraudChallengeDepositAmountUpdate(
-        uint256 _newFraudChallengeDepositAmount
+        uint96 _newFraudChallengeDepositAmount
     ) external onlyOwner {
         fraudData.beginFraudChallengeDepositAmountUpdate(
             _newFraudChallengeDepositAmount
@@ -1430,9 +1430,9 @@ contract BridgeGovernance is Ownable {
     function finalizeFraudChallengeDepositAmountUpdate() external onlyOwner {
         (
             ,
-            uint256 fraudChallengeDefeatTimeout,
+            uint32 fraudChallengeDefeatTimeout,
             uint96 fraudSlashingAmount,
-            uint256 fraudNotifierRewardMultiplier
+            uint32 fraudNotifierRewardMultiplier
         ) = bridge.fraudParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateFraudParameters(
@@ -1450,7 +1450,7 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param _newFraudChallengeDefeatTimeout New fraud challenge defeat timeout.
     function beginFraudChallengeDefeatTimeoutUpdate(
-        uint256 _newFraudChallengeDefeatTimeout
+        uint32 _newFraudChallengeDefeatTimeout
     ) external onlyOwner {
         fraudData.beginFraudChallengeDefeatTimeoutUpdate(
             _newFraudChallengeDefeatTimeout
@@ -1462,10 +1462,10 @@ contract BridgeGovernance is Ownable {
     ///      delay elapses.
     function finalizeFraudChallengeDefeatTimeoutUpdate() external onlyOwner {
         (
-            uint256 fraudChallengeDepositAmount,
+            uint96 fraudChallengeDepositAmount,
             ,
             uint96 fraudSlashingAmount,
-            uint256 fraudNotifierRewardMultiplier
+            uint32 fraudNotifierRewardMultiplier
         ) = bridge.fraudParameters();
         bridge.updateFraudParameters(
             fraudChallengeDepositAmount,
@@ -1493,10 +1493,10 @@ contract BridgeGovernance is Ownable {
     ///      delay elapses.
     function finalizeFraudSlashingAmountUpdate() external onlyOwner {
         (
-            uint256 fraudChallengeDepositAmount,
-            uint256 fraudChallengeDefeatTimeout,
+            uint96 fraudChallengeDepositAmount,
+            uint32 fraudChallengeDefeatTimeout,
             ,
-            uint256 fraudNotifierRewardMultiplier
+            uint32 fraudNotifierRewardMultiplier
         ) = bridge.fraudParameters();
         bridge.updateFraudParameters(
             fraudChallengeDepositAmount,
@@ -1512,7 +1512,7 @@ contract BridgeGovernance is Ownable {
     /// @param _newFraudNotifierRewardMultiplier New fraud notifier reward
     ///         multiplier.
     function beginFraudNotifierRewardMultiplierUpdate(
-        uint256 _newFraudNotifierRewardMultiplier
+        uint32 _newFraudNotifierRewardMultiplier
     ) external onlyOwner {
         fraudData.beginFraudNotifierRewardMultiplierUpdate(
             _newFraudNotifierRewardMultiplier
@@ -1524,8 +1524,8 @@ contract BridgeGovernance is Ownable {
     ///      delay elapses.
     function finalizeFraudNotifierRewardMultiplierUpdate() external onlyOwner {
         (
-            uint256 fraudChallengeDepositAmount,
-            uint256 fraudChallengeDefeatTimeout,
+            uint96 fraudChallengeDepositAmount,
+            uint32 fraudChallengeDefeatTimeout,
             uint96 fraudSlashingAmount,
 
         ) = bridge.fraudParameters();
