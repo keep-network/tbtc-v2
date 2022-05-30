@@ -1495,6 +1495,9 @@ describe("MaintainerProxy", () => {
                 })
                 await bridge.setSweptDeposits(data.deposits)
                 await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                await bridge.setProcessedMovedFundsSweepRequests(
+                  data.movedFundsSweepRequests
+                )
 
                 await bridge
                   .connect(thirdParty)
@@ -1571,6 +1574,9 @@ describe("MaintainerProxy", () => {
                 })
                 await bridge.setSweptDeposits(data.deposits)
                 await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                await bridge.setProcessedMovedFundsSweepRequests(
+                  data.movedFundsSweepRequests
+                )
 
                 await bridge
                   .connect(thirdParty)
@@ -1645,6 +1651,9 @@ describe("MaintainerProxy", () => {
                 })
                 await bridge.setSweptDeposits(data.deposits)
                 await bridge.setSpentMainUtxos(data.spentMainUtxos)
+                await bridge.setProcessedMovedFundsSweepRequests(
+                  data.movedFundsSweepRequests
+                )
 
                 await bridge
                   .connect(thirdParty)
