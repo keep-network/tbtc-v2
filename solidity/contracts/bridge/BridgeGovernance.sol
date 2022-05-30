@@ -49,11 +49,14 @@ contract BridgeGovernance is Ownable {
     uint256 public bridgeGovernanceTransferChangeInitiated;
     address internal newBridgeGovernance;
 
+    // We skip emitting event on *Update to go down with the contract size
+    // limit. The reason why we leave *Started but not including *Updated is
+    // because Bridge governance transferred event can also be read from the
+    // Governable bridge contract 'GovernanceTransferred(old, new)'.
     event BridgeGovernanceTransferStarted(
         address newBridgeGovernance,
         uint256 timestamp
     );
-    event BridgeGovernanceTransferred(address newBridgeGovernance);
 
     event DepositDustThresholdUpdateStarted(
         uint64 newDepositDustThreshold,
@@ -333,7 +336,10 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Finalizes the bridge governance transfer process.
     /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    ///      delay elapses. Bridge governance trannsferred event can be read
+    ///      from the Governable bridge contract 'GovernanceTransferred(old, new)'.
+    ///      Event that informs about the transfer in this function is skipped on
+    ///      purpose to go down with the contract size.
     function finalizeBridgeGovernanceTransfer() external onlyOwner {
         require(
             bridgeGovernanceTransferChangeInitiated > 0,
@@ -346,7 +352,6 @@ contract BridgeGovernance is Ownable {
             "Governance delay has not elapsed"
         );
         /* solhint-enable not-rely-on-time */
-        emit BridgeGovernanceTransferred(newBridgeGovernance);
         // slither-disable-next-line reentrancy-no-eth
         bridge.transferGovernance(newBridgeGovernance);
         bridgeGovernanceTransferChangeInitiated = 0;

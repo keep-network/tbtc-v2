@@ -258,12 +258,6 @@ describe("Bridge - Governance", () => {
         it("should update the bridge governance transfer", async () => {
           expect(await bridge.governance()).to.be.equal(thirdParty.address)
         })
-
-        it("should emit BridgeGovernanceTransferred event", async () => {
-          await expect(tx)
-            .to.emit(bridgeGovernance, "BridgeGovernanceTransferred")
-            .withArgs(thirdParty.address)
-        })
       }
     )
   })
