@@ -92,8 +92,9 @@ describe("MaintainerProxy", () => {
   let bank: Bank & BankStub
 
   let fraudChallengeDepositAmount: BigNumber
-
   let movingFundsTimeoutResetDelay: number
+
+  let initialAuthorizedMaintainerBalance: BigNumber
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -135,6 +136,10 @@ describe("MaintainerProxy", () => {
     await maintainerProxy
       .connect(governance)
       .authorize(authorizedMaintainer.address)
+
+    initialAuthorizedMaintainerBalance = await provider.getBalance(
+      authorizedMaintainer.address
+    )
   })
 
   describe("requestNewWallet", () => {
@@ -148,12 +153,11 @@ describe("MaintainerProxy", () => {
 
     context("when called by an authorized maintainer", async () => {
       let tx: ContractTransaction
-      let initThirdPartyBalance: BigNumber
 
       before(async () => {
         await createSnapshot()
 
-        initThirdPartyBalance = await provider.getBalance(
+        initialAuthorizedMaintainerBalance = await provider.getBalance(
           authorizedMaintainer.address
         )
 
@@ -171,10 +175,12 @@ describe("MaintainerProxy", () => {
       })
 
       it("should refund ETH", async () => {
-        const postNotifyThirdPartyBalance = await provider.getBalance(
+        const postMaintainerBalance = await provider.getBalance(
           authorizedMaintainer.address
         )
-        const diff = postNotifyThirdPartyBalance.sub(initThirdPartyBalance)
+        const diff = postMaintainerBalance.sub(
+          initialAuthorizedMaintainerBalance
+        )
 
         expect(diff).to.be.gt(0)
         expect(diff).to.be.lt(
@@ -250,28 +256,28 @@ describe("MaintainerProxy", () => {
           "when the single input is a revealed unswept P2SH deposit",
           () => {
             const data: DepositSweepTestData = SingleP2SHDeposit
-            let sweepOutcome: ScenarioOutcome
+            let tx: ContractTransaction
 
             before(async () => {
               await createSnapshot()
 
-              sweepOutcome = await runDepositSweepScenario(data)
+              tx = await runDepositSweepScenario(data)
             })
 
             after(async () => {
               await restoreSnapshot()
             })
 
-            it("should not revert", async () => {
-              await expect(sweepOutcome.tx.wait()).not.to.be.reverted
+            it("should emit DepositSwept event", async () => {
+              await expect(tx).to.emit(bridge, "DepositsSwept")
             })
 
             it("should refund ETH", async () => {
-              const postNotifyThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postNotifyThirdPartyBalance.sub(
-                sweepOutcome.initThirdPartyBalance
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -286,27 +292,28 @@ describe("MaintainerProxy", () => {
           "when the single input is a revealed unswept P2WSH deposit",
           () => {
             const data: DepositSweepTestData = SingleP2WSHDeposit
-            let sweepOutcome: ScenarioOutcome
+            let tx: ContractTransaction
 
             before(async () => {
               await createSnapshot()
-              sweepOutcome = await runDepositSweepScenario(data)
+
+              tx = await runDepositSweepScenario(data)
             })
 
             after(async () => {
               await restoreSnapshot()
             })
 
-            it("should not revert", async () => {
-              await expect(sweepOutcome.tx.wait()).not.to.be.reverted
+            it("should emit DepositSwept event", async () => {
+              await expect(tx).to.emit(bridge, "DepositsSwept")
             })
 
             it("should refund ETH", async () => {
-              const postNotifyThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postNotifyThirdPartyBalance.sub(
-                sweepOutcome.initThirdPartyBalance
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -320,10 +327,9 @@ describe("MaintainerProxy", () => {
         context(
           "when the single input is a revealed unswept deposit with a trusted vault",
           async () => {
-            let vault: FakeContract<IVault>
-            let sweepOutcome: ScenarioOutcome
-
             const data: DepositSweepTestData = SingleP2WSHDeposit
+            let vault: FakeContract<IVault>
+            let tx: ContractTransaction
 
             before(async () => {
               await createSnapshot()
@@ -341,7 +347,7 @@ describe("MaintainerProxy", () => {
               dataWithVault.vault = vault.address
               dataWithVault.deposits[0].reveal.vault = vault.address
 
-              sweepOutcome = await runDepositSweepScenario(dataWithVault)
+              tx = await runDepositSweepScenario(dataWithVault)
             })
 
             after(async () => {
@@ -350,16 +356,16 @@ describe("MaintainerProxy", () => {
               await restoreSnapshot()
             })
 
-            it("should not revert", async () => {
-              await expect(sweepOutcome.tx.wait()).not.to.be.reverted
+            it("should emit DepositSwept event", async () => {
+              await expect(tx).to.emit(bridge, "DepositsSwept")
             })
 
             it("should refund ETH", async () => {
-              const postNotifyThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postNotifyThirdPartyBalance.sub(
-                sweepOutcome.initThirdPartyBalance
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -373,10 +379,9 @@ describe("MaintainerProxy", () => {
         context(
           "when the single input is a revealed unswept deposit with a non-trusted vault",
           async () => {
-            let vault: FakeContract<IVault>
-            let sweepOutcome: ScenarioOutcome
-
             const data: DepositSweepTestData = SingleP2WSHDeposit
+            let vault: FakeContract<IVault>
+            let tx: ContractTransaction
 
             before(async () => {
               await createSnapshot()
@@ -402,7 +407,7 @@ describe("MaintainerProxy", () => {
                   .setVaultStatus(vault.address, false)
               }
 
-              sweepOutcome = await runDepositSweepScenario(
+              tx = await runDepositSweepScenario(
                 dataWithVault,
                 beforeProofActions
               )
@@ -412,16 +417,16 @@ describe("MaintainerProxy", () => {
               await restoreSnapshot()
             })
 
-            it("should not revert", async () => {
-              await expect(sweepOutcome.tx.wait()).not.to.be.reverted
+            it("should emit DepositSwept event", async () => {
+              await expect(tx).to.emit(bridge, "DepositsSwept")
             })
 
             it("should refund ETH", async () => {
-              const postNotifyThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postNotifyThirdPartyBalance.sub(
-                sweepOutcome.initThirdPartyBalance
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -441,7 +446,7 @@ describe("MaintainerProxy", () => {
             const previousData: DepositSweepTestData =
               MultipleDepositsNoMainUtxo
             const data: DepositSweepTestData = MultipleDepositsWithMainUtxo
-            let sweepOutcome: ScenarioOutcome
+            let tx: ContractTransaction
 
             before(async () => {
               await createSnapshot()
@@ -450,23 +455,23 @@ describe("MaintainerProxy", () => {
               // of the sweep tested within this scenario.
               await runDepositSweepScenario(previousData)
 
-              sweepOutcome = await runDepositSweepScenario(data)
+              tx = await runDepositSweepScenario(data)
             })
 
             after(async () => {
               await restoreSnapshot()
             })
 
-            it("should not revert", async () => {
-              await expect(sweepOutcome.tx.wait()).not.to.be.reverted
+            it("should emit DepositSwept event", async () => {
+              await expect(tx).to.emit(bridge, "DepositsSwept")
             })
 
             it("should refund ETH", async () => {
-              const postNotifyThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postNotifyThirdPartyBalance.sub(
-                sweepOutcome.initThirdPartyBalance
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -482,28 +487,28 @@ describe("MaintainerProxy", () => {
             "deposits but there is no main UTXO since it is not expected",
           () => {
             const data: DepositSweepTestData = MultipleDepositsNoMainUtxo
-            let sweepOutcome: ScenarioOutcome
+            let tx: ContractTransaction
 
             before(async () => {
               await createSnapshot()
 
-              sweepOutcome = await runDepositSweepScenario(data)
+              tx = await runDepositSweepScenario(data)
             })
 
             after(async () => {
               await restoreSnapshot()
             })
 
-            it("should not revert", async () => {
-              await expect(sweepOutcome.tx.wait()).not.to.be.reverted
+            it("should emit DepositSwept event", async () => {
+              await expect(tx).to.emit(bridge, "DepositsSwept")
             })
 
             it("should refund ETH", async () => {
-              const postNotifyThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postNotifyThirdPartyBalance.sub(
-                sweepOutcome.initThirdPartyBalance
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -517,12 +522,11 @@ describe("MaintainerProxy", () => {
         context(
           "when input vector consists only of revealed unswept deposits with a non-trusted vault and the expected main UTXO",
           () => {
-            let vault: FakeContract<IVault>
-            let sweepOutcome: ScenarioOutcome
-
             const previousData: DepositSweepTestData =
               MultipleDepositsNoMainUtxo
             const data: DepositSweepTestData = MultipleDepositsWithMainUtxo
+            let vault: FakeContract<IVault>
+            let tx: ContractTransaction
 
             before(async () => {
               await createSnapshot()
@@ -556,7 +560,7 @@ describe("MaintainerProxy", () => {
                   .setVaultStatus(vault.address, false)
               }
 
-              sweepOutcome = await runDepositSweepScenario(
+              tx = await runDepositSweepScenario(
                 dataWithVault,
                 beforeProofActions
               )
@@ -566,16 +570,16 @@ describe("MaintainerProxy", () => {
               await restoreSnapshot()
             })
 
-            it("should not revert", async () => {
-              await expect(sweepOutcome.tx.wait()).not.to.be.reverted
+            it("should emit DepositSwept event", async () => {
+              await expect(tx).to.emit(bridge, "DepositsSwept")
             })
 
             it("should refund ETH", async () => {
-              const postNotifyThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postNotifyThirdPartyBalance.sub(
-                sweepOutcome.initThirdPartyBalance
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -589,29 +593,29 @@ describe("MaintainerProxy", () => {
         context(
           "when input vector consists only of revealed unswept deposits but there is no main UTXO since it is not expected",
           () => {
-            let sweepOutcome: ScenarioOutcome
             const data: DepositSweepTestData = MultipleDepositsNoMainUtxo
+            let tx: ContractTransaction
 
             before(async () => {
               await createSnapshot()
 
-              sweepOutcome = await runDepositSweepScenario(data)
+              tx = await runDepositSweepScenario(data)
             })
 
             after(async () => {
               await restoreSnapshot()
             })
 
-            it("should not revert", async () => {
-              await expect(sweepOutcome.tx.wait()).not.to.be.reverted
+            it("should emit DepositSwept event", async () => {
+              await expect(tx).to.emit(bridge, "DepositsSwept")
             })
 
             it("should refund ETH", async () => {
-              const postNotifyThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postNotifyThirdPartyBalance.sub(
-                sweepOutcome.initThirdPartyBalance
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -674,8 +678,7 @@ describe("MaintainerProxy", () => {
             "when the single output is a pending requested redemption",
             () => {
               const data: RedemptionTestData = SinglePendingRequestedRedemption
-
-              let outcome: Promise<ScenarioOutcome>
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -686,27 +689,25 @@ describe("MaintainerProxy", () => {
                 await bridge.setRedemptionTreasuryFeeDivisor(0)
 
                 // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                outcome = runRedemptionScenario(data)
+                tx = await runRedemptionScenario(data)
               })
 
               after(async () => {
                 await restoreSnapshot()
               })
 
-              it("should succeed", async () => {
-                await expect(outcome).to.not.be.reverted
+              it("should emit RedemptionsCompleted event", async () => {
+                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
               })
 
               it("should refund ETH", async () => {
-                const resolvedOutcome = await outcome
-
                 const postThirdPartyBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-
                 const diff = postThirdPartyBalance.sub(
-                  resolvedOutcome.initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
+
                 expect(diff).to.be.gt(0)
                 expect(diff).to.be.lt(
                   ethers.utils.parseUnits("3500000", "gwei") // 0,0035 ETH
@@ -719,8 +720,7 @@ describe("MaintainerProxy", () => {
             "when the single output is a non-reported timed out requested redemption",
             () => {
               const data: RedemptionTestData = SinglePendingRequestedRedemption
-
-              let outcome: Promise<ScenarioOutcome>
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -738,27 +738,25 @@ describe("MaintainerProxy", () => {
                 }
 
                 // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                outcome = runRedemptionScenario(data, beforeProofActions)
+                tx = await runRedemptionScenario(data, beforeProofActions)
               })
 
               after(async () => {
                 await restoreSnapshot()
               })
 
-              it("should succeed", async () => {
-                await expect(outcome).to.not.be.reverted
+              it("should emit RedemptionsCompleted event", async () => {
+                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
               })
 
               it("should refund ETH", async () => {
-                const resolvedOutcome = await outcome
-
                 const postThirdPartyBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-
                 const diff = postThirdPartyBalance.sub(
-                  resolvedOutcome.initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
+
                 expect(diff).to.be.gt(0)
                 expect(diff).to.be.lt(
                   ethers.utils.parseUnits("3500000", "gwei") // 0,0035 ETH
@@ -771,8 +769,7 @@ describe("MaintainerProxy", () => {
             "when the single output is a reported timed out requested redemption",
             () => {
               const data: RedemptionTestData = SinglePendingRequestedRedemption
-
-              let outcome: Promise<ScenarioOutcome>
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -795,26 +792,23 @@ describe("MaintainerProxy", () => {
                 }
 
                 // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                outcome = runRedemptionScenario(data, beforeProofActions)
+                tx = await runRedemptionScenario(data, beforeProofActions)
               })
 
               after(async () => {
                 await restoreSnapshot()
               })
 
-              it("should succeed", async () => {
-                await expect(outcome).to.not.be.reverted
+              it("should emit RedemptionsCompleted event", async () => {
+                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
               })
 
               it("should refund ETH", async () => {
-                const resolvedOutcome = await outcome
-
                 const postThirdPartyBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-
                 const diff = postThirdPartyBalance.sub(
-                  resolvedOutcome.initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
 
                 expect(diff).to.be.gt(0)
@@ -832,8 +826,7 @@ describe("MaintainerProxy", () => {
             () => {
               const data: RedemptionTestData =
                 MultiplePendingRequestedRedemptions
-
-              let outcome: Promise<ScenarioOutcome>
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -844,27 +837,25 @@ describe("MaintainerProxy", () => {
                 await bridge.setRedemptionTreasuryFeeDivisor(0)
 
                 // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                outcome = runRedemptionScenario(data)
+                tx = await runRedemptionScenario(data)
               })
 
               after(async () => {
                 await restoreSnapshot()
               })
 
-              it("should succeed", async () => {
-                await expect(outcome).to.not.be.reverted
+              it("should emit RedemptionsCompleted event", async () => {
+                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
               })
 
               it("should refund ETH", async () => {
-                const resolvedOutcome = await outcome
-
                 const postThirdPartyBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-
                 const diff = postThirdPartyBalance.sub(
-                  resolvedOutcome.initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
+
                 expect(diff).to.be.gt(0)
                 expect(diff).to.be.lt(
                   ethers.utils.parseUnits("8200000", "gwei") // 0,0082 ETH
@@ -878,33 +869,30 @@ describe("MaintainerProxy", () => {
             () => {
               const data: RedemptionTestData =
                 MultiplePendingRequestedRedemptionsWithP2WPKHChange
-
-              let outcome: Promise<ScenarioOutcome>
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
 
                 // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                outcome = runRedemptionScenario(data)
+                tx = await runRedemptionScenario(data)
               })
 
               after(async () => {
                 await restoreSnapshot()
               })
 
-              it("should succeed", async () => {
-                await expect(outcome).to.not.be.reverted
+              it("should emit RedemptionsCompleted event", async () => {
+                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
               })
 
               it("should refund ETH", async () => {
-                const resolvedOutcome = await outcome
-
                 const postThirdPartyBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
 
                 const diff = postThirdPartyBalance.sub(
-                  resolvedOutcome.initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
                 expect(diff).to.be.gt(0)
                 expect(diff).to.be.lt(
@@ -919,8 +907,7 @@ describe("MaintainerProxy", () => {
             () => {
               const data: RedemptionTestData =
                 MultiplePendingRequestedRedemptions
-
-              let outcome: Promise<ScenarioOutcome>
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -947,27 +934,25 @@ describe("MaintainerProxy", () => {
                 }
 
                 // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                outcome = runRedemptionScenario(data, beforeProofActions)
+                tx = await runRedemptionScenario(data, beforeProofActions)
               })
 
               after(async () => {
                 await restoreSnapshot()
               })
 
-              it("should succeed", async () => {
-                await expect(outcome).to.not.be.reverted
+              it("should emit RedemptionsCompleted event", async () => {
+                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
               })
 
               it("should refund ETH", async () => {
-                const resolvedOutcome = await outcome
-
                 const postThirdPartyBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-
                 const diff = postThirdPartyBalance.sub(
-                  resolvedOutcome.initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
+
                 expect(diff).to.be.gt(
                   ethers.utils.parseUnits("-1000000", "gwei")
                 ) // // -0,001 ETH
@@ -983,8 +968,7 @@ describe("MaintainerProxy", () => {
             () => {
               const data: RedemptionTestData =
                 MultiplePendingRequestedRedemptionsWithP2WPKHChange
-
-              let outcome: Promise<ScenarioOutcome>
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -1006,27 +990,25 @@ describe("MaintainerProxy", () => {
                 }
 
                 // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                outcome = runRedemptionScenario(data, beforeProofActions)
+                tx = await runRedemptionScenario(data, beforeProofActions)
               })
 
               after(async () => {
                 await restoreSnapshot()
               })
 
-              it("should succeed", async () => {
-                await expect(outcome).to.not.be.reverted
+              it("should emit RedemptionsCompleted event", async () => {
+                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
               })
 
               it("should refund ETH", async () => {
-                const resolvedOutcome = await outcome
-
                 const postThirdPartyBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-
                 const diff = postThirdPartyBalance.sub(
-                  resolvedOutcome.initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
+
                 expect(diff).to.be.gt(
                   ethers.utils.parseUnits("-2000000", "gwei")
                 ) // -0,002 ETH
@@ -1042,8 +1024,7 @@ describe("MaintainerProxy", () => {
             () => {
               const data: RedemptionTestData =
                 MultiplePendingRequestedRedemptions
-
-              let outcome: Promise<ScenarioOutcome>
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -1072,28 +1053,25 @@ describe("MaintainerProxy", () => {
                   )
                 }
 
-                // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                outcome = runRedemptionScenario(data, beforeProofActions)
+                tx = await runRedemptionScenario(data, beforeProofActions)
               })
 
               after(async () => {
                 await restoreSnapshot()
               })
 
-              it("should succeed", async () => {
-                await expect(outcome).to.not.be.reverted
+              it("should emit RedemptionsCompleted event", async () => {
+                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
               })
 
               it("should refund ETH", async () => {
-                const resolvedOutcome = await outcome
-
                 const postThirdPartyBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-
                 const diff = postThirdPartyBalance.sub(
-                  resolvedOutcome.initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
+
                 expect(diff).to.be.gt(0)
                 expect(diff).to.be.lt(
                   ethers.utils.parseUnits("6000000", "gwei") // 0,006 ETH
@@ -1107,8 +1085,7 @@ describe("MaintainerProxy", () => {
             () => {
               const data: RedemptionTestData =
                 MultiplePendingRequestedRedemptionsWithP2WPKHChange
-
-              let outcome: Promise<ScenarioOutcome>
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -1132,28 +1109,25 @@ describe("MaintainerProxy", () => {
                   )
                 }
 
-                // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                outcome = runRedemptionScenario(data, beforeProofActions)
+                tx = await runRedemptionScenario(data, beforeProofActions)
               })
 
               after(async () => {
                 await restoreSnapshot()
               })
 
-              it("should succeed", async () => {
-                await expect(outcome).to.not.be.reverted
+              it("should emit RedemptionsCompleted event", async () => {
+                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
               })
 
               it("should refund ETH", async () => {
-                const resolvedOutcome = await outcome
-
                 const postThirdPartyBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-
                 const diff = postThirdPartyBalance.sub(
-                  resolvedOutcome.initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
+
                 expect(diff).to.be.gt(0)
                 expect(diff).to.be.lt(
                   ethers.utils.parseUnits("5500000", "gwei") // 0,0055 ETH
@@ -1254,8 +1228,8 @@ describe("MaintainerProxy", () => {
                 await restoreSnapshot()
               })
 
-              it("should not revert", async () => {
-                await expect(tx.wait()).not.to.be.reverted
+              it("should emit WalletClosing event", async () => {
+                await expect(tx).to.emit(bridge, "WalletClosing")
               })
 
               it("should refund ETH", async () => {
@@ -1292,6 +1266,7 @@ describe("MaintainerProxy", () => {
                   walletMainUtxo
                 )
 
+                // TODO: Why WalletRegistry balance ?!
                 initWalletRegistryBalance = await provider.getBalance(
                   walletRegistry.wallet.getAddress()
                 )
@@ -1307,8 +1282,8 @@ describe("MaintainerProxy", () => {
                 await restoreSnapshot()
               })
 
-              it("should not revert", async () => {
-                await expect(tx.wait()).not.to.be.reverted
+              it("should emit WalletMovingFunds event", async () => {
+                await expect(tx).to.emit(bridge, "WalletMovingFunds")
               })
 
               it("should refund ETH", async () => {
@@ -1331,7 +1306,7 @@ describe("MaintainerProxy", () => {
             "when wallet did not reach the maximum age but their balance is lesser than the minimum threshold",
             () => {
               context("when wallet balance is zero", () => {
-                let tx: Promise<ContractTransaction>
+                let tx: ContractTransaction
                 let initWalletRegistryBalance: BigNumber
 
                 before(async () => {
@@ -1340,7 +1315,7 @@ describe("MaintainerProxy", () => {
                   initWalletRegistryBalance = await provider.getBalance(
                     walletRegistry.wallet.getAddress()
                   )
-                  tx = maintainerProxy
+                  tx = await maintainerProxy
                     .connect(walletRegistry.wallet)
                     .notifyWalletCloseable(
                       ecdsaWalletTestData.pubKeyHash160,
@@ -1352,8 +1327,8 @@ describe("MaintainerProxy", () => {
                   await restoreSnapshot()
                 })
 
-                it("should not revert", async () => {
-                  await expect(tx).not.to.be.reverted
+                it("should emit WalletClosing event", async () => {
+                  await expect(tx).to.emit(bridge, "WalletClosing")
                 })
 
                 it("should refund ETH", async () => {
@@ -1405,10 +1380,11 @@ describe("MaintainerProxy", () => {
                   await restoreSnapshot()
                 })
 
-                it("should not revert", async () => {
-                  await expect(tx.wait()).not.to.be.reverted
+                it("should emit WalletMovingFunds event", async () => {
+                  await expect(tx).to.emit(bridge, "WalletMovingFunds")
                 })
 
+                // TODO: Why WalletRegistry balance ?!
                 it("should refund ETH", async () => {
                   const postWalletRegistryBalance = await provider.getBalance(
                     walletRegistry.wallet.getAddress()
@@ -1446,8 +1422,7 @@ describe("MaintainerProxy", () => {
             "when the input is marked as correctly spent in the Bridge",
             () => {
               const data = nonWitnessSignSingleInputTx
-              let tx: Promise<ContractTransaction>
-              let initThirdPartyBalance: BigNumber
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -1481,11 +1456,11 @@ describe("MaintainerProxy", () => {
                     }
                   )
 
-                initThirdPartyBalance = await provider.getBalance(
+                initialAuthorizedMaintainerBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
 
-                tx = maintainerProxy
+                tx = await maintainerProxy
                   .connect(authorizedMaintainer)
                   .defeatFraudChallenge(
                     walletPublicKey,
@@ -1498,8 +1473,8 @@ describe("MaintainerProxy", () => {
                 await restoreSnapshot()
               })
 
-              it("should not revert", async () => {
-                await expect(tx).not.to.be.reverted
+              it("should emit FraudChallengeDefeated event", async () => {
+                await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
               })
 
               it("should refund ETH", async () => {
@@ -1507,7 +1482,7 @@ describe("MaintainerProxy", () => {
                   authorizedMaintainer.address
                 )
                 const diff = postWalletRegistryBalance.sub(
-                  initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
 
                 expect(diff).to.be.gt(0)
@@ -1524,8 +1499,7 @@ describe("MaintainerProxy", () => {
             "when the input is marked as correctly spent in the Bridge",
             () => {
               const data = nonWitnessSignMultipleInputsTx
-              let tx: Promise<ContractTransaction>
-              let initThirdPartyBalance: BigNumber
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -1556,11 +1530,11 @@ describe("MaintainerProxy", () => {
                     }
                   )
 
-                initThirdPartyBalance = await provider.getBalance(
+                initialAuthorizedMaintainerBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
 
-                tx = maintainerProxy
+                tx = await maintainerProxy
                   .connect(authorizedMaintainer)
                   .defeatFraudChallenge(
                     walletPublicKey,
@@ -1573,8 +1547,8 @@ describe("MaintainerProxy", () => {
                 await restoreSnapshot()
               })
 
-              it("should not revert", async () => {
-                await expect(tx).not.to.be.reverted
+              it("should emit FraudChallengeDefeated event", async () => {
+                await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
               })
 
               it("should refund ETH", async () => {
@@ -1582,7 +1556,7 @@ describe("MaintainerProxy", () => {
                   authorizedMaintainer.address
                 )
                 const diff = postWalletRegistryBalance.sub(
-                  initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
 
                 expect(diff).to.be.gt(0)
@@ -1601,8 +1575,7 @@ describe("MaintainerProxy", () => {
             "when the input is marked as correctly spent in the Bridge",
             () => {
               const data = witnessSignSingleInputTx
-              let tx: Promise<ContractTransaction>
-              let initThirdPartyBalance: BigNumber
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -1633,11 +1606,11 @@ describe("MaintainerProxy", () => {
                     }
                   )
 
-                initThirdPartyBalance = await provider.getBalance(
+                initialAuthorizedMaintainerBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
 
-                tx = maintainerProxy
+                tx = await maintainerProxy
                   .connect(authorizedMaintainer)
                   .defeatFraudChallenge(
                     walletPublicKey,
@@ -1650,8 +1623,8 @@ describe("MaintainerProxy", () => {
                 await restoreSnapshot()
               })
 
-              it("should not revert", async () => {
-                await expect(tx).not.to.be.reverted
+              it("should emit FraudChallengeDefeated event", async () => {
+                await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
               })
 
               it("should refund ETH", async () => {
@@ -1659,7 +1632,7 @@ describe("MaintainerProxy", () => {
                   authorizedMaintainer.address
                 )
                 const diff = postWalletRegistryBalance.sub(
-                  initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
 
                 expect(diff).to.be.gt(0)
@@ -1676,8 +1649,7 @@ describe("MaintainerProxy", () => {
             "when the input is marked as correctly spent in the Bridge",
             () => {
               const data = witnessSignMultipleInputTx
-              let tx: Promise<ContractTransaction>
-              let initThirdPartyBalance: BigNumber
+              let tx: ContractTransaction
 
               before(async () => {
                 await createSnapshot()
@@ -1708,11 +1680,11 @@ describe("MaintainerProxy", () => {
                     }
                   )
 
-                initThirdPartyBalance = await provider.getBalance(
+                initialAuthorizedMaintainerBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
 
-                tx = maintainerProxy
+                tx = await maintainerProxy
                   .connect(authorizedMaintainer)
                   .defeatFraudChallenge(
                     walletPublicKey,
@@ -1725,8 +1697,8 @@ describe("MaintainerProxy", () => {
                 await restoreSnapshot()
               })
 
-              it("should not revert", async () => {
-                await expect(tx).not.to.be.reverted
+              it("should emit FraudChallengeDefeated event", async () => {
+                await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
               })
 
               it("should refund ETH", async () => {
@@ -1734,7 +1706,7 @@ describe("MaintainerProxy", () => {
                   authorizedMaintainer.address
                 )
                 const diff = postWalletRegistryBalance.sub(
-                  initThirdPartyBalance
+                  initialAuthorizedMaintainerBalance
                 )
 
                 expect(diff).to.be.gt(0)
@@ -1783,20 +1755,20 @@ describe("MaintainerProxy", () => {
 
       testData.forEach((test) => {
         context(test.testName, () => {
-          let outcome: ScenarioOutcome
+          let tx: ContractTransaction
 
           before(async () => {
             await createSnapshot()
 
-            outcome = await runMovingFundsScenario(test.data)
+            tx = await runMovingFundsScenario(test.data)
           })
 
           after(async () => {
             await restoreSnapshot()
           })
 
-          it("should succeed", async () => {
-            await expect(outcome.tx.wait()).not.to.be.reverted
+          it("should emit MovingFundsCompleted event", async () => {
+            await expect(tx).to.emit(bridge, "MovingFundsCompleted")
           })
 
           it("should refund ETH", async () => {
@@ -1804,7 +1776,7 @@ describe("MaintainerProxy", () => {
               authorizedMaintainer.address
             )
             const diff = postThirdPartyBalance.sub(
-              outcome.initThirdPartyBalance
+              initialAuthorizedMaintainerBalance
             )
 
             expect(diff).to.be.gt(0)
@@ -1967,8 +1939,11 @@ describe("MaintainerProxy", () => {
                             await restoreSnapshot()
                           })
 
-                          it("should not revert", async () => {
-                            await expect(tx.wait()).not.to.be.reverted
+                          it("should emit MovingFundsCommitmentSubmitted event", async () => {
+                            await expect(tx).to.emit(
+                              bridge,
+                              "MovingFundsCommitmentSubmitted"
+                            )
                           })
 
                           it("should refund ETH", async () => {
@@ -2030,7 +2005,6 @@ describe("MaintainerProxy", () => {
           // All preconditions are met by default.
 
           let tx: ContractTransaction
-          let initThirdPartyBalance: BigNumber
 
           before(async () => {
             await createSnapshot()
@@ -2043,7 +2017,7 @@ describe("MaintainerProxy", () => {
 
             await increaseTime(movingFundsTimeoutResetDelay)
 
-            initThirdPartyBalance = await provider.getBalance(
+            initialAuthorizedMaintainerBalance = await provider.getBalance(
               authorizedMaintainer.address
             )
             tx = await maintainerProxy
@@ -2055,15 +2029,17 @@ describe("MaintainerProxy", () => {
             await restoreSnapshot()
           })
 
-          it("should succeed", async () => {
-            await expect(tx.wait()).not.to.be.reverted
+          it("should emit MovingFundsTimeoutReset event", async () => {
+            await expect(tx).to.emit(bridge, "MovingFundsTimeoutReset")
           })
 
           it("should refund ETH", async () => {
             const postThirdPartyBalance = await provider.getBalance(
               authorizedMaintainer.address
             )
-            const diff = postThirdPartyBalance.sub(initThirdPartyBalance)
+            const diff = postThirdPartyBalance.sub(
+              initialAuthorizedMaintainerBalance
+            )
 
             expect(diff).to.be.gt(0)
             expect(diff).to.be.lt(
@@ -2111,7 +2087,6 @@ describe("MaintainerProxy", () => {
           }
 
           let tx: ContractTransaction
-          let initThirdPartyBalance: BigNumber
 
           before(async () => {
             await createSnapshot()
@@ -2121,7 +2096,7 @@ describe("MaintainerProxy", () => {
               mainUtxo
             )
 
-            initThirdPartyBalance = await provider.getBalance(
+            initialAuthorizedMaintainerBalance = await provider.getBalance(
               authorizedMaintainer.address
             )
 
@@ -2137,15 +2112,17 @@ describe("MaintainerProxy", () => {
             await restoreSnapshot()
           })
 
-          it("should not revert", async () => {
-            await expect(tx.wait()).not.to.be.reverted
+          it("should emit MovingFundsBelowDustReported event", async () => {
+            await expect(tx).to.emit(bridge, "MovingFundsBelowDustReported")
           })
 
           it("should refund ETH", async () => {
             const postThirdPartyBalance = await provider.getBalance(
               authorizedMaintainer.address
             )
-            const diff = postThirdPartyBalance.sub(initThirdPartyBalance)
+            const diff = postThirdPartyBalance.sub(
+              initialAuthorizedMaintainerBalance
+            )
 
             expect(diff).to.be.gt(0)
             expect(diff).to.be.lt(
@@ -2192,33 +2169,30 @@ describe("MaintainerProxy", () => {
                     () => {
                       const data: MovedFundsSweepTestData =
                         MovedFundsSweepWithoutMainUtxo
-
-                      let outcome: Promise<ScenarioOutcome>
+                      let tx: ContractTransaction
 
                       before(async () => {
                         await createSnapshot()
 
-                        outcome = runMovedFundsSweepScenario(data)
+                        tx = await runMovedFundsSweepScenario(data)
                       })
 
                       after(async () => {
                         await restoreSnapshot()
                       })
 
-                      it("should succeed", async () => {
-                        await expect(outcome).to.not.be.reverted
+                      it("should emit MovedFundsSwept event", async () => {
+                        await expect(tx).to.emit(bridge, "MovedFundsSwept")
                       })
 
                       it("should refund ETH", async () => {
-                        const resolvedOutcome = await outcome
-
                         const postThirdPartyBalance = await provider.getBalance(
                           authorizedMaintainer.address
                         )
-
                         const diff = postThirdPartyBalance.sub(
-                          resolvedOutcome.initThirdPartyBalance
+                          initialAuthorizedMaintainerBalance
                         )
+
                         expect(diff).to.be.gt(0)
                         expect(diff).to.be.lt(
                           ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
@@ -2235,32 +2209,30 @@ describe("MaintainerProxy", () => {
                       const data: MovedFundsSweepTestData =
                         MovedFundsSweepWithMainUtxo
 
-                      let outcome: Promise<ScenarioOutcome>
+                      let tx: ContractTransaction
 
                       before(async () => {
                         await createSnapshot()
 
-                        outcome = runMovedFundsSweepScenario(data)
+                        tx = await runMovedFundsSweepScenario(data)
                       })
 
                       after(async () => {
                         await restoreSnapshot()
                       })
 
-                      it("should succeed", async () => {
-                        await expect(outcome).to.not.be.reverted
+                      it("should emit MovedFundsSwept event", async () => {
+                        await expect(tx).to.emit(bridge, "MovedFundsSwept")
                       })
 
                       it("should refund ETH", async () => {
-                        const resolvedOutcome = await outcome
-
                         const postThirdPartyBalance = await provider.getBalance(
                           authorizedMaintainer.address
                         )
-
                         const diff = postThirdPartyBalance.sub(
-                          resolvedOutcome.initThirdPartyBalance
+                          initialAuthorizedMaintainerBalance
                         )
+
                         expect(diff).to.be.gt(0)
                         expect(diff).to.be.lt(
                           ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
@@ -2277,12 +2249,12 @@ describe("MaintainerProxy", () => {
         context("when sweeping wallet is in the MovingFunds state", () => {
           const data: MovedFundsSweepTestData = MovedFundsSweepWithoutMainUtxo
 
-          let outcome: Promise<ScenarioOutcome>
+          let tx: ContractTransaction
 
           before(async () => {
             await createSnapshot()
 
-            outcome = runMovedFundsSweepScenario({
+            tx = await runMovedFundsSweepScenario({
               ...data,
               wallet: {
                 ...data.wallet,
@@ -2295,20 +2267,18 @@ describe("MaintainerProxy", () => {
             await restoreSnapshot()
           })
 
-          it("should succeed", async () => {
-            await expect(outcome).to.not.be.reverted
+          it("should emit MovedFundsSwept event", async () => {
+            await expect(tx).to.emit(bridge, "MovedFundsSwept")
           })
 
           it("should refund ETH", async () => {
-            const resolvedOutcome = await outcome
-
             const postThirdPartyBalance = await provider.getBalance(
               authorizedMaintainer.address
             )
-
             const diff = postThirdPartyBalance.sub(
-              resolvedOutcome.initThirdPartyBalance
+              initialAuthorizedMaintainerBalance
             )
+
             expect(diff).to.be.gt(0)
             expect(diff).to.be.lt(
               ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
@@ -2358,7 +2328,6 @@ describe("MaintainerProxy", () => {
 
       context("when closing period has elapsed", () => {
         let tx: ContractTransaction
-        let initThirdPartyBalance: BigNumber
 
         before(async () => {
           await createSnapshot()
@@ -2369,9 +2338,6 @@ describe("MaintainerProxy", () => {
             ).walletClosingPeriod
           )
 
-          initThirdPartyBalance = await provider.getBalance(
-            authorizedMaintainer.address
-          )
           tx = await maintainerProxy
             .connect(authorizedMaintainer)
             .notifyWalletClosingPeriodElapsed(ecdsaWalletTestData.pubKeyHash160)
@@ -2383,15 +2349,17 @@ describe("MaintainerProxy", () => {
           await restoreSnapshot()
         })
 
-        it("should successfully submit sweep proof", async () => {
-          await expect(tx.wait()).not.to.be.reverted
+        it("should emit WalletClosed event", async () => {
+          await expect(tx).to.emit(bridge, "WalletClosed")
         })
 
         it("should refund ETH", async () => {
-          const postNotifyThirdPartyBalance = await provider.getBalance(
+          const postMaintainerBalance = await provider.getBalance(
             authorizedMaintainer.address
           )
-          const diff = postNotifyThirdPartyBalance.sub(initThirdPartyBalance)
+          const diff = postMaintainerBalance.sub(
+            initialAuthorizedMaintainerBalance
+          )
 
           expect(diff).to.be.gt(0)
           expect(diff).to.be.lt(
@@ -2451,7 +2419,6 @@ describe("MaintainerProxy", () => {
           const sighash = sha256(sha256(heartbeatMessage))
 
           let tx: ContractTransaction
-          let initThirdPartyBalance: BigNumber
 
           before(async () => {
             await createSnapshot()
@@ -2471,7 +2438,7 @@ describe("MaintainerProxy", () => {
                 }
               )
 
-            initThirdPartyBalance = await provider.getBalance(
+            initialAuthorizedMaintainerBalance = await provider.getBalance(
               authorizedMaintainer.address
             )
             tx = await maintainerProxy
@@ -2486,15 +2453,17 @@ describe("MaintainerProxy", () => {
             await restoreSnapshot()
           })
 
-          it("should not revert", async () => {
-            await expect(tx.wait()).not.to.be.reverted
+          it("should emit FraudChallengeDefeated event", async () => {
+            await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
           })
 
           it("should refund ETH", async () => {
-            const postNotifyThirdPartyBalance = await provider.getBalance(
+            const postMaintainerBalance = await provider.getBalance(
               authorizedMaintainer.address
             )
-            const diff = postNotifyThirdPartyBalance.sub(initThirdPartyBalance)
+            const diff = postMaintainerBalance.sub(
+              initialAuthorizedMaintainerBalance
+            )
 
             expect(diff).to.be.gt(0)
             expect(diff).to.be.lt(
@@ -3185,19 +3154,14 @@ describe("MaintainerProxy", () => {
     })
   })
 
-  interface ScenarioOutcome {
-    tx: ContractTransaction
-    initThirdPartyBalance: BigNumber
-  }
-
   async function makeRedemptionAllowance(
     redeemer: SignerWithAddress,
     amount: BigNumberish
-  ) {
+  ): Promise<ContractTransaction> {
     // Simulate the redeemer has a TBTC balance allowing to make the request.
     await bank.setBalance(redeemer.address, amount)
     // Redeemer must allow the Bridge to spent the requested amount.
-    await bank
+    return bank
       .connect(redeemer)
       .increaseBalanceAllowance(bridge.address, amount)
   }
@@ -3205,7 +3169,7 @@ describe("MaintainerProxy", () => {
   async function runDepositSweepScenario(
     data: DepositSweepTestData,
     beforeProofActions?: () => Promise<void>
-  ): Promise<ScenarioOutcome> {
+  ): Promise<ContractTransaction> {
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
@@ -3219,11 +3183,7 @@ describe("MaintainerProxy", () => {
       await beforeProofActions()
     }
 
-    const initThirdPartyBalance = await provider.getBalance(
-      authorizedMaintainer.address
-    )
-
-    const tx = await maintainerProxy
+    return maintainerProxy
       .connect(authorizedMaintainer)
       .submitDepositSweepProof(
         data.sweepTx,
@@ -3231,14 +3191,18 @@ describe("MaintainerProxy", () => {
         data.mainUtxo,
         data.vault
       )
+      .then((tx: ContractTransaction) => {
+        relay.getCurrentEpochDifficulty.reset()
+        relay.getPrevEpochDifficulty.reset()
 
-    return { tx, initThirdPartyBalance }
+        return tx
+      })
   }
 
   async function runRedemptionScenario(
     data: RedemptionTestData,
     beforeProofActions?: () => Promise<void>
-  ): Promise<ScenarioOutcome> {
+  ): Promise<ContractTransaction> {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
@@ -3289,11 +3253,7 @@ describe("MaintainerProxy", () => {
       await beforeProofActions()
     }
 
-    const initThirdPartyBalance = await provider.getBalance(
-      authorizedMaintainer.address
-    )
-
-    const tx = await maintainerProxy
+    return maintainerProxy
       .connect(authorizedMaintainer)
       .submitRedemptionProof(
         data.redemptionTx,
@@ -3301,17 +3261,18 @@ describe("MaintainerProxy", () => {
         data.mainUtxo,
         data.wallet.pubKeyHash
       )
+      .then((tx: ContractTransaction) => {
+        relay.getCurrentEpochDifficulty.reset()
+        relay.getPrevEpochDifficulty.reset()
 
-    return {
-      tx,
-      initThirdPartyBalance,
-    }
+        return tx
+      })
   }
 
   async function runMovingFundsScenario(
     data: MovingFundsTestData,
     beforeProofActions?: () => Promise<void>
-  ): Promise<ScenarioOutcome> {
+  ): Promise<ContractTransaction> {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
@@ -3340,11 +3301,7 @@ describe("MaintainerProxy", () => {
       await beforeProofActions()
     }
 
-    const initThirdPartyBalance = await provider.getBalance(
-      authorizedMaintainer.address
-    )
-
-    const tx = await maintainerProxy
+    return maintainerProxy
       .connect(authorizedMaintainer)
       .submitMovingFundsProof(
         data.movingFundsTx,
@@ -3352,17 +3309,18 @@ describe("MaintainerProxy", () => {
         data.mainUtxo,
         data.wallet.pubKeyHash
       )
+      .then((tx: ContractTransaction) => {
+        relay.getCurrentEpochDifficulty.reset()
+        relay.getPrevEpochDifficulty.reset()
 
-    relay.getCurrentEpochDifficulty.reset()
-    relay.getPrevEpochDifficulty.reset()
-
-    return { tx, initThirdPartyBalance }
+        return tx
+      })
   }
 
   async function runMovedFundsSweepScenario(
     data: MovedFundsSweepTestData,
     beforeProofActions?: () => Promise<void>
-  ): Promise<ScenarioOutcome> {
+  ): Promise<ContractTransaction> {
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
@@ -3402,20 +3360,14 @@ describe("MaintainerProxy", () => {
       await beforeProofActions()
     }
 
-    const initThirdPartyBalance = await provider.getBalance(
-      authorizedMaintainer.address
-    )
-
-    const tx = await maintainerProxy
+    return maintainerProxy
       .connect(authorizedMaintainer)
       .submitMovedFundsSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
+      .then((tx: ContractTransaction) => {
+        relay.getCurrentEpochDifficulty.reset()
+        relay.getPrevEpochDifficulty.reset()
 
-    relay.getCurrentEpochDifficulty.reset()
-    relay.getPrevEpochDifficulty.reset()
-
-    return {
-      tx,
-      initThirdPartyBalance,
-    }
+        return tx
+      })
   }
 })
