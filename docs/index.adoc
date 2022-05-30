@@ -418,17 +418,17 @@ entirely, they can save a transaction and gas by calling
 |movedFundsSweepTimeoutSlashingAmount 
 |The amount of stake in T tokens that each group member of the target wallet loses if they do not sweep moved funds. 
 |Yes 
-|`7 days`
+|`100 * 1e18 = 100 T`
 
 |movedFundsSweepTxMaxTotalFee 
 |The max amount of satoshis that the target wallet is allowed to pay miners to process a moved funds sweep transaction. 
 |Yes 
-|`10_000 satoshis`
+|`100_000 satoshis`
 
 |movingFundsDustThreshold 
 |The minimum amount of satoshis held by a closing wallet that needs to be moved to a different wallet before closing. 
 |Yes 
-|`20_000 satoshis`
+|`200_000 satoshis`
 
 |movingFundsTimeout 
 |The amount of time group members have to move their wallet's funds to another live wallet(s). 
@@ -448,12 +448,12 @@ entirely, they can save a transaction and gas by calling
 |movingFundsTimeoutSlashingAmount 
 |The amount of stake in T tokens that each group member loses if they do not fulfill a moving funds request. 
 |Yes 
-|`10_000 * 1e18 = 10_000 T`
+|`100 * 1e18 = 100 T`
 
 |movingFundsTxMaxTotalFee 
 |The max amount of satoshis that the wallet is allowed to pay miners for a moving funds transaction. 
 |Yes 
-|`10_000 satoshis`
+|`100_000 satoshis`
 
 |walletClosingPeriod 
 |The amount of time the wallet remains in the `Closing` state before it can be closed. 
@@ -493,7 +493,7 @@ entirely, they can save a transaction and gas by calling
 |depositTxMaxFee 
 |The max amount of satoshis per deposit that the wallet is allowed to pay to miners for processing the sweep transaction. 
 |Yes 
-|`10_000 satoshis`
+|`100_000 satoshis`
 
 4+s|Redeeming
 
@@ -505,7 +505,7 @@ entirely, they can save a transaction and gas by calling
 |redemptionTimeout 
 |The amount of time a wallet has to fulfill a redemption request. 
 |Yes 
-|`172_800 seconds = 48 hours`
+|`5 days`
 
 |redemptionTimeoutNotifierRewardMultiplier 
 |The percentage of the slashed stake from a redemption timeout that the notifier receives as a reward. 
@@ -515,7 +515,7 @@ entirely, they can save a transaction and gas by calling
 |redemptionTimeoutSlashingAmount 
 |The amount of stake in T tokens that each group member will lose if they do not fulfill a redemption request. 
 |Yes 
-|`10_000 * 1e18 = 10_000 T` 
+|`100 * 1e18 = 100 T` 
 
 |redemptionTreasuryFeeDivisor 
 |A divisor used to compute the treasury fee taken from each redemption request and transferred to the treasury upon successful request finalization. 
@@ -525,7 +525,7 @@ entirely, they can save a transaction and gas by calling
 |redemptionTxMaxFee 
 |The max amount of satoshis per redemption that the wallet is allowed to pay miners for processing the redemption transaction. 
 |Yes 
-|`10_000 satoshis`
+|`100_000 satoshis`
 
 4+s|Fraud 
 
@@ -537,7 +537,7 @@ entirely, they can save a transaction and gas by calling
 |fraudChallengeDepositAmount 
 |The amount of ether a challenger must deposit in order to make a wallet prove its honesty. 
 |Yes 
-|`2 ether`
+|`5 ether`
 
 |fraudNotifierRewardMultiplier 
 |The percentage of the slashed stake from a fraud challenge that the challenger receives as a reward. 
@@ -547,4 +547,4 @@ entirely, they can save a transaction and gas by calling
 |fraudSlashingAmount 
 |The amount of T tokens that each group member of a wallet loses if the fraud challenge does not get defeated. 
 |Yes 
-|`10_000 * 1e18 = 10_000 T`
+|`100 * 1e18 = 100 T`
