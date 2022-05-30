@@ -230,7 +230,11 @@ describeFn("Integration Test - Slashing", async () => {
         // TX max fees need to be adjusted as well given that they need to
         // be lower than dust thresholds.
         await updateDepositDustThresholdAndTxMaxFee(10_000, 2_000) // 0.0001 BTC, 0.00002 BTC
-        await updateRedemptionDustThresholdAndTxMaxFee(2_000, 200) // 0.00002 BTC, 0.000002 BTC
+        await updateRedemptionDustThresholdAndTxMaxFeeAndMovingFundsDustThreshold(
+          2_000,
+          200,
+          100
+        ) // 0.00002 BTC, 0.000002 BTC
 
         // Reveal and sweep the deposit to set up a positive Bank balance for
         // the redeemer, to be able to request a redemption.
@@ -496,23 +500,29 @@ describeFn("Integration Test - Slashing", async () => {
 
     await bridgeGovernance
       .connect(governance)
-      .beginDepositDustThresholdUpdate(newDepositTxMaxFee)
+      .beginDepositTxMaxFeeUpdate(newDepositTxMaxFee)
 
     await helpers.time.increaseTime(constants.governanceDelay)
+
+    await bridgeGovernance.connect(governance).finalizeDepositTxMaxFeeUpdate()
 
     await bridgeGovernance
       .connect(governance)
       .finalizeDepositDustThresholdUpdate()
-    await bridgeGovernance.connect(governance).finalizeDepositTxMaxFeeUpdate()
   }
 
-  async function updateRedemptionDustThresholdAndTxMaxFee(
+  async function updateRedemptionDustThresholdAndTxMaxFeeAndMovingFundsDustThreshold(
     newRedemptionDustThreshold: number,
-    newRedemptionTxMaxFee: number
+    newRedemptionTxMaxFee: number,
+    newMovingFundsDustThreshold: number
   ) {
     await bridgeGovernance
       .connect(governance)
       .beginRedemptionDustThresholdUpdate(newRedemptionDustThreshold)
+
+    await bridgeGovernance
+      .connect(governance)
+      .beginMovingFundsDustThresholdUpdate(newMovingFundsDustThreshold)
 
     await bridgeGovernance
       .connect(governance)
@@ -522,10 +532,14 @@ describeFn("Integration Test - Slashing", async () => {
 
     await bridgeGovernance
       .connect(governance)
-      .finalizeRedemptionDustThresholdUpdate()
+      .finalizeRedemptionTxMaxFeeUpdate()
 
     await bridgeGovernance
       .connect(governance)
-      .finalizeRedemptionTxMaxFeeUpdate()
+      .finalizeMovingFundsDustThresholdUpdate()
+
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeRedemptionDustThresholdUpdate()
   }
 })
