@@ -58,10 +58,10 @@ describe("Bridge - Moving funds", () => {
   let movingFundsTimeoutResetDelay: number
   let movingFundsTimeout: number
   let movingFundsTimeoutSlashingAmount: BigNumber
-  let movingFundsTimeoutNotifierRewardMultiplier: BigNumber
+  let movingFundsTimeoutNotifierRewardMultiplier: number
   let movedFundsSweepTimeout: number
   let movedFundsSweepTimeoutSlashingAmount: BigNumber
-  let movedFundsSweepTimeoutNotifierRewardMultiplier: BigNumber
+  let movedFundsSweepTimeoutNotifierRewardMultiplier: number
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi

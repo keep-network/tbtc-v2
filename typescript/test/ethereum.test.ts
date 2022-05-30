@@ -33,7 +33,7 @@ describe("Ethereum", () => {
     describe("pendingRedemptions", () => {
       beforeEach(async () => {
         // Set the mock to return a specific redemption data when called
-        // with the redemption key (built as keccak256(walletPubKeyHash | redeemerOutputScript))
+        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash))
         // that matches the wallet PKH and redeemer output script used during
         // the test call.
         await bridgeContract.mock.pendingRedemptions
