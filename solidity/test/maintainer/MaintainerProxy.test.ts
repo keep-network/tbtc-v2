@@ -89,7 +89,6 @@ describe("MaintainerProxy", () => {
   let reimbursementPool: ReimbursementPool
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
-
   let bank: Bank & BankStub
 
   let fraudChallengeDepositAmount: BigNumber

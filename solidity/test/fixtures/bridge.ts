@@ -75,6 +75,7 @@ export default async function bridgeFixture() {
   })
 
   return {
+    deployer,
     governance,
     thirdParty,
     treasury,
@@ -86,7 +87,6 @@ export default async function bridgeFixture() {
     walletRegistry,
     bridge,
     BridgeFactory,
-    deployer,
     reimbursementPool,
     maintainerProxy,
   }
