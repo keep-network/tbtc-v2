@@ -26,7 +26,7 @@ describe("Bridge - Deployment", async () => {
     await deployments.fixture()
     ;({ deployer, governance, esdm } = await helpers.signers.getNamedSigners())
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ bridgeGovernance } = await waffle.loadFixture(bridgeFixture))
+    bridgeGovernance = await helpers.contracts.getContract("BridgeGovernance")
 
     bridge = await helpers.contracts.getContract("Bridge")
 
