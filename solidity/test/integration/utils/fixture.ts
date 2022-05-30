@@ -14,6 +14,7 @@ import {
   VendingMachine,
   BridgeGovernance,
 } from "../../../typechain"
+import { Bank } from "../../../typechain/Bank"
 import { registerOperator } from "./ecdsa-wallet-registry"
 import { fakeRandomBeacon } from "./random-beacon"
 import { authorizeApplication, stake } from "./staking"
@@ -34,6 +35,7 @@ export const fixture = deployments.createFixture(
     tbtc: TBTC
     bridge: Bridge
     bridgeGovernance: BridgeGovernance
+    bank: Bank
     tbtcVault: TBTCVault
     walletRegistry: WalletRegistry
     staking: Contract
@@ -47,6 +49,7 @@ export const fixture = deployments.createFixture(
     const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
     const bridgeGovernance =
       await helpers.contracts.getContract<BridgeGovernance>("BridgeGovernance")
+    const bank = await helpers.contracts.getContract<Bank>("Bank")
     const tbtcVault: TBTCVault = await helpers.contracts.getContract(
       "TBTCVault"
     )
@@ -128,6 +131,7 @@ export const fixture = deployments.createFixture(
       tbtc,
       bridge,
       bridgeGovernance,
+      bank,
       tbtcVault,
       walletRegistry,
       staking,
