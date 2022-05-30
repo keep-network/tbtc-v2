@@ -92,18 +92,6 @@ library BridgeGovernanceParameters {
         uint256 fraudNotifierRewardMultiplierChangeInitiated;
     }
 
-    event GovernanceDelayUpdateStarted(
-        uint256 governanceDelay,
-        uint256 timestamp
-    );
-    event GovernanceDelayUpdated(uint256 governanceDelay);
-
-    event BridgeGovernanceTransferStarted(
-        address newBridgeGovernance,
-        uint256 timestamp
-    );
-    event BridgeGovernanceTransferred(address newBridgeGovernance);
-
     event DepositDustThresholdUpdateStarted(
         uint64 newDepositDustThreshold,
         uint256 timestamp
