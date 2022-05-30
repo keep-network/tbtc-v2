@@ -431,7 +431,7 @@ entirely, they can save a transaction and gas by calling
 |`20_000 satoshis`
 
 |movingFundsTimeout 
-|The amount of time the operators have to move their wallet's funds to another live wallet(s). 
+|The amount of time group members have to move their wallet's funds to another live wallet(s). 
 |Yes 
 |`7 days`
 
@@ -485,6 +485,7 @@ entirely, they can save a transaction and gas by calling
 4+s|Sweeping
 
 |depositTreasuryFeeDivisor 
+|A divisor used to compute the treasury fee taken from each deposit and transferred to the treasury upon sweep proof submission.
 |The deposit fee divisor of one BTC to take as a treasury fee. 
 |Yes 
 |`2_000 => 1/2_000 = 5 BPS`
@@ -514,7 +515,7 @@ entirely, they can save a transaction and gas by calling
 |redemptionTimeoutSlashingAmount 
 |The amount of stake in T tokens that each group member will lose if they do not fulfill a redemption request. 
 |Yes 
-|`10_000 * 1e18 = 10_000 T tokens` 
+|`10_000 * 1e18 = 10_000 T` 
 
 |redemptionTreasuryFeeDivisor 
 |A divisor used to compute the treasury fee taken from each redemption request and transferred to the treasury upon successful request finalization. 
@@ -544,6 +545,6 @@ entirely, they can save a transaction and gas by calling
 |`100%`
 
 |fraudSlashingAmount 
-|The amount of T tokens that the operators of a wallet lose if the fraud challenge does not get defeated. 
+|The amount of T tokens that each group member of a wallet loses if the fraud challenge does not get defeated. 
 |Yes 
 |`10_000 * 1e18 = 10_000 T`
