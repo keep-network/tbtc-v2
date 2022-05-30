@@ -1169,10 +1169,6 @@ describe("MaintainerProxy", () => {
           before(async () => {
             await createSnapshot()
 
-            await maintainerProxy
-              .connect(governance)
-              .authorize(walletRegistry.address)
-
             await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
               ecdsaWalletID: ecdsaWalletTestData.walletID,
               mainUtxoHash: ethers.constants.HashZero,
@@ -1207,17 +1203,12 @@ describe("MaintainerProxy", () => {
 
             context("when wallet balance is zero", () => {
               let tx: ContractTransaction
-              let initWalletRegistryBalance: BigNumber
 
               before(async () => {
                 await createSnapshot()
 
-                initWalletRegistryBalance = await provider.getBalance(
-                  await walletRegistry.wallet.getAddress()
-                )
-
                 tx = await maintainerProxy
-                  .connect(walletRegistry.wallet)
+                  .connect(authorizedMaintainer)
                   .notifyWalletCloseable(
                     ecdsaWalletTestData.pubKeyHash160,
                     NO_MAIN_UTXO
@@ -1233,11 +1224,11 @@ describe("MaintainerProxy", () => {
               })
 
               it("should refund ETH", async () => {
-                const postWalletRegistryBalance = await provider.getBalance(
-                  walletRegistry.wallet.getAddress()
+                const postMaintainerBalance = await provider.getBalance(
+                  authorizedMaintainer.address
                 )
-                const diff = postWalletRegistryBalance.sub(
-                  initWalletRegistryBalance
+                const diff = postMaintainerBalance.sub(
+                  initialAuthorizedMaintainerBalance
                 )
 
                 expect(diff).to.be.gt(0)
@@ -1256,7 +1247,6 @@ describe("MaintainerProxy", () => {
               }
 
               let tx: ContractTransaction
-              let initWalletRegistryBalance: BigNumber
 
               before(async () => {
                 await createSnapshot()
@@ -1266,12 +1256,8 @@ describe("MaintainerProxy", () => {
                   walletMainUtxo
                 )
 
-                // TODO: Why WalletRegistry balance ?!
-                initWalletRegistryBalance = await provider.getBalance(
-                  walletRegistry.wallet.getAddress()
-                )
                 tx = await maintainerProxy
-                  .connect(walletRegistry.wallet)
+                  .connect(authorizedMaintainer)
                   .notifyWalletCloseable(
                     ecdsaWalletTestData.pubKeyHash160,
                     walletMainUtxo
@@ -1287,11 +1273,11 @@ describe("MaintainerProxy", () => {
               })
 
               it("should refund ETH", async () => {
-                const postWalletRegistryBalance = await provider.getBalance(
-                  walletRegistry.wallet.getAddress()
+                const postMaintainerBalance = await provider.getBalance(
+                  authorizedMaintainer.address
                 )
-                const diff = postWalletRegistryBalance.sub(
-                  initWalletRegistryBalance
+                const diff = postMaintainerBalance.sub(
+                  initialAuthorizedMaintainerBalance
                 )
 
                 expect(diff).to.be.gt(0)
@@ -1307,16 +1293,12 @@ describe("MaintainerProxy", () => {
             () => {
               context("when wallet balance is zero", () => {
                 let tx: ContractTransaction
-                let initWalletRegistryBalance: BigNumber
 
                 before(async () => {
                   await createSnapshot()
 
-                  initWalletRegistryBalance = await provider.getBalance(
-                    walletRegistry.wallet.getAddress()
-                  )
                   tx = await maintainerProxy
-                    .connect(walletRegistry.wallet)
+                    .connect(authorizedMaintainer)
                     .notifyWalletCloseable(
                       ecdsaWalletTestData.pubKeyHash160,
                       NO_MAIN_UTXO
@@ -1332,11 +1314,11 @@ describe("MaintainerProxy", () => {
                 })
 
                 it("should refund ETH", async () => {
-                  const postWalletRegistryBalance = await provider.getBalance(
-                    walletRegistry.wallet.getAddress()
+                  const postMaintainerBalance = await provider.getBalance(
+                    authorizedMaintainer.address
                   )
-                  const diff = postWalletRegistryBalance.sub(
-                    initWalletRegistryBalance
+                  const diff = postMaintainerBalance.sub(
+                    initialAuthorizedMaintainerBalance
                   )
 
                   expect(diff).to.be.gt(0)
@@ -1355,7 +1337,6 @@ describe("MaintainerProxy", () => {
                 }
 
                 let tx: ContractTransaction
-                let initWalletRegistryBalance: BigNumber
 
                 before(async () => {
                   await createSnapshot()
@@ -1365,11 +1346,8 @@ describe("MaintainerProxy", () => {
                     walletMainUtxo
                   )
 
-                  initWalletRegistryBalance = await provider.getBalance(
-                    walletRegistry.wallet.getAddress()
-                  )
                   tx = await maintainerProxy
-                    .connect(walletRegistry.wallet)
+                    .connect(authorizedMaintainer)
                     .notifyWalletCloseable(
                       ecdsaWalletTestData.pubKeyHash160,
                       walletMainUtxo
@@ -1384,13 +1362,12 @@ describe("MaintainerProxy", () => {
                   await expect(tx).to.emit(bridge, "WalletMovingFunds")
                 })
 
-                // TODO: Why WalletRegistry balance ?!
                 it("should refund ETH", async () => {
-                  const postWalletRegistryBalance = await provider.getBalance(
-                    walletRegistry.wallet.getAddress()
+                  const postMaintainerBalance = await provider.getBalance(
+                    authorizedMaintainer.address
                   )
-                  const diff = postWalletRegistryBalance.sub(
-                    initWalletRegistryBalance
+                  const diff = postMaintainerBalance.sub(
+                    initialAuthorizedMaintainerBalance
                   )
 
                   expect(diff).to.be.gt(0)
@@ -1478,10 +1455,10 @@ describe("MaintainerProxy", () => {
               })
 
               it("should refund ETH", async () => {
-                const postWalletRegistryBalance = await provider.getBalance(
+                const postMaintainerBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-                const diff = postWalletRegistryBalance.sub(
+                const diff = postMaintainerBalance.sub(
                   initialAuthorizedMaintainerBalance
                 )
 
@@ -1552,10 +1529,10 @@ describe("MaintainerProxy", () => {
               })
 
               it("should refund ETH", async () => {
-                const postWalletRegistryBalance = await provider.getBalance(
+                const postMaintainerBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-                const diff = postWalletRegistryBalance.sub(
+                const diff = postMaintainerBalance.sub(
                   initialAuthorizedMaintainerBalance
                 )
 
@@ -1628,10 +1605,10 @@ describe("MaintainerProxy", () => {
               })
 
               it("should refund ETH", async () => {
-                const postWalletRegistryBalance = await provider.getBalance(
+                const postMaintainerBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-                const diff = postWalletRegistryBalance.sub(
+                const diff = postMaintainerBalance.sub(
                   initialAuthorizedMaintainerBalance
                 )
 
@@ -1702,10 +1679,10 @@ describe("MaintainerProxy", () => {
               })
 
               it("should refund ETH", async () => {
-                const postWalletRegistryBalance = await provider.getBalance(
+                const postMaintainerBalance = await provider.getBalance(
                   authorizedMaintainer.address
                 )
-                const diff = postWalletRegistryBalance.sub(
+                const diff = postMaintainerBalance.sub(
                   initialAuthorizedMaintainerBalance
                 )
 
