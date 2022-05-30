@@ -162,8 +162,8 @@ describe("Bridge - Governance", () => {
         await restoreSnapshot()
       })
 
-      it("should not update the bridge governance transfer", async () => {
-        expect(await bridgeGovernance.owner()).to.be.equal(governance.address)
+      it("should not update the bridge governance", async () => {
+        expect(await bridge.governance()).to.be.equal(bridgeGovernance.address)
       })
 
       it("should start the bridge governance transfer timer", async () => {
@@ -255,7 +255,7 @@ describe("Bridge - Governance", () => {
           await restoreSnapshot()
         })
 
-        it("should update the bridge governance transfer", async () => {
+        it("should update the bridge governance", async () => {
           expect(await bridge.governance()).to.be.equal(thirdParty.address)
         })
       }
