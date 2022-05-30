@@ -71,7 +71,7 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
   pendingRedemptions: [
     {
       redemptionKey:
-        "0xe7a0e8b724c3ee7708701137cb57f0a742e284b4ad0b21cc16a3b3fbe733521a",
+        "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -126,7 +126,7 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
   pendingRedemptions: [
     {
       redemptionKey:
-        "0xbd6593f81039fe17735ef62f15a6532f5df31cd641400c45218cfbefcb9625e7",
+        "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -180,7 +180,7 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
   pendingRedemptions: [
     {
       redemptionKey:
-        "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820",
+        "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -234,7 +234,7 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
   pendingRedemptions: [
     {
       redemptionKey:
-        "0xbc985c5ef4dec86ae1eba229623636f405e873ad5b154d294ec18f8cabc16185",
+        "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -289,7 +289,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
   pendingRedemptions: [
     {
       redemptionKey:
-        "0xe7a0e8b724c3ee7708701137cb57f0a742e284b4ad0b21cc16a3b3fbe733521a",
+        "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -305,7 +305,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
     },
     {
       redemptionKey:
-        "0xbd6593f81039fe17735ef62f15a6532f5df31cd641400c45218cfbefcb9625e7",
+        "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -320,7 +320,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
     },
     {
       redemptionKey:
-        "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820",
+        "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -335,7 +335,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
     },
     {
       redemptionKey:
-        "0xbc985c5ef4dec86ae1eba229623636f405e873ad5b154d294ec18f8cabc16185",
+        "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -393,7 +393,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
   pendingRedemptions: [
     {
       redemptionKey:
-        "0xe7a0e8b724c3ee7708701137cb57f0a742e284b4ad0b21cc16a3b3fbe733521a",
+        "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -409,7 +409,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
     },
     {
       redemptionKey:
-        "0xddd0fd5d4e471ff4573eb0906088a53e8b8dbb3f1ce2f1b33b285a1c104b59a1",
+        "0xa690d9da3e64c337eb11344b94cf948ec2da333f0a985e09f1c120a326f6de87",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
@@ -466,7 +466,7 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
   pendingRedemptions: [
     {
       redemptionKey:
-        "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820",
+        "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
         redeemer: {
           identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
