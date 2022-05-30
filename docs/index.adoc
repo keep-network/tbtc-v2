@@ -129,6 +129,24 @@ owner of `TBTCVault` can initiate and finalize an upgrade to another vault.
 The new vault receives ownership of TBTC token as well as the entire `TBTCVault`
 balance in the Bank.
 
+=== Operators vs Group Members
+
+tBTCv2 works by combining on-chain smart contracts with off-chain operators.
+Those operators must _stake_ T tokens into the contracts, which exposes
+themselves to punishment for misbehavior, and in exchange are delegated work by
+the smart contracts.
+
+A single operator can be selected multiple times to be in one signing group.
+For more details about how this works, see
+link:https://github.com/keep-network/keep-core/tree/main/solidity/ecdsa#the-mechanism[Wallet
+Creation]. Since this is the case, we differentiate between an _Operator_,
+which represents a staker on the network running client software, and a _Group
+Member_, which is an _Operator_ who has been selected to help custody a specific
+wallet. 
+
+To reiterate, One _Operator_ can be a _Group Member_ multiple times on the same
+wallet, and can be a _Group Member_ in multiple wallets at the same time.
+
 === Wallet States
 
 There are six states for a wallet:
@@ -149,7 +167,7 @@ There are six states for a wallet:
   funds to another wallet before a timeout, or did not sweep funds moved to it
   from another wallet before a timeout. The wallet is blocked and can not
   perform any actions in the Bridge. Off-chain coordination with the wallet
-  operators is needed to recover funds.
+  group members is needed to recover funds.
 
 
 image::diagrams/wallet-lifecycle/wallet-state-transition.png[Wallet State Transition]
@@ -185,7 +203,7 @@ wallet. Going forward, it will receive deposits.
 
 Wallets can close in a few ways:
 
-* The operators notify the chain that the wallet is failing a heartbeat:
+* The group members notify the chain that the wallet is failing a heartbeat:
 `Bridge. __ecdsaWalletHeartbeatFailedCallback` (called by `ecdsa`
 `WalletRegistry.notifyOperatorInactivity`)`
 * Someone notifies the chain that the wallet timed out while filling a
@@ -209,7 +227,7 @@ After `movingFundsTimeout` goes by, anyone can call
 `ecdsaWalletRegistry.closeWallet` after changing the state to
 `WalletState.Terminated`.
 
-Furthermore, the `ecdsaWalletRegistry.seize` call is punishing the operators by
+Furthermore, the `ecdsaWalletRegistry.seize` call is punishing the group members by
 `movedFundsSweepTimeoutSlashingAmount` and rewarding the notifier with a reward
 multiplier of `movedFundsSweepTimeoutNotifierRewardMultiplier` (the notifier
 gets a percentaged of the slashed stake).
@@ -338,13 +356,13 @@ can either be made in a separate transaction first via
 If the redemption was not performed by the wallet, after the redemption
 timeout, anyone may call `Bridge.notifyRedemptionTimeout`. This will decrease
 `wallet.pendingRedemptionsValue`, mark the redemption as "timed out", punish
-the operators for `Bridge.redemptionTimeoutSlashingAmount`, and reward the
+the group members for `Bridge.redemptionTimeoutSlashingAmount`, and reward the
 notifier for a percentage (`Bridge.redemptionTimeoutNotifierRewardMultiplier`)
 of the slashed stake. The redeemer is reimbursed the Bank balance of the
 redemption, and the wallet begins to move its funds via
 `Wallets.notifyWalletTimedOutRedemption`.
 
-To avoid this, the operators must fulfill the redemption by signing a
+To avoid this, the group members must fulfill the redemption by signing a
 transaction off-chain (potentially in a batch), submitting it to the Bitcoin
 chain, and then proving that they did so via `Bridge.submitRedemptionProof`. We
 perform an SPV proof to ensure the transaction occurred, it is well-formed, and
@@ -527,70 +545,162 @@ This diagram maps out how the `CLOSING` state transitions to the `CLOSED` state.
 
 4+s|Wallet Creation
 
+|walletCreationMaxBtcBalance 
+|The minimum amount of satoshis an active wallet needs to have before we allow for the creation of a new active wallet regardless of age. 
+|Yes 
+|`100e8 satoshis = 100 BTC`
+
+|walletCreationMinBtcBalance 
+|The minimum amount of satoshis an active wallet needs to hold before we allow for the creation of a new active wallet. 
+|Yes 
+|`1e8 satoshis = 1 BTC`
+
 |walletCreationPeriod      
-|Length of time a wallet needs to exist for before a new one can be created
-|Yes
+|The length of time a wallet needs to exist for before a new one can be created 
+|Yes 
 |`1 week`
-
-|walletCreationMinBtcBalance
-|The minimum amount of BTC an active wallet needs to have before we allow for
-the creation of a new active wallet.
-|Yes
-|`5 BTC`
-
-|walletCreationMaxBtcBalance
-|The amount of BTC an active wallet needs to have where we allow for the
-creation of a new active wallet regardless of age.
-|Yes
-|`25 BTC`
 
 4+s|Wallet Closure
 
-|movingFundsTimeout
-|The amount of time a wallet has to move funds before facing penalty.
-|Yes
-|`1 week`
+|movedFundsSweepTimeout 
+|The amount of time that the target wallet has to sweep the moved funds once they arrive. 
+|Yes 
+|`7 days`
 
-|movedFundsSweepTimeoutSlashingAmount
-|The amount of stake to slash if the wallet does not move its funds in time.
-|Yes
-|`100% of min-stake`
+|movedFundsSweepTimeoutNotifierRewardMultiplier 
+|The percentage of the staking contract notifier reward that the notifier receives when they notify the system about a wallet that has failed to sweep the moved funds. 
+|Yes 
+|`100%`
 
-|movedFundsSweepTimeoutNotifierRewardMultiplier
-|The the percentage of the slashed stake that the notifier receives as a reward.
-|Yes
-|`5%`
+|movedFundsSweepTimeoutSlashingAmount 
+|The amount of stake in T tokens that each group member of the target wallet loses if they do not sweep moved funds. 
+|Yes 
+|`100 * 1e18 = 100 T`
 
-|walletMaxBtcTransfer
-|The threshold at which we try to divide up a closing wallet into multiple target wallets
-|Yes
-|`50 BTC`
+|movedFundsSweepTxMaxTotalFee 
+|The max amount of satoshis that the target wallet is allowed to pay miners to process a moved funds sweep transaction. 
+|Yes 
+|`100_000 satoshis = 0.001 BTC`
 
-|walletClosingPeriod
-|The amount of time the wallet remains in the `Closing` state before it is closed.
+|movingFundsDustThreshold 
+|The minimum amount of satoshis held by a closing wallet that needs to be moved to a different wallet before closing. 
+|Yes 
+|`200_000 satoshis = 0.002 BTC`
+
+|movingFundsTimeout 
+|The amount of time group members have to move their wallet's funds to another live wallet(s). 
+|Yes 
+|`7 days`
+
+|movingFundsTimeoutNotifierRewardMultiplier 
+|The percentage of the staking contract notifier reward that the notifier receives when they notify the system about a wallet that has failed to fulfill a moving funds request. 
+|Yes 
+|`100%`
+
+|movingFundsTimeoutResetDelay 
+|The amount of time operators must wait to request a moving funds timeout reset when there is no active wallet to move the funds to. 
+|Yes 
+|`6 days`
+
+|movingFundsTimeoutSlashingAmount 
+|The amount of stake in T tokens that each group member loses if they do not fulfill a moving funds request. 
+|Yes 
+|`100 * 1e18 = 100 T`
+
+|movingFundsTxMaxTotalFee 
+|The max amount of satoshis that the wallet is allowed to pay miners for a moving funds transaction. 
+|Yes 
+|`100_000 satoshis = 0.001 BTC`
+
+|walletClosingPeriod 
+|The amount of time the wallet remains in the `Closing` state before it can be closed. 
+|Yes 
+|`40 days`
+
+|walletClosureMinBtcBalance 
+|The minimum amount of satoshis at which a non-active wallet is eligible to begin closing, regardless of the wallet's age.
+|Yes 
+|`5e7 satoshis = 0.5 BTC`
+
+|walletMaxAge 
+|The age at which a non-active wallet is eligible to begin closing. 
+|Yes 
+|`26 weeks`
+
+|walletMaxBtcTransfer 
+|The amount of satoshis held by the closing wallet at which it should try to split the moved funds to multiple target wallets. 
+|Yes 
+|`10e8 satoshis = 10 BTC`
+
+4+s|Depositing
+
+|depositDustThreshold
+|The minimum amount of satoshis in a valid deposit.
 |Yes
-|`3 days`
+|`1_000_000 satoshis = 0.01 BTC`
 
 4+s|Sweeping
 
-|depositTreasuryFeeDivisor
-|The deposit fee divisor of one BTC to take as a treasury fee.
-|Yes
-|`2000 => 1/2000 = 5 BPS`
+|depositTreasuryFeeDivisor 
+|A divisor used to compute the treasury fee taken from each deposit and transferred to the treasury upon sweep proof submission.
+|Yes 
+|`1/2_000 = 0.05%`
 
-|depositTxMaxFee
-|The max amount of satoshis per deposit that the wallet is allowed to pay to miners.
-|Yes
-|`10000 sats`
+|depositTxMaxFee 
+|The max amount of satoshis per deposit that the wallet is allowed to pay to miners for processing the sweep transaction. 
+|Yes 
+|`100_000 satoshis = 0.001 BTC`
 
 4+s|Redeeming
 
-|redemptionTreasuryFeeDivisor
-|The redemption fee divisor of one BTC to take as a treasury fee.
-|Yes
-|`2000 => 1/2000 = 5 BPS`
+|redemptionDustThreshold 
+|The minimum amount of satoshis in a valid redemption. 
+|Yes 
+|`1_000_000 satoshis = 0.01 BTC`
 
-|redemptionTimeout
-|Length of time a wallet has to fulfill a redemption.
-|Yes
-|`48 hours`
+|redemptionTimeout 
+|The amount of time a wallet has to fulfill a redemption request. 
+|Yes 
+|`5 days`
+
+|redemptionTimeoutNotifierRewardMultiplier 
+|The percentage of the staking contract notifier reward that the notifier receives when they notify the system about a wallet that has failed to fulfill a redemption request.
+|Yes 
+|`100%`
+
+|redemptionTimeoutSlashingAmount 
+|The amount of stake in T tokens that each group member will lose if they do not fulfill a redemption request. 
+|Yes 
+|`100 * 1e18 = 100 T` 
+
+|redemptionTreasuryFeeDivisor 
+|A divisor used to compute the treasury fee taken from each redemption request and transferred to the treasury upon successful request finalization. 
+|Yes 
+|`1/2_000 = 0.05%`
+
+|redemptionTxMaxFee 
+|The max amount of satoshis per redemption that the wallet is allowed to pay miners for processing the redemption transaction. 
+|Yes 
+|`100_000 satoshis = 0.001 BTC`
+
+4+s|Fraud 
+
+|fraudChallengeDefeatTimeout 
+|The amount of time a wallet has to defend itself from a fraud challenge. 
+|Yes 
+|`7 days`
+
+|fraudChallengeDepositAmount 
+|The amount of ether a challenger must deposit in order to make a wallet prove its honesty. 
+|Yes 
+|`5 ether`
+
+|fraudNotifierRewardMultiplier 
+|The percentage of the staking contract notifier reward that the fraud challenger receives as a reward if the wallet did not defeat the challenge.
+|Yes 
+|`100%`
+
+|fraudSlashingAmount 
+|The amount of T tokens that each group member of a wallet loses if the fraud challenge does not get defeated. 
+|Yes 
+|`100 * 1e18 = 100 T`
