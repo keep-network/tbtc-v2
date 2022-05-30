@@ -304,7 +304,7 @@ contract BridgeGovernance is Ownable {
         require(governanceDelays[2] > 0, "Change not initiated");
         /* solhint-disable not-rely-on-time */
         require(
-            block.timestamp - governanceDelays[2] >= governanceDelays[0],
+            block.timestamp - governanceDelays[2] > governanceDelay(),
             "Governance delay has not elapsed"
         );
         /* solhint-enable not-rely-on-time */
@@ -345,7 +345,7 @@ contract BridgeGovernance is Ownable {
         /* solhint-disable not-rely-on-time */
         require(
             block.timestamp - bridgeGovernanceTransferChangeInitiated >=
-                governanceDelays[0],
+                governanceDelay(),
             "Governance delay has not elapsed"
         );
         /* solhint-enable not-rely-on-time */
@@ -379,7 +379,7 @@ contract BridgeGovernance is Ownable {
             depositTreasuryFeeDivisor,
             depositTxMaxFee
         );
-        depositData.finalizeDepositDustThresholdUpdate(governanceDelays[0]);
+        depositData.finalizeDepositDustThresholdUpdate(governanceDelay());
     }
 
     /// @notice Begins the deposit treasury fee divisor amount update process.
@@ -405,9 +405,7 @@ contract BridgeGovernance is Ownable {
             depositData.getNewDepositTreasuryFeeDivisor(),
             depositTxMaxFee
         );
-        depositData.finalizeDepositTreasuryFeeDivisorUpdate(
-            governanceDelays[0]
-        );
+        depositData.finalizeDepositTreasuryFeeDivisorUpdate(governanceDelay());
     }
 
     /// @notice Begins the deposit tx max fee amount update process.
@@ -435,7 +433,7 @@ contract BridgeGovernance is Ownable {
             depositTreasuryFeeDivisor,
             depositData.getNewDepositTxMaxFee()
         );
-        depositData.finalizeDepositTxMaxFeeUpdate(governanceDelays[0]);
+        depositData.finalizeDepositTxMaxFeeUpdate(governanceDelay());
     }
 
     // --- Redemption
@@ -473,9 +471,7 @@ contract BridgeGovernance is Ownable {
             redemptionTimeoutNotifierRewardMultiplier
         );
 
-        redemptionData.finalizeRedemptionDustThresholdUpdate(
-            governanceDelays[0]
-        );
+        redemptionData.finalizeRedemptionDustThresholdUpdate(governanceDelay());
     }
 
     /// @notice Begins the redemption treasury fee divisor amount update process.
@@ -512,7 +508,7 @@ contract BridgeGovernance is Ownable {
         );
 
         redemptionData.finalizeRedemptionTreasuryFeeDivisorUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
     }
 
@@ -548,7 +544,7 @@ contract BridgeGovernance is Ownable {
             redemptionTimeoutNotifierRewardMultiplier
         );
 
-        redemptionData.finalizeRedemptionTxMaxFeeUpdate(governanceDelays[0]);
+        redemptionData.finalizeRedemptionTxMaxFeeUpdate(governanceDelay());
     }
 
     /// @notice Begins the redemption timeout amount update process.
@@ -583,7 +579,7 @@ contract BridgeGovernance is Ownable {
             redemptionTimeoutNotifierRewardMultiplier
         );
 
-        redemptionData.finalizeRedemptionTimeoutUpdate(governanceDelays[0]);
+        redemptionData.finalizeRedemptionTimeoutUpdate(governanceDelay());
     }
 
     /// @notice Begins the redemption timeout slashing amount update process.
@@ -624,7 +620,7 @@ contract BridgeGovernance is Ownable {
         );
 
         redemptionData.finalizeRedemptionTimeoutSlashingAmountUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
     }
 
@@ -668,7 +664,7 @@ contract BridgeGovernance is Ownable {
         );
 
         redemptionData.finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
     }
 
@@ -715,7 +711,7 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
         movingFundsData.finalizeMovingFundsTxMaxTotalFeeUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
     }
 
@@ -760,7 +756,7 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
         movingFundsData.finalizeMovingFundsDustThresholdUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
     }
 
@@ -806,7 +802,7 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
         movingFundsData.finalizeMovingFundsTimeoutResetDelayUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
     }
 
@@ -849,7 +845,7 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
-        movingFundsData.finalizeMovingFundsTimeoutUpdate(governanceDelays[0]);
+        movingFundsData.finalizeMovingFundsTimeoutUpdate(governanceDelay());
     }
 
     /// @notice Begins the moving funds timeout slashing amount update process.
@@ -897,7 +893,7 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
         movingFundsData.finalizeMovingFundsTimeoutSlashingAmountUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
     }
 
@@ -949,7 +945,7 @@ contract BridgeGovernance is Ownable {
         );
         movingFundsData
             .finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate(
-                governanceDelays[0]
+                governanceDelay()
             );
     }
 
@@ -995,7 +991,7 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
         movingFundsData.finalizeMovedFundsSweepTxMaxTotalFeeUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
     }
 
@@ -1039,9 +1035,7 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
-        movingFundsData.finalizeMovedFundsSweepTimeoutUpdate(
-            governanceDelays[0]
-        );
+        movingFundsData.finalizeMovedFundsSweepTimeoutUpdate(governanceDelay());
     }
 
     /// @notice Begins the moved funds sweep timeout slashing amount update process.
@@ -1090,7 +1084,7 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
         movingFundsData.finalizeMovedFundsSweepTimeoutSlashingAmountUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
     }
 
@@ -1143,7 +1137,7 @@ contract BridgeGovernance is Ownable {
         );
         movingFundsData
             .finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
-                governanceDelays[0]
+                governanceDelay()
             );
     }
 
@@ -1182,7 +1176,7 @@ contract BridgeGovernance is Ownable {
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletCreationPeriodUpdate(governanceDelays[0]);
+        walletData.finalizeWalletCreationPeriodUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet creation min btc balance update process.
@@ -1219,9 +1213,7 @@ contract BridgeGovernance is Ownable {
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletCreationMinBtcBalanceUpdate(
-            governanceDelays[0]
-        );
+        walletData.finalizeWalletCreationMinBtcBalanceUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet creation max btc balance update process.
@@ -1259,9 +1251,7 @@ contract BridgeGovernance is Ownable {
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletCreationMaxBtcBalanceUpdate(
-            governanceDelays[0]
-        );
+        walletData.finalizeWalletCreationMaxBtcBalanceUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet closure min btc balance update process.
@@ -1298,9 +1288,7 @@ contract BridgeGovernance is Ownable {
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletClosureMinBtcBalanceUpdate(
-            governanceDelays[0]
-        );
+        walletData.finalizeWalletClosureMinBtcBalanceUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet max age update process.
@@ -1336,7 +1324,7 @@ contract BridgeGovernance is Ownable {
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletMaxAgeUpdate(governanceDelays[0]);
+        walletData.finalizeWalletMaxAgeUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet max btc transafer amount update process.
@@ -1372,7 +1360,7 @@ contract BridgeGovernance is Ownable {
             walletData.getNewWalletMaxBtcTransfer(),
             walletClosingPeriod
         );
-        walletData.finalizeWalletMaxBtcTransferUpdate(governanceDelays[0]);
+        walletData.finalizeWalletMaxBtcTransferUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet closing period update process.
@@ -1408,7 +1396,7 @@ contract BridgeGovernance is Ownable {
             walletMaxBtcTransfer,
             walletData.getNewWalletClosingPeriod()
         );
-        walletData.finalizeWalletClosingPeriodUpdate(governanceDelays[0]);
+        walletData.finalizeWalletClosingPeriodUpdate(governanceDelay());
     }
 
     // --- Fraud
@@ -1441,9 +1429,7 @@ contract BridgeGovernance is Ownable {
             fraudSlashingAmount,
             fraudNotifierRewardMultiplier
         );
-        fraudData.finalizeFraudChallengeDepositAmountUpdate(
-            governanceDelays[0]
-        );
+        fraudData.finalizeFraudChallengeDepositAmountUpdate(governanceDelay());
     }
 
     /// @notice Begins the fraud challenge defeat timeout update process.
@@ -1473,9 +1459,7 @@ contract BridgeGovernance is Ownable {
             fraudSlashingAmount,
             fraudNotifierRewardMultiplier
         );
-        fraudData.finalizeFraudChallengeDefeatTimeoutUpdate(
-            governanceDelays[0]
-        );
+        fraudData.finalizeFraudChallengeDefeatTimeoutUpdate(governanceDelay());
     }
 
     /// @notice Begins the fraud slashing amount update process.
@@ -1504,7 +1488,7 @@ contract BridgeGovernance is Ownable {
             fraudData.getNewFraudSlashingAmount(),
             fraudNotifierRewardMultiplier
         );
-        fraudData.finalizeFraudSlashingAmountUpdate(governanceDelays[0]);
+        fraudData.finalizeFraudSlashingAmountUpdate(governanceDelay());
     }
 
     /// @notice Begins the fraud notifier reward multiplier update process.
@@ -1536,7 +1520,12 @@ contract BridgeGovernance is Ownable {
             fraudData.getNewFraudNotifierRewardMultiplier()
         );
         fraudData.finalizeFraudNotifierRewardMultiplierUpdate(
-            governanceDelays[0]
+            governanceDelay()
         );
+    }
+
+    /// @notice Gets the governance delay parameter.
+    function governanceDelay() internal view returns (uint256) {
+        return governanceDelays[0];
     }
 }
