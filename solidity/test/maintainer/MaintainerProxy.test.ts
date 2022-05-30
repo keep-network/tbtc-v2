@@ -129,11 +129,6 @@ describe("MaintainerProxy", () => {
       value: ethers.utils.parseEther("100"),
     })
 
-    await helpers.ownable.transferOwnership(
-      "ReimbursementPool",
-      governance.address,
-      deployer.address
-    )
     ;({ fraudChallengeDepositAmount } = await bridge.fraudParameters())
     ;[thirdParty, authorizedMaintainer] =
       await helpers.signers.getUnnamedSigners()

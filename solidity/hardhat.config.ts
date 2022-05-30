@@ -141,6 +141,8 @@ const config: HardhatUserConfig = {
     treasury: {
       default: 2,
     },
+    // TODO: Governance should be the Threshold Council.
+    //       Inspect usages and rename.
     governance: {
       default: 3,
     },
