@@ -1978,85 +1978,61 @@ describe("MaintainerProxy", () => {
   })
 
   describe("notifyMovingFundsBelowDust", () => {
-    const walletDraft = {
-      ecdsaWalletID: ecdsaWalletTestData.walletID,
-      mainUtxoHash: ethers.constants.HashZero,
-      pendingRedemptionsValue: 0,
-      createdAt: 0,
-      movingFundsRequestedAt: 0,
-      closingStartedAt: 0,
-      pendingMovedFundsSweepRequestsCount: 0,
-      state: walletState.Unknown,
-      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+    const mainUtxo = {
+      txHash: ethers.constants.HashZero,
+      txOutputIndex: 0,
+      txOutputValue: constants.movingFundsDustThreshold - 1,
     }
 
-    context("when the wallet is in the MovingFunds state", () => {
-      before(async () => {
-        await createSnapshot()
+    let tx: ContractTransaction
 
-        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
-          ...walletDraft,
-          state: walletState.MovingFunds,
-        })
+    before(async () => {
+      await createSnapshot()
+
+      await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+        ecdsaWalletID: ecdsaWalletTestData.walletID,
+        mainUtxoHash: ethers.constants.HashZero,
+        pendingRedemptionsValue: 0,
+        createdAt: 0,
+        movingFundsRequestedAt: 0,
+        closingStartedAt: 0,
+        pendingMovedFundsSweepRequestsCount: 0,
+        state: walletState.MovingFunds,
+        movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      await bridge.setWalletMainUtxo(
+        ecdsaWalletTestData.pubKeyHash160,
+        mainUtxo
+      )
 
-      context("when the main UTXO parameter is valid", () => {
-        context("when the balance is below the dust threshold", () => {
-          const mainUtxo = {
-            txHash: ethers.constants.HashZero,
-            txOutputIndex: 0,
-            txOutputValue: constants.movingFundsDustThreshold - 1,
-          }
+      initialAuthorizedMaintainerBalance = await provider.getBalance(
+        authorizedMaintainer.address
+      )
 
-          let tx: ContractTransaction
+      tx = await maintainerProxy
+        .connect(authorizedMaintainer)
+        .notifyMovingFundsBelowDust(ecdsaWalletTestData.pubKeyHash160, mainUtxo)
+    })
 
-          before(async () => {
-            await createSnapshot()
+    after(async () => {
+      await restoreSnapshot()
+    })
 
-            await bridge.setWalletMainUtxo(
-              ecdsaWalletTestData.pubKeyHash160,
-              mainUtxo
-            )
+    it("should emit MovingFundsBelowDustReported event", async () => {
+      await expect(tx).to.emit(bridge, "MovingFundsBelowDustReported")
+    })
 
-            initialAuthorizedMaintainerBalance = await provider.getBalance(
-              authorizedMaintainer.address
-            )
+    it("should refund ETH", async () => {
+      const postThirdPartyBalance = await provider.getBalance(
+        authorizedMaintainer.address
+      )
+      const diff = postThirdPartyBalance.sub(initialAuthorizedMaintainerBalance)
 
-            tx = await maintainerProxy
-              .connect(authorizedMaintainer)
-              .notifyMovingFundsBelowDust(
-                ecdsaWalletTestData.pubKeyHash160,
-                mainUtxo
-              )
-          })
-
-          after(async () => {
-            await restoreSnapshot()
-          })
-
-          it("should emit MovingFundsBelowDustReported event", async () => {
-            await expect(tx).to.emit(bridge, "MovingFundsBelowDustReported")
-          })
-
-          it("should refund ETH", async () => {
-            const postThirdPartyBalance = await provider.getBalance(
-              authorizedMaintainer.address
-            )
-            const diff = postThirdPartyBalance.sub(
-              initialAuthorizedMaintainerBalance
-            )
-
-            expect(diff).to.be.gt(0)
-            expect(diff).to.be.lt(
-              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-            )
-          })
-        })
-      })
+      expect(diff).to.be.gt(0)
+      expect(diff).to.be.lt(
+        ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+      )
     })
   })
 
