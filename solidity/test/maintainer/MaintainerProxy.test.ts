@@ -1751,6 +1751,95 @@ describe("MaintainerProxy", () => {
     })
   })
 
+  describe("defeatFraudChallengeWithHeartbeat", () => {
+    let heartbeatWalletPublicKey: string
+    let heartbeatWalletSigningKey: SigningKey
+
+    let tx: ContractTransaction
+
+    before(async () => {
+      await createSnapshot()
+
+      // For `defeatFraudChallengeWithHeartbeat` unit tests we do not use test
+      // data from `fraud.ts`. Instead, we create random wallet and use its
+      // SigningKey.
+      //
+      // This approach is better long-term. In case the format of the heartbeat
+      // message changes or in case we want to add more unit tests, we can simply
+      // call appropriate function to compute another signature. Also, we do not
+      // use any BTC-specific data for this set of unit tests.
+      const wallet = ethers.Wallet.createRandom()
+      // We use `ethers.utils.SigningKey` for a `Wallet` instead of
+      // `Signer.signMessage` to do not add '\x19Ethereum Signed Message:\n'
+      // prefix to the signed message. The format of the heartbeat message is
+      // the same no matter on which host chain TBTC is deployed.
+      heartbeatWalletSigningKey = new ethers.utils.SigningKey(wallet.privateKey)
+      // Public key obtained as `wallet.publicKey` is an uncompressed key,
+      // prefixed with `0x04`. To compute raw ECDSA key, we need to drop `0x04`.
+      heartbeatWalletPublicKey = `0x${wallet.publicKey.substring(4)}`
+
+      const walletID = keccak256(heartbeatWalletPublicKey)
+      const walletPublicKeyX = `0x${heartbeatWalletPublicKey.substring(2, 66)}`
+      const walletPublicKeyY = `0x${heartbeatWalletPublicKey.substring(66)}`
+      await bridge
+        .connect(walletRegistry.wallet)
+        .__ecdsaWalletCreatedCallback(
+          walletID,
+          walletPublicKeyX,
+          walletPublicKeyY
+        )
+
+      const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+      const heartbeatMessageSha256 = sha256(heartbeatMessage)
+      const sighash = sha256(sha256(heartbeatMessage))
+
+      const signature = ethers.utils.splitSignature(
+        heartbeatWalletSigningKey.signDigest(sighash)
+      )
+
+      await bridge
+        .connect(thirdParty)
+        .submitFraudChallenge(
+          heartbeatWalletPublicKey,
+          heartbeatMessageSha256,
+          signature,
+          {
+            value: fraudChallengeDepositAmount,
+          }
+        )
+
+      initialAuthorizedMaintainerBalance = await provider.getBalance(
+        authorizedMaintainer.address
+      )
+      tx = await maintainerProxy
+        .connect(authorizedMaintainer)
+        .defeatFraudChallengeWithHeartbeat(
+          heartbeatWalletPublicKey,
+          heartbeatMessage
+        )
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    it("should emit FraudChallengeDefeated event", async () => {
+      await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
+    })
+
+    it("should refund ETH", async () => {
+      const postMaintainerBalance = await provider.getBalance(
+        authorizedMaintainer.address
+      )
+      const diff = postMaintainerBalance.sub(initialAuthorizedMaintainerBalance)
+
+      expect(diff).to.be.gt(0)
+      expect(diff).to.be.lt(
+        ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+      )
+    })
+  })
+
   describe("submitMovingFundsProof", () => {
     const testData: {
       testName: string
@@ -2173,95 +2262,6 @@ describe("MaintainerProxy", () => {
 
     it("should emit WalletClosed event", async () => {
       await expect(tx).to.emit(bridge, "WalletClosed")
-    })
-
-    it("should refund ETH", async () => {
-      const postMaintainerBalance = await provider.getBalance(
-        authorizedMaintainer.address
-      )
-      const diff = postMaintainerBalance.sub(initialAuthorizedMaintainerBalance)
-
-      expect(diff).to.be.gt(0)
-      expect(diff).to.be.lt(
-        ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-      )
-    })
-  })
-
-  describe("defeatFraudChallengeWithHeartbeat", () => {
-    let heartbeatWalletPublicKey: string
-    let heartbeatWalletSigningKey: SigningKey
-
-    let tx: ContractTransaction
-
-    before(async () => {
-      await createSnapshot()
-
-      // For `defeatFraudChallengeWithHeartbeat` unit tests we do not use test
-      // data from `fraud.ts`. Instead, we create random wallet and use its
-      // SigningKey.
-      //
-      // This approach is better long-term. In case the format of the heartbeat
-      // message changes or in case we want to add more unit tests, we can simply
-      // call appropriate function to compute another signature. Also, we do not
-      // use any BTC-specific data for this set of unit tests.
-      const wallet = ethers.Wallet.createRandom()
-      // We use `ethers.utils.SigningKey` for a `Wallet` instead of
-      // `Signer.signMessage` to do not add '\x19Ethereum Signed Message:\n'
-      // prefix to the signed message. The format of the heartbeat message is
-      // the same no matter on which host chain TBTC is deployed.
-      heartbeatWalletSigningKey = new ethers.utils.SigningKey(wallet.privateKey)
-      // Public key obtained as `wallet.publicKey` is an uncompressed key,
-      // prefixed with `0x04`. To compute raw ECDSA key, we need to drop `0x04`.
-      heartbeatWalletPublicKey = `0x${wallet.publicKey.substring(4)}`
-
-      const walletID = keccak256(heartbeatWalletPublicKey)
-      const walletPublicKeyX = `0x${heartbeatWalletPublicKey.substring(2, 66)}`
-      const walletPublicKeyY = `0x${heartbeatWalletPublicKey.substring(66)}`
-      await bridge
-        .connect(walletRegistry.wallet)
-        .__ecdsaWalletCreatedCallback(
-          walletID,
-          walletPublicKeyX,
-          walletPublicKeyY
-        )
-
-      const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
-      const heartbeatMessageSha256 = sha256(heartbeatMessage)
-      const sighash = sha256(sha256(heartbeatMessage))
-
-      const signature = ethers.utils.splitSignature(
-        heartbeatWalletSigningKey.signDigest(sighash)
-      )
-
-      await bridge
-        .connect(thirdParty)
-        .submitFraudChallenge(
-          heartbeatWalletPublicKey,
-          heartbeatMessageSha256,
-          signature,
-          {
-            value: fraudChallengeDepositAmount,
-          }
-        )
-
-      initialAuthorizedMaintainerBalance = await provider.getBalance(
-        authorizedMaintainer.address
-      )
-      tx = await maintainerProxy
-        .connect(authorizedMaintainer)
-        .defeatFraudChallengeWithHeartbeat(
-          heartbeatWalletPublicKey,
-          heartbeatMessage
-        )
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    it("should emit FraudChallengeDefeated event", async () => {
-      await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
     })
 
     it("should refund ETH", async () => {
