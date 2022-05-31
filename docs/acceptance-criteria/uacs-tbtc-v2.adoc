@@ -1,0 +1,291 @@
+:toc: macro
+
+= tBTCv2 User Acceptance Criteria
+
+:icons: font
+:numbered:
+toc::[]
+
+== Purpose of the document
+This document stores User Acceptance Criteria for TBTCv2. It will be used to
+gain a common understanding of how different components of TBTCv2 should act and
+will be utilized during the acceptance testing of the feature.
+
+== User Acceptance Criteria list
+
+[%header,cols="1,4"]
+|===
+| Area
+| UAC
+
+| Wallet lifecycle
+| Anyone can send a notification to the wallet registry contract informing that
+  it's time to create a new wallet.
+
+// TODO: Add UAC describing ECDSA client perspective - clients should be
+// programmed to send the notifications when they notice that new wallet
+// creation criteria are met. Do we know how to discourage sending the
+// notifications by multiple clients at the same time?
+
+| Wallet lifecycle - wallet creation
+| Upon processing of the time-to-create-new-wallet notification, the wallet
+  registry contract should determine the validity of the notification.
+
+| Wallet lifecycle - wallet creation
+| When determining the validity of the time-to-create-new-wallet notification,
+  the following aspects should be taken into account: +
+  - is the creation of a new wallet already in progress? (if yes, then
+  notification invalid) +
+  - have at least `wallet_creation_period` blocks passed since the last wallet
+  was created? (if not, then notification invalid) +
+  - are there no wallets or do all wallets have their balances higher or equal
+  `wallet_min_btc`? (if not, then notification invalid).
+
+| Wallet lifecycle - wallet creation
+| If the time-to-create-new-wallet notification is deemed valid, then: +
+  - the notifier should receive reimbursement for the gas spent on the
+  transaction, paid from the DAO-funded ETH pool to the notifier’s address (in
+  the same tx); there should be a limit on the refunded gas price
+  (`max_gas_refund_price`) (if the amount of gwei paid for gas in the DKG result
+  submission is bigger than this value, the submitter will be reimbursed
+  `max_gas_refund_price x gas_used`) +
+  - the wallet registry contract should lock the sortition pool and request a
+  new relay entry from the Random Beacon +
+  - once the value is returned, the wallet registry should start a process of
+  distributed key generation (DKG).
+
+| Wallet lifecycle - wallet creation - DKG
+| At the beginning of the DKG process the DKG contract should emit an event
+  informing about the start of the DKG and the value of current relay entry.
+
+| Wallet lifecycle - wallet creation - DKG - selecting members
+| Upon noticing the DKG start event, all off-chain ECDSA clients should call the
+  sortition function which should select `group_size` (100) pool members to the
+  candidate group based on the current relay entry, ensuring that the higher is
+  the stake of an operator, the higher is his chance of being selected to the
+  group (operators may be chosen to the group multiple times).
+
+// It's not yet clear if any member will be able to submit the result or
+// if there will be some order enforced. Following UAC assumes "any".
+| Wallet lifecycle - wallet creation - DKG
+| After group members are determined, clients should perform off-chain DKG
+  (distributed key generation), resulting in either a success or a timeout. To
+  constitute a success at least `dkg` (90) members of the group must actively
+  participate in the DKG process. The success result should contain a list of
+  members of the candidate group, the public key of the group and a list of
+  misbehaving members (members who were inactive or were disqualified) and
+  should be submitted by any member of the candidate group on-chain.
+
+// TODO: provide more details once we have that figured out; we can remove this
+// UAC if the order of result submission will be somehow enforced.
+| Wallet lifecycle - wallet creation - DKG submission
+| There should be some mechanism implemented which would discourage operators
+  from front-running each other (and bumping up the fee) when submitting DKG
+  result.
+
+| Wallet lifecycle - wallet creation - DKG submission
+| When determining the validity of the transaction submitting the DKG result,
+  the DKG contract must check if the submitter of the result is a member of the
+  sortition pool. If it is, the transaction should be considered valid.
+
+| Wallet lifecycle - wallet creation - DKG submission
+| The transaction submitting DKG result should have a predictable cost.
+
+| Wallet lifecycle - wallet creation - DKG submission
+| If DKG contract deems the transaction submitting the DKG result valid, then: +
+  - the DKG result submission eligibility period should end (all other results
+  should be rejected from now on) +
+  - a challenge period should start.
+
+| Wallet lifecycle - wallet creation - DKG challenge
+| Anyone can send a challenge notification informing that submitted DKG result
+  is malicious (contains corrupted data, group members not selected by the pool,
+  or incorrect supporting signatures).
+
+| Wallet lifecycle - wallet creation - DKG challenge
+| Upon processing the challenge notification, the DKG validator contract should
+  determine the validity of the challenge.
+
+| Wallet lifecycle - wallet creation - DKG challenge
+| When determining the validity of the challenge, the following aspects should
+  be taken into account: +
+  - does it reference an existing DKG result (if not, then challenge invalid) +
+  - is it within or outside of the challenge period for the specified DKG result
+  (if outside, then invalid) +
+  - is referenced DKG result indeed malicious (contains corrupted data, group
+  members not selected by the pool, or incorrect/insufficient supporting
+  signatures)? (if no, then challenge invalid).
+
+| Wallet lifecycle - wallet creation - DKG challenge
+| If the challenge notification was received within the challenge period and was
+  deemed justified, then: +
+  - the malicious DKG result should be immediately discarded (in the same
+  transaction in which notification happened) +
+  - all sortition pool members who signed the result should be slashed fixed
+  amount of T (`maliciousDkgResultSlashingAmount`) (in the same tx) +
+  - notifier should receive a fixed part of the total slashed amount
+  (`dkgMaliciousResultNotificationRewardMultiplier`) (in the same tx) +
+  - remaining part of the total slashed amount should be burned or allocated for
+  the rewards pool of the staking contract +
+  - the members of the signing group should be given another chance to publish
+  the DKG result +
+  - DKG timeout timer should be reset.
+
+| Wallet lifecycle - wallet creation - DKG challenge
+| If the challenge notification was received within the challenge period and was
+  not justified, then: +
+  - challenge transaction is reverted.
+
+| Wallet lifecycle - wallet creation - DKG challenge
+| If the challenge notification (justified or not) was received outside of the
+  challenge period, then: +
+  - challenge transaction is reverted.
+
+| Wallet lifecycle - wallet creation - DKG approval
+| Anyone can request unlocking of the sortition pool and marking of the DKG
+  result as approved (but not all requests will be processed positively).
+
+| Wallet lifecycle - wallet creation - DKG approval
+| Upon processing the transaction unlocking the sortition pool and marking the
+  DKG result as approved, the DKG contract should determine the validity of the
+  transaction.
+
+| Wallet lifecycle - wallet creation - DKG approval
+| When determining the validity of the tx unlocking the sortition pool and
+  approving the DKG result, the following aspects should be taken into
+  account: +
+  - is the sortition pool locked? +
+  - has the challenge period already passed? +
+  - is the sender eligible to approve the DKG result? +
+  Only if all the above conditions have been met, the transaction should be
+  considered valid.
+
+// This UAC (and the name of the param) is based on the assumption that the
+// result submission conditions will be the same as for Random Beacon (at first
+// one operator can submit, after `resultSubmissionEligibilityDelay` another is
+// added to the list of operators eligible to publish the result, and so on...).
+// This is what initial implementation of a DKG fo ECDSA looks like, but there
+// are ongoing discussions whether this is the best approach. We may end up not
+// having `resultSubmissionEligibilityDelay` param.
+| Wallet lifecycle - wallet creation - DKG approval
+| At the beginning (right after DKG result is submitted on chain) only the
+  result submitter should be eligible to accept the DKG result and get the
+  reimbursement.
+  After a fixed amount of time (`resultSubmissionEligibilityDelay`) everybody
+  should become eligible to approve the DKG result.
+
+| Wallet lifecycle - wallet creation - DKG approval
+| If the transaction unlocking the sortition pool and marking the DKG result as
+  approved is deemed valid, then: +
+  - the sortition pool should get unlocked +
+  - the DKG result should be approved and a new wallet should be created in the
+  wallets contracts based on a candidate group (minus inactive/disqualified
+  members) +
+  - the DKG result accepter should receive reimbursement for the gas spent on
+  the DKG submit and DKG approve transactions, paid from the DAO-funded ETH pool
+  to the notifier’s address (in the same tx); there should be a limit on the
+  refunded gas price (`max_gas_refund_price`) (if the amount of gwei paid for
+  gas in the DKG result submission is bigger than this value, the submitter will
+  be reimbursed `max_gas_refund_price x gas_used`) +
+  - operators marked as inactive/disqualified during DKG protocol execution
+  should be punished by being excluded from earning rewards for a fixed amount
+  of time (`sortitionPoolRewardsBanDuration`) (in the same tx).
+
+// The below DKG timeout UACs are describing how timeouts would work if the
+// procedure for submitting DKG result worked as it works currently for Random
+// Beacon (at first one operator can submit, after
+// `resultSubmissionEligibilityDelay` another is added to the list of operators
+// eligible to publish the result, and so on...). This is what initial
+// implementation of a DKG fo ECDSA looks like, but there are ongoing
+// discussions whether this is the best approach. We may end up not having
+// timeouts at all...
+
+| Wallet lifecycle - wallet creation - DKG timeout
+| The DKG submission timeout equals the group size multiplied by the number of
+  blocks for a member to become eligible to submit the DKG result plus the
+  number of blocks covering for the time of DKG generation. The timer should
+  start when the first member becomes eligible (the moment when DKG was
+  requested). The timer gets reset when a valid DKG result challenge is
+  submitted.
+
+| Wallet lifecycle - wallet creation - DKG timeout
+| Anyone can send a transaction reporting DKG timeout.
+
+| Wallet lifecycle - wallet creation - DKG timeout
+| Upon noticing the DKG timeout notification, the DKG contract should determine
+  its validity.
+
+| Wallet lifecycle - wallet creation - DKG timeout
+| When determining the validity of the DKG timeout notification, the following
+  aspects should be taken into account: +
+  - does it reference the existing DKG request? (if not, then notification
+  invalid) +
+  - has the DKG timeout passed? (if not, then notification invalid) +
+  - is the sortition pool in a locked state (if not - meaning somebody already
+  unlocked it - then notification invalid).
+
+| Wallet lifecycle - wallet creation - DKG timeout
+| If the DKG timeout notification was deemed justified, then: +
+  - the pool should be unlocked +
+  - the fixed amount reward (in T) (`sortitionPoolUnlockingReward`) should be
+  sent from the DAO-funded ETH pool to the notifier.
+
+// TODO: add UACs for hearbeats, wallet closure, sweeping, deposits, redemptions, etc
+
+| Governance - group size
+| The number of members selected to the candidate signing group (`group_size`)
+  should NOT be a governable parameter and should be set to `100`.
+
+| Governance - group size
+| The minimum number of members we’re allowed to drop down to during the DKG
+  group formation re-try period (`dkg`) should be a governable parameter and
+  should be initially set to `90`.
+
+| Governance - wallet lifecycle
+| The minimum time since creation of the last wallet after which a new wallet
+  can be created (`wallet_creation_period`) should be a governable parameter and
+  should be initially set to `1 week`.
+
+| Governance - wallet lifecycle
+| The smallest amount of btc a wallet can hold before we attempt to close the
+  wallet and transfer the funds to a randomly selected wallet (`wallet_min_btc`)
+  should be a governable parameter and should be initially set to ...
+
+// This UAC is based on the assumption that that the result submission
+// conditions will be the same as for Random Beacon (at first one operator can
+// submit, after `resultSubmissionEligibilityDelay` another is added to the list
+// of operators eligible to publish the result, and so on...). This is how
+// initial implementation of a DKG fo ECDSA looks like, but there are ongoing
+// discussions wheter this is the best approach. We may end up not having
+// `resultSubmissionEligibilityDelay` param.
+| Governance - DKG
+| The frequency (in blocks) of adding new group members as eligible to submit a
+  DKG result (`resultSubmissionEligibilityDelay`) should be a governable
+  parameter. Its initial value should be set to `20 blocks`.
+
+| Governance - DKG
+| The reward for notifying about DKG timeot (`sortitionPoolUnlockingReward`)
+  should be a governable parameter and should be initially set to ....
+
+| Governance - DKG
+| Percentage of the amount slashed from the group as a result of signing a
+  malicious DKG result, transferred as a reward to the notifier,
+  (`dkgMaliciousResultNotificationRewardMultiplier`) should be a governable
+  parameter. Its initial value should be set to `100`.
+
+| Governance - DKG
+| The slashing amount for submitting malicious DKG result
+(`maliciousDkgResultSlashingAmount`) should be a governable parameter and should
+be initially set to `50000e18` (50000 T).
+
+| Governance - sortition pool
+| The length of the period during which operators won't be able to earn rewards
+  as a punishment for misbehavior during submission of DKG result
+  (`sortitionPoolRewardsBanDuration`) should be a governable parameter. Its
+  initial value should be set to `2 weeks`.
+
+| Governance - reimbursments
+| The highest amount of gwei that the gas refund contract will pay out per gas
+  for a reimbursement transaction (`max_gas_refund_price`) should be a
+  governable parameter and should be initially set to ...
+|===
