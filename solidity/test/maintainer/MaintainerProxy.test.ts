@@ -2286,8 +2286,8 @@ describe("MaintainerProxy", () => {
       })
 
       it("should add a thirdParty to a maintainers list", async () => {
-        const contract = await maintainerProxy.maintainers(1)
-        expect(contract).to.be.equal(thirdParty.address)
+        const thirdPartyAddress = await maintainerProxy.maintainers(1)
+        expect(thirdPartyAddress).to.be.equal(thirdParty.address)
       })
 
       it("should emit a MaintainerAuthorized event", async () => {
