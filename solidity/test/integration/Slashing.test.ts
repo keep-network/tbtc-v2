@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable @typescript-eslint/no-extra-semi */
-import { ethers, helpers, waffle } from "hardhat"
+import hre, { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 
 import type { FakeContract } from "@defi-wonderland/smock"
@@ -79,6 +79,7 @@ describeFn("Integration Test - Slashing", async () => {
 
     // Update only the parameters that are crucial for this test.
     await updateWalletRegistryDkgResultChallengePeriodLength(
+      hre,
       walletRegistry,
       governance,
       dkgResultChallengePeriodLength
@@ -112,6 +113,7 @@ describeFn("Integration Test - Slashing", async () => {
 
         await produceRelayEntry(walletRegistry, randomBeacon)
         ;({ walletMembers } = await performEcdsaDkg(
+          hre,
           walletRegistry,
           walletPublicKey,
           requestNewWalletTx.blockNumber
@@ -217,6 +219,7 @@ describeFn("Integration Test - Slashing", async () => {
 
         await produceRelayEntry(walletRegistry, randomBeacon)
         ;({ walletMembers } = await performEcdsaDkg(
+          hre,
           walletRegistry,
           walletPublicKey,
           requestNewWalletTx.blockNumber
@@ -373,6 +376,7 @@ describeFn("Integration Test - Slashing", async () => {
 
         await produceRelayEntry(walletRegistry, randomBeacon)
         ;({ walletMembers } = await performEcdsaDkg(
+          hre,
           walletRegistry,
           walletPublicKey,
           requestNewWalletTx.blockNumber
@@ -411,6 +415,7 @@ describeFn("Integration Test - Slashing", async () => {
 
         const inactiveMembersIndices = [26, 40, 63, 78, 89]
         const claim = await produceOperatorInactivityClaim(
+          hre,
           ecdsaWalletID,
           walletMembers,
           nonce,

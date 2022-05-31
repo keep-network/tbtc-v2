@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable @typescript-eslint/no-extra-semi */
-import { ethers, helpers, waffle } from "hardhat"
+import hre, { ethers, helpers, waffle } from "hardhat"
 import type { FakeContract } from "@defi-wonderland/smock"
 import type { BigNumberish } from "ethers"
 import { utils } from "ethers"
@@ -66,6 +66,7 @@ describeFn("Integration Test - Full flow", async () => {
     } = await waffle.loadFixture(fixture))
     // Update only the parameters that are crucial for this test.
     await updateWalletRegistryDkgResultChallengePeriodLength(
+      hre,
       walletRegistry,
       governance,
       dkgResultChallengePeriodLength
@@ -95,6 +96,7 @@ describeFn("Integration Test - Full flow", async () => {
 
         await produceRelayEntry(walletRegistry, randomBeacon)
         await performEcdsaDkg(
+          hre,
           walletRegistry,
           walletPublicKey,
           requestNewWalletTx.blockNumber
