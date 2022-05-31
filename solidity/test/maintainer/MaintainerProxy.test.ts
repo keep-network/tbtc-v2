@@ -2132,83 +2132,59 @@ describe("MaintainerProxy", () => {
   })
 
   describe("notifyWalletClosingPeriodElapsed", () => {
-    const walletDraft = {
-      ecdsaWalletID: ecdsaWalletTestData.walletID,
-      mainUtxoHash: ethers.constants.HashZero,
-      pendingRedemptionsValue: 0,
-      createdAt: 0,
-      movingFundsRequestedAt: 0,
-      closingStartedAt: 0,
-      pendingMovedFundsSweepRequestsCount: 0,
-      state: walletState.Unknown,
-      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
-    }
+    let tx: ContractTransaction
 
-    context("when the wallet is in the Closing state", () => {
-      before(async () => {
-        await createSnapshot()
+    before(async () => {
+      await createSnapshot()
 
-        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
-          ...walletDraft,
-          state: walletState.Live,
-        })
-
-        // Switches the wallet to Closing state because the wallet has
-        // no main UTXO set.
-        await bridge
-          .connect(walletRegistry.wallet)
-          .__ecdsaWalletHeartbeatFailedCallback(
-            ecdsaWalletTestData.walletID,
-            ecdsaWalletTestData.publicKeyX,
-            ecdsaWalletTestData.publicKeyY
-          )
+      await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+        ecdsaWalletID: ecdsaWalletTestData.walletID,
+        mainUtxoHash: ethers.constants.HashZero,
+        pendingRedemptionsValue: 0,
+        createdAt: 0,
+        movingFundsRequestedAt: 0,
+        closingStartedAt: 0,
+        pendingMovedFundsSweepRequestsCount: 0,
+        state: walletState.Live,
+        movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      // Switches the wallet to Closing state because the wallet has
+      // no main UTXO set.
+      await bridge
+        .connect(walletRegistry.wallet)
+        .__ecdsaWalletHeartbeatFailedCallback(
+          ecdsaWalletTestData.walletID,
+          ecdsaWalletTestData.publicKeyX,
+          ecdsaWalletTestData.publicKeyY
+        )
 
-      context("when closing period has elapsed", () => {
-        let tx: ContractTransaction
+      await increaseTime((await bridge.walletParameters()).walletClosingPeriod)
 
-        before(async () => {
-          await createSnapshot()
+      tx = await maintainerProxy
+        .connect(authorizedMaintainer)
+        .notifyWalletClosingPeriodElapsed(ecdsaWalletTestData.pubKeyHash160)
+    })
 
-          await increaseTime(
-            (
-              await bridge.walletParameters()
-            ).walletClosingPeriod
-          )
+    after(async () => {
+      await restoreSnapshot()
+      await walletRegistry.closeWallet.reset()
+    })
 
-          tx = await maintainerProxy
-            .connect(authorizedMaintainer)
-            .notifyWalletClosingPeriodElapsed(ecdsaWalletTestData.pubKeyHash160)
-        })
+    it("should emit WalletClosed event", async () => {
+      await expect(tx).to.emit(bridge, "WalletClosed")
+    })
 
-        after(async () => {
-          await walletRegistry.closeWallet.reset()
+    it("should refund ETH", async () => {
+      const postMaintainerBalance = await provider.getBalance(
+        authorizedMaintainer.address
+      )
+      const diff = postMaintainerBalance.sub(initialAuthorizedMaintainerBalance)
 
-          await restoreSnapshot()
-        })
-
-        it("should emit WalletClosed event", async () => {
-          await expect(tx).to.emit(bridge, "WalletClosed")
-        })
-
-        it("should refund ETH", async () => {
-          const postMaintainerBalance = await provider.getBalance(
-            authorizedMaintainer.address
-          )
-          const diff = postMaintainerBalance.sub(
-            initialAuthorizedMaintainerBalance
-          )
-
-          expect(diff).to.be.gt(0)
-          expect(diff).to.be.lt(
-            ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-          )
-        })
-      })
+      expect(diff).to.be.gt(0)
+      expect(diff).to.be.lt(
+        ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+      )
     })
   })
 
