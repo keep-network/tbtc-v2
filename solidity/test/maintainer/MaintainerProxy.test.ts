@@ -351,8 +351,6 @@ describe("MaintainerProxy", () => {
             })
 
             after(async () => {
-              vault.receiveBalanceIncrease.reset()
-
               await restoreSnapshot()
             })
 
@@ -483,14 +481,38 @@ describe("MaintainerProxy", () => {
         )
 
         context(
-          "when input vector consists only of revealed unswept " +
-            "deposits but there is no main UTXO since it is not expected",
+          "when input vector consists only of revealed unswept deposits with a " +
+            "trusted vault and the expected main UTXO",
           () => {
-            const data: DepositSweepTestData = MultipleDepositsNoMainUtxo
+            const previousData: DepositSweepTestData =
+              MultipleDepositsNoMainUtxo
+            const data: DepositSweepTestData = MultipleDepositsWithMainUtxo
+            let vault: FakeContract<IVault>
             let tx: ContractTransaction
 
             before(async () => {
               await createSnapshot()
+
+              // Make the first sweep which is actually the predecessor
+              // of the sweep tested within this scenario.
+              await runDepositSweepScenario(previousData)
+
+              // Deploy a fake vault and mark it as trusted.
+              vault = await smock.fake<IVault>("IVault")
+              await bridge
+                .connect(governance)
+                .setVaultStatus(vault.address, true)
+
+              // Enrich the test data with the vault parameter.
+              const dataWithVault: DepositSweepTestData = JSON.parse(
+                JSON.stringify(data)
+              )
+              dataWithVault.vault = vault.address
+              dataWithVault.deposits[0].reveal.vault = vault.address
+              dataWithVault.deposits[1].reveal.vault = vault.address
+              dataWithVault.deposits[2].reveal.vault = vault.address
+              dataWithVault.deposits[3].reveal.vault = vault.address
+              dataWithVault.deposits[4].reveal.vault = vault.address
 
               tx = await runDepositSweepScenario(data)
             })
@@ -591,7 +613,73 @@ describe("MaintainerProxy", () => {
         )
 
         context(
-          "when input vector consists only of revealed unswept deposits but there is no main UTXO since it is not expected",
+          "when input vector consists only of revealed unswept deposits with different trusted vaults and the expected main UTXO",
+          () => {
+            const previousData: DepositSweepTestData =
+              MultipleDepositsNoMainUtxo
+            const data: DepositSweepTestData = MultipleDepositsWithMainUtxo
+            let vaultA: FakeContract<IVault>
+            let vaultB: FakeContract<IVault>
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              // Make the first sweep which is actually the predecessor
+              // of the sweep tested within this scenario.
+              await runDepositSweepScenario(previousData)
+
+              // Deploy two fake vaults and mark them as trusted.
+              vaultA = await smock.fake<IVault>("IVault")
+              vaultB = await smock.fake<IVault>("IVault")
+              await bridge
+                .connect(governance)
+                .setVaultStatus(vaultA.address, true)
+              await bridge
+                .connect(governance)
+                .setVaultStatus(vaultB.address, true)
+
+              // Enrich the test data with the vault parameter.
+              const dataWithVault: DepositSweepTestData = JSON.parse(
+                JSON.stringify(data)
+              )
+              dataWithVault.vault = vaultA.address
+              dataWithVault.deposits[0].reveal.vault = vaultA.address
+              dataWithVault.deposits[1].reveal.vault = vaultA.address
+              dataWithVault.deposits[2].reveal.vault = vaultB.address
+              dataWithVault.deposits[3].reveal.vault = vaultB.address
+              dataWithVault.deposits[4].reveal.vault = vaultA.address
+
+              tx = await runDepositSweepScenario(data)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit DepositSwept event", async () => {
+              await expect(tx).to.emit(bridge, "DepositsSwept")
+            })
+
+            it("should refund ETH", async () => {
+              const postMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+              )
+            })
+          }
+        )
+
+        context(
+          "when input vector consists only of revealed unswept " +
+            "deposits but there is no main UTXO since it is not expected",
           () => {
             const data: DepositSweepTestData = MultipleDepositsNoMainUtxo
             let tx: ContractTransaction
@@ -620,7 +708,7 @@ describe("MaintainerProxy", () => {
 
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
-                ethers.utils.parseUnits("2100000", "gwei") // 0,0021 ETH
+                ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
               )
             })
           }
