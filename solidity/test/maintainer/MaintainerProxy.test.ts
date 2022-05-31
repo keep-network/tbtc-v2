@@ -71,7 +71,7 @@ const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
 // Most of the tests around specific bridge functionality were ported from the
 // other tbtc-v2 tests suites and adjusted to check the refund functionality of
 // the MaintainerProxy contract.
-describe.only("MaintainerProxy", () => {
+describe("MaintainerProxy", () => {
   let governance: SignerWithAddress
   let bridge: Bridge & BridgeStub
   let thirdParty: SignerWithAddress
@@ -1929,83 +1929,51 @@ describe.only("MaintainerProxy", () => {
   })
 
   describe("resetMovingFundsTimeout", () => {
-    const walletDraft = {
-      ecdsaWalletID: ecdsaWalletTestData.walletID,
-      mainUtxoHash: ethers.constants.HashZero,
-      pendingRedemptionsValue: 0,
-      createdAt: 0,
-      movingFundsRequestedAt: 0,
-      closingStartedAt: 0,
-      pendingMovedFundsSweepRequestsCount: 0,
-      state: walletState.Unknown,
-      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
-    }
+    let tx: ContractTransaction
 
-    context("when the wallet is in the MovingFunds state", () => {
-      before(async () => {
-        await createSnapshot()
+    before(async () => {
+      await createSnapshot()
 
-        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
-          ...walletDraft,
-          state: walletState.MovingFunds,
-          movingFundsRequestedAt: (await lastBlockTime()) - 3600,
-        })
+      await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+        ecdsaWalletID: ecdsaWalletTestData.walletID,
+        mainUtxoHash: ethers.constants.HashZero,
+        pendingRedemptionsValue: 0,
+        createdAt: 0,
+        movingFundsRequestedAt: (await lastBlockTime()) + 1,
+        closingStartedAt: 0,
+        pendingMovedFundsSweepRequestsCount: 0,
+        state: walletState.MovingFunds,
+        movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      await increaseTime(movingFundsTimeoutResetDelay)
 
-      context("when the wallet's commitment is not submitted yet", () => {
-        context("when Live wallets count is zero", () => {
-          // No need to do any specific setup. There is only one MovingFunds
-          // wallet in the system and its commitment is not yet submitted.
-          // All preconditions are met by default.
+      initialAuthorizedMaintainerBalance = await provider.getBalance(
+        authorizedMaintainer.address
+      )
+      tx = await maintainerProxy
+        .connect(authorizedMaintainer)
+        .resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
+    })
 
-          let tx: ContractTransaction
+    after(async () => {
+      await restoreSnapshot()
+    })
 
-          before(async () => {
-            await createSnapshot()
+    it("should emit MovingFundsTimeoutReset event", async () => {
+      await expect(tx).to.emit(bridge, "MovingFundsTimeoutReset")
+    })
 
-            // Set the timestamp of the block that contains the `setWallet` tx.
-            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
-              ...(await bridge.wallets(ecdsaWalletTestData.pubKeyHash160)),
-              movingFundsRequestedAt: (await lastBlockTime()) + 1,
-            })
+    it("should refund ETH", async () => {
+      const postThirdPartyBalance = await provider.getBalance(
+        authorizedMaintainer.address
+      )
+      const diff = postThirdPartyBalance.sub(initialAuthorizedMaintainerBalance)
 
-            await increaseTime(movingFundsTimeoutResetDelay)
-
-            initialAuthorizedMaintainerBalance = await provider.getBalance(
-              authorizedMaintainer.address
-            )
-            tx = await maintainerProxy
-              .connect(authorizedMaintainer)
-              .resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
-          })
-
-          after(async () => {
-            await restoreSnapshot()
-          })
-
-          it("should emit MovingFundsTimeoutReset event", async () => {
-            await expect(tx).to.emit(bridge, "MovingFundsTimeoutReset")
-          })
-
-          it("should refund ETH", async () => {
-            const postThirdPartyBalance = await provider.getBalance(
-              authorizedMaintainer.address
-            )
-            const diff = postThirdPartyBalance.sub(
-              initialAuthorizedMaintainerBalance
-            )
-
-            expect(diff).to.be.gt(0)
-            expect(diff).to.be.lt(
-              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-            )
-          })
-        })
-      })
+      expect(diff).to.be.gt(0)
+      expect(diff).to.be.lt(
+        ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+      )
     })
   })
 
