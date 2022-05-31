@@ -219,14 +219,6 @@ describe("MaintainerProxy", () => {
     context("when called by an unauthorized third party", async () => {
       const data: DepositSweepTestData = SingleP2SHDeposit
 
-      before(async () => {
-        await createSnapshot()
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
       it("should revert", async () => {
         const tx = maintainerProxy
           .connect(thirdParty)
@@ -242,14 +234,6 @@ describe("MaintainerProxy", () => {
     })
 
     context("when called by an authorized maintainer", async () => {
-      before(async () => {
-        await createSnapshot()
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
       context("when there is only one input", () => {
         context(
           "when the single input is a revealed unswept P2SH deposit",
