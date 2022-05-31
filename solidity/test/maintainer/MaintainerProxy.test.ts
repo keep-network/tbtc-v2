@@ -71,7 +71,7 @@ const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
 // Most of the tests around specific bridge functionality were ported from the
 // other tbtc-v2 tests suites and adjusted to check the refund functionality of
 // the MaintainerProxy contract.
-describe("MaintainerProxy", () => {
+describe.only("MaintainerProxy", () => {
   let governance: SignerWithAddress
   let bridge: Bridge & BridgeStub
   let thirdParty: SignerWithAddress
@@ -1891,16 +1891,6 @@ describe("MaintainerProxy", () => {
             walletMemberIndex
           )
           .returns(true)
-      })
-
-      after(async () => {
-        walletRegistry.isWalletMember.reset()
-
-        await restoreSnapshot()
-      })
-
-      before(async () => {
-        await createSnapshot()
 
         initCallerBalance = await provider.getBalance(caller.address)
 
@@ -1917,6 +1907,8 @@ describe("MaintainerProxy", () => {
       })
 
       after(async () => {
+        walletRegistry.isWalletMember.reset()
+
         await restoreSnapshot()
       })
 
