@@ -70,7 +70,7 @@ const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
 
 // Most of the tests around specific bridge functionality were ported from the
 // other tbtc-v2 tests suites and adjusted to check the refund functionality of
-// the Maintainer Proxy contract.
+// the MaintainerProxy contract.
 describe("MaintainerProxy", () => {
   const activeWalletMainUtxo = {
     txHash:
@@ -1752,68 +1752,56 @@ describe("MaintainerProxy", () => {
   })
 
   describe("submitMovingFundsProof", () => {
-    context("when there is only one input", () => {
-      before(async () => {
-        await createSnapshot()
-      })
+    const testData: {
+      testName: string
+      data: MovingFundsTestData
+    }[] = [
+      {
+        testName: "when there is a single target wallet",
+        data: SingleTargetWallet,
+      },
+      {
+        testName:
+          "when there are multiple target wallets and the amount is indivisible",
+        data: MultipleTargetWalletsAndIndivisibleAmount,
+      },
+      {
+        testName:
+          "when there are multiple target wallets and the amount is divisible",
+        data: MultipleTargetWalletsAndDivisibleAmount,
+      },
+    ]
 
-      after(async () => {
-        walletRegistry.requestNewWallet.reset()
+    testData.forEach((test) => {
+      context(test.testName, () => {
+        let tx: ContractTransaction
 
-        await restoreSnapshot()
-      })
+        before(async () => {
+          await createSnapshot()
 
-      const testData: {
-        testName: string
-        data: MovingFundsTestData
-      }[] = [
-        {
-          testName: "when there is a single target wallet",
-          data: SingleTargetWallet,
-        },
-        {
-          testName:
-            "when there are multiple target wallets and the amount is indivisible",
-          data: MultipleTargetWalletsAndIndivisibleAmount,
-        },
-        {
-          testName:
-            "when there are multiple target wallets and the amount is divisible",
-          data: MultipleTargetWalletsAndDivisibleAmount,
-        },
-      ]
+          tx = await runMovingFundsScenario(test.data)
+        })
 
-      testData.forEach((test) => {
-        context(test.testName, () => {
-          let tx: ContractTransaction
+        after(async () => {
+          await restoreSnapshot()
+        })
 
-          before(async () => {
-            await createSnapshot()
+        it("should emit MovingFundsCompleted event", async () => {
+          await expect(tx).to.emit(bridge, "MovingFundsCompleted")
+        })
 
-            tx = await runMovingFundsScenario(test.data)
-          })
+        it("should refund ETH", async () => {
+          const postThirdPartyBalance = await provider.getBalance(
+            authorizedMaintainer.address
+          )
+          const diff = postThirdPartyBalance.sub(
+            initialAuthorizedMaintainerBalance
+          )
 
-          after(async () => {
-            await restoreSnapshot()
-          })
-
-          it("should emit MovingFundsCompleted event", async () => {
-            await expect(tx).to.emit(bridge, "MovingFundsCompleted")
-          })
-
-          it("should refund ETH", async () => {
-            const postThirdPartyBalance = await provider.getBalance(
-              authorizedMaintainer.address
-            )
-            const diff = postThirdPartyBalance.sub(
-              initialAuthorizedMaintainerBalance
-            )
-
-            expect(diff).to.be.gt(0)
-            expect(diff).to.be.lt(
-              ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-            )
-          })
+          expect(diff).to.be.gt(0)
+          expect(diff).to.be.lt(
+            ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+          )
         })
       })
     })
