@@ -189,7 +189,7 @@ describeFn("Integration Test - Full flow", async () => {
           // Request redemption
           const redeemer = await helpers.account.impersonateAccount(
             revealDepositData.reveal.depositor,
-            { from: deployer }
+            { from: deployer, value: 10 }
           )
 
           const newMainUtxo: UTXOStruct = {

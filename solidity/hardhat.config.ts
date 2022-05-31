@@ -77,6 +77,10 @@ const config: HardhatUserConfig = {
           testConfig.stakingRolesCount * testConfig.operatorsCount,
       },
       tags: ["local"],
+      // we use higher gas price for tests to obtain more realistic results
+      // for gas refund tests than when the default hardhat ~1 gwei gas price is
+      // used
+      gasPrice: 200000000000, // 200 gwei
     },
     development: {
       url: "http://localhost:8545",
@@ -137,6 +141,8 @@ const config: HardhatUserConfig = {
     treasury: {
       default: 2,
     },
+    // TODO: Governance should be the Threshold Council.
+    //       Inspect usages and rename.
     governance: {
       default: 3,
     },
