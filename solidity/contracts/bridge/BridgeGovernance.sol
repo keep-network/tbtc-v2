@@ -336,7 +336,7 @@ contract BridgeGovernance is Ownable {
 
     /// @notice Finalizes the bridge governance transfer process.
     /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses. Bridge governance trannsferred event can be read
+    ///      delay elapses. Bridge governance transferred event can be read
     ///      from the Governable bridge contract 'GovernanceTransferred(old, new)'.
     ///      Event that informs about the transfer in this function is skipped on
     ///      purpose to go down with the contract size.
@@ -1329,7 +1329,7 @@ contract BridgeGovernance is Ownable {
         walletData.finalizeWalletMaxAgeUpdate(governanceDelay());
     }
 
-    /// @notice Begins the wallet max btc transafer amount update process.
+    /// @notice Begins the wallet max btc transfer amount update process.
     /// @dev Can be called only by the contract owner.
     /// @param _newWalletMaxBtcTransfer New wallet max btc transfer.
     function beginWalletMaxBtcTransferUpdate(uint64 _newWalletMaxBtcTransfer)
