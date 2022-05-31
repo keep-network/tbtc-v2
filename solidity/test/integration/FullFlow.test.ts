@@ -14,6 +14,7 @@ import type {
   TestRelay,
   IRandomBeacon,
   WalletRegistry,
+  BridgeGovernance,
 } from "../../typechain"
 import {
   performEcdsaDkg,
@@ -29,6 +30,7 @@ import {
   redemptionData,
 } from "./data/integration"
 import { fixture } from "./utils/fixture"
+import { constants } from "../fixtures"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
@@ -38,6 +40,7 @@ const describeFn =
 describeFn("Integration Test - Full flow", async () => {
   let tbtc: TBTC
   let bridge: Bridge
+  let bridgeGovernance: BridgeGovernance
   let bank: Bank
   let tbtcVault: TBTCVault
   let walletRegistry: WalletRegistry
@@ -59,6 +62,7 @@ describeFn("Integration Test - Full flow", async () => {
       walletRegistry,
       relay,
       randomBeacon,
+      bridgeGovernance,
     } = await waffle.loadFixture(fixture))
     // Update only the parameters that are crucial for this test.
     await updateWalletRegistryDkgResultChallengePeriodLength(
@@ -109,7 +113,7 @@ describeFn("Integration Test - Full flow", async () => {
           // 0.001 BTC, 0.0001 BTC
           await updateDepositDustThresholdAndTxMaxFee(100_000, 10_000)
           // 0.0005 BTC, 0.0001 BTC
-          await updateRedemptionDustThresholdAndTxMaxFee(50_000, 10_000)
+          await updateRedemptionParameters(50_000, 10_000, 5_000)
 
           await bridge.revealDeposit(
             revealDepositData.fundingTx,
@@ -297,49 +301,54 @@ describeFn("Integration Test - Full flow", async () => {
     newDepositDustThreshold: BigNumberish,
     newDepositTxMaxFee: BigNumberish
   ) {
-    const currentDepositParameters = await bridge.depositParameters()
-    await bridge
+    await bridgeGovernance
       .connect(governance)
-      .updateDepositParameters(
-        newDepositDustThreshold,
-        currentDepositParameters.depositTreasuryFeeDivisor,
-        newDepositTxMaxFee
-      )
+      .beginDepositDustThresholdUpdate(newDepositDustThreshold)
+
+    await bridgeGovernance
+      .connect(governance)
+      .beginDepositTxMaxFeeUpdate(newDepositTxMaxFee)
+
+    await helpers.time.increaseTime(constants.governanceDelay)
+
+    await bridgeGovernance.connect(governance).finalizeDepositTxMaxFeeUpdate()
+
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeDepositDustThresholdUpdate()
   }
 
-  async function updateRedemptionDustThresholdAndTxMaxFee(
+  async function updateRedemptionParameters(
     newRedemptionDustThreshold: number,
-    newRedemptionTxMaxFee: number
+    newRedemptionTxMaxFee: number,
+    newMovingFundsDustThreshold: number
   ) {
+    await bridgeGovernance
+      .connect(governance)
+      .beginRedemptionDustThresholdUpdate(newRedemptionDustThreshold)
+
     // Redemption dust threshold has to be greater than moving funds dust threshold,
     // so first we need to align the moving funds dust threshold.
-    const newMovingFundsDustThreshold = newRedemptionDustThreshold - 1
-    const currentMovingFundsParameters = await bridge.movingFundsParameters()
-    await bridge
+    await bridgeGovernance
       .connect(governance)
-      .updateMovingFundsParameters(
-        currentMovingFundsParameters.movingFundsTxMaxTotalFee,
-        newMovingFundsDustThreshold,
-        currentMovingFundsParameters.movingFundsTimeoutResetDelay,
-        currentMovingFundsParameters.movingFundsTimeout,
-        currentMovingFundsParameters.movingFundsTimeoutSlashingAmount,
-        currentMovingFundsParameters.movingFundsTimeoutNotifierRewardMultiplier,
-        currentMovingFundsParameters.movedFundsSweepTxMaxTotalFee,
-        currentMovingFundsParameters.movedFundsSweepTimeout,
-        currentMovingFundsParameters.movedFundsSweepTimeoutSlashingAmount,
-        currentMovingFundsParameters.movedFundsSweepTimeoutNotifierRewardMultiplier
-      )
+      .beginMovingFundsDustThresholdUpdate(newMovingFundsDustThreshold)
 
-    const currentRedemptionParameters = await bridge.redemptionParameters()
-    await bridge
+    await bridgeGovernance
       .connect(governance)
-      .updateRedemptionParameters(
-        newRedemptionDustThreshold,
-        currentRedemptionParameters.redemptionTreasuryFeeDivisor,
-        newRedemptionTxMaxFee,
-        currentRedemptionParameters.redemptionTimeout,
-        currentRedemptionParameters.redemptionTimeoutSlashingAmount,
-        currentRedemptionParameters.redemptionTimeoutNotifierRewardMultiplier
-      )
+      .beginRedemptionTxMaxFeeUpdate(newRedemptionTxMaxFee)
+
+    await helpers.time.increaseTime(constants.governanceDelay)
+
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeRedemptionTxMaxFeeUpdate()
+
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeMovingFundsDustThresholdUpdate()
+
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeRedemptionDustThresholdUpdate()
   }
 })

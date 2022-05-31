@@ -12,6 +12,7 @@ import {
   IRandomBeacon,
   WalletRegistry,
   VendingMachine,
+  BridgeGovernance,
 } from "../../../typechain"
 import { Bank } from "../../../typechain/Bank"
 import { registerOperator } from "./ecdsa-wallet-registry"
@@ -33,6 +34,7 @@ export const fixture = deployments.createFixture(
     governance: SignerWithAddress
     tbtc: TBTC
     bridge: Bridge
+    bridgeGovernance: BridgeGovernance
     bank: Bank
     tbtcVault: TBTCVault
     walletRegistry: WalletRegistry
@@ -45,6 +47,8 @@ export const fixture = deployments.createFixture(
 
     const tbtc = await helpers.contracts.getContract<TBTC>("TBTC")
     const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
+    const bridgeGovernance =
+      await helpers.contracts.getContract<BridgeGovernance>("BridgeGovernance")
     const bank = await helpers.contracts.getContract<Bank>("Bank")
     const tbtcVault: TBTCVault = await helpers.contracts.getContract(
       "TBTCVault"
@@ -58,7 +62,7 @@ export const fixture = deployments.createFixture(
     // TODO: Vault registration and upgrade from VendingMachine should be a part
     // of the deployment scripts.
     await prepareVault(
-      bridge,
+      bridgeGovernance,
       tbtcVault,
       await helpers.contracts.getContract("VendingMachine"),
       governance,
@@ -126,6 +130,7 @@ export const fixture = deployments.createFixture(
       governance,
       tbtc,
       bridge,
+      bridgeGovernance,
       bank,
       tbtcVault,
       walletRegistry,
@@ -137,7 +142,7 @@ export const fixture = deployments.createFixture(
 )
 
 async function prepareVault(
-  bridge: Bridge,
+  bridgeGovernance: BridgeGovernance,
   tbtcVault: TBTCVault,
   vendingMachine: VendingMachine,
   governance: SignerWithAddress,
@@ -159,5 +164,7 @@ async function prepareVault(
     .connect(vendingMachineOwner)
     .finalizeVendingMachineUpgrade()
 
-  await bridge.connect(governance).setVaultStatus(tbtcVault.address, true)
+  await bridgeGovernance
+    .connect(governance)
+    .setVaultStatus(tbtcVault.address, true)
 }

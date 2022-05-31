@@ -2,7 +2,7 @@ import { helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
-import type { Bridge, BridgeStub } from "../../typechain"
+import type { Bridge, BridgeStub, BridgeGovernance } from "../../typechain"
 import { constants } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
 
@@ -12,12 +12,12 @@ describe("Bridge - Parameters", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let bridge: Bridge & BridgeStub
+  let bridgeGovernance: BridgeGovernance
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, thirdParty, bridge } = await waffle.loadFixture(
-      bridgeFixture
-    ))
+    ;({ governance, thirdParty, bridge, bridgeGovernance } =
+      await waffle.loadFixture(bridgeFixture))
   })
 
   describe("updateDepositParameters", () => {
@@ -28,18 +28,38 @@ describe("Bridge - Parameters", () => {
           constants.depositTreasuryFeeDivisor * 2
         const newDepositTxMaxFee = constants.depositTxMaxFee * 3
 
-        let tx: ContractTransaction
+        let tx1: ContractTransaction
+        let tx2: ContractTransaction
+        let tx3: ContractTransaction
 
         before(async () => {
           await createSnapshot()
 
-          tx = await bridge
+          await bridgeGovernance
             .connect(governance)
-            .updateDepositParameters(
-              newDepositDustThreshold,
-              newDepositTreasuryFeeDivisor,
-              newDepositTxMaxFee
-            )
+            .beginDepositDustThresholdUpdate(newDepositDustThreshold)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginDepositTreasuryFeeDivisorUpdate(newDepositTreasuryFeeDivisor)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginDepositTxMaxFeeUpdate(newDepositTxMaxFee)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx1 = await bridgeGovernance
+            .connect(governance)
+            .finalizeDepositDustThresholdUpdate()
+
+          tx2 = await bridgeGovernance
+            .connect(governance)
+            .finalizeDepositTreasuryFeeDivisorUpdate()
+
+          tx3 = await bridgeGovernance
+            .connect(governance)
+            .finalizeDepositTxMaxFeeUpdate()
         })
 
         after(async () => {
@@ -59,7 +79,27 @@ describe("Bridge - Parameters", () => {
         })
 
         it("should emit DepositParametersUpdated event", async () => {
-          await expect(tx)
+          await expect(tx1)
+            .to.emit(bridge, "DepositParametersUpdated")
+            .withArgs(
+              newDepositDustThreshold,
+              constants.depositTreasuryFeeDivisor,
+              constants.depositTxMaxFee
+            )
+        })
+
+        it("should emit DepositParametersUpdated event", async () => {
+          await expect(tx2)
+            .to.emit(bridge, "DepositParametersUpdated")
+            .withArgs(
+              newDepositDustThreshold,
+              newDepositTreasuryFeeDivisor,
+              constants.depositTxMaxFee
+            )
+        })
+
+        it("should emit DepositParametersUpdated event", async () => {
+          await expect(tx3)
             .to.emit(bridge, "DepositParametersUpdated")
             .withArgs(
               newDepositDustThreshold,
@@ -71,14 +111,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new deposit dust threshold is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginDepositDustThresholdUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateDepositParameters(
-                0,
-                constants.depositTreasuryFeeDivisor,
-                constants.depositTxMaxFee
-              )
+              .finalizeDepositDustThresholdUpdate()
           ).to.be.revertedWith(
             "Deposit dust threshold must be greater than zero"
           )
@@ -89,14 +131,16 @@ describe("Bridge - Parameters", () => {
         "when new deposit dust threshold is same as deposit TX max fee",
         () => {
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginDepositDustThresholdUpdate(constants.depositTxMaxFee)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateDepositParameters(
-                  constants.depositTxMaxFee,
-                  constants.depositTreasuryFeeDivisor,
-                  constants.depositTxMaxFee
-                )
+                .finalizeDepositDustThresholdUpdate()
             ).to.be.revertedWith(
               "Deposit dust threshold must be greater than deposit TX max fee"
             )
@@ -108,14 +152,16 @@ describe("Bridge - Parameters", () => {
         "when new deposit dust threshold is lower than deposit TX max fee",
         () => {
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginDepositDustThresholdUpdate(constants.depositTxMaxFee - 1)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateDepositParameters(
-                  constants.depositTxMaxFee - 1,
-                  constants.depositTreasuryFeeDivisor,
-                  constants.depositTxMaxFee
-                )
+                .finalizeDepositDustThresholdUpdate()
             ).to.be.revertedWith(
               "Deposit dust threshold must be greater than deposit TX max fee"
             )
@@ -125,14 +171,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new deposit treasury fee divisor is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginDepositTreasuryFeeDivisorUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateDepositParameters(
-                constants.depositDustThreshold,
-                0,
-                constants.depositTxMaxFee
-              )
+              .finalizeDepositTreasuryFeeDivisorUpdate()
           ).to.be.revertedWith(
             "Deposit treasury fee divisor must be greater than zero"
           )
@@ -141,14 +189,14 @@ describe("Bridge - Parameters", () => {
 
       context("when new deposit transaction max fee is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginDepositTxMaxFeeUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
-              .connect(governance)
-              .updateDepositParameters(
-                constants.depositDustThreshold,
-                constants.depositTreasuryFeeDivisor,
-                0
-              )
+            bridgeGovernance.connect(governance).finalizeDepositTxMaxFeeUpdate()
           ).to.be.revertedWith(
             "Deposit transaction max fee must be greater than zero"
           )
@@ -159,14 +207,28 @@ describe("Bridge - Parameters", () => {
     context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
-          bridge
+          bridgeGovernance
             .connect(thirdParty)
-            .updateDepositParameters(
-              constants.depositDustThreshold,
-              constants.depositTreasuryFeeDivisor,
-              constants.depositTxMaxFee
+            .beginDepositDustThresholdUpdate(constants.depositDustThreshold)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginDepositTreasuryFeeDivisorUpdate(
+              constants.depositTreasuryFeeDivisor
             )
-        ).to.be.revertedWith("Caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginDepositTxMaxFeeUpdate(constants.depositTxMaxFee)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
   })
@@ -183,21 +245,72 @@ describe("Bridge - Parameters", () => {
           constants.redemptionTimeoutSlashingAmount.mul(2)
         const newRedemptionTimeoutNotifierRewardMultiplier =
           constants.redemptionTimeoutNotifierRewardMultiplier / 4
-        let tx: ContractTransaction
+
+        let tx1: ContractTransaction
+        let tx2: ContractTransaction
+        let tx3: ContractTransaction
+        let tx4: ContractTransaction
+        let tx5: ContractTransaction
+        let tx6: ContractTransaction
 
         before(async () => {
           await createSnapshot()
 
-          tx = await bridge
+          await bridgeGovernance
             .connect(governance)
-            .updateRedemptionParameters(
-              newRedemptionDustThreshold,
-              newRedemptionTreasuryFeeDivisor,
-              newRedemptionTxMaxFee,
-              newRedemptionTimeout,
-              newRedemptionTimeoutSlashingAmount,
+            .beginRedemptionDustThresholdUpdate(newRedemptionDustThreshold)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTreasuryFeeDivisorUpdate(
+              newRedemptionTreasuryFeeDivisor
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTxMaxFeeUpdate(newRedemptionTxMaxFee)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTimeoutUpdate(newRedemptionTimeout)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTimeoutSlashingAmountUpdate(
+              newRedemptionTimeoutSlashingAmount
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
               newRedemptionTimeoutNotifierRewardMultiplier
             )
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx1 = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionDustThresholdUpdate()
+
+          tx2 = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTreasuryFeeDivisorUpdate()
+
+          tx3 = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTxMaxFeeUpdate()
+
+          tx4 = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTimeoutUpdate()
+
+          tx5 = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTimeoutSlashingAmountUpdate()
+
+          tx6 = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
         })
 
         after(async () => {
@@ -224,7 +337,72 @@ describe("Bridge - Parameters", () => {
         })
 
         it("should emit RedemptionParametersUpdated event", async () => {
-          await expect(tx)
+          await expect(tx1)
+            .to.emit(bridge, "RedemptionParametersUpdated")
+            .withArgs(
+              newRedemptionDustThreshold,
+              constants.redemptionTreasuryFeeDivisor,
+              constants.redemptionTxMaxFee,
+              constants.redemptionTimeout,
+              constants.redemptionTimeoutSlashingAmount,
+              constants.redemptionTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit RedemptionParametersUpdated event", async () => {
+          await expect(tx2)
+            .to.emit(bridge, "RedemptionParametersUpdated")
+            .withArgs(
+              newRedemptionDustThreshold,
+              newRedemptionTreasuryFeeDivisor,
+              constants.redemptionTxMaxFee,
+              constants.redemptionTimeout,
+              constants.redemptionTimeoutSlashingAmount,
+              constants.redemptionTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit RedemptionParametersUpdated event", async () => {
+          await expect(tx3)
+            .to.emit(bridge, "RedemptionParametersUpdated")
+            .withArgs(
+              newRedemptionDustThreshold,
+              newRedemptionTreasuryFeeDivisor,
+              newRedemptionTxMaxFee,
+              constants.redemptionTimeout,
+              constants.redemptionTimeoutSlashingAmount,
+              constants.redemptionTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit RedemptionParametersUpdated event", async () => {
+          await expect(tx4)
+            .to.emit(bridge, "RedemptionParametersUpdated")
+            .withArgs(
+              newRedemptionDustThreshold,
+              newRedemptionTreasuryFeeDivisor,
+              newRedemptionTxMaxFee,
+              newRedemptionTimeout,
+              constants.redemptionTimeoutSlashingAmount,
+              constants.redemptionTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit RedemptionParametersUpdated event", async () => {
+          await expect(tx5)
+            .to.emit(bridge, "RedemptionParametersUpdated")
+            .withArgs(
+              newRedemptionDustThreshold,
+              newRedemptionTreasuryFeeDivisor,
+              newRedemptionTxMaxFee,
+              newRedemptionTimeout,
+              newRedemptionTimeoutSlashingAmount,
+              constants.redemptionTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit RedemptionParametersUpdated event", async () => {
+          await expect(tx6)
             .to.emit(bridge, "RedemptionParametersUpdated")
             .withArgs(
               newRedemptionDustThreshold,
@@ -243,19 +421,20 @@ describe("Bridge - Parameters", () => {
           // Use the current value of `movingFundsDustThreshold` as the new value
           // of `redemptionDustThreshold`.
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginRedemptionDustThresholdUpdate(
+                (
+                  await bridge.movingFundsParameters()
+                ).movingFundsDustThreshold
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateRedemptionParameters(
-                  (
-                    await bridge.movingFundsParameters()
-                  ).movingFundsDustThreshold,
-                  constants.redemptionTreasuryFeeDivisor,
-                  constants.redemptionTxMaxFee,
-                  constants.redemptionTimeout,
-                  constants.redemptionTimeoutSlashingAmount,
-                  constants.redemptionTimeoutNotifierRewardMultiplier
-                )
+                .finalizeRedemptionDustThresholdUpdate()
             ).to.be.revertedWith(
               "Redemption dust threshold must be greater than moving funds dust threshold"
             )
@@ -266,18 +445,37 @@ describe("Bridge - Parameters", () => {
       context(
         "when new redemption dust threshold is same as redemption tx max fee",
         () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridgeGovernance
+              .connect(governance)
+              .beginMovingFundsDustThresholdUpdate(
+                constants.redemptionTxMaxFee - 1
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
+            await bridgeGovernance
+              .connect(governance)
+              .finalizeMovingFundsDustThresholdUpdate()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginRedemptionDustThresholdUpdate(constants.redemptionTxMaxFee)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateRedemptionParameters(
-                  constants.redemptionDustThreshold,
-                  constants.redemptionTreasuryFeeDivisor,
-                  constants.redemptionDustThreshold,
-                  constants.redemptionTimeout,
-                  constants.redemptionTimeoutSlashingAmount,
-                  constants.redemptionTimeoutNotifierRewardMultiplier
-                )
+                .finalizeRedemptionDustThresholdUpdate()
             ).to.be.revertedWith(
               "Redemption dust threshold must be greater than redemption TX max fee"
             )
@@ -288,18 +486,39 @@ describe("Bridge - Parameters", () => {
       context(
         "when new redemption dust threshold is lower than redemption tx max fee",
         () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridgeGovernance
+              .connect(governance)
+              .beginMovingFundsDustThresholdUpdate(
+                constants.redemptionTxMaxFee - 2
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
+            await bridgeGovernance
+              .connect(governance)
+              .finalizeMovingFundsDustThresholdUpdate()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginRedemptionDustThresholdUpdate(
+                constants.redemptionTxMaxFee - 1
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateRedemptionParameters(
-                  constants.redemptionDustThreshold - 1,
-                  constants.redemptionTreasuryFeeDivisor,
-                  constants.redemptionDustThreshold,
-                  constants.redemptionTimeout,
-                  constants.redemptionTimeoutSlashingAmount,
-                  constants.redemptionTimeoutNotifierRewardMultiplier
-                )
+                .finalizeRedemptionDustThresholdUpdate()
             ).to.be.revertedWith(
               "Redemption dust threshold must be greater than redemption TX max fee"
             )
@@ -309,17 +528,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new redemption treasury fee divisor is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTreasuryFeeDivisorUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateRedemptionParameters(
-                constants.redemptionDustThreshold,
-                0,
-                constants.redemptionTxMaxFee,
-                constants.redemptionTimeout,
-                constants.redemptionTimeoutSlashingAmount,
-                constants.redemptionTimeoutNotifierRewardMultiplier
-              )
+              .finalizeRedemptionTreasuryFeeDivisorUpdate()
           ).to.be.revertedWith(
             "Redemption treasury fee divisor must be greater than zero"
           )
@@ -328,17 +546,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new redemption transaction max fee is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTxMaxFeeUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateRedemptionParameters(
-                constants.redemptionDustThreshold,
-                constants.redemptionTreasuryFeeDivisor,
-                0,
-                constants.redemptionTimeout,
-                constants.redemptionTimeoutSlashingAmount,
-                constants.redemptionTimeoutNotifierRewardMultiplier
-              )
+              .finalizeRedemptionTxMaxFeeUpdate()
           ).to.be.revertedWith(
             "Redemption transaction max fee must be greater than zero"
           )
@@ -347,17 +564,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new redemption timeout is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTimeoutUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateRedemptionParameters(
-                constants.redemptionDustThreshold,
-                constants.redemptionTreasuryFeeDivisor,
-                constants.redemptionTxMaxFee,
-                0,
-                constants.redemptionTimeoutSlashingAmount,
-                constants.redemptionTimeoutNotifierRewardMultiplier
-              )
+              .finalizeRedemptionTimeoutUpdate()
           ).to.be.revertedWith("Redemption timeout must be greater than zero")
         })
       })
@@ -366,17 +582,16 @@ describe("Bridge - Parameters", () => {
         "when new redemption timeout notifier reward multiplier is greater than 100",
         () => {
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginRedemptionTimeoutNotifierRewardMultiplierUpdate(101)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateRedemptionParameters(
-                  constants.redemptionDustThreshold,
-                  constants.redemptionTreasuryFeeDivisor,
-                  constants.redemptionTxMaxFee,
-                  constants.redemptionTimeout,
-                  constants.redemptionTimeoutSlashingAmount,
-                  101
-                )
+                .finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
             ).to.be.revertedWith(
               "Redemption timeout notifier reward multiplier must be in the range [0, 100]"
             )
@@ -388,17 +603,58 @@ describe("Bridge - Parameters", () => {
     context("when caller is not the contract guvnor", () => {
       it("should revert", async () => {
         await expect(
-          bridge
+          bridgeGovernance
             .connect(thirdParty)
-            .updateRedemptionParameters(
-              constants.redemptionDustThreshold,
-              constants.redemptionTreasuryFeeDivisor,
-              constants.redemptionTxMaxFee,
-              constants.redemptionTimeout,
-              constants.redemptionTimeoutSlashingAmount,
+            .beginRedemptionDustThresholdUpdate(
+              constants.redemptionDustThreshold
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginRedemptionTreasuryFeeDivisorUpdate(
+              constants.redemptionTreasuryFeeDivisor
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginRedemptionTxMaxFeeUpdate(constants.redemptionTxMaxFee)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginRedemptionTimeoutUpdate(constants.redemptionTimeout)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginRedemptionTimeoutSlashingAmountUpdate(
+              constants.redemptionTimeoutSlashingAmount
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
               constants.redemptionTimeoutNotifierRewardMultiplier
             )
-        ).to.be.revertedWith("Caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
   })
@@ -425,25 +681,112 @@ describe("Bridge - Parameters", () => {
         const newMovedFundsSweepTimeoutNotifierRewardMultiplier =
           constants.movedFundsSweepTimeoutNotifierRewardMultiplier / 4
 
-        let tx: ContractTransaction
+        let tx1: ContractTransaction
+        let tx2: ContractTransaction
+        let tx3: ContractTransaction
+        let tx4: ContractTransaction
+        let tx5: ContractTransaction
+        let tx6: ContractTransaction
+        let tx7: ContractTransaction
+        let tx8: ContractTransaction
+        let tx9: ContractTransaction
+        let tx10: ContractTransaction
 
         before(async () => {
           await createSnapshot()
 
-          tx = await bridge
+          await bridgeGovernance
             .connect(governance)
-            .updateMovingFundsParameters(
-              newMovingFundsTxMaxTotalFee,
-              newMovingFundsDustThreshold,
-              newMovingFundsTimeoutResetDelay,
-              newMovingFundsTimeout,
-              newMovingFundsTimeoutSlashingAmount,
-              newMovingFundsTimeoutNotifierRewardMultiplier,
-              newMovedFundsSweepTxMaxTotalFee,
-              newMovedFundsSweepTimeout,
-              newMovedFundsSweepTimeoutSlashingAmount,
+            .beginMovingFundsTxMaxTotalFeeUpdate(newMovingFundsTxMaxTotalFee)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsDustThresholdUpdate(newMovingFundsDustThreshold)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsTimeoutResetDelayUpdate(
+              newMovingFundsTimeoutResetDelay
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsTimeoutUpdate(newMovingFundsTimeout)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsTimeoutSlashingAmountUpdate(
+              newMovingFundsTimeoutSlashingAmount
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(
+              newMovingFundsTimeoutNotifierRewardMultiplier
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovedFundsSweepTxMaxTotalFeeUpdate(
+              newMovedFundsSweepTxMaxTotalFee
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovedFundsSweepTimeoutUpdate(newMovedFundsSweepTimeout)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovedFundsSweepTimeoutSlashingAmountUpdate(
+              newMovedFundsSweepTimeoutSlashingAmount
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
               newMovedFundsSweepTimeoutNotifierRewardMultiplier
             )
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx1 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovingFundsTxMaxTotalFeeUpdate()
+
+          tx2 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovingFundsDustThresholdUpdate()
+
+          tx3 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovingFundsTimeoutUpdate()
+          tx4 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovingFundsTimeoutResetDelayUpdate()
+
+          tx5 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovingFundsTimeoutSlashingAmountUpdate()
+
+          tx6 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate()
+
+          tx7 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovedFundsSweepTxMaxTotalFeeUpdate()
+
+          tx8 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovedFundsSweepTimeoutUpdate()
+
+          tx9 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovedFundsSweepTimeoutSlashingAmountUpdate()
+
+          tx10 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate()
         })
 
         after(async () => {
@@ -483,8 +826,162 @@ describe("Bridge - Parameters", () => {
           ).to.be.equal(newMovedFundsSweepTimeoutNotifierRewardMultiplier)
         })
 
+        // fix events
         it("should emit MovingFundsParametersUpdated event", async () => {
-          await expect(tx)
+          await expect(tx1)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              constants.movingFundsDustThreshold,
+              constants.movingFundsTimeoutResetDelay,
+              constants.movingFundsTimeout,
+              constants.movingFundsTimeoutSlashingAmount,
+              constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movedFundsSweepTxMaxTotalFee,
+              constants.movedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx2)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
+              constants.movingFundsTimeoutResetDelay,
+              constants.movingFundsTimeout,
+              constants.movingFundsTimeoutSlashingAmount,
+              constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movedFundsSweepTxMaxTotalFee,
+              constants.movedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx3)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
+              constants.movingFundsTimeoutResetDelay,
+              newMovingFundsTimeout,
+              constants.movingFundsTimeoutSlashingAmount,
+              constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movedFundsSweepTxMaxTotalFee,
+              constants.movedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx4)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
+              newMovingFundsTimeoutResetDelay,
+              newMovingFundsTimeout,
+              constants.movingFundsTimeoutSlashingAmount,
+              constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movedFundsSweepTxMaxTotalFee,
+              constants.movedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx5)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
+              newMovingFundsTimeoutResetDelay,
+              newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movedFundsSweepTxMaxTotalFee,
+              constants.movedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx6)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
+              newMovingFundsTimeoutResetDelay,
+              newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier,
+              constants.movedFundsSweepTxMaxTotalFee,
+              constants.movedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx7)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
+              newMovingFundsTimeoutResetDelay,
+              newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovedFundsSweepTxMaxTotalFee,
+              constants.movedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx8)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
+              newMovingFundsTimeoutResetDelay,
+              newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovedFundsSweepTxMaxTotalFee,
+              newMovedFundsSweepTimeout,
+              constants.movedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx9)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
+              newMovingFundsTimeoutResetDelay,
+              newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovedFundsSweepTxMaxTotalFee,
+              newMovedFundsSweepTimeout,
+              newMovedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx10)
             .to.emit(bridge, "MovingFundsParametersUpdated")
             .withArgs(
               newMovingFundsTxMaxTotalFee,
@@ -503,21 +1000,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new moving funds transaction max total fee is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsTxMaxTotalFeeUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateMovingFundsParameters(
-                0,
-                constants.movingFundsDustThreshold,
-                constants.movingFundsTimeoutResetDelay,
-                constants.movingFundsTimeout,
-                constants.movingFundsTimeoutSlashingAmount,
-                constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movedFundsSweepTxMaxTotalFee,
-                constants.movedFundsSweepTimeout,
-                constants.movedFundsSweepTimeoutSlashingAmount,
-                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
-              )
+              .finalizeMovingFundsTxMaxTotalFeeUpdate()
           ).to.be.revertedWith(
             "Moving funds transaction max total fee must be greater than zero"
           )
@@ -526,21 +1018,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new moving funds dust threshold is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsDustThresholdUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateMovingFundsParameters(
-                constants.movingFundsTxMaxTotalFee,
-                0,
-                constants.movingFundsTimeoutResetDelay,
-                constants.movingFundsTimeout,
-                constants.movingFundsTimeoutSlashingAmount,
-                constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movedFundsSweepTxMaxTotalFee,
-                constants.movedFundsSweepTimeout,
-                constants.movedFundsSweepTimeoutSlashingAmount,
-                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
-              )
+              .finalizeMovingFundsDustThresholdUpdate()
           ).to.be.revertedWith(
             "Moving funds dust threshold must be greater than zero and lower than redemption dust threshold"
           )
@@ -553,23 +1040,20 @@ describe("Bridge - Parameters", () => {
           // Use the current value of `redemptionDustThreshold` as the new value
           // of `movingFundsDustThreshold`.
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginMovingFundsDustThresholdUpdate(
+                (
+                  await bridge.redemptionParameters()
+                ).redemptionDustThreshold
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateMovingFundsParameters(
-                  constants.movingFundsTxMaxTotalFee,
-                  (
-                    await bridge.redemptionParameters()
-                  ).redemptionDustThreshold,
-                  constants.movingFundsTimeoutResetDelay,
-                  constants.movingFundsTimeout,
-                  constants.movingFundsTimeoutSlashingAmount,
-                  constants.movingFundsTimeoutNotifierRewardMultiplier,
-                  constants.movedFundsSweepTxMaxTotalFee,
-                  constants.movedFundsSweepTimeout,
-                  constants.movedFundsSweepTimeoutSlashingAmount,
-                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
-                )
+                .finalizeMovingFundsDustThresholdUpdate()
             ).to.be.revertedWith(
               "Moving funds dust threshold must be greater than zero and lower than redemption dust threshold"
             )
@@ -579,21 +1063,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new moving funds timeout reset delay is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsTimeoutResetDelayUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateMovingFundsParameters(
-                constants.movingFundsTxMaxTotalFee,
-                constants.movingFundsDustThreshold,
-                0,
-                constants.movingFundsTimeout,
-                constants.movingFundsTimeoutSlashingAmount,
-                constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movedFundsSweepTxMaxTotalFee,
-                constants.movedFundsSweepTimeout,
-                constants.movedFundsSweepTimeoutSlashingAmount,
-                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
-              )
+              .finalizeMovingFundsTimeoutResetDelayUpdate()
           ).to.be.revertedWith(
             "Moving funds timeout reset delay must be greater than zero"
           )
@@ -604,21 +1083,18 @@ describe("Bridge - Parameters", () => {
         "when new moving funds timeout is not greater than its reset delay",
         () => {
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginMovingFundsTimeoutUpdate(
+                constants.movingFundsTimeoutResetDelay
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateMovingFundsParameters(
-                  constants.movingFundsTxMaxTotalFee,
-                  constants.movingFundsDustThreshold,
-                  constants.movingFundsTimeoutResetDelay,
-                  constants.movingFundsTimeoutResetDelay,
-                  constants.movingFundsTimeoutSlashingAmount,
-                  constants.movingFundsTimeoutNotifierRewardMultiplier,
-                  constants.movedFundsSweepTxMaxTotalFee,
-                  constants.movedFundsSweepTimeout,
-                  constants.movedFundsSweepTimeoutSlashingAmount,
-                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
-                )
+                .finalizeMovingFundsTimeoutUpdate()
             ).to.be.revertedWith(
               "Moving funds timeout must be greater than its reset delay"
             )
@@ -626,75 +1102,18 @@ describe("Bridge - Parameters", () => {
         }
       )
 
-      context(
-        "when new moving funds timeout notifier reward multiplier is greater than 100",
-        () => {
-          it("should revert", async () => {
-            await expect(
-              bridge
-                .connect(governance)
-                .updateMovingFundsParameters(
-                  constants.movingFundsTxMaxTotalFee,
-                  constants.movingFundsDustThreshold,
-                  constants.movingFundsTimeoutResetDelay,
-                  constants.movingFundsTimeout,
-                  constants.movingFundsTimeoutSlashingAmount,
-                  101,
-                  constants.movedFundsSweepTxMaxTotalFee,
-                  constants.movedFundsSweepTimeout,
-                  constants.movedFundsSweepTimeoutSlashingAmount,
-                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
-                )
-            ).to.be.revertedWith(
-              "Moving funds timeout notifier reward multiplier must be in the range [0, 100]"
-            )
-          })
-        }
-      )
-
-      context(
-        "when new moved funds sweep transaction max total fee is zero",
-        () => {
-          it("should revert", async () => {
-            await expect(
-              bridge
-                .connect(governance)
-                .updateMovingFundsParameters(
-                  constants.movingFundsTxMaxTotalFee,
-                  constants.movingFundsDustThreshold,
-                  constants.movingFundsTimeoutResetDelay,
-                  constants.movingFundsTimeout,
-                  constants.movingFundsTimeoutSlashingAmount,
-                  constants.movingFundsTimeoutNotifierRewardMultiplier,
-                  0,
-                  constants.movedFundsSweepTimeout,
-                  constants.movedFundsSweepTimeoutSlashingAmount,
-                  constants.movedFundsSweepTimeoutNotifierRewardMultiplier
-                )
-            ).to.be.revertedWith(
-              "Moved funds sweep transaction max total fee must be greater than zero"
-            )
-          })
-        }
-      )
-
       context("when new moved funds sweep timeout is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovedFundsSweepTimeoutUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateMovingFundsParameters(
-                constants.movingFundsTxMaxTotalFee,
-                constants.movingFundsDustThreshold,
-                constants.movingFundsTimeoutResetDelay,
-                constants.movingFundsTimeout,
-                constants.movingFundsTimeoutSlashingAmount,
-                constants.movingFundsTimeoutNotifierRewardMultiplier,
-                constants.movedFundsSweepTxMaxTotalFee,
-                0,
-                constants.movedFundsSweepTimeoutSlashingAmount,
-                constants.movedFundsSweepTimeoutNotifierRewardMultiplier
-              )
+              .finalizeMovedFundsSweepTimeoutUpdate()
           ).to.be.revertedWith(
             "Moved funds sweep timeout must be greater than zero"
           )
@@ -705,21 +1124,16 @@ describe("Bridge - Parameters", () => {
         "when new moved funds sweep timeout notifier reward multiplier is greater than 100",
         () => {
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(101)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateMovingFundsParameters(
-                  constants.movingFundsTxMaxTotalFee,
-                  constants.movingFundsDustThreshold,
-                  constants.movingFundsTimeoutResetDelay,
-                  constants.movingFundsTimeout,
-                  constants.movingFundsTimeoutSlashingAmount,
-                  constants.movingFundsTimeoutNotifierRewardMultiplier,
-                  constants.movedFundsSweepTxMaxTotalFee,
-                  constants.movedFundsSweepTimeout,
-                  constants.movedFundsSweepTimeoutSlashingAmount,
-                  101
-                )
+                .finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate()
             ).to.be.revertedWith(
               "Moved funds sweep timeout notifier reward multiplier must be in the range [0, 100]"
             )
@@ -764,22 +1178,80 @@ describe("Bridge - Parameters", () => {
         const newWalletMaxBtcTransfer = constants.walletMaxBtcTransfer.add(1000)
         const newWalletClosingPeriod = constants.walletClosingPeriod * 2
 
-        let tx: ContractTransaction
+        let tx1: ContractTransaction
+        let tx2: ContractTransaction
+        let tx3: ContractTransaction
+        let tx4: ContractTransaction
+        let tx5: ContractTransaction
+        let tx6: ContractTransaction
+        let tx7: ContractTransaction
 
         before(async () => {
           await createSnapshot()
 
-          tx = await bridge
+          await bridgeGovernance
             .connect(governance)
-            .updateWalletParameters(
-              newWalletCreationPeriod,
-              newWalletCreationMinBtcBalance,
-              newWalletCreationMaxBtcBalance,
-              newWalletClosureMinBtcBalance,
-              newWalletMaxAge,
-              newWalletMaxBtcTransfer,
-              newWalletClosingPeriod
+            .beginWalletCreationPeriodUpdate(newWalletCreationPeriod)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginWalletCreationMinBtcBalanceUpdate(
+              newWalletCreationMinBtcBalance
             )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginWalletCreationMaxBtcBalanceUpdate(
+              newWalletCreationMaxBtcBalance
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginWalletClosureMinBtcBalanceUpdate(
+              newWalletClosureMinBtcBalance
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginWalletMaxAgeUpdate(newWalletMaxAge)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginWalletMaxBtcTransferUpdate(newWalletMaxBtcTransfer)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginWalletClosingPeriodUpdate(newWalletClosingPeriod)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx1 = await bridgeGovernance
+            .connect(governance)
+            .finalizeWalletCreationPeriodUpdate()
+
+          tx2 = await bridgeGovernance
+            .connect(governance)
+            .finalizeWalletCreationMinBtcBalanceUpdate()
+
+          tx3 = await bridgeGovernance
+            .connect(governance)
+            .finalizeWalletCreationMaxBtcBalanceUpdate()
+
+          tx4 = await bridgeGovernance
+            .connect(governance)
+            .finalizeWalletClosureMinBtcBalanceUpdate()
+
+          tx5 = await bridgeGovernance
+            .connect(governance)
+            .finalizeWalletMaxAgeUpdate()
+
+          tx6 = await bridgeGovernance
+            .connect(governance)
+            .finalizeWalletMaxBtcTransferUpdate()
+
+          tx7 = await bridgeGovernance
+            .connect(governance)
+            .finalizeWalletClosingPeriodUpdate()
         })
 
         after(async () => {
@@ -809,7 +1281,91 @@ describe("Bridge - Parameters", () => {
         })
 
         it("should emit WalletParametersUpdated event", async () => {
-          await expect(tx)
+          await expect(tx1)
+            .to.emit(bridge, "WalletParametersUpdated")
+            .withArgs(
+              newWalletCreationPeriod,
+              constants.walletCreationMinBtcBalance,
+              constants.walletCreationMaxBtcBalance,
+              constants.walletClosureMinBtcBalance,
+              constants.walletMaxAge,
+              constants.walletMaxBtcTransfer,
+              constants.walletClosingPeriod
+            )
+        })
+
+        it("should emit WalletParametersUpdated event", async () => {
+          await expect(tx2)
+            .to.emit(bridge, "WalletParametersUpdated")
+            .withArgs(
+              newWalletCreationPeriod,
+              newWalletCreationMinBtcBalance,
+              constants.walletCreationMaxBtcBalance,
+              constants.walletClosureMinBtcBalance,
+              constants.walletMaxAge,
+              constants.walletMaxBtcTransfer,
+              constants.walletClosingPeriod
+            )
+        })
+
+        it("should emit WalletParametersUpdated event", async () => {
+          await expect(tx3)
+            .to.emit(bridge, "WalletParametersUpdated")
+            .withArgs(
+              newWalletCreationPeriod,
+              newWalletCreationMinBtcBalance,
+              newWalletCreationMaxBtcBalance,
+              constants.walletClosureMinBtcBalance,
+              constants.walletMaxAge,
+              constants.walletMaxBtcTransfer,
+              constants.walletClosingPeriod
+            )
+        })
+
+        it("should emit WalletParametersUpdated event", async () => {
+          await expect(tx4)
+            .to.emit(bridge, "WalletParametersUpdated")
+            .withArgs(
+              newWalletCreationPeriod,
+              newWalletCreationMinBtcBalance,
+              newWalletCreationMaxBtcBalance,
+              newWalletClosureMinBtcBalance,
+              constants.walletMaxAge,
+              constants.walletMaxBtcTransfer,
+              constants.walletClosingPeriod
+            )
+        })
+
+        it("should emit WalletParametersUpdated event", async () => {
+          await expect(tx5)
+            .to.emit(bridge, "WalletParametersUpdated")
+            .withArgs(
+              newWalletCreationPeriod,
+              newWalletCreationMinBtcBalance,
+              newWalletCreationMaxBtcBalance,
+              newWalletClosureMinBtcBalance,
+              newWalletMaxAge,
+              constants.walletMaxBtcTransfer,
+              constants.walletClosingPeriod
+            )
+        })
+
+        it("should emit WalletParametersUpdated event", async () => {
+          await expect(tx6)
+            .to.emit(bridge, "WalletParametersUpdated")
+            .withArgs(
+              newWalletCreationPeriod,
+              newWalletCreationMinBtcBalance,
+              newWalletCreationMaxBtcBalance,
+              newWalletClosureMinBtcBalance,
+              newWalletMaxAge,
+              newWalletMaxBtcTransfer,
+              constants.walletClosingPeriod
+            )
+        })
+
+        it("should emit WalletParametersUpdated event", async () => {
+          await expect(tx7)
             .to.emit(bridge, "WalletParametersUpdated")
             .withArgs(
               newWalletCreationPeriod,
@@ -827,18 +1383,18 @@ describe("Bridge - Parameters", () => {
         "when new creation maximum BTC balance is not greater than the creation minimum BTC balance",
         () => {
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginWalletCreationMaxBtcBalanceUpdate(
+                constants.walletCreationMinBtcBalance
+              )
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateWalletParameters(
-                  constants.walletCreationPeriod,
-                  constants.walletCreationMinBtcBalance,
-                  constants.walletCreationMinBtcBalance,
-                  constants.walletClosureMinBtcBalance,
-                  constants.walletMaxAge,
-                  constants.walletMaxBtcTransfer,
-                  constants.walletClosingPeriod
-                )
+                .finalizeWalletCreationMaxBtcBalanceUpdate()
             ).to.be.revertedWith(
               "Wallet creation maximum BTC balance must be greater than the creation minimum BTC balance"
             )
@@ -848,18 +1404,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new closure minimum BTC balance is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginWalletClosureMinBtcBalanceUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateWalletParameters(
-                constants.walletCreationPeriod,
-                constants.walletClosureMinBtcBalance,
-                constants.walletCreationMaxBtcBalance,
-                0,
-                constants.walletMaxAge,
-                constants.walletMaxBtcTransfer,
-                constants.walletClosingPeriod
-              )
+              .finalizeWalletClosureMinBtcBalanceUpdate()
           ).to.be.revertedWith(
             "Wallet closure minimum BTC balance must be greater than zero"
           )
@@ -868,18 +1422,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new maximum BTC transfer is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginWalletMaxBtcTransferUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateWalletParameters(
-                constants.walletCreationPeriod,
-                constants.walletCreationMinBtcBalance,
-                constants.walletCreationMaxBtcBalance,
-                constants.walletClosureMinBtcBalance,
-                constants.walletMaxAge,
-                0,
-                constants.walletClosingPeriod
-              )
+              .finalizeWalletMaxBtcTransferUpdate()
           ).to.be.revertedWith(
             "Wallet maximum BTC transfer must be greater than zero"
           )
@@ -888,18 +1440,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new closing period is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginWalletClosingPeriodUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateWalletParameters(
-                constants.walletCreationPeriod,
-                constants.walletCreationMinBtcBalance,
-                constants.walletCreationMaxBtcBalance,
-                constants.walletClosureMinBtcBalance,
-                constants.walletMaxAge,
-                constants.walletMaxBtcTransfer,
-                0
-              )
+              .finalizeWalletClosingPeriodUpdate()
           ).to.be.revertedWith(
             "Wallet closing period must be greater than zero"
           )
@@ -937,19 +1487,53 @@ describe("Bridge - Parameters", () => {
         const newFraudNotifierRewardMultiplier =
           constants.fraudNotifierRewardMultiplier / 4
 
-        let tx: ContractTransaction
+        let tx1: ContractTransaction
+        let tx2: ContractTransaction
+        let tx3: ContractTransaction
+        let tx4: ContractTransaction
 
         before(async () => {
           await createSnapshot()
 
-          tx = await bridge
+          await bridgeGovernance
             .connect(governance)
-            .updateFraudParameters(
-              newFraudChallengeDepositAmount,
-              newFraudChallengeDefeatTimeout,
-              newFraudSlashingAmount,
+            .beginFraudChallengeDepositAmountUpdate(
+              newFraudChallengeDepositAmount
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginFraudChallengeDefeatTimeoutUpdate(
+              newFraudChallengeDefeatTimeout
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginFraudSlashingAmountUpdate(newFraudSlashingAmount)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginFraudNotifierRewardMultiplierUpdate(
               newFraudNotifierRewardMultiplier
             )
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx1 = await bridgeGovernance
+            .connect(governance)
+            .finalizeFraudChallengeDepositAmountUpdate()
+
+          tx2 = await bridgeGovernance
+            .connect(governance)
+            .finalizeFraudChallengeDefeatTimeoutUpdate()
+
+          tx3 = await bridgeGovernance
+            .connect(governance)
+            .finalizeFraudSlashingAmountUpdate()
+
+          tx4 = await bridgeGovernance
+            .connect(governance)
+            .finalizeFraudNotifierRewardMultiplierUpdate()
         })
 
         after(async () => {
@@ -972,7 +1556,40 @@ describe("Bridge - Parameters", () => {
         })
 
         it("should emit FraudParametersUpdated event", async () => {
-          await expect(tx)
+          await expect(tx1)
+            .to.emit(bridge, "FraudParametersUpdated")
+            .withArgs(
+              newFraudChallengeDepositAmount,
+              constants.fraudChallengeDefeatTimeout,
+              constants.fraudSlashingAmount,
+              constants.fraudNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit FraudParametersUpdated event", async () => {
+          await expect(tx2)
+            .to.emit(bridge, "FraudParametersUpdated")
+            .withArgs(
+              newFraudChallengeDepositAmount,
+              newFraudChallengeDefeatTimeout,
+              constants.fraudSlashingAmount,
+              constants.fraudNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit FraudParametersUpdated event", async () => {
+          await expect(tx3)
+            .to.emit(bridge, "FraudParametersUpdated")
+            .withArgs(
+              newFraudChallengeDepositAmount,
+              newFraudChallengeDefeatTimeout,
+              newFraudSlashingAmount,
+              constants.fraudNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit FraudParametersUpdated event", async () => {
+          await expect(tx4)
             .to.emit(bridge, "FraudParametersUpdated")
             .withArgs(
               newFraudChallengeDepositAmount,
@@ -985,15 +1602,16 @@ describe("Bridge - Parameters", () => {
 
       context("when new fraud challenge defeat timeout is zero", () => {
         it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginFraudChallengeDefeatTimeoutUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
           await expect(
-            bridge
+            bridgeGovernance
               .connect(governance)
-              .updateFraudParameters(
-                constants.fraudChallengeDepositAmount,
-                0,
-                constants.fraudSlashingAmount,
-                constants.fraudNotifierRewardMultiplier
-              )
+              .finalizeFraudChallengeDefeatTimeoutUpdate()
           ).to.be.revertedWith(
             "Fraud challenge defeat timeout must be greater than zero"
           )
@@ -1004,15 +1622,16 @@ describe("Bridge - Parameters", () => {
         "when new fraud notifier reward multiplier is greater than 100",
         () => {
           it("should revert", async () => {
+            await bridgeGovernance
+              .connect(governance)
+              .beginFraudNotifierRewardMultiplierUpdate(101)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
             await expect(
-              bridge
+              bridgeGovernance
                 .connect(governance)
-                .updateFraudParameters(
-                  constants.fraudChallengeDepositAmount,
-                  constants.fraudChallengeDefeatTimeout,
-                  constants.fraudSlashingAmount,
-                  101
-                )
+                .finalizeFraudNotifierRewardMultiplierUpdate()
             ).to.be.revertedWith(
               "Fraud notifier reward multiplier must be in the range [0, 100]"
             )
