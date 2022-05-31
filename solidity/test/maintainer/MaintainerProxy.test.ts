@@ -1212,15 +1212,6 @@ describe("MaintainerProxy", () => {
   })
 
   describe("notifyWalletCloseable", () => {
-    before(async () => {
-      await createSnapshot()
-    })
-
-    after(async () => {
-      walletRegistry.requestNewWallet.reset()
-
-      await restoreSnapshot()
-    })
     context("when called by an unauthorized third party", async () => {
       it("should revert", async () => {
         await expect(
@@ -1254,8 +1245,6 @@ describe("MaintainerProxy", () => {
           })
 
           after(async () => {
-            walletRegistry.requestNewWallet.reset()
-
             await restoreSnapshot()
           })
 
@@ -1267,8 +1256,6 @@ describe("MaintainerProxy", () => {
             })
 
             after(async () => {
-              walletRegistry.requestNewWallet.reset()
-
               await restoreSnapshot()
             })
 
