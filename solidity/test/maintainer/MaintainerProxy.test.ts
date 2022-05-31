@@ -2037,7 +2037,7 @@ describe("MaintainerProxy", () => {
   })
 
   describe("submitMovedFundsSweepProof", () => {
-    context("when called by an unauthorized third party", async () => {
+    context("when called by an unauthorized third party", () => {
       it("should revert", async () => {
         const data: MovedFundsSweepTestData = MovedFundsSweepWithoutMainUtxo
         const tx = maintainerProxy
@@ -2051,102 +2051,82 @@ describe("MaintainerProxy", () => {
       })
     })
 
-    context("when transaction proof is valid", () => {
-      before(async () => {
-        await createSnapshot()
+    context("when called by an authorized maintainer", () => {
+      context("when the sweeping wallet has no main UTXO set", () => {
+        context(
+          "when there is a single input referring to a Pending sweep request",
+          () => {
+            const data: MovedFundsSweepTestData = MovedFundsSweepWithoutMainUtxo
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              tx = await runMovedFundsSweepScenario(data)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit MovedFundsSwept event", async () => {
+              await expect(tx).to.emit(bridge, "MovedFundsSwept")
+            })
+
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+              )
+            })
+          }
+        )
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
-      context("when there is only one output", () => {
-        context("when sweeping wallet is in the Live state", () => {
-          context("when main UTXO data are valid", () => {
-            context(
-              "when transaction fee does not exceed the sweep transaction maximum fee",
-              () => {
-                context("when the sweeping wallet has no main UTXO set", () => {
-                  context(
-                    "when there is a single input referring to a Pending sweep request",
-                    () => {
-                      const data: MovedFundsSweepTestData =
-                        MovedFundsSweepWithoutMainUtxo
-                      let tx: ContractTransaction
+      context("when the sweeping wallet has a main UTXO set", () => {
+        context(
+          "when the first input refers to a Pending sweep request and the second " +
+            "input refers to the sweeping wallet main UTXO",
+          () => {
+            const data: MovedFundsSweepTestData = MovedFundsSweepWithMainUtxo
+            let tx: ContractTransaction
 
-                      before(async () => {
-                        await createSnapshot()
+            before(async () => {
+              await createSnapshot()
 
-                        tx = await runMovedFundsSweepScenario(data)
-                      })
+              tx = await runMovedFundsSweepScenario(data)
+            })
 
-                      after(async () => {
-                        await restoreSnapshot()
-                      })
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-                      it("should emit MovedFundsSwept event", async () => {
-                        await expect(tx).to.emit(bridge, "MovedFundsSwept")
-                      })
+            it("should emit MovedFundsSwept event", async () => {
+              await expect(tx).to.emit(bridge, "MovedFundsSwept")
+            })
 
-                      it("should refund ETH", async () => {
-                        const postThirdPartyBalance = await provider.getBalance(
-                          authorizedMaintainer.address
-                        )
-                        const diff = postThirdPartyBalance.sub(
-                          initialAuthorizedMaintainerBalance
-                        )
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
 
-                        expect(diff).to.be.gt(0)
-                        expect(diff).to.be.lt(
-                          ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-                        )
-                      })
-                    }
-                  )
-                })
-
-                context("when the sweeping wallet has a main UTXO set", () => {
-                  context(
-                    "when the first input refers to a Pending sweep request and the second input refers to the sweeping wallet main UTXO",
-                    () => {
-                      const data: MovedFundsSweepTestData =
-                        MovedFundsSweepWithMainUtxo
-
-                      let tx: ContractTransaction
-
-                      before(async () => {
-                        await createSnapshot()
-
-                        tx = await runMovedFundsSweepScenario(data)
-                      })
-
-                      after(async () => {
-                        await restoreSnapshot()
-                      })
-
-                      it("should emit MovedFundsSwept event", async () => {
-                        await expect(tx).to.emit(bridge, "MovedFundsSwept")
-                      })
-
-                      it("should refund ETH", async () => {
-                        const postThirdPartyBalance = await provider.getBalance(
-                          authorizedMaintainer.address
-                        )
-                        const diff = postThirdPartyBalance.sub(
-                          initialAuthorizedMaintainerBalance
-                        )
-
-                        expect(diff).to.be.gt(0)
-                        expect(diff).to.be.lt(
-                          ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-                        )
-                      })
-                    }
-                  )
-                })
-              }
-            )
-          })
-        })
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+              )
+            })
+          }
+        )
       })
     })
   })
