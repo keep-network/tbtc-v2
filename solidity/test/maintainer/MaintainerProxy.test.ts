@@ -17,6 +17,7 @@ import type {
   MaintainerProxy,
   ReimbursementPool,
   Bridge,
+  BridgeGovernance,
   IRelay,
   IVault,
 } from "../../typechain"
@@ -72,12 +73,13 @@ const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
 // other tbtc-v2 tests suites and adjusted to check the refund functionality of
 // the MaintainerProxy contract.
 describe("MaintainerProxy", () => {
-  let governance: SignerWithAddress
-  let bridge: Bridge & BridgeStub
-  let thirdParty: SignerWithAddress
-  let authorizedMaintainer: SignerWithAddress
   let deployer: SignerWithAddress
+  let governance: SignerWithAddress
+  let authorizedMaintainer: SignerWithAddress
+  let thirdParty: SignerWithAddress
 
+  let bridge: Bridge & BridgeStub
+  let bridgeGovernance: BridgeGovernance
   let maintainerProxy: MaintainerProxy
   let reimbursementPool: ReimbursementPool
   let relay: FakeContract<IRelay>
@@ -94,6 +96,7 @@ describe("MaintainerProxy", () => {
     ;({
       governance,
       bridge,
+      bridgeGovernance,
       maintainerProxy,
       relay,
       bank,
@@ -332,7 +335,7 @@ describe("MaintainerProxy", () => {
 
               // Deploy a fake vault and mark it as trusted.
               vault = await smock.fake<IVault>("IVault")
-              await bridge
+              await bridgeGovernance
                 .connect(governance)
                 .setVaultStatus(vault.address, true)
 
@@ -382,7 +385,7 @@ describe("MaintainerProxy", () => {
 
               // Deploy a fake vault and mark it as trusted.
               vault = await smock.fake<IVault>("IVault")
-              await bridge
+              await bridgeGovernance
                 .connect(governance)
                 .setVaultStatus(vault.address, true)
 
@@ -396,7 +399,7 @@ describe("MaintainerProxy", () => {
               // Mark the vault as non-trusted just before
               // proof submission.
               const beforeProofActions = async () => {
-                await bridge
+                await bridgeGovernance
                   .connect(governance)
                   .setVaultStatus(vault.address, false)
               }
@@ -495,7 +498,7 @@ describe("MaintainerProxy", () => {
 
               // Deploy a fake vault and mark it as trusted.
               vault = await smock.fake<IVault>("IVault")
-              await bridge
+              await bridgeGovernance
                 .connect(governance)
                 .setVaultStatus(vault.address, true)
 
@@ -555,7 +558,7 @@ describe("MaintainerProxy", () => {
 
               // Deploy a fake vault and mark it as trusted.
               vault = await smock.fake<IVault>("IVault")
-              await bridge
+              await bridgeGovernance
                 .connect(governance)
                 .setVaultStatus(vault.address, true)
 
@@ -573,7 +576,7 @@ describe("MaintainerProxy", () => {
               // Mark the vault as non-trusted just before
               // proof submission.
               const beforeProofActions = async () => {
-                await bridge
+                await bridgeGovernance
                   .connect(governance)
                   .setVaultStatus(vault.address, false)
               }
@@ -628,10 +631,10 @@ describe("MaintainerProxy", () => {
               // Deploy two fake vaults and mark them as trusted.
               vaultA = await smock.fake<IVault>("IVault")
               vaultB = await smock.fake<IVault>("IVault")
-              await bridge
+              await bridgeGovernance
                 .connect(governance)
                 .setVaultStatus(vaultA.address, true)
-              await bridge
+              await bridgeGovernance
                 .connect(governance)
                 .setVaultStatus(vaultB.address, true)
 

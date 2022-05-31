@@ -12,6 +12,7 @@ import type {
   TBTC,
   TBTCVault,
   VendingMachine,
+  BridgeGovernance,
 } from "../../typechain"
 
 /**
@@ -37,6 +38,9 @@ export default async function bridgeFixture() {
   const bridge: Bridge & BridgeStub = await helpers.contracts.getContract(
     "Bridge"
   )
+
+  const bridgeGovernance: BridgeGovernance =
+    await helpers.contracts.getContract("BridgeGovernance")
 
   const walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry", {
     address: await (await bridge.contractReferences()).ecdsaWalletRegistry,
@@ -89,5 +93,6 @@ export default async function bridgeFixture() {
     BridgeFactory,
     reimbursementPool,
     maintainerProxy,
+    bridgeGovernance,
   }
 }
