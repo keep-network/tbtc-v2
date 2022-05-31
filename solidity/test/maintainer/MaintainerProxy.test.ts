@@ -2402,7 +2402,7 @@ describe("MaintainerProxy", () => {
             await restoreSnapshot()
           })
 
-          it("should unauthorize a contract", async () => {
+          it("should unauthorize the maintainer", async () => {
             expect(
               await maintainerProxy.isAuthorized(thirdParty.address)
             ).to.be.equal(0)
@@ -2487,7 +2487,7 @@ describe("MaintainerProxy", () => {
               await restoreSnapshot()
             })
 
-            it("should unauthorize a maintainer", async () => {
+            it("should unauthorize the maintainer", async () => {
               expect(
                 await maintainerProxy.isAuthorized(maintainer1.address)
               ).to.be.equal(0)
@@ -2499,7 +2499,7 @@ describe("MaintainerProxy", () => {
               ).to.be.equal(1)
             })
 
-            it("should unauthorize a contract", async () => {
+            it("should unauthorize the other maintainer", async () => {
               expect(
                 await maintainerProxy.isAuthorized(maintainer3.address)
               ).to.be.equal(0)
@@ -2581,7 +2581,7 @@ describe("MaintainerProxy", () => {
               ).to.be.equal(3)
             })
 
-            it("should unauthorize a contract", async () => {
+            it("should unauthorize the other maintainer", async () => {
               expect(
                 await maintainerProxy.isAuthorized(maintainer6.address)
               ).to.be.equal(0)
@@ -2657,7 +2657,7 @@ describe("MaintainerProxy", () => {
               ).to.be.equal(0)
             })
 
-            it("should unauthorize a contract", async () => {
+            it("should unauthorize the other maintainer", async () => {
               expect(
                 await maintainerProxy.isAuthorized(maintainer8.address)
               ).to.be.equal(0)
