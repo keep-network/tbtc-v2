@@ -2192,6 +2192,8 @@ describe("MaintainerProxy", () => {
     let heartbeatWalletPublicKey: string
     let heartbeatWalletSigningKey: SigningKey
 
+    let tx: ContractTransaction
+
     before(async () => {
       await createSnapshot()
 
@@ -2223,73 +2225,55 @@ describe("MaintainerProxy", () => {
           walletPublicKeyX,
           walletPublicKeyY
         )
+
+      const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
+      const heartbeatMessageSha256 = sha256(heartbeatMessage)
+      const sighash = sha256(sha256(heartbeatMessage))
+
+      const signature = ethers.utils.splitSignature(
+        heartbeatWalletSigningKey.signDigest(sighash)
+      )
+
+      await bridge
+        .connect(thirdParty)
+        .submitFraudChallenge(
+          heartbeatWalletPublicKey,
+          heartbeatMessageSha256,
+          signature,
+          {
+            value: fraudChallengeDepositAmount,
+          }
+        )
+
+      initialAuthorizedMaintainerBalance = await provider.getBalance(
+        authorizedMaintainer.address
+      )
+      tx = await maintainerProxy
+        .connect(authorizedMaintainer)
+        .defeatFraudChallengeWithHeartbeat(
+          heartbeatWalletPublicKey,
+          heartbeatMessage
+        )
     })
 
     after(async () => {
       await restoreSnapshot()
     })
 
-    context("when the challenge exists", () => {
-      context("when the challenge is open", () => {
-        context("when the heartbeat message has correct format", () => {
-          const heartbeatMessage = "0xFFFFFFFFFFFFFFFF0000000000E0EED7"
-          const heartbeatMessageSha256 = sha256(heartbeatMessage)
-          const sighash = sha256(sha256(heartbeatMessage))
+    it("should emit FraudChallengeDefeated event", async () => {
+      await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
+    })
 
-          let tx: ContractTransaction
+    it("should refund ETH", async () => {
+      const postMaintainerBalance = await provider.getBalance(
+        authorizedMaintainer.address
+      )
+      const diff = postMaintainerBalance.sub(initialAuthorizedMaintainerBalance)
 
-          before(async () => {
-            await createSnapshot()
-
-            const signature = ethers.utils.splitSignature(
-              heartbeatWalletSigningKey.signDigest(sighash)
-            )
-
-            await bridge
-              .connect(thirdParty)
-              .submitFraudChallenge(
-                heartbeatWalletPublicKey,
-                heartbeatMessageSha256,
-                signature,
-                {
-                  value: fraudChallengeDepositAmount,
-                }
-              )
-
-            initialAuthorizedMaintainerBalance = await provider.getBalance(
-              authorizedMaintainer.address
-            )
-            tx = await maintainerProxy
-              .connect(authorizedMaintainer)
-              .defeatFraudChallengeWithHeartbeat(
-                heartbeatWalletPublicKey,
-                heartbeatMessage
-              )
-          })
-
-          after(async () => {
-            await restoreSnapshot()
-          })
-
-          it("should emit FraudChallengeDefeated event", async () => {
-            await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
-          })
-
-          it("should refund ETH", async () => {
-            const postMaintainerBalance = await provider.getBalance(
-              authorizedMaintainer.address
-            )
-            const diff = postMaintainerBalance.sub(
-              initialAuthorizedMaintainerBalance
-            )
-
-            expect(diff).to.be.gt(0)
-            expect(diff).to.be.lt(
-              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-            )
-          })
-        })
-      })
+      expect(diff).to.be.gt(0)
+      expect(diff).to.be.lt(
+        ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+      )
     })
   })
 
