@@ -752,478 +752,461 @@ describe("MaintainerProxy", () => {
     })
 
     context("when called by an authorized maintainer", async () => {
-      context("when transaction proof is valid", () => {
-        before(async () => {
-          await createSnapshot()
-        })
+      context("when there is only one output", () => {
+        context(
+          "when the single output is a pending requested redemption",
+          () => {
+            const data: RedemptionTestData = SinglePendingRequestedRedemption
+            let tx: ContractTransaction
 
-        after(async () => {
-          await restoreSnapshot()
-        })
+            before(async () => {
+              await createSnapshot()
 
-        context("when there is only one output", () => {
-          context(
-            "when the single output is a pending requested redemption",
-            () => {
-              const data: RedemptionTestData = SinglePendingRequestedRedemption
-              let tx: ContractTransaction
+              // Simulate the situation when treasury fee is 0% to
+              // allow using the whole wallet's main UTXO value
+              // to fulfill the redemption request.
+              await bridge.setRedemptionTreasuryFeeDivisor(0)
 
-              before(async () => {
-                await createSnapshot()
+              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+              tx = await runRedemptionScenario(data)
+            })
 
-                // Simulate the situation when treasury fee is 0% to
-                // allow using the whole wallet's main UTXO value
-                // to fulfill the redemption request.
-                await bridge.setRedemptionTreasuryFeeDivisor(0)
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-                // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                tx = await runRedemptionScenario(data)
-              })
+            it("should emit RedemptionsCompleted event", async () => {
+              await expect(tx).to.emit(bridge, "RedemptionsCompleted")
+            })
 
-              after(async () => {
-                await restoreSnapshot()
-              })
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
 
-              it("should emit RedemptionsCompleted event", async () => {
-                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
-              })
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("3500000", "gwei") // 0,0035 ETH
+              )
+            })
+          }
+        )
 
-              it("should refund ETH", async () => {
-                const postThirdPartyBalance = await provider.getBalance(
-                  authorizedMaintainer.address
+        context(
+          "when the single output is a non-reported timed out requested redemption",
+          () => {
+            const data: RedemptionTestData = SinglePendingRequestedRedemption
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              // Simulate the situation when treasury fee is 0% to
+              // allow using the whole wallet's main UTXO value
+              // to fulfill the redemption request.
+              await bridge.setRedemptionTreasuryFeeDivisor(0)
+
+              // Before submitting the redemption proof, wait
+              // an amount of time that will make the request
+              // timed out though don't report the timeout.
+              const beforeProofActions = async () => {
+                await increaseTime(redemptionTimeout)
+              }
+
+              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+              tx = await runRedemptionScenario(data, beforeProofActions)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit RedemptionsCompleted event", async () => {
+              await expect(tx).to.emit(bridge, "RedemptionsCompleted")
+            })
+
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("3500000", "gwei") // 0,0035 ETH
+              )
+            })
+          }
+        )
+
+        context(
+          "when the single output is a reported timed out requested redemption",
+          () => {
+            const data: RedemptionTestData = SinglePendingRequestedRedemption
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              // Simulate the situation when treasury fee is 0% to
+              // allow using the whole wallet's main UTXO value
+              // to fulfill the redemption request.
+              await bridge.setRedemptionTreasuryFeeDivisor(0)
+
+              // Before submitting the redemption proof, wait
+              // an amount of time that will make the request
+              // timed out and then report the timeout.
+              const beforeProofActions = async () => {
+                await increaseTime(redemptionTimeout)
+                await bridge.notifyRedemptionTimeout(
+                  data.wallet.pubKeyHash,
+                  [],
+                  data.redemptionRequests[0].redeemerOutputScript
                 )
-                const diff = postThirdPartyBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
+              }
 
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("3500000", "gwei") // 0,0035 ETH
-                )
-              })
-            }
-          )
+              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+              tx = await runRedemptionScenario(data, beforeProofActions)
+            })
 
-          context(
-            "when the single output is a non-reported timed out requested redemption",
-            () => {
-              const data: RedemptionTestData = SinglePendingRequestedRedemption
-              let tx: ContractTransaction
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-              before(async () => {
-                await createSnapshot()
+            it("should emit RedemptionsCompleted event", async () => {
+              await expect(tx).to.emit(bridge, "RedemptionsCompleted")
+            })
 
-                // Simulate the situation when treasury fee is 0% to
-                // allow using the whole wallet's main UTXO value
-                // to fulfill the redemption request.
-                await bridge.setRedemptionTreasuryFeeDivisor(0)
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
 
-                // Before submitting the redemption proof, wait
-                // an amount of time that will make the request
-                // timed out though don't report the timeout.
-                const beforeProofActions = async () => {
-                  await increaseTime(redemptionTimeout)
-                }
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+              )
+            })
+          }
+        )
+      })
 
-                // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                tx = await runRedemptionScenario(data, beforeProofActions)
-              })
+      context("when there are multiple outputs", () => {
+        context(
+          "when output vector consists only of pending requested redemptions",
+          () => {
+            const data: RedemptionTestData = MultiplePendingRequestedRedemptions
+            let tx: ContractTransaction
 
-              after(async () => {
-                await restoreSnapshot()
-              })
+            before(async () => {
+              await createSnapshot()
 
-              it("should emit RedemptionsCompleted event", async () => {
-                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
-              })
+              // Simulate the situation when treasury fee is 0% to
+              // allow using the whole wallet's main UTXO value
+              // to fulfill the redemption requests.
+              await bridge.setRedemptionTreasuryFeeDivisor(0)
 
-              it("should refund ETH", async () => {
-                const postThirdPartyBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postThirdPartyBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
+              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+              tx = await runRedemptionScenario(data)
+            })
 
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("3500000", "gwei") // 0,0035 ETH
-                )
-              })
-            }
-          )
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-          context(
-            "when the single output is a reported timed out requested redemption",
-            () => {
-              const data: RedemptionTestData = SinglePendingRequestedRedemption
-              let tx: ContractTransaction
+            it("should emit RedemptionsCompleted event", async () => {
+              await expect(tx).to.emit(bridge, "RedemptionsCompleted")
+            })
 
-              before(async () => {
-                await createSnapshot()
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
 
-                // Simulate the situation when treasury fee is 0% to
-                // allow using the whole wallet's main UTXO value
-                // to fulfill the redemption request.
-                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("8200000", "gwei") // 0,0082 ETH
+              )
+            })
+          }
+        )
 
-                // Before submitting the redemption proof, wait
-                // an amount of time that will make the request
-                // timed out and then report the timeout.
-                const beforeProofActions = async () => {
-                  await increaseTime(redemptionTimeout)
+        context(
+          "when output vector consists of pending requested redemptions and a non-zero change",
+          () => {
+            const data: RedemptionTestData =
+              MultiplePendingRequestedRedemptionsWithP2WPKHChange
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+              tx = await runRedemptionScenario(data)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit RedemptionsCompleted event", async () => {
+              await expect(tx).to.emit(bridge, "RedemptionsCompleted")
+            })
+
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("9000000", "gwei") // 0,009 ETH
+              )
+            })
+          }
+        )
+
+        context(
+          "when output vector consists only of reported timed out requested redemptions",
+          () => {
+            const data: RedemptionTestData = MultiplePendingRequestedRedemptions
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              // Simulate the situation when treasury fee is 0% to
+              // allow using the whole wallet's main UTXO value
+              // to fulfill the redemption requests.
+              await bridge.setRedemptionTreasuryFeeDivisor(0)
+
+              // Before submitting the redemption proof, wait
+              // an amount of time that will make the requests
+              // timed out and then report the timeouts.
+              const beforeProofActions = async () => {
+                await increaseTime(redemptionTimeout)
+
+                for (let i = 0; i < data.redemptionRequests.length; i++) {
+                  // eslint-disable-next-line no-await-in-loop
                   await bridge.notifyRedemptionTimeout(
                     data.wallet.pubKeyHash,
                     [],
-                    data.redemptionRequests[0].redeemerOutputScript
+                    data.redemptionRequests[i].redeemerOutputScript
                   )
                 }
+              }
 
-                // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                tx = await runRedemptionScenario(data, beforeProofActions)
-              })
+              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+              tx = await runRedemptionScenario(data, beforeProofActions)
+            })
 
-              after(async () => {
-                await restoreSnapshot()
-              })
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-              it("should emit RedemptionsCompleted event", async () => {
-                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
-              })
+            it("should emit RedemptionsCompleted event", async () => {
+              await expect(tx).to.emit(bridge, "RedemptionsCompleted")
+            })
 
-              it("should refund ETH", async () => {
-                const postThirdPartyBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postThirdPartyBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
 
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                )
-              })
-            }
-          )
-        })
+              expect(diff).to.be.gt(ethers.utils.parseUnits("-1000000", "gwei")) // // -0,001 ETH
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+              )
+            })
+          }
+        )
 
-        context("when there are multiple outputs", () => {
-          context(
-            "when output vector consists only of pending requested redemptions",
-            () => {
-              const data: RedemptionTestData =
-                MultiplePendingRequestedRedemptions
-              let tx: ContractTransaction
+        context(
+          "when output vector consists of reported timed out requested redemptions and a non-zero change",
+          () => {
+            const data: RedemptionTestData =
+              MultiplePendingRequestedRedemptionsWithP2WPKHChange
+            let tx: ContractTransaction
 
-              before(async () => {
-                await createSnapshot()
+            before(async () => {
+              await createSnapshot()
 
-                // Simulate the situation when treasury fee is 0% to
-                // allow using the whole wallet's main UTXO value
-                // to fulfill the redemption requests.
-                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              // Before submitting the redemption proof, wait
+              // an amount of time that will make the requests
+              // timed out and then report the timeouts.
+              const beforeProofActions = async () => {
+                await increaseTime(redemptionTimeout)
 
-                // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                tx = await runRedemptionScenario(data)
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should emit RedemptionsCompleted event", async () => {
-                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
-              })
-
-              it("should refund ETH", async () => {
-                const postThirdPartyBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postThirdPartyBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("8200000", "gwei") // 0,0082 ETH
-                )
-              })
-            }
-          )
-
-          context(
-            "when output vector consists of pending requested redemptions and a non-zero change",
-            () => {
-              const data: RedemptionTestData =
-                MultiplePendingRequestedRedemptionsWithP2WPKHChange
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                tx = await runRedemptionScenario(data)
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should emit RedemptionsCompleted event", async () => {
-                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
-              })
-
-              it("should refund ETH", async () => {
-                const postThirdPartyBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-
-                const diff = postThirdPartyBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("9000000", "gwei") // 0,009 ETH
-                )
-              })
-            }
-          )
-
-          context(
-            "when output vector consists only of reported timed out requested redemptions",
-            () => {
-              const data: RedemptionTestData =
-                MultiplePendingRequestedRedemptions
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                // Simulate the situation when treasury fee is 0% to
-                // allow using the whole wallet's main UTXO value
-                // to fulfill the redemption requests.
-                await bridge.setRedemptionTreasuryFeeDivisor(0)
-
-                // Before submitting the redemption proof, wait
-                // an amount of time that will make the requests
-                // timed out and then report the timeouts.
-                const beforeProofActions = async () => {
-                  await increaseTime(redemptionTimeout)
-
-                  for (let i = 0; i < data.redemptionRequests.length; i++) {
-                    // eslint-disable-next-line no-await-in-loop
-                    await bridge.notifyRedemptionTimeout(
-                      data.wallet.pubKeyHash,
-                      [],
-                      data.redemptionRequests[i].redeemerOutputScript
-                    )
-                  }
-                }
-
-                // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                tx = await runRedemptionScenario(data, beforeProofActions)
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should emit RedemptionsCompleted event", async () => {
-                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
-              })
-
-              it("should refund ETH", async () => {
-                const postThirdPartyBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postThirdPartyBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-
-                expect(diff).to.be.gt(
-                  ethers.utils.parseUnits("-1000000", "gwei")
-                ) // // -0,001 ETH
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-                )
-              })
-            }
-          )
-
-          context(
-            "when output vector consists of reported timed out requested redemptions and a non-zero change",
-            () => {
-              const data: RedemptionTestData =
-                MultiplePendingRequestedRedemptionsWithP2WPKHChange
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                // Before submitting the redemption proof, wait
-                // an amount of time that will make the requests
-                // timed out and then report the timeouts.
-                const beforeProofActions = async () => {
-                  await increaseTime(redemptionTimeout)
-
-                  for (let i = 0; i < data.redemptionRequests.length; i++) {
-                    // eslint-disable-next-line no-await-in-loop
-                    await bridge.notifyRedemptionTimeout(
-                      data.wallet.pubKeyHash,
-                      [],
-                      data.redemptionRequests[i].redeemerOutputScript
-                    )
-                  }
-                }
-
-                // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                tx = await runRedemptionScenario(data, beforeProofActions)
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should emit RedemptionsCompleted event", async () => {
-                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
-              })
-
-              it("should refund ETH", async () => {
-                const postThirdPartyBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postThirdPartyBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-
-                expect(diff).to.be.gt(
-                  ethers.utils.parseUnits("-2000000", "gwei")
-                ) // -0,002 ETH
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                )
-              })
-            }
-          )
-
-          context(
-            "when output vector consists of pending requested redemptions and reported timed out requested redemptions",
-            () => {
-              const data: RedemptionTestData =
-                MultiplePendingRequestedRedemptions
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                // Simulate the situation when treasury fee is 0% to
-                // allow using the whole wallet's main UTXO value
-                // to fulfill the redemption requests.
-                await bridge.setRedemptionTreasuryFeeDivisor(0)
-
-                // Before submitting the redemption proof, wait
-                // an amount of time that will make the requests
-                // timed out but report timeout only the two first
-                // requests.
-                const beforeProofActions = async () => {
-                  await increaseTime(redemptionTimeout)
-
+                for (let i = 0; i < data.redemptionRequests.length; i++) {
+                  // eslint-disable-next-line no-await-in-loop
                   await bridge.notifyRedemptionTimeout(
                     data.wallet.pubKeyHash,
                     [],
-                    data.redemptionRequests[0].redeemerOutputScript
-                  )
-                  await bridge.notifyRedemptionTimeout(
-                    data.wallet.pubKeyHash,
-                    [],
-                    data.redemptionRequests[1].redeemerOutputScript
+                    data.redemptionRequests[i].redeemerOutputScript
                   )
                 }
+              }
 
-                tx = await runRedemptionScenario(data, beforeProofActions)
-              })
+              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+              tx = await runRedemptionScenario(data, beforeProofActions)
+            })
 
-              after(async () => {
-                await restoreSnapshot()
-              })
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-              it("should emit RedemptionsCompleted event", async () => {
-                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
-              })
+            it("should emit RedemptionsCompleted event", async () => {
+              await expect(tx).to.emit(bridge, "RedemptionsCompleted")
+            })
 
-              it("should refund ETH", async () => {
-                const postThirdPartyBalance = await provider.getBalance(
-                  authorizedMaintainer.address
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+
+              expect(diff).to.be.gt(ethers.utils.parseUnits("-2000000", "gwei")) // -0,002 ETH
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+              )
+            })
+          }
+        )
+
+        context(
+          "when output vector consists of pending requested redemptions and reported timed out requested redemptions",
+          () => {
+            const data: RedemptionTestData = MultiplePendingRequestedRedemptions
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              // Simulate the situation when treasury fee is 0% to
+              // allow using the whole wallet's main UTXO value
+              // to fulfill the redemption requests.
+              await bridge.setRedemptionTreasuryFeeDivisor(0)
+
+              // Before submitting the redemption proof, wait
+              // an amount of time that will make the requests
+              // timed out but report timeout only the two first
+              // requests.
+              const beforeProofActions = async () => {
+                await increaseTime(redemptionTimeout)
+
+                await bridge.notifyRedemptionTimeout(
+                  data.wallet.pubKeyHash,
+                  [],
+                  data.redemptionRequests[0].redeemerOutputScript
                 )
-                const diff = postThirdPartyBalance.sub(
-                  initialAuthorizedMaintainerBalance
+                await bridge.notifyRedemptionTimeout(
+                  data.wallet.pubKeyHash,
+                  [],
+                  data.redemptionRequests[1].redeemerOutputScript
                 )
+              }
 
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("6000000", "gwei") // 0,006 ETH
+              tx = await runRedemptionScenario(data, beforeProofActions)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit RedemptionsCompleted event", async () => {
+              await expect(tx).to.emit(bridge, "RedemptionsCompleted")
+            })
+
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("6000000", "gwei") // 0,006 ETH
+              )
+            })
+          }
+        )
+
+        context(
+          "when output vector consists of pending requested redemptions, reported timed out requested redemptions and a non-zero change",
+          () => {
+            const data: RedemptionTestData =
+              MultiplePendingRequestedRedemptionsWithP2WPKHChange
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              // Before submitting the redemption proof, wait
+              // an amount of time that will make the requests
+              // timed out but report timeout only the two first
+              // requests.
+              const beforeProofActions = async () => {
+                await increaseTime(redemptionTimeout)
+
+                await bridge.notifyRedemptionTimeout(
+                  data.wallet.pubKeyHash,
+                  [],
+                  data.redemptionRequests[0].redeemerOutputScript
                 )
-              })
-            }
-          )
-
-          context(
-            "when output vector consists of pending requested redemptions, reported timed out requested redemptions and a non-zero change",
-            () => {
-              const data: RedemptionTestData =
-                MultiplePendingRequestedRedemptionsWithP2WPKHChange
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                // Before submitting the redemption proof, wait
-                // an amount of time that will make the requests
-                // timed out but report timeout only the two first
-                // requests.
-                const beforeProofActions = async () => {
-                  await increaseTime(redemptionTimeout)
-
-                  await bridge.notifyRedemptionTimeout(
-                    data.wallet.pubKeyHash,
-                    [],
-                    data.redemptionRequests[0].redeemerOutputScript
-                  )
-                  await bridge.notifyRedemptionTimeout(
-                    data.wallet.pubKeyHash,
-                    [],
-                    data.redemptionRequests[1].redeemerOutputScript
-                  )
-                }
-
-                tx = await runRedemptionScenario(data, beforeProofActions)
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should emit RedemptionsCompleted event", async () => {
-                await expect(tx).to.emit(bridge, "RedemptionsCompleted")
-              })
-
-              it("should refund ETH", async () => {
-                const postThirdPartyBalance = await provider.getBalance(
-                  authorizedMaintainer.address
+                await bridge.notifyRedemptionTimeout(
+                  data.wallet.pubKeyHash,
+                  [],
+                  data.redemptionRequests[1].redeemerOutputScript
                 )
-                const diff = postThirdPartyBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
+              }
 
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("5500000", "gwei") // 0,0055 ETH
-                )
-              })
-            }
-          )
-        })
+              tx = await runRedemptionScenario(data, beforeProofActions)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit RedemptionsCompleted event", async () => {
+              await expect(tx).to.emit(bridge, "RedemptionsCompleted")
+            })
+
+            it("should refund ETH", async () => {
+              const postThirdPartyBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postThirdPartyBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("5500000", "gwei") // 0,0055 ETH
+              )
+            })
+          }
+        )
       })
     })
   })
