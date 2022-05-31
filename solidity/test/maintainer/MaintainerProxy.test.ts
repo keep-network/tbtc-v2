@@ -763,10 +763,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
@@ -812,10 +812,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
@@ -866,10 +866,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
@@ -910,10 +910,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
@@ -948,11 +948,11 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
 
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
               expect(diff).to.be.gt(0)
@@ -1006,10 +1006,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
@@ -1060,10 +1060,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
@@ -1120,10 +1120,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
@@ -1176,10 +1176,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
@@ -1854,10 +1854,10 @@ describe("MaintainerProxy", () => {
         })
 
         it("should refund ETH", async () => {
-          const postThirdPartyBalance = await provider.getBalance(
+          const postMaintainerBalance = await provider.getBalance(
             authorizedMaintainer.address
           )
-          const diff = postThirdPartyBalance.sub(
+          const diff = postMaintainerBalance.sub(
             initialAuthorizedMaintainerBalance
           )
 
@@ -2079,10 +2079,10 @@ describe("MaintainerProxy", () => {
     })
 
     it("should refund ETH", async () => {
-      const postThirdPartyBalance = await provider.getBalance(
+      const postMaintainerBalance = await provider.getBalance(
         authorizedMaintainer.address
       )
-      const diff = postThirdPartyBalance.sub(initialAuthorizedMaintainerBalance)
+      const diff = postMaintainerBalance.sub(initialAuthorizedMaintainerBalance)
 
       expect(diff).to.be.gt(0)
       expect(diff).to.be.lt(
@@ -2129,10 +2129,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
@@ -2168,10 +2168,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postThirdPartyBalance = await provider.getBalance(
+              const postMaintainerBalance = await provider.getBalance(
                 authorizedMaintainer.address
               )
-              const diff = postThirdPartyBalance.sub(
+              const diff = postMaintainerBalance.sub(
                 initialAuthorizedMaintainerBalance
               )
 
