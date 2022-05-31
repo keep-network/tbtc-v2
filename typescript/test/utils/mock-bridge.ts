@@ -143,8 +143,11 @@ export class MockBridge implements Bridge {
       ]).toString("hex")}`
 
       const redemptionKey = utils.solidityKeccak256(
-        ["bytes20", "bytes"],
-        [prefixedWalletPubKeyHash, prefixedOutputScript]
+        ["bytes32", "bytes20"],
+        [
+          utils.solidityKeccak256(["bytes"], [prefixedOutputScript]),
+          prefixedWalletPubKeyHash,
+        ]
       )
 
       // Return the redemption if it is found in the map.

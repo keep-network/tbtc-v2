@@ -57,8 +57,11 @@ export class Bridge implements ChainBridge {
     // Build the redemption key by using the 0x-prefixed wallet PKH and
     // prefixed output script.
     const redemptionKey = utils.solidityKeccak256(
-      ["bytes20", "bytes"],
-      [`0x${walletPubKeyHash}`, prefixedRawRedeemerOutputScript]
+      ["bytes32", "bytes20"],
+      [
+        utils.solidityKeccak256(["bytes"], [prefixedRawRedeemerOutputScript]),
+        `0x${walletPubKeyHash}`,
+      ]
     )
 
     const request = await this._bridge.pendingRedemptions(redemptionKey)
