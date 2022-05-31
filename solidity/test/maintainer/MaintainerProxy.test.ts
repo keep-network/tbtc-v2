@@ -72,13 +72,6 @@ const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
 // other tbtc-v2 tests suites and adjusted to check the refund functionality of
 // the MaintainerProxy contract.
 describe("MaintainerProxy", () => {
-  const activeWalletMainUtxo = {
-    txHash:
-      "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
-    txOutputIndex: 1,
-    txOutputValue: constants.walletCreationMinBtcBalance,
-  }
-
   let governance: SignerWithAddress
   let bridge: Bridge & BridgeStub
   let thirdParty: SignerWithAddress
@@ -152,6 +145,13 @@ describe("MaintainerProxy", () => {
     })
 
     context("when called by an authorized maintainer", async () => {
+      const activeWalletMainUtxo = {
+        txHash:
+          "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+        txOutputIndex: 1,
+        txOutputValue: constants.walletCreationMinBtcBalance,
+      }
+
       let tx: ContractTransaction
 
       before(async () => {
@@ -1820,170 +1820,118 @@ describe("MaintainerProxy", () => {
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     }
 
-    context("when source wallet is in the MovingFunds state", () => {
+    // Just an arbitrary main UTXO with value of 26 BTC.
+    const mainUtxo = {
+      txHash:
+        "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+      txOutputIndex: 0,
+      txOutputValue: to1ePrecision(26, 8),
+    }
+
+    // Just some arbitrary 20-byte hashes to simulate live
+    // wallets PKHs. They are ordered in the expected way, i.e.
+    // the hashes represented as numbers form a strictly
+    // increasing sequence.
+    const liveWallets = [
+      "0x4b440cb29c80c3f256212d8fdd4f2125366f3c91",
+      "0x888f01315e0268bfa05d5e522f8d63f6824d9a96",
+      "0xb2a89e53a4227dbe530a52a1c419040735fa636c",
+      "0xbf198e8fff0f90af01024153701da99b9bc08dc5",
+      "0xffb9e05013f5cd126915bc03d340cc5c1be81862",
+    ]
+
+    const expectedTargetWalletsCount = 3
+
+    before(async () => {
+      await createSnapshot()
+
+      await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+        ...walletDraft,
+        state: walletState.MovingFunds,
+      })
+
+      await bridge.setWalletMainUtxo(
+        ecdsaWalletTestData.pubKeyHash160,
+        mainUtxo
+      )
+
+      for (let i = 0; i < liveWallets.length; i++) {
+        // eslint-disable-next-line no-await-in-loop
+        await bridge.setWallet(liveWallets[i], {
+          ...walletDraft,
+          state: walletState.Live,
+        })
+      }
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the caller is a member of the source wallet", () => {
+      const walletMembersIDs = [1, 2, 3, 4, 5]
+      const walletMemberIndex = 2
+
+      let caller: SignerWithAddress
+
+      let tx: ContractTransaction
+      let initCallerBalance: BigNumber
+
       before(async () => {
         await createSnapshot()
 
-        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
-          ...walletDraft,
-          state: walletState.MovingFunds,
-        })
+        // Make the caller a member of the source wallet but also DO NOT make
+        // the caller authorized maintainer - this is not needed.
+        caller = thirdParty
+        walletRegistry.isWalletMember
+          .whenCalledWith(
+            ecdsaWalletTestData.walletID,
+            walletMembersIDs,
+            maintainerProxy.address,
+            walletMemberIndex
+          )
+          .returns(true)
+      })
+
+      after(async () => {
+        walletRegistry.isWalletMember.reset()
+
+        await restoreSnapshot()
+      })
+
+      before(async () => {
+        await createSnapshot()
+
+        initCallerBalance = await provider.getBalance(caller.address)
+
+        const targetWallets = liveWallets.slice(0, expectedTargetWalletsCount)
+        tx = await maintainerProxy
+          .connect(caller)
+          .submitMovingFundsCommitment(
+            ecdsaWalletTestData.pubKeyHash160,
+            mainUtxo,
+            walletMembersIDs,
+            walletMemberIndex,
+            targetWallets
+          )
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      context("when source wallet has no pending redemptions", () => {
-        context("when the caller is a member of the source wallet", () => {
-          const walletMembersIDs = [1, 2, 3, 4, 5]
-          const walletMemberIndex = 2
+      it("should emit MovingFundsCommitmentSubmitted event", async () => {
+        await expect(tx).to.emit(bridge, "MovingFundsCommitmentSubmitted")
+      })
 
-          let caller: SignerWithAddress
+      it("should refund ETH", async () => {
+        const postThirdPartyBalance = await provider.getBalance(caller.address)
+        const diff = postThirdPartyBalance.sub(initCallerBalance)
 
-          before(async () => {
-            await createSnapshot()
-
-            caller = thirdParty
-
-            await maintainerProxy.connect(governance).authorize(caller.address)
-
-            walletRegistry.isWalletMember
-              .whenCalledWith(
-                ecdsaWalletTestData.walletID,
-                walletMembersIDs,
-                maintainerProxy.address,
-                walletMemberIndex
-              )
-              .returns(true)
-          })
-
-          after(async () => {
-            walletRegistry.isWalletMember.reset()
-
-            await restoreSnapshot()
-          })
-
-          context("when passed wallet main UTXO is valid", () => {
-            context("when wallet balance is greater than zero", () => {
-              // Just an arbitrary main UTXO with value of 26 BTC.
-              const mainUtxo = {
-                txHash:
-                  "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
-                txOutputIndex: 0,
-                txOutputValue: to1ePrecision(26, 8),
-              }
-
-              before(async () => {
-                await createSnapshot()
-
-                // Set up a main UTXO for the source wallet.
-                await bridge.setWalletMainUtxo(
-                  ecdsaWalletTestData.pubKeyHash160,
-                  mainUtxo
-                )
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              context(
-                "when the expected target wallets count is greater than zero",
-                () => {
-                  // Just some arbitrary 20-byte hashes to simulate live
-                  // wallets PKHs. They are ordered in the expected way, i.e.
-                  // the hashes represented as numbers form a strictly
-                  // increasing sequence.
-                  const liveWallets = [
-                    "0x4b440cb29c80c3f256212d8fdd4f2125366f3c91",
-                    "0x888f01315e0268bfa05d5e522f8d63f6824d9a96",
-                    "0xb2a89e53a4227dbe530a52a1c419040735fa636c",
-                    "0xbf198e8fff0f90af01024153701da99b9bc08dc5",
-                    "0xffb9e05013f5cd126915bc03d340cc5c1be81862",
-                  ]
-
-                  before(async () => {
-                    await createSnapshot()
-
-                    for (let i = 0; i < liveWallets.length; i++) {
-                      // eslint-disable-next-line no-await-in-loop
-                      await bridge.setWallet(liveWallets[i], {
-                        ...walletDraft,
-                        state: walletState.Live,
-                      })
-                    }
-                  })
-
-                  after(async () => {
-                    await restoreSnapshot()
-                  })
-
-                  context(
-                    "when the submitted target wallets count is same as the expected",
-                    () => {
-                      const expectedTargetWalletsCount = 3
-
-                      context(
-                        "when all target wallets are in the Live state",
-                        () => {
-                          let tx: ContractTransaction
-                          let initCallerBalance: BigNumber
-
-                          const targetWallets = liveWallets.slice(
-                            0,
-                            expectedTargetWalletsCount
-                          )
-
-                          before(async () => {
-                            await createSnapshot()
-
-                            initCallerBalance = await provider.getBalance(
-                              caller.address
-                            )
-
-                            tx = await maintainerProxy
-                              .connect(caller)
-                              .submitMovingFundsCommitment(
-                                ecdsaWalletTestData.pubKeyHash160,
-                                mainUtxo,
-                                walletMembersIDs,
-                                walletMemberIndex,
-                                targetWallets
-                              )
-                          })
-
-                          after(async () => {
-                            await restoreSnapshot()
-                          })
-
-                          it("should emit MovingFundsCommitmentSubmitted event", async () => {
-                            await expect(tx).to.emit(
-                              bridge,
-                              "MovingFundsCommitmentSubmitted"
-                            )
-                          })
-
-                          it("should refund ETH", async () => {
-                            const postThirdPartyBalance =
-                              await provider.getBalance(caller.address)
-                            const diff =
-                              postThirdPartyBalance.sub(initCallerBalance)
-
-                            expect(diff).to.be.gt(0)
-                            expect(diff).to.be.lt(
-                              ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-                            )
-                          })
-                        }
-                      )
-                    }
-                  )
-                }
-              )
-            })
-          })
-        })
+        expect(diff).to.be.gt(0)
+        expect(diff).to.be.lt(
+          ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+        )
       })
     })
   })
