@@ -157,10 +157,6 @@ describe("MaintainerProxy", () => {
       before(async () => {
         await createSnapshot()
 
-        initialAuthorizedMaintainerBalance = await provider.getBalance(
-          authorizedMaintainer.address
-        )
-
         tx = await maintainerProxy
           .connect(authorizedMaintainer)
           .requestNewWallet(activeWalletMainUtxo)
@@ -1444,6 +1440,7 @@ describe("MaintainerProxy", () => {
           "when the input is marked as correctly spent in the Bridge",
           () => {
             const data = nonWitnessSignSingleInputTx
+            let initialThirdPartyBalance: BigNumber
             let tx: ContractTransaction
 
             before(async () => {
@@ -1478,12 +1475,11 @@ describe("MaintainerProxy", () => {
                   }
                 )
 
-              initialAuthorizedMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+              initialThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
               )
-
               tx = await maintainerProxy
-                .connect(authorizedMaintainer)
+                .connect(thirdParty)
                 .defeatFraudChallenge(
                   walletPublicKey,
                   data.preimage,
@@ -1500,12 +1496,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+              const postThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
               )
-              const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
-              )
+              const diff = postThirdPartyBalance.sub(initialThirdPartyBalance)
 
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
@@ -1521,6 +1515,7 @@ describe("MaintainerProxy", () => {
           "when the input is marked as correctly spent in the Bridge",
           () => {
             const data = nonWitnessSignMultipleInputsTx
+            let initialThirdPartyBalance: BigNumber
             let tx: ContractTransaction
 
             before(async () => {
@@ -1555,12 +1550,11 @@ describe("MaintainerProxy", () => {
                   }
                 )
 
-              initialAuthorizedMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+              initialThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
               )
-
               tx = await maintainerProxy
-                .connect(authorizedMaintainer)
+                .connect(thirdParty)
                 .defeatFraudChallenge(
                   walletPublicKey,
                   data.preimage,
@@ -1577,12 +1571,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+              const postThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
               )
-              const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
-              )
+              const diff = postThirdPartyBalance.sub(initialThirdPartyBalance)
 
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
@@ -1600,6 +1592,7 @@ describe("MaintainerProxy", () => {
           "when the input is marked as correctly spent in the Bridge",
           () => {
             const data = witnessSignSingleInputTx
+            let initialThirdPartyBalance: BigNumber
             let tx: ContractTransaction
 
             before(async () => {
@@ -1634,12 +1627,11 @@ describe("MaintainerProxy", () => {
                   }
                 )
 
-              initialAuthorizedMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+              initialThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
               )
-
               tx = await maintainerProxy
-                .connect(authorizedMaintainer)
+                .connect(thirdParty)
                 .defeatFraudChallenge(
                   walletPublicKey,
                   data.preimage,
@@ -1656,12 +1648,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+              const postThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
               )
-              const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
-              )
+              const diff = postThirdPartyBalance.sub(initialThirdPartyBalance)
 
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
@@ -1677,6 +1667,7 @@ describe("MaintainerProxy", () => {
           "when the input is marked as correctly spent in the Bridge",
           () => {
             const data = witnessSignMultipleInputTx
+            let initialThirdPartyBalance: BigNumber
             let tx: ContractTransaction
 
             before(async () => {
@@ -1711,12 +1702,11 @@ describe("MaintainerProxy", () => {
                   }
                 )
 
-              initialAuthorizedMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+              initialThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
               )
-
               tx = await maintainerProxy
-                .connect(authorizedMaintainer)
+                .connect(thirdParty)
                 .defeatFraudChallenge(
                   walletPublicKey,
                   data.preimage,
@@ -1733,12 +1723,10 @@ describe("MaintainerProxy", () => {
             })
 
             it("should refund ETH", async () => {
-              const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+              const postThirdPartyBalance = await provider.getBalance(
+                thirdParty.address
               )
-              const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
-              )
+              const diff = postThirdPartyBalance.sub(initialThirdPartyBalance)
 
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
@@ -1755,6 +1743,7 @@ describe("MaintainerProxy", () => {
     let heartbeatWalletPublicKey: string
     let heartbeatWalletSigningKey: SigningKey
 
+    let initialThirdPartyBalance: BigNumber
     let tx: ContractTransaction
 
     before(async () => {
@@ -1808,11 +1797,9 @@ describe("MaintainerProxy", () => {
           }
         )
 
-      initialAuthorizedMaintainerBalance = await provider.getBalance(
-        authorizedMaintainer.address
-      )
+      initialThirdPartyBalance = await provider.getBalance(thirdParty.address)
       tx = await maintainerProxy
-        .connect(authorizedMaintainer)
+        .connect(thirdParty)
         .defeatFraudChallengeWithHeartbeat(
           heartbeatWalletPublicKey,
           heartbeatMessage
@@ -1828,10 +1815,10 @@ describe("MaintainerProxy", () => {
     })
 
     it("should refund ETH", async () => {
-      const postMaintainerBalance = await provider.getBalance(
-        authorizedMaintainer.address
+      const postThirdPartyBalance = await provider.getBalance(
+        thirdParty.address
       )
-      const diff = postMaintainerBalance.sub(initialAuthorizedMaintainerBalance)
+      const diff = postThirdPartyBalance.sub(initialThirdPartyBalance)
 
       expect(diff).to.be.gt(0)
       expect(diff).to.be.lt(
@@ -1961,17 +1948,12 @@ describe("MaintainerProxy", () => {
       const walletMembersIDs = [1, 2, 3, 4, 5]
       const walletMemberIndex = 2
 
-      let caller: SignerWithAddress
-
+      let initialThirdPartyBalance: BigNumber
       let tx: ContractTransaction
-      let initCallerBalance: BigNumber
 
       before(async () => {
         await createSnapshot()
 
-        // Make the caller a member of the source wallet but also DO NOT make
-        // the caller authorized maintainer - this is not needed.
-        caller = thirdParty
         walletRegistry.isWalletMember
           .whenCalledWith(
             ecdsaWalletTestData.walletID,
@@ -1981,11 +1963,11 @@ describe("MaintainerProxy", () => {
           )
           .returns(true)
 
-        initCallerBalance = await provider.getBalance(caller.address)
+        initialThirdPartyBalance = await provider.getBalance(thirdParty.address)
 
         const targetWallets = liveWallets.slice(0, expectedTargetWalletsCount)
         tx = await maintainerProxy
-          .connect(caller)
+          .connect(thirdParty)
           .submitMovingFundsCommitment(
             ecdsaWalletTestData.pubKeyHash160,
             mainUtxo,
@@ -2006,8 +1988,10 @@ describe("MaintainerProxy", () => {
       })
 
       it("should refund ETH", async () => {
-        const postThirdPartyBalance = await provider.getBalance(caller.address)
-        const diff = postThirdPartyBalance.sub(initCallerBalance)
+        const postThirdPartyBalance = await provider.getBalance(
+          thirdParty.address
+        )
+        const diff = postThirdPartyBalance.sub(initialThirdPartyBalance)
 
         expect(diff).to.be.gt(0)
         expect(diff).to.be.lt(
@@ -2018,6 +2002,7 @@ describe("MaintainerProxy", () => {
   })
 
   describe("resetMovingFundsTimeout", () => {
+    let initialThirdPartyBalance: BigNumber
     let tx: ContractTransaction
 
     before(async () => {
@@ -2037,11 +2022,9 @@ describe("MaintainerProxy", () => {
 
       await increaseTime(movingFundsTimeoutResetDelay)
 
-      initialAuthorizedMaintainerBalance = await provider.getBalance(
-        authorizedMaintainer.address
-      )
+      initialThirdPartyBalance = await provider.getBalance(thirdParty.address)
       tx = await maintainerProxy
-        .connect(authorizedMaintainer)
+        .connect(thirdParty)
         .resetMovingFundsTimeout(ecdsaWalletTestData.pubKeyHash160)
     })
 
@@ -2055,9 +2038,9 @@ describe("MaintainerProxy", () => {
 
     it("should refund ETH", async () => {
       const postThirdPartyBalance = await provider.getBalance(
-        authorizedMaintainer.address
+        thirdParty.address
       )
-      const diff = postThirdPartyBalance.sub(initialAuthorizedMaintainerBalance)
+      const diff = postThirdPartyBalance.sub(initialThirdPartyBalance)
 
       expect(diff).to.be.gt(0)
       expect(diff).to.be.lt(
@@ -2093,10 +2076,6 @@ describe("MaintainerProxy", () => {
       await bridge.setWalletMainUtxo(
         ecdsaWalletTestData.pubKeyHash160,
         mainUtxo
-      )
-
-      initialAuthorizedMaintainerBalance = await provider.getBalance(
-        authorizedMaintainer.address
       )
 
       tx = await maintainerProxy
