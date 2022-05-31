@@ -14,13 +14,28 @@ const config: HardhatUserConfig = {
 
   namedAccounts: {
     deployer: {
-      default: 0,
-    },
-    maintainer: {
       default: 1,
     },
-    depositor: {
+    treasury: {
       default: 2,
+    },
+    governance: {
+      default: 3,
+    },
+    keepTechnicalWalletTeam: {
+      default: 4,
+    },
+    keepCommunityMultiSig: {
+      default: 5,
+    },
+    esdm: {
+      default: 6,
+    },
+    maintainer: {
+      default: 7,
+    },
+    depositor: {
+      default: 8,
     },
   },
 

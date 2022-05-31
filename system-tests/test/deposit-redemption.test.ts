@@ -17,10 +17,12 @@ describe("System Test - Deposit and redemption", () => {
 
   before(async () => {
     systemTestsContext = await setupSystemTestsContext()
-    const { electrumUrl, maintainer, depositor, bridgeAddress } =
+    const { electrumUrl, maintainer, depositor, contractsDeploymentInfo } =
       systemTestsContext
 
     electrumClient = new ElectrumClient(parseElectrumCredentials(electrumUrl))
+
+    const bridgeAddress = contractsDeploymentInfo.contracts["Bridge"].address
 
     maintainerBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
