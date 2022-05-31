@@ -1226,541 +1226,527 @@ describe("MaintainerProxy", () => {
     })
 
     context("when called by an authorized maintainer", async () => {
-      context("when the reported wallet is not the active one", () => {
-        context("when wallet is in Live state", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ecdsaWalletID: ecdsaWalletTestData.walletID,
+          mainUtxoHash: ethers.constants.HashZero,
+          pendingRedemptionsValue: 0,
+          createdAt: await lastBlockTime(),
+          movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
+          state: walletState.Live,
+          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+        })
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when wallet reached the maximum age", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await increaseTime((await bridge.walletParameters()).walletMaxAge)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context("when wallet balance is zero", () => {
+          let tx: ContractTransaction
+
           before(async () => {
             await createSnapshot()
 
-            await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
-              ecdsaWalletID: ecdsaWalletTestData.walletID,
-              mainUtxoHash: ethers.constants.HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: await lastBlockTime(),
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
-              state: walletState.Live,
-              movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
-            })
+            tx = await maintainerProxy
+              .connect(authorizedMaintainer)
+              .notifyWalletCloseable(
+                ecdsaWalletTestData.pubKeyHash160,
+                NO_MAIN_UTXO
+              )
           })
 
           after(async () => {
             await restoreSnapshot()
           })
 
-          context("when wallet reached the maximum age", () => {
+          it("should emit WalletClosing event", async () => {
+            await expect(tx).to.emit(bridge, "WalletClosing")
+          })
+
+          it("should refund ETH", async () => {
+            const postMaintainerBalance = await provider.getBalance(
+              authorizedMaintainer.address
+            )
+            const diff = postMaintainerBalance.sub(
+              initialAuthorizedMaintainerBalance
+            )
+
+            expect(diff).to.be.gt(0)
+            expect(diff).to.be.lt(
+              ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+            )
+          })
+        })
+
+        context("when wallet balance is greater than zero", () => {
+          const walletMainUtxo = {
+            txHash:
+              "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+            txOutputIndex: 0,
+            txOutputValue: 1,
+          }
+
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.setWalletMainUtxo(
+              ecdsaWalletTestData.pubKeyHash160,
+              walletMainUtxo
+            )
+
+            tx = await maintainerProxy
+              .connect(authorizedMaintainer)
+              .notifyWalletCloseable(
+                ecdsaWalletTestData.pubKeyHash160,
+                walletMainUtxo
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should emit WalletMovingFunds event", async () => {
+            await expect(tx).to.emit(bridge, "WalletMovingFunds")
+          })
+
+          it("should refund ETH", async () => {
+            const postMaintainerBalance = await provider.getBalance(
+              authorizedMaintainer.address
+            )
+            const diff = postMaintainerBalance.sub(
+              initialAuthorizedMaintainerBalance
+            )
+
+            expect(diff).to.be.gt(0)
+            expect(diff).to.be.lt(
+              ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+            )
+          })
+        })
+      })
+
+      context(
+        "when wallet did not reach the maximum age but their balance is lesser than the minimum threshold",
+        () => {
+          context("when wallet balance is zero", () => {
+            let tx: ContractTransaction
+
             before(async () => {
               await createSnapshot()
 
-              await increaseTime((await bridge.walletParameters()).walletMaxAge)
+              tx = await maintainerProxy
+                .connect(authorizedMaintainer)
+                .notifyWalletCloseable(
+                  ecdsaWalletTestData.pubKeyHash160,
+                  NO_MAIN_UTXO
+                )
             })
 
             after(async () => {
               await restoreSnapshot()
             })
 
-            context("when wallet balance is zero", () => {
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                tx = await maintainerProxy
-                  .connect(authorizedMaintainer)
-                  .notifyWalletCloseable(
-                    ecdsaWalletTestData.pubKeyHash160,
-                    NO_MAIN_UTXO
-                  )
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should emit WalletClosing event", async () => {
-                await expect(tx).to.emit(bridge, "WalletClosing")
-              })
-
-              it("should refund ETH", async () => {
-                const postMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postMaintainerBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                )
-              })
+            it("should emit WalletClosing event", async () => {
+              await expect(tx).to.emit(bridge, "WalletClosing")
             })
 
-            context("when wallet balance is greater than zero", () => {
-              const walletMainUtxo = {
-                txHash:
-                  "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
-                txOutputIndex: 0,
-                txOutputValue: 1,
-              }
+            it("should refund ETH", async () => {
+              const postMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
 
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                await bridge.setWalletMainUtxo(
-                  ecdsaWalletTestData.pubKeyHash160,
-                  walletMainUtxo
-                )
-
-                tx = await maintainerProxy
-                  .connect(authorizedMaintainer)
-                  .notifyWalletCloseable(
-                    ecdsaWalletTestData.pubKeyHash160,
-                    walletMainUtxo
-                  )
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should emit WalletMovingFunds event", async () => {
-                await expect(tx).to.emit(bridge, "WalletMovingFunds")
-              })
-
-              it("should refund ETH", async () => {
-                const postMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postMaintainerBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                )
-              })
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+              )
             })
           })
 
-          context(
-            "when wallet did not reach the maximum age but their balance is lesser than the minimum threshold",
-            () => {
-              context("when wallet balance is zero", () => {
-                let tx: ContractTransaction
-
-                before(async () => {
-                  await createSnapshot()
-
-                  tx = await maintainerProxy
-                    .connect(authorizedMaintainer)
-                    .notifyWalletCloseable(
-                      ecdsaWalletTestData.pubKeyHash160,
-                      NO_MAIN_UTXO
-                    )
-                })
-
-                after(async () => {
-                  await restoreSnapshot()
-                })
-
-                it("should emit WalletClosing event", async () => {
-                  await expect(tx).to.emit(bridge, "WalletClosing")
-                })
-
-                it("should refund ETH", async () => {
-                  const postMaintainerBalance = await provider.getBalance(
-                    authorizedMaintainer.address
-                  )
-                  const diff = postMaintainerBalance.sub(
-                    initialAuthorizedMaintainerBalance
-                  )
-
-                  expect(diff).to.be.gt(0)
-                  expect(diff).to.be.lt(
-                    ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                  )
-                })
-              })
-
-              context("when wallet balance is greater than zero", () => {
-                const walletMainUtxo = {
-                  txHash:
-                    "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
-                  txOutputIndex: 0,
-                  txOutputValue: constants.walletClosureMinBtcBalance.sub(1),
-                }
-
-                let tx: ContractTransaction
-
-                before(async () => {
-                  await createSnapshot()
-
-                  await bridge.setWalletMainUtxo(
-                    ecdsaWalletTestData.pubKeyHash160,
-                    walletMainUtxo
-                  )
-
-                  tx = await maintainerProxy
-                    .connect(authorizedMaintainer)
-                    .notifyWalletCloseable(
-                      ecdsaWalletTestData.pubKeyHash160,
-                      walletMainUtxo
-                    )
-                })
-
-                after(async () => {
-                  await restoreSnapshot()
-                })
-
-                it("should emit WalletMovingFunds event", async () => {
-                  await expect(tx).to.emit(bridge, "WalletMovingFunds")
-                })
-
-                it("should refund ETH", async () => {
-                  const postMaintainerBalance = await provider.getBalance(
-                    authorizedMaintainer.address
-                  )
-                  const diff = postMaintainerBalance.sub(
-                    initialAuthorizedMaintainerBalance
-                  )
-
-                  expect(diff).to.be.gt(0)
-                  expect(diff).to.be.lt(
-                    ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                  )
-                })
-              })
+          context("when wallet balance is greater than zero", () => {
+            const walletMainUtxo = {
+              txHash:
+                "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
+              txOutputIndex: 0,
+              txOutputValue: constants.walletClosureMinBtcBalance.sub(1),
             }
-          )
-        })
-      })
+
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              await bridge.setWalletMainUtxo(
+                ecdsaWalletTestData.pubKeyHash160,
+                walletMainUtxo
+              )
+
+              tx = await maintainerProxy
+                .connect(authorizedMaintainer)
+                .notifyWalletCloseable(
+                  ecdsaWalletTestData.pubKeyHash160,
+                  walletMainUtxo
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit WalletMovingFunds event", async () => {
+              await expect(tx).to.emit(bridge, "WalletMovingFunds")
+            })
+
+            it("should refund ETH", async () => {
+              const postMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+              )
+            })
+          })
+        }
+      )
     })
   })
 
   describe("defeatFraudChallenge", () => {
-    before(async () => {
-      await createSnapshot()
-    })
+    context("when the input is non-witness", () => {
+      context("when the transaction has single input", () => {
+        context(
+          "when the input is marked as correctly spent in the Bridge",
+          () => {
+            const data = nonWitnessSignSingleInputTx
+            let tx: ContractTransaction
 
-    after(async () => {
-      await restoreSnapshot()
-    })
+            before(async () => {
+              await createSnapshot()
 
-    context("when the challenge exists", () => {
-      context("when the input is non-witness", () => {
-        context("when the transaction has single input", () => {
-          context(
-            "when the input is marked as correctly spent in the Bridge",
-            () => {
-              const data = nonWitnessSignSingleInputTx
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                await bridge.setWallet(walletPublicKeyHash, {
-                  ecdsaWalletID: ethers.constants.HashZero,
-                  mainUtxoHash: ethers.constants.HashZero,
-                  pendingRedemptionsValue: 0,
-                  createdAt: await lastBlockTime(),
-                  movingFundsRequestedAt: 0,
-                  closingStartedAt: 0,
-                  pendingMovedFundsSweepRequestsCount: 0,
-                  state: walletState.Live,
-                  movingFundsTargetWalletsCommitmentHash:
-                    ethers.constants.HashZero,
-                })
-                await bridge.setSweptDeposits(data.deposits)
-                await bridge.setSpentMainUtxos(data.spentMainUtxos)
-                await bridge.setProcessedMovedFundsSweepRequests(
-                  data.movedFundsSweepRequests
-                )
-
-                await bridge
-                  .connect(thirdParty)
-                  .submitFraudChallenge(
-                    walletPublicKey,
-                    data.preimageSha256,
-                    data.signature,
-                    {
-                      value: fraudChallengeDepositAmount,
-                    }
-                  )
-
-                initialAuthorizedMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-
-                tx = await maintainerProxy
-                  .connect(authorizedMaintainer)
-                  .defeatFraudChallenge(
-                    walletPublicKey,
-                    data.preimage,
-                    data.witness
-                  )
+              await bridge.setWallet(walletPublicKeyHash, {
+                ecdsaWalletID: ethers.constants.HashZero,
+                mainUtxoHash: ethers.constants.HashZero,
+                pendingRedemptionsValue: 0,
+                createdAt: await lastBlockTime(),
+                movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
+                state: walletState.Live,
+                movingFundsTargetWalletsCommitmentHash:
+                  ethers.constants.HashZero,
               })
+              await bridge.setSweptDeposits(data.deposits)
+              await bridge.setSpentMainUtxos(data.spentMainUtxos)
+              await bridge.setProcessedMovedFundsSweepRequests(
+                data.movedFundsSweepRequests
+              )
 
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should emit FraudChallengeDefeated event", async () => {
-                await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
-              })
-
-              it("should refund ETH", async () => {
-                const postMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postMaintainerBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                )
-              })
-            }
-          )
-        })
-
-        context("when the transaction has multiple inputs", () => {
-          context(
-            "when the input is marked as correctly spent in the Bridge",
-            () => {
-              const data = nonWitnessSignMultipleInputsTx
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                await bridge.setWallet(walletPublicKeyHash, {
-                  ecdsaWalletID: ethers.constants.HashZero,
-                  mainUtxoHash: ethers.constants.HashZero,
-                  pendingRedemptionsValue: 0,
-                  createdAt: await lastBlockTime(),
-                  movingFundsRequestedAt: 0,
-                  closingStartedAt: 0,
-                  pendingMovedFundsSweepRequestsCount: 0,
-                  state: walletState.Live,
-                  movingFundsTargetWalletsCommitmentHash:
-                    ethers.constants.HashZero,
-                })
-                await bridge.setSweptDeposits(data.deposits)
-                await bridge.setSpentMainUtxos(data.spentMainUtxos)
-                await bridge.setProcessedMovedFundsSweepRequests(
-                  data.movedFundsSweepRequests
+              await bridge
+                .connect(thirdParty)
+                .submitFraudChallenge(
+                  walletPublicKey,
+                  data.preimageSha256,
+                  data.signature,
+                  {
+                    value: fraudChallengeDepositAmount,
+                  }
                 )
 
-                await bridge
-                  .connect(thirdParty)
-                  .submitFraudChallenge(
-                    walletPublicKey,
-                    data.preimageSha256,
-                    data.signature,
-                    {
-                      value: fraudChallengeDepositAmount,
-                    }
-                  )
+              initialAuthorizedMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
 
-                initialAuthorizedMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
+              tx = await maintainerProxy
+                .connect(authorizedMaintainer)
+                .defeatFraudChallenge(
+                  walletPublicKey,
+                  data.preimage,
+                  data.witness
                 )
+            })
 
-                tx = await maintainerProxy
-                  .connect(authorizedMaintainer)
-                  .defeatFraudChallenge(
-                    walletPublicKey,
-                    data.preimage,
-                    data.witness
-                  )
-              })
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-              after(async () => {
-                await restoreSnapshot()
-              })
+            it("should emit FraudChallengeDefeated event", async () => {
+              await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
+            })
 
-              it("should emit FraudChallengeDefeated event", async () => {
-                await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
-              })
+            it("should refund ETH", async () => {
+              const postMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
 
-              it("should refund ETH", async () => {
-                const postMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postMaintainerBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                )
-              })
-            }
-          )
-        })
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+              )
+            })
+          }
+        )
       })
 
-      context("when the input is witness", () => {
-        context("when the transaction has single input", () => {
-          context(
-            "when the input is marked as correctly spent in the Bridge",
-            () => {
-              const data = witnessSignSingleInputTx
-              let tx: ContractTransaction
+      context("when the transaction has multiple inputs", () => {
+        context(
+          "when the input is marked as correctly spent in the Bridge",
+          () => {
+            const data = nonWitnessSignMultipleInputsTx
+            let tx: ContractTransaction
 
-              before(async () => {
-                await createSnapshot()
+            before(async () => {
+              await createSnapshot()
 
-                await bridge.setWallet(walletPublicKeyHash, {
-                  ecdsaWalletID: ethers.constants.HashZero,
-                  mainUtxoHash: ethers.constants.HashZero,
-                  pendingRedemptionsValue: 0,
-                  createdAt: await lastBlockTime(),
-                  movingFundsRequestedAt: 0,
-                  closingStartedAt: 0,
-                  pendingMovedFundsSweepRequestsCount: 0,
-                  state: walletState.Live,
-                  movingFundsTargetWalletsCommitmentHash:
-                    ethers.constants.HashZero,
-                })
-                await bridge.setSweptDeposits(data.deposits)
-                await bridge.setSpentMainUtxos(data.spentMainUtxos)
-                await bridge.setProcessedMovedFundsSweepRequests(
-                  data.movedFundsSweepRequests
-                )
-
-                await bridge
-                  .connect(thirdParty)
-                  .submitFraudChallenge(
-                    walletPublicKey,
-                    data.preimageSha256,
-                    data.signature,
-                    {
-                      value: fraudChallengeDepositAmount,
-                    }
-                  )
-
-                initialAuthorizedMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-
-                tx = await maintainerProxy
-                  .connect(authorizedMaintainer)
-                  .defeatFraudChallenge(
-                    walletPublicKey,
-                    data.preimage,
-                    data.witness
-                  )
+              await bridge.setWallet(walletPublicKeyHash, {
+                ecdsaWalletID: ethers.constants.HashZero,
+                mainUtxoHash: ethers.constants.HashZero,
+                pendingRedemptionsValue: 0,
+                createdAt: await lastBlockTime(),
+                movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
+                state: walletState.Live,
+                movingFundsTargetWalletsCommitmentHash:
+                  ethers.constants.HashZero,
               })
+              await bridge.setSweptDeposits(data.deposits)
+              await bridge.setSpentMainUtxos(data.spentMainUtxos)
+              await bridge.setProcessedMovedFundsSweepRequests(
+                data.movedFundsSweepRequests
+              )
 
-              after(async () => {
-                await restoreSnapshot()
+              await bridge
+                .connect(thirdParty)
+                .submitFraudChallenge(
+                  walletPublicKey,
+                  data.preimageSha256,
+                  data.signature,
+                  {
+                    value: fraudChallengeDepositAmount,
+                  }
+                )
+
+              initialAuthorizedMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+
+              tx = await maintainerProxy
+                .connect(authorizedMaintainer)
+                .defeatFraudChallenge(
+                  walletPublicKey,
+                  data.preimage,
+                  data.witness
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit FraudChallengeDefeated event", async () => {
+              await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
+            })
+
+            it("should refund ETH", async () => {
+              const postMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+              )
+            })
+          }
+        )
+      })
+    })
+
+    context("when the input is witness", () => {
+      context("when the transaction has single input", () => {
+        context(
+          "when the input is marked as correctly spent in the Bridge",
+          () => {
+            const data = witnessSignSingleInputTx
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              await bridge.setWallet(walletPublicKeyHash, {
+                ecdsaWalletID: ethers.constants.HashZero,
+                mainUtxoHash: ethers.constants.HashZero,
+                pendingRedemptionsValue: 0,
+                createdAt: await lastBlockTime(),
+                movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
+                state: walletState.Live,
+                movingFundsTargetWalletsCommitmentHash:
+                  ethers.constants.HashZero,
               })
+              await bridge.setSweptDeposits(data.deposits)
+              await bridge.setSpentMainUtxos(data.spentMainUtxos)
+              await bridge.setProcessedMovedFundsSweepRequests(
+                data.movedFundsSweepRequests
+              )
 
-              it("should emit FraudChallengeDefeated event", async () => {
-                await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
+              await bridge
+                .connect(thirdParty)
+                .submitFraudChallenge(
+                  walletPublicKey,
+                  data.preimageSha256,
+                  data.signature,
+                  {
+                    value: fraudChallengeDepositAmount,
+                  }
+                )
+
+              initialAuthorizedMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+
+              tx = await maintainerProxy
+                .connect(authorizedMaintainer)
+                .defeatFraudChallenge(
+                  walletPublicKey,
+                  data.preimage,
+                  data.witness
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit FraudChallengeDefeated event", async () => {
+              await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
+            })
+
+            it("should refund ETH", async () => {
+              const postMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
+
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+              )
+            })
+          }
+        )
+      })
+
+      context("when the transaction has multiple inputs", () => {
+        context(
+          "when the input is marked as correctly spent in the Bridge",
+          () => {
+            const data = witnessSignMultipleInputTx
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              await bridge.setWallet(walletPublicKeyHash, {
+                ecdsaWalletID: ethers.constants.HashZero,
+                mainUtxoHash: ethers.constants.HashZero,
+                pendingRedemptionsValue: 0,
+                createdAt: await lastBlockTime(),
+                movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
+                state: walletState.Live,
+                movingFundsTargetWalletsCommitmentHash:
+                  ethers.constants.HashZero,
               })
+              await bridge.setSweptDeposits(data.deposits)
+              await bridge.setSpentMainUtxos(data.spentMainUtxos)
+              await bridge.setProcessedMovedFundsSweepRequests(
+                data.movedFundsSweepRequests
+              )
 
-              it("should refund ETH", async () => {
-                const postMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postMaintainerBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                )
-              })
-            }
-          )
-        })
-
-        context("when the transaction has multiple inputs", () => {
-          context(
-            "when the input is marked as correctly spent in the Bridge",
-            () => {
-              const data = witnessSignMultipleInputTx
-              let tx: ContractTransaction
-
-              before(async () => {
-                await createSnapshot()
-
-                await bridge.setWallet(walletPublicKeyHash, {
-                  ecdsaWalletID: ethers.constants.HashZero,
-                  mainUtxoHash: ethers.constants.HashZero,
-                  pendingRedemptionsValue: 0,
-                  createdAt: await lastBlockTime(),
-                  movingFundsRequestedAt: 0,
-                  closingStartedAt: 0,
-                  pendingMovedFundsSweepRequestsCount: 0,
-                  state: walletState.Live,
-                  movingFundsTargetWalletsCommitmentHash:
-                    ethers.constants.HashZero,
-                })
-                await bridge.setSweptDeposits(data.deposits)
-                await bridge.setSpentMainUtxos(data.spentMainUtxos)
-                await bridge.setProcessedMovedFundsSweepRequests(
-                  data.movedFundsSweepRequests
+              await bridge
+                .connect(thirdParty)
+                .submitFraudChallenge(
+                  walletPublicKey,
+                  data.preimageSha256,
+                  data.signature,
+                  {
+                    value: fraudChallengeDepositAmount,
+                  }
                 )
 
-                await bridge
-                  .connect(thirdParty)
-                  .submitFraudChallenge(
-                    walletPublicKey,
-                    data.preimageSha256,
-                    data.signature,
-                    {
-                      value: fraudChallengeDepositAmount,
-                    }
-                  )
+              initialAuthorizedMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
 
-                initialAuthorizedMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
+              tx = await maintainerProxy
+                .connect(authorizedMaintainer)
+                .defeatFraudChallenge(
+                  walletPublicKey,
+                  data.preimage,
+                  data.witness
                 )
+            })
 
-                tx = await maintainerProxy
-                  .connect(authorizedMaintainer)
-                  .defeatFraudChallenge(
-                    walletPublicKey,
-                    data.preimage,
-                    data.witness
-                  )
-              })
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-              after(async () => {
-                await restoreSnapshot()
-              })
+            it("should emit FraudChallengeDefeated event", async () => {
+              await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
+            })
 
-              it("should emit FraudChallengeDefeated event", async () => {
-                await expect(tx).to.emit(bridge, "FraudChallengeDefeated")
-              })
+            it("should refund ETH", async () => {
+              const postMaintainerBalance = await provider.getBalance(
+                authorizedMaintainer.address
+              )
+              const diff = postMaintainerBalance.sub(
+                initialAuthorizedMaintainerBalance
+              )
 
-              it("should refund ETH", async () => {
-                const postMaintainerBalance = await provider.getBalance(
-                  authorizedMaintainer.address
-                )
-                const diff = postMaintainerBalance.sub(
-                  initialAuthorizedMaintainerBalance
-                )
-
-                expect(diff).to.be.gt(0)
-                expect(diff).to.be.lt(
-                  ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-                )
-              })
-            }
-          )
-        })
+              expect(diff).to.be.gt(0)
+              expect(diff).to.be.lt(
+                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+              )
+            })
+          }
+        )
       })
     })
   })
