@@ -261,12 +261,11 @@ describeFn("Integration Test - Slashing", async () => {
         // Request redemption
         const redeemer = await helpers.account.impersonateAccount(
           deposit.reveal.depositor,
-          { from: deployer }
+          { from: deployer, value: 10 }
         )
         const redemptionAmount = 3_000
         redeemerOutputScript =
           "0x17a91486884e6be1525dab5ae0b451bd2c72cee67dcf4187"
-
         // Request redemption via TBTC Vault.
         await tbtc
           .connect(redeemer)

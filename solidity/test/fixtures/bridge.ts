@@ -7,6 +7,8 @@ import type {
   BridgeStub,
   IWalletRegistry,
   TestRelay,
+  ReimbursementPool,
+  MaintainerProxy,
   TBTC,
   TBTCVault,
   VendingMachine,
@@ -47,8 +49,15 @@ export default async function bridgeFixture() {
   // from it.
   await deployer.sendTransaction({
     to: walletRegistry.address,
-    value: ethers.utils.parseEther("1"),
+    value: ethers.utils.parseEther("100"),
   })
+
+  const reimbursementPool: ReimbursementPool =
+    await helpers.contracts.getContract("ReimbursementPool")
+
+  const maintainerProxy: MaintainerProxy = await helpers.contracts.getContract(
+    "MaintainerProxy"
+  )
 
   const relay = await smock.fake<TestRelay>("TestRelay", {
     address: await (await bridge.contractReferences()).relay,
@@ -70,6 +79,7 @@ export default async function bridgeFixture() {
   })
 
   return {
+    deployer,
     governance,
     thirdParty,
     treasury,
@@ -81,6 +91,8 @@ export default async function bridgeFixture() {
     walletRegistry,
     bridge,
     BridgeFactory,
+    reimbursementPool,
+    maintainerProxy,
     bridgeGovernance,
   }
 }
