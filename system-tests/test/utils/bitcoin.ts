@@ -1,6 +1,7 @@
 // @ts-ignore
 import wif from "wif"
 import { ec as EllipticCurve } from "elliptic"
+import { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 
 const secp256k1 = new EllipticCurve("secp256k1")
 
@@ -43,5 +44,44 @@ export function keyPairFromPrivateWif(privateKeyWif: string): KeyPair {
       .getPublic()
       .encode("hex", false)
       .substring(2),
+  }
+}
+
+/**
+ * Waits until the given Bitcoin transaction will have the required number
+ * of on-chain confirmations.
+ * @param bitcoinClient Bitcoin client used to perform the check.
+ * @param transactionHash Hash of the checked transaction.
+ * @param requiredConfirmations Required confirmations count.
+ * @param sleep Check frequency in milliseconds.
+ * @returns Empty promise.
+ */
+export async function waitTransactionConfirmed(
+  bitcoinClient: BitcoinClient,
+  transactionHash: string,
+  requiredConfirmations: number = 6,
+  sleep: number = 60000
+): Promise<void> {
+  for (;;) {
+    console.log(`
+      Checking confirmations count for transaction ${transactionHash}
+    `)
+
+    const confirmations = await bitcoinClient.getTransactionConfirmations(
+      transactionHash
+    )
+
+    if (confirmations >= requiredConfirmations) {
+      console.log(`
+        Transaction ${transactionHash} has enough confirmations. 
+      `)
+      return
+    }
+
+    console.log(`
+      Transaction ${transactionHash} has only ${confirmations}/${requiredConfirmations} confirmations. Waiting for more...
+    `)
+
+    await new Promise((r) => setTimeout(r, sleep))
   }
 }

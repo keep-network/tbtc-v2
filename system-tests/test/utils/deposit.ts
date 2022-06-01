@@ -53,18 +53,18 @@ export function generateDeposit(
 }
 
 /**
- * Checks whether the given deposit was actually revealed to the bridge.
+ * Gets a deposit from the bridge.
  * @param systemTestsContext System tests context.
  * @param depositUtxo The UTXO produced by the deposit Bitcoin transaction.
- * @returns True, if the deposit was revealed. False otherwise.
+ * @returns Deposit data as stored in the bridge.
  */
-export async function isDepositRevealed(
+export async function getDepositFromBridge(
   systemTestsContext: SystemTestsContext,
   depositUtxo: UnspentTransactionOutput
-) {
-  // TODO: The tbtc-v2 library should expose a method to check that in a
+): Promise<{ revealedAt: number; sweptAt: number }> {
+  // TODO: The tbtc-v2.ts library should expose a method to get the deposit in a
   //       seamless way. The current implementation of this function is
-  //       just a workaround and the tbtc-v2 library implementation should
+  //       just a workaround and the tbtc-v2.ts library implementation should
   //       be preferred once it is ready.
 
   const bridgeDeploymentInfo =
@@ -85,7 +85,5 @@ export async function isDepositRevealed(
     [`0x${transactionHashLE}`, depositUtxo.outputIndex]
   )
 
-  const deposit = await bridge.deposits(depositKey)
-
-  return deposit.revealedAt > 0
+  return bridge.deposits(depositKey)
 }
