@@ -33,15 +33,15 @@ describe("Ethereum", () => {
     describe("pendingRedemptions", () => {
       beforeEach(async () => {
         // Set the mock to return a specific redemption data when called
-        // with the redemption key (built as keccak256(walletPubKeyHash | redeemerOutputScript))
+        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash))
         // that matches the wallet PKH and redeemer output script used during
         // the test call.
         await bridgeContract.mock.pendingRedemptions
           .withArgs(
-            "0xa662ed384844519cdf051288008af701eeb24bd4d3bf157b0fc885656135c820"
+            "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7"
           )
           .returns({
-            redeemer: "0x82883a4C7A8dD73ef165deB402d432613615ced4",
+            redeemer: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             requestedAmount: BigNumber.from(10000),
             treasuryFee: BigNumber.from(100),
             txMaxFee: BigNumber.from(50),
@@ -57,7 +57,7 @@ describe("Ethereum", () => {
           )
         ).to.be.eql({
           redeemer: {
-            identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
+            identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
           },
           redeemerOutputScript:
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",

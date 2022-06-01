@@ -190,9 +190,9 @@ contract Bridge is
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout,
+        uint32 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
-        uint256 redemptionTimeoutNotifierRewardMultiplier
+        uint32 redemptionTimeoutNotifierRewardMultiplier
     );
 
     event MovingFundsParametersUpdated(
@@ -201,11 +201,11 @@ contract Bridge is
         uint32 movingFundsTimeoutResetDelay,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
-        uint256 movingFundsTimeoutNotifierRewardMultiplier,
+        uint32 movingFundsTimeoutNotifierRewardMultiplier,
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
-        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
     );
 
     event WalletParametersUpdated(
@@ -219,10 +219,10 @@ contract Bridge is
     );
 
     event FraudParametersUpdated(
-        uint256 fraudChallengeDepositAmount,
-        uint256 fraudChallengeDefeatTimeout,
+        uint96 fraudChallengeDepositAmount,
+        uint32 fraudChallengeDefeatTimeout,
         uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier
+        uint32 fraudNotifierRewardMultiplier
     );
 
     /// @dev Initializes upgradable contract on deployment.
@@ -239,7 +239,7 @@ contract Bridge is
         address _relay,
         address _treasury,
         address _ecdsaWalletRegistry,
-        uint256 _txProofDifficultyFactor
+        uint96 _txProofDifficultyFactor
     ) external initializer {
         require(_bank != address(0), "Bank address cannot be zero");
         self.bank = Bank(_bank);
@@ -258,30 +258,36 @@ contract Bridge is
 
         self.txProofDifficultyFactor = _txProofDifficultyFactor;
 
-        // TODO: Revisit initial values.
-        //       https://github.com/keep-network/tbtc-v2/issues/258
+        //
+        // All parameters set in the constructor are initial ones, used at the
+        // moment contracts were deployed for the first time. Parameters are
+        // governable and values assigned in the constructor do not need to
+        // reflect the current ones. Keep in mind the initial parameters are
+        // pretty forgiving and valid only for the early stage of the network.
+        //
+
         self.depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
-        self.depositTxMaxFee = 10000; // 10000 satoshi
+        self.depositTxMaxFee = 100000; // 100000 satoshi = 0.001 BTC
         self.depositTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         self.redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         self.redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
-        self.redemptionTxMaxFee = 10000; // 10000 satoshi
-        self.redemptionTimeout = 172800; // 48 hours
-        self.redemptionTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.redemptionTxMaxFee = 100000; // 100000 satoshi = 0.001 BTC
+        self.redemptionTimeout = 5 days;
+        self.redemptionTimeoutSlashingAmount = 100 * 1e18; // 100 T
         self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
-        self.movingFundsTxMaxTotalFee = 10000; // 10000 satoshi
-        self.movingFundsDustThreshold = 20000; // 20000 satoshi
+        self.movingFundsTxMaxTotalFee = 100000; // 100000 satoshi = 0.001 BTC
+        self.movingFundsDustThreshold = 200000; // 200000 satoshi = 0.002 BTC
         self.movingFundsTimeoutResetDelay = 6 days;
         self.movingFundsTimeout = 7 days;
-        self.movingFundsTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.movingFundsTimeoutSlashingAmount = 100 * 1e18; // 100 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
-        self.movedFundsSweepTxMaxTotalFee = 10000; // 10000 satoshi
+        self.movedFundsSweepTxMaxTotalFee = 100000; // 100000 satoshi = 0.001 BTC
         self.movedFundsSweepTimeout = 7 days;
-        self.movedFundsSweepTimeoutSlashingAmount = 10000 * 1e18; // 10000 T
+        self.movedFundsSweepTimeoutSlashingAmount = 100 * 1e18; // 100 T
         self.movedFundsSweepTimeoutNotifierRewardMultiplier = 100; //100%
-        self.fraudChallengeDepositAmount = 2 ether;
+        self.fraudChallengeDepositAmount = 5 ether;
         self.fraudChallengeDefeatTimeout = 7 days;
-        self.fraudSlashingAmount = 10000 * 1e18; // 10000 T
+        self.fraudSlashingAmount = 100 * 1e18; // 100 T
         self.fraudNotifierRewardMultiplier = 100; // 100%
         self.walletCreationPeriod = 1 weeks;
         self.walletCreationMinBtcBalance = 1e8; // 1 BTC
@@ -466,10 +472,10 @@ contract Bridge is
     ///        - redeemer: The Ethereum address of the redeemer who will be able
     ///        to claim Bank balance if anything goes wrong during the redemption.
     ///        In the most basic case, when someone redeems their balance
-    ///        from the Bank, `balanceOwner` is the same as `redemeer`.
+    ///        from the Bank, `balanceOwner` is the same as `redeemer`.
     ///        However, when a Vault is redeeming part of its balance for some
     ///        redeemer address (for example, someone who has earlier deposited
-    ///        into that Vault), `balanceOwner` is the Vault, and `redemeer` is
+    ///        into that Vault), `balanceOwner` is the Vault, and `redeemer` is
     ///        the address for which the vault is redeeming its balance to,
     ///        - walletPubKeyHash: The 20-byte wallet public key hash (computed
     ///        using Bitcoin HASH160 over the compressed ECDSA public key),
@@ -580,7 +586,7 @@ contract Bridge is
     /// @notice Notifies that there is a pending redemption request associated
     ///         with the given wallet, that has timed out. The redemption
     ///         request is identified by the key built as
-    ///         `keccak256(walletPubKeyHash | redeemerOutputScript)`.
+    ///         `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
     ///         The results of calling this function:
     ///         - The pending redemptions value for the wallet will be decreased
     ///           by the requested amount (minus treasury fee),
@@ -1228,9 +1234,9 @@ contract Bridge is
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
-        uint256 redemptionTimeout,
+        uint32 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
-        uint256 redemptionTimeoutNotifierRewardMultiplier
+        uint32 redemptionTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateRedemptionParameters(
             redemptionDustThreshold,
@@ -1311,11 +1317,11 @@ contract Bridge is
         uint32 movingFundsTimeoutResetDelay,
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
-        uint256 movingFundsTimeoutNotifierRewardMultiplier,
+        uint32 movingFundsTimeoutNotifierRewardMultiplier,
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
-        uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+        uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
@@ -1395,10 +1401,10 @@ contract Bridge is
     ///      - Fraud challenge defeat timeout must be greater than 0,
     ///      - Fraud notifier reward multiplier must be in the range [0, 100].
     function updateFraudParameters(
-        uint256 fraudChallengeDepositAmount,
-        uint256 fraudChallengeDefeatTimeout,
+        uint96 fraudChallengeDepositAmount,
+        uint32 fraudChallengeDefeatTimeout,
         uint96 fraudSlashingAmount,
-        uint256 fraudNotifierRewardMultiplier
+        uint32 fraudNotifierRewardMultiplier
     ) external onlyGovernance {
         self.updateFraudParameters(
             fraudChallengeDepositAmount,
@@ -1424,10 +1430,10 @@ contract Bridge is
 
     /// @notice Collection of all pending redemption requests indexed by
     ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
-    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
+    ///         The walletPubKeyHash is the 20-byte wallet's public key hash
     ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputScript is a Bitcoin script
+    ///         public key) and `redeemerOutputScript` is a Bitcoin script
     ///         (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
     ///         redeemed BTC as requested by the redeemer. Requests are added
     ///         to this mapping by the `requestRedemption` method (duplicates
@@ -1446,10 +1452,10 @@ contract Bridge is
 
     /// @notice Collection of all timed out redemptions requests indexed by
     ///         redemption key built as
-    ///         keccak256(walletPubKeyHash | redeemerOutputScript). The
-    ///         walletPubKeyHash is the 20-byte wallet's public key hash
+    ///         `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
+    ///         The walletPubKeyHash is the 20-byte wallet's public key hash
     ///         (computed using Bitcoin HASH160 over the compressed ECDSA
-    ///         public key) and redeemerOutputScript is the Bitcoin script
+    ///         public key) and `redeemerOutputScript` is the Bitcoin script
     ///         (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed
     ///         out request. Timed out requests are stored in this mapping to
     ///         avoid slashing the wallets multiple times for the same timeout.
@@ -1607,9 +1613,9 @@ contract Bridge is
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
-            uint256 redemptionTimeout,
+            uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
-            uint256 redemptionTimeoutNotifierRewardMultiplier
+            uint32 redemptionTimeoutNotifierRewardMultiplier
         )
     {
         redemptionDustThreshold = self.redemptionDustThreshold;
@@ -1672,11 +1678,11 @@ contract Bridge is
             uint32 movingFundsTimeoutResetDelay,
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
-            uint256 movingFundsTimeoutNotifierRewardMultiplier,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
-            uint256 movedFundsSweepTimeoutNotifierRewardMultiplier
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         )
     {
         movingFundsTxMaxTotalFee = self.movingFundsTxMaxTotalFee;
@@ -1748,10 +1754,10 @@ contract Bridge is
         external
         view
         returns (
-            uint256 fraudChallengeDepositAmount,
-            uint256 fraudChallengeDefeatTimeout,
+            uint96 fraudChallengeDepositAmount,
+            uint32 fraudChallengeDefeatTimeout,
             uint96 fraudSlashingAmount,
-            uint256 fraudNotifierRewardMultiplier
+            uint32 fraudNotifierRewardMultiplier
         )
     {
         fraudChallengeDepositAmount = self.fraudChallengeDepositAmount;

@@ -2,7 +2,6 @@
 // We should consider exposing them in @keep-network/ecdsa for an external usage.
 
 /* eslint-disable no-await-in-loop */
-import { deployments, ethers, helpers } from "hardhat"
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type {
@@ -11,6 +10,7 @@ import type {
   BigNumberish,
   Signer,
 } from "ethers"
+import { HardhatRuntimeEnvironment } from "hardhat/types"
 import type { WalletRegistry, SortitionPool } from "../../../typechain"
 import type { ClaimStruct } from "../../../typechain/EcdsaInactivity"
 
@@ -34,6 +34,7 @@ export async function registerOperator(
 }
 
 export async function performEcdsaDkg(
+  hre: HardhatRuntimeEnvironment,
   walletRegistry: WalletRegistry,
   groupPublicKey: BytesLike,
   startBlock: number
@@ -41,12 +42,19 @@ export async function performEcdsaDkg(
   approveDkgResultTx: ContractTransaction
   walletMembers: Operators
 }> {
+  const { helpers } = hre
+
   const {
     signers: walletMembers,
     dkgResult,
     submitter,
     submitDkgResultTx: dkgResultSubmissionTx,
-  } = await signAndSubmitDkgResult(walletRegistry, groupPublicKey, startBlock)
+  } = await signAndSubmitDkgResult(
+    hre,
+    walletRegistry,
+    groupPublicKey,
+    startBlock
+  )
 
   await helpers.time.mineBlocksTo(
     dkgResultSubmissionTx.blockNumber +
@@ -63,10 +71,13 @@ export async function performEcdsaDkg(
 }
 
 export async function updateWalletRegistryDkgResultChallengePeriodLength(
+  hre: HardhatRuntimeEnvironment,
   walletRegistry: WalletRegistry,
   governance: Signer,
   dkgResultChallengePeriodLength: BigNumberish
 ): Promise<void> {
+  const { deployments, ethers, helpers } = hre
+
   const walletRegistryGovernance = await ethers.getContractAt(
     (
       await deployments.getArtifact("WalletRegistryGovernance")
@@ -87,7 +98,12 @@ export async function updateWalletRegistryDkgResultChallengePeriodLength(
     .finalizeDkgResultChallengePeriodLengthUpdate()
 }
 
-async function selectGroup(walletRegistry: WalletRegistry): Promise<Operators> {
+async function selectGroup(
+  hre: HardhatRuntimeEnvironment,
+  walletRegistry: WalletRegistry
+): Promise<Operators> {
+  const { ethers } = hre
+
   const sortitionPool = (await ethers.getContractAt(
     "SortitionPool",
     await walletRegistry.sortitionPool()
@@ -113,6 +129,7 @@ async function selectGroup(walletRegistry: WalletRegistry): Promise<Operators> {
 }
 
 export async function produceOperatorInactivityClaim(
+  hre: HardhatRuntimeEnvironment,
   walletID: BytesLike,
   signers: Operators,
   nonce: number,
@@ -121,6 +138,8 @@ export async function produceOperatorInactivityClaim(
   inactiveMembersIndices: number[],
   numberOfSignatures: number
 ): Promise<ClaimStruct> {
+  const { ethers } = hre
+
   const messageHash = ethers.utils.solidityKeccak256(
     ["uint256", "bytes", "uint8[]", "bool"],
     [nonce, groupPubKey, inactiveMembersIndices, heartbeatFailed]
@@ -183,6 +202,7 @@ export class Operators extends Array<Operator> {
 const noMisbehaved: number[] = []
 
 async function signAndSubmitDkgResult(
+  hre: HardhatRuntimeEnvironment,
   walletRegistry: WalletRegistry,
   groupPublicKey: BytesLike,
   startBlock: number,
@@ -193,11 +213,12 @@ async function signAndSubmitDkgResult(
   submitter: SignerWithAddress
   submitDkgResultTx: ContractTransaction
 }> {
-  const signers = await selectGroup(walletRegistry)
+  const signers = await selectGroup(hre, walletRegistry)
 
   const submitterIndex = 1
 
   const { dkgResult } = await signDkgResult(
+    hre,
     signers,
     groupPublicKey,
     misbehavedIndices,
@@ -220,6 +241,7 @@ async function signAndSubmitDkgResult(
 }
 
 async function signDkgResult(
+  hre: HardhatRuntimeEnvironment,
   signers: Operators,
   groupPublicKey: BytesLike,
   misbehavedMembersIndices: number[],
@@ -230,6 +252,8 @@ async function signDkgResult(
   signingMembersIndices: number[]
   signaturesBytes: string
 }> {
+  const { ethers } = hre
+
   const numberOfSignatures: number = signers.length / 2 + 1
 
   const resultHash = ethers.utils.solidityKeccak256(
@@ -269,16 +293,19 @@ async function signDkgResult(
     signatures: signaturesBytes,
     signingMembersIndices,
     members,
-    membersHash: hashDKGMembers(members, misbehavedMembersIndices),
+    membersHash: hashDKGMembers(hre, members, misbehavedMembersIndices),
   }
 
   return { dkgResult, signingMembersIndices, signaturesBytes }
 }
 
 function hashDKGMembers(
+  hre: HardhatRuntimeEnvironment,
   members: number[],
   misbehavedMembersIndices?: number[]
 ): string {
+  const { ethers } = hre
+
   if (misbehavedMembersIndices && misbehavedMembersIndices.length > 0) {
     const activeDkgMembers = [...members]
     for (let i = 0; i < misbehavedMembersIndices.length; i++) {

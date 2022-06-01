@@ -86,6 +86,10 @@ contract BridgeStub is Bridge {
         self.redemptionDustThreshold = _redemptionDustThreshold;
     }
 
+    function setRedemptionTxMaxFee(uint64 _redemptionTxMaxFee) external {
+        self.redemptionTxMaxFee = _redemptionTxMaxFee;
+    }
+
     function setRedemptionTreasuryFeeDivisor(
         uint64 _redemptionTreasuryFeeDivisor
     ) external {

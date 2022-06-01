@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable @typescript-eslint/no-extra-semi */
-import { ethers, helpers, waffle } from "hardhat"
+import hre, { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 
 import type { FakeContract } from "@defi-wonderland/smock"
@@ -19,6 +19,7 @@ import type {
   TestRelay,
   IRandomBeacon,
   WalletRegistry,
+  BridgeGovernance,
 } from "../../typechain"
 
 import {
@@ -36,7 +37,7 @@ import {
   wallet as fraudulentWallet,
   nonWitnessSignSingleInputTx,
 } from "../data/fraud"
-import { walletState } from "../fixtures"
+import { walletState, constants } from "../fixtures"
 import { SingleP2SHDeposit, NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { UTXOStruct } from "../../typechain/Bridge"
 
@@ -49,6 +50,7 @@ const describeFn =
 describeFn("Integration Test - Slashing", async () => {
   let tbtc: TBTC
   let bridge: Bridge
+  let bridgeGovernance: BridgeGovernance
   let tbtcVault: TBTCVault
   let staking: Contract
   let walletRegistry: WalletRegistry
@@ -71,11 +73,13 @@ describeFn("Integration Test - Slashing", async () => {
       walletRegistry,
       relay,
       randomBeacon,
+      bridgeGovernance,
     } = await waffle.loadFixture(fixture))
     ;[thirdParty] = await helpers.signers.getUnnamedSigners()
 
     // Update only the parameters that are crucial for this test.
     await updateWalletRegistryDkgResultChallengePeriodLength(
+      hre,
       walletRegistry,
       governance,
       dkgResultChallengePeriodLength
@@ -109,6 +113,7 @@ describeFn("Integration Test - Slashing", async () => {
 
         await produceRelayEntry(walletRegistry, randomBeacon)
         ;({ walletMembers } = await performEcdsaDkg(
+          hre,
           walletRegistry,
           walletPublicKey,
           requestNewWalletTx.blockNumber
@@ -214,6 +219,7 @@ describeFn("Integration Test - Slashing", async () => {
 
         await produceRelayEntry(walletRegistry, randomBeacon)
         ;({ walletMembers } = await performEcdsaDkg(
+          hre,
           walletRegistry,
           walletPublicKey,
           requestNewWalletTx.blockNumber
@@ -224,8 +230,14 @@ describeFn("Integration Test - Slashing", async () => {
 
         // We use a deposit funding bitcoin transaction with a very low amount,
         // so we need to update the dust and redemption thresholds to be below it.
-        await updateDepositDustThreshold(10_000) // 0.0001 BTC
-        await updateRedemptionDustThreshold(2_000) // 0.00002 BTC
+        // TX max fees need to be adjusted as well given that they need to
+        // be lower than dust thresholds.
+        await updateDepositDustThresholdAndTxMaxFee(10_000, 2_000) // 0.0001 BTC, 0.00002 BTC
+        await updateRedemptionDustThresholdAndTxMaxFeeAndMovingFundsDustThreshold(
+          2_000,
+          200,
+          100
+        ) // 0.00002 BTC, 0.000002 BTC
 
         // Reveal and sweep the deposit to set up a positive Bank balance for
         // the redeemer, to be able to request a redemption.
@@ -252,12 +264,11 @@ describeFn("Integration Test - Slashing", async () => {
         // Request redemption
         const redeemer = await helpers.account.impersonateAccount(
           deposit.reveal.depositor,
-          { from: deployer }
+          { from: deployer, value: 10 }
         )
         const redemptionAmount = 3_000
         redeemerOutputScript =
           "0x17a91486884e6be1525dab5ae0b451bd2c72cee67dcf4187"
-
         // Request redemption via TBTC Vault.
         await tbtc
           .connect(redeemer)
@@ -365,6 +376,7 @@ describeFn("Integration Test - Slashing", async () => {
 
         await produceRelayEntry(walletRegistry, randomBeacon)
         ;({ walletMembers } = await performEcdsaDkg(
+          hre,
           walletRegistry,
           walletPublicKey,
           requestNewWalletTx.blockNumber
@@ -375,7 +387,9 @@ describeFn("Integration Test - Slashing", async () => {
 
         // We use a deposit funding bitcoin transaction with a very low amount,
         // so we need to update the dust threshold to be below it.
-        await updateDepositDustThreshold(10000) // 0.0001 BTC)
+        // TX max fee needs to be updated as well given it has to be lower
+        // than the dust threshold.
+        await updateDepositDustThresholdAndTxMaxFee(10_000, 2_000) // 0.0001 BTC, 0.00002 BTC
 
         // Reveal and sweep the deposit to set up a main UTXO for the wallet,
         // so when operator inactivity is reported the wallet is transferred to
@@ -401,6 +415,7 @@ describeFn("Integration Test - Slashing", async () => {
 
         const inactiveMembersIndices = [26, 40, 63, 78, 89]
         const claim = await produceOperatorInactivityClaim(
+          hre,
           ecdsaWalletID,
           walletMembers,
           nonce,
@@ -479,51 +494,56 @@ describeFn("Integration Test - Slashing", async () => {
     })
   })
 
-  async function updateDepositDustThreshold(
-    newDepositDustThreshold: BigNumberish
+  async function updateDepositDustThresholdAndTxMaxFee(
+    newDepositDustThreshold: BigNumberish,
+    newDepositTxMaxFee: BigNumberish
   ) {
-    const currentDepositParameters = await bridge.depositParameters()
-    await bridge
+    await bridgeGovernance
       .connect(governance)
-      .updateDepositParameters(
-        newDepositDustThreshold,
-        currentDepositParameters.depositTreasuryFeeDivisor,
-        currentDepositParameters.depositTxMaxFee
-      )
+      .beginDepositDustThresholdUpdate(newDepositDustThreshold)
+
+    await bridgeGovernance
+      .connect(governance)
+      .beginDepositTxMaxFeeUpdate(newDepositTxMaxFee)
+
+    await helpers.time.increaseTime(constants.governanceDelay)
+
+    await bridgeGovernance.connect(governance).finalizeDepositTxMaxFeeUpdate()
+
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeDepositDustThresholdUpdate()
   }
 
-  async function updateRedemptionDustThreshold(
-    newRedemptionDustThreshold: number
+  async function updateRedemptionDustThresholdAndTxMaxFeeAndMovingFundsDustThreshold(
+    newRedemptionDustThreshold: number,
+    newRedemptionTxMaxFee: number,
+    newMovingFundsDustThreshold: number
   ) {
-    // Redemption dust threshold has to be greater than moving funds dust threshold,
-    // so first we need to align the moving funds dust threshold.
-    const newMovingFundsDustThreshold = newRedemptionDustThreshold - 1
-    const currentMovingFundsParameters = await bridge.movingFundsParameters()
-    await bridge
+    await bridgeGovernance
       .connect(governance)
-      .updateMovingFundsParameters(
-        currentMovingFundsParameters.movingFundsTxMaxTotalFee,
-        newMovingFundsDustThreshold,
-        currentMovingFundsParameters.movingFundsTimeoutResetDelay,
-        currentMovingFundsParameters.movingFundsTimeout,
-        currentMovingFundsParameters.movingFundsTimeoutSlashingAmount,
-        currentMovingFundsParameters.movingFundsTimeoutNotifierRewardMultiplier,
-        currentMovingFundsParameters.movedFundsSweepTxMaxTotalFee,
-        currentMovingFundsParameters.movedFundsSweepTimeout,
-        currentMovingFundsParameters.movedFundsSweepTimeoutSlashingAmount,
-        currentMovingFundsParameters.movedFundsSweepTimeoutNotifierRewardMultiplier
-      )
+      .beginRedemptionDustThresholdUpdate(newRedemptionDustThreshold)
 
-    const currentRedemptionParameters = await bridge.redemptionParameters()
-    await bridge
+    await bridgeGovernance
       .connect(governance)
-      .updateRedemptionParameters(
-        newRedemptionDustThreshold,
-        currentRedemptionParameters.redemptionTreasuryFeeDivisor,
-        currentRedemptionParameters.redemptionTxMaxFee,
-        currentRedemptionParameters.redemptionTimeout,
-        currentRedemptionParameters.redemptionTimeoutSlashingAmount,
-        currentRedemptionParameters.redemptionTimeoutNotifierRewardMultiplier
-      )
+      .beginMovingFundsDustThresholdUpdate(newMovingFundsDustThreshold)
+
+    await bridgeGovernance
+      .connect(governance)
+      .beginRedemptionTxMaxFeeUpdate(newRedemptionTxMaxFee)
+
+    await helpers.time.increaseTime(constants.governanceDelay)
+
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeRedemptionTxMaxFeeUpdate()
+
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeMovingFundsDustThresholdUpdate()
+
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeRedemptionDustThresholdUpdate()
   }
 })

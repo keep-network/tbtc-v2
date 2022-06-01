@@ -3,7 +3,7 @@
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Contract } from "ethers"
-import { deployments, ethers, helpers } from "hardhat"
+import hre, { deployments, ethers, helpers } from "hardhat"
 import {
   TBTC,
   Bridge,
@@ -12,7 +12,9 @@ import {
   IRandomBeacon,
   WalletRegistry,
   VendingMachine,
+  BridgeGovernance,
 } from "../../../typechain"
+import { Bank } from "../../../typechain/Bank"
 import { registerOperator } from "./ecdsa-wallet-registry"
 import { fakeRandomBeacon } from "./random-beacon"
 import { authorizeApplication, stake } from "./staking"
@@ -32,6 +34,8 @@ export const fixture = deployments.createFixture(
     governance: SignerWithAddress
     tbtc: TBTC
     bridge: Bridge
+    bridgeGovernance: BridgeGovernance
+    bank: Bank
     tbtcVault: TBTCVault
     walletRegistry: WalletRegistry
     staking: Contract
@@ -43,6 +47,9 @@ export const fixture = deployments.createFixture(
 
     const tbtc = await helpers.contracts.getContract<TBTC>("TBTC")
     const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
+    const bridgeGovernance =
+      await helpers.contracts.getContract<BridgeGovernance>("BridgeGovernance")
+    const bank = await helpers.contracts.getContract<Bank>("Bank")
     const tbtcVault: TBTCVault = await helpers.contracts.getContract(
       "TBTCVault"
     )
@@ -55,7 +62,7 @@ export const fixture = deployments.createFixture(
     // TODO: Vault registration and upgrade from VendingMachine should be a part
     // of the deployment scripts.
     await prepareVault(
-      bridge,
+      bridgeGovernance,
       tbtcVault,
       await helpers.contracts.getContract("VendingMachine"),
       governance,
@@ -95,6 +102,7 @@ export const fixture = deployments.createFixture(
       const authorizer: SignerWithAddress = signers[4 * numberOfOperators + i]
 
       await stake(
+        hre,
         t,
         staking,
         stakeAmount,
@@ -123,6 +131,8 @@ export const fixture = deployments.createFixture(
       governance,
       tbtc,
       bridge,
+      bridgeGovernance,
+      bank,
       tbtcVault,
       walletRegistry,
       staking,
@@ -133,7 +143,7 @@ export const fixture = deployments.createFixture(
 )
 
 async function prepareVault(
-  bridge: Bridge,
+  bridgeGovernance: BridgeGovernance,
   tbtcVault: TBTCVault,
   vendingMachine: VendingMachine,
   governance: SignerWithAddress,
@@ -155,5 +165,7 @@ async function prepareVault(
     .connect(vendingMachineOwner)
     .finalizeVendingMachineUpgrade()
 
-  await bridge.connect(governance).setVaultStatus(tbtcVault.address, true)
+  await bridgeGovernance
+    .connect(governance)
+    .setVaultStatus(tbtcVault.address, true)
 }
