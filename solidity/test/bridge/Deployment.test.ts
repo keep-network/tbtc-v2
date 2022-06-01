@@ -21,7 +21,7 @@ chai.use(chaiAsPromised)
 
 const { AddressZero } = ethers.constants
 
-describe("Bridge - Deployment", async () => {
+describe("Deployment", async () => {
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
   let esdm: SignerWithAddress
