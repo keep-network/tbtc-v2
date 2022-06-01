@@ -1,6 +1,7 @@
 import fs from "fs"
 import { helpers, network } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { KeyPair as BitcoinKeyPair, keyPairFromPrivateWif } from "./bitcoin"
 
 /**
  * Represents a context of the given system tests scenario.
@@ -27,9 +28,25 @@ export interface SystemTestsContext {
    */
   depositor: SignerWithAddress
   /**
-   * Bitcoin private key of the depositor.
+   * Bitcoin key pair of the depositor.
    */
-  depositorBitcoinPrivateKey: string
+  depositorBitcoinKeyPair: BitcoinKeyPair
+  /**
+   * Bitcoin key pair of the wallet.
+   */
+  walletBitcoinKeyPair: BitcoinKeyPair
+}
+
+/**
+ * Contracts deployment info that contains deployed contracts' addresses and ABIs.
+ */
+interface ContractsDeploymentInfo {
+  contracts: {
+    [key: string]: {
+      address: string
+      abi: any
+    }
+  }
 }
 
 /**
@@ -51,10 +68,16 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
   const { governance, maintainer, depositor } =
     await helpers.signers.getNamedSigners()
 
-  const depositorBitcoinPrivateKey = process.env
-    .DEPOSITOR_BITCOIN_PRIVATE_KEY as string
-  if (!depositorBitcoinPrivateKey) {
-    throw new Error(`DEPOSITOR_BITCOIN_PRIVATE_KEY is not set`)
+  const depositorBitcoinPrivateKeyWif = process.env
+    .DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF as string
+  if (!depositorBitcoinPrivateKeyWif) {
+    throw new Error(`DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF is not set`)
+  }
+
+  const walletBitcoinPrivateKeyWif = process.env
+    .WALLET_BITCOIN_PRIVATE_KEY_WIF as string
+  if (!walletBitcoinPrivateKeyWif) {
+    throw new Error(`WALLET_BITCOIN_PRIVATE_KEY_WIF is not set`)
   }
 
   console.log(`
@@ -65,7 +88,8 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     - Governance Ethereum address ${governance.address}
     - Maintainer Ethereum address ${maintainer.address}
     - Depositor Ethereum address ${depositor.address}
-    - Depositor Bitcoin private key ${depositorBitcoinPrivateKey}
+    - Depositor Bitcoin private key WIF ${depositorBitcoinPrivateKeyWif}
+    - Wallet Bitcoin private key WIF ${walletBitcoinPrivateKeyWif}
   `)
 
   return {
@@ -74,19 +98,10 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     governance,
     maintainer,
     depositor,
-    depositorBitcoinPrivateKey,
-  }
-}
-
-/**
- * Contracts deployment info that contains deployed contracts' addresses and ABIs.
- */
-interface ContractsDeploymentInfo {
-  contracts: {
-    [key: string]: {
-      address: string
-      abi: any
-    }
+    depositorBitcoinKeyPair: keyPairFromPrivateWif(
+      depositorBitcoinPrivateKeyWif
+    ),
+    walletBitcoinKeyPair: keyPairFromPrivateWif(walletBitcoinPrivateKeyWif),
   }
 }
 

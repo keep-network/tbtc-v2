@@ -14,7 +14,9 @@
     "test/**/*"
   ],
   "dependencies": {
-    "@keep-network/tbtc-v2.ts": "development"
+    "@keep-network/tbtc-v2.ts": "development",
+    "elliptic": "^6.5.4",
+    "wif": "^2.0.6"
   },
   "devDependencies": {
     "@keep-network/hardhat-helpers": "^0.6.0-pre.7",

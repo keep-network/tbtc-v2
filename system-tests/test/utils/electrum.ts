@@ -1,4 +1,4 @@
-import { Credentials as ElectrumCredentials } from "@keep-network/tbtc-v2.ts/dist/electrum"
+import type { Credentials as ElectrumCredentials } from "@keep-network/tbtc-v2.ts/dist/electrum"
 
 /**
  * Create Electrum credentials by parsing an URL.
