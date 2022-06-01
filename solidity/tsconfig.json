@@ -6,5 +6,5 @@
     "esModuleInterop": true
   },
   "files": ["./hardhat.config.ts"],
-  "include": ["./deploy", "./test", "./typechain"]
+  "include": ["./deploy", "./tasks", "./test", "./typechain"]
 }

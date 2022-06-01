@@ -9,7 +9,7 @@ import {
   performEcdsaDkg,
   registerOperator,
 } from "../test/integration/utils/ecdsa-wallet-registry"
-import { Bridge, SortitionPool, WalletRegistry } from "../typechain"
+import type { Bridge, SortitionPool, WalletRegistry } from "../typechain"
 
 task(
   "test-utils:register-operators",
