@@ -3,7 +3,7 @@
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Contract } from "ethers"
-import { deployments, ethers, helpers } from "hardhat"
+import hre, { deployments, ethers, helpers } from "hardhat"
 import {
   TBTC,
   Bridge,
@@ -102,6 +102,7 @@ export const fixture = deployments.createFixture(
       const authorizer: SignerWithAddress = signers[4 * numberOfOperators + i]
 
       await stake(
+        hre,
         t,
         staking,
         stakeAmount,

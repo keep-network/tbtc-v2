@@ -1,4 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config"
+import "./tasks"
 
 import "@keep-network/hardhat-helpers"
 import "@keep-network/hardhat-local-networks-config"

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-extra-semi */
-import { ethers, waffle } from "hardhat"
+import hre, { ethers, waffle } from "hardhat"
 import { expect } from "chai"
 
 import type { FakeContract } from "@defi-wonderland/smock"
@@ -46,6 +46,7 @@ describeFn("Integration Test - Wallet Creation", async () => {
 
     // Update only the parameters that are crucial for this test.
     await updateWalletRegistryDkgResultChallengePeriodLength(
+      hre,
       walletRegistry,
       governance,
       dkgResultChallengePeriodLength
@@ -66,6 +67,7 @@ describeFn("Integration Test - Wallet Creation", async () => {
 
       await produceRelayEntry(walletRegistry, randomBeacon)
       ;({ approveDkgResultTx: walletRegistrationTx } = await performEcdsaDkg(
+        hre,
         walletRegistry,
         walletPublicKey,
         startBlock
