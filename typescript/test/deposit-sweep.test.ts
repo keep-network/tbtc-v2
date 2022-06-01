@@ -39,6 +39,8 @@ describe("Sweep", () => {
 
     context("when the new main UTXO is requested to be witness", () => {
       context("when there is no main UTXO from previous deposit sweep", () => {
+        let resultUtxo: UnspentTransactionOutput
+
         beforeEach(async () => {
           // Map transaction hashes for UTXOs to transactions in hexadecimal and
           // set the mapping in the mock Bitcoin client
@@ -63,7 +65,7 @@ describe("Sweep", () => {
             )
           const witness = depositSweepWithNoMainUtxoAndWitnessOutput.witness
 
-          await TBTC.sweepDeposits(
+          resultUtxo = await TBTC.sweepDeposits(
             bitcoinClient,
             fee,
             testnetWalletPrivateKey,
@@ -79,10 +81,24 @@ describe("Sweep", () => {
             depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep.transaction
           )
         })
+
+        it("should return the proper result UTXO", () => {
+          const expectedResultUtxo = {
+            transactionHash:
+              depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep
+                .transactionHash,
+            outputIndex: 0,
+            value: BigNumber.from(35400),
+          }
+
+          expect(resultUtxo).to.be.eql(expectedResultUtxo)
+        })
       })
 
       context("when there is main UTXO from previous deposit sweep", () => {
-        context("when main UTXO prom previous deposit sweep is witness", () => {
+        context("when main UTXO from previous deposit sweep is witness", () => {
+          let resultUtxo: UnspentTransactionOutput
+
           beforeEach(async () => {
             // Map transaction hashes for UTXOs to transactions in hexadecimal and
             // set the mapping in the mock Bitcoin client
@@ -122,7 +138,7 @@ describe("Sweep", () => {
             const mainUtxo =
               depositSweepWithWitnessMainUtxoAndWitnessOutput.mainUtxo
 
-            await TBTC.sweepDeposits(
+            resultUtxo = await TBTC.sweepDeposits(
               bitcoinClient,
               fee,
               testnetWalletPrivateKey,
@@ -140,11 +156,25 @@ describe("Sweep", () => {
                 .transaction
             )
           })
+
+          it("should return the proper result UTXO", () => {
+            const expectedResultUtxo = {
+              transactionHash:
+                depositSweepWithWitnessMainUtxoAndWitnessOutput.expectedSweep
+                  .transactionHash,
+              outputIndex: 0,
+              value: BigNumber.from(60800),
+            }
+
+            expect(resultUtxo).to.be.eql(expectedResultUtxo)
+          })
         })
 
         context(
           "when main UTXO from previous deposit sweep is non-witness",
           () => {
+            let resultUtxo: UnspentTransactionOutput
+
             beforeEach(async () => {
               // Map transaction hashes for UTXOs to transactions in hexadecimal and
               // set the mapping in the mock Bitcoin client
@@ -185,7 +215,7 @@ describe("Sweep", () => {
               const mainUtxo =
                 depositSweepWithNonWitnessMainUtxoAndWitnessOutput.mainUtxo
 
-              await TBTC.sweepDeposits(
+              resultUtxo = await TBTC.sweepDeposits(
                 bitcoinClient,
                 fee,
                 testnetWalletPrivateKey,
@@ -203,6 +233,18 @@ describe("Sweep", () => {
                   .transaction
               )
             })
+
+            it("should return the proper result UTXO", () => {
+              const expectedResultUtxo = {
+                transactionHash:
+                  depositSweepWithNonWitnessMainUtxoAndWitnessOutput
+                    .expectedSweep.transactionHash,
+                outputIndex: 0,
+                value: BigNumber.from(33800),
+              }
+
+              expect(resultUtxo).to.be.eql(expectedResultUtxo)
+            })
           }
         )
       })
@@ -212,6 +254,7 @@ describe("Sweep", () => {
       // The only difference between deposit sweep transactions with witness and
       // non-witness output is the output type itself.
       // Therefore only one test case was added for non-witness transactions.
+      let resultUtxo: UnspentTransactionOutput
 
       beforeEach(async () => {
         // Map transaction hashes for UTXOs to transactions in hexadecimal and
@@ -237,7 +280,7 @@ describe("Sweep", () => {
           )
         const witness = depositSweepWithNoMainUtxoAndNonWitnessOutput.witness
 
-        await TBTC.sweepDeposits(
+        resultUtxo = await TBTC.sweepDeposits(
           bitcoinClient,
           fee,
           testnetWalletPrivateKey,
@@ -254,6 +297,18 @@ describe("Sweep", () => {
             .transaction
         )
       })
+
+      it("should return the proper result UTXO", () => {
+        const expectedResultUtxo = {
+          transactionHash:
+            depositSweepWithNoMainUtxoAndNonWitnessOutput.expectedSweep
+              .transactionHash,
+          outputIndex: 0,
+          value: BigNumber.from(13400),
+        }
+
+        expect(resultUtxo).to.be.eql(expectedResultUtxo)
+      })
     })
   })
 
@@ -261,6 +316,7 @@ describe("Sweep", () => {
     context("when the new main UTXO is requested to be witness", () => {
       context("when there is no main UTXO from previous deposit sweep", () => {
         let transaction: RawTransaction
+        let resultUtxo: UnspentTransactionOutput
 
         const utxosWithRaw =
           depositSweepWithNoMainUtxoAndWitnessOutput.deposits.map((data) => {
@@ -276,13 +332,17 @@ describe("Sweep", () => {
         const witness = depositSweepWithNoMainUtxoAndWitnessOutput.witness
 
         beforeEach(async () => {
-          transaction = await TBTC.createDepositSweepTransaction(
-            fee,
-            testnetWalletPrivateKey,
-            witness,
-            utxosWithRaw,
-            deposit
-          )
+          let transactionHex: string
+          ;({ transactionHex, ...resultUtxo } =
+            await TBTC.createDepositSweepTransaction(
+              fee,
+              testnetWalletPrivateKey,
+              witness,
+              utxosWithRaw,
+              deposit
+            ))
+
+          transaction = { transactionHex }
         })
 
         it("should return sweep transaction with proper structure", () => {
@@ -355,11 +415,24 @@ describe("Sweep", () => {
           // minus fee (25000 + 12000 - 1600)
           expect(sweepOutput.value).to.be.equal(35400)
         })
+
+        it("should return the proper result UTXO", () => {
+          const expectedResultUtxo = {
+            transactionHash:
+              depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep
+                .transactionHash,
+            outputIndex: 0,
+            value: BigNumber.from(35400),
+          }
+
+          expect(resultUtxo).to.be.eql(expectedResultUtxo)
+        })
       })
 
       context("when there is main UTXO from previous deposit sweep", () => {
         context("when main UTXO prom previous deposit sweep is witness", () => {
           let transaction: RawTransaction
+          let resultUtxo: UnspentTransactionOutput
 
           const utxosWithRaw =
             depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits.map(
@@ -383,14 +456,18 @@ describe("Sweep", () => {
             depositSweepWithWitnessMainUtxoAndWitnessOutput.witness
 
           beforeEach(async () => {
-            transaction = await TBTC.createDepositSweepTransaction(
-              fee,
-              testnetWalletPrivateKey,
-              witness,
-              utxosWithRaw,
-              deposit,
-              mainUtxoWithRaw
-            )
+            let transactionHex: string
+            ;({ transactionHex, ...resultUtxo } =
+              await TBTC.createDepositSweepTransaction(
+                fee,
+                testnetWalletPrivateKey,
+                witness,
+                utxosWithRaw,
+                deposit,
+                mainUtxoWithRaw
+              ))
+
+            transaction = { transactionHex }
           })
 
           it("should return sweep transaction with proper structure", () => {
@@ -483,12 +560,25 @@ describe("Sweep", () => {
             // minus fee (17000 + 10000 + 35400 - 1600)
             expect(sweepOutput.value).to.be.equal(60800)
           })
+
+          it("should return the proper result UTXO", () => {
+            const expectedResultUtxo = {
+              transactionHash:
+                depositSweepWithWitnessMainUtxoAndWitnessOutput.expectedSweep
+                  .transactionHash,
+              outputIndex: 0,
+              value: BigNumber.from(60800),
+            }
+
+            expect(resultUtxo).to.be.eql(expectedResultUtxo)
+          })
         })
 
         context(
           "when main UTXO from previous deposit sweep is non-witness",
           () => {
             let transaction: RawTransaction
+            let resultUtxo: UnspentTransactionOutput
 
             const utxosWithRaw =
               depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits.map(
@@ -512,14 +602,18 @@ describe("Sweep", () => {
               depositSweepWithNonWitnessMainUtxoAndWitnessOutput.witness
 
             beforeEach(async () => {
-              transaction = await TBTC.createDepositSweepTransaction(
-                fee,
-                testnetWalletPrivateKey,
-                witness,
-                utxosWithRaw,
-                deposit,
-                mainUtxoWithRaw
-              )
+              let transactionHex: string
+              ;({ transactionHex, ...resultUtxo } =
+                await TBTC.createDepositSweepTransaction(
+                  fee,
+                  testnetWalletPrivateKey,
+                  witness,
+                  utxosWithRaw,
+                  deposit,
+                  mainUtxoWithRaw
+                ))
+
+              transaction = { transactionHex }
             })
 
             it("should return sweep transaction with proper structure", () => {
@@ -595,6 +689,18 @@ describe("Sweep", () => {
               // minus fee (16400 + 19000 - 1600)
               expect(sweepOutput.value).to.be.equal(33800)
             })
+
+            it("should return the proper result UTXO", () => {
+              const expectedResultUtxo = {
+                transactionHash:
+                  depositSweepWithNonWitnessMainUtxoAndWitnessOutput
+                    .expectedSweep.transactionHash,
+                outputIndex: 0,
+                value: BigNumber.from(33800),
+              }
+
+              expect(resultUtxo).to.be.eql(expectedResultUtxo)
+            })
           }
         )
       })
@@ -605,6 +711,7 @@ describe("Sweep", () => {
       // non-witness output is the output type itself.
       // Therefore only one test case was added for non-witness transactions.
       let transaction: RawTransaction
+      let resultUtxo: UnspentTransactionOutput
 
       const utxosWithRaw =
         depositSweepWithNoMainUtxoAndNonWitnessOutput.deposits.map(
@@ -623,13 +730,17 @@ describe("Sweep", () => {
       const witness = depositSweepWithNoMainUtxoAndNonWitnessOutput.witness
 
       beforeEach(async () => {
-        transaction = await TBTC.createDepositSweepTransaction(
-          fee,
-          testnetWalletPrivateKey,
-          witness,
-          utxosWithRaw,
-          deposit
-        )
+        let transactionHex: string
+        ;({ transactionHex, ...resultUtxo } =
+          await TBTC.createDepositSweepTransaction(
+            fee,
+            testnetWalletPrivateKey,
+            witness,
+            utxosWithRaw,
+            deposit
+          ))
+
+        transaction = { transactionHex }
       })
 
       it("should return sweep transaction with proper structure", () => {
@@ -687,6 +798,18 @@ describe("Sweep", () => {
         // The output's value should be equal to the sum of all input values
         // minus fee (15000- 1600)
         expect(sweepOutput.value).to.be.equal(13400)
+      })
+
+      it("should return the proper result UTXO", () => {
+        const expectedResultUtxo = {
+          transactionHash:
+            depositSweepWithNoMainUtxoAndNonWitnessOutput.expectedSweep
+              .transactionHash,
+          outputIndex: 0,
+          value: BigNumber.from(13400),
+        }
+
+        expect(resultUtxo).to.be.eql(expectedResultUtxo)
       })
     })
 
