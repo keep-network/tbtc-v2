@@ -8,7 +8,8 @@ import {
   decomposeRawTransaction,
   RawTransaction,
   UnspentTransactionOutput,
-  Client as BitcoinClient, TransactionHash,
+  Client as BitcoinClient,
+  TransactionHash,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 import { createTransactionProof } from "./proof"
@@ -100,7 +101,9 @@ export async function requestRedemption(
  *        not prepended with length
  * @param witness - The parameter used to decide about the type of the change
  *        output. P2WPKH if `true`, P2PKH if `false`
- * @returns Empty promise.
+ * @returns The outcome consisting of:
+ *          - the redemption transaction hash,
+ *          - the optional new wallet's main UTXO produced by this transaction.
  */
 export async function makeRedemptions(
   bitcoinClient: BitcoinClient,
@@ -109,14 +112,17 @@ export async function makeRedemptions(
   mainUtxo: UnspentTransactionOutput,
   redeemerOutputScripts: string[],
   witness: boolean
-): Promise<void> {
-  const rawTransaction = await bitcoinClient.getRawTransaction(
+): Promise<{
+  transactionHash: TransactionHash
+  newMainUtxo?: UnspentTransactionOutput
+}> {
+  const mainUtxoRawTransaction = await bitcoinClient.getRawTransaction(
     mainUtxo.transactionHash
   )
 
   const mainUtxoWithRaw: UnspentTransactionOutput & RawTransaction = {
     ...mainUtxo,
-    transactionHex: rawTransaction.transactionHex,
+    transactionHex: mainUtxoRawTransaction.transactionHex,
   }
 
   const redemptionRequests = await fetchRedemptionRequests(
@@ -125,17 +131,20 @@ export async function makeRedemptions(
     redeemerOutputScripts
   )
 
-  const transaction = await createRedemptionTransaction(
-    walletPrivateKey,
-    mainUtxoWithRaw,
-    redemptionRequests,
-    witness
-  )
+  const { transactionHash, newMainUtxo, rawTransaction } =
+    await createRedemptionTransaction(
+      walletPrivateKey,
+      mainUtxoWithRaw,
+      redemptionRequests,
+      witness
+    )
 
   // Note that `broadcast` may fail silently (i.e. no error will be returned,
   // even if the transaction is rejected by other nodes and does not enter the
   // mempool, for example due to an UTXO being already spent).
-  await bitcoinClient.broadcast(transaction)
+  await bitcoinClient.broadcast(rawTransaction)
+
+  return { transactionHash, newMainUtxo }
 }
 
 /**
@@ -210,14 +219,21 @@ async function fetchRedemptionRequests(
  * @param redemptionRequests - The list of redemption requests
  * @param witness - The parameter used to decide the type of the change output.
  *        P2WPKH if `true`, P2PKH if `false`
- * @returns Bitcoin redemption transaction in the raw format.
+ * @returns The outcome consisting of:
+ *          - the redemption transaction hash,
+ *          - the optional new wallet's main UTXO produced by this transaction.
+ *          - the redemption transaction in the raw format
  */
 export async function createRedemptionTransaction(
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput & RawTransaction,
   redemptionRequests: RedemptionRequest[],
   witness: boolean
-): Promise<RawTransaction> {
+): Promise<{
+  transactionHash: TransactionHash
+  newMainUtxo?: UnspentTransactionOutput
+  rawTransaction: RawTransaction
+}> {
   if (redemptionRequests.length < 1) {
     throw new Error("There must be at least one request to redeem")
   }
@@ -289,8 +305,23 @@ export async function createRedemptionTransaction(
 
   transaction.sign(walletKeyRing)
 
+  const transactionHash = transaction.txid()
+  // If there is a change output, it will be the new wallet's main UTXO.
+  const newMainUtxo = changeOutputValue.gt(0)
+    ? {
+        transactionHash,
+        // It was the last output added to the transaction.
+        outputIndex: transaction.outputs.length - 1,
+        value: changeOutputValue,
+      }
+    : undefined
+
   return {
-    transactionHex: transaction.toRaw().toString("hex"),
+    transactionHash,
+    newMainUtxo,
+    rawTransaction: {
+      transactionHex: transaction.toRaw().toString("hex"),
+    },
   }
 }
 

@@ -23,7 +23,8 @@ import {
 import { Bridge } from "./chain"
 import {
   Client as BitcoinClient,
-  RawTransaction, TransactionHash,
+  RawTransaction,
+  TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
 import { BigNumber } from "ethers"
@@ -40,14 +41,19 @@ export interface TBTC {
    * @param bitcoinClient - Bitcoin client used to interact with the network.
    * @param witness - If true, a witness (P2WSH) transaction will be created.
    *        Otherwise, a legacy P2SH transaction will be made.
-   * @returns The deposit UTXO that will be created by the deposit transaction
+   * @returns The outcome consisting of:
+   *          - the deposit transaction hash,
+   *          - the deposit UTXO produced by this transaction.
    */
   makeDeposit(
     deposit: Deposit,
     depositorPrivateKey: string,
     bitcoinClient: BitcoinClient,
     witness: boolean
-  ): Promise<UnspentTransactionOutput>
+  ): Promise<{
+    transactionHash: TransactionHash
+    depositUtxo: UnspentTransactionOutput
+  }>
 
   /**
    * Creates a Bitcoin P2(W)SH deposit transaction.
@@ -56,14 +62,21 @@ export interface TBTC {
    * @param depositorPrivateKey - Bitcoin private key of the depositor.
    * @param witness - If true, a witness (P2WSH) transaction will be created.
    *        Otherwise, a legacy P2SH transaction will be made.
-   * @returns Deposit UTXO with Bitcoin P2(W)SH deposit transaction data in raw format.
+   * @returns The outcome consisting of:
+   *          - the deposit transaction hash,
+   *          - the deposit UTXO produced by this transaction.
+   *          - the deposit transaction in the raw format
    */
   createDepositTransaction(
     deposit: Deposit,
     utxos: (UnspentTransactionOutput & RawTransaction)[],
     depositorPrivateKey: string,
     witness: boolean
-  ): Promise<UnspentTransactionOutput & RawTransaction>
+  ): Promise<{
+    transactionHash: TransactionHash
+    depositUtxo: UnspentTransactionOutput
+    rawTransaction: RawTransaction
+  }>
 
   /**
    * Creates a Bitcoin locking script for P2(W)SH deposit transaction.
@@ -142,7 +155,9 @@ export interface TBTC {
    *        The number of UTXOs and deposit elements must equal.
    * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
    *        from the previous wallet transaction (optional).
-   * @returns The UTXO that will be created by the sweep transaction.
+   * @returns The outcome consisting of:
+   *          - the sweep transaction hash,
+   *          - the new wallet's main UTXO produced by this transaction.
    */
   sweepDeposits(
     bitcoinClient: BitcoinClient,
@@ -152,7 +167,10 @@ export interface TBTC {
     utxos: UnspentTransactionOutput[],
     deposits: Deposit[],
     mainUtxo?: UnspentTransactionOutput
-  ): Promise<UnspentTransactionOutput>
+  ): Promise<{
+    transactionHash: TransactionHash
+    newMainUtxo: UnspentTransactionOutput
+  }>
 
   /**
    * Creates a Bitcoin P2WPKH deposit sweep transaction.
@@ -169,7 +187,10 @@ export interface TBTC {
    *        The number of UTXOs and deposit elements must equal.
    * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
    *        from the previous wallet transaction (optional).
-   * @returns Resulting UTXO with Bitcoin sweep transaction data in raw format.
+   * @returns The outcome consisting of:
+   *          - the sweep transaction hash,
+   *          - the new wallet's main UTXO produced by this transaction.
+   *          - the sweep transaction in the raw format
    */
   createDepositSweepTransaction(
     fee: BigNumber,
@@ -178,7 +199,11 @@ export interface TBTC {
     utxos: (UnspentTransactionOutput & RawTransaction)[],
     deposits: Deposit[],
     mainUtxo?: UnspentTransactionOutput & RawTransaction
-  ): Promise<UnspentTransactionOutput & RawTransaction>
+  ): Promise<{
+    transactionHash: TransactionHash
+    newMainUtxo: UnspentTransactionOutput
+    rawTransaction: RawTransaction
+  }>
 
   /**
    * Prepares the proof of a deposit sweep transaction and submits it to the
@@ -234,7 +259,9 @@ export interface TBTC {
    *        not prepended with length
    * @param witness - The parameter used to decide about the type of the change
    *        output. P2WPKH if `true`, P2PKH if `false`
-   * @returns Empty promise.
+   * @returns The outcome consisting of:
+   *          - the redemption transaction hash,
+   *          - the optional new wallet's main UTXO produced by this transaction.
    */
   makeRedemptions(
     bitcoinClient: BitcoinClient,
@@ -243,7 +270,10 @@ export interface TBTC {
     mainUtxo: UnspentTransactionOutput,
     redeemerOutputScripts: string[],
     witness: boolean
-  ): Promise<void>
+  ): Promise<{
+    transactionHash: TransactionHash
+    newMainUtxo?: UnspentTransactionOutput
+  }>
 
   /**
    * Creates a Bitcoin redemption transaction.
@@ -262,14 +292,21 @@ export interface TBTC {
    * @param redemptionRequests - The list of redemption requests
    * @param witness - The parameter used to decide the type of the change output.
    *        P2WPKH if `true`, P2PKH if `false`
-   * @returns Bitcoin redemption transaction in the raw format.
+   * @returns The outcome consisting of:
+   *          - the redemption transaction hash,
+   *          - the optional new wallet's main UTXO produced by this transaction.
+   *          - the redemption transaction in the raw format
    */
   createRedemptionTransaction(
     walletPrivateKey: string,
     mainUtxo: UnspentTransactionOutput & RawTransaction,
     redemptionRequests: RedemptionRequest[],
     witness: boolean
-  ): Promise<RawTransaction>
+  ): Promise<{
+    transactionHash: TransactionHash
+    newMainUtxo?: UnspentTransactionOutput
+    rawTransaction: RawTransaction
+  }>
 
   /**
    * Prepares the proof of a redemption transaction and submits it to the
