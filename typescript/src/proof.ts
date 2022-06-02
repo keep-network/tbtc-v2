@@ -2,7 +2,7 @@ import {
   Transaction,
   Proof,
   TransactionMerkleBranch,
-  Client as BitcoinClient,
+  Client as BitcoinClient, TransactionHash,
 } from "./bitcoin"
 
 /**
@@ -28,7 +28,7 @@ function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
  * @returns Bitcoin transaction along with the inclusion proof.
  */
 export async function createTransactionProof(
-  transactionHash: string,
+  transactionHash: TransactionHash,
   requiredConfirmations: number,
   bitcoinClient: BitcoinClient
 ): Promise<Transaction & Proof> {

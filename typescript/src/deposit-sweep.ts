@@ -8,6 +8,7 @@ import {
   decomposeRawTransaction,
   isCompressedPublicKey,
   createKeyRing,
+  TransactionHash,
 } from "./bitcoin"
 import { createDepositScript, Deposit } from "./deposit"
 import { Bridge } from "./chain"
@@ -368,7 +369,7 @@ async function prepareInputSignData(
  * @returns Empty promise.
  */
 export async function proveDepositSweep(
-  transactionHash: string,
+  transactionHash: TransactionHash,
   mainUtxo: UnspentTransactionOutput,
   bridge: Bridge,
   bitcoinClient: BitcoinClient

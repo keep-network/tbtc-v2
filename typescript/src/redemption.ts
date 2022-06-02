@@ -8,7 +8,7 @@ import {
   decomposeRawTransaction,
   RawTransaction,
   UnspentTransactionOutput,
-  Client as BitcoinClient,
+  Client as BitcoinClient, TransactionHash,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 import { createTransactionProof } from "./proof"
@@ -306,7 +306,7 @@ export async function createRedemptionTransaction(
  * @returns Empty promise.
  */
 export async function proveRedemption(
-  transactionHash: string,
+  transactionHash: TransactionHash,
   mainUtxo: UnspentTransactionOutput,
   walletPublicKey: string,
   bridge: Bridge,

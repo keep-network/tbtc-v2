@@ -23,7 +23,7 @@ import {
 import { Bridge } from "./chain"
 import {
   Client as BitcoinClient,
-  RawTransaction,
+  RawTransaction, TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
 import { BigNumber } from "ethers"
@@ -190,7 +190,7 @@ export interface TBTC {
    * @returns Empty promise.
    */
   proveDepositSweep(
-    transactionHash: string,
+    transactionHash: TransactionHash,
     mainUtxo: UnspentTransactionOutput,
     bridge: Bridge,
     bitcoinClient: BitcoinClient
@@ -283,7 +283,7 @@ export interface TBTC {
    * @returns Empty promise.
    */
   proveRedemption(
-    transactionHash: string,
+    transactionHash: TransactionHash,
     mainUtxo: UnspentTransactionOutput,
     walletPublicKey: string,
     bridge: Bridge,
