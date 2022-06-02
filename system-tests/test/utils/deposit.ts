@@ -61,7 +61,7 @@ export function generateDeposit(
 export async function getDepositFromBridge(
   systemTestsContext: SystemTestsContext,
   depositUtxo: UnspentTransactionOutput
-): Promise<{ revealedAt: number; sweptAt: number }> {
+): Promise<{ revealedAt: number; sweptAt: number; treasuryFee: BigNumber }> {
   // TODO: The tbtc-v2.ts library should expose a method to get the deposit in a
   //       seamless way. The current implementation of this function is
   //       just a workaround and the tbtc-v2.ts library implementation should
