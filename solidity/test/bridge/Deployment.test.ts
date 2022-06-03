@@ -14,6 +14,7 @@ import type {
   MaintainerProxy,
   ReimbursementPool,
   WalletRegistry,
+  VendingMachine,
 } from "../../typechain"
 import type { TransparentUpgradeableProxy } from "../../typechain/TransparentUpgradeableProxy"
 
@@ -25,6 +26,8 @@ describe("Deployment", async () => {
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
   let esdm: SignerWithAddress
+  let keepTechnicalWalletTeam: SignerWithAddress
+  let keepCommunityMultiSig: SignerWithAddress
 
   let bridge: Bridge
   let bridgeGovernance: BridgeGovernance
@@ -36,12 +39,19 @@ describe("Deployment", async () => {
   let maintainerProxy: MaintainerProxy
   let reimbursementPool: ReimbursementPool
   let walletRegistry: WalletRegistry
+  let vendingMachine: VendingMachine
 
   let bridgeImplementationAddress: string
 
   before(async () => {
     await deployments.fixture()
-    ;({ deployer, governance, esdm } = await helpers.signers.getNamedSigners())
+    ;({
+      deployer,
+      governance,
+      esdm,
+      keepTechnicalWalletTeam,
+      keepCommunityMultiSig,
+    } = await helpers.signers.getNamedSigners())
     bridgeGovernance = await helpers.contracts.getContract("BridgeGovernance")
 
     bridge = await helpers.contracts.getContract("Bridge")
@@ -62,6 +72,7 @@ describe("Deployment", async () => {
     maintainerProxy = await helpers.contracts.getContract("MaintainerProxy")
     reimbursementPool = await helpers.contracts.getContract("ReimbursementPool")
     walletRegistry = await helpers.contracts.getContract("WalletRegistry")
+    vendingMachine = await helpers.contracts.getContract("VendingMachine")
 
     expect(deployer.address).to.be.not.equal(
       governance.address,
@@ -233,6 +244,29 @@ describe("Deployment", async () => {
         await reimbursementPool.owner(),
         "invalid ReimbursementPool owner"
       ).equal(governance.address)
+    })
+  })
+
+  describe("VendingMachine", () => {
+    it("should set vendingMachineUpgradeInitiator", async () => {
+      expect(
+        await vendingMachine.vendingMachineUpgradeInitiator(),
+        "invalid vendingMachineUpgradeInitiator"
+      ).equal(keepTechnicalWalletTeam.address)
+    })
+
+    it("should set unmintFeeUpdateInitiator", async () => {
+      expect(
+        await vendingMachine.unmintFeeUpdateInitiator(),
+        "invalid unmintFeeUpdateInitiator"
+      ).equal(keepTechnicalWalletTeam.address)
+    })
+
+    it("should set VendingMachine owner", async () => {
+      expect(
+        await vendingMachine.owner(),
+        "invalid VendingMachine owner"
+      ).equal(keepCommunityMultiSig.address)
     })
   })
 })
