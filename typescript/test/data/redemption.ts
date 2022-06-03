@@ -6,6 +6,7 @@ import {
   RawTransaction,
   UnspentTransactionOutput,
   TransactionMerkleBranch,
+  TransactionHash,
 } from "../../src/bitcoin"
 import { RedemptionRequest } from "../../src/redemption"
 
@@ -43,7 +44,7 @@ export interface RedemptionTestData {
   }[]
   witness: boolean
   expectedRedemption: {
-    transactionHash: string
+    transactionHash: TransactionHash
     transaction: RawTransaction
   }
 }

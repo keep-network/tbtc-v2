@@ -11,6 +11,7 @@ import {
   createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
+  TransactionHash,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 
@@ -72,14 +73,19 @@ export interface Deposit {
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @returns The deposit UTXO that will be created by the deposit transaction
+ * @returns The outcome consisting of:
+ *          - the deposit transaction hash,
+ *          - the deposit UTXO produced by this transaction.
  */
 export async function makeDeposit(
   deposit: Deposit,
   depositorPrivateKey: string,
   bitcoinClient: BitcoinClient,
   witness: boolean
-): Promise<UnspentTransactionOutput> {
+): Promise<{
+  transactionHash: TransactionHash
+  depositUtxo: UnspentTransactionOutput
+}> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
@@ -89,26 +95,30 @@ export async function makeDeposit(
 
   const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
   for (const utxo of utxos) {
-    const rawTransaction = await bitcoinClient.getRawTransaction(
+    const utxoRawTransaction = await bitcoinClient.getRawTransaction(
       utxo.transactionHash
     )
 
     utxosWithRaw.push({
       ...utxo,
-      transactionHex: rawTransaction.transactionHex,
+      transactionHex: utxoRawTransaction.transactionHex,
     })
   }
 
-  const { transactionHex, ...depositUtxo } = await createDepositTransaction(
-    deposit,
-    utxosWithRaw,
-    depositorPrivateKey,
-    witness
-  )
+  const { transactionHash, depositUtxo, rawTransaction } =
+    await createDepositTransaction(
+      deposit,
+      utxosWithRaw,
+      depositorPrivateKey,
+      witness
+    )
 
-  await bitcoinClient.broadcast({ transactionHex })
+  await bitcoinClient.broadcast(rawTransaction)
 
-  return depositUtxo
+  return {
+    transactionHash,
+    depositUtxo,
+  }
 }
 
 /**
@@ -118,14 +128,21 @@ export async function makeDeposit(
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @returns Deposit UTXO with Bitcoin P2(W)SH deposit transaction data in raw format.
+ * @returns The outcome consisting of:
+ *          - the deposit transaction hash,
+ *          - the deposit UTXO produced by this transaction.
+ *          - the deposit transaction in the raw format
  */
 export async function createDepositTransaction(
   deposit: Deposit,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   depositorPrivateKey: string,
   witness: boolean
-): Promise<UnspentTransactionOutput & RawTransaction> {
+): Promise<{
+  transactionHash: TransactionHash
+  depositUtxo: UnspentTransactionOutput
+  rawTransaction: RawTransaction
+}> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
@@ -157,11 +174,18 @@ export async function createDepositTransaction(
 
   transaction.sign(depositorKeyRing)
 
+  const transactionHash = transaction.txid()
+
   return {
-    transactionHash: transaction.txid(),
-    outputIndex: 0, // There is only one output.
-    value: outputValue,
-    transactionHex: transaction.toRaw().toString("hex"),
+    transactionHash,
+    depositUtxo: {
+      transactionHash,
+      outputIndex: 0, // The deposit is always the first output.
+      value: outputValue,
+    },
+    rawTransaction: {
+      transactionHex: transaction.toRaw().toString("hex"),
+    },
   }
 }
 

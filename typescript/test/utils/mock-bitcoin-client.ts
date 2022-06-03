@@ -4,6 +4,7 @@ import {
   TransactionMerkleBranch,
   RawTransaction,
   Transaction,
+  TransactionHash,
 } from "../../src/bitcoin"
 
 /**
@@ -72,19 +73,21 @@ export class MockBitcoinClient implements Client {
     })
   }
 
-  getTransaction(transactionHash: string): Promise<Transaction> {
+  getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
     return new Promise<Transaction>((resolve, _) => {
       resolve(this._transactions.get(transactionHash) as Transaction)
     })
   }
 
-  getRawTransaction(transactionHash: string): Promise<RawTransaction> {
+  getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction> {
     return new Promise<RawTransaction>((resolve, _) => {
       resolve(this._rawTransactions.get(transactionHash) as RawTransaction)
     })
   }
 
-  getTransactionConfirmations(transactionHash: string): Promise<number> {
+  getTransactionConfirmations(
+    transactionHash: TransactionHash
+  ): Promise<number> {
     return new Promise<number>((resolve, _) => {
       resolve(this._confirmations.get(transactionHash) as number)
     })
@@ -103,7 +106,7 @@ export class MockBitcoinClient implements Client {
   }
 
   getTransactionMerkle(
-    transactionHash: string,
+    transactionHash: TransactionHash,
     blockHeight: number
   ): Promise<TransactionMerkleBranch> {
     return new Promise<TransactionMerkleBranch>((resolve, _) => {
