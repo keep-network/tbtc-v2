@@ -142,7 +142,7 @@ export interface TBTC {
    *        The number of UTXOs and deposit elements must equal.
    * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
    *        from the previous wallet transaction (optional).
-   * @returns Empty promise.
+   * @returns The UTXO that will be created by the sweep transaction.
    */
   sweepDeposits(
     bitcoinClient: BitcoinClient,
@@ -152,7 +152,7 @@ export interface TBTC {
     utxos: UnspentTransactionOutput[],
     deposits: Deposit[],
     mainUtxo?: UnspentTransactionOutput
-  ): Promise<void>
+  ): Promise<UnspentTransactionOutput>
 
   /**
    * Creates a Bitcoin P2WPKH deposit sweep transaction.
@@ -169,7 +169,7 @@ export interface TBTC {
    *        The number of UTXOs and deposit elements must equal.
    * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
    *        from the previous wallet transaction (optional).
-   * @returns Bitcoin deposit sweep transaction in raw format.
+   * @returns Resulting UTXO with Bitcoin sweep transaction data in raw format.
    */
   createDepositSweepTransaction(
     fee: BigNumber,
@@ -178,7 +178,7 @@ export interface TBTC {
     utxos: (UnspentTransactionOutput & RawTransaction)[],
     deposits: Deposit[],
     mainUtxo?: UnspentTransactionOutput & RawTransaction
-  ): Promise<RawTransaction>
+  ): Promise<UnspentTransactionOutput & RawTransaction>
 
   /**
    * Prepares the proof of a deposit sweep transaction and submits it to the

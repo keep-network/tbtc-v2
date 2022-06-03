@@ -31,7 +31,7 @@ import { createTransactionProof } from "./proof"
  *        The number of UTXOs and deposit elements must equal.
  * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
  *        from the previous wallet transaction (optional).
- * @returns Empty promise.
+ * @returns The UTXO that will be created by the sweep transaction.
  */
 export async function sweepDeposits(
   bitcoinClient: BitcoinClient,
@@ -41,7 +41,7 @@ export async function sweepDeposits(
   utxos: UnspentTransactionOutput[],
   deposits: Deposit[],
   mainUtxo?: UnspentTransactionOutput
-): Promise<void> {
+): Promise<UnspentTransactionOutput> {
   const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
   for (const utxo of utxos) {
     const rawTransaction = await bitcoinClient.getRawTransaction(
@@ -66,7 +66,7 @@ export async function sweepDeposits(
     }
   }
 
-  const transaction = await createDepositSweepTransaction(
+  const { transactionHex, ...resultUtxo } = await createDepositSweepTransaction(
     fee,
     walletPrivateKey,
     witness,
@@ -78,7 +78,9 @@ export async function sweepDeposits(
   // Note that `broadcast` may fail silently (i.e. no error will be returned,
   // even if the transaction is rejected by other nodes and does not enter the
   // mempool, for example due to an UTXO being already spent).
-  await bitcoinClient.broadcast(transaction)
+  await bitcoinClient.broadcast({ transactionHex })
+
+  return resultUtxo
 }
 
 /**
@@ -96,7 +98,7 @@ export async function sweepDeposits(
  *        The number of UTXOs and deposit elements must equal.
  * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
  *        from the previous wallet transaction (optional).
- * @returns Bitcoin deposit sweep transaction in raw format.
+ * @returns Resulting UTXO with Bitcoin sweep transaction data in raw format.
  */
 export async function createDepositSweepTransaction(
   fee: BigNumber,
@@ -105,7 +107,7 @@ export async function createDepositSweepTransaction(
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   deposits: Deposit[],
   mainUtxo?: UnspentTransactionOutput & RawTransaction
-): Promise<RawTransaction> {
+): Promise<UnspentTransactionOutput & RawTransaction> {
   if (utxos.length < 1) {
     throw new Error("There must be at least one deposit UTXO to sweep")
   }
@@ -205,6 +207,9 @@ export async function createDepositSweepTransaction(
   }
 
   return {
+    transactionHash: transaction.txid(),
+    outputIndex: 0, // There is only one output.
+    value: BigNumber.from(transaction.outputs[0].value),
     transactionHex: transaction.toRaw().toString("hex"),
   }
 }
