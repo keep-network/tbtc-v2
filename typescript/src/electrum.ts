@@ -3,7 +3,8 @@ import bcoin from "bcoin"
 import {
   Client as BitcoinClient,
   RawTransaction,
-  Transaction, TransactionHash,
+  Transaction,
+  TransactionHash,
   TransactionInput,
   TransactionMerkleBranch,
   TransactionOutput,
@@ -162,7 +163,9 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getTransactionConfirmations}
    */
-  getTransactionConfirmations(transactionHash: TransactionHash): Promise<number> {
+  getTransactionConfirmations(
+    transactionHash: TransactionHash
+  ): Promise<number> {
     return this.withElectrum<number>(async (electrum: Electrum) => {
       const transaction = await electrum.blockchain_transaction_get(
         transactionHash,

@@ -2,7 +2,8 @@ import {
   Transaction,
   Proof,
   TransactionMerkleBranch,
-  Client as BitcoinClient, TransactionHash,
+  Client as BitcoinClient,
+  TransactionHash,
 } from "./bitcoin"
 
 /**
