@@ -11,6 +11,7 @@ import {
 import {
   decomposeRawTransaction,
   RawTransaction,
+  TransactionHash,
   UnspentTransactionOutput,
 } from "../src/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
@@ -120,21 +121,28 @@ describe("Deposit", () => {
     })
 
     context("when witness option is true", () => {
+      let transactionHash: TransactionHash
       let depositUtxo: UnspentTransactionOutput
 
       beforeEach(async () => {
-        depositUtxo = await TBTC.makeDeposit(
+        ;({ transactionHash, depositUtxo } = await TBTC.makeDeposit(
           deposit,
           testnetPrivateKey,
           bitcoinClient,
           true
-        )
+        ))
       })
 
       it("should broadcast P2WSH transaction with proper structure", async () => {
         expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
         expect(bitcoinClient.broadcastLog[0]).to.be.eql(
           expectedP2WSHDeposit.transaction
+        )
+      })
+
+      it("should return the proper transaction hash", async () => {
+        expect(transactionHash).to.be.equal(
+          expectedP2WSHDeposit.transactionHash
         )
       })
 
@@ -150,15 +158,16 @@ describe("Deposit", () => {
     })
 
     context("when witness option is false", () => {
+      let transactionHash: TransactionHash
       let depositUtxo: UnspentTransactionOutput
 
       beforeEach(async () => {
-        depositUtxo = await TBTC.makeDeposit(
+        ;({ transactionHash, depositUtxo } = await TBTC.makeDeposit(
           deposit,
           testnetPrivateKey,
           bitcoinClient,
           false
-        )
+        ))
       })
 
       it("should broadcast P2SH transaction with proper structure", async () => {
@@ -166,6 +175,10 @@ describe("Deposit", () => {
         expect(bitcoinClient.broadcastLog[0]).to.be.eql(
           expectedP2SHDeposit.transaction
         )
+      })
+
+      it("should return the proper transaction hash", async () => {
+        expect(transactionHash).to.be.equal(expectedP2SHDeposit.transactionHash)
       })
 
       it("should return the proper deposit UTXO", () => {
@@ -182,20 +195,21 @@ describe("Deposit", () => {
 
   describe("createDepositTransaction", () => {
     context("when witness option is true", () => {
-      let transaction: RawTransaction
+      let transactionHash: TransactionHash
       let depositUtxo: UnspentTransactionOutput
+      let transaction: RawTransaction
 
       beforeEach(async () => {
-        let transactionHex: string
-        ;({ transactionHex, ...depositUtxo } =
-          await TBTC.createDepositTransaction(
-            deposit,
-            [testnetUTXO],
-            testnetPrivateKey,
-            true
-          ))
-
-        transaction = { transactionHex }
+        ;({
+          transactionHash,
+          depositUtxo,
+          rawTransaction: transaction,
+        } = await TBTC.createDepositTransaction(
+          deposit,
+          [testnetUTXO],
+          testnetPrivateKey,
+          true
+        ))
       })
 
       it("should return P2WSH transaction with proper structure", async () => {
@@ -256,6 +270,12 @@ describe("Deposit", () => {
         expect(changeOutput.address).to.be.equal(testnetAddress)
       })
 
+      it("should return the proper transaction hash", async () => {
+        expect(transactionHash).to.be.equal(
+          expectedP2WSHDeposit.transactionHash
+        )
+      })
+
       it("should return the proper deposit UTXO", () => {
         const expectedDepositUtxo = {
           transactionHash: expectedP2WSHDeposit.transactionHash,
@@ -268,20 +288,21 @@ describe("Deposit", () => {
     })
 
     context("when witness option is false", () => {
-      let transaction: RawTransaction
+      let transactionHash: TransactionHash
       let depositUtxo: UnspentTransactionOutput
+      let transaction: RawTransaction
 
       beforeEach(async () => {
-        let transactionHex: string
-        ;({ transactionHex, ...depositUtxo } =
-          await TBTC.createDepositTransaction(
-            deposit,
-            [testnetUTXO],
-            testnetPrivateKey,
-            false
-          ))
-
-        transaction = { transactionHex }
+        ;({
+          transactionHash,
+          depositUtxo,
+          rawTransaction: transaction,
+        } = await TBTC.createDepositTransaction(
+          deposit,
+          [testnetUTXO],
+          testnetPrivateKey,
+          false
+        ))
       })
 
       it("should return P2SH transaction with proper structure", async () => {
@@ -340,6 +361,10 @@ describe("Deposit", () => {
         )
         // Should return the change to depositor BTC address.
         expect(changeOutput.address).to.be.equal(testnetAddress)
+      })
+
+      it("should return the proper transaction hash", async () => {
+        expect(transactionHash).to.be.equal(expectedP2SHDeposit.transactionHash)
       })
 
       it("should return the proper deposit UTXO", () => {
@@ -609,26 +634,28 @@ describe("Deposit", () => {
   })
 
   describe("revealDeposit", () => {
-    let transactionHex: string
+    let transaction: RawTransaction
     let depositUtxo: UnspentTransactionOutput
     let bitcoinClient: MockBitcoinClient
     let bridge: MockBridge
 
     beforeEach(async () => {
       // Create a deposit transaction.
-      ;({ transactionHex, ...depositUtxo } =
-        await TBTC.createDepositTransaction(
-          deposit,
-          [testnetUTXO],
-          testnetPrivateKey,
-          true
-        ))
+      const result = await TBTC.createDepositTransaction(
+        deposit,
+        [testnetUTXO],
+        testnetPrivateKey,
+        true
+      )
+
+      transaction = result.rawTransaction
+      depositUtxo = result.depositUtxo
 
       // Initialize the mock Bitcoin client to return the raw transaction
       // data for the given deposit UTXO.
       bitcoinClient = new MockBitcoinClient()
       const rawTransactions = new Map<string, RawTransaction>()
-      rawTransactions.set(depositUtxo.transactionHash, { transactionHex })
+      rawTransactions.set(depositUtxo.transactionHash, transaction)
       bitcoinClient.rawTransactions = rawTransactions
 
       // Initialize the mock Bridge.
@@ -642,7 +669,7 @@ describe("Deposit", () => {
 
       const revealDepositLogEntry = bridge.revealDepositLog[0]
       expect(revealDepositLogEntry.depositTx).to.be.eql(
-        decomposeRawTransaction({ transactionHex })
+        decomposeRawTransaction(transaction)
       )
       expect(revealDepositLogEntry.depositOutputIndex).to.be.equal(0)
       expect(revealDepositLogEntry.deposit).to.be.eql(deposit)
