@@ -35,11 +35,12 @@ import { waitTransactionConfirmed } from "./utils/bitcoin"
 describe("System Test - Deposit and redemption", () => {
   let systemTestsContext: SystemTestsContext
   let electrumClient: ElectrumClient
+  let bridgeAddress: string
   let maintainerBridgeHandle: EthereumBridge
   let depositorBridgeHandle: EthereumBridge
   let bank: Contract
 
-  const depositAmount = BigNumber.from(10000000)
+  const depositAmount = BigNumber.from(2000000)
   const depositSweepTxFee = BigNumber.from(10000)
 
   let deposit: Deposit
@@ -54,7 +55,7 @@ describe("System Test - Deposit and redemption", () => {
 
     electrumClient = new ElectrumClient(parseElectrumCredentials(electrumUrl))
 
-    const bridgeAddress = contractsDeploymentInfo.contracts["Bridge"].address
+    bridgeAddress = contractsDeploymentInfo.contracts["Bridge"].address
 
     maintainerBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
@@ -211,6 +212,12 @@ describe("System Test - Deposit and redemption", () => {
       requestedAmount = await bank.balanceOf(
         systemTestsContext.depositor.address
       )
+
+      // Allow the bridge to take the redeemed bank balance.
+      await bank
+        .connect(systemTestsContext.depositor)
+        .approveBalance(bridgeAddress, requestedAmount)
+
       // Request redemption to depositor's address.
       redeemerOutputScript = `0014${computeHash160(
         systemTestsContext.depositorBitcoinKeyPair.compressedPublicKey
