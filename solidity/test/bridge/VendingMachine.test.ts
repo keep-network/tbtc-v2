@@ -30,8 +30,11 @@ describe("VendingMachine", () => {
   const initialBalance = to1e18(5) // 5 TBTC v1
 
   before(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ deployer, governance } = await helpers.signers.getNamedSigners())
+    let keepCommunityMultiSig: Signer
+    let keepTechnicalWalletTeam: Signer
+      // eslint-disable-next-line @typescript-eslint/no-extra-semi
+    ;({ deployer, keepCommunityMultiSig, keepTechnicalWalletTeam, governance } =
+      await helpers.signers.getNamedSigners())
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[
@@ -51,15 +54,15 @@ describe("VendingMachine", () => {
       .mint(await tokenHolder.getAddress(), initialBalance)
 
     await vendingMachine
-      .connect(deployer)
+      .connect(keepCommunityMultiSig)
       .transferOwnership(await governance.getAddress())
     await vendingMachine
-      .connect(deployer)
+      .connect(keepTechnicalWalletTeam)
       .transferUnmintFeeUpdateInitiatorRole(
         await unmintFeeUpdateInitiator.getAddress()
       )
     await vendingMachine
-      .connect(deployer)
+      .connect(keepTechnicalWalletTeam)
       .transferVendingMachineUpgradeInitiatorRole(
         await vendingMachineUpgradeInitiator.getAddress()
       )
