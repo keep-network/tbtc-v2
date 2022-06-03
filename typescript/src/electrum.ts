@@ -4,6 +4,7 @@ import {
   Client as BitcoinClient,
   RawTransaction,
   Transaction,
+  TransactionHash,
   TransactionInput,
   TransactionMerkleBranch,
   TransactionOutput,
@@ -109,7 +110,7 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getTransaction}
    */
-  getTransaction(transactionHash: string): Promise<Transaction> {
+  getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
     return this.withElectrum<Transaction>(async (electrum: Electrum) => {
       const transaction = await electrum.blockchain_transaction_get(
         transactionHash,
@@ -145,7 +146,7 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getRawTransaction}
    */
-  getRawTransaction(transactionHash: string): Promise<RawTransaction> {
+  getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction> {
     return this.withElectrum<RawTransaction>(async (electrum: Electrum) => {
       const transaction = await electrum.blockchain_transaction_get(
         transactionHash,
@@ -162,7 +163,9 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getTransactionConfirmations}
    */
-  getTransactionConfirmations(transactionHash: string): Promise<number> {
+  getTransactionConfirmations(
+    transactionHash: TransactionHash
+  ): Promise<number> {
     return this.withElectrum<number>(async (electrum: Electrum) => {
       const transaction = await electrum.blockchain_transaction_get(
         transactionHash,
@@ -205,7 +208,7 @@ export class Client implements BitcoinClient {
    * @see {BitcoinClient#getTransactionMerkle}
    */
   getTransactionMerkle(
-    transactionHash: string,
+    transactionHash: TransactionHash,
     blockHeight: number
   ): Promise<TransactionMerkleBranch> {
     return this.withElectrum<TransactionMerkleBranch>(

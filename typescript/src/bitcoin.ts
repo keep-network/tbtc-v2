@@ -11,6 +11,15 @@ import { StaticWriter, BufferWriter } from "bufio"
 import { BigNumber } from "ethers"
 
 /**
+ * Represents a transaction hash (or transaction ID) as an un-prefixed hex
+ * string. This hash is supposed to have the same byte order as used by the
+ * Bitcoin block explorers which is the opposite of the byte order used
+ * by the Bitcoin protocol internally. That means the hash must be reversed in
+ * the use cases that expect the Bitcoin internal byte order.
+ */
+export type TransactionHash = string
+
+/**
  * Represents a raw transaction.
  */
 export interface RawTransaction {
@@ -27,7 +36,7 @@ export interface Transaction {
   /**
    * The transaction hash (or transaction ID) as an un-prefixed hex string.
    */
-  transactionHash: string
+  transactionHash: TransactionHash
 
   /**
    * The vector of transaction inputs.
@@ -47,7 +56,7 @@ export interface TransactionOutpoint {
   /**
    * The hash of the transaction the outpoint belongs to.
    */
-  transactionHash: string
+  transactionHash: TransactionHash
 
   /**
    * The zero-based index of the output from the specified transaction.
@@ -185,14 +194,14 @@ export interface Client {
    * @param transactionHash - Hash of the transaction.
    * @returns Transaction object.
    */
-  getTransaction(transactionHash: string): Promise<Transaction>
+  getTransaction(transactionHash: TransactionHash): Promise<Transaction>
 
   /**
    * Gets the raw transaction data for given transaction hash.
    * @param transactionHash - Hash of the transaction.
    * @returns Raw transaction.
    */
-  getRawTransaction(transactionHash: string): Promise<RawTransaction>
+  getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction>
 
   /**
    * Gets the number of confirmations that a given transaction has accumulated
@@ -200,7 +209,7 @@ export interface Client {
    * @param transactionHash - Hash of the transaction.
    * @returns The number of confirmations.
    */
-  getTransactionConfirmations(transactionHash: string): Promise<number>
+  getTransactionConfirmations(transactionHash: TransactionHash): Promise<number>
 
   /**
    * Gets height of the latest mined block.
@@ -224,7 +233,7 @@ export interface Client {
    * @return Merkle branch.
    */
   getTransactionMerkle(
-    transactionHash: string,
+    transactionHash: TransactionHash,
     blockHeight: number
   ): Promise<TransactionMerkleBranch>
 

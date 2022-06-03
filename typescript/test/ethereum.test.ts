@@ -164,7 +164,7 @@ describe("Ethereum", () => {
           },
           {
             txHash:
-              "0xf8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+              "0x6896f9abcac13ce6bd2b80d125bedf997ff6330e999f2f605ea15ea542f2eaf8",
             txOutputIndex: 8,
             txOutputValue: BigNumber.from(9999),
           },
@@ -207,7 +207,7 @@ describe("Ethereum", () => {
           "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
           {
             txHash:
-              "0xf8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+              "0x6896f9abcac13ce6bd2b80d125bedf997ff6330e999f2f605ea15ea542f2eaf8",
             txOutputIndex: 8,
             txOutputValue: BigNumber.from(9999),
           },
@@ -258,7 +258,7 @@ describe("Ethereum", () => {
           },
           {
             txHash:
-              "0xf8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+              "0x6896f9abcac13ce6bd2b80d125bedf997ff6330e999f2f605ea15ea542f2eaf8",
             txOutputIndex: 8,
             txOutputValue: BigNumber.from(9999),
           },

@@ -133,7 +133,11 @@ export class Bridge implements ChainBridge {
     }
 
     const mainUtxoParam = {
-      txHash: `0x${mainUtxo.transactionHash}`,
+      // The Ethereum Bridge expects this hash to be in the Bitcoin internal
+      // byte order.
+      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
+        .reverse()
+        .toString("hex")}`,
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -173,7 +177,11 @@ export class Bridge implements ChainBridge {
     const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
 
     const mainUtxoParam = {
-      txHash: `0x${mainUtxo.transactionHash}`,
+      // The Ethereum Bridge expects this hash to be in the Bitcoin internal
+      // byte order.
+      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
+        .reverse()
+        .toString("hex")}`,
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -218,7 +226,11 @@ export class Bridge implements ChainBridge {
     }
 
     const mainUtxoParam = {
-      txHash: `0x${mainUtxo.transactionHash}`,
+      // The Ethereum Bridge expects this hash to be in the Bitcoin internal
+      // byte order.
+      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
+        .reverse()
+        .toString("hex")}`,
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
