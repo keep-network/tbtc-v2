@@ -1,5 +1,8 @@
 import TBTC, { ElectrumClient, EthereumBridge } from "@keep-network/tbtc-v2.ts"
-import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import type {
+  TransactionHash,
+  UnspentTransactionOutput,
+} from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
 import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/redemption"
@@ -24,7 +27,6 @@ describe("System Test - Deposit and redemption", () => {
   let depositUtxo: UnspentTransactionOutput
   let sweepUtxo: UnspentTransactionOutput
   let redemptionRequest: RedemptionRequest
-  let redemptionUtxo: UnspentTransactionOutput
 
   before(async () => {
     systemTestsContext = await setupSystemTestsContext()
@@ -65,13 +67,12 @@ describe("System Test - Deposit and redemption", () => {
       console.log(`
         Generated deposit data
       `)
-
-      depositUtxo = await TBTC.makeDeposit(
+      ;({ depositUtxo } = await TBTC.makeDeposit(
         deposit,
         systemTestsContext.depositorBitcoinKeyPair.privateKeyWif,
         electrumClient,
         true
-      )
+      ))
 
       console.log(`
         Deposit made on BTC chain:
@@ -112,14 +113,14 @@ describe("System Test - Deposit and redemption", () => {
 
   context("when deposit is swept and sweep proof submitted", () => {
     before("sweep the deposit and submit sweep proof", async () => {
-      sweepUtxo = await TBTC.sweepDeposits(
+      ;({ newMainUtxo: sweepUtxo } = await TBTC.sweepDeposits(
         electrumClient,
         depositSweepTxFee,
         systemTestsContext.walletBitcoinKeyPair.privateKeyWif,
         true,
         [depositUtxo],
         [deposit]
-      )
+      ))
 
       console.log(`
         Deposit swept on Bitcoin chain:
@@ -226,28 +227,27 @@ describe("System Test - Deposit and redemption", () => {
   })
 
   context("when redemption is made and redemption proof submitted", () => {
+    let redemptionTxHash: TransactionHash
+
     before("make the redemption and submit redemption proof", async () => {
-      redemptionUtxo = await TBTC.makeRedemptions(
+      ;({ transactionHash: redemptionTxHash } = await TBTC.makeRedemptions(
         electrumClient,
         maintainerBridgeHandle,
         systemTestsContext.walletBitcoinKeyPair.compressedPublicKey,
         sweepUtxo,
         [redemptionRequest.redeemerOutputScript],
         true
-      )
+      ))
 
       console.log(`
         Redemption made on Bitcoin chain:
-        - Transaction hash: ${redemptionUtxo.transactionHash}
+        - Transaction hash: ${redemptionTxHash}
       `)
 
-      await waitTransactionConfirmed(
-        electrumClient,
-        redemptionUtxo.transactionHash
-      )
+      await waitTransactionConfirmed(electrumClient, redemptionTxHash)
 
       await TBTC.proveRedemption(
-        redemptionUtxo.transactionHash,
+        redemptionTxHash,
         sweepUtxo,
         systemTestsContext.walletBitcoinKeyPair.compressedPublicKey,
         maintainerBridgeHandle,
@@ -261,7 +261,7 @@ describe("System Test - Deposit and redemption", () => {
 
     it("should broadcast the redemption transaction on the Bitcoin network", async () => {
       expect(
-        (await electrumClient.getRawTransaction(redemptionUtxo.transactionHash))
+        (await electrumClient.getRawTransaction(redemptionTxHash))
           .transactionHex.length
       ).to.be.greaterThan(0)
     })
