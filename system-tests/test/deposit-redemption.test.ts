@@ -238,7 +238,9 @@ describe("System Test - Deposit and redemption", () => {
       // TODO: Consider exposing redemption request getter directly in the
       //       `tbtc-v2.ts` default export object.
       redemptionRequest = await maintainerBridgeHandle.pendingRedemptions(
-        systemTestsContext.walletBitcoinKeyPair.compressedPublicKey,
+        computeHash160(
+          systemTestsContext.walletBitcoinKeyPair.compressedPublicKey
+        ),
         redeemerOutputScript
       )
     })
@@ -259,7 +261,7 @@ describe("System Test - Deposit and redemption", () => {
       ;({ transactionHash: redemptionTxHash } = await TBTC.makeRedemptions(
         electrumClient,
         maintainerBridgeHandle,
-        systemTestsContext.walletBitcoinKeyPair.compressedPublicKey,
+        systemTestsContext.walletBitcoinKeyPair.privateKeyWif,
         sweepUtxo,
         [redemptionRequest.redeemerOutputScript],
         true
@@ -294,7 +296,9 @@ describe("System Test - Deposit and redemption", () => {
 
     it("should close the redemption request on the bridge", async () => {
       const { requestedAt } = await maintainerBridgeHandle.pendingRedemptions(
-        systemTestsContext.walletBitcoinKeyPair.compressedPublicKey,
+        computeHash160(
+          systemTestsContext.walletBitcoinKeyPair.compressedPublicKey
+        ),
         redemptionRequest.redeemerOutputScript
       )
 
