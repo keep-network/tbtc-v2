@@ -129,7 +129,7 @@ export class Client implements BitcoinClient {
         (output: any): TransactionOutput => ({
           outputIndex: output.n,
           // The `output.value` is in BTC so it must be converted to satoshis.
-          value: BigNumber.from(parseFloat(output.value) * 1e8),
+          value: BigNumber.from((parseFloat(output.value) * 1e8).toFixed(0)),
           scriptPubKey: output.scriptPubKey,
         })
       )
