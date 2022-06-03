@@ -5,6 +5,7 @@ import {
   RawTransaction,
   UnspentTransactionOutput,
   TransactionMerkleBranch,
+  TransactionHash,
 } from "../../src/bitcoin"
 import { computeDepositRefundLocktime, Deposit } from "../../src/deposit"
 import { BigNumber } from "ethers"
@@ -27,7 +28,7 @@ export interface DepositSweepTestData {
   mainUtxo: UnspentTransactionOutput & RawTransaction
   witness: boolean
   expectedSweep: {
-    transactionHash: string
+    transactionHash: TransactionHash
     transaction: RawTransaction
   }
 }
