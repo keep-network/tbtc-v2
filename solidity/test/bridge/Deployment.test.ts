@@ -143,23 +143,27 @@ describe("Deployment", async () => {
       )
     })
 
-    it("should set BridgeGovernance owner", async () => {
-      expect(
-        await bridgeGovernance.owner(),
-        "invalid BridgeGovernance owner"
-      ).equal(governance.address)
-    })
-
     it("should revert when initialize called again", async () => {
       await expect(
         bridge.initialize(AddressZero, AddressZero, AddressZero, AddressZero, 0)
       ).to.be.revertedWith("Initializable: contract is already initialized")
     })
+  })
 
-    it("should set WalletOwner in WalletRegistry", async () => {
+  describe("BridgeGovernance", () => {
+    it("should set owner", async () => {
+      expect(
+        await bridgeGovernance.owner(),
+        "invalid BridgeGovernance owner"
+      ).equal(governance.address)
+    })
+  })
+
+  describe("WalletRegistry", () => {
+    it("should set walletOwner", async () => {
       expect(
         await walletRegistry.walletOwner(),
-        "invalid WalletOwner in WalletRegistry"
+        "invalid walletOwner in WalletRegistry"
       ).equal(bridge.address)
     })
   })
