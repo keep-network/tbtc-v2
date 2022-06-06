@@ -158,6 +158,9 @@ describe("System Test - Deposit and redemption", () => {
         sweepUtxo.transactionHash
       )
 
+      // TODO: Consider fetching the current wallet main UTXO and passing it
+      //       here. This will allow running this test scenario multiple
+      //       times for the same wallet.
       await TBTC.proveDepositSweep(
         sweepUtxo.transactionHash,
         // This is the first sweep of the given wallet so there is no main UTXO.

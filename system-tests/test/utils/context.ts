@@ -3,6 +3,10 @@ import { helpers, network } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { KeyPair as BitcoinKeyPair, keyPairFromPrivateWif } from "./bitcoin"
 
+// TODO: For now, the context and its setup is global and identical for each
+//       scenario. Once more scenarios is added, this should be probably
+//       split into the global common context and specialized per-scenario addons.
+
 /**
  * Represents a context of the given system tests scenario.
  */
@@ -68,17 +72,13 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
   const { governance, maintainer, depositor } =
     await helpers.signers.getNamedSigners()
 
-  const depositorBitcoinPrivateKeyWif = process.env
-    .DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF as string
-  if (!depositorBitcoinPrivateKeyWif) {
-    throw new Error(`DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF is not set`)
-  }
+  const depositorBitcoinKeyPair = readBitcoinPrivateKeyWif(
+    "DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF"
+  )
 
-  const walletBitcoinPrivateKeyWif = process.env
-    .WALLET_BITCOIN_PRIVATE_KEY_WIF as string
-  if (!walletBitcoinPrivateKeyWif) {
-    throw new Error(`WALLET_BITCOIN_PRIVATE_KEY_WIF is not set`)
-  }
+  const walletBitcoinKeyPair = readBitcoinPrivateKeyWif(
+    "WALLET_BITCOIN_PRIVATE_KEY_WIF"
+  )
 
   console.log(`
     System tests context:
@@ -88,8 +88,8 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     - Governance Ethereum address ${governance.address}
     - Maintainer Ethereum address ${maintainer.address}
     - Depositor Ethereum address ${depositor.address}
-    - Depositor Bitcoin private key WIF ${depositorBitcoinPrivateKeyWif}
-    - Wallet Bitcoin private key WIF ${walletBitcoinPrivateKeyWif}
+    - Depositor Bitcoin public key ${depositorBitcoinKeyPair.compressedPublicKey}
+    - Wallet Bitcoin public key ${walletBitcoinKeyPair.compressedPublicKey}
   `)
 
   return {
@@ -98,10 +98,8 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     governance,
     maintainer,
     depositor,
-    depositorBitcoinKeyPair: keyPairFromPrivateWif(
-      depositorBitcoinPrivateKeyWif
-    ),
-    walletBitcoinKeyPair: keyPairFromPrivateWif(walletBitcoinPrivateKeyWif),
+    depositorBitcoinKeyPair,
+    walletBitcoinKeyPair,
   }
 }
 
@@ -122,4 +120,24 @@ function readContractsDeploymentExportFile(): ContractsDeploymentInfo {
   }
 
   throw new Error(`"CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH is not set`)
+}
+
+/**
+ * Reads a Bitcoin private key WIF from an environment variable and
+ * creates a key pair based on it. Throws if the environment variable
+ * is not set.
+ * @param privateKeyWifEnvName Name of the environment variable that contains
+ *        the private key WIF.
+ * @returns Bitcoin key pair corresponding to the private key WIF.
+ */
+function readBitcoinPrivateKeyWif(
+  privateKeyWifEnvName: string
+): BitcoinKeyPair {
+  const privateKeyWif = process.env[privateKeyWifEnvName] as string
+
+  if (!privateKeyWif) {
+    throw new Error(`${privateKeyWifEnvName} is not set`)
+  }
+
+  return keyPairFromPrivateWif(privateKeyWif)
 }
