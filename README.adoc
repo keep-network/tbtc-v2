@@ -39,6 +39,7 @@ This repository contains:
 
 - TBTC v2 link:solidity/[Solidity smart contracts],
 - TBTC v2 link:typescript/[Typescript library],
+- TBTC v2 link:system-tests/[System tests]
 - TBTC v2 link:docs/[documentation],
 - TBTC v2 Yearn vault link:yearn/[Solidity smart contracts].
 

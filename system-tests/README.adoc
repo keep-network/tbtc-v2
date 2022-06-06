@@ -1,0 +1,155 @@
+:toc: macro
+
+= tBTC v2 System tests
+
+This module contains the system test scenarios stressing the tBTC v2 system.
+
+toc::[]
+
+== Run system tests
+
+=== Prerequisites
+
+Please make sure you have the following prerequisites installed on your machine:
+
+- https://nodejs.org[Node.js] >14.17.4
+- https://yarnpkg.com[Yarn] >1.22.10
+
+=== Install dependencies
+
+To install dependencies, run:
+```
+yarn install
+```
+
+=== Bitcoin network requirements
+
+Test scenarios implemented in the `test` directory require
+a connection to the ElectrumX server synced with a Bitcoin
+network. Each test scenario can also define its own
+requirements related to the Bitcoin network. For example,
+deposit-related scenarios require a BTC account with a
+sufficient BTC balance. Please refer the documentation of
+specific test scenarios for more details.
+
+Theoretically, system tests should work on any Bitcoin network.
+However, we recommend to stick with the Bitcoin testnet as
+it is the easiest starting point.
+
+=== Ethereum network requirements
+
+All test scenarios require a connection to the Ethereum
+network with tBTC v2 contracts deployed on. Each of the
+test scenarios can also define a specific contract
+state required to make a successful pass. For example,
+deposit-related scenarios typically require a live wallet
+registered on the `Bridge` contract.
+
+System tests should work with any Ethereum network.
+Those network configurations should be placed in
+the link:hardhat.config.ts[Hardhat config file].
+However, the easiest way to run the system tests
+is using the Hardhat local network in the standalone mode.
+This network is very flexible, especially when
+paired with the test utils exposed by the `solidity`
+module. Those utils are exposed as Hardhat tasks, and
+they allow to configure the desired contract state
+in a seamless way. For example, they provide an
+easy way to register sortition pool operators and
+create a live wallet that can be used for deposits
+and redemptions. To get more details, go to the
+`solidity` module and do:
+```
+npx hardhat --help | grep test-utils
+```
+
+=== Run test scenario
+
+Specific tests scenarios can be invoked using:
+```
+ELECTRUM_URL=<electrum-url> \
+ CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH=<cde-file-path> \
+ yarn test ./test/<scenario>.test.ts --network <ethereum-network>
+```
+where:
+
+- `electrum-url` points to the ElectrumX server
+- `cde-file-path` contains the path of the contracts deployment export file.
+  This is the JSON file produced as the outcome of the Hardhat Deploy plugin run.
+- `scenario` denotes the test file name
+- `ethereum-network` contains one of the Ethereum network names defined in the
+  Hardhat config
+
+Apart from those properties, each test scenario can require some additional
+options passed as environment variables. Please refer specific test scenario
+documentation and current link:test/utils/context.ts[system tests context implementation]
+for details.
+
+We recommend running specific test scenarios separately and avoid running
+them in batch using `yarn test`. Specific scenarios may require a completely
+different network and contract state prerequisites so running them like
+common tests may not be a good idea.
+
+=== Example configuration with Bitcoin testnet and Hardhat local Ethereum network
+
+This example shows how to run the basic
+link:test/deposit-redemption.test.ts[single deposit and redemption roundtrip]
+scenario using Bitcoin testnet and Hardhat local Ethereum network.
+
+First, open a shell instance and jump into `solidity` directory. Once
+done, install dependencies if required (`yarn install`) and compile
+the contracts using:
+```
+yarn build
+```
+This will produce the contract artifacts ready to be deployed on an Ethereum
+network. In order to do so, it is enough to invoke:
+```
+npx hardhat node --export export.json
+```
+This command will run a Hardhat local Ethereum node and apply all the
+link:../solidity/deploy[tBTC v2 contracts deployment scripts]. The
+`--export` flag indicates that the deployment info will be exported
+as the `export.json` file.
+
+We now have a running Hardhat local network with fresh tBTC v2 contracts
+deployed on. The scenario we're trying to run requires a live wallet
+to be registered into the `Bridge` contract. We can easily achieve that
+using the test utils exposed by the `solidity` package. In order to do that,
+run a second shell instance, go to the `solidity` dir and trigger:
+```
+npx hardhat test-utils:register-operators --network localhost
+```
+This command will register the sortition pool operators. This is the first
+step required to create a live wallet. The `--network` flag points to
+`localhost` since the Hardhat local network instance we have started previously
+runs in a standalone mode and is available under this built-in network
+configuration. The next step is triggering the actual DKG process that
+will create the wallet in result:
+```
+npx hardhat test-utils:create-wallet --wallet-public-key <wallet-public-key> --network localhost
+```
+The `wallet-public-key` is an arbitrary, `0x`-prefixed, uncompressed
+ECDSA public key of the wallet. It doesn't matter which one is actually used.
+The only thing relevant here is its corresponding private key that will
+be required in further steps.
+
+Once done, the state of the tBTC v2 contracts should be as expected.
+The test scenario can be started using:
+```
+ELECTRUM_URL=wss://electrumx-server.test.tbtc.network:8443 \
+ CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH=../solidity/export.json \
+ WALLET_BITCOIN_PRIVATE_KEY_WIF=<wallet-bitcoin-private-key-wif> \
+ DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF=<depositor-bitcoin-private-key-wif> \
+ yarn test ./test/deposit-redemption.test.ts --network localhost
+```
+Most of the parameters were explained in the previous sections. Worth noting
+that this scenario requires two additional ones:
+
+- `wallet-bitcoin-private-key-wif` that should contain the wallet's private
+  key in WIF format. This is the private key that should match the public
+  key of the wallet generated in the previous step.
+- `depositor-bitcoin-private-key-wif` that should contain the depositor's
+  private key in WIF format. This is an arbitrary BTC account with a
+  sufficient BTC balance
+
