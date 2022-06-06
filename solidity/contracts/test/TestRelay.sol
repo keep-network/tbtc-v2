@@ -2,9 +2,14 @@
 
 pragma solidity ^0.8.9;
 
+import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
+
 import "../bridge/Bridge.sol";
 
 contract TestRelay is IRelay {
+    using BTCUtils for bytes;
+    using BTCUtils for uint256;
+
     uint256 private currentEpochDifficulty;
     uint256 private prevEpochDifficulty;
 
@@ -14,6 +19,26 @@ contract TestRelay is IRelay {
 
     function setPrevEpochDifficulty(uint256 _difficulty) external {
         prevEpochDifficulty = _difficulty;
+    }
+
+    function setCurrentEpochDifficultyFromHeaders(bytes memory bitcoinHeaders)
+        external
+    {
+        uint256 firstHeaderDiff = bitcoinHeaders
+            .extractTarget()
+            .calculateDifficulty();
+
+        currentEpochDifficulty = firstHeaderDiff;
+    }
+
+    function setPrevEpochDifficultyFromHeaders(bytes memory bitcoinHeaders)
+        external
+    {
+        uint256 firstHeaderDiff = bitcoinHeaders
+            .extractTarget()
+            .calculateDifficulty();
+
+        prevEpochDifficulty = firstHeaderDiff;
     }
 
     function getCurrentEpochDifficulty()

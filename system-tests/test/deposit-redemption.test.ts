@@ -11,7 +11,7 @@ import { expect } from "chai"
 import { parseElectrumCredentials } from "./utils/electrum"
 import { setupSystemTestsContext, SystemTestsContext } from "./utils/context"
 import { generateDeposit, getDepositFromBridge } from "./utils/deposit"
-import { waitTransactionConfirmed } from "./utils/bitcoin"
+import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
 
 /**
  * This system test scenario performs a single deposit and redemption.
@@ -152,6 +152,12 @@ describe("System Test - Deposit and redemption", () => {
       // because the bridge performs the SPV proof of that transaction.
       await waitTransactionConfirmed(electrumClient, sweepUtxo.transactionHash)
 
+      await fakeRelayDifficulty(
+        systemTestsContext,
+        electrumClient,
+        sweepUtxo.transactionHash
+      )
+
       await TBTC.proveDepositSweep(
         sweepUtxo.transactionHash,
         // This is the first sweep of the given wallet so there is no main UTXO.
@@ -273,6 +279,12 @@ describe("System Test - Deposit and redemption", () => {
       `)
 
       await waitTransactionConfirmed(electrumClient, redemptionTxHash)
+
+      await fakeRelayDifficulty(
+        systemTestsContext,
+        electrumClient,
+        redemptionTxHash
+      )
 
       await TBTC.proveRedemption(
         redemptionTxHash,

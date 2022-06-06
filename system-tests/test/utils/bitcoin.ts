@@ -1,9 +1,23 @@
 // @ts-ignore
 import wif from "wif"
 import { ec as EllipticCurve } from "elliptic"
-import { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import {
+  Client as BitcoinClient,
+  TransactionHash,
+} from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import { createTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
+import { SystemTestsContext } from "./context"
+import { Contract } from "ethers"
 
+/**
+ * Elliptic curve used by Bitcoin.
+ */
 const secp256k1 = new EllipticCurve("secp256k1")
+/**
+ * Default number of transaction confirmations required to perform a reliable
+ * SPV proof.
+ */
+const defaultTxProofDifficultyFactor = 6
 
 /**
  * Represents a Bitcoin key pair.
@@ -58,8 +72,8 @@ export function keyPairFromPrivateWif(privateKeyWif: string): KeyPair {
  */
 export async function waitTransactionConfirmed(
   bitcoinClient: BitcoinClient,
-  transactionHash: string,
-  requiredConfirmations: number = 6,
+  transactionHash: TransactionHash,
+  requiredConfirmations: number = defaultTxProofDifficultyFactor,
   sleep: number = 60000
 ): Promise<void> {
   for (;;) {
@@ -84,4 +98,49 @@ export async function waitTransactionConfirmed(
 
     await new Promise((r) => setTimeout(r, sleep))
   }
+}
+
+/**
+ * Fakes the difficulty provided by the relay contract by setting it to a value
+ * that allows to perform a successful SPV proof of the given transaction.
+ * This function should be used only with deployments that use a stub relay
+ * which exposes `setCurrentEpochDifficultyFromHeaders` and
+ * `setPrevEpochDifficultyFromHeaders` functions. The right difficulty is
+ * determined based on the header chain containing the given transaction.
+ * The header chain length (`headerChainLength` parameter) should be
+ * the same as the header chain length required by SPV proof function exposed
+ * by the bridge.
+ * @param systemTestsContext System tests context.
+ * @param bitcoinClient Bitcoin client used to perform the difficulty evaluation.
+ * @param transactionHash Hash of the transaction the difficulty should be
+ *        set for.
+ * @param headerChainLength Length of the header chain used to determine the
+ *        right difficulty.
+ * @returns Empty promise.
+ */
+export async function fakeRelayDifficulty(
+  systemTestsContext: SystemTestsContext,
+  bitcoinClient: BitcoinClient,
+  transactionHash: TransactionHash,
+  headerChainLength: number = defaultTxProofDifficultyFactor
+): Promise<void> {
+  const relayDeploymentInfo =
+    systemTestsContext.contractsDeploymentInfo.contracts["Relay"]
+
+  const relay = new Contract(
+    relayDeploymentInfo.address,
+    relayDeploymentInfo.abi,
+    systemTestsContext.maintainer
+  )
+
+  const proof = await createTransactionProof(
+    transactionHash,
+    headerChainLength,
+    bitcoinClient
+  )
+
+  const bitcoinHeaders = `0x${proof.bitcoinHeaders}`
+
+  await relay.setCurrentEpochDifficultyFromHeaders(bitcoinHeaders)
+  await relay.setPrevEpochDifficultyFromHeaders(bitcoinHeaders)
 }
