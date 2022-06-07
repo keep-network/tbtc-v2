@@ -46,7 +46,3 @@ jobs:
         run: |
           yarn install
           yarn test ./test/deposit-redemption.test.ts --network $ETH_NETWORK
-          
-          
-          
-
