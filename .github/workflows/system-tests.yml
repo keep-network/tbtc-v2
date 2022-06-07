@@ -1,0 +1,49 @@
+name: System tests
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  # TODO: Remove after testing.
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  deposit-redemption-scenario:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: yearn/yarn.lock
+
+      - name: Setup scenario prerequisites
+        working-directory: ./solidity
+        env:
+          WALLET_PUBLIC_KEY: ${{ secrets.SYSTEM_TESTS_WALLET_PUBLIC_KEY }}
+          ETH_NETWORK: localhost
+        run: |
+          yarn install
+          npx hardhat node --export export.json &
+          HH_NODE_PID=$!
+          while ! lsof -n -Fn -p $HH_NODE_PID | grep -q '^n.*:8545$'; do sleep 10; done
+          npx hardhat test-utils:register-operators --network $ETH_NETWORK
+          npx hardhat test-utils:create-wallet --wallet-public-key $WALLET_PUBLIC_KEY --network $ETH_NETWORK
+
+      - name: Run scenario
+        working-directory: ./system-tests
+        env:
+          ETH_NETWORK: localhost
+          ELECTRUM_URL: ${{ secrets.SYSTEM_TESTS_ELECTRUM_URL }}
+          CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH: ../solidity/export.json
+          WALLET_BITCOIN_PRIVATE_KEY_WIF: ${{ secrets.SYSTEM_TESTS_WALLET_PRIVATE_KEY_WIF }}
+          DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF: ${{ secrets.SYSTEM_TESTS_DEPOSITOR_PRIVATE_KEY_WIF }}
+        run: |
+          yarn install
+          yarn test ./test/deposit-redemption.test.ts --network $ETH_NETWORK
+          
+          
+          
+
