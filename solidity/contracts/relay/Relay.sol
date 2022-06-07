@@ -105,10 +105,7 @@ contract Relay is Ownable, ILightRelay {
         uint256 genesisHeight,
         uint256 genesisProofLength
     ) external onlyOwner {
-        require(
-            !ready,
-            "Genesis already performed"
-        );
+        require(!ready, "Genesis already performed");
 
         require(
             genesisHeader.length == 80,
@@ -120,10 +117,8 @@ contract Relay is Ownable, ILightRelay {
             "Invalid height of relay genesis block"
         );
 
-        require(
-            genesisProofLength < 2016,
-            "Proof length excessive"
-        );
+        require(genesisProofLength < 2016, "Proof length excessive");
+        require(genesisProofLength > 0, "Proof length may not be zero");
 
         genesisEpoch = genesisHeight / 2016;
         uint256 genesisTarget = genesisHeader.extractTarget();
@@ -141,14 +136,9 @@ contract Relay is Ownable, ILightRelay {
     /// @notice Set the number of blocks required to accept a header chain.
     /// @param newLength The required number of blocks. Must be less than 2016.
     function setProofLength(uint256 newLength) external relayActive onlyOwner {
-        require(
-            newLength < 2016,
-            "Proof length excessive"
-        );
-        require(
-            newLength != proofLength,
-            "Proof length unchanged"
-        );
+        require(newLength < 2016, "Proof length excessive");
+        require(newLength > 0, "Proof length may not be zero");
+        require(newLength != proofLength, "Proof length unchanged");
         proofLength = newLength;
         emit ProofLengthChanged(newLength);
     }
