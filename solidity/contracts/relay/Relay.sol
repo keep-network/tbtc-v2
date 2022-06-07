@@ -119,6 +119,11 @@ contract Relay is Ownable, ILightRelay {
             "Invalid height of relay genesis block"
         );
 
+        require(
+            genesisProofLength < 2016,
+            "Proof length excessive"
+        );
+
         genesisEpoch = genesisHeight / 2016;
         uint256 genesisTarget = genesisHeader.extractTarget();
         uint256 genesisTimestamp = genesisHeader.extractTimestamp();
@@ -137,7 +142,7 @@ contract Relay is Ownable, ILightRelay {
     function setProofLength(uint256 newLength) external relayActive onlyOwner {
         require(
             newLength < 2016,
-            "Cannot handle proofs spanning more than two epochs"
+            "Proof length excessive"
         );
         proofLength = newLength;
     }
