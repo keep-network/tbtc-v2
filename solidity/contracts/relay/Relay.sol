@@ -47,6 +47,7 @@ library RelayUtils {
 interface ILightRelay {
     event Genesis(uint256 blockHeight);
     event Retarget(uint256 oldDifficulty, uint256 newDifficulty);
+    event ProofLengthChanged(uint256 newLength);
 
     function retarget(bytes memory headers) external;
 
@@ -138,13 +139,18 @@ contract Relay is Ownable, ILightRelay {
     }
 
     /// @notice Set the number of blocks required to accept a header chain.
-    /// @param newLength The required number of blocks.
+    /// @param newLength The required number of blocks. Must be less than 2016.
     function setProofLength(uint256 newLength) external relayActive onlyOwner {
         require(
             newLength < 2016,
             "Proof length excessive"
         );
+        require(
+            newLength != proofLength,
+            "Proof length unchanged"
+        );
         proofLength = newLength;
+        emit ProofLengthChanged(newLength);
     }
 
     /// @notice Add a new epoch to the relay by providing a proof
