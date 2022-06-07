@@ -1,4 +1,21 @@
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: MIT
+
+// ██████████████     ▐████▌     ██████████████
+// ██████████████     ▐████▌     ██████████████
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+// ██████████████     ▐████▌     ██████████████
+// ██████████████     ▐████▌     ██████████████
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+//               ▐████▌    ▐████▌
+
+pragma solidity ^0.8.9;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
@@ -11,6 +28,8 @@ struct Epoch {
 }
 
 library RelayUtils {
+    using BytesLib for bytes;
+
     /// @notice Extract the timestamp of the header at the given position.
     /// @param headers Byte array containing the header of interest.
     /// @param at The start of the header in the array.
@@ -40,9 +59,9 @@ interface ILightRelay {
 
     function getEpochDifficulty(
         uint256 epochNumber
-    ) public view returns (uint256);
+    ) external view returns (uint256);
 
-    function getRelayRange() public view returns (
+    function getRelayRange() external view returns (
         uint256 relayGenesis,
         uint256 currentEpochEnd
     );
@@ -75,14 +94,12 @@ contract Relay is Ownable, ILightRelay {
     /// @notice Establish a starting point for the relay by providing the
     /// target, timestamp and blockheight of the first block of the relay
     /// genesis epoch.
-    /// @param genesisTarget The target of the genesis epoch.
-    /// @param genesisTimestamp The timestamp of the first block of the epoch.
+    /// @param genesisHeader The first block header of the genesis epoch.
     /// @param genesisNumber The block number of the first block of the epoch.
     /// @param genesisProofLength The number of blocks required to accept a
     /// proof.
     function genesis(
-        uint256 genesisTarget,
-        uint256 genesisTimestamp,
+        bytes calldata genesisHeader,
         uint256 genesisNumber,
         uint256 genesisProofLength
     ) external onlyOwner {
@@ -92,12 +109,20 @@ contract Relay is Ownable, ILightRelay {
         );
 
         require(
+            genesisHeader.length == 80,
+            "Invalid genesis header length"
+        );
+
+        require(
             genesisNumber % 2016 == 0,
             "Invalid height of relay genesis block"
         );
 
         genesisEpoch = genesisNumber / 2016;
-        epochs[genesisEpoch] = Epoch(genesisTarget, genesisTimestamp);
+        epochs[genesisEpoch] = Epoch(
+            genesisHeader.extractTarget(),
+            genesisHeader.extractTimestamp()
+        );
         proofLength = genesisProofLength;
         genesisPerformed = true;
     }
@@ -150,7 +175,7 @@ contract Relay is Ownable, ILightRelay {
         bytes32 previousHeaderDigest;
         // Validate old chain
         for (uint256 i = 0; i < proofLength; i++) {
-            (bytes32 currentDigest, uint256 currentHeaderTarget) = _validateHeader(
+            (bytes32 currentDigest, uint256 currentHeaderTarget) = validateHeader(
                 headers,
                 i * 80,
                 previousHeaderDigest
@@ -165,8 +190,7 @@ contract Relay is Ownable, ILightRelay {
         }
 
         // get timestamp of retarget block
-        uint256 epochEndTimestamp = extractTimestampAt(
-            headers, 
+        uint256 epochEndTimestamp = headers.extractTimestampAt(
             (proofLength - 1) * 80
         );
 
@@ -176,14 +200,13 @@ contract Relay is Ownable, ILightRelay {
             epochEndTimestamp
         );
 
-        uint256 epochStartTimestamp = extractTimestampAt(
-            headers, 
+        uint256 epochStartTimestamp = headers.extractTimestampAt(
             proofLength * 80
         );
 
         // validate new chain
         for (uint256 i = proofLength; i < proofLength * 2; i++) {
-            (bytes32 currentDigest, uint256 currentHeaderTarget) = _validateHeader(
+            (bytes32 currentDigest, uint256 currentHeaderTarget) = validateHeader(
                 headers,
                 i * 80,
                 previousHeaderDigest
@@ -236,13 +259,13 @@ contract Relay is Ownable, ILightRelay {
         bytes memory headers
     ) external view relayActive returns (bool valid) {
         require(
-            headers.length = proofLength * 80,
+            headers.length == proofLength * 80,
             "Invalid header length"
         );
 
         bytes32 previousHeaderDigest;
 
-        uint256 firstHeaderTimestamp = extractTimestampAt(headers, 0);
+        uint256 firstHeaderTimestamp = headers.extractTimestamp();
 
         uint256 relevantEpoch = currentEpoch;
         uint256 _genesisEpoch = genesisEpoch;
@@ -254,7 +277,7 @@ contract Relay is Ownable, ILightRelay {
 
         // Find the correct epoch for the given chain
         // Fastest with recent epochs, but able to handle anything after genesis
-        while (timestamp < startingEpochTimestamp) {
+        while (firstHeaderTimestamp < startingEpochTimestamp) {
             relevantEpoch -= 1;
             nextEpochTimestamp = startingEpochTimestamp;
             startingEpochTimestamp = epochs[relevantEpoch].timestamp;
@@ -297,7 +320,7 @@ contract Relay is Ownable, ILightRelay {
     }
 
     /// @notice Get the difficulty of the specified block.
-    /// @param epochNumber The number of the block. Must fall within the relay
+    /// @param blockNumber The number of the block. Must fall within the relay
     /// range (at or after the relay genesis, and at or before the end of the
     /// most recent epoch proven to the relay).
     /// @return The difficulty of the epoch.
@@ -360,7 +383,7 @@ contract Relay is Ownable, ILightRelay {
         bytes memory headers,
         uint256 start,
         bytes32 prevDigest
-    ) internal pure returns (bytes32 digest, uint256 target) {
+    ) internal view returns (bytes32 digest, uint256 target) {
         // If previous block digest has been provided, require that it matches
         if (prevDigest != bytes32(0)) {
             require(
