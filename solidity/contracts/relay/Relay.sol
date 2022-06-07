@@ -230,7 +230,10 @@ contract Relay is Ownable, ILightRelay {
 
         epochs[currentEpoch] = Epoch(expectedTarget, epochStartTimestamp);
 
-        emit Retarget(oldTarget, expectedTarget);
+        emit Retarget(
+            BTCUtils.calculateDifficulty(oldTarget),
+            BTCUtils.calculateDifficulty(expectedTarget)
+        );
     }
 
     /// @notice Check whether a given chain of headers should be accepted as
