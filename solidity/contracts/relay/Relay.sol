@@ -45,6 +45,7 @@ library RelayUtils {
 }
 
 interface ILightRelay {
+    event Genesis(uint256 blockHeight);
     event Retarget(uint256 oldDifficulty, uint256 newDifficulty);
 
     function retarget(bytes memory headers) external;
@@ -73,7 +74,7 @@ contract Relay is Ownable, ILightRelay {
     using ValidateSPV for bytes;
     using RelayUtils for bytes;
 
-    bool genesisPerformed;
+    bool public ready;
     // Number of blocks required for a proof
     // Governable
     uint256 public proofLength;
@@ -95,16 +96,16 @@ contract Relay is Ownable, ILightRelay {
     /// target, timestamp and blockheight of the first block of the relay
     /// genesis epoch.
     /// @param genesisHeader The first block header of the genesis epoch.
-    /// @param genesisNumber The block number of the first block of the epoch.
+    /// @param genesisHeight The block number of the first block of the epoch.
     /// @param genesisProofLength The number of blocks required to accept a
     /// proof.
     function genesis(
         bytes calldata genesisHeader,
-        uint256 genesisNumber,
+        uint256 genesisHeight,
         uint256 genesisProofLength
     ) external onlyOwner {
         require(
-            !genesisPerformed,
+            !ready,
             "Genesis already performed"
         );
 
@@ -114,17 +115,21 @@ contract Relay is Ownable, ILightRelay {
         );
 
         require(
-            genesisNumber % 2016 == 0,
+            genesisHeight % 2016 == 0,
             "Invalid height of relay genesis block"
         );
 
-        genesisEpoch = genesisNumber / 2016;
+        genesisEpoch = genesisHeight / 2016;
+        uint256 genesisTarget = genesisHeader.extractTarget();
+        uint256 genesisTimestamp = genesisHeader.extractTimestamp();
         epochs[genesisEpoch] = Epoch(
-            genesisHeader.extractTarget(),
-            genesisHeader.extractTimestamp()
+            genesisTarget,
+            genesisTimestamp
         );
         proofLength = genesisProofLength;
-        genesisPerformed = true;
+        ready = true;
+
+        emit Genesis(genesisHeight);
     }
 
     /// @notice Set the number of blocks required to accept a header chain.
@@ -404,7 +409,7 @@ contract Relay is Ownable, ILightRelay {
     }
 
     modifier relayActive {
-        require(genesisPerformed, "Relay is not ready for use");
+        require(ready, "Relay is not ready for use");
         _;
     }
 }
