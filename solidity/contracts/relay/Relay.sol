@@ -91,7 +91,7 @@ contract Relay is Ownable, ILightRelay {
     uint256 public currentEpoch;
 
     // Each epoch from genesis to the current one, keyed by their numbers.
-    mapping(uint256 => Epoch) epochs;
+    mapping(uint256 => Epoch) internal epochs;
 
     /// @notice Establish a starting point for the relay by providing the
     /// target, timestamp and blockheight of the first block of the relay
@@ -212,10 +212,10 @@ contract Relay is Ownable, ILightRelay {
         );
 
         // validate new chain
-        for (uint256 i = proofLength; i < proofLength * 2; i++) {
+        for (uint256 j = proofLength; j < proofLength * 2; j++) {
             (bytes32 currentDigest, uint256 currentHeaderTarget) = validateHeader(
                 headers,
-                i * 80,
+                j * 80,
                 previousHeaderDigest
             );
 
