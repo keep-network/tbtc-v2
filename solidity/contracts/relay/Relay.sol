@@ -121,6 +121,7 @@ contract Relay is Ownable, ILightRelay {
         require(genesisProofLength > 0, "Proof length may not be zero");
 
         genesisEpoch = genesisHeight / 2016;
+        currentEpoch = genesisEpoch;
         uint256 genesisTarget = genesisHeader.extractTarget();
         uint256 genesisTimestamp = genesisHeader.extractTimestamp();
         epochs[genesisEpoch] = Epoch(
@@ -189,7 +190,7 @@ contract Relay is Ownable, ILightRelay {
 
             require(
                 currentHeaderTarget == oldTarget,
-                "Invalid target"
+                "Invalid target in old"
             );
 
             previousHeaderDigest = currentDigest;
@@ -220,7 +221,7 @@ contract Relay is Ownable, ILightRelay {
 
             require(
                 currentHeaderTarget == expectedTarget,
-                "Invalid target"
+                "Invalid target in new"
             );
 
             previousHeaderDigest = currentDigest;
