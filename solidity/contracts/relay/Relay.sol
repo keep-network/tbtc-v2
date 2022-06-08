@@ -392,7 +392,7 @@ contract Relay is Ownable, ILightRelay {
     /// @return currentEpochEnd The height of the last block that can be
     /// included in header chains for the relay to validate.
     function getRelayRange()
-        public
+        external
         view
         relayActive
         returns (uint256 relayGenesis, uint256 currentEpochEnd)
