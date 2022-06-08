@@ -10,6 +10,7 @@ import {
   UnspentTransactionOutput,
   Client as BitcoinClient,
   TransactionHash,
+  computeHash160,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
@@ -125,10 +126,11 @@ export async function submitRedemptionTransaction(
     transactionHex: mainUtxoRawTransaction.transactionHex,
   }
 
-  const redemptionRequests = await fetchRedemptionRequests(
+  const redemptionRequests = await getWalletRedemptionRequests(
     bridge,
-    walletPrivateKey,
-    redeemerOutputScripts
+    createKeyRing(walletPrivateKey).getPublicKey().toString("hex"),
+    redeemerOutputScripts,
+    "pending"
   )
 
   const { transactionHash, newMainUtxo, rawTransaction } =
@@ -148,53 +150,69 @@ export async function submitRedemptionTransaction(
 }
 
 /**
- * Fetches a list of redemption requests from the provided Bridge on-chain
- * contract handle.
+ * Gets a list of wallet's redemption requests from the provided Bridge
+ * on-chain contract handle.
  * @dev It is up to the caller of this function to ensure that each of the
- *      redeemer output scripts represents a valid pending redemption request
+ *      redeemer output scripts represents a valid redemption request
  *      in the Bridge on-chain contract. An exception will be thrown if any of
  *      the redeemer output scripts (along with the wallet public key
  *      corresponding to the provided private key) does not represent a valid
- *      pending redemption.
+ *      redemption request.
  * @param bridge - The handle to the Bridge on-chain contract
- * @param walletPrivateKey - The private key of the wallet in the WIF format
+ * @param walletPublicKey - Bitcoin public key of the wallet. Must be in the
+ *        compressed form (33 bytes long with 02 or 03 prefix).
  * @param redeemerOutputScripts - The list of output scripts that the redeemed
  *        funds are locked to. The output scripts must be un-prefixed and
  *        not prepended with length
+ * @param type Type of redemption requests the function will look for. Can be
+ *        either `pending` or `timedOut`.
  * @returns The list of redemption requests.
  */
-async function fetchRedemptionRequests(
+async function getWalletRedemptionRequests(
   bridge: Bridge,
-  walletPrivateKey: string,
-  redeemerOutputScripts: string[]
+  walletPublicKey: string,
+  redeemerOutputScripts: string[],
+  type: "pending" | "timedOut"
 ): Promise<RedemptionRequest[]> {
-  const walletKeyRing = createKeyRing(walletPrivateKey)
-  const walletPublicKey = walletKeyRing.getPublicKey().toString("hex")
-
   // Calculate un-prefixed wallet public key hash
-  const walletPubKeyHash = hash160
-    .digest(Buffer.from(walletPublicKey, "hex"))
-    .toString("hex")
+  const walletPubKeyHash = computeHash160(walletPublicKey)
 
   const redemptionRequests: RedemptionRequest[] = []
 
   for (const redeemerOutputScript of redeemerOutputScripts) {
-    const pendingRedemption = await bridge.pendingRedemptions(
-      walletPubKeyHash,
-      redeemerOutputScript
-    )
+    let redemptionRequest: RedemptionRequest
 
-    if (pendingRedemption.requestedAt == 0) {
+    switch (type) {
+      case "pending": {
+        redemptionRequest = await bridge.pendingRedemptions(
+          walletPubKeyHash,
+          redeemerOutputScript
+        )
+        break
+      }
+      case "timedOut": {
+        redemptionRequest = await bridge.timedOutRedemptions(
+          walletPubKeyHash,
+          redeemerOutputScript
+        )
+        break
+      }
+      default: {
+        throw new Error("Unsupported redemption request type")
+      }
+    }
+
+    if (redemptionRequest.requestedAt == 0) {
       // The requested redemption does not exist among `pendingRedemptions`
       // in the Bridge.
       throw new Error(
-        "Provided redeemer output script and wallet public key do not identify a pending redemption"
+        "Provided redeemer output script and wallet public key do not identify a redemption request"
       )
     }
 
     // Redemption exists in the Bridge. Add it to the list.
     redemptionRequests.push({
-      ...pendingRedemption,
+      ...redemptionRequest,
       redeemerOutputScript: redeemerOutputScript,
     })
   }
@@ -361,4 +379,37 @@ export async function submitRedemptionProof(
     mainUtxo,
     walletPublicKey
   )
+}
+
+/**
+ * Gets a redemption request from the bridge.
+ * @param walletPublicKey Bitcoin public key of the wallet the request is
+ *        targeted to. Must be in the compressed form (33 bytes long with 02
+ *        or 03 prefix).
+ * @param redeemerOutputScript The redeemer output script the redeemed funds
+ *        are supposed to be locked on. Must be un-prefixed and not prepended
+ *        with length.
+ * @param type Type of the redemption request the function will look for. Can be
+ *        either `pending` or `timedOut`.
+ * @param bridge The handle to the Bridge on-chain contract
+ * @returns The resulting redemption request.
+ */
+export async function getRedemptionRequest(
+  walletPublicKey: string,
+  redeemerOutputScript: string,
+  type: "pending" | "timedOut",
+  bridge: Bridge
+): Promise<RedemptionRequest> {
+  const redemptionRequests = await getWalletRedemptionRequests(
+    bridge,
+    walletPublicKey,
+    [redeemerOutputScript],
+    type
+  )
+
+  if (redemptionRequests.length != 1) {
+    throw new Error(`Returned an incorrect number of redemption requests`)
+  }
+
+  return redemptionRequests[0]
 }

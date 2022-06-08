@@ -24,6 +24,7 @@ import {
 } from "./data/redemption"
 import {
   assembleRedemptionTransaction,
+  getRedemptionRequest,
   RedemptionRequest,
   requestRedemption,
   submitRedemptionProof,
@@ -415,7 +416,7 @@ describe("Redemption", () => {
             // Before setting the pending redemption map in the Bridge, delete
             // one element to simulate absence of that redemption
             pendingRedemptions.delete(data.pendingRedemptions[2].redemptionKey)
-            bridge.requestRedemptions = pendingRedemptions
+            bridge.setPendingRedemptions(pendingRedemptions)
           })
 
           it("should revert", async () => {
@@ -433,7 +434,7 @@ describe("Redemption", () => {
                 data.witness
               )
             ).to.be.rejectedWith(
-              "Provided redeemer output script and wallet public key do not identify a pending redemption"
+              "Provided redeemer output script and wallet public key do not identify a redemption request"
             )
           })
         }
@@ -1375,6 +1376,60 @@ describe("Redemption", () => {
       )
     })
   })
+
+  describe("getRedemptionRequest", () => {
+    context("when asked for a pending request", () => {
+      const { redemptionKey, pendingRedemption: redemptionRequest } =
+        multipleRedemptionsWithWitnessChange.pendingRedemptions[0]
+
+      let bridge: MockBridge
+
+      beforeEach(async () => {
+        const pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
+        pendingRedemptions.set(redemptionKey, redemptionRequest)
+
+        bridge = new MockBridge()
+        bridge.setPendingRedemptions(pendingRedemptions)
+      })
+
+      it("should return the expected redemption request", async () => {
+        const actualRedemptionRequest = await getRedemptionRequest(
+          walletPublicKey,
+          redemptionRequest.redeemerOutputScript,
+          "pending",
+          bridge
+        )
+
+        expect(actualRedemptionRequest).to.be.eql(redemptionRequest)
+      })
+    })
+
+    context("when asked for a timed-out request", () => {
+      const { redemptionKey, pendingRedemption: redemptionRequest } =
+        multipleRedemptionsWithWitnessChange.pendingRedemptions[0]
+
+      let bridge: MockBridge
+
+      beforeEach(async () => {
+        const pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
+        pendingRedemptions.set(redemptionKey, redemptionRequest)
+
+        bridge = new MockBridge()
+        bridge.setTimedOutRedemptions(pendingRedemptions)
+      })
+
+      it("should return the expected redemption request", async () => {
+        const actualRedemptionRequest = await getRedemptionRequest(
+          walletPublicKey,
+          redemptionRequest.redeemerOutputScript,
+          "timedOut",
+          bridge
+        )
+
+        expect(actualRedemptionRequest).to.be.eql(redemptionRequest)
+      })
+    })
+  })
 })
 
 async function runRedemptionScenario(
@@ -1392,11 +1447,13 @@ async function runRedemptionScenario(
   })
   bitcoinClient.rawTransactions = rawTransactions
 
-  bridge.requestRedemptions = new Map<BigNumberish, RedemptionRequest>(
-    data.pendingRedemptions.map((redemption) => [
-      redemption.redemptionKey,
-      redemption.pendingRedemption,
-    ])
+  bridge.setPendingRedemptions(
+    new Map<BigNumberish, RedemptionRequest>(
+      data.pendingRedemptions.map((redemption) => [
+        redemption.redemptionKey,
+        redemption.pendingRedemption,
+      ])
+    )
   )
 
   const redeemerOutputScripts = data.pendingRedemptions.map(

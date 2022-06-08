@@ -69,6 +69,45 @@ describe("Ethereum", () => {
       })
     })
 
+    describe("timedOutRedemptions", () => {
+      beforeEach(async () => {
+        // Set the mock to return a specific redemption data when called
+        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash))
+        // that matches the wallet PKH and redeemer output script used during
+        // the test call.
+        await bridgeContract.mock.timedOutRedemptions
+          .withArgs(
+            "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7"
+          )
+          .returns({
+            redeemer: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            requestedAmount: BigNumber.from(10000),
+            treasuryFee: BigNumber.from(100),
+            txMaxFee: BigNumber.from(50),
+            requestedAt: BigNumber.from(1650623240),
+          } as any)
+      })
+
+      it("should return the timed-out redemption", async () => {
+        expect(
+          await bridgeHandle.timedOutRedemptions(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6",
+            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+          )
+        ).to.be.eql({
+          redeemer: {
+            identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+          },
+          redeemerOutputScript:
+            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+          requestedAmount: BigNumber.from(10000),
+          treasuryFee: BigNumber.from(100),
+          txMaxFee: BigNumber.from(50),
+          requestedAt: 1650623240,
+        })
+      })
+    })
+
     describe("revealDeposit", () => {
       beforeEach(async () => {
         await bridgeContract.mock.revealDeposit.returns()

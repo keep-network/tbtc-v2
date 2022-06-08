@@ -40,13 +40,18 @@ interface RedemptionProofLogEntry {
 export class MockBridge implements Bridge {
   private _difficultyFactor = 6
   private _pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
+  private _timedOutRedemptions = new Map<BigNumberish, RedemptionRequest>()
   private _depositSweepProofLog: DepositSweepProofLogEntry[] = []
   private _revealDepositLog: RevealDepositLogEntry[] = []
   private _requestRedemptionLog: RequestRedemptionLogEntry[] = []
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
 
-  set requestRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
+  setPendingRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
+  }
+
+  setTimedOutRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
+    this._timedOutRedemptions = value
   }
 
   get depositSweepProofLog(): DepositSweepProofLogEntry[] {
@@ -133,37 +138,74 @@ export class MockBridge implements Bridge {
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     return new Promise<RedemptionRequest>((resolve, _) => {
-      const prefixedWalletPubKeyHash = `0x${walletPubKeyHash}`
-
-      const rawOutputScript = Buffer.from(redeemerOutputScript, "hex")
-
-      const prefixedOutputScript = `0x${Buffer.concat([
-        Buffer.from([rawOutputScript.length]),
-        rawOutputScript,
-      ]).toString("hex")}`
-
-      const redemptionKey = utils.solidityKeccak256(
-        ["bytes32", "bytes20"],
-        [
-          utils.solidityKeccak256(["bytes"], [prefixedOutputScript]),
-          prefixedWalletPubKeyHash,
-        ]
-      )
-
-      // Return the redemption if it is found in the map.
-      // Otherwise, return zeroed values simulating the behavior of a smart contract.
       resolve(
-        this._pendingRedemptions.has(redemptionKey)
-          ? (this._pendingRedemptions.get(redemptionKey) as RedemptionRequest)
-          : {
-              redeemer: { identifierHex: constants.AddressZero },
-              redeemerOutputScript: "",
-              requestedAmount: BigNumber.from(0),
-              treasuryFee: BigNumber.from(0),
-              txMaxFee: BigNumber.from(0),
-              requestedAt: 0,
-            }
+        this.redemptions(
+          walletPubKeyHash,
+          redeemerOutputScript,
+          this._pendingRedemptions
+        )
       )
     })
+  }
+
+  timedOutRedemptions(
+    walletPubKeyHash: string,
+    redeemerOutputScript: string
+  ): Promise<RedemptionRequest> {
+    return new Promise<RedemptionRequest>((resolve, _) => {
+      resolve(
+        this.redemptions(
+          walletPubKeyHash,
+          redeemerOutputScript,
+          this._timedOutRedemptions
+        )
+      )
+    })
+  }
+
+  private redemptions(
+    walletPubKeyHash: string,
+    redeemerOutputScript: string,
+    redemptionsMap: Map<BigNumberish, RedemptionRequest>
+  ): RedemptionRequest {
+    const redemptionKey = this.buildRedemptionKey(
+      walletPubKeyHash,
+      redeemerOutputScript
+    )
+
+    // Return the redemption if it is found in the map.
+    // Otherwise, return zeroed values simulating the behavior of a smart contract.
+    return redemptionsMap.has(redemptionKey)
+      ? (redemptionsMap.get(redemptionKey) as RedemptionRequest)
+      : {
+          redeemer: { identifierHex: constants.AddressZero },
+          redeemerOutputScript: "",
+          requestedAmount: BigNumber.from(0),
+          treasuryFee: BigNumber.from(0),
+          txMaxFee: BigNumber.from(0),
+          requestedAt: 0,
+        }
+  }
+
+  private buildRedemptionKey(
+    walletPubKeyHash: string,
+    redeemerOutputScript: string
+  ): string {
+    const prefixedWalletPubKeyHash = `0x${walletPubKeyHash}`
+
+    const rawOutputScript = Buffer.from(redeemerOutputScript, "hex")
+
+    const prefixedOutputScript = `0x${Buffer.concat([
+      Buffer.from([rawOutputScript.length]),
+      rawOutputScript,
+    ]).toString("hex")}`
+
+    return utils.solidityKeccak256(
+      ["bytes32", "bytes20"],
+      [
+        utils.solidityKeccak256(["bytes"], [prefixedOutputScript]),
+        prefixedWalletPubKeyHash,
+      ]
+    )
   }
 }

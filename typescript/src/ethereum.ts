@@ -66,6 +66,48 @@ export class Bridge implements ChainBridge {
     walletPubKeyHash: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
+    const redemptionKey = this.buildRedemptionKey(
+      walletPubKeyHash,
+      redeemerOutputScript
+    )
+
+    const request = await this._bridge.pendingRedemptions(redemptionKey)
+
+    return this.parseRedemptionRequest(request, redeemerOutputScript)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#timedOutRedemptions}
+   */
+  async timedOutRedemptions(
+    walletPubKeyHash: string,
+    redeemerOutputScript: string
+  ): Promise<RedemptionRequest> {
+    const redemptionKey = this.buildRedemptionKey(
+      walletPubKeyHash,
+      redeemerOutputScript
+    )
+
+    const request = await this._bridge.timedOutRedemptions(redemptionKey)
+
+    return this.parseRedemptionRequest(request, redeemerOutputScript)
+  }
+
+  /**
+   * Build a redemption key required to refer a redemption request.
+   * @param walletPubKeyHash The wallet public key hash that identifies the
+   *        pending redemption (along with the redeemer output script). Must be
+   *        unprefixed.
+   * @param redeemerOutputScript The redeemer output script that identifies the
+   *        pending redemption (along with the wallet public key hash). Must be
+   *        un-prefixed and not prepended with length.
+   * @returns The redemption key.
+   */
+  private buildRedemptionKey(
+    walletPubKeyHash: string,
+    redeemerOutputScript: string
+  ): string {
     // Convert the output script to raw bytes buffer.
     const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
     // Prefix the output script bytes buffer with 0x and its own length.
@@ -75,26 +117,35 @@ export class Bridge implements ChainBridge {
     ]).toString("hex")}`
     // Build the redemption key by using the 0x-prefixed wallet PKH and
     // prefixed output script.
-    const redemptionKey = utils.solidityKeccak256(
+    return utils.solidityKeccak256(
       ["bytes32", "bytes20"],
       [
         utils.solidityKeccak256(["bytes"], [prefixedRawRedeemerOutputScript]),
         `0x${walletPubKeyHash}`,
       ]
     )
+  }
 
-    const request = await this._bridge.pendingRedemptions(redemptionKey)
-
-    return Promise.resolve({
-      redeemer: {
-        identifierHex: request.redeemer.substring(2).toLowerCase(),
-      },
+  /**
+   * Parses a redemption request using data fetched from the on-chain contract.
+   * @param request Data of the request.
+   * @param redeemerOutputScript The redeemer output script that identifies the
+   *        pending redemption (along with the wallet public key hash). Must be
+   *        un-prefixed and not prepended with length.
+   * @returns Parsed redemption request.
+   */
+  private parseRedemptionRequest(
+    request: any,
+    redeemerOutputScript: string
+  ): RedemptionRequest {
+    return {
+      redeemer: new Address(request.redeemer),
       redeemerOutputScript: redeemerOutputScript,
       requestedAmount: BigNumber.from(request.requestedAmount),
       treasuryFee: BigNumber.from(request.treasuryFee),
       txMaxFee: BigNumber.from(request.txMaxFee),
       requestedAt: BigNumber.from(request.requestedAt).toNumber(),
-    })
+    }
   }
 
   // eslint-disable-next-line valid-jsdoc
