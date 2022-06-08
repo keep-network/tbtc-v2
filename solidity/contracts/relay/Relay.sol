@@ -177,7 +177,7 @@ contract Relay is Ownable, ILightRelay {
         uint256 oldTarget = latest.target;
 
         bytes32 previousHeaderDigest;
-        
+
         // Validate old chain
         for (uint256 i = 0; i < proofLength; i++) {
             (
@@ -185,7 +185,10 @@ contract Relay is Ownable, ILightRelay {
                 uint256 currentHeaderTarget
             ) = validateHeader(headers, i * 80, previousHeaderDigest);
 
-            require(currentHeaderTarget == oldTarget, "Invalid target in pre-retarget headers");
+            require(
+                currentHeaderTarget == oldTarget,
+                "Invalid target in pre-retarget headers"
+            );
 
             previousHeaderDigest = currentDigest;
         }
@@ -222,7 +225,8 @@ contract Relay is Ownable, ILightRelay {
                 require(
                     // Mask full-length target with header-encoded target
                     // (full & truncated) == truncated
-                    currentHeaderTarget == (expectedTarget & currentHeaderTarget),
+                    currentHeaderTarget ==
+                        (expectedTarget & currentHeaderTarget),
                     "Invalid target in new epoch"
                 );
             } else {

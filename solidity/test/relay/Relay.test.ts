@@ -3,8 +3,8 @@
 
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import chai, { expect } from "chai"
-import { BigNumber, ContractTransaction } from "ethers"
+import { expect } from "chai"
+import { ContractTransaction } from "ethers"
 
 import type { Relay } from "../../typechain"
 
@@ -46,9 +46,7 @@ const fixture = async () => {
   }
 }
 
-describe.only("Relay", () => {
-  const hardhatNetworkId = 31337
-
+describe("Relay", () => {
   let deployer: SignerWithAddress
 
   let governance: SignerWithAddress
@@ -194,32 +192,32 @@ describe.only("Relay", () => {
           .connect(governance)
           .genesis(genesisHeader, genesisHeight, proofLength)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
 
       context("when called correctly", () => {
         let tx: ContractTransaction
-  
+
         before(async () => {
           await createSnapshot()
           tx = await relay.connect(governance).setProofLength(5)
         })
-  
+
         after(async () => {
           await restoreSnapshot()
         })
-  
+
         it("should store the new proof length", async () => {
           expect(await relay.proofLength()).to.equal(5)
         })
-  
+
         it("should emit the ProofLengthChanged event", async () => {
           await expect(tx).to.emit(relay, "ProofLengthChanged").withArgs(5)
         })
       })
-  
+
       context("when called with excessive proof length", () => {
         it("should revert", async () => {
           await expect(
@@ -227,7 +225,7 @@ describe.only("Relay", () => {
           ).to.be.revertedWith("Proof length excessive")
         })
       })
-  
+
       context("when called with zero proof length", () => {
         it("should revert", async () => {
           await expect(
@@ -235,7 +233,7 @@ describe.only("Relay", () => {
           ).to.be.revertedWith("Proof length may not be zero")
         })
       })
-  
+
       context("when called with unchanged proof length", () => {
         it("should revert", async () => {
           await expect(
@@ -243,7 +241,7 @@ describe.only("Relay", () => {
           ).to.be.revertedWith("Proof length unchanged")
         })
       })
-  
+
       context("when called by anyone other than governance", () => {
         it("should revert", async () => {
           await expect(
@@ -276,9 +274,9 @@ describe.only("Relay", () => {
       const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
 
       it("should revert", async () => {
-        await expect(
-          relay.retarget(retargetHeaders)
-        ).to.be.revertedWith("Relay is not ready for use")
+        await expect(relay.retarget(retargetHeaders)).to.be.revertedWith(
+          "Relay is not ready for use"
+        )
       })
     })
 
@@ -287,7 +285,7 @@ describe.only("Relay", () => {
         await createSnapshot()
         await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
@@ -295,22 +293,22 @@ describe.only("Relay", () => {
       context("when called correctly", () => {
         let tx: ContractTransaction
         const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
-  
+
         before(async () => {
           await createSnapshot()
           tx = await relay.connect(thirdParty).retarget(retargetHeaders)
         })
-  
+
         after(async () => {
           await restoreSnapshot()
         })
-  
+
         it("should store the new difficulty", async () => {
           expect(await relay.getEpochDifficulty(genesisEpoch + 1)).to.equal(
             nextDifficulty
           )
         })
-  
+
         it("should emit the Retarget event", async () => {
           await expect(tx)
             .to.emit(relay, "Retarget")
@@ -352,9 +350,11 @@ describe.only("Relay", () => {
 
       before(async () => {
         await createSnapshot()
-        await relay.connect(governance).genesis(badGenesisHeader, genesisHeight, 4)
+        await relay
+          .connect(governance)
+          .genesis(badGenesisHeader, genesisHeight, 4)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
@@ -389,9 +389,9 @@ describe.only("Relay", () => {
       const proofHeaders = concatenateHexStrings(headerHex.slice(0, 4))
 
       it("should revert", async () => {
-        await expect(
-          relay.validateChain(proofHeaders)
-        ).to.be.revertedWith("Relay is not ready for use")
+        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
+          "Relay is not ready for use"
+        )
       })
     })
 
@@ -400,7 +400,7 @@ describe.only("Relay", () => {
         await createSnapshot()
         await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
@@ -412,43 +412,45 @@ describe.only("Relay", () => {
 
       it("should reject short header chains", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(0, 3))
-      
-        await expect(
-          relay.validateChain(proofHeaders)
-        ).to.be.revertedWith("Invalid header length")
+
+        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
+          "Invalid header length"
+        )
       })
 
       it("should reject long header chains", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(0, 5))
-      
-        await expect(
-          relay.validateChain(proofHeaders)
-        ).to.be.revertedWith("Invalid header length")
+
+        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
+          "Invalid header length"
+        )
       })
 
       it("should reject header chains with an unknown retarget", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(6, 10))
-      
-        await expect(
-          relay.validateChain(proofHeaders)
-        ).to.be.revertedWith("Invalid target in header chain")
+
+        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
+          "Invalid target in header chain"
+        )
       })
 
       it("should reject header chains in a future epoch", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(9, 13))
-      
-        await expect(
-          relay.validateChain(proofHeaders)
-        ).to.be.revertedWith("Invalid target in header chain")
+
+        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
+          "Invalid target in header chain"
+        )
       })
     })
 
     context("when called after genesis (epoch 275)", () => {
       before(async () => {
         await createSnapshot()
-        await relay.connect(governance).genesis(nextStartHeader, nextEpochHeight, 4)
+        await relay
+          .connect(governance)
+          .genesis(nextStartHeader, nextEpochHeight, 4)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
@@ -460,18 +462,18 @@ describe.only("Relay", () => {
 
       it("should reject header chains partially in a past epoch", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(8, 12))
-      
-        await expect(
-          relay.validateChain(proofHeaders)
-        ).to.be.revertedWith("Cannot validate chains before relay genesis")
+
+        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
+          "Cannot validate chains before relay genesis"
+        )
       })
 
       it("should reject header chains fully in a past epoch", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(5, 9))
-      
-        await expect(
-          relay.validateChain(proofHeaders)
-        ).to.be.revertedWith("Cannot validate chains before relay genesis")
+
+        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
+          "Cannot validate chains before relay genesis"
+        )
       })
     })
 
@@ -483,7 +485,7 @@ describe.only("Relay", () => {
         await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
         await relay.connect(thirdParty).retarget(retargetHeaders)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
@@ -538,9 +540,9 @@ describe.only("Relay", () => {
 
     context("when called before genesis", () => {
       it("should revert", async () => {
-        await expect(
-          relay.getBlockDifficulty(552384)
-        ).to.be.revertedWith("Relay is not ready for use")
+        await expect(relay.getBlockDifficulty(552384)).to.be.revertedWith(
+          "Relay is not ready for use"
+        )
       })
     })
 
@@ -563,18 +565,18 @@ describe.only("Relay", () => {
       })
 
       it("should revert for blocks before genesis", async () => {
-        await expect(
-          relay.getBlockDifficulty(552383)
-        ).to.be.revertedWith("Epoch is before relay genesis")
+        await expect(relay.getBlockDifficulty(552383)).to.be.revertedWith(
+          "Epoch is before relay genesis"
+        )
       })
 
       it("should revert for blocks after the latest epoch", async () => {
-        await expect(
-          relay.getBlockDifficulty(554400)
-        ).to.be.revertedWith("Epoch is not proven to the relay yet")
+        await expect(relay.getBlockDifficulty(554400)).to.be.revertedWith(
+          "Epoch is not proven to the relay yet"
+        )
       })
     })
-    
+
     context("when called after a retarget", () => {
       const { chain } = headers
       const headerHex = chain.map((header) => header.hex)
@@ -585,19 +587,23 @@ describe.only("Relay", () => {
         await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
         await relay.connect(thirdParty).retarget(retargetHeaders)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
-      
+
       it("should return the difficulty for the first block of the genesis epoch", async () => {
-        expect(await relay.getBlockDifficulty(552384)).to.equal(genesisDifficulty)
+        expect(await relay.getBlockDifficulty(552384)).to.equal(
+          genesisDifficulty
+        )
       })
 
       it("should return the difficulty for the last block of the genesis epoch", async () => {
-        expect(await relay.getBlockDifficulty(554399)).to.equal(genesisDifficulty)
+        expect(await relay.getBlockDifficulty(554399)).to.equal(
+          genesisDifficulty
+        )
       })
-            
+
       it("should return the difficulty for the first block of the next epoch", async () => {
         expect(await relay.getBlockDifficulty(554400)).to.equal(nextDifficulty)
       })
@@ -606,17 +612,16 @@ describe.only("Relay", () => {
         expect(await relay.getBlockDifficulty(556415)).to.equal(nextDifficulty)
       })
 
-
       it("should revert for blocks before genesis", async () => {
-        await expect(
-          relay.getBlockDifficulty(552383)
-        ).to.be.revertedWith("Epoch is before relay genesis")
+        await expect(relay.getBlockDifficulty(552383)).to.be.revertedWith(
+          "Epoch is before relay genesis"
+        )
       })
 
       it("should revert for blocks after the latest epoch", async () => {
-        await expect(
-          relay.getBlockDifficulty(556416)
-        ).to.be.revertedWith("Epoch is not proven to the relay yet")
+        await expect(relay.getBlockDifficulty(556416)).to.be.revertedWith(
+          "Epoch is not proven to the relay yet"
+        )
       })
     })
   })
@@ -638,9 +643,9 @@ describe.only("Relay", () => {
 
     context("when called before genesis", () => {
       it("should revert", async () => {
-        await expect(
-          relay.getEpochDifficulty(genesisEpoch)
-        ).to.be.revertedWith("Relay is not ready for use")
+        await expect(relay.getEpochDifficulty(genesisEpoch)).to.be.revertedWith(
+          "Relay is not ready for use"
+        )
       })
     })
 
@@ -649,13 +654,15 @@ describe.only("Relay", () => {
         await createSnapshot()
         await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
 
       it("should return the difficulty for the genesis epoch", async () => {
-        expect(await relay.getEpochDifficulty(genesisEpoch)).to.equal(genesisDifficulty)
+        expect(await relay.getEpochDifficulty(genesisEpoch)).to.equal(
+          genesisDifficulty
+        )
       })
 
       it("should revert for epochs before genesis", async () => {
@@ -681,29 +688,29 @@ describe.only("Relay", () => {
         await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
         await relay.connect(thirdParty).retarget(retargetHeaders)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
-      
+
       it("should return the difficulty for the genesis epoch", async () => {
         expect(await relay.getEpochDifficulty(274)).to.equal(genesisDifficulty)
       })
-            
+
       it("should return the difficulty for the next epoch", async () => {
         expect(await relay.getEpochDifficulty(275)).to.equal(nextDifficulty)
       })
 
       it("should revert for epochs before genesis", async () => {
-        await expect(
-          relay.getEpochDifficulty(273)
-        ).to.be.revertedWith("Epoch is before relay genesis")
+        await expect(relay.getEpochDifficulty(273)).to.be.revertedWith(
+          "Epoch is before relay genesis"
+        )
       })
 
       it("should revert for unproven epochs", async () => {
-        await expect(
-          relay.getEpochDifficulty(276)
-        ).to.be.revertedWith("Epoch is not proven to the relay yet")
+        await expect(relay.getEpochDifficulty(276)).to.be.revertedWith(
+          "Epoch is not proven to the relay yet"
+        )
       })
     })
   })
@@ -725,9 +732,9 @@ describe.only("Relay", () => {
 
     context("when called before genesis", () => {
       it("should revert", async () => {
-        await expect(
-          relay.getRelayRange()
-        ).to.be.revertedWith("Relay is not ready for use")
+        await expect(relay.getRelayRange()).to.be.revertedWith(
+          "Relay is not ready for use"
+        )
       })
     })
 
@@ -736,7 +743,7 @@ describe.only("Relay", () => {
         await createSnapshot()
         await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
@@ -758,7 +765,7 @@ describe.only("Relay", () => {
         await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
         await relay.connect(thirdParty).retarget(retargetHeaders)
       })
-  
+
       after(async () => {
         await restoreSnapshot()
       })
