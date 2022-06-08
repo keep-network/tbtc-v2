@@ -215,29 +215,29 @@ contract Relay is Ownable, ILightRelay {
         // validate new chain
         for (uint256 j = proofLength; j < proofLength * 2; j++) {
             (
-                bytes32 currentDigest,
-                uint256 currentHeaderTarget
+                bytes32 _currentDigest,
+                uint256 _currentHeaderTarget
             ) = validateHeader(headers, j * 80, previousHeaderDigest);
 
             if (minedTarget == 0) {
                 // The new target has not been set, so check its correctness
-                minedTarget = currentHeaderTarget;
+                minedTarget = _currentHeaderTarget;
                 require(
                     // Mask full-length target with header-encoded target
                     // (full & truncated) == truncated
-                    currentHeaderTarget ==
-                        (expectedTarget & currentHeaderTarget),
+                    _currentHeaderTarget ==
+                        (expectedTarget & _currentHeaderTarget),
                     "Invalid target in new epoch"
                 );
             } else {
                 // The new target has been set, so remaining targets should match
                 require(
-                    currentHeaderTarget == minedTarget,
+                    _currentHeaderTarget == minedTarget,
                     "Unexpected target change after retarget"
                 );
             }
 
-            previousHeaderDigest = currentDigest;
+            previousHeaderDigest = _currentDigest;
         }
 
         currentEpoch = currentEpoch + 1;
