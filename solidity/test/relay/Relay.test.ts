@@ -342,6 +342,33 @@ describe("Relay", () => {
           ).to.be.revertedWith("Invalid target in new epoch")
         })
       })
+
+      context("with proof length 9", () => {
+        let tx: ContractTransaction
+        const retargetHeaders = concatenateHexStrings(headerHex)
+
+        before(async () => {
+          await createSnapshot()
+          await relay.connect(governance).setProofLength(9)
+          tx = await relay.connect(thirdParty).retarget(retargetHeaders)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should store the new difficulty", async () => {
+          expect(await relay.getEpochDifficulty(genesisEpoch + 1)).to.equal(
+            nextDifficulty
+          )
+        })
+
+        it("should emit the Retarget event", async () => {
+          await expect(tx)
+            .to.emit(relay, "Retarget")
+            .withArgs(genesisDifficulty, nextDifficulty)
+        })
+      })
     })
 
     context("after genesis (invalid)", () => {
