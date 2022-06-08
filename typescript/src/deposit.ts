@@ -66,6 +66,18 @@ export interface Deposit {
 }
 
 /**
+ * Helper type that groups deposit's fields required to assemble a deposit script.
+ */
+export type DepositScriptParameters = Pick<
+  Deposit,
+  | "depositor"
+  | "blindingFactor"
+  | "walletPublicKey"
+  | "refundPublicKey"
+  | "refundLocktime"
+>
+
+/**
  * Makes a deposit by creating and broadcasting a Bitcoin P2(W)SH
  * deposit transaction.
  * @param deposit - Details of the deposit.
@@ -194,8 +206,10 @@ export async function assembleDepositTransaction(
  * @param deposit - Details of the deposit.
  * @returns Script as an un-prefixed hex string.
  */
-export async function assembleDepositScript(deposit: Deposit): Promise<string> {
-  validateDepositParameters(deposit)
+export async function assembleDepositScript(
+  deposit: DepositScriptParameters
+): Promise<string> {
+  validateDepositScriptParameters(deposit)
 
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
@@ -228,16 +242,15 @@ export async function assembleDepositScript(deposit: Deposit): Promise<string> {
 
 // eslint-disable-next-line valid-jsdoc
 /**
- * Validates the given deposit parameters. Throws in case of a validation error.
- * @param deposit - The validated deposit.
+ * Validates the given deposit script parameters. Throws in case of a
+ * validation error.
+ * @param deposit - The validated deposit script parameters.
  * @dev This function does not validate the depositor's identifier as its
  *      validity is chain-specific. This parameter must be validated outside.
  */
-export function validateDepositParameters(deposit: Deposit) {
-  if (!deposit.amount.gt(0)) {
-    throw new Error("Amount must be greater than 0")
-  }
-
+export function validateDepositScriptParameters(
+  deposit: DepositScriptParameters
+) {
   if (deposit.blindingFactor.length != 16) {
     throw new Error("Blinding factor must be an 8-byte number")
   }
@@ -291,7 +304,7 @@ export function calculateDepositRefundLocktime(
  * @returns Buffer with script hash.
  */
 export async function calculateDepositScriptHash(
-  deposit: Deposit,
+  deposit: DepositScriptParameters,
   witness: boolean
 ): Promise<Buffer> {
   const script = await assembleDepositScript(deposit)
@@ -312,7 +325,7 @@ export async function calculateDepositScriptHash(
  * @returns Address as string.
  */
 export async function calculateDepositAddress(
-  deposit: Deposit,
+  deposit: DepositScriptParameters,
   network: string,
   witness: boolean
 ): Promise<string> {
