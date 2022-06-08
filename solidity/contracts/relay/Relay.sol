@@ -313,16 +313,19 @@ contract Relay is Ownable, ILightRelay {
 
             uint256 currentHeaderTimestamp = headers.extractTimestampAt(i * 80);
 
-            // we have a retarget in the chain
+            // If next epoch timestamp exists, a valid retarget is possible
+            // (if next epoch timestamp doesn't exist, either a retarget has
+            // already happened in this chain, or the relay needs a retarget
+            // before this chain can be validated).
+            // If current header's timestamp equals the next epoch timestamp,
+            // it can be a valid retarget.
             if (
                 nextEpochTimestamp != 0 &&
-                currentHeaderTimestamp >= nextEpochTimestamp
+                currentHeaderTimestamp == nextEpochTimestamp
             ) {
-                require(
-                    currentHeaderTimestamp == nextEpochTimestamp,
-                    "Invalid timestamp in retarget"
-                );
-
+                // Set the expected target for all remaining headers, including
+                // this one, and zero out the next epoch timestamp to signify
+                // that no further retarget is acceptable.
                 relevantTarget = epochs[relevantEpoch + 1].target;
                 nextEpochTimestamp = 0;
             }
