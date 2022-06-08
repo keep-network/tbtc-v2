@@ -194,12 +194,14 @@ contract Relay is Ownable, ILightRelay {
             (proofLength - 1) * 80
         );
 
+        // Expected target is the full-length target
         uint256 expectedTarget = BTCUtils.retargetAlgorithm(
             oldTarget,
             latest.timestamp,
             epochEndTimestamp
         );
 
+        // Mined target is the header-encoded target
         uint256 minedTarget;
 
         uint256 epochStartTimestamp = headers.extractTimestampAt(
@@ -216,6 +218,8 @@ contract Relay is Ownable, ILightRelay {
             if (minedTarget == 0) {
                 minedTarget = currentHeaderTarget;
                 require(
+                    // Mask full-length target with header-encoded target
+                    // (full & truncated) == truncated
                     currentHeaderTarget == (expectedTarget & currentHeaderTarget),
                     "Invalid target in new epoch"
                 );
