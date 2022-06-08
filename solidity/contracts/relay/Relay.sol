@@ -200,6 +200,8 @@ contract Relay is Ownable, ILightRelay {
             epochEndTimestamp
         );
 
+        uint256 minedTarget;
+
         uint256 epochStartTimestamp = headers.extractTimestampAt(
             proofLength * 80
         );
@@ -211,21 +213,29 @@ contract Relay is Ownable, ILightRelay {
                 uint256 currentHeaderTarget
             ) = validateHeader(headers, j * 80, previousHeaderDigest);
 
-            require(
-                currentHeaderTarget == expectedTarget,
-                "Invalid target in new"
-            );
+            if (minedTarget == 0) {
+                minedTarget = currentHeaderTarget;
+                require(
+                    currentHeaderTarget == (expectedTarget & currentHeaderTarget),
+                    "Invalid target in new epoch"
+                );
+            } else {
+                require(
+                    currentHeaderTarget == minedTarget,
+                    "Unexpected target change"
+                );
+            }
 
             previousHeaderDigest = currentDigest;
         }
 
         currentEpoch = currentEpoch + 1;
 
-        epochs[currentEpoch] = Epoch(expectedTarget, epochStartTimestamp);
+        epochs[currentEpoch] = Epoch(minedTarget, epochStartTimestamp);
 
         emit Retarget(
             BTCUtils.calculateDifficulty(oldTarget),
-            BTCUtils.calculateDifficulty(expectedTarget)
+            BTCUtils.calculateDifficulty(minedTarget)
         );
     }
 
@@ -310,6 +320,7 @@ contract Relay is Ownable, ILightRelay {
                 );
 
                 relevantTarget = epochs[relevantEpoch + 1].target;
+                nextEpochTimestamp = 0;
             }
 
             require(
