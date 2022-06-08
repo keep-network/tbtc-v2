@@ -176,7 +176,7 @@ contract Relay is Ownable, ILightRelay {
 
         uint256 oldTarget = latest.target;
 
-        bytes32 previousHeaderDigest;
+        bytes32 previousHeaderDigest = bytes32(0);
 
         // Validate old chain
         for (uint256 i = 0; i < proofLength; i++) {
@@ -206,7 +206,7 @@ contract Relay is Ownable, ILightRelay {
         );
 
         // Mined target is the header-encoded target
-        uint256 minedTarget;
+        uint256 minedTarget = 0;
 
         uint256 epochStartTimestamp = headers.extractTimestampAt(
             proofLength * 80
@@ -286,7 +286,7 @@ contract Relay is Ownable, ILightRelay {
     {
         require(headers.length == proofLength * 80, "Invalid header length");
 
-        bytes32 previousHeaderDigest;
+        bytes32 previousHeaderDigest = bytes32(0);
 
         uint256 firstHeaderTimestamp = headers.extractTimestamp();
 
@@ -296,7 +296,7 @@ contract Relay is Ownable, ILightRelay {
         // timestamp of the epoch the header chain starts in
         uint256 startingEpochTimestamp = epochs[currentEpoch].timestamp;
         // timestamp of the next epoch after that
-        uint256 nextEpochTimestamp;
+        uint256 nextEpochTimestamp = 0;
 
         // Find the correct epoch for the given chain
         // Fastest with recent epochs, but able to handle anything after genesis
