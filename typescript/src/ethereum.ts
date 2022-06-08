@@ -1,4 +1,4 @@
-import { Bridge as ChainBridge, Identifier } from "./chain"
+import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
 import { BigNumber, constants, Contract, Signer, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { Deposit } from "./deposit"
@@ -9,6 +9,25 @@ import {
   Proof,
   UnspentTransactionOutput,
 } from "./bitcoin"
+
+/**
+ * Represents an Ethereum address.
+ */
+export class Address implements ChainIdentifier {
+  readonly identifierHex: string
+
+  constructor(address: string) {
+    let validAddress: string
+
+    try {
+      validAddress = utils.getAddress(address)
+    } catch (e) {
+      throw new Error(`Invalid Ethereum address`)
+    }
+
+    this.identifierHex = validAddress.substring(2).toLowerCase()
+  }
+}
 
 /**
  * Represents a config set required to connect an Ethereum contract.
@@ -117,7 +136,7 @@ export class Bridge implements ChainBridge {
     sweepTx: DecomposedRawTransaction,
     sweepProof: Proof,
     mainUtxo: UnspentTransactionOutput,
-    vault?: Identifier
+    vault?: ChainIdentifier
   ): Promise<void> {
     const sweepTxParam = {
       version: `0x${sweepTx.version}`,
