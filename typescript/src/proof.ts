@@ -7,28 +7,14 @@ import {
 } from "./bitcoin"
 
 /**
- * Create a proof of transaction inclusion in the block by concatenating
- * 32-byte-long hash values. The values are converted to little endian form.
- * @param txMerkleBranch - Branch of a merkle tree leading to a transaction.
- * @returns Transaction inclusion proof in hexadecimal form.
- */
-function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
-  let proof = Buffer.from("")
-  txMerkleBranch.merkle.forEach(function (item) {
-    proof = Buffer.concat([proof, Buffer.from(item, "hex").reverse()])
-  })
-  return proof.toString("hex")
-}
-
-/**
- * Creates a proof that a given transaction was included in the blockchain and
+ * Assembles a proof that a given transaction was included in the blockchain and
  * has accumulated the required number of confirmations.
  * @param transactionHash - Hash of the transaction being proven.
  * @param requiredConfirmations - Required number of confirmations.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Bitcoin transaction along with the inclusion proof.
  */
-export async function createTransactionProof(
+export async function assembleTransactionProof(
   transactionHash: TransactionHash,
   requiredConfirmations: number,
   bitcoinClient: BitcoinClient
@@ -69,4 +55,18 @@ export async function createTransactionProof(
   }
 
   return { ...transaction, ...proof }
+}
+
+/**
+ * Create a proof of transaction inclusion in the block by concatenating
+ * 32-byte-long hash values. The values are converted to little endian form.
+ * @param txMerkleBranch - Branch of a merkle tree leading to a transaction.
+ * @returns Transaction inclusion proof in hexadecimal form.
+ */
+function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
+  let proof = Buffer.from("")
+  txMerkleBranch.merkle.forEach(function (item) {
+    proof = Buffer.concat([proof, Buffer.from(item, "hex").reverse()])
+  })
+  return proof.toString("hex")
 }

@@ -5,14 +5,14 @@ import {
   multipleInputsProofTestData,
   ProofTestData,
 } from "./data/proof"
-import { createTransactionProof } from "../src/proof"
+import { assembleTransactionProof } from "../src/proof"
 import { Proof } from "./bitcoin"
 import { expect } from "chai"
 // @ts-ignore
 import bcoin from "bcoin"
 
 describe("Proof", () => {
-  describe("createTransactionProof", () => {
+  describe("assembleTransactionProof", () => {
     let bitcoinClient: MockBitcoinClient
 
     beforeEach(async () => {
@@ -91,7 +91,7 @@ describe("Proof", () => {
       )
       bitcoinClient.confirmations = confirmations
 
-      const proof = await createTransactionProof(
+      const proof = await assembleTransactionProof(
         transactionHash,
         data.requiredConfirmations,
         bitcoinClient

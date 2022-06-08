@@ -1,10 +1,9 @@
-import TBTC from "./../src"
 import {
   Transaction,
   RawTransaction,
   TransactionHash,
   UnspentTransactionOutput,
-} from "../src/bitcoin"
+} from "./bitcoin"
 // @ts-ignore
 import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
@@ -23,7 +22,13 @@ import {
   p2wpkhWalletAddress,
   RedemptionTestData,
 } from "./data/redemption"
-import { RedemptionRequest } from "./redemption"
+import {
+  assembleRedemptionTransaction,
+  RedemptionRequest,
+  requestRedemption,
+  submitRedemptionProof,
+  submitRedemptionTransaction,
+} from "../src/redemption"
 import { MockBridge } from "./utils/mock-bridge"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
@@ -44,7 +49,7 @@ describe("Redemption", () => {
     beforeEach(async () => {
       bcoin.set("testnet")
 
-      await TBTC.requestRedemption(
+      await requestRedemption(
         walletPublicKey,
         mainUtxo,
         redeemerOutputScript,
@@ -65,7 +70,7 @@ describe("Redemption", () => {
     })
   })
 
-  describe("makeRedemptions", () => {
+  describe("submitRedemptionTransaction", () => {
     let bitcoinClient: MockBitcoinClient
     let bridge: MockBridge
 
@@ -419,7 +424,7 @@ describe("Redemption", () => {
             )
 
             await expect(
-              TBTC.makeRedemptions(
+              submitRedemptionTransaction(
                 bitcoinClient,
                 bridge,
                 walletPrivateKey,
@@ -448,7 +453,7 @@ describe("Redemption", () => {
 
       it("should revert", async () => {
         await expect(
-          TBTC.makeRedemptions(
+          submitRedemptionTransaction(
             bitcoinClient,
             bridge,
             walletPrivateKey,
@@ -461,7 +466,7 @@ describe("Redemption", () => {
     })
   })
 
-  describe("createRedemptionTransaction", () => {
+  describe("assembleRedemptionTransaction", () => {
     context("when there are redemption requests provided", () => {
       context("when there is a change UTXO created", () => {
         describe("when the change output is P2WPKH", () => {
@@ -485,7 +490,7 @@ describe("Redemption", () => {
                     transactionHash,
                     newMainUtxo,
                     rawTransaction: transaction,
-                  } = await TBTC.createRedemptionTransaction(
+                  } = await assembleRedemptionTransaction(
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -598,7 +603,7 @@ describe("Redemption", () => {
                     transactionHash,
                     newMainUtxo,
                     rawTransaction: transaction,
-                  } = await TBTC.createRedemptionTransaction(
+                  } = await assembleRedemptionTransaction(
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -710,7 +715,7 @@ describe("Redemption", () => {
                     transactionHash,
                     newMainUtxo,
                     rawTransaction: transaction,
-                  } = await TBTC.createRedemptionTransaction(
+                  } = await assembleRedemptionTransaction(
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -822,7 +827,7 @@ describe("Redemption", () => {
                     transactionHash,
                     newMainUtxo,
                     rawTransaction: transaction,
-                  } = await TBTC.createRedemptionTransaction(
+                  } = await assembleRedemptionTransaction(
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -933,7 +938,7 @@ describe("Redemption", () => {
                 transactionHash,
                 newMainUtxo,
                 rawTransaction: transaction,
-              } = await TBTC.createRedemptionTransaction(
+              } = await assembleRedemptionTransaction(
                 walletPrivateKey,
                 data.mainUtxo,
                 redemptionRequests,
@@ -1090,7 +1095,7 @@ describe("Redemption", () => {
               transactionHash,
               newMainUtxo,
               rawTransaction: transaction,
-            } = await TBTC.createRedemptionTransaction(
+            } = await assembleRedemptionTransaction(
               walletPrivateKey,
               data.mainUtxo,
               redemptionRequests,
@@ -1196,7 +1201,7 @@ describe("Redemption", () => {
             transactionHash,
             newMainUtxo,
             rawTransaction: transaction,
-          } = await TBTC.createRedemptionTransaction(
+          } = await assembleRedemptionTransaction(
             walletPrivateKey,
             data.mainUtxo,
             redemptionRequests,
@@ -1283,7 +1288,7 @@ describe("Redemption", () => {
 
       it("should revert", async () => {
         await expect(
-          TBTC.createRedemptionTransaction(
+          assembleRedemptionTransaction(
             walletPrivateKey,
             data.mainUtxo,
             [], // empty list of redemption requests
@@ -1294,7 +1299,7 @@ describe("Redemption", () => {
     })
   })
 
-  describe("proveRedemption", () => {
+  describe("submitRedemptionProof", () => {
     const mainUtxo = {
       transactionHash:
         "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
@@ -1340,7 +1345,7 @@ describe("Redemption", () => {
       )
       bitcoinClient.confirmations = confirmations
 
-      await TBTC.proveRedemption(
+      await submitRedemptionProof(
         transactionHash,
         mainUtxo,
         walletPublicKey,
@@ -1398,7 +1403,7 @@ async function runRedemptionScenario(
     (redemption) => redemption.pendingRedemption.redeemerOutputScript
   )
 
-  return TBTC.makeRedemptions(
+  return submitRedemptionTransaction(
     bitcoinClient,
     bridge,
     walletPrivKey,

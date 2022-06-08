@@ -12,7 +12,7 @@ import {
   TransactionHash,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
-import { createTransactionProof } from "./proof"
+import { assembleTransactionProof } from "./proof"
 
 /**
  * Represents a redemption request.
@@ -105,7 +105,7 @@ export async function requestRedemption(
  *          - the redemption transaction hash,
  *          - the optional new wallet's main UTXO produced by this transaction.
  */
-export async function makeRedemptions(
+export async function submitRedemptionTransaction(
   bitcoinClient: BitcoinClient,
   bridge: Bridge,
   walletPrivateKey: string,
@@ -132,7 +132,7 @@ export async function makeRedemptions(
   )
 
   const { transactionHash, newMainUtxo, rawTransaction } =
-    await createRedemptionTransaction(
+    await assembleRedemptionTransaction(
       walletPrivateKey,
       mainUtxoWithRaw,
       redemptionRequests,
@@ -203,7 +203,7 @@ async function fetchRedemptionRequests(
 }
 
 /**
- * Creates a Bitcoin redemption transaction.
+ * Assembles a Bitcoin redemption transaction.
  * The transaction will have a single input (main UTXO of the wallet making
  * the redemption), an output for each redemption request provided, and a change
  * output if the redemption requests do not consume the entire amount of the
@@ -224,7 +224,7 @@ async function fetchRedemptionRequests(
  *          - the optional new wallet's main UTXO produced by this transaction.
  *          - the redemption transaction in the raw format
  */
-export async function createRedemptionTransaction(
+export async function assembleRedemptionTransaction(
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput & RawTransaction,
   redemptionRequests: RedemptionRequest[],
@@ -336,7 +336,7 @@ export async function createRedemptionTransaction(
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Empty promise.
  */
-export async function proveRedemption(
+export async function submitRedemptionProof(
   transactionHash: TransactionHash,
   mainUtxo: UnspentTransactionOutput,
   walletPublicKey: string,
@@ -344,7 +344,7 @@ export async function proveRedemption(
   bitcoinClient: BitcoinClient
 ): Promise<void> {
   const confirmations = await bridge.txProofDifficultyFactor()
-  const proof = await createTransactionProof(
+  const proof = await assembleTransactionProof(
     transactionHash,
     confirmations,
     bitcoinClient

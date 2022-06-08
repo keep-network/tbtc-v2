@@ -10,9 +10,9 @@ import {
   createKeyRing,
   TransactionHash,
 } from "./bitcoin"
-import { createDepositScript, Deposit } from "./deposit"
+import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge } from "./chain"
-import { createTransactionProof } from "./proof"
+import { assembleTransactionProof } from "./proof"
 
 /**
  * Sweeps P2(W)SH UTXOs by combining all the provided UTXOs and broadcasting
@@ -36,7 +36,7 @@ import { createTransactionProof } from "./proof"
  *          - the sweep transaction hash,
  *          - the new wallet's main UTXO produced by this transaction.
  */
-export async function sweepDeposits(
+export async function submitDepositSweepTransaction(
   bitcoinClient: BitcoinClient,
   fee: BigNumber,
   walletPrivateKey: string,
@@ -73,7 +73,7 @@ export async function sweepDeposits(
   }
 
   const { transactionHash, newMainUtxo, rawTransaction } =
-    await createDepositSweepTransaction(
+    await assembleDepositSweepTransaction(
       fee,
       walletPrivateKey,
       witness,
@@ -91,7 +91,7 @@ export async function sweepDeposits(
 }
 
 /**
- * Creates a Bitcoin P2WPKH deposit sweep transaction.
+ * Assembles a Bitcoin P2WPKH deposit sweep transaction.
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee.
@@ -110,7 +110,7 @@ export async function sweepDeposits(
  *          - the new wallet's main UTXO produced by this transaction.
  *          - the sweep transaction in the raw format
  */
-export async function createDepositSweepTransaction(
+export async function assembleDepositSweepTransaction(
   fee: BigNumber,
   walletPrivateKey: string,
   witness: boolean,
@@ -369,7 +369,7 @@ async function prepareInputSignData(
   }
 
   const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await createDepositScript(deposit), "hex")
+    Buffer.from(await assembleDepositScript(deposit), "hex")
   )
 
   return {
@@ -388,14 +388,14 @@ async function prepareInputSignData(
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Empty promise.
  */
-export async function proveDepositSweep(
+export async function submitDepositSweepProof(
   transactionHash: TransactionHash,
   mainUtxo: UnspentTransactionOutput,
   bridge: Bridge,
   bitcoinClient: BitcoinClient
 ): Promise<void> {
   const confirmations = await bridge.txProofDifficultyFactor()
-  const proof = await createTransactionProof(
+  const proof = await assembleTransactionProof(
     transactionHash,
     confirmations,
     bitcoinClient

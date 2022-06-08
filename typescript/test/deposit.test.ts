@@ -1,4 +1,3 @@
-import TBTC from "./../src"
 import { expect } from "chai"
 import { BigNumber } from "ethers"
 import {
@@ -20,9 +19,15 @@ import bcoin from "bcoin"
 // @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
 import {
-  computeDepositRefundLocktime,
+  assembleDepositScript,
+  assembleDepositTransaction,
+  calculateDepositAddress,
+  calculateDepositRefundLocktime,
+  calculateDepositScriptHash,
   Deposit,
   DepositRefundLocktimeDuration,
+  revealDeposit,
+  submitDepositTransaction,
 } from "../src/deposit"
 import { MockBridge } from "./utils/mock-bridge"
 
@@ -35,7 +40,7 @@ describe("Deposit", () => {
     refundPublicKey:
       "0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
     blindingFactor: "f9f0c90d00039523",
-    refundLocktime: computeDepositRefundLocktime(1640181600),
+    refundLocktime: calculateDepositRefundLocktime(1640181600),
   }
 
   // All test scenarios using the deposit script within `Deposit` group
@@ -99,7 +104,7 @@ describe("Deposit", () => {
     testnetAddress: "2MwGJ12ZNLJX3qWqPmqLGzh3EfdN5XAEGQ8",
   }
 
-  describe("makeDeposit", () => {
+  describe("submitDepositTransaction", () => {
     let bitcoinClient: MockBitcoinClient
 
     beforeEach(async () => {
@@ -113,8 +118,8 @@ describe("Deposit", () => {
       utxos.set(testnetAddress, [testnetUTXO])
       bitcoinClient.unspentTransactionOutputs = utxos
 
-      // Tie testnetTransaction to testnetUTXO. This is needed since makeDeposit
-      // attach transaction data to each UTXO.
+      // Tie testnetTransaction to testnetUTXO. This is needed since
+      // submitDepositTransaction attach transaction data to each UTXO.
       const rawTransactions = new Map<string, RawTransaction>()
       rawTransactions.set(testnetTransactionHash, testnetTransaction)
       bitcoinClient.rawTransactions = rawTransactions
@@ -125,7 +130,7 @@ describe("Deposit", () => {
       let depositUtxo: UnspentTransactionOutput
 
       beforeEach(async () => {
-        ;({ transactionHash, depositUtxo } = await TBTC.makeDeposit(
+        ;({ transactionHash, depositUtxo } = await submitDepositTransaction(
           deposit,
           testnetPrivateKey,
           bitcoinClient,
@@ -162,7 +167,7 @@ describe("Deposit", () => {
       let depositUtxo: UnspentTransactionOutput
 
       beforeEach(async () => {
-        ;({ transactionHash, depositUtxo } = await TBTC.makeDeposit(
+        ;({ transactionHash, depositUtxo } = await submitDepositTransaction(
           deposit,
           testnetPrivateKey,
           bitcoinClient,
@@ -193,7 +198,7 @@ describe("Deposit", () => {
     })
   })
 
-  describe("createDepositTransaction", () => {
+  describe("assembleDepositTransaction", () => {
     context("when witness option is true", () => {
       let transactionHash: TransactionHash
       let depositUtxo: UnspentTransactionOutput
@@ -204,7 +209,7 @@ describe("Deposit", () => {
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
-        } = await TBTC.createDepositTransaction(
+        } = await assembleDepositTransaction(
           deposit,
           [testnetUTXO],
           testnetPrivateKey,
@@ -245,7 +250,7 @@ describe("Deposit", () => {
         // Value should correspond to the deposit amount.
         expect(depositOutput.value).to.be.equal(deposit.amount.toNumber())
         // Should be OP_0 <script-hash>. The script hash is the same as in
-        // expectedP2WSHDeposit.scriptHash (see createDepositScriptHash
+        // expectedP2WSHDeposit.scriptHash (see calculateDepositScriptHash
         // witness scenario) and it should be prefixed with its byte length:
         // 0x20. The OP_0 opcode is 0x00.
         expect(depositOutput.script).to.be.equal(
@@ -253,7 +258,7 @@ describe("Deposit", () => {
         )
         // The address should correspond to the script hash
         // expectedP2WSHDeposit.scriptHash on testnet so it should be:
-        // expectedP2WSHDeposit.testnetAddress (see createDepositAddress
+        // expectedP2WSHDeposit.testnetAddress (see calculateDepositAddress
         // witness scenario).
         expect(depositOutput.address).to.be.equal(
           expectedP2WSHDeposit.testnetAddress
@@ -297,7 +302,7 @@ describe("Deposit", () => {
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
-        } = await TBTC.createDepositTransaction(
+        } = await assembleDepositTransaction(
           deposit,
           [testnetUTXO],
           testnetPrivateKey,
@@ -338,7 +343,7 @@ describe("Deposit", () => {
         // Value should correspond to the deposit amount.
         expect(depositOutput.value).to.be.equal(deposit.amount.toNumber())
         // Should be OP_HASH160 <script-hash> OP_EQUAL. The script hash is
-        // expectedP2SHDeposit.scriptHash (see createDepositScriptHash
+        // expectedP2SHDeposit.scriptHash (see calculateDepositScriptHash
         // non-witness scenario) and it should be prefixed with its byte
         // length: 0x14. The OP_HASH160 opcode is 0xa9 and OP_EQUAL is 0x87.
         expect(depositOutput.script).to.be.equal(
@@ -346,7 +351,7 @@ describe("Deposit", () => {
         )
         // The address should correspond to the script hash
         // expectedP2SHDeposit.scriptHash on testnet so it should be
-        // expectedP2SHDeposit.testnetAddress (see createDepositAddress
+        // expectedP2SHDeposit.testnetAddress (see calculateDepositAddress
         // non-witness scenario).
         expect(depositOutput.address).to.be.equal(
           expectedP2SHDeposit.testnetAddress
@@ -379,11 +384,11 @@ describe("Deposit", () => {
     })
   })
 
-  describe("createDepositScript", () => {
+  describe("assembleDepositScript", () => {
     let script: string
 
     beforeEach(async () => {
-      script = await TBTC.createDepositScript(deposit)
+      script = await assembleDepositScript(deposit)
     })
 
     it("should return script with proper structure", async () => {
@@ -491,11 +496,11 @@ describe("Deposit", () => {
     })
   })
 
-  describe("computeDepositRefundLocktime", () => {
+  describe("calculateDepositRefundLocktime", () => {
     context("when the resulting locktime is lesser than 4 bytes", () => {
       it("should throw", () => {
         // This will result with 2592001 as the locktime which is a 3-byte number.
-        expect(() => TBTC.computeDepositRefundLocktime(1)).to.throw(
+        expect(() => calculateDepositRefundLocktime(1)).to.throw(
           "Refund locktime must be a 4 bytes number"
         )
       })
@@ -504,7 +509,7 @@ describe("Deposit", () => {
     context("when the resulting locktime is greater than 4 bytes", () => {
       it("should throw", () => {
         // This will result with 259200144444 as the locktime which is a 5-byte number.
-        expect(() => TBTC.computeDepositRefundLocktime(259197552444)).to.throw(
+        expect(() => calculateDepositRefundLocktime(259197552444)).to.throw(
           "Refund locktime must be a 4 bytes number"
         )
       })
@@ -514,8 +519,7 @@ describe("Deposit", () => {
       it("should compute a proper 4-byte little-endian locktime as un-prefixed hex string", () => {
         const depositCreatedAt = 1652776752
 
-        const refundLocktime =
-          TBTC.computeDepositRefundLocktime(depositCreatedAt)
+        const refundLocktime = calculateDepositRefundLocktime(depositCreatedAt)
 
         // The creation timestamp is 1652776752 and locktime duration 2592000 (30 days).
         // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
@@ -525,17 +529,17 @@ describe("Deposit", () => {
     })
   })
 
-  describe("createDepositScriptHash", () => {
+  describe("calculateDepositScriptHash", () => {
     context("when witness option is true", () => {
       let scriptHash: Buffer
 
       beforeEach(async () => {
-        scriptHash = await TBTC.createDepositScriptHash(deposit, true)
+        scriptHash = await calculateDepositScriptHash(deposit, true)
       })
 
       it("should return proper witness script hash", async () => {
         // The script for given deposit should be the same as in
-        // createDepositScript test scenario i.e. expectedDepositScript.
+        // assembleDepositScript test scenario i.e. expectedDepositScript.
         // The hash of this script should correspond to the OP_SHA256 opcode
         // which applies SHA-256 on the input. In this case the hash is
         // expectedP2WSHDeposit.scriptHash and it can be verified with
@@ -551,12 +555,12 @@ describe("Deposit", () => {
       let scriptHash: Buffer
 
       beforeEach(async () => {
-        scriptHash = await TBTC.createDepositScriptHash(deposit, false)
+        scriptHash = await calculateDepositScriptHash(deposit, false)
       })
 
       it("should return proper non-witness script hash", async () => {
         // The script for given deposit should be the same as in
-        // createDepositScript test scenario i.e. expectedDepositScript.
+        // assembleDepositScript test scenario i.e. expectedDepositScript.
         // The hash of this script should correspond to the OP_HASH160 opcode
         // which applies SHA-256 and then RIPEMD-160 on the input. In this case
         // the hash is expectedP2SHDeposit.scriptHash and it can be verified
@@ -569,18 +573,18 @@ describe("Deposit", () => {
     })
   })
 
-  describe("createDepositAddress", () => {
+  describe("calculateDepositAddress", () => {
     let address: string
 
     context("when network is main", () => {
       context("when witness option is true", () => {
         beforeEach(async () => {
-          address = await TBTC.createDepositAddress(deposit, "main", true)
+          address = await calculateDepositAddress(deposit, "main", true)
         })
 
         it("should return proper address with prefix bc1", async () => {
           // Address is created from same script hash as presented in the witness
-          // createDepositScriptHash scenario i.e. expectedP2WSHDeposit.scriptHash.
+          // calculateDepositScriptHash scenario i.e. expectedP2WSHDeposit.scriptHash.
           // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
           // the P2WSH (Bech32) address prefix for mainnet is bc1.
           expect(address).to.be.equal(expectedP2WSHDeposit.mainnetAddress)
@@ -589,12 +593,12 @@ describe("Deposit", () => {
 
       context("when witness option is false", () => {
         beforeEach(async () => {
-          address = await TBTC.createDepositAddress(deposit, "main", false)
+          address = await calculateDepositAddress(deposit, "main", false)
         })
 
         it("should return proper address with prefix 3", async () => {
           // Address is created from same script hash as presented in the non-witness
-          // createDepositScriptHash scenario i.e. expectedP2SHDeposit.scriptHash.
+          // calculateDepositScriptHash scenario i.e. expectedP2SHDeposit.scriptHash.
           // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
           // the P2SH address prefix for mainnet is 3.
           expect(address).to.be.equal(expectedP2SHDeposit.mainnetAddress)
@@ -605,12 +609,12 @@ describe("Deposit", () => {
     context("when network is testnet", () => {
       context("when witness option is true", () => {
         beforeEach(async () => {
-          address = await TBTC.createDepositAddress(deposit, "testnet", true)
+          address = await calculateDepositAddress(deposit, "testnet", true)
         })
 
         it("should return proper address with prefix tb1", async () => {
           // Address is created from same script hash as presented in the witness
-          // createDepositScriptHash scenario i.e. expectedP2WSHDeposit.scriptHash.
+          // calculateDepositScriptHash scenario i.e. expectedP2WSHDeposit.scriptHash.
           // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
           // the P2WSH (Bech32) address prefix for testnet is tb1.
           expect(address).to.be.equal(expectedP2WSHDeposit.testnetAddress)
@@ -619,12 +623,12 @@ describe("Deposit", () => {
 
       context("when witness option is false", () => {
         beforeEach(async () => {
-          address = await TBTC.createDepositAddress(deposit, "testnet", false)
+          address = await calculateDepositAddress(deposit, "testnet", false)
         })
 
         it("should return proper address with prefix 2", async () => {
           // Address is created from same script hash as presented in the witness
-          // createDepositScriptHash scenario i.e. expectedP2SHDeposit.scriptHash.
+          // calculateDepositScriptHash scenario i.e. expectedP2SHDeposit.scriptHash.
           // According to https://en.bitcoin.it/wiki/List_of_address_prefixes
           // the P2SH address prefix for testnet is 2.
           expect(address).to.be.equal(expectedP2SHDeposit.testnetAddress)
@@ -641,7 +645,7 @@ describe("Deposit", () => {
 
     beforeEach(async () => {
       // Create a deposit transaction.
-      const result = await TBTC.createDepositTransaction(
+      const result = await assembleDepositTransaction(
         deposit,
         [testnetUTXO],
         testnetPrivateKey,
@@ -661,7 +665,7 @@ describe("Deposit", () => {
       // Initialize the mock Bridge.
       bridge = new MockBridge()
 
-      await TBTC.revealDeposit(depositUtxo, deposit, bitcoinClient, bridge)
+      await revealDeposit(depositUtxo, deposit, bitcoinClient, bridge)
     })
 
     it("should reveal the deposit to the Bridge", () => {
