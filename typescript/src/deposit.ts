@@ -78,6 +78,31 @@ export type DepositScriptParameters = Pick<
 >
 
 /**
+ * Represents a deposit revealed to the on-chain bridge. This type emphasizes
+ * the on-chain state of the revealed deposit and omits the deposit script
+ * parameters as they are not relevant in this context.
+ */
+export type RevealedDeposit = Pick<
+  Deposit,
+  "depositor" | "amount" | "vault"
+> & {
+  /**
+   * UNIX timestamp the deposit was revealed at.
+   */
+  revealedAt: number
+  /**
+   * UNIX timestamp the request was swept at. If not swept yet, this parameter
+   * should have zero as value.
+   */
+  sweptAt: number
+  /**
+   * Value of the treasury fee calculated for this revealed deposit.
+   * Denominated in satoshi.
+   */
+  treasuryFee: BigNumber
+}
+
+/**
  * Makes a deposit by creating and broadcasting a Bitcoin P2(W)SH
  * deposit transaction.
  * @param deposit - Details of the deposit.
@@ -358,4 +383,17 @@ export async function revealDeposit(
   )
 
   await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit)
+}
+
+/**
+ * Gets a revealed deposit from the bridge.
+ * @param utxo Deposit UTXO of the revealed deposit
+ * @param bridge Handle to the Bridge on-chain contract
+ * @returns Revealed deposit data.
+ */
+export async function getRevealedDeposit(
+  utxo: UnspentTransactionOutput,
+  bridge: Bridge
+): Promise<RevealedDeposit> {
+  return bridge.deposits(utxo.transactionHash, utxo.outputIndex)
 }

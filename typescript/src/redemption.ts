@@ -1,7 +1,5 @@
 // @ts-ignore
 import bcoin from "bcoin"
-// @ts-ignore
-import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
 import {
   createKeyRing,

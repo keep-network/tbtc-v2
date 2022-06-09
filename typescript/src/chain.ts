@@ -3,8 +3,9 @@ import {
   Proof,
   UnspentTransactionOutput,
   DecomposedRawTransaction,
+  TransactionHash,
 } from "./bitcoin"
-import { Deposit } from "./deposit"
+import { Deposit, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 
 /**
@@ -48,6 +49,18 @@ export interface Bridge {
     depositOutputIndex: number,
     deposit: Deposit
   ): Promise<void>
+
+  /**
+   * Gets a revealed deposit from the on-chain contract.
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @returns Revealed deposit data.
+   */
+  deposits(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<RevealedDeposit>
 
   /**
    * Requests a redemption from the on-chain contract.

@@ -305,6 +305,88 @@ describe("Ethereum", () => {
         ])
       })
     })
+
+    describe("deposits", () => {
+      context("when the revealed deposit has a vault set", () => {
+        beforeEach(async () => {
+          // Set the mock to return a specific revealed deposit when called
+          // with the deposit key (built as keccak256(depositTxHash | depositOutputIndex)
+          // that matches the deposit transaction hash and output index used during
+          // the test call.
+          await bridgeContract.mock.deposits
+            .withArgs(
+              "0x01151be714c10edde62a310bf0604c01134450416a0bf8a7bfd43cef90644f0f"
+            )
+            .returns({
+              depositor: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+              amount: BigNumber.from(10000),
+              vault: "0x014e1BFbe0f85F129749a8ae0fcB20175433741B",
+              revealedAt: 1654774330,
+              sweptAt: 1655033516,
+              treasuryFee: BigNumber.from(200),
+            } as any)
+        })
+
+        it("should return the revealed deposit", async () => {
+          expect(
+            await bridgeHandle.deposits(
+              "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83",
+              0
+            )
+          ).to.be.eql({
+            depositor: {
+              identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+            },
+            amount: BigNumber.from(10000),
+            vault: {
+              identifierHex: "014e1bfbe0f85f129749a8ae0fcb20175433741b",
+            },
+            revealedAt: 1654774330,
+            sweptAt: 1655033516,
+            treasuryFee: BigNumber.from(200),
+          })
+        })
+      })
+
+      context("when the revealed deposit has no vault set", () => {
+        beforeEach(async () => {
+          // Set the mock to return a specific revealed deposit when called
+          // with the deposit key (built as keccak256(depositTxHash | depositOutputIndex)
+          // that matches the deposit transaction hash and output index used during
+          // the test call.
+          await bridgeContract.mock.deposits
+            .withArgs(
+              "0x01151be714c10edde62a310bf0604c01134450416a0bf8a7bfd43cef90644f0f"
+            )
+            .returns({
+              depositor: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+              amount: BigNumber.from(10000),
+              vault: "0x0000000000000000000000000000000000000000",
+              revealedAt: 1654774330,
+              sweptAt: 1655033516,
+              treasuryFee: BigNumber.from(200),
+            } as any)
+        })
+
+        it("should return the revealed deposit", async () => {
+          expect(
+            await bridgeHandle.deposits(
+              "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83",
+              0
+            )
+          ).to.be.eql({
+            depositor: {
+              identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+            },
+            amount: BigNumber.from(10000),
+            vault: undefined,
+            revealedAt: 1654774330,
+            sweptAt: 1655033516,
+            treasuryFee: BigNumber.from(200),
+          })
+        })
+      })
+    })
   })
 
   // eslint-disable-next-line valid-jsdoc

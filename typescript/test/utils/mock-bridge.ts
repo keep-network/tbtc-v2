@@ -6,7 +6,8 @@ import {
 } from "../../src/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
-import { Deposit } from "../../src/deposit"
+import { Deposit, RevealedDeposit } from "../../src/deposit"
+import { TransactionHash } from "../../dist/bitcoin"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -45,6 +46,7 @@ export class MockBridge implements Bridge {
   private _revealDepositLog: RevealDepositLogEntry[] = []
   private _requestRedemptionLog: RequestRedemptionLogEntry[] = []
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
+  private _deposits = new Map<BigNumberish, RevealedDeposit>()
 
   setPendingRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -70,6 +72,10 @@ export class MockBridge implements Bridge {
     return this._redemptionProofLog
   }
 
+  setDeposits(value: Map<BigNumberish, RevealedDeposit>) {
+    this._deposits = value
+  }
+
   submitDepositSweepProof(
     sweepTx: DecomposedRawTransaction,
     sweepProof: Proof,
@@ -91,6 +97,45 @@ export class MockBridge implements Bridge {
     return new Promise<void>((resolve, _) => {
       resolve()
     })
+  }
+
+  deposits(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<RevealedDeposit> {
+    return new Promise<RevealedDeposit>((resolve, _) => {
+      const depositKey = MockBridge.buildDepositKey(
+        depositTxHash,
+        depositOutputIndex
+      )
+
+      resolve(
+        this._deposits.has(depositKey)
+          ? (this._deposits.get(depositKey) as RevealedDeposit)
+          : {
+              depositor: { identifierHex: constants.AddressZero },
+              amount: BigNumber.from(0),
+              vault: { identifierHex: constants.AddressZero },
+              revealedAt: 0,
+              sweptAt: 0,
+              treasuryFee: BigNumber.from(0),
+            }
+      )
+    })
+  }
+
+  static buildDepositKey(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): string {
+    const prefixedReversedDepositTxHash = `0x${Buffer.from(depositTxHash, "hex")
+      .reverse()
+      .toString("hex")}`
+
+    return utils.solidityKeccak256(
+      ["bytes32", "uint32"],
+      [prefixedReversedDepositTxHash, depositOutputIndex]
+    )
   }
 
   submitRedemptionProof(
@@ -168,7 +213,7 @@ export class MockBridge implements Bridge {
     redeemerOutputScript: string,
     redemptionsMap: Map<BigNumberish, RedemptionRequest>
   ): RedemptionRequest {
-    const redemptionKey = this.buildRedemptionKey(
+    const redemptionKey = MockBridge.buildRedemptionKey(
       walletPubKeyHash,
       redeemerOutputScript
     )
@@ -187,7 +232,7 @@ export class MockBridge implements Bridge {
         }
   }
 
-  private buildRedemptionKey(
+  static buildRedemptionKey(
     walletPubKeyHash: string,
     redeemerOutputScript: string
   ): string {

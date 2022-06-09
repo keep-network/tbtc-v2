@@ -1,4 +1,8 @@
-import { calculateDepositAddress, revealDeposit } from "./deposit"
+import {
+  calculateDepositAddress,
+  getRevealedDeposit,
+  revealDeposit,
+} from "./deposit"
 import { submitDepositSweepProof } from "./deposit-sweep"
 import {
   requestRedemption,
@@ -11,6 +15,7 @@ import { Bridge as EthereumBridge } from "./ethereum"
 const TBTC = {
   calculateDepositAddress,
   revealDeposit,
+  getRevealedDeposit,
   requestRedemption,
   getRedemptionRequest,
 }

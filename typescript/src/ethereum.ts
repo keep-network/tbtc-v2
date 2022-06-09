@@ -1,12 +1,13 @@
 import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
 import { BigNumber, constants, Contract, Signer, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { Deposit } from "./deposit"
+import { Deposit, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
   computeHash160,
   DecomposedRawTransaction,
   Proof,
+  TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
 
@@ -95,7 +96,7 @@ export class Bridge implements ChainBridge {
   }
 
   /**
-   * Build a redemption key required to refer a redemption request.
+   * Builds a redemption key required to refer a redemption request.
    * @param walletPubKeyHash The wallet public key hash that identifies the
    *        pending redemption (along with the redeemer output script). Must be
    *        unprefixed.
@@ -313,5 +314,60 @@ export class Bridge implements ChainBridge {
       mainUtxoParam,
       walletPublicKeyHash
     )
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#deposits}
+   */
+  async deposits(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<RevealedDeposit> {
+    const depositKey = this.buildDepositKey(depositTxHash, depositOutputIndex)
+
+    const deposit = await this._bridge.deposits(depositKey)
+
+    return this.parseRevealedDeposit(deposit)
+  }
+
+  /**
+   * Builds the deposit key required to refer a revealed deposit.
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @returns Revealed deposit data.
+   */
+  private buildDepositKey(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): string {
+    const prefixedReversedDepositTxHash = `0x${Buffer.from(depositTxHash, "hex")
+      .reverse()
+      .toString("hex")}`
+
+    return utils.solidityKeccak256(
+      ["bytes32", "uint32"],
+      [prefixedReversedDepositTxHash, depositOutputIndex]
+    )
+  }
+
+  /**
+   * Parses a revealed deposit using data fetched from the on-chain contract.
+   * @param deposit Data of the revealed deposit.
+   * @returns Parsed revealed deposit.
+   */
+  private parseRevealedDeposit(deposit: any): RevealedDeposit {
+    return {
+      depositor: new Address(deposit.depositor),
+      amount: BigNumber.from(deposit.amount),
+      vault:
+        deposit.vault === constants.AddressZero
+          ? undefined
+          : new Address(deposit.vault),
+      revealedAt: BigNumber.from(deposit.revealedAt).toNumber(),
+      sweptAt: BigNumber.from(deposit.sweptAt).toNumber(),
+      treasuryFee: BigNumber.from(deposit.treasuryFee),
+    }
   }
 }

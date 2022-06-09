@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { BigNumber } from "ethers"
+import { BigNumber, BigNumberish } from "ethers"
 import {
   testnetAddress,
   testnetPrivateKey,
@@ -26,7 +26,9 @@ import {
   calculateDepositScriptHash,
   Deposit,
   DepositRefundLocktimeDuration,
+  getRevealedDeposit,
   revealDeposit,
+  RevealedDeposit,
   submitDepositTransaction,
 } from "../src/deposit"
 import { MockBridge } from "./utils/mock-bridge"
@@ -677,6 +679,52 @@ describe("Deposit", () => {
       )
       expect(revealDepositLogEntry.depositOutputIndex).to.be.equal(0)
       expect(revealDepositLogEntry.deposit).to.be.eql(deposit)
+    })
+  })
+
+  describe("getRevealedDeposit", () => {
+    let depositUtxo: UnspentTransactionOutput
+    let revealedDeposit: RevealedDeposit
+    let bridge: MockBridge
+
+    beforeEach(async () => {
+      // Create a deposit transaction.
+      ;({ depositUtxo } = await assembleDepositTransaction(
+        deposit,
+        [testnetUTXO],
+        testnetPrivateKey,
+        true
+      ))
+
+      revealedDeposit = {
+        depositor: deposit.depositor,
+        amount: deposit.amount,
+        vault: deposit.vault,
+        revealedAt: 1654774330,
+        sweptAt: 1655033516,
+        treasuryFee: BigNumber.from(200),
+      }
+
+      const revealedDeposits = new Map<BigNumberish, RevealedDeposit>()
+      revealedDeposits.set(
+        MockBridge.buildDepositKey(
+          depositUtxo.transactionHash,
+          depositUtxo.outputIndex
+        ),
+        revealedDeposit
+      )
+
+      bridge = new MockBridge()
+      bridge.setDeposits(revealedDeposits)
+    })
+
+    it("should return the expected revealed deposit", async () => {
+      const actualRevealedDeposit = await getRevealedDeposit(
+        depositUtxo,
+        bridge
+      )
+
+      expect(actualRevealedDeposit).to.be.eql(revealedDeposit)
     })
   })
 })
