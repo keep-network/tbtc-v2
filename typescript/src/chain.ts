@@ -105,31 +105,31 @@ export interface Bridge {
 
   /**
    * Gets a pending redemption from the on-chain contract.
-   * @param walletPubKeyHash The wallet public key hash that identifies the
-   *        pending redemption (along with the redeemer output script). Must be
-   *        unprefixed
-   * @param redeemerOutputScript The redeemer output script that identifies the
-   *        pending redemption (along with the wallet public key hash). Must be
-   *        un-prefixed and not prepended with length
+   * @param walletPublicKey Bitcoin public key of the wallet the request is
+   *        targeted to. Must be in the compressed form (33 bytes long with 02
+   *        or 03 prefix).
+   * @param redeemerOutputScript The redeemer output script the redeemed funds
+   *        are supposed to be locked on. Must be un-prefixed and not prepended
+   *        with length.
    * @returns Promise with the pending redemption.
    */
   pendingRedemptions(
-    walletPubKeyHash: string,
+    walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest>
 
   /**
    * Gets a timed-out redemption from the on-chain contract.
-   * @param walletPubKeyHash The wallet public key hash that identifies the
-   *        pending redemption (along with the redeemer output script). Must be
-   *        unprefixed
-   * @param redeemerOutputScript The redeemer output script that identifies the
-   *        pending redemption (along with the wallet public key hash). Must be
-   *        un-prefixed and not prepended with length
+   * @param walletPublicKey Bitcoin public key of the wallet the request is
+   *        targeted to. Must be in the compressed form (33 bytes long with 02
+   *        or 03 prefix).
+   * @param redeemerOutputScript The redeemer output script the redeemed funds
+   *        are supposed to be locked on. Must be un-prefixed and not prepended
+   *        with length.
    * @returns Promise with the pending redemption.
    */
   timedOutRedemptions(
-    walletPubKeyHash: string,
+    walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest>
 }

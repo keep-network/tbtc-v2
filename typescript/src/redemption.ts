@@ -8,7 +8,6 @@ import {
   UnspentTransactionOutput,
   Client as BitcoinClient,
   TransactionHash,
-  computeHash160,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
@@ -172,9 +171,6 @@ async function getWalletRedemptionRequests(
   redeemerOutputScripts: string[],
   type: "pending" | "timedOut"
 ): Promise<RedemptionRequest[]> {
-  // Calculate un-prefixed wallet public key hash
-  const walletPubKeyHash = computeHash160(walletPublicKey)
-
   const redemptionRequests: RedemptionRequest[] = []
 
   for (const redeemerOutputScript of redeemerOutputScripts) {
@@ -183,14 +179,14 @@ async function getWalletRedemptionRequests(
     switch (type) {
       case "pending": {
         redemptionRequest = await bridge.pendingRedemptions(
-          walletPubKeyHash,
+          walletPublicKey,
           redeemerOutputScript
         )
         break
       }
       case "timedOut": {
         redemptionRequest = await bridge.timedOutRedemptions(
-          walletPubKeyHash,
+          walletPublicKey,
           redeemerOutputScript
         )
         break

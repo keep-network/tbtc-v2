@@ -7,7 +7,7 @@ import {
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
 import { Deposit, RevealedDeposit } from "../../src/deposit"
-import { TransactionHash } from "../../dist/bitcoin"
+import { computeHash160, TransactionHash } from "../../dist/bitcoin"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -179,13 +179,13 @@ export class MockBridge implements Bridge {
   }
 
   pendingRedemptions(
-    walletPubKeyHash: string,
+    walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     return new Promise<RedemptionRequest>((resolve, _) => {
       resolve(
         this.redemptions(
-          walletPubKeyHash,
+          walletPublicKey,
           redeemerOutputScript,
           this._pendingRedemptions
         )
@@ -194,13 +194,13 @@ export class MockBridge implements Bridge {
   }
 
   timedOutRedemptions(
-    walletPubKeyHash: string,
+    walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     return new Promise<RedemptionRequest>((resolve, _) => {
       resolve(
         this.redemptions(
-          walletPubKeyHash,
+          walletPublicKey,
           redeemerOutputScript,
           this._timedOutRedemptions
         )
@@ -209,12 +209,12 @@ export class MockBridge implements Bridge {
   }
 
   private redemptions(
-    walletPubKeyHash: string,
+    walletPublicKey: string,
     redeemerOutputScript: string,
     redemptionsMap: Map<BigNumberish, RedemptionRequest>
   ): RedemptionRequest {
     const redemptionKey = MockBridge.buildRedemptionKey(
-      walletPubKeyHash,
+      computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 

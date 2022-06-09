@@ -64,11 +64,11 @@ export class Bridge implements ChainBridge {
    * @see {ChainBridge#pendingRedemptions}
    */
   async pendingRedemptions(
-    walletPubKeyHash: string,
+    walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     const redemptionKey = this.buildRedemptionKey(
-      walletPubKeyHash,
+      computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
@@ -82,11 +82,11 @@ export class Bridge implements ChainBridge {
    * @see {ChainBridge#timedOutRedemptions}
    */
   async timedOutRedemptions(
-    walletPubKeyHash: string,
+    walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     const redemptionKey = this.buildRedemptionKey(
-      walletPubKeyHash,
+      computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 

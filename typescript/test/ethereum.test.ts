@@ -52,7 +52,7 @@ describe("Ethereum", () => {
       it("should return the pending redemption", async () => {
         expect(
           await bridgeHandle.pendingRedemptions(
-            "8db50eb52063ea9d98b3eac91489a90f738986f6",
+            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
           )
         ).to.be.eql({
@@ -91,7 +91,7 @@ describe("Ethereum", () => {
       it("should return the timed-out redemption", async () => {
         expect(
           await bridgeHandle.timedOutRedemptions(
-            "8db50eb52063ea9d98b3eac91489a90f738986f6",
+            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
           )
         ).to.be.eql({
