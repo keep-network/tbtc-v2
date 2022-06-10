@@ -1,13 +1,15 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import wif from "wif"
 import { ec as EllipticCurve } from "elliptic"
-import {
+import { createTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
+import { Contract } from "ethers"
+
+import type {
   Client as BitcoinClient,
   TransactionHash,
 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
-import { createTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
-import { SystemTestsContext } from "./context"
-import { Contract } from "ethers"
+import type { SystemTestsContext } from "./context"
 
 /**
  * Elliptic curve used by Bitcoin.
@@ -47,7 +49,7 @@ export interface KeyPair {
  * @returns The Bitcoin key pair.
  */
 export function keyPairFromPrivateWif(privateKeyWif: string): KeyPair {
-  const privateKey = wif.decode(privateKeyWif).privateKey
+  const { privateKey } = wif.decode(privateKeyWif)
   const keyPair = secp256k1.keyFromPrivate(privateKey)
   return {
     privateKeyWif,
@@ -74,13 +76,14 @@ export async function waitTransactionConfirmed(
   bitcoinClient: BitcoinClient,
   transactionHash: TransactionHash,
   requiredConfirmations: number = defaultTxProofDifficultyFactor,
-  sleep: number = 60000
+  sleep = 60000
 ): Promise<void> {
   for (;;) {
     console.log(`
       Checking confirmations count for transaction ${transactionHash}
     `)
 
+    // eslint-disable-next-line no-await-in-loop
     const confirmations = await bitcoinClient.getTransactionConfirmations(
       transactionHash
     )
@@ -96,6 +99,7 @@ export async function waitTransactionConfirmed(
       Transaction ${transactionHash} has only ${confirmations}/${requiredConfirmations} confirmations. Waiting for more...
     `)
 
+    // eslint-disable-next-line no-await-in-loop
     await new Promise((r) => setTimeout(r, sleep))
   }
 }
@@ -125,7 +129,7 @@ export async function fakeRelayDifficulty(
   headerChainLength: number = defaultTxProofDifficultyFactor
 ): Promise<void> {
   const relayDeploymentInfo =
-    systemTestsContext.contractsDeploymentInfo.contracts["Relay"]
+    systemTestsContext.contractsDeploymentInfo.contracts.Relay
 
   const relay = new Contract(
     relayDeploymentInfo.address,

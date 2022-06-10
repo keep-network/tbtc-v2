@@ -1,17 +1,20 @@
 import TBTC, { ElectrumClient, EthereumBridge } from "@keep-network/tbtc-v2.ts"
+import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import { BigNumber, constants, Contract } from "ethers"
+import { expect } from "chai"
+
+import { parseElectrumCredentials } from "./utils/electrum"
+import { setupSystemTestsContext } from "./utils/context"
+import { generateDeposit, getDepositFromBridge } from "./utils/deposit"
+import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
+
+import type { SystemTestsContext } from "./utils/context"
+import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/redemption"
+import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
 import type {
   TransactionHash,
   UnspentTransactionOutput,
 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
-import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
-import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/redemption"
-import { BigNumber, constants, Contract } from "ethers"
-import { expect } from "chai"
-import { parseElectrumCredentials } from "./utils/electrum"
-import { setupSystemTestsContext, SystemTestsContext } from "./utils/context"
-import { generateDeposit, getDepositFromBridge } from "./utils/deposit"
-import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
 
 /**
  * This system test scenario performs a single deposit and redemption.
@@ -55,7 +58,7 @@ describe("System Test - Deposit and redemption", () => {
 
     electrumClient = new ElectrumClient(parseElectrumCredentials(electrumUrl))
 
-    bridgeAddress = contractsDeploymentInfo.contracts["Bridge"].address
+    bridgeAddress = contractsDeploymentInfo.contracts.Bridge.address
 
     maintainerBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
@@ -68,7 +71,7 @@ describe("System Test - Deposit and redemption", () => {
     })
 
     // TODO: Consider implementing bank interactions in the `tbtc-v2.ts` lib.
-    const bankDeploymentInfo = contractsDeploymentInfo.contracts["Bank"]
+    const bankDeploymentInfo = contractsDeploymentInfo.contracts.Bank
     bank = new Contract(
       bankDeploymentInfo.address,
       bankDeploymentInfo.abi,

@@ -1,7 +1,11 @@
 import fs from "fs"
+
 import { helpers, network } from "hardhat"
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { KeyPair as BitcoinKeyPair, keyPairFromPrivateWif } from "./bitcoin"
+
+import { keyPairFromPrivateWif } from "./bitcoin"
+
+import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import type { KeyPair as BitcoinKeyPair } from "./bitcoin"
 
 // TODO: For now, the context and its setup is global and identical for each
 //       scenario. Once more scenarios is added, this should be probably
@@ -60,7 +64,7 @@ interface ContractsDeploymentInfo {
 export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
   const electrumUrl = process.env.ELECTRUM_URL
   if (!electrumUrl) {
-    throw new Error(`ELECTRUM_URL is not set`)
+    throw new Error("ELECTRUM_URL is not set")
   }
 
   if (network.name === "hardhat") {
@@ -84,7 +88,7 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     System tests context:
     - Electrum URL: ${electrumUrl}
     - Ethereum network: ${network.name}
-    - Bridge address ${contractsDeploymentInfo.contracts["Bridge"].address}
+    - Bridge address ${contractsDeploymentInfo.contracts.Bridge.address}
     - Governance Ethereum address ${governance.address}
     - Maintainer Ethereum address ${maintainer.address}
     - Depositor Ethereum address ${depositor.address}
@@ -119,7 +123,7 @@ function readContractsDeploymentExportFile(): ContractsDeploymentInfo {
     return JSON.parse(contractsDeploymentExportFile)
   }
 
-  throw new Error(`"CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH is not set`)
+  throw new Error("CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH is not set")
 }
 
 /**
