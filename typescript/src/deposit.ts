@@ -1,6 +1,4 @@
-// @ts-ignore
 import bcoin from "bcoin"
-// @ts-ignore
 import { opcodes } from "bcoin/lib/script/common"
 import { BigNumber } from "ethers"
 import {

@@ -21,7 +21,6 @@ import {
 } from "./data/deposit-sweep"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import { MockBridge } from "./utils/mock-bridge"
-// @ts-ignore
 import bcoin from "bcoin"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"

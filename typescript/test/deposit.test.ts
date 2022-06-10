@@ -14,9 +14,7 @@ import {
   UnspentTransactionOutput,
 } from "../src/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
-// @ts-ignore
 import bcoin from "bcoin"
-// @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
 import {
   assembleDepositScript,

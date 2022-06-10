@@ -8,7 +8,6 @@ import {
 import { assembleTransactionProof } from "../src/proof"
 import { Proof } from "./bitcoin"
 import { expect } from "chai"
-// @ts-ignore
 import bcoin from "bcoin"
 
 describe("Proof", () => {

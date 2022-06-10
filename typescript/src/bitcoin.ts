@@ -1,13 +1,7 @@
-// @ts-ignore
 import bcoin, { TX } from "bcoin"
-// @ts-ignore
 import wif from "wif"
-// @ts-ignore
 import bufio from "bufio"
-// @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
-// @ts-ignore
-import { StaticWriter, BufferWriter } from "bufio"
 import { BigNumber } from "ethers"
 
 /**
@@ -253,7 +247,7 @@ export interface Client {
 export function decomposeRawTransaction(
   rawTransaction: RawTransaction
 ): DecomposedRawTransaction {
-  const toHex = (bufferWriter: StaticWriter | BufferWriter) => {
+  const toHex = (bufferWriter: any) => {
     return bufferWriter.render().toString("hex")
   }
 
@@ -266,21 +260,21 @@ export function decomposeRawTransaction(
     return toHex(buffer)
   }
 
-  const getTxInputVector = (tx: TX) => {
+  const getTxInputVector = (tx: any) => {
     return vectorToRaw(tx.inputs)
   }
 
-  const getTxOutputVector = (tx: TX) => {
+  const getTxOutputVector = (tx: any) => {
     return vectorToRaw(tx.outputs)
   }
 
-  const getTxVersion = (tx: TX) => {
+  const getTxVersion = (tx: any) => {
     const buffer = bufio.write()
     buffer.writeU32(tx.version)
     return toHex(buffer)
   }
 
-  const getTxLocktime = (tx: TX) => {
+  const getTxLocktime = (tx: any) => {
     const buffer = bufio.write()
     buffer.writeU32(tx.locktime)
     return toHex(buffer)
@@ -347,7 +341,7 @@ export function compressPublicKey(publicKey: string): string {
 export function createKeyRing(
   privateKey: string,
   witness: boolean = true
-): bcoin.KeyRing {
+): any {
   const decodedPrivateKey = wif.decode(privateKey)
 
   return new bcoin.KeyRing({

@@ -1,4 +1,3 @@
-// @ts-ignore
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {

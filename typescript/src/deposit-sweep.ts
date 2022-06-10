@@ -1,4 +1,3 @@
-// @ts-ignore
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
@@ -244,9 +243,9 @@ export async function assembleDepositSweepTransaction(
  * @returns Empty promise.
  */
 async function signMainUtxoInput(
-  transaction: bcoin.MTX,
+  transaction: any,
   inputIndex: number,
-  walletKeyRing: bcoin.KeyRing
+  walletKeyRing: any
 ) {
   const previousOutpoint = transaction.inputs[inputIndex].prevout
   const previousOutput = transaction.view.getOutput(previousOutpoint)
@@ -269,10 +268,10 @@ async function signMainUtxoInput(
  * @returns Empty promise.
  */
 async function signP2SHDepositInput(
-  transaction: bcoin.MTX,
+  transaction: any,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: bcoin.KeyRing
+  walletKeyRing: any
 ): Promise<void> {
   const { walletPublicKey, depositScript, previousOutputValue } =
     await prepareInputSignData(transaction, inputIndex, deposit, walletKeyRing)
@@ -305,10 +304,10 @@ async function signP2SHDepositInput(
  * @returns Empty promise.
  */
 async function signP2WSHDepositInput(
-  transaction: bcoin.MTX,
+  transaction: any,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: bcoin.KeyRing
+  walletKeyRing: any
 ): Promise<void> {
   const { walletPublicKey, depositScript, previousOutputValue } =
     await prepareInputSignData(transaction, inputIndex, deposit, walletKeyRing)
@@ -341,13 +340,13 @@ async function signP2WSHDepositInput(
  * @returns Data needed to sign the input.
  */
 async function prepareInputSignData(
-  transaction: bcoin.MTX,
+  transaction: any,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: bcoin.KeyRing
+  walletKeyRing: any
 ): Promise<{
   walletPublicKey: string
-  depositScript: bcoin.Script
+  depositScript: any
   previousOutputValue: number
 }> {
   const previousOutpoint = transaction.inputs[inputIndex].prevout

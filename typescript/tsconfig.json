@@ -12,6 +12,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "test"],
+  "include": ["src", "test", "typings.d.ts"],
   "exclude": ["node_modules"]
 }

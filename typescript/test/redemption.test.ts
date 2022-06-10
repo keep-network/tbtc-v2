@@ -4,7 +4,6 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
-// @ts-ignore
 import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
