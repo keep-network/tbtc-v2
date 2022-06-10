@@ -15,6 +15,7 @@ import Electrum from "electrum-client-js"
 // @ts-ignore
 import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
+import { URL } from "url"
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.
