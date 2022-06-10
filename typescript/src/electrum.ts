@@ -52,11 +52,21 @@ export class Client implements BitcoinClient {
   }
 
   /**
+   * Creates an Electrum client instance from a URL.
+   * @param url - Connection URL.
+   * @returns Electrum client instance.
+   */
+  static fromUrl(url: string): Client {
+    const credentials = this.parseElectrumCredentials(url)
+    return new Client(credentials)
+  }
+
+  /**
    * Create Electrum credentials by parsing an URL.
    * @param url - URL to be parsed.
    * @returns Electrum credentials object.
    */
-  static parseElectrumCredentials(url: string): Credentials {
+  private static parseElectrumCredentials(url: string): Credentials {
     const urlObj = new URL(url)
 
     return {

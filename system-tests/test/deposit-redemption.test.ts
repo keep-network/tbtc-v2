@@ -55,9 +55,7 @@ describe("System Test - Deposit and redemption", () => {
     const { electrumUrl, maintainer, depositor, contractsDeploymentInfo } =
       systemTestsContext
 
-    electrumClient = new ElectrumClient(
-      ElectrumClient.parseElectrumCredentials(electrumUrl)
-    )
+    electrumClient = ElectrumClient.fromUrl(electrumUrl)
 
     bridgeAddress = contractsDeploymentInfo.contracts.Bridge.address
 
