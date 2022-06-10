@@ -1,5 +1,5 @@
 module.exports = {
-  extends: ["eslint-config-keep"],
+  extends: ["@thesis-co"],
   root: true,
   parser: "@typescript-eslint/parser",
   plugins: ["@typescript-eslint"],
