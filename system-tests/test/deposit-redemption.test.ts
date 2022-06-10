@@ -3,7 +3,6 @@ import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 import { BigNumber, constants, Contract } from "ethers"
 import { expect } from "chai"
 
-import { parseElectrumCredentials } from "./utils/electrum"
 import { setupSystemTestsContext } from "./utils/context"
 import { generateDeposit, getDepositFromBridge } from "./utils/deposit"
 import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
@@ -56,7 +55,9 @@ describe("System Test - Deposit and redemption", () => {
     const { electrumUrl, maintainer, depositor, contractsDeploymentInfo } =
       systemTestsContext
 
-    electrumClient = new ElectrumClient(parseElectrumCredentials(electrumUrl))
+    electrumClient = new ElectrumClient(
+      ElectrumClient.parseElectrumCredentials(electrumUrl)
+    )
 
     bridgeAddress = contractsDeploymentInfo.contracts.Bridge.address
 

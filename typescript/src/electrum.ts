@@ -52,6 +52,26 @@ export class Client implements BitcoinClient {
   }
 
   /**
+   * Create Electrum credentials by parsing an URL.
+   * @param url - URL to be parsed.
+   * @returns Electrum credentials object.
+   */
+  static parseElectrumCredentials(url: string): Credentials {
+    const urlObj = new URL(url)
+
+    return {
+      host: urlObj.hostname,
+      port: Number.parseInt(urlObj.port, 10),
+      protocol: urlObj.protocol.replace(":", "") as
+        | "tcp"
+        | "tls"
+        | "ssl"
+        | "ws"
+        | "wss",
+    }
+  }
+
+  /**
    * Initiates an Electrum connection and uses it to feed the given action.
    * Closes the connection regardless of the action outcome.
    * @param action - Action that makes use of the Electrum connection.
