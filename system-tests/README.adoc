@@ -130,7 +130,7 @@ will create the wallet in result:
 npx hardhat test-utils:create-wallet --wallet-public-key <wallet-public-key> --network localhost
 ```
 The `wallet-public-key` is an arbitrary, `0x`-prefixed, uncompressed
-ECDSA public key of the wallet. It doesn't matter which one is actually used.
+ECDSA public key of the wallet (64-byte). It doesn't matter which one is actually used.
 The only thing relevant here is its corresponding private key that will
 be required in further steps.
 
