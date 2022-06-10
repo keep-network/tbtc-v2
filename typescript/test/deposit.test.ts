@@ -30,6 +30,7 @@ import {
   revealDeposit,
   RevealedDeposit,
   submitDepositTransaction,
+  suggestDepositWallet,
 } from "../src/deposit"
 import { MockBridge } from "./utils/mock-bridge"
 
@@ -725,6 +726,22 @@ describe("Deposit", () => {
       )
 
       expect(actualRevealedDeposit).to.be.eql(revealedDeposit)
+    })
+  })
+
+  describe("suggestDepositWallet", () => {
+    const publicKey =
+      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+
+    let bridge: MockBridge
+
+    beforeEach(async () => {
+      bridge = new MockBridge()
+      bridge.setActiveWalletPublicKey(publicKey)
+    })
+
+    it("should return the deposit wallet's public key", async () => {
+      expect(await suggestDepositWallet(bridge)).to.be.equal(publicKey)
     })
   })
 })

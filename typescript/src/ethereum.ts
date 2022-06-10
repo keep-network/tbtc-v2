@@ -1,9 +1,11 @@
 import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
 import { BigNumber, constants, Contract, Signer, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
+import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
 import { Deposit, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
+  compressPublicKey,
   computeHash160,
   DecomposedRawTransaction,
   Proof,
@@ -369,5 +371,64 @@ export class Bridge implements ChainBridge {
       sweptAt: BigNumber.from(deposit.sweptAt).toNumber(),
       treasuryFee: BigNumber.from(deposit.treasuryFee),
     }
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#activeWalletPublicKey}
+   */
+  async activeWalletPublicKey(): Promise<string | undefined> {
+    const activeWalletPubKeyHash = await this._bridge.activeWalletPubKeyHash()
+
+    if (
+      activeWalletPubKeyHash === "0x0000000000000000000000000000000000000000"
+    ) {
+      // If there is no active wallet currently, return undefined.
+      return undefined
+    }
+
+    const { ecdsaWalletID } = await this._bridge.wallets(activeWalletPubKeyHash)
+
+    const walletRegistry = await this.walletRegistry()
+    const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
+      ecdsaWalletID
+    )
+
+    return compressPublicKey(uncompressedPublicKey)
+  }
+
+  private async walletRegistry(): Promise<WalletRegistry> {
+    const { ecdsaWalletRegistry } = await this._bridge.contractReferences()
+
+    return new WalletRegistry({
+      address: ecdsaWalletRegistry,
+      signer: this._bridge.signer,
+    })
+  }
+}
+
+/**
+ * Implementation of the Ethereum WalletRegistry handle.
+ */
+class WalletRegistry {
+  private _walletRegistry: Contract
+
+  constructor(config: ContractConfig) {
+    this._walletRegistry = new Contract(
+      config.address,
+      `${JSON.stringify(WalletRegistryABI)}`,
+      config.signer
+    )
+  }
+
+  /**
+   * Gets the public key for the given wallet.
+   * @param walletID ID of the wallet.
+   * @returns Uncompressed wallet public key as an unprefixed (neither 0x nor 04)
+   *          hex string.
+   */
+  async getWalletPublicKey(walletID: string): Promise<string> {
+    const publicKey = await this._walletRegistry.getWalletPublicKey(walletID)
+    return publicKey.substring(2)
   }
 }

@@ -132,4 +132,12 @@ export interface Bridge {
     walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest>
+
+  /**
+   * Gets the public key of the current active wallet.
+   * @returns Compressed (33 bytes long with 02 or 03 prefix) active wallet's
+   *          public key. If there is no active wallet at the moment, undefined
+   *          is returned.
+   */
+  activeWalletPublicKey(): Promise<string | undefined>
 }

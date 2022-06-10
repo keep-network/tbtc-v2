@@ -4,8 +4,9 @@ import {
   MockContract,
 } from "@ethereum-waffle/mock-contract"
 import chai, { assert, expect } from "chai"
-import { BigNumber } from "ethers"
+import { BigNumber, constants } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
+import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
 
@@ -13,15 +14,27 @@ chai.use(waffleChai)
 
 describe("Ethereum", () => {
   describe("Bridge", () => {
+    let walletRegistry: MockContract
     let bridgeContract: MockContract
     let bridgeHandle: Bridge
 
     beforeEach(async () => {
       const [signer] = new MockProvider().getWallets()
 
+      walletRegistry = await deployMockContract(
+        signer,
+        `${JSON.stringify(WalletRegistryABI)}`
+      )
+
       bridgeContract = await deployMockContract(
         signer,
         `${JSON.stringify(BridgeABI)}`
+      )
+
+      await bridgeContract.mock.contractReferences.returns(
+        constants.AddressZero,
+        constants.AddressZero,
+        walletRegistry.address
       )
 
       bridgeHandle = new Bridge({
@@ -384,6 +397,57 @@ describe("Ethereum", () => {
             sweptAt: 1655033516,
             treasuryFee: BigNumber.from(200),
           })
+        })
+      })
+    })
+
+    describe("activeWalletPublicKey", () => {
+      context("when there is an active wallet", () => {
+        beforeEach(async () => {
+          await bridgeContract.mock.activeWalletPubKeyHash.returns(
+            "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
+          )
+
+          await bridgeContract.mock.wallets
+            .withArgs("0x8db50eb52063ea9d98b3eac91489a90f738986f6")
+            .returns({
+              ecdsaWalletID:
+                "0x9ff37567d973e4d884bc42d2d1a6cb1ff22676ab64f82c62b58e2b0ffd3fff71",
+              mainUtxoHash: constants.HashZero,
+              pendingRedemptionsValue: BigNumber.from(0),
+              createdAt: 1654846075,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: 1,
+              movingFundsTargetWalletsCommitmentHash: constants.HashZero,
+            } as any)
+
+          await walletRegistry.mock.getWalletPublicKey
+            .withArgs(
+              "0x9ff37567d973e4d884bc42d2d1a6cb1ff22676ab64f82c62b58e2b0ffd3fff71"
+            )
+            .returns(
+              "0x989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9d218b65e7d91c752f7b22eaceb771a9af3a6f3d3f010a5d471a1aeef7d7713af" as any
+            )
+        })
+
+        it("should return the active wallet's public key", async () => {
+          expect(await bridgeHandle.activeWalletPublicKey()).to.be.equal(
+            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+          )
+        })
+      })
+
+      context("when there is no active wallet", () => {
+        beforeEach(async () => {
+          await bridgeContract.mock.activeWalletPubKeyHash.returns(
+            "0x0000000000000000000000000000000000000000"
+          )
+        })
+
+        it("should return undefined", async () => {
+          expect(await bridgeHandle.activeWalletPublicKey()).to.be.undefined
         })
       })
     })

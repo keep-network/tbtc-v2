@@ -2,6 +2,7 @@ import {
   calculateDepositAddress,
   getRevealedDeposit,
   revealDeposit,
+  suggestDepositWallet,
 } from "./deposit"
 import { submitDepositSweepProof } from "./deposit-sweep"
 import {
@@ -14,6 +15,7 @@ import { Bridge as EthereumBridge } from "./ethereum"
 
 const TBTC = {
   calculateDepositAddress,
+  suggestDepositWallet,
   revealDeposit,
   getRevealedDeposit,
   requestRedemption,

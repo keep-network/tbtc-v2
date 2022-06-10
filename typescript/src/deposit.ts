@@ -397,3 +397,15 @@ export async function getRevealedDeposit(
 ): Promise<RevealedDeposit> {
   return bridge.deposits(utxo.transactionHash, utxo.outputIndex)
 }
+
+/**
+ * Suggests a wallet that should be used as the deposit target at the given moment.
+ * @param bridge Handle to the Bridge on-chain contract.
+ * @returns Compressed (33 bytes long with 02 or 03 prefix) public key of
+ *          the wallet.
+ */
+export async function suggestDepositWallet(
+  bridge: Bridge
+): Promise<string | undefined> {
+  return bridge.activeWalletPublicKey()
+}

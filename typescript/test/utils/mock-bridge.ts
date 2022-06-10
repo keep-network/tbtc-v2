@@ -47,6 +47,7 @@ export class MockBridge implements Bridge {
   private _requestRedemptionLog: RequestRedemptionLogEntry[] = []
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
   private _deposits = new Map<BigNumberish, RevealedDeposit>()
+  private _activeWalletPublicKey: string | undefined
 
   setPendingRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -74,6 +75,10 @@ export class MockBridge implements Bridge {
 
   setDeposits(value: Map<BigNumberish, RevealedDeposit>) {
     this._deposits = value
+  }
+
+  setActiveWalletPublicKey(activeWalletPublicKey: string) {
+    this._activeWalletPublicKey = activeWalletPublicKey
   }
 
   submitDepositSweepProof(
@@ -252,5 +257,9 @@ export class MockBridge implements Bridge {
         prefixedWalletPubKeyHash,
       ]
     )
+  }
+
+  async activeWalletPublicKey(): Promise<string | undefined> {
+    return this._activeWalletPublicKey
   }
 }
