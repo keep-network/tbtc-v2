@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (TBTCToken && helpers.address.isValid(TBTCToken.address)) {
     log(`using external TBTCToken at ${TBTCToken.address}`)
-  } else if (hre.network.name !== "hardhat") {
+  } else if (!hre.network.tags.local) {
     throw new Error("deployed TBTCToken contract not found")
   } else {
     log("deploying TBTCToken stub")

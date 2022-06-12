@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (Relay && helpers.address.isValid(Relay.address)) {
     log(`using external Relay at ${Relay.address}`)
-  } else if (hre.network.name !== "hardhat") {
+  } else if (!hre.network.tags.local) {
     throw new Error("deployed Relay contract not found")
   } else {
     log("deploying Relay stub")
