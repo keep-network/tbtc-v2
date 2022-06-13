@@ -68,8 +68,7 @@ export async function getDepositFromBridge(
   //       just a workaround and the tbtc-v2.ts library implementation should
   //       be preferred once it is ready.
 
-  const bridgeDeploymentInfo =
-    systemTestsContext.contractsDeploymentInfo.contracts.Bridge
+  const bridgeDeploymentInfo = systemTestsContext.deployedContracts.Bridge
 
   const bridge = new Contract(
     bridgeDeploymentInfo.address,

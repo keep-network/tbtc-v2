@@ -128,8 +128,7 @@ export async function fakeRelayDifficulty(
   transactionHash: TransactionHash,
   headerChainLength: number = defaultTxProofDifficultyFactor
 ): Promise<void> {
-  const relayDeploymentInfo =
-    systemTestsContext.contractsDeploymentInfo.contracts.Relay
+  const relayDeploymentInfo = systemTestsContext.deployedContracts.Relay
 
   const relay = new Contract(
     relayDeploymentInfo.address,

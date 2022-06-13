@@ -52,12 +52,12 @@ describe("System Test - Deposit and redemption", () => {
 
   before(async () => {
     systemTestsContext = await setupSystemTestsContext()
-    const { electrumUrl, maintainer, depositor, contractsDeploymentInfo } =
+    const { electrumUrl, maintainer, depositor, deployedContracts } =
       systemTestsContext
 
     electrumClient = ElectrumClient.fromUrl(electrumUrl)
 
-    bridgeAddress = contractsDeploymentInfo.contracts.Bridge.address
+    bridgeAddress = deployedContracts.Bridge.address
 
     maintainerBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
@@ -70,7 +70,7 @@ describe("System Test - Deposit and redemption", () => {
     })
 
     // TODO: Consider implementing bank interactions in the `tbtc-v2.ts` lib.
-    const bankDeploymentInfo = contractsDeploymentInfo.contracts.Bank
+    const bankDeploymentInfo = deployedContracts.Bank
     bank = new Contract(
       bankDeploymentInfo.address,
       bankDeploymentInfo.abi,

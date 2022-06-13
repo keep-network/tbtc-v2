@@ -4,6 +4,7 @@ import { helpers, network } from "hardhat"
 
 import { keyPairFromPrivateWif } from "./bitcoin"
 
+import type { ContractExport, Export } from "hardhat-deploy/dist/types"
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type { KeyPair as BitcoinKeyPair } from "./bitcoin"
 
@@ -20,9 +21,9 @@ export interface SystemTestsContext {
    */
   electrumUrl: string
   /**
-   * Handle to the contracts' deployment info.
+   * Handle to the deployed contracts info.
    */
-  contractsDeploymentInfo: ContractsDeploymentInfo
+  deployedContracts: DeployedContracts
   /**
    * Ethereum signer representing the contract governance.
    */
@@ -46,15 +47,10 @@ export interface SystemTestsContext {
 }
 
 /**
- * Contracts deployment info that contains deployed contracts' addresses and ABIs.
+ * Deployed contracts info containing contracts' addresses and ABIs.
  */
-interface ContractsDeploymentInfo {
-  contracts: {
-    [key: string]: {
-      address: string
-      abi: any
-    }
-  }
+interface DeployedContracts {
+  [name: string]: ContractExport
 }
 
 /**
@@ -71,7 +67,7 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     throw new Error("Built-in Hardhat network is not supported")
   }
 
-  const contractsDeploymentInfo = readContractsDeploymentExportFile()
+  const { contracts: deployedContracts } = readContractsDeploymentExportFile()
 
   const { governance, maintainer, depositor } =
     await helpers.signers.getNamedSigners()
@@ -88,7 +84,7 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     System tests context:
     - Electrum URL: ${electrumUrl}
     - Ethereum network: ${network.name}
-    - Bridge address ${contractsDeploymentInfo.contracts.Bridge.address}
+    - Bridge address ${deployedContracts.Bridge.address}
     - Governance Ethereum address ${governance.address}
     - Maintainer Ethereum address ${maintainer.address}
     - Depositor Ethereum address ${depositor.address}
@@ -98,7 +94,7 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
 
   return {
     electrumUrl,
-    contractsDeploymentInfo,
+    deployedContracts,
     governance,
     maintainer,
     depositor,
@@ -113,7 +109,7 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
  * contain a JSON representing the deployment info.
  * @returns Deployment export file.
  */
-function readContractsDeploymentExportFile(): ContractsDeploymentInfo {
+function readContractsDeploymentExportFile(): Export {
   const contractsDeploymentExportFilePath =
     process.env.CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH
   if (contractsDeploymentExportFilePath) {
