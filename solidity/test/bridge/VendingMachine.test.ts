@@ -21,7 +21,7 @@ describe("VendingMachine", () => {
   let vendingMachine: VendingMachine
 
   let deployer: Signer
-  let governance: Signer
+  let keepCommunityMultiSig: Signer
   let unmintFeeUpdateInitiator: Signer
   let vendingMachineUpgradeInitiator: Signer
   let tokenHolder: Signer
@@ -30,8 +30,10 @@ describe("VendingMachine", () => {
   const initialBalance = to1e18(5) // 5 TBTC v1
 
   before(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ deployer, governance } = await helpers.signers.getNamedSigners())
+    let keepTechnicalWalletTeam: Signer
+      // eslint-disable-next-line @typescript-eslint/no-extra-semi
+    ;({ deployer, keepCommunityMultiSig, keepTechnicalWalletTeam } =
+      await helpers.signers.getNamedSigners())
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[
@@ -51,15 +53,12 @@ describe("VendingMachine", () => {
       .mint(await tokenHolder.getAddress(), initialBalance)
 
     await vendingMachine
-      .connect(deployer)
-      .transferOwnership(await governance.getAddress())
-    await vendingMachine
-      .connect(deployer)
+      .connect(keepTechnicalWalletTeam)
       .transferUnmintFeeUpdateInitiatorRole(
         await unmintFeeUpdateInitiator.getAddress()
       )
     await vendingMachine
-      .connect(deployer)
+      .connect(keepTechnicalWalletTeam)
       .transferVendingMachineUpgradeInitiatorRole(
         await vendingMachineUpgradeInitiator.getAddress()
       )
@@ -72,7 +71,9 @@ describe("VendingMachine", () => {
       .connect(unmintFeeUpdateInitiator)
       .initiateUnmintFeeUpdate(constants.unmintFee)
     await helpers.time.increaseTime(604800) // +7 days contract governance delay
-    await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
+    await vendingMachine
+      .connect(keepCommunityMultiSig)
+      .finalizeUnmintFeeUpdate()
   })
 
   describe("mint", () => {
@@ -244,7 +245,9 @@ describe("VendingMachine", () => {
           .connect(unmintFeeUpdateInitiator)
           .initiateUnmintFeeUpdate(0)
         await helpers.time.increaseTime(604800) // +7 days contract governance delay
-        await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
+        await vendingMachine
+          .connect(keepCommunityMultiSig)
+          .finalizeUnmintFeeUpdate()
       })
 
       after(async () => {
@@ -514,7 +517,7 @@ describe("VendingMachine", () => {
         withdrawnFee = unmintFee.sub(1)
 
         await vendingMachine
-          .connect(governance)
+          .connect(keepCommunityMultiSig)
           .withdrawFees(await thirdParty.getAddress(), withdrawnFee)
       })
 
@@ -556,7 +559,9 @@ describe("VendingMachine", () => {
     context("when caller is the contract owner", () => {
       it("should revert", async () => {
         await expect(
-          vendingMachine.connect(governance).initiateUnmintFeeUpdate(1)
+          vendingMachine
+            .connect(keepCommunityMultiSig)
+            .initiateUnmintFeeUpdate(1)
         ).to.be.revertedWith("Caller is not authorized")
       })
     })
@@ -637,7 +642,9 @@ describe("VendingMachine", () => {
       context("when update process is not initialized", () => {
         it("should revert", async () => {
           await expect(
-            vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
+            vendingMachine
+              .connect(keepCommunityMultiSig)
+              .finalizeUnmintFeeUpdate()
           ).to.be.revertedWith("Change not initiated")
         })
       })
@@ -661,7 +668,9 @@ describe("VendingMachine", () => {
           it("should revert", async () => {
             await helpers.time.increaseTime(601200) // +7 days 23 hours
             await expect(
-              vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
+              vendingMachine
+                .connect(keepCommunityMultiSig)
+                .finalizeUnmintFeeUpdate()
             ).to.be.revertedWith("Governance delay has not elapsed")
           })
         })
@@ -674,7 +683,7 @@ describe("VendingMachine", () => {
 
             await helpers.time.increaseTime(604800) // +7 days contract governance delay
             tx = await vendingMachine
-              .connect(governance)
+              .connect(keepCommunityMultiSig)
               .finalizeUnmintFeeUpdate()
           })
 
@@ -745,7 +754,7 @@ describe("VendingMachine", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine
-            .connect(governance)
+            .connect(keepCommunityMultiSig)
             .initiateVendingMachineUpgrade(newVendingMachine.address)
         ).to.be.revertedWith("Caller is not authorized")
       })
@@ -844,7 +853,9 @@ describe("VendingMachine", () => {
       context("when upgrade process is not initialized", () => {
         it("should revert", async () => {
           await expect(
-            vendingMachine.connect(governance).finalizeVendingMachineUpgrade()
+            vendingMachine
+              .connect(keepCommunityMultiSig)
+              .finalizeVendingMachineUpgrade()
           ).to.be.revertedWith("Change not initiated")
         })
       })
@@ -884,7 +895,9 @@ describe("VendingMachine", () => {
           it("should revert", async () => {
             await helpers.time.increaseTime(601200) // +7days 23 hours
             await expect(
-              vendingMachine.connect(governance).finalizeVendingMachineUpgrade()
+              vendingMachine
+                .connect(keepCommunityMultiSig)
+                .finalizeVendingMachineUpgrade()
             ).to.be.revertedWith("Governance delay has not elapsed")
           })
         })
@@ -897,7 +910,7 @@ describe("VendingMachine", () => {
 
             await helpers.time.increaseTime(604800) // +7 days contract governance delay
             tx = await vendingMachine
-              .connect(governance)
+              .connect(keepCommunityMultiSig)
               .finalizeVendingMachineUpgrade()
           })
 
@@ -956,7 +969,7 @@ describe("VendingMachine", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine
-            .connect(governance)
+            .connect(keepCommunityMultiSig)
             .transferUnmintFeeUpdateInitiatorRole(await thirdParty.getAddress())
         ).to.be.revertedWith("Caller is not authorized")
       })
@@ -1017,7 +1030,7 @@ describe("VendingMachine", () => {
       it("should revert", async () => {
         await expect(
           vendingMachine
-            .connect(governance)
+            .connect(keepCommunityMultiSig)
             .transferVendingMachineUpgradeInitiatorRole(
               await thirdParty.getAddress()
             )
@@ -1099,7 +1112,9 @@ describe("VendingMachine", () => {
           .connect(unmintFeeUpdateInitiator)
           .initiateUnmintFeeUpdate(0)
         await helpers.time.increaseTime(604800) // +7 days contract governance delay
-        await vendingMachine.connect(governance).finalizeUnmintFeeUpdate()
+        await vendingMachine
+          .connect(keepCommunityMultiSig)
+          .finalizeUnmintFeeUpdate()
       })
 
       after(async () => {
