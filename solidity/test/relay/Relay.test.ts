@@ -6,7 +6,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 
-import type { Relay } from "../../typechain"
+import type { RelayStub } from "../../typechain"
 
 import { concatenateHexStrings } from "../helpers/contract-test-helpers"
 
@@ -32,7 +32,7 @@ const proofLength = 4
 const fixture = async () => {
   const [deployer, governance, thirdParty] = await ethers.getSigners()
 
-  const Relay = await ethers.getContractFactory("Relay")
+  const Relay = await ethers.getContractFactory("RelayStub")
   const relay = await Relay.deploy()
   await relay.deployed()
 
@@ -53,7 +53,7 @@ describe("Relay", () => {
 
   let thirdParty: SignerWithAddress
 
-  let relay: Relay
+  let relay: RelayStub
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -545,6 +545,43 @@ describe("Relay", () => {
         it("should accept valid header chains", async () => {
           const proofHeaders = concatenateHexStrings(headerHex.slice(9, 13))
           expect(await relay.validateChain(proofHeaders)).to.be.true
+        })
+      })
+    })
+
+    context("gas costs", () => {
+      const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
+
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
+        await relay.connect(thirdParty).retarget(retargetHeaders)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("with proof length 6", () => {
+        it("should accept valid header chains", async () => {
+          const proofHeaders = concatenateHexStrings(headerHex.slice(5, 11))
+          await relay.connect(governance).setProofLength(6)
+          const tx = await relay.validateChainGasReport(proofHeaders)
+          const txr = await tx.wait()
+
+          expect(txr.status).to.equal(1)
+        })
+      })
+
+
+      context("with proof length 18", () => {
+        it("should accept valid header chains", async () => {
+          const proofHeaders = concatenateHexStrings(headerHex)
+          await relay.connect(governance).setProofLength(18)
+          const tx = await relay.validateChainGasReport(proofHeaders)
+          const txr = await tx.wait()
+
+          expect(txr.status).to.equal(1)
         })
       })
     })

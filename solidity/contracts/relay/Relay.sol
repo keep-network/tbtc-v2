@@ -84,17 +84,17 @@ contract Relay is Ownable, ILightRelay {
     // Number of blocks required for a proof.
     // Governable
     // Should be set to a fairly high number (e.g. 20-50) in production.
-    uint256 public proofLength;
+    uint64 public proofLength;
     // The number of the first epoch recorded by the relay.
     // This should equal the height of the block starting the genesis epoch,
     // divided by 2016, but this is not enforced as the relay has no
     // information about block numbers.
-    uint256 public genesisEpoch;
+    uint64 public genesisEpoch;
     // The number of the latest epoch whose difficulty is proven to the relay.
     // If the genesis epoch's number is set correctly, and retargets along the
     // way have been legitimate, this equals the height of the block starting
     // the most recent epoch, divided by 2016.
-    uint256 public currentEpoch;
+    uint64 public currentEpoch;
 
     // Each epoch from genesis to the current one, keyed by their numbers.
     mapping(uint256 => Epoch) internal epochs;
@@ -109,7 +109,7 @@ contract Relay is Ownable, ILightRelay {
     function genesis(
         bytes calldata genesisHeader,
         uint256 genesisHeight,
-        uint256 genesisProofLength
+        uint64 genesisProofLength
     ) external onlyOwner {
         require(!ready, "Genesis already performed");
 
@@ -123,7 +123,7 @@ contract Relay is Ownable, ILightRelay {
         require(genesisProofLength < 2016, "Proof length excessive");
         require(genesisProofLength > 0, "Proof length may not be zero");
 
-        genesisEpoch = genesisHeight / 2016;
+        genesisEpoch = uint64(genesisHeight / 2016);
         currentEpoch = genesisEpoch;
         uint256 genesisTarget = genesisHeader.extractTarget();
         uint256 genesisTimestamp = genesisHeader.extractTimestamp();
@@ -138,7 +138,7 @@ contract Relay is Ownable, ILightRelay {
     /// @param newLength The required number of blocks. Must be less than 2016.
     /// @dev For production, a high number (e.g. 20-50) is recommended.
     /// Small numbers are accepted but should only be used for testing.
-    function setProofLength(uint256 newLength) external relayActive onlyOwner {
+    function setProofLength(uint64 newLength) external relayActive onlyOwner {
         require(newLength < 2016, "Proof length excessive");
         require(newLength > 0, "Proof length may not be zero");
         require(newLength != proofLength, "Proof length unchanged");
