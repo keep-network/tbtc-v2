@@ -1277,10 +1277,10 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@keep-network/bitcoin-spv-sol@3.3.0-solc-0.8":
-  version "3.3.0-solc-0.8"
-  resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.3.0-solc-0.8.tgz#5dfd552f9437e865038c1e97a2d27967c399dcbc"
-  integrity sha512-AG2fJqqniXVzwitHQcYQK5dZIyUPDo5xS1RZzW+LngcIuKA/f0cvTDEjWxgjf4D5MbStJNFWaCTtWwAJUCzsIw==
+"@keep-network/bitcoin-spv-sol@3.4.0-solc-0.8":
+  version "3.4.0-solc-0.8"
+  resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.4.0-solc-0.8.tgz#8b44c246ffab8ea993efe196f6bf385b1a3b84dc"
+  integrity sha512-KlpY9BbasyLvYXSS7dsJktgRChu/yjdFLOX8ldGA/pltLicCm/l0F4oqxL8wSws9XD12vq9x0B5qzPygVLB2TQ==
 
 "@keep-network/ecdsa@development":
   version "2.0.0-dev.46"
@@ -1348,12 +1348,12 @@
     "@openzeppelin/contracts" "^4.3.2"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
-"@keep-network/tbtc-v2@0.1.1-dev.84":
-  version "0.1.1-dev.84"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-0.1.1-dev.84.tgz#a9ddc6872669dc06d5eb98e6fca6f9464379732f"
-  integrity sha512-H4stvgAbt4cKScrDo1sgyRb4lvFNKg00fhwZf/qWECnSmxhVy37tDPLLkYxgmVSKVshwL+EYbbhPkrKqh9shww==
+"@keep-network/tbtc-v2@development":
+  version "0.1.1-dev.105"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-0.1.1-dev.105.tgz#0fb7721e1d97a5f7f87556d1548bc802f809a667"
+  integrity sha512-mQnK4IGt6AzXdaSHsUVCsj2NiWe9vJC2bq1iIPUEK/Jja0Oya81W3lztuKD79bx2uKAJCzQW9dxhM1td9VfaKw==
   dependencies:
-    "@keep-network/bitcoin-spv-sol" "3.3.0-solc-0.8"
+    "@keep-network/bitcoin-spv-sol" "3.4.0-solc-0.8"
     "@keep-network/ecdsa" development
     "@keep-network/random-beacon" development
     "@keep-network/tbtc" ">1.1.2-dev <1.1.2-pre"
