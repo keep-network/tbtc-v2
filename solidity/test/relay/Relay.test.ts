@@ -804,4 +804,129 @@ describe("Relay", () => {
       })
     })
   })
+  //
+  // end getRelayRange
+  //
+
+  //
+  // getCurrentEpochDifficulty
+  //
+  describe("getCurrentEpochDifficulty", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called before genesis", () => {
+      it("should revert", async () => {
+        await expect(relay.getCurrentEpochDifficulty()).to.be.revertedWith(
+          "Relay is not ready for use"
+        )
+      })
+    })
+
+    context("when called after genesis", () => {
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should return the difficulty for the genesis epoch", async () => {
+        expect(await relay.getCurrentEpochDifficulty()).to.equal(
+          genesisDifficulty
+        )
+      })
+    })
+
+    context("when called after a retarget", () => {
+      const { chain } = headers
+      const headerHex = chain.map((header) => header.hex)
+      const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
+
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
+        await relay.connect(thirdParty).retarget(retargetHeaders)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should return the difficulty for the next epoch", async () => {
+        expect(await relay.getCurrentEpochDifficulty()).to.equal(nextDifficulty)
+      })
+    })
+  })
+  //
+  // end getCurrentEpochDifficulty
+  //
+
+  //
+  // getPrevEpochDifficulty
+  //
+  describe("getPrevEpochDifficulty", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called before genesis", () => {
+      it("should revert", async () => {
+        await expect(relay.getPrevEpochDifficulty()).to.be.revertedWith(
+          "Relay is not ready for use"
+        )
+      })
+    })
+
+    context("when called after genesis", () => {
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(relay.getPrevEpochDifficulty()).to.be.revertedWith(
+          "Epoch is before relay genesis"
+        )
+      })
+    })
+
+    context("when called after a retarget", () => {
+      const { chain } = headers
+      const headerHex = chain.map((header) => header.hex)
+      const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
+
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
+        await relay.connect(thirdParty).retarget(retargetHeaders)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should return the difficulty for the genesis epoch", async () => {
+        expect(await relay.getPrevEpochDifficulty()).to.equal(genesisDifficulty)
+      })
+    })
+  })
+  //
+  // end getPrevEpochDifficulty
+  //
 })

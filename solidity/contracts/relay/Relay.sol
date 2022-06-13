@@ -21,6 +21,8 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
 
+import "../bridge/IRelay.sol";
+
 struct Epoch {
     uint256 target;
     uint256 timestamp;
@@ -44,7 +46,7 @@ library RelayUtils {
     }
 }
 
-interface ILightRelay {
+interface ILightRelay is IRelay {
     event Genesis(uint256 blockHeight);
     event Retarget(uint256 oldDifficulty, uint256 newDifficulty);
     event ProofLengthChanged(uint256 newLength);
@@ -399,6 +401,19 @@ contract Relay is Ownable, ILightRelay {
     {
         relayGenesis = genesisEpoch * 2016;
         currentEpochEnd = (currentEpoch * 2016) + 2015;
+    }
+
+    /// @notice Returns the difficulty of the current epoch.
+    /// @return The difficulty of the current epoch.
+    function getCurrentEpochDifficulty() external view relayActive returns (uint256) {
+        return getEpochDifficulty(currentEpoch);
+    }
+
+    /// @notice Returns the difficulty of the previous epoch.
+    /// @dev Requires that the epoch number is set correctly at genesis.
+    /// @return The difficulty of the previous epoch.
+    function getPrevEpochDifficulty() external view relayActive returns (uint256) {
+        return getEpochDifficulty(currentEpoch - 1);
     }
 
     /// @notice Check that the specified header forms a correct chain with the
