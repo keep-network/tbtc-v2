@@ -12,6 +12,7 @@ import {
 import Electrum from "electrum-client-js"
 import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
+import { URL } from "url"
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.
@@ -46,6 +47,36 @@ export class Client implements BitcoinClient {
 
   constructor(credentials: Credentials) {
     this.credentials = credentials
+  }
+
+  /**
+   * Creates an Electrum client instance from a URL.
+   * @param url - Connection URL.
+   * @returns Electrum client instance.
+   */
+  static fromUrl(url: string): Client {
+    const credentials = this.parseElectrumCredentials(url)
+    return new Client(credentials)
+  }
+
+  /**
+   * Create Electrum credentials by parsing an URL.
+   * @param url - URL to be parsed.
+   * @returns Electrum credentials object.
+   */
+  private static parseElectrumCredentials(url: string): Credentials {
+    const urlObj = new URL(url)
+
+    return {
+      host: urlObj.hostname,
+      port: Number.parseInt(urlObj.port, 10),
+      protocol: urlObj.protocol.replace(":", "") as
+        | "tcp"
+        | "tls"
+        | "ssl"
+        | "ws"
+        | "wss",
+    }
   }
 
   /**
@@ -126,7 +157,7 @@ export class Client implements BitcoinClient {
         (output: any): TransactionOutput => ({
           outputIndex: output.n,
           // The `output.value` is in BTC so it must be converted to satoshis.
-          value: BigNumber.from(parseFloat(output.value) * 1e8),
+          value: BigNumber.from((parseFloat(output.value) * 1e8).toFixed(0)),
           scriptPubKey: output.scriptPubKey,
         })
       )
