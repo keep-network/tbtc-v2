@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
-          cache-dependency-path: yearn/yarn.lock
+          cache-dependency-path: system-tests/yarn.lock
 
       - name: Configure git to don't use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
