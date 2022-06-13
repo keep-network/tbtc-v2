@@ -405,14 +405,24 @@ contract Relay is Ownable, ILightRelay {
 
     /// @notice Returns the difficulty of the current epoch.
     /// @return The difficulty of the current epoch.
-    function getCurrentEpochDifficulty() external view relayActive returns (uint256) {
+    function getCurrentEpochDifficulty()
+        external
+        view
+        relayActive
+        returns (uint256)
+    {
         return getEpochDifficulty(currentEpoch);
     }
 
     /// @notice Returns the difficulty of the previous epoch.
     /// @dev Requires that the epoch number is set correctly at genesis.
     /// @return The difficulty of the previous epoch.
-    function getPrevEpochDifficulty() external view relayActive returns (uint256) {
+    function getPrevEpochDifficulty()
+        external
+        view
+        relayActive
+        returns (uint256)
+    {
         return getEpochDifficulty(currentEpoch - 1);
     }
 
