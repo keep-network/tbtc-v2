@@ -67,7 +67,11 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     throw new Error("Built-in Hardhat network is not supported")
   }
 
-  const { contracts: deployedContracts } = readContractsDeploymentExportFile()
+  const { contracts: deployedContracts, name } =
+    readContractsDeploymentExportFile()
+  if (network.name !== name) {
+    throw new Error("Deployment export file refers to another network")
+  }
 
   const { governance, maintainer, depositor } =
     await helpers.signers.getNamedSigners()
