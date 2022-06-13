@@ -96,6 +96,9 @@ contract Relay is Ownable, ILightRelay {
     // the most recent epoch, divided by 2016.
     uint64 public currentEpoch;
 
+    uint256 currentEpochDifficulty;
+    uint256 prevEpochDifficulty;
+
     // Each epoch from genesis to the current one, keyed by their numbers.
     mapping(uint256 => Epoch) internal epochs;
 
@@ -129,6 +132,7 @@ contract Relay is Ownable, ILightRelay {
         uint256 genesisTimestamp = genesisHeader.extractTimestamp();
         epochs[genesisEpoch] = Epoch(genesisTarget, genesisTimestamp);
         proofLength = genesisProofLength;
+        currentEpochDifficulty = BTCUtils.calculateDifficulty(genesisTarget);
         ready = true;
 
         emit Genesis(genesisHeight);
@@ -249,9 +253,15 @@ contract Relay is Ownable, ILightRelay {
 
         epochs[currentEpoch] = Epoch(minedTarget, epochStartTimestamp);
 
+        uint256 oldDifficulty = currentEpochDifficulty;
+        uint256 newDifficulty = BTCUtils.calculateDifficulty(minedTarget);
+
+        prevEpochDifficulty = oldDifficulty;
+        currentEpochDifficulty = newDifficulty;
+
         emit Retarget(
-            BTCUtils.calculateDifficulty(oldTarget),
-            BTCUtils.calculateDifficulty(minedTarget)
+            oldDifficulty,
+            newDifficulty
         );
     }
 
@@ -407,26 +417,33 @@ contract Relay is Ownable, ILightRelay {
     }
 
     /// @notice Returns the difficulty of the current epoch.
+    /// @dev returns 0 if the relay is not ready.
     /// @return The difficulty of the current epoch.
     function getCurrentEpochDifficulty()
         external
         view
-        relayActive
         returns (uint256)
     {
-        return getEpochDifficulty(currentEpoch);
+        return currentEpochDifficulty;
     }
 
     /// @notice Returns the difficulty of the previous epoch.
-    /// @dev Requires that the epoch number is set correctly at genesis.
+    /// @dev Returns 0 if the relay is not ready or has not had a retarget.
     /// @return The difficulty of the previous epoch.
     function getPrevEpochDifficulty()
         external
         view
-        relayActive
         returns (uint256)
     {
-        return getEpochDifficulty(currentEpoch - 1);
+        return prevEpochDifficulty;
+    }
+
+    function getCurrentAndPrevEpochDifficulty()
+        external
+        view
+        returns (uint256 current, uint256 previous)
+    {
+        return (currentEpochDifficulty, prevEpochDifficulty);
     }
 
     /// @notice Check that the specified header forms a correct chain with the
