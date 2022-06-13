@@ -14,8 +14,8 @@ import { Bridge } from "./chain"
 import { assembleTransactionProof } from "./proof"
 
 /**
- * Sweeps P2(W)SH UTXOs by combining all the provided UTXOs and broadcasting
- * a Bitcoin P2WPKH deposit sweep transaction.
+ * Submits a deposit sweep by combining all the provided P2(W)SH UTXOs and
+ * broadcasting a Bitcoin P2(W)PKH deposit sweep transaction.
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee. Note that broadcasting transaction may fail silently (e.g.

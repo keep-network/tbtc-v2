@@ -101,7 +101,7 @@ export type RevealedDeposit = Pick<
 }
 
 /**
- * Makes a deposit by creating and broadcasting a Bitcoin P2(W)SH
+ * Submits a deposit by creating and broadcasting a Bitcoin P2(W)SH
  * deposit transaction.
  * @param deposit - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
