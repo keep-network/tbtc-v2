@@ -41,8 +41,8 @@ jobs:
           ETH_NETWORK: localhost
           ELECTRUM_URL: ${{ secrets.SYSTEM_TESTS_ELECTRUM_URL }}
           CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH: ../solidity/export.json
-          WALLET_BITCOIN_PRIVATE_KEY_WIF: ${{ secrets.SYSTEM_TESTS_WALLET_PRIVATE_KEY_WIF }}
-          DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF: ${{ secrets.SYSTEM_TESTS_DEPOSITOR_PRIVATE_KEY_WIF }}
+          WALLET_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_WALLET_PRIVATE_KEY_WIF }}
+          DEPOSITOR_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_DEPOSITOR_PRIVATE_KEY_WIF }}
         run: |
           yarn install
           yarn test ./test/deposit-redemption.test.ts --network $ETH_NETWORK
