@@ -81,8 +81,9 @@ contract Relay is Ownable, ILightRelay {
     using RelayUtils for bytes;
 
     bool public ready;
-    // Number of blocks required for a proof
+    // Number of blocks required for a proof.
     // Governable
+    // Should be set to a fairly high number (e.g. 20-50) in production.
     uint256 public proofLength;
     // The number of the first epoch recorded by the relay.
     // This should equal the height of the block starting the genesis epoch,
@@ -135,6 +136,8 @@ contract Relay is Ownable, ILightRelay {
 
     /// @notice Set the number of blocks required to accept a header chain.
     /// @param newLength The required number of blocks. Must be less than 2016.
+    /// @dev For production, a high number (e.g. 20-50) is recommended.
+    /// Small numbers are accepted but should only be used for testing.
     function setProofLength(uint256 newLength) external relayActive onlyOwner {
         require(newLength < 2016, "Proof length excessive");
         require(newLength > 0, "Proof length may not be zero");
