@@ -1,7 +1,30 @@
-import TBTC from "./tbtc"
+import {
+  calculateDepositAddress,
+  getRevealedDeposit,
+  revealDeposit,
+  suggestDepositWallet,
+} from "./deposit"
+import { submitDepositSweepProof } from "./deposit-sweep"
+import {
+  requestRedemption,
+  submitRedemptionProof,
+  getRedemptionRequest,
+} from "./redemption"
 import { Client as ElectrumClient } from "./electrum"
 import { Bridge as EthereumBridge } from "./ethereum"
 
-export { ElectrumClient, EthereumBridge }
+const TBTC = {
+  calculateDepositAddress,
+  suggestDepositWallet,
+  revealDeposit,
+  getRevealedDeposit,
+  requestRedemption,
+  getRedemptionRequest,
+}
 
-export default TBTC
+const SpvMaintainer = {
+  submitDepositSweepProof,
+  submitRedemptionProof,
+}
+
+export { TBTC, SpvMaintainer, ElectrumClient, EthereumBridge }

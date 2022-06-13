@@ -3,8 +3,9 @@ import {
   Proof,
   UnspentTransactionOutput,
   DecomposedRawTransaction,
+  TransactionHash,
 } from "./bitcoin"
-import { Deposit } from "./deposit"
+import { Deposit, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 
 /**
@@ -50,6 +51,18 @@ export interface Bridge {
   ): Promise<void>
 
   /**
+   * Gets a revealed deposit from the on-chain contract.
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @returns Revealed deposit data.
+   */
+  deposits(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<RevealedDeposit>
+
+  /**
    * Requests a redemption from the on-chain contract.
    * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in the
    *        compressed form (33 bytes long with 02 or 03 prefix).
@@ -92,16 +105,39 @@ export interface Bridge {
 
   /**
    * Gets a pending redemption from the on-chain contract.
-   * @param walletPubKeyHash The wallet public key hash that identifies the
-   *        pending redemption (along with the redeemer output script). Must be
-   *        unprefixed
-   * @param redeemerOutputScript The redeemer output script that identifies the
-   *        pending redemption (along with the wallet public key hash). Must be
-   *        un-prefixed and not prepended with length
+   * @param walletPublicKey Bitcoin public key of the wallet the request is
+   *        targeted to. Must be in the compressed form (33 bytes long with 02
+   *        or 03 prefix).
+   * @param redeemerOutputScript The redeemer output script the redeemed funds
+   *        are supposed to be locked on. Must be un-prefixed and not prepended
+   *        with length.
    * @returns Promise with the pending redemption.
    */
   pendingRedemptions(
-    walletPubKeyHash: string,
+    walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest>
+
+  /**
+   * Gets a timed-out redemption from the on-chain contract.
+   * @param walletPublicKey Bitcoin public key of the wallet the request is
+   *        targeted to. Must be in the compressed form (33 bytes long with 02
+   *        or 03 prefix).
+   * @param redeemerOutputScript The redeemer output script the redeemed funds
+   *        are supposed to be locked on. Must be un-prefixed and not prepended
+   *        with length.
+   * @returns Promise with the pending redemption.
+   */
+  timedOutRedemptions(
+    walletPublicKey: string,
+    redeemerOutputScript: string
+  ): Promise<RedemptionRequest>
+
+  /**
+   * Gets the public key of the current active wallet.
+   * @returns Compressed (33 bytes long with 02 or 03 prefix) active wallet's
+   *          public key. If there is no active wallet at the moment, undefined
+   *          is returned.
+   */
+  activeWalletPublicKey(): Promise<string | undefined>
 }

@@ -1,13 +1,7 @@
-// @ts-ignore
 import bcoin, { TX } from "bcoin"
-// @ts-ignore
 import wif from "wif"
-// @ts-ignore
 import bufio from "bufio"
-// @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
-// @ts-ignore
-import { StaticWriter, BufferWriter } from "bufio"
 import { BigNumber } from "ethers"
 
 /**
@@ -253,7 +247,7 @@ export interface Client {
 export function decomposeRawTransaction(
   rawTransaction: RawTransaction
 ): DecomposedRawTransaction {
-  const toHex = (bufferWriter: StaticWriter | BufferWriter) => {
+  const toHex = (bufferWriter: any) => {
     return bufferWriter.render().toString("hex")
   }
 
@@ -266,21 +260,21 @@ export function decomposeRawTransaction(
     return toHex(buffer)
   }
 
-  const getTxInputVector = (tx: TX) => {
+  const getTxInputVector = (tx: any) => {
     return vectorToRaw(tx.inputs)
   }
 
-  const getTxOutputVector = (tx: TX) => {
+  const getTxOutputVector = (tx: any) => {
     return vectorToRaw(tx.outputs)
   }
 
-  const getTxVersion = (tx: TX) => {
+  const getTxVersion = (tx: any) => {
     const buffer = bufio.write()
     buffer.writeU32(tx.version)
     return toHex(buffer)
   }
 
-  const getTxLocktime = (tx: TX) => {
+  const getTxLocktime = (tx: any) => {
     const buffer = bufio.write()
     buffer.writeU32(tx.locktime)
     return toHex(buffer)
@@ -310,6 +304,34 @@ export function isCompressedPublicKey(publicKey: string): boolean {
 }
 
 /**
+ * Compresses the given uncompressed Bitcoin public key.
+ * @param publicKey Uncompressed 64-byte public key as an unprefixed hex string.
+ * @returns Compressed 33-byte public key prefixed with 02 or 03.
+ */
+export function compressPublicKey(publicKey: string): string {
+  // Must have 64 bytes and no prefix.
+  if (publicKey.length != 128) {
+    throw new Error(
+      "The public key parameter must be 64-byte. Neither 0x nor 04 prefix is allowed"
+    )
+  }
+
+  // The X coordinate is the first 32 bytes.
+  const publicKeyX = publicKey.substring(0, 64)
+  // The Y coordinate is the next 32 bytes.
+  const publicKeyY = publicKey.substring(64)
+
+  let prefix: string
+  if (BigNumber.from(`0x${publicKeyY}`).mod(2).eq(0)) {
+    prefix = "02"
+  } else {
+    prefix = "03"
+  }
+
+  return `${prefix}${publicKeyX}`
+}
+
+/**
  * Creates a Bitcoin key ring based on the given private key.
  * @param privateKey Private key that should be used to create the key ring
  * @param witness Flag indicating whether the key ring will create witness
@@ -319,7 +341,7 @@ export function isCompressedPublicKey(publicKey: string): boolean {
 export function createKeyRing(
   privateKey: string,
   witness: boolean = true
-): bcoin.KeyRing {
+): any {
   const decodedPrivateKey = wif.decode(privateKey)
 
   return new bcoin.KeyRing({
