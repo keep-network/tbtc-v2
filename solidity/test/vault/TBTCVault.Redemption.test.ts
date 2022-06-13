@@ -37,13 +37,12 @@ describe("TBTCVault - Redemption", () => {
   let vendingMachine: VendingMachine
   let tbtcVault: TBTCVault
 
-  let deployer: SignerWithAddress
   let account1: SignerWithAddress
   let account2: SignerWithAddress
 
   before(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ deployer } = await helpers.signers.getNamedSigners())
+    const { keepTechnicalWalletTeam, keepCommunityMultiSig } =
+      await helpers.signers.getNamedSigners()
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({ bridge, bank, tbtcVault, tbtc, vendingMachine } =
@@ -52,15 +51,13 @@ describe("TBTCVault - Redemption", () => {
     // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
     // do not transfer the ownership of `TBTC` token to `TBTCVault`.
     // We need to do it manually in tests covering `TBTCVault` behavior.
-    // Also, please note that `03_transfer_roles.ts` assigning `VendingMachine`
-    // upgrade initiator role to Keep Technical Wallet is skipped for Hardhat
-    // env deployment. That's why the upgrade initiator and `VendingMachine`
-    // owner is the deployer.
     await vendingMachine
-      .connect(deployer)
+      .connect(keepTechnicalWalletTeam)
       .initiateVendingMachineUpgrade(tbtcVault.address)
     await increaseTime(await vendingMachine.GOVERNANCE_DELAY())
-    await vendingMachine.connect(deployer).finalizeVendingMachineUpgrade()
+    await vendingMachine
+      .connect(keepCommunityMultiSig)
+      .finalizeVendingMachineUpgrade()
 
     const accounts = await getUnnamedAccounts()
     account1 = await ethers.getSigner(accounts[0])

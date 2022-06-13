@@ -41,7 +41,8 @@ const { increaseTime, lastBlockTime } = helpers.time
 describe("VendingMachine - Upgrade", () => {
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
-  let bridgeGovernance: BridgeGovernance
+  let keepTechnicalWalletTeam: SignerWithAddress
+  let keepCommunityMultiSig: SignerWithAddress
 
   let account1: SignerWithAddress
   let account2: SignerWithAddress
@@ -50,13 +51,15 @@ describe("VendingMachine - Upgrade", () => {
   let tbtc: TBTC
   let tbtcVault: TBTCVault
   let bridge: Bridge & BridgeStub
+  let bridgeGovernance: BridgeGovernance
   let bank: Bank
   let vendingMachine: VendingMachine
   let relay: FakeContract<IRelay>
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ deployer, governance } = await helpers.signers.getNamedSigners())
+    ;({ deployer, governance, keepTechnicalWalletTeam, keepCommunityMultiSig } =
+      await helpers.signers.getNamedSigners())
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[account1, account2] = await helpers.signers.getUnnamedSigners()
@@ -95,15 +98,13 @@ describe("VendingMachine - Upgrade", () => {
     // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
     // do not transfer the ownership of `TBTC` token to `TBTCVault`.
     // We need to do it manually in tests covering `TBTCVault` behavior.
-    // Also, please note that `03_transfer_roles.ts` assigning `VendingMachine`
-    // upgrade initiator role to Keep Technical Wallet is skipped for Hardhat
-    // env deployment. That's why the upgrade initiator and `VendingMachine`
-    // owner is the deployer.
     await vendingMachine
-      .connect(deployer)
+      .connect(keepTechnicalWalletTeam)
       .initiateVendingMachineUpgrade(tbtcVault.address)
     await increaseTime(await vendingMachine.GOVERNANCE_DELAY())
-    await vendingMachine.connect(deployer).finalizeVendingMachineUpgrade()
+    await vendingMachine
+      .connect(keepCommunityMultiSig)
+      .finalizeVendingMachineUpgrade()
   })
 
   describe("upgrade process", () => {

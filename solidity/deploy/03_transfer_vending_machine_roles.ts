@@ -41,6 +41,3 @@ export default func
 func.tags = ["TransferVendingMachineRoles"]
 func.dependencies = ["TBTC", "VendingMachine"]
 func.runAtTheEnd = true
-func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
-  return hre.network.name !== "mainnet"
-}
