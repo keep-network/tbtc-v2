@@ -1010,7 +1010,7 @@ describe("Relay", () => {
   //
   // getCurrentAndPrevEpochDifficulty
   //
-  describe("getPrevEpochDifficulty", () => {
+  describe("getCurrentAndPrevEpochDifficulty", () => {
     before(async () => {
       await createSnapshot()
     })
