@@ -3,8 +3,6 @@ name: System tests
 on:
   schedule:
     - cron: "0 0 * * *"
-  # TODO: Remove after testing.
-  pull_request:
   workflow_dispatch:
 
 jobs:
