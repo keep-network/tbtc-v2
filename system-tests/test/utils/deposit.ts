@@ -1,9 +1,12 @@
-import { BigNumber, Contract, utils } from "ethers"
+import crypto from "crypto"
+
+import { Contract, utils } from "ethers"
+import TBTC from "@keep-network/tbtc-v2.ts"
+
+import type { BigNumber } from "ethers"
 import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import crypto from "crypto"
-import TBTC from "@keep-network/tbtc-v2.ts"
-import { SystemTestsContext } from "./context"
+import type { SystemTestsContext } from "./context"
 
 /**
  * Default refund public key used for deposits. Their corresponding private key:
@@ -30,9 +33,7 @@ export function generateDeposit(
 ): Deposit {
   const blindingFactor = crypto.randomBytes(8).toString("hex")
 
-  const resolvedRefundPublicKey = refundPublicKey
-    ? refundPublicKey
-    : DEFAULT_REFUND_PUBLIC_KEY
+  const resolvedRefundPublicKey = refundPublicKey || DEFAULT_REFUND_PUBLIC_KEY
 
   const refundLocktime = TBTC.computeDepositRefundLocktime(
     Math.floor(Date.now() / 1000)
@@ -44,11 +45,11 @@ export function generateDeposit(
     depositor: {
       identifierHex: depositorAddress.substring(2).toLowerCase(),
     },
-    amount: amount,
-    blindingFactor: blindingFactor,
-    walletPublicKey: walletPublicKey,
+    amount,
+    blindingFactor,
+    walletPublicKey,
     refundPublicKey: resolvedRefundPublicKey,
-    refundLocktime: refundLocktime,
+    refundLocktime,
   }
 }
 
@@ -67,8 +68,7 @@ export async function getDepositFromBridge(
   //       just a workaround and the tbtc-v2.ts library implementation should
   //       be preferred once it is ready.
 
-  const bridgeDeploymentInfo =
-    systemTestsContext.contractsDeploymentInfo.contracts["Bridge"]
+  const bridgeDeploymentInfo = systemTestsContext.deployedContracts.Bridge
 
   const bridge = new Contract(
     bridgeDeploymentInfo.address,

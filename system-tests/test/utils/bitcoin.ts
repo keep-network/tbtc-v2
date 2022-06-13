@@ -1,13 +1,15 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import wif from "wif"
+import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
-import {
+import { createTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
+import { Contract } from "ethers"
+
+import type {
   Client as BitcoinClient,
   TransactionHash,
 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
-import { createTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
-import { SystemTestsContext } from "./context"
-import { Contract } from "ethers"
+import type { SystemTestsContext } from "./context"
 
 /**
  * Elliptic curve used by Bitcoin.
@@ -24,40 +26,44 @@ const defaultTxProofDifficultyFactor = 6
  */
 export interface KeyPair {
   /**
-   * Private key in WIF format.
+   * Wallet Import Format.
    */
-  privateKeyWif: string
+  wif: string
   /**
    * Private key as an unprefixed hex string.
    */
   privateKey: string
   /**
-   * Compressed public key as a 33-byte hex string prefixed with 02 or 03.
+   * Public key.
    */
-  compressedPublicKey: string
-  /**
-   * Uncompressed public key as an unprefixed hex string.
-   */
-  uncompressedPublicKey: string
+  publicKey: {
+    /**
+     * Compressed public key as a 33-byte hex string prefixed with 02 or 03.
+     */
+    compressed: string
+    /**
+     * Uncompressed public key as an unprefixed hex string.
+     */
+    uncompressed: string
+  }
 }
 
 /**
- * Creates a Bitcoin key pair from a private key in WIF format.
- * @param privateKeyWif Private key in WIF format.
+ * Creates a Bitcoin key pair from a Bitcoin WIF.
+ * @param wif The WIF to create the key pair from.
  * @returns The Bitcoin key pair.
  */
-export function keyPairFromPrivateWif(privateKeyWif: string): KeyPair {
-  const privateKey = wif.decode(privateKeyWif).privateKey
+export function keyPairFromWif(wif: string): KeyPair {
+  const { privateKey } = wifLib.decode(wif)
   const keyPair = secp256k1.keyFromPrivate(privateKey)
   return {
-    privateKeyWif,
+    wif,
     privateKey: keyPair.getPrivate("hex"),
-    compressedPublicKey: keyPair.getPublic().encodeCompressed("hex"),
-    // Trim the `04` prefix from uncompressed key.
-    uncompressedPublicKey: keyPair
-      .getPublic()
-      .encode("hex", false)
-      .substring(2),
+    publicKey: {
+      compressed: keyPair.getPublic().encodeCompressed("hex"),
+      // Trim the `04` prefix from the uncompressed key.
+      uncompressed: keyPair.getPublic().encode("hex", false).substring(2),
+    },
   }
 }
 
@@ -74,13 +80,14 @@ export async function waitTransactionConfirmed(
   bitcoinClient: BitcoinClient,
   transactionHash: TransactionHash,
   requiredConfirmations: number = defaultTxProofDifficultyFactor,
-  sleep: number = 60000
+  sleep = 60000
 ): Promise<void> {
   for (;;) {
     console.log(`
       Checking confirmations count for transaction ${transactionHash}
     `)
 
+    // eslint-disable-next-line no-await-in-loop
     const confirmations = await bitcoinClient.getTransactionConfirmations(
       transactionHash
     )
@@ -96,6 +103,7 @@ export async function waitTransactionConfirmed(
       Transaction ${transactionHash} has only ${confirmations}/${requiredConfirmations} confirmations. Waiting for more...
     `)
 
+    // eslint-disable-next-line no-await-in-loop
     await new Promise((r) => setTimeout(r, sleep))
   }
 }
@@ -124,8 +132,7 @@ export async function fakeRelayDifficulty(
   transactionHash: TransactionHash,
   headerChainLength: number = defaultTxProofDifficultyFactor
 ): Promise<void> {
-  const relayDeploymentInfo =
-    systemTestsContext.contractsDeploymentInfo.contracts["Relay"]
+  const relayDeploymentInfo = systemTestsContext.deployedContracts.Relay
 
   const relay = new Contract(
     relayDeploymentInfo.address,

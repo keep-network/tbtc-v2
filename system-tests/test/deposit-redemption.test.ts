@@ -1,17 +1,19 @@
 import TBTC, { ElectrumClient, EthereumBridge } from "@keep-network/tbtc-v2.ts"
+import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import { BigNumber, constants, Contract } from "ethers"
+import { expect } from "chai"
+
+import { setupSystemTestsContext } from "./utils/context"
+import { generateDeposit, getDepositFromBridge } from "./utils/deposit"
+import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
+
+import type { SystemTestsContext } from "./utils/context"
+import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/redemption"
+import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
 import type {
   TransactionHash,
   UnspentTransactionOutput,
 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
-import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
-import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/redemption"
-import { BigNumber, constants, Contract } from "ethers"
-import { expect } from "chai"
-import { parseElectrumCredentials } from "./utils/electrum"
-import { setupSystemTestsContext, SystemTestsContext } from "./utils/context"
-import { generateDeposit, getDepositFromBridge } from "./utils/deposit"
-import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
 
 /**
  * This system test scenario performs a single deposit and redemption.
@@ -50,12 +52,12 @@ describe("System Test - Deposit and redemption", () => {
 
   before(async () => {
     systemTestsContext = await setupSystemTestsContext()
-    const { electrumUrl, maintainer, depositor, contractsDeploymentInfo } =
+    const { electrumUrl, maintainer, depositor, deployedContracts } =
       systemTestsContext
 
-    electrumClient = new ElectrumClient(parseElectrumCredentials(electrumUrl))
+    electrumClient = ElectrumClient.fromUrl(electrumUrl)
 
-    bridgeAddress = contractsDeploymentInfo.contracts["Bridge"].address
+    bridgeAddress = deployedContracts.Bridge.address
 
     maintainerBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
@@ -68,7 +70,7 @@ describe("System Test - Deposit and redemption", () => {
     })
 
     // TODO: Consider implementing bank interactions in the `tbtc-v2.ts` lib.
-    const bankDeploymentInfo = contractsDeploymentInfo.contracts["Bank"]
+    const bankDeploymentInfo = deployedContracts.Bank
     bank = new Contract(
       bankDeploymentInfo.address,
       bankDeploymentInfo.abi,
@@ -81,7 +83,7 @@ describe("System Test - Deposit and redemption", () => {
       deposit = generateDeposit(
         systemTestsContext.depositor.address,
         depositAmount,
-        systemTestsContext.walletBitcoinKeyPair.compressedPublicKey
+        systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
       )
 
       console.log(`
@@ -89,7 +91,7 @@ describe("System Test - Deposit and redemption", () => {
       `)
       ;({ depositUtxo } = await TBTC.makeDeposit(
         deposit,
-        systemTestsContext.depositorBitcoinKeyPair.privateKeyWif,
+        systemTestsContext.depositorBitcoinKeyPair.wif,
         electrumClient,
         true
       ))
@@ -136,7 +138,7 @@ describe("System Test - Deposit and redemption", () => {
       ;({ newMainUtxo: sweepUtxo } = await TBTC.sweepDeposits(
         electrumClient,
         depositSweepTxFee,
-        systemTestsContext.walletBitcoinKeyPair.privateKeyWif,
+        systemTestsContext.walletBitcoinKeyPair.wif,
         true,
         [depositUtxo],
         [deposit]
@@ -229,11 +231,11 @@ describe("System Test - Deposit and redemption", () => {
 
       // Request redemption to depositor's address.
       redeemerOutputScript = `0014${computeHash160(
-        systemTestsContext.depositorBitcoinKeyPair.compressedPublicKey
+        systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
       )}`
 
       await TBTC.requestRedemption(
-        systemTestsContext.walletBitcoinKeyPair.compressedPublicKey,
+        systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
         sweepUtxo,
         redeemerOutputScript,
         requestedAmount,
@@ -248,7 +250,7 @@ describe("System Test - Deposit and redemption", () => {
       //       `tbtc-v2.ts` default export object.
       redemptionRequest = await maintainerBridgeHandle.pendingRedemptions(
         computeHash160(
-          systemTestsContext.walletBitcoinKeyPair.compressedPublicKey
+          systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
         ),
         redeemerOutputScript
       )
@@ -270,7 +272,7 @@ describe("System Test - Deposit and redemption", () => {
       ;({ transactionHash: redemptionTxHash } = await TBTC.makeRedemptions(
         electrumClient,
         maintainerBridgeHandle,
-        systemTestsContext.walletBitcoinKeyPair.privateKeyWif,
+        systemTestsContext.walletBitcoinKeyPair.wif,
         sweepUtxo,
         [redemptionRequest.redeemerOutputScript],
         true
@@ -292,7 +294,7 @@ describe("System Test - Deposit and redemption", () => {
       await TBTC.proveRedemption(
         redemptionTxHash,
         sweepUtxo,
-        systemTestsContext.walletBitcoinKeyPair.compressedPublicKey,
+        systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
         maintainerBridgeHandle,
         electrumClient
       )
@@ -312,7 +314,7 @@ describe("System Test - Deposit and redemption", () => {
     it("should close the redemption request on the bridge", async () => {
       const { requestedAt } = await maintainerBridgeHandle.pendingRedemptions(
         computeHash160(
-          systemTestsContext.walletBitcoinKeyPair.compressedPublicKey
+          systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
         ),
         redemptionRequest.redeemerOutputScript
       )
