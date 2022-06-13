@@ -13,7 +13,6 @@ import { concatenateHexStrings } from "../helpers/contract-test-helpers"
 import headers from "./headersWithRetarget.json"
 import reorgHeaders from "./headersReorgAndRetarget.json"
 
-
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
 const genesisBlock = headers.oldPeriodStart
@@ -558,16 +557,17 @@ describe("Relay", () => {
       })
     })
 
-
     context("with chain reorgs", () => {
       const { postRetargetChain } = reorgHeaders
       const reorgHex = postRetargetChain.map((header) => header.hex)
 
-      const reorgGenesis = postRetargetChain[0];
+      const reorgGenesis = postRetargetChain[0]
 
       before(async () => {
         await createSnapshot()
-        await relay.connect(governance).genesis(reorgGenesis.hex, reorgGenesis.height, 8)
+        await relay
+          .connect(governance)
+          .genesis(reorgGenesis.hex, reorgGenesis.height, 8)
       })
 
       after(async () => {
@@ -619,7 +619,6 @@ describe("Relay", () => {
           expect(txr.status).to.equal(1)
         })
       })
-
 
       context("with proof length 18", () => {
         it("should accept valid header chains", async () => {
@@ -1008,7 +1007,7 @@ describe("Relay", () => {
   // end getPrevEpochDifficulty
   //
 
-    //
+  //
   // getCurrentAndPrevEpochDifficulty
   //
   describe("getPrevEpochDifficulty", () => {
@@ -1022,7 +1021,7 @@ describe("Relay", () => {
 
     context("when called before genesis", () => {
       it("should return zero for both", async () => {
-        let diffs = await relay.getCurrentAndPrevEpochDifficulty();
+        const diffs = await relay.getCurrentAndPrevEpochDifficulty()
         const current = diffs[0]
         const prev = diffs[1]
         expect(current).to.equal(0)
@@ -1041,7 +1040,7 @@ describe("Relay", () => {
       })
 
       it("should return current difficulty, and zero for previous", async () => {
-        let diffs = await relay.getCurrentAndPrevEpochDifficulty();
+        const diffs = await relay.getCurrentAndPrevEpochDifficulty()
         const current = diffs[0]
         const prev = diffs[1]
         expect(current).to.equal(genesisDifficulty)
@@ -1065,7 +1064,7 @@ describe("Relay", () => {
       })
 
       it("should return current and previous difficulty", async () => {
-        let diffs = await relay.getCurrentAndPrevEpochDifficulty();
+        const diffs = await relay.getCurrentAndPrevEpochDifficulty()
         const current = diffs[0]
         const prev = diffs[1]
         expect(current).to.equal(nextDifficulty)

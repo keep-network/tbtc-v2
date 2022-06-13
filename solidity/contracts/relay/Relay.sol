@@ -96,8 +96,8 @@ contract Relay is Ownable, ILightRelay {
     // the most recent epoch, divided by 2016.
     uint64 public currentEpoch;
 
-    uint256 currentEpochDifficulty;
-    uint256 prevEpochDifficulty;
+    uint256 internal currentEpochDifficulty;
+    uint256 internal prevEpochDifficulty;
 
     // Each epoch from genesis to the current one, keyed by their numbers.
     mapping(uint256 => Epoch) internal epochs;
@@ -259,10 +259,7 @@ contract Relay is Ownable, ILightRelay {
         prevEpochDifficulty = oldDifficulty;
         currentEpochDifficulty = newDifficulty;
 
-        emit Retarget(
-            oldDifficulty,
-            newDifficulty
-        );
+        emit Retarget(oldDifficulty, newDifficulty);
     }
 
     /// @notice Check whether a given chain of headers should be accepted as
@@ -419,22 +416,14 @@ contract Relay is Ownable, ILightRelay {
     /// @notice Returns the difficulty of the current epoch.
     /// @dev returns 0 if the relay is not ready.
     /// @return The difficulty of the current epoch.
-    function getCurrentEpochDifficulty()
-        external
-        view
-        returns (uint256)
-    {
+    function getCurrentEpochDifficulty() external view returns (uint256) {
         return currentEpochDifficulty;
     }
 
     /// @notice Returns the difficulty of the previous epoch.
     /// @dev Returns 0 if the relay is not ready or has not had a retarget.
     /// @return The difficulty of the previous epoch.
-    function getPrevEpochDifficulty()
-        external
-        view
-        returns (uint256)
-    {
+    function getPrevEpochDifficulty() external view returns (uint256) {
         return prevEpochDifficulty;
     }
 
