@@ -11,6 +11,8 @@ import type { RelayStub } from "../../typechain"
 import { concatenateHexStrings } from "../helpers/contract-test-helpers"
 
 import headers from "./headersWithRetarget.json"
+import reorgHeaders from "./headersReorgAndRetarget.json"
+
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
@@ -401,9 +403,6 @@ describe("Relay", () => {
   // validateChain
   //
   describe("validateChain", () => {
-    const { chain } = headers
-    const headerHex = chain.map((header) => header.hex)
-
     before(async () => {
       await createSnapshot()
     })
@@ -413,6 +412,8 @@ describe("Relay", () => {
     })
 
     context("when called before genesis", () => {
+      const { chain } = headers
+      const headerHex = chain.map((header) => header.hex)
       const proofHeaders = concatenateHexStrings(headerHex.slice(0, 4))
 
       it("should revert", async () => {
@@ -423,6 +424,9 @@ describe("Relay", () => {
     })
 
     context("when called after genesis (epoch 274)", () => {
+      const { chain } = headers
+      const headerHex = chain.map((header) => header.hex)
+
       before(async () => {
         await createSnapshot()
         await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
@@ -471,6 +475,9 @@ describe("Relay", () => {
     })
 
     context("when called after genesis (epoch 275)", () => {
+      const { chain } = headers
+      const headerHex = chain.map((header) => header.hex)
+
       before(async () => {
         await createSnapshot()
         await relay
@@ -505,6 +512,8 @@ describe("Relay", () => {
     })
 
     context("when called after a retarget", () => {
+      const { chain } = headers
+      const headerHex = chain.map((header) => header.hex)
       const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
 
       before(async () => {
@@ -549,7 +558,45 @@ describe("Relay", () => {
       })
     })
 
+
+    context("with chain reorgs", () => {
+      const { postRetargetChain } = reorgHeaders
+      const reorgHex = postRetargetChain.map((header) => header.hex)
+
+      const reorgGenesis = postRetargetChain[0];
+
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(reorgGenesis.hex, reorgGenesis.height, 8)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("valid chains", () => {
+        it("should be accepted", async () => {
+          const proofHeaders = concatenateHexStrings(reorgHex)
+          expect(await relay.validateChain(proofHeaders)).to.be.true
+        })
+      })
+
+      context("invalid chains", () => {
+        it("should be rejected", async () => {
+          const pre = concatenateHexStrings(reorgHex.slice(0, 6))
+          const orphan = reorgHeaders.orphan_437478.hex
+          const post = reorgHex[7]
+          const proofHeaders = concatenateHexStrings([pre, orphan, post])
+          await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
+            "Invalid chain"
+          )
+        })
+      })
+    })
+
     context("gas costs", () => {
+      const { chain } = headers
+      const headerHex = chain.map((header) => header.hex)
       const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
 
       before(async () => {
