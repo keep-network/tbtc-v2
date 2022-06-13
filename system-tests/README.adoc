@@ -139,17 +139,17 @@ The test scenario can be started using:
 ```
 ELECTRUM_URL=wss://electrumx-server.test.tbtc.network:8443 \
  CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH=../solidity/export.json \
- WALLET_BITCOIN_PRIVATE_KEY_WIF=<wallet-bitcoin-private-key-wif> \
- DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF=<depositor-bitcoin-private-key-wif> \
+ WALLET_BITCOIN_WIF=<wallet-bitcoin-wif> \
+ DEPOSITOR_BITCOIN_WIF=<depositor-bitcoin-wif> \
  yarn test ./test/deposit-redemption.test.ts --network localhost
 ```
 Most of the parameters were explained in the previous sections. Worth noting
 that this scenario requires two additional ones:
 
-- `wallet-bitcoin-private-key-wif` that should contain the wallet's private
-  key in WIF format. This is the private key that should match the public
+- `wallet-bitcoin-wif` that should contain the wallet's private
+  key in the WIF format. This is the private key that should match the public
   key of the wallet generated in the previous step.
-- `depositor-bitcoin-private-key-wif` that should contain the depositor's
-  private key in WIF format. This is an arbitrary BTC account with a
+- `depositor-bitcoin-wif` that should contain the depositor's
+  private key in the WIF format. This is an arbitrary BTC account with a
   sufficient BTC balance
 

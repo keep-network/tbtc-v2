@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import wif from "wif"
+import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
 import { createTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
 import { Contract } from "ethers"
@@ -26,40 +26,44 @@ const defaultTxProofDifficultyFactor = 6
  */
 export interface KeyPair {
   /**
-   * Private key in WIF format.
+   * Wallet Import Format.
    */
-  privateKeyWif: string
+  wif: string
   /**
    * Private key as an unprefixed hex string.
    */
   privateKey: string
   /**
-   * Compressed public key as a 33-byte hex string prefixed with 02 or 03.
+   * Public key.
    */
-  compressedPublicKey: string
-  /**
-   * Uncompressed public key as an unprefixed hex string.
-   */
-  uncompressedPublicKey: string
+  publicKey: {
+    /**
+     * Compressed public key as a 33-byte hex string prefixed with 02 or 03.
+     */
+    compressed: string
+    /**
+     * Uncompressed public key as an unprefixed hex string.
+     */
+    uncompressed: string
+  }
 }
 
 /**
- * Creates a Bitcoin key pair from a private key in WIF format.
- * @param privateKeyWif Private key in WIF format.
+ * Creates a Bitcoin key pair from a Bitcoin WIF.
+ * @param wif The WIF to create the key pair from.
  * @returns The Bitcoin key pair.
  */
-export function keyPairFromPrivateWif(privateKeyWif: string): KeyPair {
-  const { privateKey } = wif.decode(privateKeyWif)
+export function keyPairFromWif(wif: string): KeyPair {
+  const { privateKey } = wifLib.decode(wif)
   const keyPair = secp256k1.keyFromPrivate(privateKey)
   return {
-    privateKeyWif,
+    wif,
     privateKey: keyPair.getPrivate("hex"),
-    compressedPublicKey: keyPair.getPublic().encodeCompressed("hex"),
-    // Trim the `04` prefix from uncompressed key.
-    uncompressedPublicKey: keyPair
-      .getPublic()
-      .encode("hex", false)
-      .substring(2),
+    publicKey: {
+      compressed: keyPair.getPublic().encodeCompressed("hex"),
+      // Trim the `04` prefix from the uncompressed key.
+      uncompressed: keyPair.getPublic().encode("hex", false).substring(2),
+    },
   }
 }
 

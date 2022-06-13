@@ -2,7 +2,7 @@ import fs from "fs"
 
 import { helpers, network } from "hardhat"
 
-import { keyPairFromPrivateWif } from "./bitcoin"
+import { keyPairFromWif } from "./bitcoin"
 
 import type { ContractExport, Export } from "hardhat-deploy/dist/types"
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
@@ -76,13 +76,9 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
   const { governance, maintainer, depositor } =
     await helpers.signers.getNamedSigners()
 
-  const depositorBitcoinKeyPair = readBitcoinPrivateKeyWif(
-    "DEPOSITOR_BITCOIN_PRIVATE_KEY_WIF"
-  )
+  const depositorBitcoinKeyPair = readBitcoinWif("DEPOSITOR_BITCOIN_WIF")
 
-  const walletBitcoinKeyPair = readBitcoinPrivateKeyWif(
-    "WALLET_BITCOIN_PRIVATE_KEY_WIF"
-  )
+  const walletBitcoinKeyPair = readBitcoinWif("WALLET_BITCOIN_WIF")
 
   console.log(`
     System tests context:
@@ -92,8 +88,8 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     - Governance Ethereum address ${governance.address}
     - Maintainer Ethereum address ${maintainer.address}
     - Depositor Ethereum address ${depositor.address}
-    - Depositor Bitcoin public key ${depositorBitcoinKeyPair.compressedPublicKey}
-    - Wallet Bitcoin public key ${walletBitcoinKeyPair.compressedPublicKey}
+    - Depositor Bitcoin public key ${depositorBitcoinKeyPair.publicKey.compressed}
+    - Wallet Bitcoin public key ${walletBitcoinKeyPair.publicKey.compressed}
   `)
 
   return {
@@ -127,21 +123,17 @@ function readContractsDeploymentExportFile(): Export {
 }
 
 /**
- * Reads a Bitcoin private key WIF from an environment variable and
- * creates a key pair based on it. Throws if the environment variable
- * is not set.
- * @param privateKeyWifEnvName Name of the environment variable that contains
- *        the private key WIF.
- * @returns Bitcoin key pair corresponding to the private key WIF.
+ * Reads a Bitcoin WIF from an environment variable and creates a key pair
+ * based on it. Throws if the environment variable is not set.
+ * @param wifEnvName Name of the environment variable that contains the WIF.
+ * @returns Bitcoin key pair corresponding to the WIF.
  */
-function readBitcoinPrivateKeyWif(
-  privateKeyWifEnvName: string
-): BitcoinKeyPair {
-  const privateKeyWif = process.env[privateKeyWifEnvName] as string
+function readBitcoinWif(wifEnvName: string): BitcoinKeyPair {
+  const wif = process.env[wifEnvName] as string
 
-  if (!privateKeyWif) {
-    throw new Error(`${privateKeyWifEnvName} is not set`)
+  if (!wif) {
+    throw new Error(`${wifEnvName} is not set`)
   }
 
-  return keyPairFromPrivateWif(privateKeyWif)
+  return keyPairFromWif(wif)
 }
