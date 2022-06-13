@@ -374,7 +374,7 @@ describe("Ethereum", () => {
             .returns({
               depositor: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
               amount: BigNumber.from(10000),
-              vault: "0x0000000000000000000000000000000000000000",
+              vault: constants.AddressZero,
               revealedAt: 1654774330,
               sweptAt: 1655033516,
               treasuryFee: BigNumber.from(200),
