@@ -318,14 +318,16 @@ describe("System Test - Deposit and redemption", () => {
     })
 
     it("should close the redemption request on the bridge", async () => {
-      const { requestedAt } = await TBTC.getRedemptionRequest(
-        systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
-        redemptionRequest.redeemerOutputScript,
-        "pending",
-        maintainerBridgeHandle
+      await expect(
+        TBTC.getRedemptionRequest(
+          systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
+          redemptionRequest.redeemerOutputScript,
+          "pending",
+          maintainerBridgeHandle
+        )
+      ).to.be.rejectedWith(
+        "Provided redeemer output script and wallet public key do not identify a redemption request"
       )
-
-      expect(requestedAt).to.be.equal(0)
     })
 
     it("should decrease depositor's balance in the bank", async () => {
