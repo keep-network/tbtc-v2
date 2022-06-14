@@ -2,7 +2,7 @@
 // @ts-ignore
 import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
-import { createTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
+import { assembleTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
 import { Contract } from "ethers"
 
 import type {
@@ -140,7 +140,7 @@ export async function fakeRelayDifficulty(
     systemTestsContext.maintainer
   )
 
-  const proof = await createTransactionProof(
+  const proof = await assembleTransactionProof(
     transactionHash,
     headerChainLength,
     bitcoinClient

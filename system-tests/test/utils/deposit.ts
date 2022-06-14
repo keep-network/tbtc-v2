@@ -1,12 +1,10 @@
 import crypto from "crypto"
 
-import { Contract, utils } from "ethers"
-import TBTC from "@keep-network/tbtc-v2.ts"
+import { calculateDepositRefundLocktime } from "@keep-network/tbtc-v2.ts/dist/deposit"
+import { Address as EthereumAddress } from "@keep-network/tbtc-v2.ts/dist/ethereum"
 
 import type { BigNumber } from "ethers"
-import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import type { SystemTestsContext } from "./context"
 
 /**
  * Default refund public key used for deposits. Their corresponding private key:
@@ -35,55 +33,16 @@ export function generateDeposit(
 
   const resolvedRefundPublicKey = refundPublicKey || DEFAULT_REFUND_PUBLIC_KEY
 
-  const refundLocktime = TBTC.computeDepositRefundLocktime(
+  const refundLocktime = calculateDepositRefundLocktime(
     Math.floor(Date.now() / 1000)
   )
 
   return {
-    // TODO: The tbtc-v2.ts library should expose the EthereumIdentifier
-    //       class that will handle that conversion.
-    depositor: {
-      identifierHex: depositorAddress.substring(2).toLowerCase(),
-    },
+    depositor: new EthereumAddress(depositorAddress),
     amount,
     blindingFactor,
     walletPublicKey,
     refundPublicKey: resolvedRefundPublicKey,
     refundLocktime,
   }
-}
-
-/**
- * Gets a deposit from the bridge.
- * @param systemTestsContext System tests context.
- * @param depositUtxo The UTXO produced by the deposit Bitcoin transaction.
- * @returns Deposit data as stored in the bridge.
- */
-export async function getDepositFromBridge(
-  systemTestsContext: SystemTestsContext,
-  depositUtxo: UnspentTransactionOutput
-): Promise<{ revealedAt: number; sweptAt: number; treasuryFee: BigNumber }> {
-  // TODO: The tbtc-v2.ts library should expose a method to get the deposit in a
-  //       seamless way. The current implementation of this function is
-  //       just a workaround and the tbtc-v2.ts library implementation should
-  //       be preferred once it is ready.
-
-  const bridgeDeploymentInfo = systemTestsContext.deployedContracts.Bridge
-
-  const bridge = new Contract(
-    bridgeDeploymentInfo.address,
-    bridgeDeploymentInfo.abi,
-    systemTestsContext.maintainer
-  )
-
-  const transactionHashLE = Buffer.from(depositUtxo.transactionHash, "hex")
-    .reverse()
-    .toString("hex")
-
-  const depositKey = utils.solidityKeccak256(
-    ["bytes32", "uint32"],
-    [`0x${transactionHashLE}`, depositUtxo.outputIndex]
-  )
-
-  return bridge.deposits(depositKey)
 }
