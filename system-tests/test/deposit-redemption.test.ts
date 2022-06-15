@@ -10,6 +10,7 @@ import { expect } from "chai"
 import { submitDepositTransaction } from "@keep-network/tbtc-v2.ts/dist/deposit"
 import { submitDepositSweepTransaction } from "@keep-network/tbtc-v2.ts/dist/deposit-sweep"
 import { submitRedemptionTransaction } from "@keep-network/tbtc-v2.ts/dist/redemption"
+import chaiAsPromised from "chai-as-promised"
 
 import { setupSystemTestsContext } from "./utils/context"
 import { generateDeposit } from "./utils/deposit"
@@ -22,6 +23,8 @@ import type {
   TransactionHash,
   UnspentTransactionOutput,
 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+
+chai.use(chaiAsPromised)
 
 /**
  * This system test scenario performs a single deposit and redemption.
