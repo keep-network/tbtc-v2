@@ -83,7 +83,7 @@ contract Relay is Ownable, ILightRelay {
     using RelayUtils for bytes;
 
     bool public ready;
-    // Number of blocks required for a proof.
+    // Number of blocks required for a retarget proof.
     // Governable
     // Should be set to a fairly high number (e.g. 20-50) in production.
     uint64 public proofLength;
@@ -272,7 +272,7 @@ contract Relay is Ownable, ILightRelay {
 
     /// @notice Check whether a given chain of headers should be accepted as
     /// valid within the rules of the relay.
-    /// @param headers A chain of `proofLength` bitcoin headers.
+    /// @param headers A chain of 2-2016 bitcoin headers.
     /// @return valid True if the headers are valid according to the relay.
     /// If the validation fails, this function throws an exception.
     /// @dev A chain of headers is accepted as valid if:
@@ -304,7 +304,14 @@ contract Relay is Ownable, ILightRelay {
         relayActive
         returns (bool valid)
     {
-        require(headers.length == proofLength * 80, "Invalid header length");
+        require(headers.length % 80 == 0, "Invalid header length");
+
+        uint256 headerCount = headers.length / 80;
+
+        require(
+            headerCount > 1 && headerCount < 2016,
+            "Invalid number of headers"
+        );
 
         uint256 currentHeaderTimestamp = headers.extractTimestamp();
 
@@ -343,7 +350,7 @@ contract Relay is Ownable, ILightRelay {
             "Invalid target in header chain"
         );
          
-        for (uint256 i = 1; i < proofLength; i++) {
+        for (uint256 i = 1; i < headerCount; i++) {
             uint256 previousHeaderTimestamp = currentHeaderTimestamp;
             bytes32 currentDigest;
             (

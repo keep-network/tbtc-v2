@@ -440,19 +440,21 @@ describe("Relay", () => {
         expect(await relay.validateChain(proofHeaders)).to.be.true
       })
 
-      it("should reject short header chains", async () => {
+      it("should accept short header chains", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(0, 3))
 
-        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
-          "Invalid header length"
-        )
+        expect(await relay.validateChain(proofHeaders)).to.be.true
       })
 
-      it("should reject long header chains", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(0, 5))
+      it("should accept long header chains", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(0, 9))
 
-        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
-          "Invalid header length"
+        expect(await relay.validateChain(proofHeaders)).to.be.true
+      })
+
+      it("should reject single headers", async () => {
+        await expect(relay.validateChain(headerHex[0])).to.be.revertedWith(
+          "Invalid number of headers"
         )
       })
 
