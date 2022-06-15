@@ -276,7 +276,7 @@ contract Relay is Ownable, ILightRelay {
     /// @return The timestamp of the last header if validation succeeds.
     /// If the validation fails, this function throws an exception.
     /// @dev A chain of headers is accepted as valid if:
-    /// - It has the correct length required for a proof.
+    /// - Its length is between 2 and 2015 headers.
     /// - Headers in the chain are sequential and refer to previous digests.
     /// - Each header is mined with the correct amount of work.
     /// - The difficulty in each header matches an epoch of the relay,
