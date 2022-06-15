@@ -437,19 +437,19 @@ describe("Relay", () => {
 
       it("should accept valid header chains", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(0, 4))
-        expect(await relay.validateChain(proofHeaders)).to.be.true
+        expect(await relay.validateChain(proofHeaders)).to.be.above(0)
       })
 
       it("should accept short header chains", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(0, 3))
 
-        expect(await relay.validateChain(proofHeaders)).to.be.true
+        expect(await relay.validateChain(proofHeaders)).to.be.above(0)
       })
 
       it("should accept long header chains", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(0, 9))
 
-        expect(await relay.validateChain(proofHeaders)).to.be.true
+        expect(await relay.validateChain(proofHeaders)).to.be.above(0)
       })
 
       it("should reject single headers", async () => {
@@ -492,7 +492,7 @@ describe("Relay", () => {
 
       it("should accept valid header chains", async () => {
         const proofHeaders = concatenateHexStrings(headerHex.slice(9, 13))
-        expect(await relay.validateChain(proofHeaders)).to.be.true
+        expect(await relay.validateChain(proofHeaders)).to.be.above(0)
       })
 
       it("should reject header chains partially in a past epoch", async () => {
@@ -530,31 +530,31 @@ describe("Relay", () => {
       context("in the genesis epoch", () => {
         it("should accept valid header chains", async () => {
           const proofHeaders = concatenateHexStrings(headerHex.slice(0, 4))
-          expect(await relay.validateChain(proofHeaders)).to.be.true
+          expect(await relay.validateChain(proofHeaders)).to.be.above(0)
         })
       })
 
       context("over the retarget", () => {
         it("should accept valid header chains (3 before, 1 after)", async () => {
           const proofHeaders = concatenateHexStrings(headerHex.slice(6, 10))
-          expect(await relay.validateChain(proofHeaders)).to.be.true
+          expect(await relay.validateChain(proofHeaders)).to.be.above(0)
         })
 
         it("should accept valid header chains (2 before, 2 after)", async () => {
           const proofHeaders = concatenateHexStrings(headerHex.slice(7, 11))
-          expect(await relay.validateChain(proofHeaders)).to.be.true
+          expect(await relay.validateChain(proofHeaders)).to.be.above(0)
         })
 
         it("should accept valid header chains (1 before, 3 after)", async () => {
           const proofHeaders = concatenateHexStrings(headerHex.slice(8, 12))
-          expect(await relay.validateChain(proofHeaders)).to.be.true
+          expect(await relay.validateChain(proofHeaders)).to.be.above(0)
         })
       })
 
       context("in the new epoch", () => {
         it("should accept valid header chains", async () => {
           const proofHeaders = concatenateHexStrings(headerHex.slice(9, 13))
-          expect(await relay.validateChain(proofHeaders)).to.be.true
+          expect(await relay.validateChain(proofHeaders)).to.be.above(0)
         })
       })
     })
@@ -579,7 +579,7 @@ describe("Relay", () => {
       context("valid chains", () => {
         it("should be accepted", async () => {
           const proofHeaders = concatenateHexStrings(reorgHex)
-          expect(await relay.validateChain(proofHeaders)).to.be.true
+          expect(await relay.validateChain(proofHeaders)).to.be.above(0)
         })
       })
 

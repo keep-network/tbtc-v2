@@ -58,7 +58,7 @@ interface ILightRelay is IRelay {
     function validateChain(bytes memory headers)
         external
         view
-        returns (bool valid);
+        returns (uint256);
 
     function getBlockDifficulty(uint256 blockNumber)
         external
@@ -273,7 +273,7 @@ contract Relay is Ownable, ILightRelay {
     /// @notice Check whether a given chain of headers should be accepted as
     /// valid within the rules of the relay.
     /// @param headers A chain of 2-2016 bitcoin headers.
-    /// @return valid True if the headers are valid according to the relay.
+    /// @return The timestamp of the last header if validation succeeds.
     /// If the validation fails, this function throws an exception.
     /// @dev A chain of headers is accepted as valid if:
     /// - It has the correct length required for a proof.
@@ -302,7 +302,7 @@ contract Relay is Ownable, ILightRelay {
         external
         view
         relayActive
-        returns (bool valid)
+        returns (uint256)
     {
         require(headers.length % 80 == 0, "Invalid header length");
 
@@ -390,7 +390,7 @@ contract Relay is Ownable, ILightRelay {
             previousHeaderDigest = currentDigest;
         }
 
-        return true;
+        return currentHeaderTimestamp;
     }
 
     /// @notice Get the difficulty of the specified block.

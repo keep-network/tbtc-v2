@@ -8,7 +8,7 @@ contract RelayStub is Relay {
     // Gas-reporting version of validateChain
     function validateChainGasReport(bytes memory headers)
         external
-        returns (bool)
+        returns (uint256)
     {
         return this.validateChain(headers);
     }
