@@ -272,7 +272,7 @@ contract Relay is Ownable, ILightRelay {
 
     /// @notice Check whether a given chain of headers should be accepted as
     /// valid within the rules of the relay.
-    /// @param headers A chain of 2-2016 bitcoin headers.
+    /// @param headers A chain of 2 to 2015 bitcoin headers.
     /// @return The timestamp of the last header if validation succeeds.
     /// If the validation fails, this function throws an exception.
     /// @dev A chain of headers is accepted as valid if:
