@@ -24,8 +24,10 @@ import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.s
 import "../bridge/IRelay.sol";
 
 struct Epoch {
-    uint256 target;
-    uint256 timestamp;
+    uint32 timestamp;
+    // By definition, bitcoin targets have at least 32 leading zero bits.
+    // Thus we can only store the bits that aren't guaranteed to be 0.
+    uint224 target;
 }
 
 library RelayUtils {
@@ -130,7 +132,10 @@ contract Relay is Ownable, ILightRelay {
         currentEpoch = genesisEpoch;
         uint256 genesisTarget = genesisHeader.extractTarget();
         uint256 genesisTimestamp = genesisHeader.extractTimestamp();
-        epochs[genesisEpoch] = Epoch(genesisTarget, genesisTimestamp);
+        epochs[genesisEpoch] = Epoch(
+            uint32(genesisTimestamp),
+            uint224(genesisTarget)
+        );
         proofLength = genesisProofLength;
         currentEpochDifficulty = BTCUtils.calculateDifficulty(genesisTarget);
         ready = true;
@@ -251,7 +256,10 @@ contract Relay is Ownable, ILightRelay {
 
         currentEpoch = currentEpoch + 1;
 
-        epochs[currentEpoch] = Epoch(minedTarget, epochStartTimestamp);
+        epochs[currentEpoch] = Epoch(
+            uint32(epochStartTimestamp),
+            uint224(minedTarget)
+        );
 
         uint256 oldDifficulty = currentEpochDifficulty;
         uint256 newDifficulty = BTCUtils.calculateDifficulty(minedTarget);
@@ -298,12 +306,9 @@ contract Relay is Ownable, ILightRelay {
     {
         require(headers.length == proofLength * 80, "Invalid header length");
 
-        bytes32 previousHeaderDigest = bytes32(0);
-
-        uint256 firstHeaderTimestamp = headers.extractTimestamp();
+        uint256 currentHeaderTimestamp = headers.extractTimestamp();
 
         uint256 relevantEpoch = currentEpoch;
-        uint256 _genesisEpoch = genesisEpoch;
 
         // timestamp of the epoch the header chain starts in
         uint256 startingEpochTimestamp = epochs[currentEpoch].timestamp;
@@ -312,25 +317,40 @@ contract Relay is Ownable, ILightRelay {
 
         // Find the correct epoch for the given chain
         // Fastest with recent epochs, but able to handle anything after genesis
-        while (firstHeaderTimestamp < startingEpochTimestamp) {
+        while (currentHeaderTimestamp < startingEpochTimestamp) {
             relevantEpoch -= 1;
             nextEpochTimestamp = startingEpochTimestamp;
             startingEpochTimestamp = epochs[relevantEpoch].timestamp;
             require(
-                relevantEpoch >= _genesisEpoch,
+                // This works because every epoch starting from genesis has
+                // a recorded timestamp, so a timestamp of zero means we have
+                // reached before the genesis.
+                startingEpochTimestamp > 0,
                 "Cannot validate chains before relay genesis"
             );
         }
 
         uint256 relevantTarget = epochs[relevantEpoch].target;
 
-        for (uint256 i = 0; i < proofLength; i++) {
+        // Short-circuit the first header's validation.
+        (
+            bytes32 previousHeaderDigest,
+            uint256 currentHeaderTarget
+        ) = validateHeader(headers, 0, bytes32(0));
+
+        require(
+            currentHeaderTarget == relevantTarget,
+            "Invalid target in header chain"
+        );
+         
+        for (uint256 i = 1; i < proofLength; i++) {
+            bytes32 currentDigest;
             (
-                bytes32 currentDigest,
-                uint256 currentHeaderTarget
+                currentDigest,
+                currentHeaderTarget
             ) = validateHeader(headers, i * 80, previousHeaderDigest);
 
-            uint256 currentHeaderTimestamp = headers.extractTimestampAt(i * 80);
+            currentHeaderTimestamp = headers.extractTimestampAt(i * 80);
 
             // If next epoch timestamp exists, a valid retarget is possible
             // (if next epoch timestamp doesn't exist, either a retarget has
@@ -339,8 +359,8 @@ contract Relay is Ownable, ILightRelay {
             // If current header's timestamp equals the next epoch timestamp,
             // it can be a valid retarget.
             if (
-                nextEpochTimestamp != 0 &&
-                currentHeaderTimestamp == nextEpochTimestamp
+                currentHeaderTimestamp == nextEpochTimestamp &&
+                nextEpochTimestamp != 0
             ) {
                 // Set the expected target for all remaining headers, including
                 // this one, and zero out the next epoch timestamp to signify
