@@ -6,7 +6,7 @@ import {
 } from "@keep-network/tbtc-v2.ts"
 import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 import { BigNumber, constants, Contract } from "ethers"
-import { expect } from "chai"
+import chai, { expect } from "chai"
 import { submitDepositTransaction } from "@keep-network/tbtc-v2.ts/dist/deposit"
 import { submitDepositSweepTransaction } from "@keep-network/tbtc-v2.ts/dist/deposit-sweep"
 import { submitRedemptionTransaction } from "@keep-network/tbtc-v2.ts/dist/redemption"
