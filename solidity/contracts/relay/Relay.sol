@@ -344,6 +344,7 @@ contract Relay is Ownable, ILightRelay {
         );
          
         for (uint256 i = 1; i < proofLength; i++) {
+            uint256 previousHeaderTimestamp = currentHeaderTimestamp;
             bytes32 currentDigest;
             (
                 currentDigest,
@@ -351,6 +352,11 @@ contract Relay is Ownable, ILightRelay {
             ) = validateHeader(headers, i * 80, previousHeaderDigest);
 
             currentHeaderTimestamp = headers.extractTimestampAt(i * 80);
+
+            require(
+                currentHeaderTimestamp > previousHeaderTimestamp,
+                "Invalid timestamp in header chain"
+            );
 
             // If next epoch timestamp exists, a valid retarget is possible
             // (if next epoch timestamp doesn't exist, either a retarget has
