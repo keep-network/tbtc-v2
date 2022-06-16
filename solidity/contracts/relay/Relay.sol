@@ -349,14 +349,15 @@ contract Relay is Ownable, ILightRelay {
             currentHeaderTarget == relevantTarget,
             "Invalid target in header chain"
         );
-         
+
         for (uint256 i = 1; i < headerCount; i++) {
             uint256 previousHeaderTimestamp = currentHeaderTimestamp;
             bytes32 currentDigest;
-            (
-                currentDigest,
-                currentHeaderTarget
-            ) = validateHeader(headers, i * 80, previousHeaderDigest);
+            (currentDigest, currentHeaderTarget) = validateHeader(
+                headers,
+                i * 80,
+                previousHeaderDigest
+            );
 
             currentHeaderTimestamp = headers.extractTimestampAt(i * 80);
 
