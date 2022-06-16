@@ -15,7 +15,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const WalletRegistry = await deployments.get("WalletRegistry")
 
   // For local tests use `1`.
-  const txProofDifficultyFactor = hre.network.tags.local ? 1 : 6
+  const txProofDifficultyFactor =
+    deployments.getNetworkName() === "hardhat" ||
+    deployments.getNetworkName() === "development"
+      ? 1
+      : 6
 
   const Deposit = await deploy("Deposit", { from: deployer, log: true })
   const DepositSweep = await deploy("DepositSweep", {
