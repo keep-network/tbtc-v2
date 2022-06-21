@@ -3,7 +3,7 @@
 
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { ContractTransaction } from "ethers"
+import { Contract, ContractTransaction } from "ethers"
 import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import type {
@@ -11,7 +11,6 @@ import type {
   BankStub,
   Bridge,
   BridgeStub,
-  BridgeStub__factory,
   IRelay,
   IVault,
   BridgeGovernance,
@@ -43,9 +42,9 @@ describe("Bridge - Deposit", () => {
 
   let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
-  let BridgeFactory: BridgeStub__factory
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
+  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -54,9 +53,9 @@ describe("Bridge - Deposit", () => {
       treasury,
       bank,
       relay,
-      BridgeFactory,
       bridge,
       bridgeGovernance,
+      deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
@@ -2587,15 +2586,7 @@ describe("Bridge - Deposit", () => {
               // to deem transaction proof validity. This scenario uses test
               // data which has only 6 confirmations. That should force the
               // failure we expect within this scenario.
-              otherBridge = await BridgeFactory.deploy()
-              await otherBridge.initialize(
-                bank.address,
-                relay.address,
-                treasury.address,
-                ethers.utils.hexZeroPad("0x01", 20),
-                12
-              )
-              await otherBridge.deployed()
+              otherBridge = (await deployBridge(12)) as BridgeStub
             })
 
             after(async () => {

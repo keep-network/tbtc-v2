@@ -4,7 +4,7 @@
 import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import chai, { expect } from "chai"
-import { BigNumber, BigNumberish, ContractTransaction } from "ethers"
+import { BigNumber, BigNumberish, Contract, ContractTransaction } from "ethers"
 import { BytesLike } from "@ethersproject/bytes"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
@@ -13,7 +13,6 @@ import type {
   BankStub,
   Bridge,
   BridgeStub,
-  BridgeStub__factory,
   IWalletRegistry,
   IRelay,
 } from "../../typechain"
@@ -53,9 +52,10 @@ describe("Bridge - Redemption", () => {
 
   let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
-  let BridgeFactory: BridgeStub__factory
   let bridge: Bridge & BridgeStub
   let walletRegistry: FakeContract<IWalletRegistry>
+
+  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
 
   let redemptionTimeout: number
   let redemptionTimeoutSlashingAmount: BigNumber
@@ -71,7 +71,7 @@ describe("Bridge - Redemption", () => {
       relay,
       walletRegistry,
       bridge,
-      BridgeFactory,
+      deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
     ;({
       redemptionTimeout,
@@ -3366,14 +3366,7 @@ describe("Bridge - Redemption", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await BridgeFactory.deploy()
-            await otherBridge.initialize(
-              bank.address,
-              relay.address,
-              treasury.address,
-              walletRegistry.address,
-              12
-            )
+            otherBridge = (await deployBridge(12)) as BridgeStub
           })
 
           after(async () => {
