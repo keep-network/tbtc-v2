@@ -172,6 +172,9 @@ const config: HardhatUserConfig = {
       default: 6,
       // mainnet: ""
     },
+    spvMaintainer: {
+      default: 7,
+    },
   },
   dependencyCompiler: {
     paths: [

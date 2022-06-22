@@ -180,6 +180,11 @@ contract Bridge is
 
     event VaultStatusUpdated(address indexed vault, bool isTrusted);
 
+    event SpvMaintainerStatusUpdated(
+        address indexed spvMaintainer,
+        bool isTrusted
+    );
+
     event DepositParametersUpdated(
         uint64 depositDustThreshold,
         uint64 depositTreasuryFeeDivisor,
@@ -224,6 +229,14 @@ contract Bridge is
         uint96 fraudSlashingAmount,
         uint32 fraudNotifierRewardMultiplier
     );
+
+    modifier onlySpvMaintainer() {
+        require(
+            self.isSpvMaintainer[msg.sender],
+            "Caller is not SPV maintainer"
+        );
+        _;
+    }
 
     /// @dev Initializes upgradable contract on deployment.
     /// @param _bank Address of the Bank the Bridge belongs to.
@@ -394,7 +407,7 @@ contract Bridge is
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo,
         address vault
-    ) external {
+    ) external onlySpvMaintainer {
         self.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo, vault);
     }
 
@@ -574,7 +587,7 @@ contract Bridge is
         BitcoinTx.Proof calldata redemptionProof,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
-    ) external {
+    ) external onlySpvMaintainer {
         self.submitRedemptionProof(
             redemptionTx,
             redemptionProof,
@@ -750,7 +763,7 @@ contract Bridge is
         BitcoinTx.Proof calldata movingFundsProof,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
-    ) external {
+    ) external onlySpvMaintainer {
         self.submitMovingFundsProof(
             movingFundsTx,
             movingFundsProof,
@@ -842,7 +855,7 @@ contract Bridge is
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
-    ) external {
+    ) external onlySpvMaintainer {
         self.submitMovedFundsSweepProof(sweepTx, sweepProof, mainUtxo);
     }
 
@@ -1146,6 +1159,31 @@ contract Bridge is
     {
         self.isVaultTrusted[vault] = isTrusted;
         emit VaultStatusUpdated(vault, isTrusted);
+    }
+
+    /// @notice Allows the Governance to mark the given address as trusted
+    ///         or no longer trusted SPV maintainer. Addresses are not trusted
+    ///         as SPV maintainers by default.
+    /// @dev The SPV proof does not check whether the transaction is a part of
+    ///      the Bitcoin mainnet, it only checks whether the transaction has been
+    ///      mined performing the required amount of work as on Bitcoin mainnet.
+    ///      The possibility of submitting SPV proofs is limited to trusted SPV
+    ///      maintainers. The system expects transaction confirmations with the
+    ///      required work accumulated, so trusted SPV maintainers can not prove
+    ///      the transaction without providing the required Bitcoin proof of work.
+    ///      Trusted maintainers address the issue of an economic game between
+    ///      tBTC and Bitcoin mainnet where large Bitcoin mining pools can decide
+    ///      to use their hash power to mine fake Bitcoin blocks to prove them in
+    ///      tBTC instead of receiving Bitcoin miner rewards.
+    /// @param spvMaintainer The address of the SPV maintainer.
+    /// @param isTrusted flag indicating whether the address is trusted or not.
+    /// @dev Can only be called by the Governance.
+    function setSpvMaintainerStatus(address spvMaintainer, bool isTrusted)
+        external
+        onlyGovernance
+    {
+        self.isSpvMaintainer[spvMaintainer] = isTrusted;
+        emit SpvMaintainerStatusUpdated(spvMaintainer, isTrusted);
     }
 
     /// @notice Updates parameters of deposits.

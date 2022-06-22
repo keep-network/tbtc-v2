@@ -47,6 +47,7 @@ const { lastBlockTime, increaseTime } = helpers.time
 
 describe("Bridge - Moving funds", () => {
   let thirdParty: SignerWithAddress
+  let spvMaintainer: SignerWithAddress
   let treasury: SignerWithAddress
 
   let bank: Bank & BankStub
@@ -67,6 +68,7 @@ describe("Bridge - Moving funds", () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
       thirdParty,
+      spvMaintainer,
       treasury,
       bank,
       relay,
@@ -1665,12 +1667,14 @@ describe("Bridge - Moving funds", () => {
             }
 
             await expect(
-              bridge.submitMovingFundsProof(
-                data.movingFundsTx,
-                data.movingFundsProof,
-                corruptedMainUtxo,
-                data.wallet.pubKeyHash
-              )
+              bridge
+                .connect(spvMaintainer)
+                .submitMovingFundsProof(
+                  data.movingFundsTx,
+                  data.movingFundsProof,
+                  corruptedMainUtxo,
+                  data.wallet.pubKeyHash
+                )
             ).to.be.revertedWith("Invalid main UTXO data")
           })
         })
@@ -1698,12 +1702,14 @@ describe("Bridge - Moving funds", () => {
           // There was no preparations before `submitMovingFundsProof` call
           // so no main UTXO is set for the given wallet.
           await expect(
-            bridge.submitMovingFundsProof(
-              data.movingFundsTx,
-              data.movingFundsProof,
-              data.mainUtxo,
-              data.wallet.pubKeyHash
-            )
+            bridge
+              .connect(spvMaintainer)
+              .submitMovingFundsProof(
+                data.movingFundsTx,
+                data.movingFundsProof,
+                data.mainUtxo,
+                data.wallet.pubKeyHash
+              )
           ).to.be.revertedWith("No main UTXO for given wallet")
         })
       })
@@ -1934,6 +1940,10 @@ describe("Bridge - Moving funds", () => {
               walletRegistry.address,
               12
             )
+            await otherBridge.setSpvMaintainerStatus(
+              spvMaintainer.address,
+              true
+            )
           })
 
           after(async () => {
@@ -1945,12 +1955,14 @@ describe("Bridge - Moving funds", () => {
 
           it("should revert", async () => {
             await expect(
-              otherBridge.submitMovingFundsProof(
-                data.movingFundsTx,
-                data.movingFundsProof,
-                data.mainUtxo,
-                data.wallet.pubKeyHash
-              )
+              otherBridge
+                .connect(spvMaintainer)
+                .submitMovingFundsProof(
+                  data.movingFundsTx,
+                  data.movingFundsProof,
+                  data.mainUtxo,
+                  data.wallet.pubKeyHash
+                )
             ).to.be.revertedWith(
               "Insufficient accumulated difficulty in header chain"
             )
@@ -3434,6 +3446,10 @@ describe("Bridge - Moving funds", () => {
               12
             )
             await otherBridge.deployed()
+            await otherBridge.setSpvMaintainerStatus(
+              spvMaintainer.address,
+              true
+            )
           })
 
           after(async () => {
@@ -3445,11 +3461,13 @@ describe("Bridge - Moving funds", () => {
 
           it("should revert", async () => {
             await expect(
-              otherBridge.submitMovedFundsSweepProof(
-                data.sweepTx,
-                data.sweepProof,
-                data.mainUtxo
-              )
+              otherBridge
+                .connect(spvMaintainer)
+                .submitMovedFundsSweepProof(
+                  data.sweepTx,
+                  data.sweepProof,
+                  data.mainUtxo
+                )
             ).to.be.revertedWith(
               "Insufficient accumulated difficulty in header chain"
             )
@@ -3955,12 +3973,14 @@ describe("Bridge - Moving funds", () => {
       await beforeProofActions()
     }
 
-    const tx = await bridge.submitMovingFundsProof(
-      data.movingFundsTx,
-      data.movingFundsProof,
-      data.mainUtxo,
-      data.wallet.pubKeyHash
-    )
+    const tx = await bridge
+      .connect(spvMaintainer)
+      .submitMovingFundsProof(
+        data.movingFundsTx,
+        data.movingFundsProof,
+        data.mainUtxo,
+        data.wallet.pubKeyHash
+      )
 
     relay.getCurrentEpochDifficulty.reset()
     relay.getPrevEpochDifficulty.reset()
@@ -4011,11 +4031,9 @@ describe("Bridge - Moving funds", () => {
       await beforeProofActions()
     }
 
-    const tx = await bridge.submitMovedFundsSweepProof(
-      data.sweepTx,
-      data.sweepProof,
-      data.mainUtxo
-    )
+    const tx = await bridge
+      .connect(spvMaintainer)
+      .submitMovedFundsSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
 
     relay.getCurrentEpochDifficulty.reset()
     relay.getPrevEpochDifficulty.reset()

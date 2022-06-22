@@ -21,7 +21,7 @@ import type {
 export default async function bridgeFixture() {
   await deployments.fixture()
 
-  const { deployer, governance, treasury } =
+  const { deployer, governance, spvMaintainer, treasury } =
     await helpers.signers.getNamedSigners()
   const [thirdParty] = await helpers.signers.getUnnamedSigners()
 
@@ -81,6 +81,7 @@ export default async function bridgeFixture() {
   return {
     deployer,
     governance,
+    spvMaintainer,
     thirdParty,
     treasury,
     tbtc,
