@@ -315,43 +315,81 @@ contract Relay is Ownable, ILightRelay {
 
         uint256 currentHeaderTimestamp = headers.extractTimestamp();
 
-        uint256 relevantEpoch = currentEpoch;
-
-        // timestamp of the epoch the header chain starts in
-        uint256 startingEpochTimestamp = epochs[currentEpoch].timestamp;
-        // timestamp of the next epoch after that
-        uint256 nextEpochTimestamp = 0;
-
-        // Find the correct epoch for the given chain
-        // Fastest with recent epochs, but able to handle anything after genesis
-        while (currentHeaderTimestamp < startingEpochTimestamp) {
-            relevantEpoch -= 1;
-            nextEpochTimestamp = startingEpochTimestamp;
-            startingEpochTimestamp = epochs[relevantEpoch].timestamp;
-            require(
-                // This works because every epoch starting from genesis has
-                // a recorded timestamp, so a timestamp of zero means we have
-                // reached before the genesis.
-                startingEpochTimestamp > 0,
-                "Cannot validate chains before relay genesis"
-            );
-        }
-
-        uint256 relevantTarget = epochs[relevantEpoch].target;
-
         // Short-circuit the first header's validation.
+        // We validate the header here to get the target which is needed to
+        // precisely identify the epoch.
         (
             bytes32 previousHeaderDigest,
             uint256 currentHeaderTarget
         ) = validateHeader(headers, 0, bytes32(0));
 
+        Epoch memory nullEpoch = Epoch(0, 0);
+
+        uint256 startingEpochNumber = currentEpoch;
+        Epoch memory startingEpoch = epochs[startingEpochNumber];
+        Epoch memory nextEpoch = nullEpoch;
+
+        // Find the correct epoch for the given chain
+        // Fastest with recent epochs, but able to handle anything after genesis
+        //
+        // The rules for bitcoin timestamps are:
+        // - must be greater than the median of the last 11 blocks' timestamps
+        // - must be less than the network-adjusted time +2 hours
+        //
+        // Because of this, the timestamp of a header may be smaller than the
+        // starting time, or greater than the ending time of its epoch.
+        // However, a valid timestamp is guaranteed to fall within the window
+        // formed by the epochs immediately before and after its timestamp.
+        // We can identify cases like these by comparing the targets.
+        while (currentHeaderTimestamp < startingEpoch.timestamp) {
+            startingEpochNumber -= 1;
+            nextEpoch = startingEpoch;
+            startingEpoch = epochs[startingEpochNumber];
+        }
+
+        // We have identified the centre of the window,
+        // by reaching the most recent epoch whose starting timestamp
+        // or reached before the genesis where epoch slots are empty.
+        // Therefore check that the timestamp is nonzero.
         require(
-            currentHeaderTarget == relevantTarget,
-            "Invalid target in header chain"
+            startingEpoch.timestamp > 0,
+            "Cannot validate chains before relay genesis"
         );
 
+        // The targets don't match. This could be because the block is invalid,
+        // or it could be because of timestamp inaccuracy.
+        // To cover the latter case, check adjacent epochs.
+        if (currentHeaderTarget != startingEpoch.target) {
+
+            // The target matches the next epoch.
+            // This means we are right at the beginning of the next epoch,
+            // and retargets during the chain should not be possible.
+            if (currentHeaderTarget == nextEpoch.target) {
+                startingEpoch = nextEpoch;
+                nextEpoch = nullEpoch;
+            }
+            // The target doesn't match the next epoch.
+            // Therefore the only valid epoch is the previous one.
+            // Because the timestamp can't be more than 2 hours into the future
+            // we must be right near the end of the epoch,
+            // so a retarget is possible.
+            else {
+                startingEpochNumber -= 1;
+                nextEpoch = startingEpoch;
+                startingEpoch = epochs[startingEpochNumber];
+
+                // We have failed to find a match,
+                // therefore the target has to be invalid.
+                require(
+                    currentHeaderTarget == startingEpoch.target,
+                    "Invalid target in header chain"
+                );
+            }
+        }
+
+        // We've found the correct epoch for the first header.
+        // Validate the rest.
         for (uint256 i = 1; i < headerCount; i++) {
-            uint256 previousHeaderTimestamp = currentHeaderTimestamp;
             bytes32 currentDigest;
             (currentDigest, currentHeaderTarget) = validateHeader(
                 headers,
@@ -361,32 +399,27 @@ contract Relay is Ownable, ILightRelay {
 
             currentHeaderTimestamp = headers.extractTimestampAt(i * 80);
 
-            require(
-                currentHeaderTimestamp > previousHeaderTimestamp,
-                "Invalid timestamp in header chain"
-            );
-
+            // If the header's target does not match the expected target,
+            // check if a retarget is possible.
+            //
             // If next epoch timestamp exists, a valid retarget is possible
             // (if next epoch timestamp doesn't exist, either a retarget has
             // already happened in this chain, or the relay needs a retarget
             // before this chain can be validated).
-            // If current header's timestamp equals the next epoch timestamp,
-            // it can be a valid retarget.
-            if (
-                currentHeaderTimestamp == nextEpochTimestamp &&
-                nextEpochTimestamp != 0
-            ) {
-                // Set the expected target for all remaining headers, including
-                // this one, and zero out the next epoch timestamp to signify
-                // that no further retarget is acceptable.
-                relevantTarget = epochs[relevantEpoch + 1].target;
-                nextEpochTimestamp = 0;
-            }
+            //
+            // In this case the target must match the next epoch's target,
+            // and the header's timestamp must match the epoch's start.
+            if (currentHeaderTarget != startingEpoch.target) {
+                require(
+                    nextEpoch.timestamp != 0 &&
+                    currentHeaderTarget == nextEpoch.target &&
+                    currentHeaderTimestamp == nextEpoch.timestamp,
+                    "Invalid target in header chain"
+                );
 
-            require(
-                currentHeaderTarget == relevantTarget,
-                "Invalid target in header chain"
-            );
+                startingEpoch = nextEpoch;
+                nextEpoch = nullEpoch;
+            }
 
             previousHeaderDigest = currentDigest;
         }
