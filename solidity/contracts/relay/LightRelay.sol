@@ -30,24 +30,6 @@ struct Epoch {
     uint224 target;
 }
 
-library RelayUtils {
-    using BytesLib for bytes;
-
-    /// @notice Extract the timestamp of the header at the given position.
-    /// @param headers Byte array containing the header of interest.
-    /// @param at The start of the header in the array.
-    /// @return The timestamp of the header.
-    /// @dev Assumes that the specified position contains a valid header.
-    /// Performs no validation whatsoever.
-    function extractTimestampAt(bytes memory headers, uint256 at)
-        internal
-        pure
-        returns (uint32)
-    {
-        return BTCUtils.reverseUint32(uint32(headers.slice4(68 + at)));
-    }
-}
-
 interface ILightRelay is IRelay {
     event Genesis(uint256 blockHeight);
     event Retarget(uint256 oldDifficulty, uint256 newDifficulty);
@@ -74,6 +56,24 @@ interface ILightRelay is IRelay {
         external
         view
         returns (uint256 relayGenesis, uint256 currentEpochEnd);
+}
+
+library RelayUtils {
+    using BytesLib for bytes;
+
+    /// @notice Extract the timestamp of the header at the given position.
+    /// @param headers Byte array containing the header of interest.
+    /// @param at The start of the header in the array.
+    /// @return The timestamp of the header.
+    /// @dev Assumes that the specified position contains a valid header.
+    /// Performs no validation whatsoever.
+    function extractTimestampAt(bytes memory headers, uint256 at)
+        internal
+        pure
+        returns (uint32)
+    {
+        return BTCUtils.reverseUint32(uint32(headers.slice4(68 + at)));
+    }
 }
 
 contract LightRelay is Ownable, ILightRelay {
@@ -360,7 +360,6 @@ contract LightRelay is Ownable, ILightRelay {
         // or it could be because of timestamp inaccuracy.
         // To cover the latter case, check adjacent epochs.
         if (currentHeaderTarget != startingEpoch.target) {
-
             // The target matches the next epoch.
             // This means we are right at the beginning of the next epoch,
             // and retargets during the chain should not be possible.
@@ -412,8 +411,8 @@ contract LightRelay is Ownable, ILightRelay {
             if (currentHeaderTarget != startingEpoch.target) {
                 require(
                     nextEpoch.timestamp != 0 &&
-                    currentHeaderTarget == nextEpoch.target &&
-                    currentHeaderTimestamp == nextEpoch.timestamp,
+                        currentHeaderTarget == nextEpoch.target &&
+                        currentHeaderTimestamp == nextEpoch.timestamp,
                     "Invalid target in header chain"
                 );
 
@@ -439,24 +438,6 @@ contract LightRelay is Ownable, ILightRelay {
         returns (uint256)
     {
         return getEpochDifficulty(blockNumber / 2016);
-    }
-
-    /// @notice Get the difficulty of the specified epoch.
-    /// @param epochNumber The number of the epoch (the height of the first
-    /// block of the epoch, divided by 2016). Must fall within the relay range.
-    /// @return The difficulty of the epoch.
-    function getEpochDifficulty(uint256 epochNumber)
-        public
-        view
-        relayActive
-        returns (uint256)
-    {
-        require(epochNumber >= genesisEpoch, "Epoch is before relay genesis");
-        require(
-            epochNumber <= currentEpoch,
-            "Epoch is not proven to the relay yet"
-        );
-        return BTCUtils.calculateDifficulty(epochs[epochNumber].target);
     }
 
     /// @notice Get the range of blocks the relay can accept proofs for.
@@ -500,6 +481,24 @@ contract LightRelay is Ownable, ILightRelay {
         returns (uint256 current, uint256 previous)
     {
         return (currentEpochDifficulty, prevEpochDifficulty);
+    }
+
+    /// @notice Get the difficulty of the specified epoch.
+    /// @param epochNumber The number of the epoch (the height of the first
+    /// block of the epoch, divided by 2016). Must fall within the relay range.
+    /// @return The difficulty of the epoch.
+    function getEpochDifficulty(uint256 epochNumber)
+        public
+        view
+        relayActive
+        returns (uint256)
+    {
+        require(epochNumber >= genesisEpoch, "Epoch is before relay genesis");
+        require(
+            epochNumber <= currentEpoch,
+            "Epoch is not proven to the relay yet"
+        );
+        return BTCUtils.calculateDifficulty(epochs[epochNumber].target);
     }
 
     /// @notice Check that the specified header forms a correct chain with the
