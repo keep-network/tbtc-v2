@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.9;
 
-import "../relay/Relay.sol";
+import "../relay/LightRelay.sol";
 
-contract RelayStub is Relay {
+contract RelayStub is LightRelay {
     // Gas-reporting version of validateChain
     function validateChainGasReport(bytes memory headers)
         external

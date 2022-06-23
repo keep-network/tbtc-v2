@@ -76,7 +76,7 @@ interface ILightRelay is IRelay {
         returns (uint256 relayGenesis, uint256 currentEpochEnd);
 }
 
-contract Relay is Ownable, ILightRelay {
+contract LightRelay is Ownable, ILightRelay {
     using BytesLib for bytes;
     using BTCUtils for bytes;
     using ValidateSPV for bytes;

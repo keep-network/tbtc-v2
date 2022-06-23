@@ -47,7 +47,7 @@ const fixture = async () => {
   }
 }
 
-describe("Relay", () => {
+describe("LightRelay", () => {
   let deployer: SignerWithAddress
 
   let governance: SignerWithAddress
