@@ -80,7 +80,9 @@ contract LightRelay is Ownable, ILightRelay {
     using RelayUtils for bytes;
 
     bool public ready;
-    // Number of blocks required for a retarget proof.
+    // Number of blocks required for each side of a retarget proof:
+    // a retarget must provide `proofLength` blocks before the retarget
+    // and `proofLength` blocks after it.
     // Governable
     // Should be set to a fairly high number (e.g. 20-50) in production.
     uint64 public proofLength;
@@ -212,6 +214,19 @@ contract LightRelay is Ownable, ILightRelay {
         // get timestamp of retarget block
         uint256 epochEndTimestamp = headers.extractTimestampAt(
             (proofLength - 1) * 80
+        );
+
+        // An attacker could produce blocks with timestamps in the future,
+        // in an attempt to reduce the difficulty after the retarget
+        // to make mining the second part of the retarget proof easier.
+        // In particular, the attacker could reuse all but one block
+        // from the legitimate chain, and only mine the last block.
+        // To hinder this, require that the epoch end timestamp does not
+        // exceed the ethereum timestamp.
+        // NOTE: both are unix seconds, so this comparison should be valid.
+        require(
+            epochEndTimestamp < block.timestamp,
+            "Epoch cannot end in the future"
         );
 
         // Expected target is the full-length target
