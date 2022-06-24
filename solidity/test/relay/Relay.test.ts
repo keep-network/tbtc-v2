@@ -256,6 +256,129 @@ describe("LightRelay", () => {
   // end setProofLength
   //
 
+  describe("authorizations", () => {
+    before(async () => {
+      await createSnapshot()
+      await relay
+        .connect(governance)
+        .genesis(genesisHeader, genesisHeight, proofLength)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("authorization status", () => {
+      it("should start at false", async () => {
+        expect(await relay.authorizationRequired()).to.be.false
+      })
+
+      context("when set by governance", () => {
+        let tx: ContractTransaction
+
+        it("should be updated", async () => {
+          await relay.connect(governance).setAuthorizationStatus(true)
+          expect(await relay.authorizationRequired()).to.be.true
+        })
+
+        it("should emit an event", async () => {
+          tx = await relay.connect(governance).setAuthorizationStatus(true)
+          await expect(tx)
+            .to.emit(relay, "AuthorizationRequirementChanged")
+            .withArgs(true)
+        })
+      })
+
+      context("when set by someone other than governance", () => {
+        it("should revert", async () => {
+          await expect(
+            relay.connect(thirdParty).setAuthorizationStatus(true)
+          ).to.be.revertedWith("Ownable: caller is not the owner")
+        })
+      })
+
+      context("when unset by governance", () => {
+        before(async () => {
+          await createSnapshot()
+          await relay.connect(governance).setAuthorizationStatus(true)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should be updated", async () => {
+          await relay.connect(governance).setAuthorizationStatus(false)
+          expect(await relay.authorizationRequired()).to.be.false
+        })
+
+        it("should emit an event", async () => {
+          const tx = await relay
+            .connect(governance)
+            .setAuthorizationStatus(false)
+          await expect(tx)
+            .to.emit(relay, "AuthorizationRequirementChanged")
+            .withArgs(false)
+        })
+      })
+    })
+
+    context("submitter authorization", () => {
+      it("should start at false", async () => {
+        expect(await relay.isAuthorized(thirdParty.address)).to.be.false
+      })
+
+      context("when set by governance", () => {
+        it("should be updated", async () => {
+          await relay.connect(governance).authorize(thirdParty.address)
+          expect(await relay.isAuthorized(thirdParty.address)).to.be.true
+        })
+
+        it("should emit an event", async () => {
+          const tx = await relay
+            .connect(governance)
+            .authorize(thirdParty.address)
+          await expect(tx)
+            .to.emit(relay, "SubmitterAuthorized")
+            .withArgs(thirdParty.address)
+        })
+      })
+
+      context("when set by someone other than governance", () => {
+        it("should revert", async () => {
+          await expect(
+            relay.connect(thirdParty).authorize(thirdParty.address)
+          ).to.be.revertedWith("Ownable: caller is not the owner")
+        })
+      })
+
+      context("when unset by governance", () => {
+        before(async () => {
+          await createSnapshot()
+          await relay.connect(governance).authorize(thirdParty.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should be updated", async () => {
+          await relay.connect(governance).deauthorize(thirdParty.address)
+          expect(await relay.isAuthorized(thirdParty.address)).to.be.false
+        })
+
+        it("should emit an event", async () => {
+          const tx = await relay
+            .connect(governance)
+            .deauthorize(thirdParty.address)
+          await expect(tx)
+            .to.emit(relay, "SubmitterDeauthorized")
+            .withArgs(thirdParty.address)
+        })
+      })
+    })
+  })
+
   //
   // retarget
   //
@@ -368,6 +491,53 @@ describe("LightRelay", () => {
           await expect(tx)
             .to.emit(relay, "Retarget")
             .withArgs(genesisDifficulty, nextDifficulty)
+        })
+      })
+
+      context("with appropriate authorisation", () => {
+        let tx: ContractTransaction
+        const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
+
+        before(async () => {
+          await createSnapshot()
+          await relay.connect(governance).setAuthorizationStatus(true)
+          await relay.connect(governance).authorize(thirdParty.address)
+          tx = await relay.connect(thirdParty).retarget(retargetHeaders)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should store the new difficulty", async () => {
+          expect(await relay.getEpochDifficulty(genesisEpoch + 1)).to.equal(
+            nextDifficulty
+          )
+        })
+
+        it("should emit the Retarget event", async () => {
+          await expect(tx)
+            .to.emit(relay, "Retarget")
+            .withArgs(genesisDifficulty, nextDifficulty)
+        })
+      })
+
+      context("without appropriate authorisation", () => {
+        const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
+
+        before(async () => {
+          await createSnapshot()
+          await relay.connect(governance).setAuthorizationStatus(true)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            relay.connect(thirdParty).retarget(retargetHeaders)
+          ).to.be.revertedWith("Submitter unauthorized")
         })
       })
     })

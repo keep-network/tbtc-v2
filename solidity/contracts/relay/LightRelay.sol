@@ -35,8 +35,8 @@ interface ILightRelay is IRelay {
     event Retarget(uint256 oldDifficulty, uint256 newDifficulty);
     event ProofLengthChanged(uint256 newLength);
     event AuthorizationRequirementChanged(bool newStatus);
-    event SubmitterAuthorised(address submitter);
-    event SubmitterDeauthorised(address submitter);
+    event SubmitterAuthorized(address submitter);
+    event SubmitterDeauthorized(address submitter);
 
     function retarget(bytes memory headers) external;
 
@@ -185,14 +185,14 @@ contract LightRelay is Ownable, ILightRelay {
     /// @param submitter The address to be authorised.
     function authorize(address submitter) external onlyOwner {
         isAuthorized[submitter] = true;
-        emit SubmitterAuthorised(submitter);
+        emit SubmitterAuthorized(submitter);
     }
 
     /// @notice Rescind the authorisation of the submitter to retarget.
     /// @param submitter The address to be deauthorised.
     function deauthorize(address submitter) external onlyOwner {
         isAuthorized[submitter] = false;
-        emit SubmitterDeauthorised(submitter);
+        emit SubmitterDeauthorized(submitter);
     }
 
     /// @notice Add a new epoch to the relay by providing a proof
@@ -221,7 +221,7 @@ contract LightRelay is Ownable, ILightRelay {
     /// contradictory proof were to be presented later.
     function retarget(bytes memory headers) external relayActive {
         if (authorizationRequired) {
-            require(isAuthorized[msg.sender], "Sender unauthorized");
+            require(isAuthorized[msg.sender], "Submitter unauthorized");
         }
 
         require(
