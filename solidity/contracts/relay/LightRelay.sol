@@ -37,10 +37,7 @@ interface ILightRelay is IRelay {
 
     function retarget(bytes memory headers) external;
 
-    function validateChain(bytes memory headers)
-        external
-        view
-        returns (uint256);
+    function validateChain(bytes memory headers) external view returns (bool);
 
     function getBlockDifficulty(uint256 blockNumber)
         external
@@ -103,6 +100,11 @@ contract LightRelay is Ownable, ILightRelay {
 
     // Each epoch from genesis to the current one, keyed by their numbers.
     mapping(uint256 => Epoch) internal epochs;
+
+    modifier relayActive() {
+        require(ready, "Relay is not ready for use");
+        _;
+    }
 
     /// @notice Establish a starting point for the relay by providing the
     /// target, timestamp and blockheight of the first block of the relay
@@ -273,7 +275,7 @@ contract LightRelay is Ownable, ILightRelay {
     /// @notice Check whether a given chain of headers should be accepted as
     /// valid within the rules of the relay.
     /// @param headers A chain of 2 to 2015 bitcoin headers.
-    /// @return The timestamp of the last header if validation succeeds.
+    /// @return True if validation succeeds.
     /// If the validation fails, this function throws an exception.
     /// @dev A chain of headers is accepted as valid if:
     /// - Its length is between 2 and 2015 headers.
@@ -302,7 +304,7 @@ contract LightRelay is Ownable, ILightRelay {
         external
         view
         relayActive
-        returns (uint256)
+        returns (bool)
     {
         require(headers.length % 80 == 0, "Invalid header length");
 
@@ -313,7 +315,7 @@ contract LightRelay is Ownable, ILightRelay {
             "Invalid number of headers"
         );
 
-        uint256 currentHeaderTimestamp = headers.extractTimestamp();
+        uint256 startingHeaderTimestamp = headers.extractTimestamp();
 
         // Short-circuit the first header's validation.
         // We validate the header here to get the target which is needed to
@@ -341,7 +343,7 @@ contract LightRelay is Ownable, ILightRelay {
         // However, a valid timestamp is guaranteed to fall within the window
         // formed by the epochs immediately before and after its timestamp.
         // We can identify cases like these by comparing the targets.
-        while (currentHeaderTimestamp < startingEpoch.timestamp) {
+        while (startingHeaderTimestamp < startingEpoch.timestamp) {
             startingEpochNumber -= 1;
             nextEpoch = startingEpoch;
             startingEpoch = epochs[startingEpochNumber];
@@ -396,8 +398,6 @@ contract LightRelay is Ownable, ILightRelay {
                 previousHeaderDigest
             );
 
-            currentHeaderTimestamp = headers.extractTimestampAt(i * 80);
-
             // If the header's target does not match the expected target,
             // check if a retarget is possible.
             //
@@ -409,6 +409,10 @@ contract LightRelay is Ownable, ILightRelay {
             // In this case the target must match the next epoch's target,
             // and the header's timestamp must match the epoch's start.
             if (currentHeaderTarget != startingEpoch.target) {
+                uint256 currentHeaderTimestamp = headers.extractTimestampAt(
+                    i * 80
+                );
+
                 require(
                     nextEpoch.timestamp != 0 &&
                         currentHeaderTarget == nextEpoch.target &&
@@ -423,7 +427,7 @@ contract LightRelay is Ownable, ILightRelay {
             previousHeaderDigest = currentDigest;
         }
 
-        return currentHeaderTimestamp;
+        return true;
     }
 
     /// @notice Get the difficulty of the specified block.
@@ -530,10 +534,5 @@ contract LightRelay is Ownable, ILightRelay {
         require(ValidateSPV.validateHeaderWork(digest, target), "Invalid work");
 
         return (digest, target);
-    }
-
-    modifier relayActive() {
-        require(ready, "Relay is not ready for use");
-        _;
     }
 }
