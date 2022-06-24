@@ -34,6 +34,9 @@ interface ILightRelay is IRelay {
     event Genesis(uint256 blockHeight);
     event Retarget(uint256 oldDifficulty, uint256 newDifficulty);
     event ProofLengthChanged(uint256 newLength);
+    event AuthorizationRequirementChanged(bool newStatus);
+    event SubmitterAuthorised(address submitter);
+    event SubmitterDeauthorised(address submitter);
 
     function retarget(bytes memory headers) external;
 
@@ -83,6 +86,9 @@ contract LightRelay is Ownable, ILightRelay {
     using RelayUtils for bytes;
 
     bool public ready;
+    // Whether the relay requires the address submitting a retarget to be
+    // authorised in advance by governance.
+    bool public authorizationRequired;
     // Number of blocks required for each side of a retarget proof:
     // a retarget must provide `proofLength` blocks before the retarget
     // and `proofLength` blocks after it.
@@ -105,6 +111,8 @@ contract LightRelay is Ownable, ILightRelay {
 
     // Each epoch from genesis to the current one, keyed by their numbers.
     mapping(uint256 => Epoch) internal epochs;
+
+    mapping(address => bool) public isAuthorized;
 
     modifier relayActive() {
         require(ready, "Relay is not ready for use");
@@ -165,6 +173,28 @@ contract LightRelay is Ownable, ILightRelay {
         emit ProofLengthChanged(newLength);
     }
 
+    /// @notice Set whether the relay requires retarget submitters to be
+    /// pre-authorised by governance.
+    /// @param status True if authorisation is to be required, false if not.
+    function setAuthorizationStatus(bool status) external onlyOwner {
+        authorizationRequired = status;
+        emit AuthorizationRequirementChanged(status);
+    }
+
+    /// @notice Authorise the given address to submit retarget proofs.
+    /// @param submitter The address to be authorised.
+    function authorize(address submitter) external onlyOwner {
+        isAuthorized[submitter] = true;
+        emit SubmitterAuthorised(submitter);
+    }
+
+    /// @notice Rescind the authorisation of the submitter to retarget.
+    /// @param submitter The address to be deauthorised.
+    function deauthorize(address submitter) external onlyOwner {
+        isAuthorized[submitter] = false;
+        emit SubmitterDeauthorised(submitter);
+    }
+
     /// @notice Add a new epoch to the relay by providing a proof
     /// of the difficulty before and after the retarget.
     /// @param headers A chain of headers including the last X blocks before
@@ -190,6 +220,10 @@ contract LightRelay is Ownable, ILightRelay {
     /// retarget has been proven to the relay, the epoch is immutable even if a
     /// contradictory proof were to be presented later.
     function retarget(bytes memory headers) external relayActive {
+        if (authorizationRequired) {
+            require(isAuthorized[msg.sender], "Sender unauthorized");
+        }
+
         require(
             // Require proofLength headers on both sides of the retarget
             headers.length == (proofLength * 2 * 80),
