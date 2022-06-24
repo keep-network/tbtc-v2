@@ -37,7 +37,10 @@ interface ILightRelay is IRelay {
 
     function retarget(bytes memory headers) external;
 
-    function validateChain(bytes memory headers) external view returns (bool);
+    function validateChain(bytes memory headers)
+        external
+        view
+        returns (uint256 startingHeaderTimestamp, uint256 headerCount);
 
     function getBlockDifficulty(uint256 blockNumber)
         external
@@ -115,6 +118,9 @@ contract LightRelay is Ownable, ILightRelay {
     /// @param genesisHeight The block number of the first block of the epoch.
     /// @param genesisProofLength The number of blocks required to accept a
     /// proof.
+    /// @dev If the relay is used by querying the current and previous epoch
+    /// difficulty, at least one retarget needs to be provided after genesis;
+    /// otherwise the prevEpochDifficulty will be uninitialised and zero.
     function genesis(
         bytes calldata genesisHeader,
         uint256 genesisHeight,
@@ -225,6 +231,7 @@ contract LightRelay is Ownable, ILightRelay {
         // exceed the ethereum timestamp.
         // NOTE: both are unix seconds, so this comparison should be valid.
         require(
+            /* solhint-disable-next-line not-rely-on-time */
             epochEndTimestamp < block.timestamp,
             "Epoch cannot end in the future"
         );
@@ -289,9 +296,10 @@ contract LightRelay is Ownable, ILightRelay {
 
     /// @notice Check whether a given chain of headers should be accepted as
     /// valid within the rules of the relay.
-    /// @param headers A chain of 2 to 2015 bitcoin headers.
-    /// @return True if validation succeeds.
     /// If the validation fails, this function throws an exception.
+    /// @param headers A chain of 2 to 2015 bitcoin headers.
+    /// @return startingHeaderTimestamp The timestamp of the first header.
+    /// @return headerCount The number of headers.
     /// @dev A chain of headers is accepted as valid if:
     /// - Its length is between 2 and 2015 headers.
     /// - Headers in the chain are sequential and refer to previous digests.
@@ -319,18 +327,18 @@ contract LightRelay is Ownable, ILightRelay {
         external
         view
         relayActive
-        returns (bool)
+        returns (uint256 startingHeaderTimestamp, uint256 headerCount)
     {
         require(headers.length % 80 == 0, "Invalid header length");
 
-        uint256 headerCount = headers.length / 80;
+        headerCount = headers.length / 80;
 
         require(
             headerCount > 1 && headerCount < 2016,
             "Invalid number of headers"
         );
 
-        uint256 startingHeaderTimestamp = headers.extractTimestamp();
+        startingHeaderTimestamp = headers.extractTimestamp();
 
         // Short-circuit the first header's validation.
         // We validate the header here to get the target which is needed to
@@ -442,7 +450,7 @@ contract LightRelay is Ownable, ILightRelay {
             previousHeaderDigest = currentDigest;
         }
 
-        return true;
+        return (startingHeaderTimestamp, headerCount);
     }
 
     /// @notice Get the difficulty of the specified block.
