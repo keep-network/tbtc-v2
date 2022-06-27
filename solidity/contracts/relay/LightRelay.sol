@@ -511,7 +511,6 @@ contract LightRelay is Ownable, ILightRelay {
     function getBlockDifficulty(uint256 blockNumber)
         external
         view
-        relayActive
         returns (uint256)
     {
         return getEpochDifficulty(blockNumber / 2016);
@@ -531,7 +530,6 @@ contract LightRelay is Ownable, ILightRelay {
     function getRelayRange()
         external
         view
-        relayActive
         returns (uint256 relayGenesis, uint256 currentEpochEnd)
     {
         relayGenesis = genesisEpoch * 2016;
@@ -567,7 +565,6 @@ contract LightRelay is Ownable, ILightRelay {
     function getEpochDifficulty(uint256 epochNumber)
         public
         view
-        relayActive
         returns (uint256)
     {
         require(epochNumber >= genesisEpoch, "Epoch is before relay genesis");

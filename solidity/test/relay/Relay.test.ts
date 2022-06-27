@@ -833,7 +833,7 @@ describe("LightRelay", () => {
     context("when called before genesis", () => {
       it("should revert", async () => {
         await expect(relay.getBlockDifficulty(552384)).to.be.revertedWith(
-          "Relay is not ready for use"
+          "Epoch is not proven to the relay yet"
         )
       })
     })
@@ -936,7 +936,7 @@ describe("LightRelay", () => {
     context("when called before genesis", () => {
       it("should revert", async () => {
         await expect(relay.getEpochDifficulty(genesisEpoch)).to.be.revertedWith(
-          "Relay is not ready for use"
+          "Epoch is not proven to the relay yet"
         )
       })
     })
@@ -1023,10 +1023,10 @@ describe("LightRelay", () => {
     })
 
     context("when called before genesis", () => {
-      it("should revert", async () => {
-        await expect(relay.getRelayRange()).to.be.revertedWith(
-          "Relay is not ready for use"
-        )
+      it("should return nonsense", async () => {
+        const res = await relay.getRelayRange()
+        expect(res[0]).to.equal(0)
+        expect(res[1]).to.equal(2015)
       })
     })
 
