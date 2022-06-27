@@ -79,6 +79,7 @@ library RelayUtils {
     }
 }
 
+/// @dev THE RELAY MUST NOT BE USED BEFORE GENESIS AND AT LEAST ONE RETARGET.
 contract LightRelay is Ownable, ILightRelay {
     using BytesLib for bytes;
     using BTCUtils for bytes;
@@ -295,8 +296,21 @@ contract LightRelay is Ownable, ILightRelay {
                 // The new target has not been set, so check its correctness
                 minedTarget = _currentHeaderTarget;
                 require(
-                    // Mask full-length target with header-encoded target
-                    // (full & truncated) == truncated
+                    // The new target has been set, so the remaining targets should match
+                    // Although the target is a 256-bit number, there are only 32 bits of
+                    // space in the Bitcoin header. Because of that, the version stored in
+                    // the header is a less-precise representation of the actual target
+                    // using base-256 version of scientific notation.
+                    //
+                    // The 256-bit unsigned integer returned from BTCUtils.retargetAlgorithm
+                    // is the precise target value.
+                    // The 256-bit unsigned integer returned from validateHeader is the less
+                    // precise target value because it was read from 32 bits of space of
+                    // Bitcoin block header.
+                    //
+                    // We can't compare the precise and less precise representations together
+                    // so we first mask them to obtain the less precise version:
+                    //   (full & truncated) == truncated
                     _currentHeaderTarget ==
                         (expectedTarget & _currentHeaderTarget),
                     "Invalid target in new epoch"
@@ -460,8 +474,10 @@ contract LightRelay is Ownable, ILightRelay {
             //
             // If next epoch timestamp exists, a valid retarget is possible
             // (if next epoch timestamp doesn't exist, either a retarget has
-            // already happened in this chain, or the relay needs a retarget
-            // before this chain can be validated).
+            // already happened in this chain, the relay needs a retarget
+            // before this chain can be validated, or a retarget is not allowed
+            // because we know the headers are within a timestamp irregularity
+            // of the previous retarget).
             //
             // In this case the target must match the next epoch's target,
             // and the header's timestamp must match the epoch's start.
