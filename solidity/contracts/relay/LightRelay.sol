@@ -296,7 +296,6 @@ contract LightRelay is Ownable, ILightRelay {
                 // The new target has not been set, so check its correctness
                 minedTarget = _currentHeaderTarget;
                 require(
-                    // The new target has been set, so the remaining targets should match
                     // Although the target is a 256-bit number, there are only 32 bits of
                     // space in the Bitcoin header. Because of that, the version stored in
                     // the header is a less-precise representation of the actual target
@@ -316,7 +315,7 @@ contract LightRelay is Ownable, ILightRelay {
                     "Invalid target in new epoch"
                 );
             } else {
-                // The new target has been set, so remaining targets should match
+                // The new target has been set, so remaining targets should match.
                 require(
                     _currentHeaderTarget == minedTarget,
                     "Unexpected target change after retarget"
