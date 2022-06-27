@@ -48,8 +48,6 @@ const fixture = async () => {
 }
 
 describe("LightRelay", () => {
-  let deployer: SignerWithAddress
-
   let governance: SignerWithAddress
 
   let thirdParty: SignerWithAddress
@@ -58,9 +56,7 @@ describe("LightRelay", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ deployer, governance, thirdParty, relay } = await waffle.loadFixture(
-      fixture
-    ))
+    ;({ governance, thirdParty, relay } = await waffle.loadFixture(fixture))
   })
 
   //
