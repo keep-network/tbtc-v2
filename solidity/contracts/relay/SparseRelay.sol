@@ -174,11 +174,16 @@ contract SparseRelay is Ownable, ISparseRelay {
                         epochStartBlock.height / 2016,
                     "Epoch start block not of this epoch"
                 );
-
+                uint256 epochEndTimestamp = headers.extractTimestampAt(i * 80);
+                require(
+                    /* solhint-disable-next-line not-rely-on-time */
+                    epochEndTimestamp < block.timestamp,
+                    "Epoch may not end in the future"
+                );
                 data.currentTarget = BTCUtils.retargetAlgorithm(
                     data.currentTarget,
                     epochStartHeader.extractTimestamp(),
-                    headers.extractTimestampAt(i * 80)
+                    epochEndTimestamp
                 );
             }
 
