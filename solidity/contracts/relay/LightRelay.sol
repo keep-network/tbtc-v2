@@ -373,7 +373,6 @@ contract LightRelay is Ownable, ILightRelay {
     function validateChain(bytes memory headers)
         external
         view
-        relayActive
         returns (uint256 startingHeaderTimestamp, uint256 headerCount)
     {
         require(headers.length % 80 == 0, "Invalid header length");

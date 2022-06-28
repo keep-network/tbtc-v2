@@ -583,7 +583,7 @@ describe("LightRelay", () => {
 
       it("should revert", async () => {
         await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
-          "Relay is not ready for use"
+          "Cannot validate chains before relay genesis"
         )
       })
     })
