@@ -74,7 +74,7 @@ library BridgeState {
         //
         // This is a TOTAL max fee for the moving funds transaction. Note
         // that `depositTxMaxFee` is per single deposit and `redemptionTxMaxFee`
-        // if per single redemption. `movingFundsTxMaxTotalFee` is a total
+        // is per single redemption. `movingFundsTxMaxTotalFee` is a total
         // fee for the entire transaction.
         uint64 movingFundsTxMaxTotalFee;
         // The minimal satoshi amount that makes sense to be transferred during
@@ -114,7 +114,7 @@ library BridgeState {
         //
         // This is a TOTAL max fee for the moved funds sweep transaction. Note
         // that `depositTxMaxFee` is per single deposit and `redemptionTxMaxFee`
-        // if per single redemption. `movedFundsSweepTxMaxTotalFee` is a total
+        // is per single redemption. `movedFundsSweepTxMaxTotalFee` is a total
         // fee for the entire transaction.
         uint64 movedFundsSweepTxMaxTotalFee;
         // Time after which the moved funds sweep process can be reported as
@@ -153,6 +153,13 @@ library BridgeState {
         // This is a per-redemption output max fee for the redemption
         // transaction.
         uint64 redemptionTxMaxFee;
+        // Maximum amount of the total BTC transaction fee that is acceptable in
+        // a single redemption transaction.
+        //
+        // This is a TOTAL max fee for the redemption transaction. Note
+        // that the `redemptionTxMaxFee` is per single redemption.
+        // `redemptionTxMaxTotalFee` is a total fee for the entire transaction.
+        uint64 redemptionTxMaxTotalFee;
         // Move redemptionTimeout to the next storage slot for a more efficient
         // variable layout in the storage.
         // slither-disable-next-line unused-state
