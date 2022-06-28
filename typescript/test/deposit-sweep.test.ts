@@ -1,10 +1,10 @@
-import TBTC from "./../src"
 import { BigNumber } from "ethers"
 import {
   RawTransaction,
   TransactionHash,
   UnspentTransactionOutput,
-} from "../src/bitcoin"
+  Transaction,
+} from "./bitcoin"
 import {
   testnetDepositScripthashAddress,
   testnetDepositWitnessScripthashAddress,
@@ -19,20 +19,23 @@ import {
   depositSweepProof,
   NO_MAIN_UTXO,
 } from "./data/deposit-sweep"
-import { Transaction } from "../src/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import { MockBridge } from "./utils/mock-bridge"
-// @ts-ignore
 import bcoin from "bcoin"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
 chai.use(chaiAsPromised)
 import { expect } from "chai"
+import {
+  assembleDepositSweepTransaction,
+  submitDepositSweepProof,
+  submitDepositSweepTransaction,
+} from "../src/deposit-sweep"
 
 describe("Sweep", () => {
   const fee = BigNumber.from(1600)
 
-  describe("sweepDeposits", () => {
+  describe("submitDepositSweepTransaction", () => {
     let bitcoinClient: MockBitcoinClient
 
     beforeEach(async () => {
@@ -70,14 +73,15 @@ describe("Sweep", () => {
             )
           const witness = depositSweepWithNoMainUtxoAndWitnessOutput.witness
 
-          ;({ transactionHash, newMainUtxo } = await TBTC.sweepDeposits(
-            bitcoinClient,
-            fee,
-            testnetWalletPrivateKey,
-            witness,
-            utxos,
-            deposit
-          ))
+          ;({ transactionHash, newMainUtxo } =
+            await submitDepositSweepTransaction(
+              bitcoinClient,
+              fee,
+              testnetWalletPrivateKey,
+              witness,
+              utxos,
+              deposit
+            ))
         })
 
         it("should broadcast sweep transaction with proper structure", async () => {
@@ -151,15 +155,16 @@ describe("Sweep", () => {
             const mainUtxo =
               depositSweepWithWitnessMainUtxoAndWitnessOutput.mainUtxo
 
-            ;({ transactionHash, newMainUtxo } = await TBTC.sweepDeposits(
-              bitcoinClient,
-              fee,
-              testnetWalletPrivateKey,
-              witness,
-              utxos,
-              deposit,
-              mainUtxo
-            ))
+            ;({ transactionHash, newMainUtxo } =
+              await submitDepositSweepTransaction(
+                bitcoinClient,
+                fee,
+                testnetWalletPrivateKey,
+                witness,
+                utxos,
+                deposit,
+                mainUtxo
+              ))
           })
 
           it("should broadcast sweep transaction with proper structure", async () => {
@@ -236,15 +241,16 @@ describe("Sweep", () => {
               const mainUtxo =
                 depositSweepWithNonWitnessMainUtxoAndWitnessOutput.mainUtxo
 
-              ;({ transactionHash, newMainUtxo } = await TBTC.sweepDeposits(
-                bitcoinClient,
-                fee,
-                testnetWalletPrivateKey,
-                witness,
-                utxos,
-                deposit,
-                mainUtxo
-              ))
+              ;({ transactionHash, newMainUtxo } =
+                await submitDepositSweepTransaction(
+                  bitcoinClient,
+                  fee,
+                  testnetWalletPrivateKey,
+                  witness,
+                  utxos,
+                  deposit,
+                  mainUtxo
+                ))
             })
 
             it("should broadcast sweep transaction with proper structure", async () => {
@@ -309,14 +315,15 @@ describe("Sweep", () => {
           )
         const witness = depositSweepWithNoMainUtxoAndNonWitnessOutput.witness
 
-        ;({ transactionHash, newMainUtxo } = await TBTC.sweepDeposits(
-          bitcoinClient,
-          fee,
-          testnetWalletPrivateKey,
-          witness,
-          utxos,
-          deposits
-        ))
+        ;({ transactionHash, newMainUtxo } =
+          await submitDepositSweepTransaction(
+            bitcoinClient,
+            fee,
+            testnetWalletPrivateKey,
+            witness,
+            utxos,
+            deposits
+          ))
       })
 
       it("should broadcast sweep transaction with proper structure", async () => {
@@ -348,7 +355,7 @@ describe("Sweep", () => {
     })
   })
 
-  describe("createDepositSweepTransaction", () => {
+  describe("assembleDepositSweepTransaction", () => {
     context("when the new main UTXO is requested to be witness", () => {
       context("when there is no main UTXO from previous deposit sweep", () => {
         let transactionHash: TransactionHash
@@ -373,7 +380,7 @@ describe("Sweep", () => {
             transactionHash,
             newMainUtxo,
             rawTransaction: transaction,
-          } = await TBTC.createDepositSweepTransaction(
+          } = await assembleDepositSweepTransaction(
             fee,
             testnetWalletPrivateKey,
             witness,
@@ -505,7 +512,7 @@ describe("Sweep", () => {
               transactionHash,
               newMainUtxo,
               rawTransaction: transaction,
-            } = await TBTC.createDepositSweepTransaction(
+            } = await assembleDepositSweepTransaction(
               fee,
               testnetWalletPrivateKey,
               witness,
@@ -659,7 +666,7 @@ describe("Sweep", () => {
                 transactionHash,
                 newMainUtxo,
                 rawTransaction: transaction,
-              } = await TBTC.createDepositSweepTransaction(
+              } = await assembleDepositSweepTransaction(
                 fee,
                 testnetWalletPrivateKey,
                 witness,
@@ -795,7 +802,7 @@ describe("Sweep", () => {
           transactionHash,
           newMainUtxo,
           rawTransaction: transaction,
-        } = await TBTC.createDepositSweepTransaction(
+        } = await assembleDepositSweepTransaction(
           fee,
           testnetWalletPrivateKey,
           witness,
@@ -884,7 +891,7 @@ describe("Sweep", () => {
     context("when there are no UTXOs", () => {
       it("should revert", async () => {
         await expect(
-          TBTC.createDepositSweepTransaction(
+          assembleDepositSweepTransaction(
             fee,
             testnetWalletPrivateKey,
             true,
@@ -912,7 +919,7 @@ describe("Sweep", () => {
 
         it("should revert", async () => {
           await expect(
-            TBTC.createDepositSweepTransaction(
+            assembleDepositSweepTransaction(
               fee,
               testnetWalletPrivateKey,
               witness,
@@ -937,7 +944,7 @@ describe("Sweep", () => {
 
         it("should revert", async () => {
           await expect(
-            TBTC.createDepositSweepTransaction(
+            assembleDepositSweepTransaction(
               fee,
               testnetWalletPrivateKey,
               true,
@@ -975,7 +982,7 @@ describe("Sweep", () => {
 
       it("should revert", async () => {
         await expect(
-          TBTC.createDepositSweepTransaction(
+          assembleDepositSweepTransaction(
             fee,
             testnetWalletPrivateKey,
             true,
@@ -999,7 +1006,7 @@ describe("Sweep", () => {
 
         it("should revert", async () => {
           await expect(
-            TBTC.createDepositSweepTransaction(
+            assembleDepositSweepTransaction(
               fee,
               anotherPrivateKey,
               true,
@@ -1031,7 +1038,7 @@ describe("Sweep", () => {
 
       it("should revert", async () => {
         await expect(
-          TBTC.createDepositSweepTransaction(
+          assembleDepositSweepTransaction(
             fee,
             testnetWalletPrivateKey,
             true,
@@ -1043,7 +1050,7 @@ describe("Sweep", () => {
     })
   })
 
-  describe("proveDepositSweep", () => {
+  describe("submitDepositSweepProof", () => {
     let bitcoinClient: MockBitcoinClient
     let bridge: MockBridge
 
@@ -1081,7 +1088,7 @@ describe("Sweep", () => {
         depositSweepProof.bitcoinChainData.accumulatedTxConfirmations
       )
       bitcoinClient.confirmations = confirmations
-      await TBTC.proveDepositSweep(
+      await submitDepositSweepProof(
         transactionHash,
         NO_MAIN_UTXO,
         bridge,

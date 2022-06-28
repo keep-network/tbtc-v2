@@ -1,4 +1,3 @@
-// @ts-ignore
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
@@ -10,13 +9,13 @@ import {
   createKeyRing,
   TransactionHash,
 } from "./bitcoin"
-import { createDepositScript, Deposit } from "./deposit"
+import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge } from "./chain"
-import { createTransactionProof } from "./proof"
+import { assembleTransactionProof } from "./proof"
 
 /**
- * Sweeps P2(W)SH UTXOs by combining all the provided UTXOs and broadcasting
- * a Bitcoin P2WPKH deposit sweep transaction.
+ * Submits a deposit sweep by combining all the provided P2(W)SH UTXOs and
+ * broadcasting a Bitcoin P2(W)PKH deposit sweep transaction.
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee. Note that broadcasting transaction may fail silently (e.g.
@@ -36,7 +35,7 @@ import { createTransactionProof } from "./proof"
  *          - the sweep transaction hash,
  *          - the new wallet's main UTXO produced by this transaction.
  */
-export async function sweepDeposits(
+export async function submitDepositSweepTransaction(
   bitcoinClient: BitcoinClient,
   fee: BigNumber,
   walletPrivateKey: string,
@@ -73,7 +72,7 @@ export async function sweepDeposits(
   }
 
   const { transactionHash, newMainUtxo, rawTransaction } =
-    await createDepositSweepTransaction(
+    await assembleDepositSweepTransaction(
       fee,
       walletPrivateKey,
       witness,
@@ -91,7 +90,7 @@ export async function sweepDeposits(
 }
 
 /**
- * Creates a Bitcoin P2WPKH deposit sweep transaction.
+ * Assembles a Bitcoin P2WPKH deposit sweep transaction.
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee.
@@ -110,7 +109,7 @@ export async function sweepDeposits(
  *          - the new wallet's main UTXO produced by this transaction.
  *          - the sweep transaction in the raw format
  */
-export async function createDepositSweepTransaction(
+export async function assembleDepositSweepTransaction(
   fee: BigNumber,
   walletPrivateKey: string,
   witness: boolean,
@@ -244,9 +243,9 @@ export async function createDepositSweepTransaction(
  * @returns Empty promise.
  */
 async function signMainUtxoInput(
-  transaction: bcoin.MTX,
+  transaction: any,
   inputIndex: number,
-  walletKeyRing: bcoin.KeyRing
+  walletKeyRing: any
 ) {
   const previousOutpoint = transaction.inputs[inputIndex].prevout
   const previousOutput = transaction.view.getOutput(previousOutpoint)
@@ -269,10 +268,10 @@ async function signMainUtxoInput(
  * @returns Empty promise.
  */
 async function signP2SHDepositInput(
-  transaction: bcoin.MTX,
+  transaction: any,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: bcoin.KeyRing
+  walletKeyRing: any
 ): Promise<void> {
   const { walletPublicKey, depositScript, previousOutputValue } =
     await prepareInputSignData(transaction, inputIndex, deposit, walletKeyRing)
@@ -305,10 +304,10 @@ async function signP2SHDepositInput(
  * @returns Empty promise.
  */
 async function signP2WSHDepositInput(
-  transaction: bcoin.MTX,
+  transaction: any,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: bcoin.KeyRing
+  walletKeyRing: any
 ): Promise<void> {
   const { walletPublicKey, depositScript, previousOutputValue } =
     await prepareInputSignData(transaction, inputIndex, deposit, walletKeyRing)
@@ -341,13 +340,13 @@ async function signP2WSHDepositInput(
  * @returns Data needed to sign the input.
  */
 async function prepareInputSignData(
-  transaction: bcoin.MTX,
+  transaction: any,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: bcoin.KeyRing
+  walletKeyRing: any
 ): Promise<{
   walletPublicKey: string
-  depositScript: bcoin.Script
+  depositScript: any
   previousOutputValue: number
 }> {
   const previousOutpoint = transaction.inputs[inputIndex].prevout
@@ -369,7 +368,7 @@ async function prepareInputSignData(
   }
 
   const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await createDepositScript(deposit), "hex")
+    Buffer.from(await assembleDepositScript(deposit), "hex")
   )
 
   return {
@@ -388,14 +387,14 @@ async function prepareInputSignData(
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Empty promise.
  */
-export async function proveDepositSweep(
+export async function submitDepositSweepProof(
   transactionHash: TransactionHash,
   mainUtxo: UnspentTransactionOutput,
   bridge: Bridge,
   bitcoinClient: BitcoinClient
 ): Promise<void> {
   const confirmations = await bridge.txProofDifficultyFactor()
-  const proof = await createTransactionProof(
+  const proof = await assembleTransactionProof(
     transactionHash,
     confirmations,
     bitcoinClient

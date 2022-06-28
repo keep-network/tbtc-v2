@@ -225,6 +225,11 @@ contract Bridge is
         uint32 fraudNotifierRewardMultiplier
     );
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     /// @dev Initializes upgradable contract on deployment.
     /// @param _bank Address of the Bank the Bridge belongs to.
     /// @param _relay Address of the Bitcoin relay providing the current Bitcoin

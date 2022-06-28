@@ -1,4 +1,5 @@
 # Following directories have their own formatting configuration:
 solidity/
 yearn/
-tbtc-ts/
+typescript/
+system-tests/
