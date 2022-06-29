@@ -39,6 +39,28 @@ struct Chain {
     bytes28 tip;
     // Mapping from digest to block data for all recorded blocks.
     mapping(bytes28 => Block) blocks;
+    // Mapping from blockheight and target to timestamp of epoch start.
+    // You give it the height of the first block of the epoch you're interested
+    // in, and the target it was mined at, and it returns you the timestamp of
+    // that block.
+    //
+    // NOTE: The reason this works is that (blockheight, target) uniquely
+    // identifies a timestamp in practically all cases. Even if there are
+    // multiple candidates for the epoch start block, if they have different
+    // timestamps the resulting difficulty would also be different.
+    //
+    // Bitcoin difficulty has 24 significant bits with range up to 16 million,
+    // while the expected time to mine 2016 blocks is 1,209,600 seconds with
+    // a block being produced every 10 minutes.
+    // Because of this, a 1 second difference in a timestamp necessarily
+    // results in the target difficulty also being different.
+    //
+    // The situation where this does not hold is if a reorg lasts for the
+    // entire duration of the epoch, and the competing chains end up having
+    // the exact same difficulty for the next epoch. The relay doesn't support
+    // retargets of that length anyway, as resolving the orphan blocks would
+    // run out of gas way earlier.
+    mapping(uint24 => mapping(uint256 => uint32)) epochStart;
 }
 
 interface ISparseRelay {}
@@ -108,21 +130,14 @@ contract SparseRelay is Ownable, ISparseRelay {
         chain.tip = genesisDigest;
         chain.blocks[genesisDigest] = genesisBlock;
 
-        if (genesisHeight % 2016 != 0) {
-            Block memory epochStartBlock = Block(
-                genesisHeight - (genesisHeight % 2016),
-                false,
-                bytes28(0)
-            );
-            bytes28 epochStartDigest = bytes28(epochStartHeader.getDigest(0));
-            chain.blocks[epochStartDigest] = epochStartBlock;
-        }
+        uint24 epochStartHeight = genesisHeight - (genesisHeight % 2016);
+        uint256 target = epochStartHeader.extractTarget();
+        uint32 epochStartTime = epochStartHeader.extractTimestamp();
+
+        chain.epochStart[epochStartHeight][target] = epochStartTime;
     }
 
-    function addHeaders(bytes calldata epochStartHeader, bytes calldata headers)
-        external
-    {
-        require(epochStartHeader.length == 80, "Invalid epoch start header");
+    function addHeaders(bytes calldata headers) external {
         require(headers.length % 80 == 0, "Invalid header array");
         uint256 headerCount = headers.length / 80;
         require(headerCount % 6 == 1, "Invalid number of headers");
@@ -160,21 +175,10 @@ contract SparseRelay is Ownable, ISparseRelay {
 
             // This is the last block of the epoch, calculate new target.
             if (currentHeight % 2016 == 2015) {
-                // Actually validate the epoch start header.
-                bytes32 epochStartDigest = epochStartHeader.getDigest(0);
-                Block memory epochStartBlock = chain.blocks[
-                    bytes28(epochStartDigest)
+                uint24 epochStartHeight = uint24(currentHeight - 2015);
+                uint32 epochStartTime = chain.epochStart[epochStartHeight][
+                    data.currentTarget
                 ];
-                require(
-                    epochStartBlock.height != 0 &&
-                        epochStartBlock.height % 2016 == 0,
-                    "Invalid epoch start"
-                );
-                require(
-                    data.ancestorBlock.height / 2016 ==
-                        epochStartBlock.height / 2016,
-                    "Epoch start block not of this epoch"
-                );
                 uint256 epochEndTimestamp = headers.extractTimestampAt(i * 80);
                 require(
                     /* solhint-disable-next-line not-rely-on-time */
@@ -183,9 +187,17 @@ contract SparseRelay is Ownable, ISparseRelay {
                 );
                 data.currentTarget = BTCUtils.retargetAlgorithm(
                     data.currentTarget,
-                    epochStartHeader.extractTimestamp(),
+                    epochStartTime,
                     epochEndTimestamp
                 );
+            }
+
+            // This is the first block of the epoch, record it.
+            if (currentHeight % 2016 == 0) {
+                uint32 newEpochStartTime = headers.extractTimestampAt(i * 80);
+                chain.epochStart[uint24(currentHeight)][
+                    currentHeaderTarget
+                ] = newEpochStartTime;
             }
 
             // Record every sixth block in the relay.
