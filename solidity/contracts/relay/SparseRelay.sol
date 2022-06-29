@@ -132,10 +132,11 @@ contract SparseRelay is Ownable, ISparseRelay {
         data.ancestorDigest = headers.getDigest(0);
         data.ancestorBlock = chain.blocks[bytes28(data.ancestorDigest)];
 
-        require(data.ancestorBlock.height != 0, "Ancestor not recorded in relay");
+        require(
+            data.ancestorBlock.height != 0,
+            "Ancestor not recorded in relay"
+        );
         require(!data.ancestorBlock.isOrphan, "Ancestor must not be orphan");
-
-        
 
         data.currentTarget = headers.extractTarget();
 
