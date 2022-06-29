@@ -158,8 +158,6 @@ contract SparseRelay is Ownable, ISparseRelay {
         data.previousStoredDigest = data.ancestorDigest;
         data.previousHeaderDigest = data.ancestorDigest;
 
-        data.retargetPresent = false;
-
         // Validate and record the chain.
         for (uint256 i = 1; i < headerCount; i++) {
             (
