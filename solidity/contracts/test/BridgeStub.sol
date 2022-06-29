@@ -90,6 +90,12 @@ contract BridgeStub is Bridge {
         self.redemptionTxMaxFee = _redemptionTxMaxFee;
     }
 
+    function setRedemptionTxMaxTotalFee(uint64 _redemptionTxMaxTotalFee)
+        external
+    {
+        self.redemptionTxMaxTotalFee = _redemptionTxMaxTotalFee;
+    }
+
     function setRedemptionTreasuryFeeDivisor(
         uint64 _redemptionTreasuryFeeDivisor
     ) external {
