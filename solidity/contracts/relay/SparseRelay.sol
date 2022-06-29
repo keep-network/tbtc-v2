@@ -39,28 +39,15 @@ struct Chain {
     bytes28 tip;
     // Mapping from digest to block data for all recorded blocks.
     mapping(bytes28 => Block) blocks;
-    // Mapping from blockheight and target to timestamp of epoch start.
-    // You give it the height of the first block of the epoch you're interested
-    // in, and the target it was mined at, and it returns you the timestamp of
-    // that block.
+    // Mapping from blockheight to timestamp of epoch start.
     //
-    // NOTE: The reason this works is that (blockheight, target) uniquely
-    // identifies a timestamp in practically all cases. Even if there are
-    // multiple candidates for the epoch start block, if they have different
-    // timestamps the resulting difficulty would also be different.
-    //
-    // Bitcoin difficulty has 24 significant bits with range up to 16 million,
-    // while the expected time to mine 2016 blocks is 1,209,600 seconds with
-    // a block being produced every 10 minutes.
-    // Because of this, a 1 second difference in a timestamp necessarily
-    // results in the target difficulty also being different.
-    //
-    // The situation where this does not hold is if a reorg lasts for the
-    // entire duration of the epoch, and the competing chains end up having
-    // the exact same difficulty for the next epoch. The relay doesn't support
-    // retargets of that length anyway, as resolving the orphan blocks would
-    // run out of gas way earlier.
-    mapping(uint24 => mapping(uint256 => uint32)) epochStart;
+    // Each epoch has only one start, which is the one belonging to the longest
+    // chain. If the retarget is subject to a reorg, the winning chain will
+    // overwrite the previous epoch start. If the original chain overtakes the
+    // overwriting chain, it will have to supply all blocks since the point of
+    // divergence between the two chains, and the epoch start will once again
+    // be overwritten.
+    mapping(uint24 => uint32) epochStart;
 }
 
 interface ISparseRelay {}
@@ -105,6 +92,9 @@ contract SparseRelay is Ownable, ISparseRelay {
         bytes32 previousHeaderDigest;
         bytes32 ancestorDigest;
         Block ancestorBlock;
+        bool retargetPresent;
+        uint24 retargetHeight;
+        uint32 retargetTimestamp;
     }
 
     Chain internal chain;
@@ -131,10 +121,9 @@ contract SparseRelay is Ownable, ISparseRelay {
         chain.blocks[genesisDigest] = genesisBlock;
 
         uint24 epochStartHeight = genesisHeight - (genesisHeight % 2016);
-        uint256 target = epochStartHeader.extractTarget();
         uint32 epochStartTime = epochStartHeader.extractTimestamp();
 
-        chain.epochStart[epochStartHeight][target] = epochStartTime;
+        chain.epochStart[epochStartHeight] = epochStartTime;
     }
 
     function addHeaders(bytes calldata headers) external {
@@ -158,6 +147,8 @@ contract SparseRelay is Ownable, ISparseRelay {
         data.previousStoredDigest = data.ancestorDigest;
         data.previousHeaderDigest = data.ancestorDigest;
 
+        data.retargetPresent = false;
+
         // Validate and record the chain.
         for (uint256 i = 1; i < headerCount; i++) {
             (
@@ -176,9 +167,7 @@ contract SparseRelay is Ownable, ISparseRelay {
             // This is the last block of the epoch, calculate new target.
             if (currentHeight % 2016 == 2015) {
                 uint24 epochStartHeight = uint24(currentHeight - 2015);
-                uint32 epochStartTime = chain.epochStart[epochStartHeight][
-                    data.currentTarget
-                ];
+                uint32 epochStartTime = chain.epochStart[epochStartHeight];
                 uint256 epochEndTimestamp = headers.extractTimestampAt(i * 80);
                 require(
                     /* solhint-disable-next-line not-rely-on-time */
@@ -194,10 +183,9 @@ contract SparseRelay is Ownable, ISparseRelay {
 
             // This is the first block of the epoch, record it.
             if (currentHeight % 2016 == 0) {
-                uint32 newEpochStartTime = headers.extractTimestampAt(i * 80);
-                chain.epochStart[uint24(currentHeight)][
-                    currentHeaderTarget
-                ] = newEpochStartTime;
+                data.retargetPresent = true;
+                data.retargetHeight = uint24(currentHeight);
+                data.retargetTimestamp = headers.extractTimestampAt(i * 80);
             }
 
             // Record every sixth block in the relay.
@@ -231,6 +219,11 @@ contract SparseRelay is Ownable, ISparseRelay {
         if (bytes28(data.ancestorDigest) == chain.tip) {
             chain.tip = data.newTip;
             chain.height = data.newHeight;
+
+            // Record the retarget if we have one.
+            if (data.retargetPresent) {
+                chain.epochStart[data.retargetHeight] = data.retargetTimestamp;
+            }
         }
         // This sucks, we have a reorg.
         else {
@@ -249,10 +242,21 @@ contract SparseRelay is Ownable, ISparseRelay {
                 orphanTip = chain.tip;
                 winningTip = data.newTip;
                 winningHeight = data.newHeight;
+
+                // The new chain is winning, so record its retarget if present.
+                if (data.retargetPresent) {
+                    chain.epochStart[data.retargetHeight] = data
+                        .retargetTimestamp;
+                }
             } else {
                 orphanTip = data.newTip;
                 winningTip = chain.tip;
                 winningHeight = chain.height;
+
+                // The new chain is an orphan, so we don't care about its
+                // retarget even if it had one. If it overtakes the original
+                // chain, we will process these blocks again as part of
+                // a longer chain which will take the other path.
             }
 
             // Mark all blocks of the orphan chain.
