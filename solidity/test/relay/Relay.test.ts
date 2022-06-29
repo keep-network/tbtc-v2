@@ -12,6 +12,7 @@ import { concatenateHexStrings } from "../helpers/contract-test-helpers"
 
 import headers from "./headersWithRetarget.json"
 import reorgHeaders from "./headersReorgAndRetarget.json"
+import longHeaders from "./longHeaders.json"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
@@ -557,6 +558,86 @@ describe("LightRelay", () => {
         await expect(
           relay.connect(thirdParty).retarget(retargetHeaders)
         ).to.be.revertedWith("Invalid target in new epoch")
+      })
+    })
+
+    context("after genesis (long chain)", () => {
+      const longGenesis = longHeaders.epochStart
+      const longGenesisBlock = 739872
+      const longRetargetBlock = 741888
+      const longHeaderStart = 741793
+      const longHeaderHex = longHeaders.chain.map((h) => h.hex)
+      const longGenesisEpoch = 367
+      const longGenesisDifficulty = 30283293547736
+      const longNextDifficulty = 29570168636357
+
+      before(async () => {
+        await createSnapshot()
+        await relay
+          .connect(governance)
+          .genesis(longGenesis.hex, longGenesis.height, 4)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("with proof length 6", () => {
+        let tx: ContractTransaction
+        const retargetHeaders = concatenateHexStrings(
+          longHeaderHex.slice(89, 101)
+        )
+
+        before(async () => {
+          await createSnapshot()
+          await relay.connect(governance).setProofLength(6)
+          tx = await relay.connect(thirdParty).retarget(retargetHeaders)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should store the new difficulty", async () => {
+          expect(await relay.getEpochDifficulty(longGenesisEpoch + 1)).to.equal(
+            longNextDifficulty
+          )
+        })
+
+        it("should emit the Retarget event", async () => {
+          await expect(tx)
+            .to.emit(relay, "Retarget")
+            .withArgs(longGenesisDifficulty, longNextDifficulty)
+        })
+      })
+
+      context("with proof length 50", () => {
+        let tx: ContractTransaction
+        const retargetHeaders = concatenateHexStrings(
+          longHeaderHex.slice(45, 145)
+        )
+
+        before(async () => {
+          await createSnapshot()
+          await relay.connect(governance).setProofLength(50)
+          tx = await relay.connect(thirdParty).retarget(retargetHeaders)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should store the new difficulty", async () => {
+          expect(await relay.getEpochDifficulty(longGenesisEpoch + 1)).to.equal(
+            longNextDifficulty
+          )
+        })
+
+        it("should emit the Retarget event", async () => {
+          await expect(tx)
+            .to.emit(relay, "Retarget")
+            .withArgs(longGenesisDifficulty, longNextDifficulty)
+        })
       })
     })
   })
