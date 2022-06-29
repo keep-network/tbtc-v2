@@ -563,9 +563,9 @@ describe("LightRelay", () => {
 
     context("after genesis (long chain)", () => {
       const longGenesis = longHeaders.epochStart
-      const longGenesisBlock = 739872
-      const longRetargetBlock = 741888
-      const longHeaderStart = 741793
+      // const longGenesisBlock = 739872
+      // const longRetargetBlock = 741888
+      // const longHeaderStart = 741793
       const longHeaderHex = longHeaders.chain.map((h) => h.hex)
       const longGenesisEpoch = 367
       const longGenesisDifficulty = 30283293547736
