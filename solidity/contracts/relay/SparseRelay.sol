@@ -131,7 +131,18 @@ contract SparseRelay is Ownable, ISparseRelay {
         uint256 headerCount = headers.length / 80;
         require(headerCount % 6 == 1, "Invalid number of headers");
 
-        Data memory data;
+        Data memory data = Data(
+            bytes28(0),
+            0,
+            0,
+            bytes32(0),
+            bytes32(0),
+            bytes32(0),
+            Block(0, false, bytes28(0)),
+            false,
+            0,
+            0
+        );
 
         data.ancestorDigest = headers.getDigest(0);
         data.ancestorBlock = chain.blocks[bytes28(data.ancestorDigest)];
