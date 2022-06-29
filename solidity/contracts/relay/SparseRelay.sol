@@ -169,6 +169,15 @@ contract SparseRelay is Ownable, ISparseRelay {
                 uint24 epochStartHeight = uint24(currentHeight - 2015);
                 uint32 epochStartTime = chain.epochStart[epochStartHeight];
                 uint256 epochEndTimestamp = headers.extractTimestampAt(i * 80);
+                // Prevent difficulty manipulation by requiring that the epoch
+                // ends in the past. Without this check, an attacker could
+                // produce a chain with 1/4 the difficulty of the legitimate
+                // chain, and mine it faster. It would then be accepted by the
+                // relay, because we don't check accumulated difficulty, only
+                // length and adherence to the difficulty calculation rules.
+                // With the check, the attacker would only be able to submit
+                // such a chain when the legitimate chain has produced enough
+                // blocks that winning the reorg is effectively impossible.
                 require(
                     /* solhint-disable-next-line not-rely-on-time */
                     epochEndTimestamp < block.timestamp,
@@ -232,12 +241,10 @@ contract SparseRelay is Ownable, ISparseRelay {
             uint24 winningHeight;
 
             // HACK: We only compare the height of valid competing chains.
-            // A really dedicated attacker could mine blocks with a different
-            // retarget, resulting in roughly 4x lower difficulty.
-            // They can then keep outproducing the legitimate chain if they
-            // have at least 25% of bitcoin hashpower.
-            // I think we can get away with this because it would be really
-            // weird for anyone to actually do that.
+            // The timestamp check gives some sanity constraints, but
+            // ultimately the relay assumes that the gas costs of processing
+            // competing chains become infeasible by the time someone could
+            // produce a chain longer than the legitimate one.
             if (chain.height < data.newHeight) {
                 orphanTip = chain.tip;
                 winningTip = data.newTip;
