@@ -306,6 +306,7 @@ library BridgeState {
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
+        uint64 redemptionTxMaxTotalFee,
         uint32 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
         uint32 redemptionTimeoutNotifierRewardMultiplier
@@ -427,6 +428,11 @@ library BridgeState {
     ///        is exceeded, such transaction is considered a fraud.
     ///        This is a per-redemption output max fee for the redemption
     ///        transaction.
+    /// @param _redemptionTxMaxTotalFee New value of the redemption transaction
+    ///        max total fee in satoshis. It is the maximum amount of the total
+    ///        BTC transaction fee that is acceptable in a single redemption
+    ///        transaction. This is a _total_ max fee for the entire redemption
+    ///        transaction.
     /// @param _redemptionTimeout New value of the redemption timeout in seconds.
     ///        It is the time after which the redemption request can be reported
     ///        as timed out. It is counted from the moment when the redemption
@@ -456,6 +462,7 @@ library BridgeState {
         uint64 _redemptionDustThreshold,
         uint64 _redemptionTreasuryFeeDivisor,
         uint64 _redemptionTxMaxFee,
+        uint64 _redemptionTxMaxTotalFee,
         uint32 _redemptionTimeout,
         uint96 _redemptionTimeoutSlashingAmount,
         uint32 _redemptionTimeoutNotifierRewardMultiplier
@@ -481,6 +488,11 @@ library BridgeState {
         );
 
         require(
+            _redemptionTxMaxTotalFee > 0,
+            "Redemption transaction max total fee must be greater than zero"
+        );
+
+        require(
             _redemptionTimeout > 0,
             "Redemption timeout must be greater than zero"
         );
@@ -493,6 +505,7 @@ library BridgeState {
         self.redemptionDustThreshold = _redemptionDustThreshold;
         self.redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
         self.redemptionTxMaxFee = _redemptionTxMaxFee;
+        self.redemptionTxMaxTotalFee = _redemptionTxMaxTotalFee;
         self.redemptionTimeout = _redemptionTimeout;
         self.redemptionTimeoutSlashingAmount = _redemptionTimeoutSlashingAmount;
         self
@@ -502,6 +515,7 @@ library BridgeState {
             _redemptionDustThreshold,
             _redemptionTreasuryFeeDivisor,
             _redemptionTxMaxFee,
+            _redemptionTxMaxTotalFee,
             _redemptionTimeout,
             _redemptionTimeoutSlashingAmount,
             _redemptionTimeoutNotifierRewardMultiplier

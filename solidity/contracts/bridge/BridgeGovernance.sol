@@ -96,6 +96,12 @@ contract BridgeGovernance is Ownable {
     );
     event RedemptionTxMaxFeeUpdated(uint64 redemptionTxMaxFee);
 
+    event RedemptionTxMaxTotalFeeUpdateStarted(
+        uint64 newRedemptionTxMaxTotalFee,
+        uint256 timestamp
+    );
+    event RedemptionTxMaxTotalFeeUpdated(uint64 redemptionTxMaxTotalFee);
+
     event RedemptionTimeoutUpdateStarted(
         uint32 newRedemptionTimeout,
         uint256 timestamp
@@ -459,6 +465,7 @@ contract BridgeGovernance is Ownable {
             ,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
+            uint64 redemptionTxMaxTotalFee,
             uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
@@ -468,6 +475,7 @@ contract BridgeGovernance is Ownable {
             redemptionData.getNewRedemptionDustThreshold(),
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
+            redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
@@ -495,6 +503,7 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionDustThreshold,
             ,
             uint64 redemptionTxMaxFee,
+            uint64 redemptionTxMaxTotalFee,
             uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
@@ -504,6 +513,7 @@ contract BridgeGovernance is Ownable {
             redemptionDustThreshold,
             redemptionData.getNewRedemptionTreasuryFeeDivisor(),
             redemptionTxMaxFee,
+            redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
@@ -532,6 +542,7 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             ,
+            uint64 redemptionTxMaxTotalFee,
             uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
@@ -541,12 +552,51 @@ contract BridgeGovernance is Ownable {
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionData.getNewRedemptionTxMaxFee(),
+            redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
         );
 
         redemptionData.finalizeRedemptionTxMaxFeeUpdate(governanceDelay());
+    }
+
+    /// @notice Begins the redemption tx max total fee amount update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newRedemptionTxMaxTotalFee New redemption tx max total fee.
+    function beginRedemptionTxMaxTotalFeeUpdate(
+        uint64 _newRedemptionTxMaxTotalFee
+    ) external onlyOwner {
+        redemptionData.beginRedemptionTxMaxTotalFeeUpdate(
+            _newRedemptionTxMaxTotalFee
+        );
+    }
+
+    /// @notice Finalizes the redemption tx max total fee amount update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeRedemptionTxMaxTotalFeeUpdate() external onlyOwner {
+        (
+            uint64 redemptionDustThreshold,
+            uint64 redemptionTreasuryFeeDivisor,
+            uint64 redemptionTxMaxFee,
+            ,
+            uint32 redemptionTimeout,
+            uint96 redemptionTimeoutSlashingAmount,
+            uint32 redemptionTimeoutNotifierRewardMultiplier
+        ) = bridge.redemptionParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateRedemptionParameters(
+            redemptionDustThreshold,
+            redemptionTreasuryFeeDivisor,
+            redemptionTxMaxFee,
+            redemptionData.getNewRedemptionTxMaxTotalFee(),
+            redemptionTimeout,
+            redemptionTimeoutSlashingAmount,
+            redemptionTimeoutNotifierRewardMultiplier
+        );
+
+        redemptionData.finalizeRedemptionTxMaxTotalFeeUpdate(governanceDelay());
     }
 
     /// @notice Begins the redemption timeout amount update process.
@@ -567,6 +617,7 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
+            uint64 redemptionTxMaxTotalFee,
             ,
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
@@ -576,6 +627,7 @@ contract BridgeGovernance is Ownable {
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
+            redemptionTxMaxTotalFee,
             redemptionData.getNewRedemptionTimeout(),
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
@@ -607,6 +659,7 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
+            uint64 redemptionTxMaxTotalFee,
             uint32 redemptionTimeout,
             ,
             uint32 redemptionTimeoutNotifierRewardMultiplier
@@ -616,6 +669,7 @@ contract BridgeGovernance is Ownable {
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
+            redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionData.getNewRedemptionTimeoutSlashingAmount(),
             redemptionTimeoutNotifierRewardMultiplier
@@ -651,6 +705,7 @@ contract BridgeGovernance is Ownable {
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
+            uint64 redemptionTxMaxTotalFee,
             uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
 
@@ -660,6 +715,7 @@ contract BridgeGovernance is Ownable {
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
+            redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionData.getNewRedemptionTimeoutNotifierRewardMultiplier()

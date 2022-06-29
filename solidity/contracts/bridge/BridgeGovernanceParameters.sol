@@ -33,6 +33,8 @@ library BridgeGovernanceParameters {
         uint256 redemptionTreasuryFeeDivisorChangeInitiated;
         uint64 newRedemptionTxMaxFee;
         uint256 redemptionTxMaxFeeChangeInitiated;
+        uint64 newRedemptionTxMaxTotalFee;
+        uint256 redemptionTxMaxTotalFeeChangeInitiated;
         uint32 newRedemptionTimeout;
         uint256 redemptionTimeoutChangeInitiated;
         uint96 newRedemptionTimeoutSlashingAmount;
@@ -129,6 +131,12 @@ library BridgeGovernanceParameters {
         uint256 timestamp
     );
     event RedemptionTxMaxFeeUpdated(uint64 redemptionTxMaxFee);
+
+    event RedemptionTxMaxTotalFeeUpdateStarted(
+        uint64 newRedemptionTxMaxTotalFee,
+        uint256 timestamp
+    );
+    event RedemptionTxMaxTotalFeeUpdated(uint64 redemptionTxMaxTotalFee);
 
     event RedemptionTimeoutUpdateStarted(
         uint32 newRedemptionTimeout,
@@ -582,6 +590,50 @@ library BridgeGovernanceParameters {
         returns (uint64)
     {
         return self.newRedemptionTxMaxFee;
+    }
+
+    /// @notice Begins the redemption tx max total fee amount update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newRedemptionTxMaxTotalFee New redemption tx max total fee amount.
+    function beginRedemptionTxMaxTotalFeeUpdate(
+        RedemptionData storage self,
+        uint64 _newRedemptionTxMaxTotalFee
+    ) external {
+        /* solhint-disable not-rely-on-time */
+        self.newRedemptionTxMaxTotalFee = _newRedemptionTxMaxTotalFee;
+        self.redemptionTxMaxTotalFeeChangeInitiated = block.timestamp;
+        emit RedemptionTxMaxTotalFeeUpdateStarted(
+            _newRedemptionTxMaxTotalFee,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the redemption tx max total fee amount update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeRedemptionTxMaxTotalFeeUpdate(
+        RedemptionData storage self,
+        uint256 governanceDelay
+    )
+        external
+        onlyAfterGovernanceDelay(
+            self.redemptionTxMaxTotalFeeChangeInitiated,
+            governanceDelay
+        )
+    {
+        emit RedemptionTxMaxTotalFeeUpdated(self.newRedemptionTxMaxTotalFee);
+
+        self.newRedemptionTxMaxTotalFee = 0;
+        self.redemptionTxMaxTotalFeeChangeInitiated = 0;
+    }
+
+    function getNewRedemptionTxMaxTotalFee(RedemptionData storage self)
+        internal
+        view
+        returns (uint64)
+    {
+        return self.newRedemptionTxMaxTotalFee;
     }
 
     /// @notice Begins the redemption timeout amount update process.

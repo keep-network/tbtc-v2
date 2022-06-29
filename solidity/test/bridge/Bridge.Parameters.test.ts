@@ -234,12 +234,13 @@ describe("Bridge - Parameters", () => {
   })
 
   describe("updateRedemptionParameters", () => {
-    context("when caller is the contract guvnor", () => {
+    context("when caller is the contract governance", () => {
       context("when all new parameter values are correct", () => {
         const newRedemptionDustThreshold = constants.redemptionDustThreshold * 2
         const newRedemptionTreasuryFeeDivisor =
           constants.redemptionTreasuryFeeDivisor / 2
         const newRedemptionTxMaxFee = constants.redemptionTxMaxFee * 3
+        const newRedemptionTxMaxTotalFee = constants.redemptionTxMaxTotalFee * 3
         const newRedemptionTimeout = constants.redemptionTimeout * 4
         const newRedemptionTimeoutSlashingAmount =
           constants.redemptionTimeoutSlashingAmount.mul(2)
@@ -252,6 +253,7 @@ describe("Bridge - Parameters", () => {
         let tx4: ContractTransaction
         let tx5: ContractTransaction
         let tx6: ContractTransaction
+        let tx7: ContractTransaction
 
         before(async () => {
           await createSnapshot()
@@ -269,6 +271,10 @@ describe("Bridge - Parameters", () => {
           await bridgeGovernance
             .connect(governance)
             .beginRedemptionTxMaxFeeUpdate(newRedemptionTxMaxFee)
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTxMaxTotalFeeUpdate(newRedemptionTxMaxTotalFee)
 
           await bridgeGovernance
             .connect(governance)
@@ -302,13 +308,17 @@ describe("Bridge - Parameters", () => {
 
           tx4 = await bridgeGovernance
             .connect(governance)
-            .finalizeRedemptionTimeoutUpdate()
+            .finalizeRedemptionTxMaxTotalFeeUpdate()
 
           tx5 = await bridgeGovernance
             .connect(governance)
-            .finalizeRedemptionTimeoutSlashingAmountUpdate()
+            .finalizeRedemptionTimeoutUpdate()
 
           tx6 = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTimeoutSlashingAmountUpdate()
+
+          tx7 = await bridgeGovernance
             .connect(governance)
             .finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate()
         })
@@ -327,6 +337,9 @@ describe("Bridge - Parameters", () => {
             newRedemptionTreasuryFeeDivisor
           )
           expect(params.redemptionTxMaxFee).to.be.equal(newRedemptionTxMaxFee)
+          expect(params.redemptionTxMaxTotalFee).to.be.equal(
+            newRedemptionTxMaxTotalFee
+          )
           expect(params.redemptionTimeout).to.be.equal(newRedemptionTimeout)
           expect(params.redemptionTimeoutSlashingAmount).to.be.equal(
             newRedemptionTimeoutSlashingAmount
@@ -343,6 +356,7 @@ describe("Bridge - Parameters", () => {
               newRedemptionDustThreshold,
               constants.redemptionTreasuryFeeDivisor,
               constants.redemptionTxMaxFee,
+              constants.redemptionTxMaxTotalFee,
               constants.redemptionTimeout,
               constants.redemptionTimeoutSlashingAmount,
               constants.redemptionTimeoutNotifierRewardMultiplier
@@ -356,6 +370,7 @@ describe("Bridge - Parameters", () => {
               newRedemptionDustThreshold,
               newRedemptionTreasuryFeeDivisor,
               constants.redemptionTxMaxFee,
+              constants.redemptionTxMaxTotalFee,
               constants.redemptionTimeout,
               constants.redemptionTimeoutSlashingAmount,
               constants.redemptionTimeoutNotifierRewardMultiplier
@@ -369,6 +384,7 @@ describe("Bridge - Parameters", () => {
               newRedemptionDustThreshold,
               newRedemptionTreasuryFeeDivisor,
               newRedemptionTxMaxFee,
+              constants.redemptionTxMaxTotalFee,
               constants.redemptionTimeout,
               constants.redemptionTimeoutSlashingAmount,
               constants.redemptionTimeoutNotifierRewardMultiplier
@@ -382,7 +398,8 @@ describe("Bridge - Parameters", () => {
               newRedemptionDustThreshold,
               newRedemptionTreasuryFeeDivisor,
               newRedemptionTxMaxFee,
-              newRedemptionTimeout,
+              newRedemptionTxMaxTotalFee,
+              constants.redemptionTimeout,
               constants.redemptionTimeoutSlashingAmount,
               constants.redemptionTimeoutNotifierRewardMultiplier
             )
@@ -395,8 +412,9 @@ describe("Bridge - Parameters", () => {
               newRedemptionDustThreshold,
               newRedemptionTreasuryFeeDivisor,
               newRedemptionTxMaxFee,
+              newRedemptionTxMaxTotalFee,
               newRedemptionTimeout,
-              newRedemptionTimeoutSlashingAmount,
+              constants.redemptionTimeoutSlashingAmount,
               constants.redemptionTimeoutNotifierRewardMultiplier
             )
         })
@@ -408,6 +426,21 @@ describe("Bridge - Parameters", () => {
               newRedemptionDustThreshold,
               newRedemptionTreasuryFeeDivisor,
               newRedemptionTxMaxFee,
+              newRedemptionTxMaxTotalFee,
+              newRedemptionTimeout,
+              newRedemptionTimeoutSlashingAmount,
+              constants.redemptionTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit RedemptionParametersUpdated event", async () => {
+          await expect(tx7)
+            .to.emit(bridge, "RedemptionParametersUpdated")
+            .withArgs(
+              newRedemptionDustThreshold,
+              newRedemptionTreasuryFeeDivisor,
+              newRedemptionTxMaxFee,
+              newRedemptionTxMaxTotalFee,
               newRedemptionTimeout,
               newRedemptionTimeoutSlashingAmount,
               newRedemptionTimeoutNotifierRewardMultiplier
@@ -562,6 +595,24 @@ describe("Bridge - Parameters", () => {
         })
       })
 
+      context("when new redemption transaction max total fee is zero", () => {
+        it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTxMaxTotalFeeUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          await expect(
+            bridgeGovernance
+              .connect(governance)
+              .finalizeRedemptionTxMaxTotalFeeUpdate()
+          ).to.be.revertedWith(
+            "Redemption transaction max total fee must be greater than zero"
+          )
+        })
+      })
+
       context("when new redemption timeout is zero", () => {
         it("should revert", async () => {
           await bridgeGovernance
@@ -626,6 +677,16 @@ describe("Bridge - Parameters", () => {
           bridgeGovernance
             .connect(thirdParty)
             .beginRedemptionTxMaxFeeUpdate(constants.redemptionTxMaxFee)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginRedemptionTxMaxTotalFeeUpdate(
+              constants.redemptionTxMaxTotalFee
+            )
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
 
