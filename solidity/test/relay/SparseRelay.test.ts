@@ -257,27 +257,139 @@ describe.only("SparseRelay", () => {
       })
     })
 
-    // context("after genesis (invalid)", () => {
-    //   const badGenesisHeader = chain[0].hex
-    //   const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
+    context("after genesis (block 741876)", () => {
+      const lateGenesis = headers.chain[78]
 
-    //   before(async () => {
-    //     await createSnapshot()
-    //     await relay
-    //       .connect(governance)
-    //       .genesis(badGenesisHeader, genesisHeight, 4)
-    //   })
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(epochStart.hex, lateGenesis.hex, lateGenesis.height)
+      })
 
-    //   after(async () => {
-    //     await restoreSnapshot()
-    //   })
+      after(async () => {
+        await restoreSnapshot()
+      })
 
-    //   it("should reject chains with invalid difficulty", async () => {
-    //     await expect(
-    //       relay.connect(thirdParty).retarget(retargetHeaders)
-    //     ).to.be.revertedWith("Invalid target in new epoch")
-    //   })
-    // })
+      context("when called correctly", () => {
+        let tx: ContractTransaction
+        const newHeaders = concatenateHexStrings(headerHex.slice(78, 85))
+
+        before(async () => {
+          await createSnapshot()
+          tx = await relay.addHeaders(newHeaders)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should store the new height", async () => {
+          expect(await relay.getHeight()).to.equal(
+            741882
+          )
+        })
+
+      //   it("should emit the Retarget event", async () => {
+      //     await expect(tx)
+      //       .to.emit(relay, "Retarget")
+      //       .withArgs(genesisDifficulty, nextDifficulty)
+      //   })
+      })
+
+      context("when called with many headers, including a retarget", () => {
+        let tx: ContractTransaction
+        const newHeaders = concatenateHexStrings(headerHex.slice(78, 97))
+
+        before(async () => {
+          await createSnapshot()
+          tx = await relay.addHeaders(newHeaders)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should store the new height", async () => {
+          expect(await relay.getHeight()).to.equal(
+            741894
+          )
+        })
+
+      //   it("should emit the Retarget event", async () => {
+      //     await expect(tx)
+      //       .to.emit(relay, "Retarget")
+      //       .withArgs(genesisDifficulty, nextDifficulty)
+      //   })
+      })
+    })
+
+    context("after genesis (block 741876) with invalid epoch start", () => {
+      const lateGenesis = headers.chain[78]
+
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(genesis.hex, lateGenesis.hex, lateGenesis.height)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when called with many headers, including a retarget", () => {
+        const newHeaders = concatenateHexStrings(headerHex.slice(78, 97))
+
+        it("should revert", async () => {
+          await expect(
+            relay.addHeaders(newHeaders)
+          ).to.be.revertedWith("Invalid target")
+        })
+      })
+    })
+
+    context("after genesis with invalid height (block 741875, reported as 741876)", () => {
+      const badGenesis = headers.chain[77]
+
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(epochStart.hex, badGenesis.hex, badGenesis.height + 1)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when called with many headers, including a retarget", () => {
+        const newHeaders = concatenateHexStrings(headerHex.slice(77, 96))
+
+        it("should revert", async () => {
+          await expect(
+            relay.addHeaders(newHeaders)
+          ).to.be.revertedWith("Invalid target")
+        })
+      })
+    })
+
+    context("after genesis with invalid height (block 741877, reported as 741876)", () => {
+      const badGenesis = headers.chain[79]
+
+      before(async () => {
+        await createSnapshot()
+        await relay.connect(governance).genesis(epochStart.hex, badGenesis.hex, badGenesis.height - 1)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when called with many headers, including a retarget", () => {
+        const newHeaders = concatenateHexStrings(headerHex.slice(79, 98))
+
+        it("should revert", async () => {
+          await expect(
+            relay.addHeaders(newHeaders)
+          ).to.be.revertedWith("Invalid target")
+        })
+      })
+    })
   })
   //
   // end addHeaders
