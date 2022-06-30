@@ -4,13 +4,10 @@ import chai, { assert, expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { BigNumber, ContractTransaction } from "ethers"
+import { BigNumber, Contract, ContractTransaction } from "ethers"
 import type {
-  Bank,
-  BankStub,
   Bridge,
   BridgeStub,
-  BridgeStub__factory,
   IRelay,
   IWalletRegistry,
 } from "../../typechain"
@@ -48,13 +45,11 @@ const { lastBlockTime, increaseTime } = helpers.time
 describe("Bridge - Moving funds", () => {
   let thirdParty: SignerWithAddress
   let spvMaintainer: SignerWithAddress
-  let treasury: SignerWithAddress
 
-  let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
-  let BridgeFactory: BridgeStub__factory
+  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
 
   let movingFundsTimeoutResetDelay: number
   let movingFundsTimeout: number
@@ -69,12 +64,10 @@ describe("Bridge - Moving funds", () => {
     ;({
       thirdParty,
       spvMaintainer,
-      treasury,
-      bank,
       relay,
       walletRegistry,
       bridge,
-      BridgeFactory,
+      deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
     ;({
       movingFundsTimeoutResetDelay,
@@ -1932,14 +1925,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await BridgeFactory.deploy()
-            await otherBridge.initialize(
-              bank.address,
-              relay.address,
-              treasury.address,
-              walletRegistry.address,
-              12
-            )
+            otherBridge = (await deployBridge(12)) as BridgeStub
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true
@@ -3437,15 +3423,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await BridgeFactory.deploy()
-            await otherBridge.initialize(
-              bank.address,
-              relay.address,
-              treasury.address,
-              walletRegistry.address,
-              12
-            )
-            await otherBridge.deployed()
+            otherBridge = (await deployBridge(12)) as BridgeStub
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true

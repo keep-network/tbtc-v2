@@ -17,3 +17,15 @@ export function to1e18(n: number): BigNumber {
 export async function getBlockTime(blockNumber: number): Promise<number> {
   return (await ethers.provider.getBlock(blockNumber)).timestamp
 }
+
+export function strip0xPrefix(hexString: string): string {
+  return hexString.substring(0, 2) === "0x" ? hexString.substring(2) : hexString
+}
+
+export function concatenateHexStrings(strs: Array<string>): string {
+  let current = "0x"
+  for (let i = 0; i < strs.length; i += 1) {
+    current = `${current}${strip0xPrefix(strs[i])}`
+  }
+  return current
+}
