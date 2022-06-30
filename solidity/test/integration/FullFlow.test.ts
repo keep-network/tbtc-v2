@@ -48,6 +48,7 @@ describeFn("Integration Test - Full flow", async () => {
   let relay: FakeContract<TestRelay>
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
+  let spvMaintainer: SignerWithAddress
 
   const dkgResultChallengePeriodLength = 10
 
@@ -55,6 +56,7 @@ describeFn("Integration Test - Full flow", async () => {
     ;({
       deployer,
       governance,
+      spvMaintainer,
       tbtc,
       bridge,
       bank,
@@ -151,12 +153,14 @@ describeFn("Integration Test - Full flow", async () => {
           )
           relay.getPrevEpochDifficulty.returns(depositSweepData.chainDifficulty)
 
-          await bridge.submitDepositSweepProof(
-            depositSweepData.sweepTx,
-            depositSweepData.sweepProof,
-            depositSweepData.mainUtxo,
-            tbtcVault.address
-          )
+          await bridge
+            .connect(spvMaintainer)
+            .submitDepositSweepProof(
+              depositSweepData.sweepTx,
+              depositSweepData.sweepProof,
+              depositSweepData.mainUtxo,
+              tbtcVault.address
+            )
         })
 
         it("should mint TBTC tokens for the depositor", async () => {
@@ -267,12 +271,14 @@ describeFn("Integration Test - Full flow", async () => {
             txOutputValue: 98400,
           }
 
-          await bridge.submitRedemptionProof(
-            redemptionData.redemptionTx,
-            redemptionData.redemptionProof,
-            mainUtxo,
-            walletPubKeyHash
-          )
+          await bridge
+            .connect(spvMaintainer)
+            .submitRedemptionProof(
+              redemptionData.redemptionTx,
+              redemptionData.redemptionProof,
+              mainUtxo,
+              walletPubKeyHash
+            )
         })
 
         it("should zero the pending redemptions value of the wallet", async () => {

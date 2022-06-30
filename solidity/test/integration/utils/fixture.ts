@@ -32,6 +32,7 @@ export const fixture = deployments.createFixture(
   async (): Promise<{
     deployer: SignerWithAddress
     governance: SignerWithAddress
+    spvMaintainer: SignerWithAddress
     tbtc: TBTC
     bridge: Bridge
     bridgeGovernance: BridgeGovernance
@@ -46,6 +47,7 @@ export const fixture = deployments.createFixture(
     const {
       deployer,
       governance,
+      spvMaintainer,
       keepTechnicalWalletTeam,
       keepCommunityMultiSig,
     } = await helpers.signers.getNamedSigners()
@@ -134,6 +136,7 @@ export const fixture = deployments.createFixture(
     return {
       deployer,
       governance,
+      spvMaintainer,
       tbtc,
       bridge,
       bridgeGovernance,
