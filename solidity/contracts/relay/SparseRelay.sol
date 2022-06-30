@@ -52,7 +52,7 @@ struct Chain {
 
 interface ISparseRelay {}
 
-library RelayUtils {
+library SparseRelayUtils {
     using BytesLib for bytes;
 
     function getDigest(bytes memory headers, uint256 at)
@@ -82,7 +82,7 @@ contract SparseRelay is Ownable, ISparseRelay {
     using BytesLib for bytes;
     using BTCUtils for bytes;
     using ValidateSPV for bytes;
-    using RelayUtils for bytes;
+    using SparseRelayUtils for bytes;
 
     struct Data {
         bytes28 newTip;
@@ -99,6 +99,14 @@ contract SparseRelay is Ownable, ISparseRelay {
 
     Chain internal chain;
 
+    /// @notice Establish a starting point for the relay by providing the
+    /// first block of the relay chain, and the first block of the epoch.
+    /// @param epochStartHeader The first block header of the genesis epoch.
+    /// @param genesisHeader The header of the starting block of the relay.
+    /// @param genesisHeight The height of the starting block of the relay.
+    /// @dev The genesisHeader and the epochStartHeader can be the same, or
+    /// they can be different.
+    /// In any case, the height of the genesisHeader must be divisible by 6.
     function genesis(
         bytes calldata epochStartHeader,
         bytes calldata genesisHeader,
@@ -126,7 +134,16 @@ contract SparseRelay is Ownable, ISparseRelay {
         chain.epochStart[epochStartHeight] = epochStartTime;
     }
 
+    /// @notice Add headers to the relay chain.
+    /// @param headers The headers to be added, with the first header being the
+    /// most recent ancestor of both the new chain and the current chain to be
+    /// recorded in the relay. If there is no reorg, this would be the tip of
+    /// the chain. If there is a reorg, this would be the most recent
+    /// non-orphan block recorded in the relay that is present in both chains.
+    /// The number of new headers must be divisible by six; thus the total
+    /// number of headers will be of the form 6k+1.
     function addHeaders(bytes calldata headers) external {
+        require(chain.height > 0, "Relay is not initialised");
         require(headers.length % 80 == 0, "Invalid header array");
         uint256 headerCount = headers.length / 80;
         require(headerCount % 6 == 1, "Invalid number of headers");
