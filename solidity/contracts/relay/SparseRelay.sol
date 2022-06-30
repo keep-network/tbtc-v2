@@ -338,7 +338,7 @@ contract SparseRelay is Ownable, ISparseRelay {
                     "Insufficient confirmations"
                 );
                 found = true;
-                continue;
+                break;
             }
         }
 
