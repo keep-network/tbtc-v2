@@ -685,7 +685,7 @@ library BridgeGovernanceParameters {
     function beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
         RedemptionData storage self,
         uint32 _newRedemptionTimeoutNotifierRewardMultiplier
-    ) internal {
+    ) external {
         /* solhint-disable not-rely-on-time */
         self
             .newRedemptionTimeoutNotifierRewardMultiplier = _newRedemptionTimeoutNotifierRewardMultiplier;
