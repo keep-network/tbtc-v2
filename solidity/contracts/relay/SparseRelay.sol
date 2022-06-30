@@ -309,7 +309,21 @@ contract SparseRelay is Ownable, ISparseRelay {
         }
     }
 
-    function validate(bytes calldata headers, uint256 confirmations)
+    /// @notice Check that the given chain of headers belongs to the longest
+    /// chain and has at least 6 confirmations.
+    /// @param headers A byte array of 6 consecutive bitcoin headers.
+    /// @return True if the headers are valid, throw an error otherwise.
+    /// @dev We check the relay for a matching record. Because we record every
+    /// sixth block, a chain of six headers should always have one match.
+    /// If a match is not found, we cannot prove these headers. They may be too
+    /// new and the relay hasn't caught up yet, or they may be invalid.
+    /// If a non-orphan match is found, two outcomes are possible:
+    /// If the matching block is older than the current chain tip, we know it
+    /// has sufficient confirmations and can short-circuit out.
+    /// If the matching block is the current tip, we need to validate the rest
+    /// of the headers to reach the required 6 confirmations. In this case we
+    /// make sure that the remaining blocks were mined with sufficient work.
+    function validate(bytes calldata headers)
         external
         view
         returns (bool)
@@ -318,8 +332,9 @@ contract SparseRelay is Ownable, ISparseRelay {
 
         bytes32 previousHeaderDigest = bytes32(0);
         uint256 target;
+        uint256 expectedTarget;
         Block storage foundBlock;
-        bool found = false;
+        uint24 foundHeight = 0;
 
         for (uint256 i = 0; i < 6; i++) {
             (previousHeaderDigest, target) = validateHeader(
@@ -327,23 +342,53 @@ contract SparseRelay is Ownable, ISparseRelay {
                 i * 80,
                 previousHeaderDigest
             );
-            foundBlock = chain.blocks[bytes28(previousHeaderDigest)];
-            if (foundBlock.height > 0) {
-                require(
-                    !foundBlock.isOrphan,
-                    "Headers not part of longest chain"
-                );
-                require(
-                    (foundBlock.height + confirmations) <= chain.height,
-                    "Insufficient confirmations"
-                );
-                found = true;
-                break;
+
+            // We haven't found a matching block yet.
+            if (foundHeight == 0) {
+                foundBlock = chain.blocks[bytes28(previousHeaderDigest)];
+
+                // This block is recorded, make sure it isn't an orphan.
+                if (foundBlock.height > 0) {
+                    require(
+                        !foundBlock.isOrphan,
+                        "Headers not part of longest chain"
+                    );
+                    foundHeight = foundBlock.height;
+
+                    // We found the block, and we have sufficient confirmations
+                    // on top of it, so we don't need to validate the given
+                    // chain any further.
+                    if (foundHeight < chain.height) {
+                        return true;
+                    }
+                    // We found the block, but it is the current chain tip and
+                    // thus did not have the required confirmations. Continue
+                    // validating the given chain.
+                    else {
+                        // Record the target here, to make sure that the
+                        // remaining headers are mined with sufficient work.
+                        expectedTarget = target;
+                        continue;
+                    }
+                }
+            }
+            // We have anchored this chain of headers, but need to finish
+            // validating them.
+            else {
+                // The previous target was set by the block recorded in the
+                // relay. All remaining targets must match; if the chain
+                // contains a retarget it has to be in a recorded block.
+                require(target == expectedTarget, "Invalid target");
             }
         }
 
-        require(found, "Headers not recorded in relay");
-        return found;
+        // If foundHeight is nonzero, at least one block of the chain is
+        // recorded in the relay.
+        require(foundHeight != 0, "Headers not recorded in relay");
+        // If we did not throw an error, at least the first header of the given
+        // chain is a part of the current longest chain, and there are
+        // sufficient confirmations with the correct work.
+        return true;
     }
 
     function getHeight() external view returns (uint256) {

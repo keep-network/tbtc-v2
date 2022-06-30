@@ -6,10 +6,10 @@ import "../relay/SparseRelay.sol";
 
 contract SparseRelayStub is SparseRelay {
     // Gas-reporting version of validateChain
-    function validateGasReport(bytes memory headers, uint256 confirmations)
+    function validateGasReport(bytes memory headers)
         external
         returns (bool)
     {
-        return this.validate(headers, confirmations);
+        return this.validate(headers);
     }
 }
