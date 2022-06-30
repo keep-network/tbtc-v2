@@ -255,6 +255,18 @@ describe.only("SparseRelay", () => {
           ).to.be.revertedWith("Ancestor not recorded in relay")
         })
       })
+
+      context("with ancestor that isn't the most recent one", () => {
+        const newHeaders = concatenateHexStrings(headerHex.slice(0, 7))
+        const newerHeaders = concatenateHexStrings(headerHex.slice(0, 13))
+
+        it("should revert", async () => {
+          await relay.addHeaders(newHeaders)
+          await expect(
+            relay.addHeaders(newerHeaders)
+          ).to.be.revertedWith("Invalid ancestor block")
+        })
+      })
     })
 
     context("after genesis (block 741876)", () => {
