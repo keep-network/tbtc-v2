@@ -1,4 +1,4 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { HardhatRuntimeEnvironment, HardhatNetworkConfig } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -11,8 +11,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (Relay && helpers.address.isValid(Relay.address)) {
     log(`using external Relay at ${Relay.address}`)
   } else if (
-    hre.network.name !== "hardhat" &&
-    hre.network.name !== "development"
+    !hre.network.tags.allowStubs ||
+    (hre.network.config as HardhatNetworkConfig)?.forking?.enabled
   ) {
     throw new Error("deployed Relay contract not found")
   } else {
