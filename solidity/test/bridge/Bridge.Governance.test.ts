@@ -1027,12 +1027,16 @@ describe("Bridge - Governance", () => {
 
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
+        // If the update was not initialized, the transaction will fail because
+        // the new value of the parameter is 0 and that value is not
+        // greater than the redemption transaction per-deposit max fee
+        // parameter. The initialization check is done after that.
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeRedemptionTxMaxTotalFeeUpdate()
         ).to.be.revertedWith(
-          "Redemption transaction max total fee must be greater than zero"
+          "Redemption transaction max total fee must be greater than redemption transaction per-request max fee"
         )
       })
     })
@@ -1043,7 +1047,9 @@ describe("Bridge - Governance", () => {
 
         await bridgeGovernance
           .connect(governance)
-          .beginRedemptionTxMaxTotalFeeUpdate(7331)
+          .beginRedemptionTxMaxTotalFeeUpdate(
+            constants.redemptionTxMaxTotalFee * 3
+          )
 
         await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
       })
@@ -1071,7 +1077,9 @@ describe("Bridge - Governance", () => {
 
           await bridgeGovernance
             .connect(governance)
-            .beginRedemptionTxMaxTotalFeeUpdate(7331)
+            .beginRedemptionTxMaxTotalFeeUpdate(
+              constants.redemptionTxMaxTotalFee * 3
+            )
 
           await helpers.time.increaseTime(constants.governanceDelay)
 
@@ -1087,13 +1095,15 @@ describe("Bridge - Governance", () => {
         it("should update the redemption tx max total fee", async () => {
           const { redemptionTxMaxTotalFee } =
             await bridge.redemptionParameters()
-          expect(redemptionTxMaxTotalFee).to.be.equal(7331)
+          expect(redemptionTxMaxTotalFee).to.be.equal(
+            constants.redemptionTxMaxTotalFee * 3
+          )
         })
 
         it("should emit RedemptionTxMaxTotalFeeUpdated event", async () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "RedemptionTxMaxTotalFeeUpdated")
-            .withArgs(7331)
+            .withArgs(constants.redemptionTxMaxTotalFee * 3)
         })
       }
     )

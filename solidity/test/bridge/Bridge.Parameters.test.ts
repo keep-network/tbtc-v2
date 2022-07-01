@@ -234,7 +234,7 @@ describe("Bridge - Parameters", () => {
   })
 
   describe("updateRedemptionParameters", () => {
-    context("when caller is the contract governance", () => {
+    context("when caller is the contract guvnor", () => {
       context("when all new parameter values are correct", () => {
         const newRedemptionDustThreshold = constants.redemptionDustThreshold * 2
         const newRedemptionTreasuryFeeDivisor =
@@ -595,23 +595,26 @@ describe("Bridge - Parameters", () => {
         })
       })
 
-      context("when new redemption transaction max total fee is zero", () => {
-        it("should revert", async () => {
-          await bridgeGovernance
-            .connect(governance)
-            .beginRedemptionTxMaxTotalFeeUpdate(0)
-
-          await helpers.time.increaseTime(constants.governanceDelay)
-
-          await expect(
-            bridgeGovernance
+      context(
+        "when new redemption transaction max total fee is not greater than the redemption transaction per-request max fee",
+        () => {
+          it("should revert", async () => {
+            await bridgeGovernance
               .connect(governance)
-              .finalizeRedemptionTxMaxTotalFeeUpdate()
-          ).to.be.revertedWith(
-            "Redemption transaction max total fee must be greater than zero"
-          )
-        })
-      })
+              .beginRedemptionTxMaxTotalFeeUpdate(constants.redemptionTxMaxFee)
+
+            await helpers.time.increaseTime(constants.governanceDelay)
+
+            await expect(
+              bridgeGovernance
+                .connect(governance)
+                .finalizeRedemptionTxMaxTotalFeeUpdate()
+            ).to.be.revertedWith(
+              "Redemption transaction max total fee must be greater than redemption transaction per-request max fee"
+            )
+          })
+        }
+      )
 
       context("when new redemption timeout is zero", () => {
         it("should revert", async () => {

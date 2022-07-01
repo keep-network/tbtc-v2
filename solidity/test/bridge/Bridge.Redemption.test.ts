@@ -3005,20 +3005,33 @@ describe("Bridge - Redemption", () => {
 
                   context("when the total transaction fee is too high", () => {
                     const data: RedemptionTestData =
-                      SinglePendingRequestedRedemption
+                      MultiplePendingRequestedRedemptions
 
                     let outcome: Promise<RedemptionScenarioOutcome>
 
                     before(async () => {
                       await createSnapshot()
 
+                      // We must lower the redemption transaction per-request
+                      // max fee in order to make the update of the
+                      // redemption transaction max total fee in the next step.
+                      await bridgeGovernance
+                        .connect(governance)
+                        .beginRedemptionTxMaxFeeUpdate(3998)
+                      await increaseTime(
+                        await bridgeGovernance.governanceDelays(0)
+                      )
+                      await bridgeGovernance
+                        .connect(governance)
+                        .finalizeRedemptionTxMaxFeeUpdate()
+
                       // The transaction used by this scenario's
-                      // test data has a total fee of 500 satoshis. Lowering
+                      // test data has a total fee of 4000 satoshis. Lowering
                       // the max fee in the Bridge by one should
                       // cause the expected failure.
                       await bridgeGovernance
                         .connect(governance)
-                        .beginRedemptionTxMaxTotalFeeUpdate(499)
+                        .beginRedemptionTxMaxTotalFeeUpdate(3999)
                       await increaseTime(
                         await bridgeGovernance.governanceDelays(0)
                       )
