@@ -15,6 +15,7 @@ import type {
   BridgeStub,
   IWalletRegistry,
   IRelay,
+  BridgeGovernance,
 } from "../../typechain"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import {
@@ -54,6 +55,7 @@ describe("Bridge - Redemption", () => {
   let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
   let bridge: Bridge & BridgeStub
+  let bridgeGovernance: BridgeGovernance
   let walletRegistry: FakeContract<IWalletRegistry>
 
   let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
@@ -73,6 +75,7 @@ describe("Bridge - Redemption", () => {
       relay,
       walletRegistry,
       bridge,
+      bridgeGovernance,
       deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
     ;({
@@ -87,8 +90,25 @@ describe("Bridge - Redemption", () => {
     // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
     await bridge.setRedemptionDustThreshold(100000)
+    // Set the moving funds dust threshold to 0.0002 BTC, i.e. 10x smaller
+    // than the initial value. This is needed because we lowered the redemption
+    // dust threshold and the moving funds dust threshold must be always
+    // below it.
+    await bridgeGovernance
+      .connect(governance)
+      .beginMovingFundsDustThresholdUpdate(20000)
+    await increaseTime(await bridgeGovernance.governanceDelays(0))
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeMovingFundsDustThresholdUpdate()
     // Adjust redemption TX max fee by the same - 10x smaller - scale.
-    await bridge.setRedemptionTxMaxFee(10000)
+    await bridgeGovernance
+      .connect(governance)
+      .beginRedemptionTxMaxFeeUpdate(10000)
+    await increaseTime(await bridgeGovernance.governanceDelays(0))
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeRedemptionTxMaxFeeUpdate()
 
     redemptionTimeout = (await bridge.redemptionParameters()).redemptionTimeout
   })
@@ -2992,16 +3012,24 @@ describe("Bridge - Redemption", () => {
                     before(async () => {
                       await createSnapshot()
 
-                      // Simulate the situation when treasury fee is 0% to
-                      // allow using the whole wallet's main UTXO value
-                      // to fulfill the redemption request.
-                      await bridge.setRedemptionTreasuryFeeDivisor(0)
-
                       // The transaction used by this scenario's
                       // test data has a total fee of 500 satoshis. Lowering
                       // the max fee in the Bridge by one should
                       // cause the expected failure.
-                      await bridge.setRedemptionTxMaxTotalFee(499)
+                      await bridgeGovernance
+                        .connect(governance)
+                        .beginRedemptionTxMaxTotalFeeUpdate(499)
+                      await increaseTime(
+                        await bridgeGovernance.governanceDelays(0)
+                      )
+                      await bridgeGovernance
+                        .connect(governance)
+                        .finalizeRedemptionTxMaxTotalFeeUpdate()
+
+                      // Simulate the situation when treasury fee is 0% to
+                      // allow using the whole wallet's main UTXO value
+                      // to fulfill the redemption request.
+                      await bridge.setRedemptionTreasuryFeeDivisor(0)
 
                       outcome = runRedemptionScenario(data)
                     })
