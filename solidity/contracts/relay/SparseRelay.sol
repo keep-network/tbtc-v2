@@ -21,39 +21,49 @@ import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {ValidateSPV} from "@keep-network/bitcoin-spv-sol/contracts/ValidateSPV.sol";
 
-struct Block {
-    // up to 16 million; sufficient for a couple of centuries
-    uint24 height;
-    // if true, the block is not part of the current longest chain
-    bool isOrphan;
-    // The hash256 digest of the previous block in the sparse chain,
-    // excluding bits that are zero by definition.
-    // To be precise, this refers to the block 6 blocks earlier.
-    bytes28 prevDigest;
-}
-
 struct Chain {
     // The height of the current longest chain.
-    uint24 height;
-    // The digest of the most recent block in the longest chain.
-    bytes28 tip;
-    // Mapping from digest to block data for all recorded blocks.
-    mapping(bytes28 => Block) blocks;
-    // Mapping from blockheight to timestamp of epoch start.
-    //
-    // Each epoch has only one start, which is the one belonging to the longest
-    // chain. If the retarget is subject to a reorg, the winning chain will
-    // overwrite the previous epoch start. If the original chain overtakes the
-    // overwriting chain, it will have to supply all blocks since the point of
-    // divergence between the two chains, and the epoch start will once again
-    // be overwritten.
-    mapping(uint24 => uint32) epochStart;
+    uint32 height;
+    // The timestamp of the start of the current epoch, according to the
+    // current longest chain. If the retarget is subject to a reorg, the
+    // winning chain will overwrite the epoch start. If the original chain
+    // overtakes the overwriting chain, it will have to supply all blocks since
+    // the point of divergence between the two chains, and the epoch start will
+    // once again be overwritten.
+    uint32 latestEpochStart;
+    // The timestamp of the start of the previous epoch.
+    uint32 previousEpochStart;
+    // Mapping from height to digest for all recorded blocks.
+    // This acts like a ring buffer containing one epoch's worth of blocks.
+    // We take the height modulo 2016 and store every sixth block from that,
+    // giving the buffer an effective capacity of 336 blocks.
+    // The first block of the buffer is always the starting block of the epoch.
+    mapping(uint256 => bytes32) blocks;
 }
 
 interface ISparseRelay {}
 
 library SparseRelayUtils {
     using BytesLib for bytes;
+    
+    function position(uint256 height) internal pure returns (uint256) {
+        return height % 2016;
+    }
+
+    /// @dev Not checking for underflow, not designed for ancient blocks.
+    function previous(uint256 height) internal pure returns (uint256) {
+        unchecked {
+            return (height - 6) % 2016;
+        }
+    }
+
+    function addBlock(Chain storage self, uint256 height, bytes32 digest) internal {
+        self.blocks[height % 2016] = digest;
+    }
+
+    function getDigest(Chain storage self, uint256 height) internal view returns (bytes32) {
+        return self.blocks[height % 2016];
+    }
 
     function getDigest(bytes memory headers, uint256 at)
         internal
@@ -83,18 +93,14 @@ contract SparseRelay is Ownable, ISparseRelay {
     using BTCUtils for bytes;
     using ValidateSPV for bytes;
     using SparseRelayUtils for bytes;
+    using SparseRelayUtils for Chain;
 
     struct Data {
-        bytes28 newTip;
-        uint24 newHeight;
+        uint256 newHeight;
         uint256 currentTarget;
-        bytes32 previousStoredDigest;
         bytes32 previousHeaderDigest;
-        bytes32 ancestorDigest;
-        Block ancestorBlock;
-        bool retargetPresent;
-        uint24 retargetHeight;
         uint32 retargetTimestamp;
+        uint32 previousRetargetTimestamp;
     }
 
     Chain internal chain;
@@ -121,20 +127,13 @@ contract SparseRelay is Ownable, ISparseRelay {
             "Invalid header length"
         );
 
-        Block memory genesisBlock = Block(genesisHeight, false, bytes28(0));
-
         chain.height = genesisHeight;
-        bytes28 genesisDigest = bytes28(genesisHeader.getDigest(0));
-        chain.tip = genesisDigest;
-        chain.blocks[genesisDigest] = genesisBlock;
-
-        uint24 epochStartHeight = genesisHeight - (genesisHeight % 2016);
-        uint32 epochStartTime = epochStartHeader.extractTimestamp();
-
-        chain.epochStart[epochStartHeight] = epochStartTime;
+        chain.addBlock(genesisHeight, genesisHeader.getDigest(0));
+        chain.latestEpochStart = epochStartHeader.extractTimestamp();
     }
 
     /// @notice Add headers to the relay chain.
+    /// @param ancestorHeight The height of the ancestor block (see below).
     /// @param headers The headers to be added, with the first header being the
     /// most recent ancestor of both the new chain and the current chain to be
     /// recorded in the relay. If there is no reorg, this would be the tip of
@@ -142,38 +141,29 @@ contract SparseRelay is Ownable, ISparseRelay {
     /// non-orphan block recorded in the relay that is present in both chains.
     /// The number of new headers must be divisible by six; thus the total
     /// number of headers will be of the form 6k+1.
-    function addHeaders(bytes calldata headers) external {
+    function addHeaders(uint256 ancestorHeight, bytes calldata headers) external {
+        require(ancestorHeight % 6 == 0, "Invalid ancestor height");
         require(chain.height > 0, "Relay is not initialised");
         require(headers.length % 80 == 0, "Invalid header array");
         uint256 headerCount = headers.length / 80;
         require(headerCount % 6 == 1, "Invalid number of headers");
 
         Data memory data = Data(
-            bytes28(0),
             0,
             0,
             bytes32(0),
-            bytes32(0),
-            bytes32(0),
-            Block(0, false, bytes28(0)),
-            false,
             0,
             0
         );
 
-        data.ancestorDigest = headers.getDigest(0);
-        data.ancestorBlock = chain.blocks[bytes28(data.ancestorDigest)];
+        data.previousHeaderDigest = headers.getDigest(0);
 
         require(
-            data.ancestorBlock.height != 0,
+            data.previousHeaderDigest == chain.getDigest(ancestorHeight),
             "Ancestor not recorded in relay"
         );
-        require(!data.ancestorBlock.isOrphan, "Ancestor must not be orphan");
 
         data.currentTarget = headers.extractTarget();
-
-        data.previousStoredDigest = data.ancestorDigest;
-        data.previousHeaderDigest = data.ancestorDigest;
 
         // Validate and record the chain.
         for (uint256 i = 1; i < headerCount; i++) {
@@ -188,12 +178,22 @@ contract SparseRelay is Ownable, ISparseRelay {
                 "Invalid target"
             );
 
-            uint256 currentHeight = data.ancestorBlock.height + i;
+            uint256 currentHeight = ancestorHeight + i;
 
             // This is the last block of the epoch, calculate new target.
             if (currentHeight % 2016 == 2015) {
-                uint24 epochStartHeight = uint24(currentHeight - 2015);
-                uint32 epochStartTime = chain.epochStart[epochStartHeight];
+                uint32 epochStartTime;
+                // The ancestor is in the same epoch as the chain is currently,
+                // so we use the current epoch's starting time.
+                if (ancestorHeight / 2016 == chain.height / 2016) {
+                    epochStartTime = chain.latestEpochStart;
+                }
+                // We are attempting a reorg over a retarget,
+                // so the correct target is the previous one.
+                else {
+                    epochStartTime = chain.previousEpochStart;
+                }
+                
                 uint256 epochEndTimestamp = headers.extractTimestampAt(i * 80);
                 // Prevent difficulty manipulation by requiring that the epoch
                 // ends in the past. Without this check, an attacker could
@@ -214,103 +214,50 @@ contract SparseRelay is Ownable, ISparseRelay {
                     epochStartTime,
                     epochEndTimestamp
                 );
+                data.previousRetargetTimestamp = epochStartTime;
             }
 
             // This is the first block of the epoch, record it.
             if (currentHeight % 2016 == 0) {
-                data.retargetPresent = true;
-                data.retargetHeight = uint24(currentHeight);
-                data.retargetTimestamp = headers.extractTimestampAt(i * 80);
+                chain.latestEpochStart = headers.extractTimestampAt(i * 80);
+                chain.previousEpochStart = data.previousRetargetTimestamp;
             }
 
             // Record every sixth block in the relay.
             if (i % 6 == 0) {
-                Block storage currentBlock = chain.blocks[
-                    bytes28(currentDigest)
-                ];
-                // If the current block is already recorded in the relay,
-                // it must be flagged as an orphan.
-                // Otherwise the ancestor block (which we already checked is
-                // a part of the longest chain) would not be the most recent
-                // ancestor shared with the current chain and the new blocks.
+                bytes32 currentStoredDigest = chain.getDigest(currentHeight);
+                // If this block is already stored in the relay, our ancestor
+                // block was incorrect. If it is not already stored, we are
+                // either extending the chain from the current tip or
+                // attempting a reorg.
                 require(
-                    currentBlock.height == 0 || currentBlock.isOrphan,
+                    currentStoredDigest != currentDigest,
                     "Invalid ancestor block"
                 );
-                currentBlock.height = uint24(currentHeight);
-                currentBlock.isOrphan = false;
-                currentBlock.prevDigest = bytes28(data.previousStoredDigest);
+                chain.addBlock(currentHeight, currentDigest);
 
-                data.newTip = bytes28(currentDigest);
-                data.newHeight = uint24(currentHeight);
-
-                data.previousStoredDigest = currentDigest;
+                data.newHeight = currentHeight;
             }
         }
 
         // Check for reorgs.
-        //
-        // All is good, record new tip and new height.
-        if (bytes28(data.ancestorDigest) == chain.tip) {
-            chain.tip = data.newTip;
-            chain.height = data.newHeight;
-
-            // Record the retarget if we have one.
-            if (data.retargetPresent) {
-                chain.epochStart[data.retargetHeight] = data.retargetTimestamp;
-            }
-        }
-        // This sucks, we have a reorg.
-        else {
-            bytes28 orphanTip;
-            bytes28 winningTip;
-            uint24 winningHeight;
-
+        if (ancestorHeight != chain.height) {
             // HACK: We only compare the height of valid competing chains.
             // The timestamp check gives some sanity constraints, but
             // ultimately the relay assumes that the gas costs of processing
             // competing chains become infeasible by the time someone could
             // produce a chain longer than the legitimate one.
-            if (chain.height < data.newHeight) {
-                orphanTip = chain.tip;
-                winningTip = data.newTip;
-                winningHeight = data.newHeight;
-
-                // The new chain is winning, so record its retarget if present.
-                if (data.retargetPresent) {
-                    chain.epochStart[data.retargetHeight] = data
-                        .retargetTimestamp;
-                }
-            } else {
-                orphanTip = data.newTip;
-                winningTip = chain.tip;
-                winningHeight = chain.height;
-
-                // The new chain is an orphan, so we don't care about its
-                // retarget even if it had one. If it overtakes the original
-                // chain, we will process these blocks again as part of
-                // a longer chain which will take the other path.
-            }
-
-            // Mark all blocks of the orphan chain.
-            // We know that the ancestor is the most recent ancestor of both
-            // competing chains, so we mark all blocks of the shorter chain as
-            // orphans.
-            bytes28 orphanDigest = orphanTip;
-            while (orphanDigest != bytes28(data.ancestorDigest)) {
-                Block storage orphanBlock = chain.blocks[orphanDigest];
-                orphanBlock.isOrphan = true;
-                orphanDigest = orphanBlock.prevDigest;
-            }
-
-            // Whichever chain won, record it in the relay.
-            chain.tip = winningTip;
-            chain.height = winningHeight;
+            //
+            // If the attempted retarget is not strictly longer than the
+            // previous longest chain, we revert to reverses all state changes.
+            require(chain.height < data.newHeight, "Insufficient length in reorg");
         }
+        chain.height = uint32(data.newHeight);
     }
 
     /// @notice Check that the given chain of headers belongs to the longest
     /// chain and has at least 6 confirmations.
+    /// @param firstHeaderHeight The blockheight of the first given header.
     /// @param headers A byte array of 6 consecutive bitcoin headers.
     /// @return True if the headers are valid, throw an error otherwise.
     /// @dev We check the relay for a matching record. Because we record every
@@ -323,7 +270,7 @@ contract SparseRelay is Ownable, ISparseRelay {
     /// If the matching block is the current tip, we need to validate the rest
     /// of the headers to reach the required 6 confirmations. In this case we
     /// make sure that the remaining blocks were mined with sufficient work.
-    function validate(bytes calldata headers)
+    function validate(uint256 firstHeaderHeight, bytes calldata headers)
         external
         view
         returns (bool)
@@ -332,9 +279,7 @@ contract SparseRelay is Ownable, ISparseRelay {
 
         bytes32 previousHeaderDigest = bytes32(0);
         uint256 target;
-        uint256 expectedTarget;
-        Block storage foundBlock;
-        uint24 foundHeight = 0;
+        uint256 expectedTarget = 0;
 
         for (uint256 i = 0; i < 6; i++) {
             (previousHeaderDigest, target) = validateHeader(
@@ -343,38 +288,35 @@ contract SparseRelay is Ownable, ISparseRelay {
                 previousHeaderDigest
             );
 
-            // We haven't found a matching block yet.
-            if (foundHeight == 0) {
-                foundBlock = chain.blocks[bytes28(previousHeaderDigest)];
+            uint256 currentHeight = firstHeaderHeight + i;
+            if (currentHeight % 6 == 0) {
+                //  We should have a record of this block if it is part of the
+                // longest chain.
+                require(
+                    chain.getDigest(currentHeight) == previousHeaderDigest,
+                    "Headers not part of the longest chain"
+                );
 
-                // This block is recorded, make sure it isn't an orphan.
-                if (foundBlock.height > 0) {
-                    require(
-                        !foundBlock.isOrphan,
-                        "Headers not part of longest chain"
-                    );
-                    foundHeight = foundBlock.height;
-
-                    // We found the block, and we have sufficient confirmations
-                    // on top of it, so we don't need to validate the given
-                    // chain any further.
-                    if (foundHeight < chain.height) {
-                        return true;
-                    }
-                    // We found the block, but it is the current chain tip and
-                    // thus did not have the required confirmations. Continue
-                    // validating the given chain.
-                    else {
-                        // Record the target here, to make sure that the
-                        // remaining headers are mined with sufficient work.
-                        expectedTarget = target;
-                        continue;
-                    }
+                // We found the block, and we have sufficient confirmations
+                // on top of it, so we don't need to validate the given
+                // chain any further.
+                if (currentHeight < chain.height) {
+                    return true;
+                }
+                // We found the block, but it is the current chain tip and
+                // thus did not have the required confirmations. Continue
+                // validating the given chain.
+                else {
+                    // Record the target here, to make sure that the
+                    // remaining headers are mined with sufficient work.
+                    expectedTarget = target;
+                    continue;
                 }
             }
+
             // We have anchored this chain of headers, but need to finish
             // validating them.
-            else {
+            if (expectedTarget != 0) {
                 // The previous target was set by the block recorded in the
                 // relay. All remaining targets must match; if the chain
                 // contains a retarget it has to be in a recorded block.
@@ -384,7 +326,7 @@ contract SparseRelay is Ownable, ISparseRelay {
 
         // If foundHeight is nonzero, at least one block of the chain is
         // recorded in the relay.
-        require(foundHeight != 0, "Headers not recorded in relay");
+        require(expectedTarget != 0, "Headers not recorded in relay");
         // If we did not throw an error, at least the first header of the given
         // chain is a part of the current longest chain, and there are
         // sufficient confirmations with the correct work.
@@ -393,10 +335,6 @@ contract SparseRelay is Ownable, ISparseRelay {
 
     function getHeight() external view returns (uint256) {
         return uint256(chain.height);
-    }
-
-    function getTip() external view returns (bytes32) {
-        return bytes32(chain.tip);
     }
 
     /// @notice Check that the specified header forms a correct chain with the

@@ -156,6 +156,7 @@ describe.only("SparseRelay", () => {
   describe("addHeaders", () => {
     const { chain } = headers
     const headerHex = chain.map((header) => header.hex)
+    const heightOf = chain.map((header) => header.height)
 
     before(async () => {
       await createSnapshot()
@@ -170,7 +171,7 @@ describe.only("SparseRelay", () => {
       const newHeaders = concatenateHexStrings(headerHex.slice(0, 7))
 
       it("should revert", async () => {
-        await expect(relay.addHeaders(newHeaders)).to.be.revertedWith(
+        await expect(relay.addHeaders(heightOf[0], newHeaders)).to.be.revertedWith(
           "Relay is not initialised"
         )
       })
@@ -192,7 +193,7 @@ describe.only("SparseRelay", () => {
 
         before(async () => {
           await createSnapshot()
-          tx = await relay.addHeaders(newHeaders)
+          tx = await relay.addHeaders(heightOf[0], newHeaders)
         })
 
         after(async () => {
@@ -212,37 +213,78 @@ describe.only("SparseRelay", () => {
       //   })
       })
 
-      context("when called with many headers", () => {
-        let tx: ContractTransaction
-        const newHeaders = concatenateHexStrings(headerHex.slice(0, 19))
+      // context("when called with many headers", () => {
+      //   let tx: ContractTransaction
+      //   const newHeaders = concatenateHexStrings(headerHex.slice(0, 19))
 
-        before(async () => {
-          await createSnapshot()
-          tx = await relay.addHeaders(newHeaders)
-        })
+      //   before(async () => {
+      //     await createSnapshot()
+      //     tx = await relay.addHeaders(heightOf[0], newHeaders)
+      //   })
 
-        after(async () => {
-          await restoreSnapshot()
-        })
+      //   after(async () => {
+      //     await restoreSnapshot()
+      //   })
 
-        it("should store the new height", async () => {
-          expect(await relay.getHeight()).to.equal(
-            741816
-          )
-        })
+      //   it("should store the new height", async () => {
+      //     expect(await relay.getHeight()).to.equal(
+      //       741816
+      //     )
+      //   })
 
       //   it("should emit the Retarget event", async () => {
       //     await expect(tx)
       //       .to.emit(relay, "Retarget")
       //       .withArgs(genesisDifficulty, nextDifficulty)
       //   })
+      // })
+
+      context("with full buffer", () => {
+        const newHeaders = concatenateHexStrings(headerHex.slice(0, 7))
+        const moreHeaders = concatenateHexStrings(headerHex.slice(0, 19))
+
+        before(async () => {
+          await createSnapshot()
+          await relay.fillBuffer(heightOf[0], 20)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should store the new height with 6 added blocks", async () => {
+          await relay.addHeaders(heightOf[0], newHeaders)
+          expect(await relay.getHeight()).to.equal(
+            741804
+          )
+        })
+      })
+
+      context("with full buffer and many headers", () => {
+        const newHeaders = concatenateHexStrings(headerHex.slice(0, 19))
+
+        before(async () => {
+          await createSnapshot()
+          await relay.fillBuffer(heightOf[0], 20)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should store the new height with 6 added blocks", async () => {
+          await relay.addHeaders(heightOf[0], newHeaders)
+          expect(await relay.getHeight()).to.equal(
+            741816
+          )
+        })
       })
 
       context("with incorrect number of headers", () => {
         const newHeaders = concatenateHexStrings(headerHex.slice(0, 6))
         it("should revert", async () => {
           await expect(
-            relay.addHeaders(newHeaders)
+            relay.addHeaders(heightOf[0], newHeaders)
           ).to.be.revertedWith("Invalid number of headers")
         })
       })
@@ -251,7 +293,13 @@ describe.only("SparseRelay", () => {
         const newHeaders = concatenateHexStrings(headerHex.slice(1, 8))
         it("should revert", async () => {
           await expect(
-            relay.addHeaders(newHeaders)
+            relay.addHeaders(heightOf[1], newHeaders)
+          ).to.be.revertedWith("Invalid ancestor height")
+        })
+
+        it("should revert when we lie about the ancestor height", async () => {
+          await expect(
+            relay.addHeaders(heightOf[0], newHeaders)
           ).to.be.revertedWith("Ancestor not recorded in relay")
         })
       })
@@ -261,9 +309,9 @@ describe.only("SparseRelay", () => {
         const newerHeaders = concatenateHexStrings(headerHex.slice(0, 13))
 
         it("should revert", async () => {
-          await relay.addHeaders(newHeaders)
+          await relay.addHeaders(heightOf[0], newHeaders)
           await expect(
-            relay.addHeaders(newerHeaders)
+            relay.addHeaders(heightOf[0], newerHeaders)
           ).to.be.revertedWith("Invalid ancestor block")
         })
       })
@@ -287,7 +335,7 @@ describe.only("SparseRelay", () => {
 
         before(async () => {
           await createSnapshot()
-          tx = await relay.addHeaders(newHeaders)
+          tx = await relay.addHeaders(heightOf[78], newHeaders)
         })
 
         after(async () => {
@@ -313,7 +361,8 @@ describe.only("SparseRelay", () => {
 
         before(async () => {
           await createSnapshot()
-          tx = await relay.addHeaders(newHeaders)
+          await relay.fillBuffer(heightOf[78], 20)
+          tx = await relay.addHeaders(heightOf[78], newHeaders)
         })
 
         after(async () => {
@@ -351,7 +400,7 @@ describe.only("SparseRelay", () => {
 
         it("should revert", async () => {
           await expect(
-            relay.addHeaders(newHeaders)
+            relay.addHeaders(heightOf[78], newHeaders)
           ).to.be.revertedWith("Invalid target")
         })
       })
@@ -374,7 +423,7 @@ describe.only("SparseRelay", () => {
 
         it("should revert", async () => {
           await expect(
-            relay.addHeaders(newHeaders)
+            relay.addHeaders(heightOf[78], newHeaders)
           ).to.be.revertedWith("Invalid target")
         })
       })
@@ -397,7 +446,7 @@ describe.only("SparseRelay", () => {
 
         it("should revert", async () => {
           await expect(
-            relay.addHeaders(newHeaders)
+            relay.addHeaders(heightOf[78], newHeaders)
           ).to.be.revertedWith("Invalid target")
         })
       })
@@ -410,7 +459,7 @@ describe.only("SparseRelay", () => {
   //
   // validate
   //
-  describe("validateChain", () => {
+  describe("validate", () => {
     before(async () => {
       await createSnapshot()
     })
