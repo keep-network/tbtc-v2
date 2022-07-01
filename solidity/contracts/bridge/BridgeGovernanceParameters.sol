@@ -640,6 +640,8 @@ library BridgeGovernanceParameters {
         self.redemptionTxMaxTotalFeeChangeInitiated = 0;
     }
 
+    // https://github.com/crytic/slither/issues/1265
+    // slither-disable-next-line dead-code
     function getNewRedemptionTxMaxTotalFee(RedemptionData storage self)
         internal
         view
