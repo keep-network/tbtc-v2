@@ -36,6 +36,7 @@ import {
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
+import { BridgeGovernance } from "../../typechain"
 
 chai.use(smock.matchers)
 
@@ -43,12 +44,14 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 
 describe("Bridge - Moving funds", () => {
+  let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let spvMaintainer: SignerWithAddress
 
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
+  let bridgeGovernance: BridgeGovernance
   let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
 
   let movingFundsTimeoutResetDelay: number
@@ -62,11 +65,13 @@ describe("Bridge - Moving funds", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
+      governance,
       thirdParty,
       spvMaintainer,
       relay,
       walletRegistry,
       bridge,
+      bridgeGovernance,
       deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
     ;({
@@ -1452,7 +1457,15 @@ describe("Bridge - Moving funds", () => {
                                   // test data has a fee of 9000 satoshis. Lowering
                                   // the max fee in the Bridge by one should
                                   // cause the expected failure.
-                                  await bridge.setMovingFundsTxMaxTotalFee(8999)
+                                  await bridgeGovernance
+                                    .connect(governance)
+                                    .beginMovingFundsTxMaxTotalFeeUpdate(8999)
+                                  await increaseTime(
+                                    await bridgeGovernance.governanceDelays(0)
+                                  )
+                                  await bridgeGovernance
+                                    .connect(governance)
+                                    .finalizeMovingFundsTxMaxTotalFeeUpdate()
                                 }
 
                                 tx = runMovingFundsScenario(

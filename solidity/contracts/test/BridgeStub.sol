@@ -92,12 +92,6 @@ contract BridgeStub is Bridge {
         self.redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
     }
 
-    function setMovingFundsTxMaxTotalFee(uint64 _movingFundsTxMaxTotalFee)
-        external
-    {
-        self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
-    }
-
     function setPendingMovedFundsSweepRequest(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata utxo
