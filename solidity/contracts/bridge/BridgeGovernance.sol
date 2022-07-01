@@ -286,6 +286,18 @@ contract BridgeGovernance is Ownable {
         bridge.setVaultStatus(vault, isTrusted);
     }
 
+    /// @notice Allows the Governance to mark the given address as trusted
+    ///         or no longer trusted SPV maintainer. Addresses are not trusted
+    ///         as SPV maintainers by default.
+    /// @param spvMaintainer The address of the SPV maintainer.
+    /// @param isTrusted flag indicating whether the address is trusted or not.
+    function setSpvMaintainerStatus(address spvMaintainer, bool isTrusted)
+        external
+        onlyOwner
+    {
+        bridge.setSpvMaintainerStatus(spvMaintainer, isTrusted);
+    }
+
     /// @notice Begins the governance delay update process.
     /// @dev Can be called only by the contract owner. The event that informs about
     ///      the start of the governance delay was skipped on purpose to trim

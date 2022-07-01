@@ -24,25 +24,40 @@ import "../bridge/Bridge.sol";
 
 /// @title Maintainer Proxy
 /// @notice Maintainers are the willing off-chain clients approved by the governance.
-///         Maintainers proxy calls to the Bridge contract via 'MaintainerProxy'
-///         and are refunded for the spent gas from the Reimbursement Pool.
-///         Only the authorized maintainers can call 'MaintainerProxy' functions.
+///         Maintainers proxy calls to the `Bridge` contract via 'MaintainerProxy'
+///         and are refunded for the spent gas from the `ReimbursementPool`.
+///         There are two types of maintainers: wallet maintainers and SPV
+///         maintainers.
 contract MaintainerProxy is Ownable, Reimbursable {
     Bridge public bridge;
 
-    /// @notice Authorized maintainers that can interact with the set of functions
-    ///         for maintainers only. Authorization can be granted and removed by
-    ///         the governance.
+    /// @notice Authorized wallet maintainers that can interact with the set of
+    ///         functions for wallet maintainers only. Authorization can be
+    ///         granted and removed by the governance.
     /// @dev    'Key' is the address of the maintainer. 'Value' represents an index+1
     ///         in the 'maintainers' array. 1 was added so the maintainer index can
     ///         never be 0 which is a reserved index for a non-existent maintainer
     ///         in this map.
-    mapping(address => uint256) public isAuthorized;
+    mapping(address => uint256) public isWalletMaintainer;
 
-    /// @notice This list of maintainers keeps the order of which maintainer should
-    ///         be submitting a next transaction. It does not enforce the order
-    ///         but only tracks who should be next in line.
-    address[] public maintainers;
+    /// @notice This list of wallet maintainers keeps the order of which wallet
+    ///         maintainer should be submitting a next transaction. It does not
+    ///         enforce the order but only tracks who should be next in line.
+    address[] public walletMaintainers;
+
+    /// @notice Authorized SPV maintainers that can interact with the set of
+    ///         functions for SPV maintainers only. Authorization can be
+    ///         granted and removed by the governance.
+    /// @dev    'Key' is the address of the maintainer. 'Value' represents an index+1
+    ///         in the 'maintainers' array. 1 was added so the maintainer index can
+    ///         never be 0 which is a reserved index for a non-existent maintainer
+    ///         in this map.
+    mapping(address => uint256) public isSpvMaintainer;
+
+    /// @notice This list of SPV maintainers keeps the order of which SPV
+    ///         maintainer should be submitting a next transaction. It does not
+    ///         enforce the order but only tracks who should be next in line.
+    address[] public spvMaintainers;
 
     /// @notice Gas that is meant to balance the submission of deposit sweep proof
     ///         overall cost. Can be updated by the governance based on the current
@@ -104,9 +119,13 @@ contract MaintainerProxy is Ownable, Reimbursable {
     ///         market conditions.
     uint256 public defeatFraudChallengeWithHeartbeatGasOffset;
 
-    event MaintainerAuthorized(address indexed maintainer);
+    event WalletMaintainerAuthorized(address indexed maintainer);
 
-    event MaintainerUnauthorized(address indexed maintainer);
+    event WalletMaintainerUnauthorized(address indexed maintainer);
+
+    event SpvMaintainerAuthorized(address indexed maintainer);
+
+    event SpvMaintainerUnauthorized(address indexed maintainer);
 
     event BridgeUpdated(address newBridge);
 
@@ -125,8 +144,16 @@ contract MaintainerProxy is Ownable, Reimbursable {
         uint256 defeatFraudChallengeWithHeartbeatGasOffset
     );
 
-    modifier onlyMaintainer() {
-        require(isAuthorized[msg.sender] != 0, "Caller is not authorized");
+    modifier onlyWalletMaintainer() {
+        require(
+            isWalletMaintainer[msg.sender] != 0,
+            "Caller is not authorized"
+        );
+        _;
+    }
+
+    modifier onlySpvMaintainer() {
+        require(isSpvMaintainer[msg.sender] != 0, "Caller is not authorized");
         _;
     }
 
@@ -160,7 +187,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo,
         address vault
-    ) external onlyMaintainer {
+    ) external onlySpvMaintainer {
         uint256 gasStart = gasleft();
 
         bridge.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo, vault);
@@ -179,7 +206,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         BitcoinTx.Proof calldata redemptionProof,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
-    ) external onlyMaintainer {
+    ) external onlySpvMaintainer {
         uint256 gasStart = gasleft();
 
         bridge.submitRedemptionProof(
@@ -243,7 +270,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         BitcoinTx.Proof calldata movingFundsProof,
         BitcoinTx.UTXO calldata mainUtxo,
         bytes20 walletPubKeyHash
-    ) external onlyMaintainer {
+    ) external onlySpvMaintainer {
         uint256 gasStart = gasleft();
 
         bridge.submitMovingFundsProof(
@@ -265,7 +292,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     function notifyMovingFundsBelowDust(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata mainUtxo
-    ) external onlyMaintainer {
+    ) external onlyWalletMaintainer {
         uint256 gasStart = gasleft();
 
         bridge.notifyMovingFundsBelowDust(walletPubKeyHash, mainUtxo);
@@ -283,7 +310,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
         BitcoinTx.Info calldata sweepTx,
         BitcoinTx.Proof calldata sweepProof,
         BitcoinTx.UTXO calldata mainUtxo
-    ) external onlyMaintainer {
+    ) external onlySpvMaintainer {
         uint256 gasStart = gasleft();
 
         bridge.submitMovedFundsSweepProof(sweepTx, sweepProof, mainUtxo);
@@ -299,7 +326,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @dev See `Bridge.requestNewWallet` function documentation.
     function requestNewWallet(BitcoinTx.UTXO calldata activeWalletMainUtxo)
         external
-        onlyMaintainer
+        onlyWalletMaintainer
     {
         uint256 gasStart = gasleft();
 
@@ -317,7 +344,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     function notifyWalletCloseable(
         bytes20 walletPubKeyHash,
         BitcoinTx.UTXO calldata walletMainUtxo
-    ) external onlyMaintainer {
+    ) external onlyWalletMaintainer {
         uint256 gasStart = gasleft();
 
         bridge.notifyWalletCloseable(walletPubKeyHash, walletMainUtxo);
@@ -333,7 +360,7 @@ contract MaintainerProxy is Ownable, Reimbursable {
     /// @dev See `Bridge.notifyWalletClosingPeriodElapsed` function documentation.
     function notifyWalletClosingPeriodElapsed(bytes20 walletPubKeyHash)
         external
-        onlyMaintainer
+        onlyWalletMaintainer
     {
         uint256 gasStart = gasleft();
 
@@ -383,46 +410,100 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Authorize a maintainer that can interact with this reimbursement pool.
-    ///         Can be authorized by the owner only.
-    /// @param maintainer Maintainer to authorize.
-    function authorize(address maintainer) external onlyOwner {
-        maintainers.push(maintainer);
-        isAuthorized[maintainer] = maintainers.length;
+    /// @notice Authorize a wallet maintainer that can interact with this
+    ///         reimbursement pool. Can be authorized by the owner only.
+    /// @param maintainer Wallet maintainer to authorize.
+    function authorizeWalletMaintainer(address maintainer) external onlyOwner {
+        walletMaintainers.push(maintainer);
+        isWalletMaintainer[maintainer] = walletMaintainers.length;
 
-        emit MaintainerAuthorized(maintainer);
+        emit WalletMaintainerAuthorized(maintainer);
     }
 
-    /// @notice Unauthorize a maintainer that was previously authorized to interact
-    ///         with the Maintainer Proxy contract. Can be unauthorized by the
-    ///         owner only.
+    /// @notice Authorize an SPV maintainer that can interact with this
+    ///         reimbursement pool. Can be authorized by the owner only.
+    /// @param maintainer SPV maintainer to authorize.
+    function authorizeSpvMaintainer(address maintainer) external onlyOwner {
+        spvMaintainers.push(maintainer);
+        isSpvMaintainer[maintainer] = spvMaintainers.length;
+
+        emit SpvMaintainerAuthorized(maintainer);
+    }
+
+    /// @notice Unauthorize a wallet maintainer that was previously authorized to
+    ///         interact with the Maintainer Proxy contract. Can be unauthorized
+    ///         by the owner only.
     /// @dev    The last maintainer is swapped with the one to be unauthorized.
     ///         The unauthorized maintainer is then removed from the list. An index
     ///         of the last maintainer is changed with the removed maintainer.
     ///         Ex.
-    ///         'maintainers' list: [0x1, 0x2, 0x3, 0x4, 0x5]
-    ///         'isAuthorized' map: [0x1 -> 1, 0x2 -> 2, 0x3 -> 3, 0x4 -> 4, 0x5 -> 5]
+    ///         'walletMaintainers' list: [0x1, 0x2, 0x3, 0x4, 0x5]
+    ///         'isWalletMaintainer' map: [0x1 -> 1, 0x2 -> 2, 0x3 -> 3, 0x4 -> 4, 0x5 -> 5]
     ///         unauthorize: 0x3
-    ///         new 'maintainers' list: [0x1, 0x2, 0x5, 0x4]
-    ///         new 'isAuthorized' map: [0x1 -> 1, 0x2 -> 2, 0x4 -> 4, 0x5 -> 3]
+    ///         new 'walletMaintainers' list: [0x1, 0x2, 0x5, 0x4]
+    ///         new 'isWalletMaintainer' map: [0x1 -> 1, 0x2 -> 2, 0x4 -> 4, 0x5 -> 3]
     /// @param maintainerToUnauthorize Maintainer to unauthorize.
-    function unauthorize(address maintainerToUnauthorize) external onlyOwner {
-        uint256 maintainerIdToUnauthorize = isAuthorized[
+    function unauthorizeWalletMaintainer(address maintainerToUnauthorize)
+        external
+        onlyOwner
+    {
+        uint256 maintainerIdToUnauthorize = isWalletMaintainer[
             maintainerToUnauthorize
         ];
 
         require(maintainerIdToUnauthorize != 0, "No maintainer to unauthorize");
 
-        address lastMaintainerAddress = maintainers[maintainers.length - 1];
+        address lastMaintainerAddress = walletMaintainers[
+            walletMaintainers.length - 1
+        ];
 
-        maintainers[maintainerIdToUnauthorize - 1] = lastMaintainerAddress;
-        maintainers.pop();
+        walletMaintainers[
+            maintainerIdToUnauthorize - 1
+        ] = lastMaintainerAddress;
+        walletMaintainers.pop();
 
-        isAuthorized[lastMaintainerAddress] = maintainerIdToUnauthorize;
+        isWalletMaintainer[lastMaintainerAddress] = maintainerIdToUnauthorize;
 
-        delete isAuthorized[maintainerToUnauthorize];
+        delete isWalletMaintainer[maintainerToUnauthorize];
 
-        emit MaintainerUnauthorized(maintainerToUnauthorize);
+        emit WalletMaintainerUnauthorized(maintainerToUnauthorize);
+    }
+
+    /// @notice Unauthorize an SPV maintainer that was previously authorized to
+    ///         interact with the Maintainer Proxy contract. Can be unauthorized
+    ///         by the owner only.
+    /// @dev    The last maintainer is swapped with the one to be unauthorized.
+    ///         The unauthorized maintainer is then removed from the list. An index
+    ///         of the last maintainer is changed with the removed maintainer.
+    ///         Ex.
+    ///         'spvMaintainers' list: [0x1, 0x2, 0x3, 0x4, 0x5]
+    ///         'isSpvMaintainer' map: [0x1 -> 1, 0x2 -> 2, 0x3 -> 3, 0x4 -> 4, 0x5 -> 5]
+    ///         unauthorize: 0x3
+    ///         new 'spvMaintainers' list: [0x1, 0x2, 0x5, 0x4]
+    ///         new 'isSpvMaintainer' map: [0x1 -> 1, 0x2 -> 2, 0x4 -> 4, 0x5 -> 3]
+    /// @param maintainerToUnauthorize Maintainer to unauthorize.
+    function unauthorizeSpvMaintainer(address maintainerToUnauthorize)
+        external
+        onlyOwner
+    {
+        uint256 maintainerIdToUnauthorize = isSpvMaintainer[
+            maintainerToUnauthorize
+        ];
+
+        require(maintainerIdToUnauthorize != 0, "No maintainer to unauthorize");
+
+        address lastMaintainerAddress = spvMaintainers[
+            spvMaintainers.length - 1
+        ];
+
+        spvMaintainers[maintainerIdToUnauthorize - 1] = lastMaintainerAddress;
+        spvMaintainers.pop();
+
+        isSpvMaintainer[lastMaintainerAddress] = maintainerIdToUnauthorize;
+
+        delete isSpvMaintainer[maintainerToUnauthorize];
+
+        emit SpvMaintainerUnauthorized(maintainerToUnauthorize);
     }
 
     /// @notice Allows the Governance to upgrade the Bridge address.
@@ -505,8 +586,13 @@ contract MaintainerProxy is Ownable, Reimbursable {
         );
     }
 
-    /// @notice Gets an entire array of maintainer addresses.
-    function allMaintainers() external view returns (address[] memory) {
-        return maintainers;
+    /// @notice Gets an entire array of wallet maintainer addresses.
+    function allWalletMaintainers() external view returns (address[] memory) {
+        return walletMaintainers;
+    }
+
+    /// @notice Gets an entire array of SPV maintainer addresses.
+    function allSpvMaintainers() external view returns (address[] memory) {
+        return spvMaintainers;
     }
 }

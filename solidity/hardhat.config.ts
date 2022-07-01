@@ -29,7 +29,7 @@ const bridgeGovernanceCompilerConfig = {
   settings: {
     optimizer: {
       enabled: true,
-      runs: 100,
+      runs: 200,
     },
   },
 }
@@ -171,6 +171,9 @@ const config: HardhatUserConfig = {
     esdm: {
       default: 6,
       // mainnet: ""
+    },
+    spvMaintainer: {
+      default: 7,
     },
   },
   dependencyCompiler: {
