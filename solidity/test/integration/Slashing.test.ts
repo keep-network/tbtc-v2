@@ -58,6 +58,7 @@ describeFn("Integration Test - Slashing", async () => {
   let relay: FakeContract<TestRelay>
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
+  let spvMaintainer: SignerWithAddress
   let thirdParty: SignerWithAddress
 
   const dkgResultChallengePeriodLength = 10
@@ -66,6 +67,7 @@ describeFn("Integration Test - Slashing", async () => {
     ;({
       deployer,
       governance,
+      spvMaintainer,
       tbtc,
       bridge,
       tbtcVault,
@@ -248,12 +250,14 @@ describeFn("Integration Test - Slashing", async () => {
         )
         relay.getPrevEpochDifficulty.returns(SingleP2SHDeposit.chainDifficulty)
 
-        await bridge.submitDepositSweepProof(
-          SingleP2SHDeposit.sweepTx,
-          SingleP2SHDeposit.sweepProof,
-          SingleP2SHDeposit.mainUtxo,
-          tbtcVault.address
-        )
+        await bridge
+          .connect(spvMaintainer)
+          .submitDepositSweepProof(
+            SingleP2SHDeposit.sweepTx,
+            SingleP2SHDeposit.sweepProof,
+            SingleP2SHDeposit.mainUtxo,
+            tbtcVault.address
+          )
 
         const newMainUtxo: UTXOStruct = {
           txHash: SingleP2SHDeposit.sweepTx.hash,
@@ -401,12 +405,14 @@ describeFn("Integration Test - Slashing", async () => {
         )
         relay.getPrevEpochDifficulty.returns(SingleP2SHDeposit.chainDifficulty)
 
-        await bridge.submitDepositSweepProof(
-          SingleP2SHDeposit.sweepTx,
-          SingleP2SHDeposit.sweepProof,
-          SingleP2SHDeposit.mainUtxo,
-          tbtcVault.address
-        )
+        await bridge
+          .connect(spvMaintainer)
+          .submitDepositSweepProof(
+            SingleP2SHDeposit.sweepTx,
+            SingleP2SHDeposit.sweepProof,
+            SingleP2SHDeposit.mainUtxo,
+            tbtcVault.address
+          )
 
         // Switch the wallet to moving funds state by reporting wallet members
         // inactivity.

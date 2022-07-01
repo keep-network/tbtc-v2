@@ -41,6 +41,7 @@ const { increaseTime, lastBlockTime } = helpers.time
 describe("VendingMachine - Upgrade", () => {
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
+  let spvMaintainer: SignerWithAddress
   let keepTechnicalWalletTeam: SignerWithAddress
   let keepCommunityMultiSig: SignerWithAddress
 
@@ -58,8 +59,13 @@ describe("VendingMachine - Upgrade", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ deployer, governance, keepTechnicalWalletTeam, keepCommunityMultiSig } =
-      await helpers.signers.getNamedSigners())
+    ;({
+      deployer,
+      governance,
+      spvMaintainer,
+      keepTechnicalWalletTeam,
+      keepCommunityMultiSig,
+    } = await helpers.signers.getNamedSigners())
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[account1, account2] = await helpers.signers.getUnnamedSigners()
@@ -161,12 +167,14 @@ describe("VendingMachine - Upgrade", () => {
         relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
         relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
-        await bridge.submitDepositSweepProof(
-          data.sweepTx,
-          data.sweepProof,
-          data.mainUtxo,
-          tbtcVault.address
-        )
+        await bridge
+          .connect(spvMaintainer)
+          .submitDepositSweepProof(
+            data.sweepTx,
+            data.sweepProof,
+            data.mainUtxo,
+            tbtcVault.address
+          )
       })
 
       it("should let the governance donate TBTCVault", async () => {

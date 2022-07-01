@@ -48,6 +48,7 @@ const { impersonateAccount } = helpers.account
 describe("Bridge - Redemption", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
+  let spvMaintainer: SignerWithAddress
   let treasury: SignerWithAddress
 
   let bank: Bank & BankStub
@@ -66,6 +67,7 @@ describe("Bridge - Redemption", () => {
     ;({
       governance,
       thirdParty,
+      spvMaintainer,
       treasury,
       bank,
       relay,
@@ -3107,12 +3109,14 @@ describe("Bridge - Redemption", () => {
             }
 
             await expect(
-              bridge.submitRedemptionProof(
-                data.redemptionTx,
-                data.redemptionProof,
-                corruptedMainUtxo,
-                data.wallet.pubKeyHash
-              )
+              bridge
+                .connect(spvMaintainer)
+                .submitRedemptionProof(
+                  data.redemptionTx,
+                  data.redemptionProof,
+                  corruptedMainUtxo,
+                  data.wallet.pubKeyHash
+                )
             ).to.be.revertedWith("Invalid main UTXO data")
           })
         })
@@ -3138,12 +3142,14 @@ describe("Bridge - Redemption", () => {
           // There was no preparations before `submitRedemptionProof` call
           // so no main UTXO is set for the given wallet.
           await expect(
-            bridge.submitRedemptionProof(
-              data.redemptionTx,
-              data.redemptionProof,
-              data.mainUtxo,
-              data.wallet.pubKeyHash
-            )
+            bridge
+              .connect(spvMaintainer)
+              .submitRedemptionProof(
+                data.redemptionTx,
+                data.redemptionProof,
+                data.mainUtxo,
+                data.wallet.pubKeyHash
+              )
           ).to.be.revertedWith("No main UTXO for given wallet")
         })
       })
@@ -3367,6 +3373,10 @@ describe("Bridge - Redemption", () => {
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
             otherBridge = (await deployBridge(12)) as BridgeStub
+            await otherBridge.setSpvMaintainerStatus(
+              spvMaintainer.address,
+              true
+            )
           })
 
           after(async () => {
@@ -3375,12 +3385,14 @@ describe("Bridge - Redemption", () => {
 
           it("should revert", async () => {
             await expect(
-              otherBridge.submitRedemptionProof(
-                data.redemptionTx,
-                data.redemptionProof,
-                data.mainUtxo,
-                data.wallet.pubKeyHash
-              )
+              otherBridge
+                .connect(spvMaintainer)
+                .submitRedemptionProof(
+                  data.redemptionTx,
+                  data.redemptionProof,
+                  data.mainUtxo,
+                  data.wallet.pubKeyHash
+                )
             ).to.be.revertedWith(
               "Insufficient accumulated difficulty in header chain"
             )
@@ -4311,12 +4323,14 @@ describe("Bridge - Redemption", () => {
       redeemersBalancesBeforeProof.push(await bank.balanceOf(redeemer))
     }
 
-    const tx = await bridge.submitRedemptionProof(
-      data.redemptionTx,
-      data.redemptionProof,
-      data.mainUtxo,
-      data.wallet.pubKeyHash
-    )
+    const tx = await bridge
+      .connect(spvMaintainer)
+      .submitRedemptionProof(
+        data.redemptionTx,
+        data.redemptionProof,
+        data.mainUtxo,
+        data.wallet.pubKeyHash
+      )
 
     const bridgeBalanceAfterProof = await bank.balanceOf(bridge.address)
     const walletPendingRedemptionsValueAfterProof = (

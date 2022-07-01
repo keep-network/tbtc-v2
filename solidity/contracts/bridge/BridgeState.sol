@@ -222,13 +222,26 @@ library BridgeState {
         // and invalid deposits and the wallet is responsible for validating
         // them before attempting to execute a sweep.
         mapping(uint256 => Deposit.DepositRequest) deposits;
-        // Indicates if the vault with the given address is trusted or not.
+        // Indicates if the vault with the given address is trusted.
         // Depositors can route their revealed deposits only to trusted vaults
         // and have trusted vaults notified about new deposits as soon as these
         // deposits get swept. Vaults not trusted by the Bridge can still be
         // used by Bank balance owners on their own responsibility - anyone can
         // approve their Bank balance to any address.
         mapping(address => bool) isVaultTrusted;
+        // Indicates if the address is a trusted SPV maintainer.
+        // The SPV proof does not check whether the transaction is a part of the
+        // Bitcoin mainnet, it only checks whether the transaction has been
+        // mined performing the required amount of work as on Bitcoin mainnet.
+        // The possibility of submitting SPV proofs is limited to trusted SPV
+        // maintainers. The system expects transaction confirmations with the
+        // required work accumulated, so trusted SPV maintainers can not prove
+        // the transaction without providing the required Bitcoin proof of work.
+        // Trusted maintainers address the issue of an economic game between
+        // tBTC and Bitcoin mainnet where large Bitcoin mining pools can decide
+        // to use their hash power to mine fake Bitcoin blocks to prove them in
+        // tBTC instead of receiving Bitcoin miner rewards.
+        mapping(address => bool) isSpvMaintainer;
         // Collection of all moved funds sweep requests indexed by
         // `keccak256(movingFundsTxHash | movingFundsOutputIndex)`.
         // The `movingFundsTxHash` is `bytes32` (ordered as in Bitcoin
