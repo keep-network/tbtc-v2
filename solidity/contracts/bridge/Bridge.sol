@@ -195,6 +195,7 @@ contract Bridge is
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
+        uint64 redemptionTxMaxTotalFee,
         uint32 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
         uint32 redemptionTimeoutNotifierRewardMultiplier
@@ -290,6 +291,7 @@ contract Bridge is
         self.redemptionDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
         self.redemptionTreasuryFeeDivisor = 2000; // 1/2000 == 5bps == 0.05% == 0.0005
         self.redemptionTxMaxFee = 100000; // 100000 satoshi = 0.001 BTC
+        self.redemptionTxMaxTotalFee = 1000000; // 1000000 satoshi = 0.01 BTC
         self.redemptionTimeout = 5 days;
         self.redemptionTimeoutSlashingAmount = 100 * 1e18; // 100 T
         self.redemptionTimeoutNotifierRewardMultiplier = 100; // 100%
@@ -1251,6 +1253,11 @@ contract Bridge is
     ///        is exceeded, such transaction is considered a fraud.
     ///        This is a per-redemption output max fee for the redemption
     ///        transaction.
+    /// @param redemptionTxMaxTotalFee New value of the redemption transaction
+    ///        max total fee in satoshis. It is the maximum amount of the total
+    ///        BTC transaction fee that is acceptable in a single redemption
+    ///        transaction. This is a _total_ max fee for the entire redemption
+    ///        transaction.
     /// @param redemptionTimeout New value of the redemption timeout in seconds.
     ///        It is the time after which the redemption request can be reported
     ///        as timed out. It is counted from the moment when the redemption
@@ -1277,6 +1284,7 @@ contract Bridge is
         uint64 redemptionDustThreshold,
         uint64 redemptionTreasuryFeeDivisor,
         uint64 redemptionTxMaxFee,
+        uint64 redemptionTxMaxTotalFee,
         uint32 redemptionTimeout,
         uint96 redemptionTimeoutSlashingAmount,
         uint32 redemptionTimeoutNotifierRewardMultiplier
@@ -1285,6 +1293,7 @@ contract Bridge is
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
+            redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
@@ -1639,6 +1648,10 @@ contract Bridge is
     ///         fee is exceeded, such transaction is considered a fraud.
     ///         This is a per-redemption output max fee for the redemption
     ///         transaction.
+    /// @return redemptionTxMaxTotalFee Maximum amount of the total BTC
+    ///         transaction fee that is acceptable in a single redemption
+    ///         transaction. This is a _total_ max fee for the entire redemption
+    ///         transaction.
     /// @return redemptionTimeout Time after which the redemption request can be
     ///         reported as timed out. It is counted from the moment when the
     ///         redemption request was created via `requestRedemption` call.
@@ -1656,6 +1669,7 @@ contract Bridge is
             uint64 redemptionDustThreshold,
             uint64 redemptionTreasuryFeeDivisor,
             uint64 redemptionTxMaxFee,
+            uint64 redemptionTxMaxTotalFee,
             uint32 redemptionTimeout,
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
@@ -1664,6 +1678,7 @@ contract Bridge is
         redemptionDustThreshold = self.redemptionDustThreshold;
         redemptionTreasuryFeeDivisor = self.redemptionTreasuryFeeDivisor;
         redemptionTxMaxFee = self.redemptionTxMaxFee;
+        redemptionTxMaxTotalFee = self.redemptionTxMaxTotalFee;
         redemptionTimeout = self.redemptionTimeout;
         redemptionTimeoutSlashingAmount = self.redemptionTimeoutSlashingAmount;
         redemptionTimeoutNotifierRewardMultiplier = self

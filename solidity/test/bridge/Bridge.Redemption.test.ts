@@ -15,6 +15,7 @@ import type {
   BridgeStub,
   IWalletRegistry,
   IRelay,
+  BridgeGovernance,
 } from "../../typechain"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import {
@@ -54,6 +55,7 @@ describe("Bridge - Redemption", () => {
   let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
   let bridge: Bridge & BridgeStub
+  let bridgeGovernance: BridgeGovernance
   let walletRegistry: FakeContract<IWalletRegistry>
 
   let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
@@ -73,6 +75,7 @@ describe("Bridge - Redemption", () => {
       relay,
       walletRegistry,
       bridge,
+      bridgeGovernance,
       deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
     ;({
@@ -87,8 +90,25 @@ describe("Bridge - Redemption", () => {
     // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
     await bridge.setRedemptionDustThreshold(100000)
+    // Set the moving funds dust threshold to 0.0002 BTC, i.e. 10x smaller
+    // than the initial value. This is needed because we lowered the redemption
+    // dust threshold and the moving funds dust threshold must be always
+    // below it.
+    await bridgeGovernance
+      .connect(governance)
+      .beginMovingFundsDustThresholdUpdate(20000)
+    await increaseTime(await bridgeGovernance.governanceDelays(0))
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeMovingFundsDustThresholdUpdate()
     // Adjust redemption TX max fee by the same - 10x smaller - scale.
-    await bridge.setRedemptionTxMaxFee(10000)
+    await bridgeGovernance
+      .connect(governance)
+      .beginRedemptionTxMaxFeeUpdate(10000)
+    await increaseTime(await bridgeGovernance.governanceDelays(0))
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeRedemptionTxMaxFeeUpdate()
 
     redemptionTimeout = (await bridge.redemptionParameters()).redemptionTimeout
   })
@@ -949,1964 +969,2093 @@ describe("Bridge - Redemption", () => {
               "when the single input points to the wallet's main UTXO",
               () => {
                 context("when wallet state is Live", () => {
-                  context("when there is only one output", () => {
-                    context(
-                      "when the single output is a pending requested redemption",
-                      () => {
-                        const data: RedemptionTestData =
-                          SinglePendingRequestedRedemption
+                  context(
+                    "when the total transaction fee is not too high",
+                    () => {
+                      context("when there is only one output", () => {
+                        context(
+                          "when the single output is a pending requested redemption",
+                          () => {
+                            const data: RedemptionTestData =
+                              SinglePendingRequestedRedemption
 
-                        let tx: ContractTransaction
-                        let bridgeBalance: RedemptionBalanceChange
-                        let walletPendingRedemptionsValue: RedemptionBalanceChange
-                        let treasuryBalance: RedemptionBalanceChange
-                        let redeemersBalances: RedemptionBalanceChange[]
+                            let tx: ContractTransaction
+                            let bridgeBalance: RedemptionBalanceChange
+                            let walletPendingRedemptionsValue: RedemptionBalanceChange
+                            let treasuryBalance: RedemptionBalanceChange
+                            let redeemersBalances: RedemptionBalanceChange[]
 
-                        before(async () => {
-                          await createSnapshot()
+                            before(async () => {
+                              await createSnapshot()
 
-                          // Simulate the situation when treasury fee is 0% to
-                          // allow using the whole wallet's main UTXO value
-                          // to fulfill the redemption request.
-                          await bridge.setRedemptionTreasuryFeeDivisor(0)
+                              // Simulate the situation when treasury fee is 0% to
+                              // allow using the whole wallet's main UTXO value
+                              // to fulfill the redemption request.
+                              await bridge.setRedemptionTreasuryFeeDivisor(0)
 
-                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                          ;({
-                            tx,
-                            bridgeBalance,
-                            walletPendingRedemptionsValue,
-                            treasuryBalance,
-                            redeemersBalances,
-                          } = await runRedemptionScenario(data))
-                        })
+                              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                              ;({
+                                tx,
+                                bridgeBalance,
+                                walletPendingRedemptionsValue,
+                                treasuryBalance,
+                                redeemersBalances,
+                              } = await runRedemptionScenario(data))
+                            })
 
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
 
-                        it("should close processed redemption request", async () => {
-                          const redemptionRequest =
-                            await bridge.pendingRedemptions(
-                              buildRedemptionKey(
-                                data.wallet.pubKeyHash,
-                                data.redemptionRequests[0].redeemerOutputScript
+                            it("should close processed redemption request", async () => {
+                              const redemptionRequest =
+                                await bridge.pendingRedemptions(
+                                  buildRedemptionKey(
+                                    data.wallet.pubKeyHash,
+                                    data.redemptionRequests[0]
+                                      .redeemerOutputScript
+                                  )
+                                )
+
+                              expect(redemptionRequest.requestedAt).to.be.equal(
+                                0,
+                                "Redemption request has not been closed"
                               )
-                            )
+                            })
 
-                          expect(redemptionRequest.requestedAt).to.be.equal(
-                            0,
-                            "Redemption request has not been closed"
-                          )
-                        })
+                            it("should delete the wallet's main UTXO", async () => {
+                              // The Bitcoin redemption transaction has no change
+                              // output so the wallet's main UTXO should be
+                              // deleted on the Bridge side.
+                              expect(
+                                (await bridge.wallets(data.wallet.pubKeyHash))
+                                  .mainUtxoHash
+                              ).to.be.equal(ethers.constants.HashZero)
+                            })
 
-                        it("should delete the wallet's main UTXO", async () => {
-                          // The Bitcoin redemption transaction has no change
-                          // output so the wallet's main UTXO should be
-                          // deleted on the Bridge side.
-                          expect(
-                            (await bridge.wallets(data.wallet.pubKeyHash))
-                              .mainUtxoHash
-                          ).to.be.equal(ethers.constants.HashZero)
-                        })
+                            it("should mark the previous main UTXO as spent", async () => {
+                              const mainUtxoKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes32", "uint32"],
+                                  [
+                                    data.mainUtxo.txHash,
+                                    data.mainUtxo.txOutputIndex,
+                                  ]
+                                )
 
-                        it("should mark the previous main UTXO as spent", async () => {
-                          const mainUtxoKey = ethers.utils.solidityKeccak256(
-                            ["bytes32", "uint32"],
-                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
-                          )
+                              expect(await bridge.spentMainUTXOs(mainUtxoKey))
+                                .to.be.true
+                            })
 
-                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
-                            .true
-                        })
+                            it("should decrease the wallet's pending redemptions value", async () => {
+                              // Wallet pending redemptions value should be
+                              // decreased by the total redeemable amount but since
+                              // the treasury fee is 0% in this test case, the
+                              // total redeemable amount is equal to the total
+                              // requested amount. See docs of the used test
+                              // data for details.
+                              expect(
+                                walletPendingRedemptionsValue.afterProof.sub(
+                                  walletPendingRedemptionsValue.beforeProof
+                                )
+                              ).to.equal(-1177424)
+                            })
 
-                        it("should decrease the wallet's pending redemptions value", async () => {
-                          // Wallet pending redemptions value should be
-                          // decreased by the total redeemable amount but since
-                          // the treasury fee is 0% in this test case, the
-                          // total redeemable amount is equal to the total
-                          // requested amount. See docs of the used test
-                          // data for details.
-                          expect(
-                            walletPendingRedemptionsValue.afterProof.sub(
-                              walletPendingRedemptionsValue.beforeProof
-                            )
-                          ).to.equal(-1177424)
-                        })
+                            it("should decrease Bridge's balance in Bank", async () => {
+                              // Balance should be decreased by the total
+                              // redeemable amount but since the treasury fee
+                              // is 0% in this test case, the total redeemable
+                              // amount is equal to the total requested amount.
+                              // See docs of the used test data for details.
+                              await expect(tx)
+                                .to.emit(bank, "BalanceDecreased")
+                                .withArgs(bridge.address, 1177424)
+                              // In this case, the total Bridge balance change
+                              // should be also equal to the same amount.
+                              expect(
+                                bridgeBalance.afterProof.sub(
+                                  bridgeBalance.beforeProof
+                                )
+                              ).to.equal(-1177424)
+                            })
 
-                        it("should decrease Bridge's balance in Bank", async () => {
-                          // Balance should be decreased by the total
-                          // redeemable amount but since the treasury fee
-                          // is 0% in this test case, the total redeemable
-                          // amount is equal to the total requested amount.
-                          // See docs of the used test data for details.
-                          await expect(tx)
-                            .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 1177424)
-                          // In this case, the total Bridge balance change
-                          // should be also equal to the same amount.
-                          expect(
-                            bridgeBalance.afterProof.sub(
-                              bridgeBalance.beforeProof
-                            )
-                          ).to.equal(-1177424)
-                        })
+                            it("should not transfer anything to the treasury", async () => {
+                              // Treasury balance should not be increased because
+                              // the treasury fee is 0% in this test case.
+                              expect(
+                                treasuryBalance.afterProof.sub(
+                                  treasuryBalance.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
 
-                        it("should not transfer anything to the treasury", async () => {
-                          // Treasury balance should not be increased because
-                          // the treasury fee is 0% in this test case.
-                          expect(
-                            treasuryBalance.afterProof.sub(
-                              treasuryBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
+                            it("should not change redeemer balance in any way", async () => {
+                              // Redemption proof submission should NEVER cause
+                              // any change of the redeemer balance.
+                              const redeemerBalance = redeemersBalances[0]
 
-                        it("should not change redeemer balance in any way", async () => {
-                          // Redemption proof submission should NEVER cause
-                          // any change of the redeemer balance.
-                          const redeemerBalance = redeemersBalances[0]
-
-                          expect(
-                            redeemerBalance.afterProof.sub(
-                              redeemerBalance.beforeProof
-                            )
-                          ).to.be.equal(0, "Balance of redeemer has changed")
-                        })
-                      }
-                    )
-
-                    context(
-                      "when the single output is a non-reported timed out requested redemption",
-                      () => {
-                        const data: RedemptionTestData =
-                          SinglePendingRequestedRedemption
-
-                        let tx: ContractTransaction
-                        let bridgeBalance: RedemptionBalanceChange
-                        let walletPendingRedemptionsValue: RedemptionBalanceChange
-                        let treasuryBalance: RedemptionBalanceChange
-                        let redeemersBalances: RedemptionBalanceChange[]
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // Simulate the situation when treasury fee is 0% to
-                          // allow using the whole wallet's main UTXO value
-                          // to fulfill the redemption request.
-                          await bridge.setRedemptionTreasuryFeeDivisor(0)
-
-                          // Before submitting the redemption proof, wait
-                          // an amount of time that will make the request
-                          // timed out though don't report the timeout.
-                          const beforeProofActions = async () => {
-                            await increaseTime(redemptionTimeout)
+                              expect(
+                                redeemerBalance.afterProof.sub(
+                                  redeemerBalance.beforeProof
+                                )
+                              ).to.be.equal(
+                                0,
+                                "Balance of redeemer has changed"
+                              )
+                            })
                           }
-
-                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                          ;({
-                            tx,
-                            bridgeBalance,
-                            walletPendingRedemptionsValue,
-                            treasuryBalance,
-                            redeemersBalances,
-                          } = await runRedemptionScenario(
-                            data,
-                            beforeProofActions
-                          ))
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        it("should close processed redemption request", async () => {
-                          const redemptionRequest =
-                            await bridge.pendingRedemptions(
-                              buildRedemptionKey(
-                                data.wallet.pubKeyHash,
-                                data.redemptionRequests[0].redeemerOutputScript
-                              )
-                            )
-
-                          expect(redemptionRequest.requestedAt).to.be.equal(
-                            0,
-                            "Redemption request has not been closed"
-                          )
-                        })
-
-                        it("should delete the wallet's main UTXO", async () => {
-                          // The Bitcoin redemption transaction has no change
-                          // output so the wallet's main UTXO should be
-                          // deleted on the Bridge side.
-                          expect(
-                            (await bridge.wallets(data.wallet.pubKeyHash))
-                              .mainUtxoHash
-                          ).to.be.equal(ethers.constants.HashZero)
-                        })
-
-                        it("should mark the previous main UTXO as spent", async () => {
-                          const mainUtxoKey = ethers.utils.solidityKeccak256(
-                            ["bytes32", "uint32"],
-                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
-                          )
-
-                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
-                            .true
-                        })
-
-                        it("should decrease the wallet's pending redemptions value", async () => {
-                          // Wallet pending redemptions value should be
-                          // decreased by the total redeemable amount but since
-                          // the treasury fee is 0% in this test case, the
-                          // total redeemable amount is equal to the total
-                          // requested amount. See docs of the used test
-                          // data for details.
-                          expect(
-                            walletPendingRedemptionsValue.afterProof.sub(
-                              walletPendingRedemptionsValue.beforeProof
-                            )
-                          ).to.equal(-1177424)
-                        })
-
-                        it("should decrease Bridge's balance in Bank", async () => {
-                          // Balance should be decreased by the total
-                          // redeemable amount but since the treasury fee
-                          // is 0% in this test case, the total redeemable
-                          // amount is equal to the total requested amount.
-                          // See docs of the used test data for details.
-                          await expect(tx)
-                            .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 1177424)
-                          // In this case, the total Bridge balance change
-                          // should be also equal to the same amount.
-                          expect(
-                            bridgeBalance.afterProof.sub(
-                              bridgeBalance.beforeProof
-                            )
-                          ).to.equal(-1177424)
-                        })
-
-                        it("should not transfer anything to the treasury", async () => {
-                          // Treasury balance should not be increased because
-                          // the treasury fee is 0% in this test case.
-                          expect(
-                            treasuryBalance.afterProof.sub(
-                              treasuryBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not change redeemer balance in any way", async () => {
-                          // Redemption proof submission should NEVER cause
-                          // any change of the redeemer balance.
-                          const redeemerBalance = redeemersBalances[0]
-
-                          expect(
-                            redeemerBalance.afterProof.sub(
-                              redeemerBalance.beforeProof
-                            )
-                          ).to.be.equal(0, "Balance of redeemer has changed")
-                        })
-                      }
-                    )
-
-                    context(
-                      "when the single output is a reported timed out requested redemption",
-                      () => {
-                        const data: RedemptionTestData =
-                          SinglePendingRequestedRedemption
-
-                        let tx: ContractTransaction
-                        let bridgeBalance: RedemptionBalanceChange
-                        let walletPendingRedemptionsValue: RedemptionBalanceChange
-                        let treasuryBalance: RedemptionBalanceChange
-                        let redeemersBalances: RedemptionBalanceChange[]
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // Simulate the situation when treasury fee is 0% to
-                          // allow using the whole wallet's main UTXO value
-                          // to fulfill the redemption request.
-                          await bridge.setRedemptionTreasuryFeeDivisor(0)
-
-                          // Before submitting the redemption proof, wait
-                          // an amount of time that will make the request
-                          // timed out and then report the timeout.
-                          const beforeProofActions = async () => {
-                            await increaseTime(redemptionTimeout)
-                            await bridge.notifyRedemptionTimeout(
-                              data.wallet.pubKeyHash,
-                              [],
-                              data.redemptionRequests[0].redeemerOutputScript
-                            )
-                          }
-
-                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                          ;({
-                            tx,
-                            bridgeBalance,
-                            walletPendingRedemptionsValue,
-                            treasuryBalance,
-                            redeemersBalances,
-                          } = await runRedemptionScenario(
-                            data,
-                            beforeProofActions
-                          ))
-                        })
-
-                        after(async () => {
-                          walletRegistry.seize.reset()
-
-                          await restoreSnapshot()
-                        })
-
-                        it("should hold the timed out request in the contract state", async () => {
-                          const redemptionRequest =
-                            await bridge.timedOutRedemptions(
-                              buildRedemptionKey(
-                                data.wallet.pubKeyHash,
-                                data.redemptionRequests[0].redeemerOutputScript
-                              )
-                            )
-
-                          expect(
-                            redemptionRequest.requestedAt
-                          ).to.be.greaterThan(
-                            0,
-                            "Timed out request was removed from the contract state"
-                          )
-                        })
-
-                        it("should delete the wallet's main UTXO", async () => {
-                          // The Bitcoin redemption transaction has no change
-                          // output so the wallet's main UTXO should be
-                          // deleted on the Bridge side. It doesn't matter
-                          // the only redemption handled by the transaction
-                          // is reported as timed out.
-                          expect(
-                            (await bridge.wallets(data.wallet.pubKeyHash))
-                              .mainUtxoHash
-                          ).to.be.equal(ethers.constants.HashZero)
-                        })
-
-                        it("should mark the previous main UTXO as spent", async () => {
-                          const mainUtxoKey = ethers.utils.solidityKeccak256(
-                            ["bytes32", "uint32"],
-                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
-                          )
-
-                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
-                            .true
-                        })
-
-                        it("should not change the wallet's pending redemptions value", async () => {
-                          // All the bookkeeping regarding the timed out
-                          // request was done upon timeout report. The
-                          // wallet pending redemptions value should not
-                          // be changed in any way.
-                          expect(
-                            walletPendingRedemptionsValue.afterProof.sub(
-                              walletPendingRedemptionsValue.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not change Bridge's balance in Bank", async () => {
-                          // All the bookkeeping regarding the timed out
-                          // request was done upon timeout report. The Bridge
-                          // balance in the bank should neither be decreased...
-                          await expect(tx)
-                            .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 0)
-                          // ...nor changed in any other way.
-                          expect(
-                            bridgeBalance.afterProof.sub(
-                              bridgeBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not transfer anything to the treasury", async () => {
-                          // Treasury balance should not be increased in any way
-                          // since the only request handled by the redemption
-                          // transaction is reported as timed out and is just
-                          // skipped during processing.
-                          expect(
-                            treasuryBalance.afterProof.sub(
-                              treasuryBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not change redeemer balance in any way", async () => {
-                          // Redemption proof submission should NEVER cause
-                          // any change of the redeemer balance.
-                          const redeemerBalance = redeemersBalances[0]
-
-                          expect(
-                            redeemerBalance.afterProof.sub(
-                              redeemerBalance.beforeProof
-                            )
-                          ).to.be.equal(0, "Balance of redeemer has changed")
-                        })
-                      }
-                    )
-
-                    context(
-                      "when the single output is a pending requested redemption but redeemed amount is wrong",
-                      () => {
-                        const data: RedemptionTestData = JSON.parse(
-                          JSON.stringify(SinglePendingRequestedRedemption)
                         )
 
-                        let outcome: Promise<RedemptionScenarioOutcome>
+                        context(
+                          "when the single output is a non-reported timed out requested redemption",
+                          () => {
+                            const data: RedemptionTestData =
+                              SinglePendingRequestedRedemption
 
-                        before(async () => {
-                          await createSnapshot()
+                            let tx: ContractTransaction
+                            let bridgeBalance: RedemptionBalanceChange
+                            let walletPendingRedemptionsValue: RedemptionBalanceChange
+                            let treasuryBalance: RedemptionBalanceChange
+                            let redeemersBalances: RedemptionBalanceChange[]
 
-                          // Alter the single redemption request in the test
-                          // data and set such an amount that will cause
-                          // the Bitcoin redemption transaction to be deemed
-                          // as invalid due to a wrong amount. The transaction
-                          // output has the value of 1176924 so to make this
-                          // test scenario happen, the request amount must be
-                          // way different (lesser or greater) than the output
-                          // value. Worth noting that this test scenario tests
-                          // the amount condition in a general and simplified
-                          // way without stressing all specific edge cases.
-                          // Doing a detailed check would require more dedicated
-                          // test data sets which would make it far more
-                          // complicated without giving much value in return.
-                          data.redemptionRequests[0].amount = 300000
+                            before(async () => {
+                              await createSnapshot()
 
-                          outcome = runRedemptionScenario(data)
-                        })
+                              // Simulate the situation when treasury fee is 0% to
+                              // allow using the whole wallet's main UTXO value
+                              // to fulfill the redemption request.
+                              await bridge.setRedemptionTreasuryFeeDivisor(0)
 
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
+                              // Before submitting the redemption proof, wait
+                              // an amount of time that will make the request
+                              // timed out though don't report the timeout.
+                              const beforeProofActions = async () => {
+                                await increaseTime(redemptionTimeout)
+                              }
 
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output value is not within the acceptable range of the pending request"
-                          )
-                        })
-                      }
-                    )
+                              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                              ;({
+                                tx,
+                                bridgeBalance,
+                                walletPendingRedemptionsValue,
+                                treasuryBalance,
+                                redeemersBalances,
+                              } = await runRedemptionScenario(
+                                data,
+                                beforeProofActions
+                              ))
+                            })
 
-                    context(
-                      "when the single output is a reported timed out requested redemption but amount is wrong",
-                      () => {
-                        const data: RedemptionTestData = JSON.parse(
-                          JSON.stringify(SinglePendingRequestedRedemption)
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should close processed redemption request", async () => {
+                              const redemptionRequest =
+                                await bridge.pendingRedemptions(
+                                  buildRedemptionKey(
+                                    data.wallet.pubKeyHash,
+                                    data.redemptionRequests[0]
+                                      .redeemerOutputScript
+                                  )
+                                )
+
+                              expect(redemptionRequest.requestedAt).to.be.equal(
+                                0,
+                                "Redemption request has not been closed"
+                              )
+                            })
+
+                            it("should delete the wallet's main UTXO", async () => {
+                              // The Bitcoin redemption transaction has no change
+                              // output so the wallet's main UTXO should be
+                              // deleted on the Bridge side.
+                              expect(
+                                (await bridge.wallets(data.wallet.pubKeyHash))
+                                  .mainUtxoHash
+                              ).to.be.equal(ethers.constants.HashZero)
+                            })
+
+                            it("should mark the previous main UTXO as spent", async () => {
+                              const mainUtxoKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes32", "uint32"],
+                                  [
+                                    data.mainUtxo.txHash,
+                                    data.mainUtxo.txOutputIndex,
+                                  ]
+                                )
+
+                              expect(await bridge.spentMainUTXOs(mainUtxoKey))
+                                .to.be.true
+                            })
+
+                            it("should decrease the wallet's pending redemptions value", async () => {
+                              // Wallet pending redemptions value should be
+                              // decreased by the total redeemable amount but since
+                              // the treasury fee is 0% in this test case, the
+                              // total redeemable amount is equal to the total
+                              // requested amount. See docs of the used test
+                              // data for details.
+                              expect(
+                                walletPendingRedemptionsValue.afterProof.sub(
+                                  walletPendingRedemptionsValue.beforeProof
+                                )
+                              ).to.equal(-1177424)
+                            })
+
+                            it("should decrease Bridge's balance in Bank", async () => {
+                              // Balance should be decreased by the total
+                              // redeemable amount but since the treasury fee
+                              // is 0% in this test case, the total redeemable
+                              // amount is equal to the total requested amount.
+                              // See docs of the used test data for details.
+                              await expect(tx)
+                                .to.emit(bank, "BalanceDecreased")
+                                .withArgs(bridge.address, 1177424)
+                              // In this case, the total Bridge balance change
+                              // should be also equal to the same amount.
+                              expect(
+                                bridgeBalance.afterProof.sub(
+                                  bridgeBalance.beforeProof
+                                )
+                              ).to.equal(-1177424)
+                            })
+
+                            it("should not transfer anything to the treasury", async () => {
+                              // Treasury balance should not be increased because
+                              // the treasury fee is 0% in this test case.
+                              expect(
+                                treasuryBalance.afterProof.sub(
+                                  treasuryBalance.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
+
+                            it("should not change redeemer balance in any way", async () => {
+                              // Redemption proof submission should NEVER cause
+                              // any change of the redeemer balance.
+                              const redeemerBalance = redeemersBalances[0]
+
+                              expect(
+                                redeemerBalance.afterProof.sub(
+                                  redeemerBalance.beforeProof
+                                )
+                              ).to.be.equal(
+                                0,
+                                "Balance of redeemer has changed"
+                              )
+                            })
+                          }
                         )
 
-                        let outcome: Promise<RedemptionScenarioOutcome>
+                        context(
+                          "when the single output is a reported timed out requested redemption",
+                          () => {
+                            const data: RedemptionTestData =
+                              SinglePendingRequestedRedemption
 
-                        before(async () => {
-                          await createSnapshot()
+                            let tx: ContractTransaction
+                            let bridgeBalance: RedemptionBalanceChange
+                            let walletPendingRedemptionsValue: RedemptionBalanceChange
+                            let treasuryBalance: RedemptionBalanceChange
+                            let redeemersBalances: RedemptionBalanceChange[]
 
-                          // Alter the single redemption request in the test
-                          // data and set such an amount that will cause
-                          // the Bitcoin redemption transaction to be deemed
-                          // as invalid due to a wrong amount. The transaction
-                          // output has the value of 1176924 so to make this
-                          // test scenario happen, the request amount must be
-                          // way different (lesser or greater) than the output
-                          // value. Worth noting that this test scenario tests
-                          // the amount condition in a general and simplified
-                          // way without stressing all specific edge cases.
-                          // Doing a detailed check would require more dedicated
-                          // test data sets which would make it far more
-                          // complicated without giving much value in return.
-                          data.redemptionRequests[0].amount = 300000
+                            before(async () => {
+                              await createSnapshot()
 
-                          // Before submitting the redemption proof, wait
-                          // an amount of time that will make the request
-                          // timed out and then report the timeout.
-                          const beforeProofActions = async () => {
-                            await increaseTime(redemptionTimeout)
-                            await bridge.notifyRedemptionTimeout(
-                              data.wallet.pubKeyHash,
-                              [],
-                              data.redemptionRequests[0].redeemerOutputScript
-                            )
-                          }
+                              // Simulate the situation when treasury fee is 0% to
+                              // allow using the whole wallet's main UTXO value
+                              // to fulfill the redemption request.
+                              await bridge.setRedemptionTreasuryFeeDivisor(0)
 
-                          outcome = runRedemptionScenario(
-                            data,
-                            beforeProofActions
-                          )
-                        })
-
-                        after(async () => {
-                          walletRegistry.seize.reset()
-
-                          await restoreSnapshot()
-                        })
-
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output value is not within the acceptable range of the timed out request"
-                          )
-                        })
-                      }
-                    )
-
-                    context(
-                      "when the single output is a legal P2PKH change with a non-zero value",
-                      () => {
-                        const data: RedemptionTestData = SingleP2PKHChange
-
-                        let outcome: Promise<RedemptionScenarioOutcome>
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          outcome = runRedemptionScenario(data)
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        // Should be deemed as valid change though rejected
-                        // because this change is a single output and at least
-                        // one requested redemption is expected.
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Redemption transaction must process at least one redemption"
-                          )
-                        })
-                      }
-                    )
-
-                    context(
-                      "when the single output is a legal P2WPKH change with a non-zero value",
-                      () => {
-                        const data: RedemptionTestData = SingleP2WPKHChange
-
-                        let outcome: Promise<RedemptionScenarioOutcome>
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          outcome = runRedemptionScenario(data)
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        // Should be deemed as valid change though rejected
-                        // because this change is a single output and at least
-                        // one requested redemption is expected.
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Redemption transaction must process at least one redemption"
-                          )
-                        })
-                      }
-                    )
-
-                    context(
-                      "when the single output is an illegal P2SH change with a non-zero value",
-                      () => {
-                        const data: RedemptionTestData = SingleP2SHChange
-
-                        let outcome: Promise<RedemptionScenarioOutcome>
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          outcome = runRedemptionScenario(data)
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        // We have this case because P2SH script has a 20-byte
-                        // payload which may match the 20-byte wallet public
-                        // key hash though it should be always rejected as
-                        // non-requested output. There is no need to check for
-                        // P2WSH since the payload is always 32-byte there.
-                        // The main reason we need to bother about 20-byte
-                        // hashes is because the wallet public key hash has
-                        // always 20-bytes and we must make sure no redemption
-                        // request uses it as a redeemer script to not confuse
-                        // an output that will try to handle that request with
-                        // a proper change output also referencing the wallet
-                        // public key hash.
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output is a non-requested redemption"
-                          )
-                        })
-                      }
-                    )
-
-                    context(
-                      "when the single output is a change with a zero as value",
-                      () => {
-                        const data: RedemptionTestData =
-                          SingleP2WPKHChangeZeroValue
-
-                        let outcome: Promise<RedemptionScenarioOutcome>
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          outcome = runRedemptionScenario(data)
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output is a non-requested redemption"
-                          )
-                        })
-                      }
-                    )
-
-                    context(
-                      "when the single output is a non-requested redemption to an arbitrary script",
-                      () => {
-                        const data: RedemptionTestData =
-                          SingleNonRequestedRedemption
-
-                        let outcome: Promise<RedemptionScenarioOutcome>
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          outcome = runRedemptionScenario(data)
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output is a non-requested redemption"
-                          )
-                        })
-                      }
-                    )
-
-                    context(
-                      "when the single output is provably unspendable OP_RETURN",
-                      () => {
-                        const data: RedemptionTestData =
-                          SingleProvablyUnspendable
-
-                        let outcome: Promise<RedemptionScenarioOutcome>
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          outcome = runRedemptionScenario(data)
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output is a non-requested redemption"
-                          )
-                        })
-                      }
-                    )
-                  })
-
-                  context("when there are multiple outputs", () => {
-                    context(
-                      "when output vector consists only of pending requested redemptions",
-                      () => {
-                        const data: RedemptionTestData =
-                          MultiplePendingRequestedRedemptions
-
-                        let tx: ContractTransaction
-                        let bridgeBalance: RedemptionBalanceChange
-                        let walletPendingRedemptionsValue: RedemptionBalanceChange
-                        let treasuryBalance: RedemptionBalanceChange
-                        let redeemersBalances: RedemptionBalanceChange[]
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // Simulate the situation when treasury fee is 0% to
-                          // allow using the whole wallet's main UTXO value
-                          // to fulfill the redemption requests.
-                          await bridge.setRedemptionTreasuryFeeDivisor(0)
-
-                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                          ;({
-                            tx,
-                            bridgeBalance,
-                            walletPendingRedemptionsValue,
-                            treasuryBalance,
-                            redeemersBalances,
-                          } = await runRedemptionScenario(data))
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        it("should close processed redemption requests", async () => {
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redemptionRequest =
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.pendingRedemptions(
-                                buildRedemptionKey(
+                              // Before submitting the redemption proof, wait
+                              // an amount of time that will make the request
+                              // timed out and then report the timeout.
+                              const beforeProofActions = async () => {
+                                await increaseTime(redemptionTimeout)
+                                await bridge.notifyRedemptionTimeout(
                                   data.wallet.pubKeyHash,
-                                  data.redemptionRequests[i]
+                                  [],
+                                  data.redemptionRequests[0]
                                     .redeemerOutputScript
                                 )
-                              )
+                              }
 
-                            expect(redemptionRequest.requestedAt).to.be.equal(
-                              0,
-                              `Redemption request with index ${i} has not been closed`
-                            )
-                          }
-                        })
+                              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                              ;({
+                                tx,
+                                bridgeBalance,
+                                walletPendingRedemptionsValue,
+                                treasuryBalance,
+                                redeemersBalances,
+                              } = await runRedemptionScenario(
+                                data,
+                                beforeProofActions
+                              ))
+                            })
 
-                        it("should delete the wallet's main UTXO", async () => {
-                          // The Bitcoin redemption transaction has no change
-                          // output so the wallet's main UTXO should be
-                          // deleted on the Bridge side.
-                          expect(
-                            (await bridge.wallets(data.wallet.pubKeyHash))
-                              .mainUtxoHash
-                          ).to.be.equal(ethers.constants.HashZero)
-                        })
+                            after(async () => {
+                              walletRegistry.seize.reset()
 
-                        it("should mark the previous main UTXO as spent", async () => {
-                          const mainUtxoKey = ethers.utils.solidityKeccak256(
-                            ["bytes32", "uint32"],
-                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
-                          )
+                              await restoreSnapshot()
+                            })
 
-                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
-                            .true
-                        })
-
-                        it("should decrease the wallet's pending redemptions value", async () => {
-                          // Wallet pending redemptions value should be
-                          // decreased by the total redeemable amount but since
-                          // the treasury fee is 0% in this test case, the
-                          // total redeemable amount is equal to the total
-                          // requested amount. See docs of the used test
-                          // data for details.
-                          expect(
-                            walletPendingRedemptionsValue.afterProof.sub(
-                              walletPendingRedemptionsValue.beforeProof
-                            )
-                          ).to.equal(-959845)
-                        })
-
-                        it("should decrease Bridge's balance in Bank", async () => {
-                          // Balance should be decreased by the total
-                          // redeemable amount but since the treasury fee
-                          // is 0% in this test case, the total redeemable
-                          // amount is equal to the total requested amount.
-                          // See docs of the used test data for details.
-                          await expect(tx)
-                            .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 959845)
-                          // In this case, the total Bridge balance change
-                          // should be also equal to the same amount.
-                          expect(
-                            bridgeBalance.afterProof.sub(
-                              bridgeBalance.beforeProof
-                            )
-                          ).to.equal(-959845)
-                        })
-
-                        it("should not transfer anything to the treasury", async () => {
-                          // Treasury balance should not be increased because
-                          // the treasury fee is 0% in this test case.
-                          expect(
-                            treasuryBalance.afterProof.sub(
-                              treasuryBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not change redeemers balances in any way", async () => {
-                          // Redemption proof submission should NEVER cause
-                          // any change of the redeemers balances.
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redeemerBalance = redeemersBalances[i]
-
-                            expect(
-                              redeemerBalance.afterProof.sub(
-                                redeemerBalance.beforeProof
-                              )
-                            ).to.be.equal(
-                              0,
-                              `Balance of redeemer with index ${i} has changed`
-                            )
-                          }
-                        })
-                      }
-                    )
-
-                    context(
-                      "when output vector consists of pending requested redemptions and a non-zero change",
-                      () => {
-                        const data: RedemptionTestData =
-                          MultiplePendingRequestedRedemptionsWithP2WPKHChange
-
-                        let tx: ContractTransaction
-                        let bridgeBalance: RedemptionBalanceChange
-                        let walletPendingRedemptionsValue: RedemptionBalanceChange
-                        let treasuryBalance: RedemptionBalanceChange
-                        let redeemersBalances: RedemptionBalanceChange[]
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                          ;({
-                            tx,
-                            bridgeBalance,
-                            walletPendingRedemptionsValue,
-                            treasuryBalance,
-                            redeemersBalances,
-                          } = await runRedemptionScenario(data))
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        it("should close processed redemption requests", async () => {
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redemptionRequest =
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.pendingRedemptions(
-                                buildRedemptionKey(
-                                  data.wallet.pubKeyHash,
-                                  data.redemptionRequests[i]
-                                    .redeemerOutputScript
+                            it("should hold the timed out request in the contract state", async () => {
+                              const redemptionRequest =
+                                await bridge.timedOutRedemptions(
+                                  buildRedemptionKey(
+                                    data.wallet.pubKeyHash,
+                                    data.redemptionRequests[0]
+                                      .redeemerOutputScript
+                                  )
                                 )
+
+                              expect(
+                                redemptionRequest.requestedAt
+                              ).to.be.greaterThan(
+                                0,
+                                "Timed out request was removed from the contract state"
                               )
+                            })
 
-                            expect(redemptionRequest.requestedAt).to.be.equal(
-                              0,
-                              `Redemption request with index ${i} has not been closed`
-                            )
-                          }
-                        })
+                            it("should delete the wallet's main UTXO", async () => {
+                              // The Bitcoin redemption transaction has no change
+                              // output so the wallet's main UTXO should be
+                              // deleted on the Bridge side. It doesn't matter
+                              // the only redemption handled by the transaction
+                              // is reported as timed out.
+                              expect(
+                                (await bridge.wallets(data.wallet.pubKeyHash))
+                                  .mainUtxoHash
+                              ).to.be.equal(ethers.constants.HashZero)
+                            })
 
-                        it("should update the wallet's main UTXO", async () => {
-                          // Change index and value can be taken by exploring
-                          // the redemption transaction structure and getting
-                          // the output pointing back to wallet PKH.
-                          const expectedMainUtxoHash = buildMainUtxoHash(
-                            data.redemptionTx.hash,
-                            5,
-                            137130866
-                          )
-
-                          expect(
-                            (await bridge.wallets(data.wallet.pubKeyHash))
-                              .mainUtxoHash
-                          ).to.be.equal(expectedMainUtxoHash)
-                        })
-
-                        it("should mark the previous main UTXO as spent", async () => {
-                          const mainUtxoKey = ethers.utils.solidityKeccak256(
-                            ["bytes32", "uint32"],
-                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
-                          )
-
-                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
-                            .true
-                        })
-
-                        it("should decrease the wallet's pending redemptions value", async () => {
-                          // Wallet pending redemptions value should be
-                          // decreased by the total redeemable amount. See docs
-                          // of the used test data for details.
-                          expect(
-                            walletPendingRedemptionsValue.afterProof.sub(
-                              walletPendingRedemptionsValue.beforeProof
-                            )
-                          ).to.equal(-6432350)
-                        })
-
-                        it("should decrease Bridge's balance in Bank", async () => {
-                          // Balance should be decreased by the total
-                          // redeemable amount. See docs of the used test
-                          // data for details.
-                          await expect(tx)
-                            .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 6432350)
-                          // However, the total balance change of the
-                          // Bridge should also consider the treasury
-                          // fee collected upon requests and transferred
-                          // to the treasury at the end of the proof.
-                          // This is why the total Bridge's balance change
-                          // is equal to the total requested amount for
-                          // all requests. See docs of the used test data
-                          // for details.
-                          expect(
-                            bridgeBalance.afterProof.sub(
-                              bridgeBalance.beforeProof
-                            )
-                          ).to.equal(-6435567)
-                        })
-
-                        it("should transfer collected treasury fee", async () => {
-                          // Treasury balance should be increased by the total
-                          // treasury fee for all requests. See docs of the
-                          // used test data for details.
-                          expect(
-                            treasuryBalance.afterProof.sub(
-                              treasuryBalance.beforeProof
-                            )
-                          ).to.equal(3217)
-                        })
-
-                        it("should not change redeemers balances in any way", async () => {
-                          // Redemption proof submission should NEVER cause
-                          // any change of the redeemers balances.
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redeemerBalance = redeemersBalances[i]
-
-                            expect(
-                              redeemerBalance.afterProof.sub(
-                                redeemerBalance.beforeProof
-                              )
-                            ).to.be.equal(
-                              0,
-                              `Balance of redeemer with index ${i} has changed`
-                            )
-                          }
-                        })
-                      }
-                    )
-
-                    context(
-                      "when output vector consists only of reported timed out requested redemptions",
-                      () => {
-                        const data: RedemptionTestData =
-                          MultiplePendingRequestedRedemptions
-
-                        let tx: ContractTransaction
-                        let bridgeBalance: RedemptionBalanceChange
-                        let walletPendingRedemptionsValue: RedemptionBalanceChange
-                        let treasuryBalance: RedemptionBalanceChange
-                        let redeemersBalances: RedemptionBalanceChange[]
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // Simulate the situation when treasury fee is 0% to
-                          // allow using the whole wallet's main UTXO value
-                          // to fulfill the redemption requests.
-                          await bridge.setRedemptionTreasuryFeeDivisor(0)
-
-                          // Before submitting the redemption proof, wait
-                          // an amount of time that will make the requests
-                          // timed out and then report the timeouts.
-                          const beforeProofActions = async () => {
-                            await increaseTime(redemptionTimeout)
-
-                            for (
-                              let i = 0;
-                              i < data.redemptionRequests.length;
-                              i++
-                            ) {
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.notifyRedemptionTimeout(
-                                data.wallet.pubKeyHash,
-                                [],
-                                data.redemptionRequests[i].redeemerOutputScript
-                              )
-                            }
-                          }
-
-                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                          ;({
-                            tx,
-                            bridgeBalance,
-                            walletPendingRedemptionsValue,
-                            treasuryBalance,
-                            redeemersBalances,
-                          } = await runRedemptionScenario(
-                            data,
-                            beforeProofActions
-                          ))
-                        })
-
-                        after(async () => {
-                          walletRegistry.seize.reset()
-
-                          await restoreSnapshot()
-                        })
-
-                        it("should hold the timed out requests in the contract state", async () => {
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redemptionRequest =
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.timedOutRedemptions(
-                                buildRedemptionKey(
-                                  data.wallet.pubKeyHash,
-                                  data.redemptionRequests[i]
-                                    .redeemerOutputScript
+                            it("should mark the previous main UTXO as spent", async () => {
+                              const mainUtxoKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes32", "uint32"],
+                                  [
+                                    data.mainUtxo.txHash,
+                                    data.mainUtxo.txOutputIndex,
+                                  ]
                                 )
-                              )
 
-                            expect(
-                              redemptionRequest.requestedAt
-                            ).to.be.greaterThan(
-                              0,
-                              `Timed out request with index ${i} was removed from the contract state`
-                            )
-                          }
-                        })
+                              expect(await bridge.spentMainUTXOs(mainUtxoKey))
+                                .to.be.true
+                            })
 
-                        it("should delete the wallet's main UTXO", async () => {
-                          // The Bitcoin redemption transaction has no change
-                          // output so the wallet's main UTXO should be
-                          // deleted on the Bridge side. It doesn't matter
-                          // that all redemptions handled by the transaction
-                          // are reported as timed out.
-                          expect(
-                            (await bridge.wallets(data.wallet.pubKeyHash))
-                              .mainUtxoHash
-                          ).to.be.equal(ethers.constants.HashZero)
-                        })
-
-                        it("should mark the previous main UTXO as spent", async () => {
-                          const mainUtxoKey = ethers.utils.solidityKeccak256(
-                            ["bytes32", "uint32"],
-                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
-                          )
-
-                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
-                            .true
-                        })
-
-                        it("should not change the wallet's pending redemptions value", async () => {
-                          // All the bookkeeping regarding the timed out
-                          // requests was done upon timeout reports. The
-                          // wallet pending redemptions value should not
-                          // be changed in any way.
-                          expect(
-                            walletPendingRedemptionsValue.afterProof.sub(
-                              walletPendingRedemptionsValue.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not change Bridge's balance in Bank", async () => {
-                          // All the bookkeeping regarding the timed out
-                          // requests was done upon timeout reports. The Bridge
-                          // balance in the bank should neither be decreased...
-                          await expect(tx)
-                            .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 0)
-                          // ...nor changed in any other way.
-                          expect(
-                            bridgeBalance.afterProof.sub(
-                              bridgeBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not transfer anything to the treasury", async () => {
-                          // Treasury balance should not be increased in any way
-                          // since all requests handled by the redemption
-                          // transaction are reported as timed out and are just
-                          // skipped during processing.
-                          expect(
-                            treasuryBalance.afterProof.sub(
-                              treasuryBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not change redeemers balances in any way", async () => {
-                          // Redemption proof submission should NEVER cause
-                          // any change of the redeemers balances.
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redeemerBalance = redeemersBalances[i]
-
-                            expect(
-                              redeemerBalance.afterProof.sub(
-                                redeemerBalance.beforeProof
-                              )
-                            ).to.be.equal(
-                              0,
-                              `Balance of redeemer with index ${i} has changed`
-                            )
-                          }
-                        })
-                      }
-                    )
-
-                    context(
-                      "when output vector consists of reported timed out requested redemptions and a non-zero change",
-                      () => {
-                        const data: RedemptionTestData =
-                          MultiplePendingRequestedRedemptionsWithP2WPKHChange
-
-                        let tx: ContractTransaction
-                        let bridgeBalance: RedemptionBalanceChange
-                        let walletPendingRedemptionsValue: RedemptionBalanceChange
-                        let treasuryBalance: RedemptionBalanceChange
-                        let redeemersBalances: RedemptionBalanceChange[]
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // Before submitting the redemption proof, wait
-                          // an amount of time that will make the requests
-                          // timed out and then report the timeouts.
-                          const beforeProofActions = async () => {
-                            await increaseTime(redemptionTimeout)
-
-                            for (
-                              let i = 0;
-                              i < data.redemptionRequests.length;
-                              i++
-                            ) {
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.notifyRedemptionTimeout(
-                                data.wallet.pubKeyHash,
-                                [],
-                                data.redemptionRequests[i].redeemerOutputScript
-                              )
-                            }
-                          }
-
-                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                          ;({
-                            tx,
-                            bridgeBalance,
-                            walletPendingRedemptionsValue,
-                            treasuryBalance,
-                            redeemersBalances,
-                          } = await runRedemptionScenario(
-                            data,
-                            beforeProofActions
-                          ))
-                        })
-
-                        after(async () => {
-                          walletRegistry.seize.reset()
-
-                          await restoreSnapshot()
-                        })
-
-                        it("should hold the timed out requests in the contract state", async () => {
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redemptionRequest =
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.timedOutRedemptions(
-                                buildRedemptionKey(
-                                  data.wallet.pubKeyHash,
-                                  data.redemptionRequests[i]
-                                    .redeemerOutputScript
+                            it("should not change the wallet's pending redemptions value", async () => {
+                              // All the bookkeeping regarding the timed out
+                              // request was done upon timeout report. The
+                              // wallet pending redemptions value should not
+                              // be changed in any way.
+                              expect(
+                                walletPendingRedemptionsValue.afterProof.sub(
+                                  walletPendingRedemptionsValue.beforeProof
                                 )
-                              )
+                              ).to.equal(0)
+                            })
 
-                            expect(
-                              redemptionRequest.requestedAt
-                            ).to.be.greaterThan(
-                              0,
-                              `Timed out request with index ${i} was removed from the contract state`
-                            )
-                          }
-                        })
-
-                        it("should update the wallet's main UTXO", async () => {
-                          // Change index and value can be taken by exploring
-                          // the redemption transaction structure and getting
-                          // the output pointing back to wallet PKH.
-                          const expectedMainUtxoHash = buildMainUtxoHash(
-                            data.redemptionTx.hash,
-                            5,
-                            137130866
-                          )
-
-                          expect(
-                            (await bridge.wallets(data.wallet.pubKeyHash))
-                              .mainUtxoHash
-                          ).to.be.equal(expectedMainUtxoHash)
-                        })
-
-                        it("should mark the previous main UTXO as spent", async () => {
-                          const mainUtxoKey = ethers.utils.solidityKeccak256(
-                            ["bytes32", "uint32"],
-                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
-                          )
-
-                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
-                            .true
-                        })
-
-                        it("should not change the wallet's pending redemptions value", async () => {
-                          // All the bookkeeping regarding the timed out
-                          // requests was done upon timeout reports. The
-                          // wallet pending redemptions value should not
-                          // be changed in any way.
-                          expect(
-                            walletPendingRedemptionsValue.afterProof.sub(
-                              walletPendingRedemptionsValue.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not change Bridge's balance in Bank", async () => {
-                          // All the bookkeeping regarding the timed out
-                          // requests was done upon timeout reports. The Bridge
-                          // balance in the bank should neither be decreased...
-                          await expect(tx)
-                            .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 0)
-                          // ...nor changed in any other way.
-                          expect(
-                            bridgeBalance.afterProof.sub(
-                              bridgeBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not transfer anything to the treasury", async () => {
-                          // Treasury balance should not be increased in any way
-                          // since all requests handled by the redemption
-                          // transaction are reported as timed out and are just
-                          // skipped during processing.
-                          expect(
-                            treasuryBalance.afterProof.sub(
-                              treasuryBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not change redeemers balances in any way", async () => {
-                          // Redemption proof submission should NEVER cause
-                          // any change of the redeemers balances.
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redeemerBalance = redeemersBalances[i]
-
-                            expect(
-                              redeemerBalance.afterProof.sub(
-                                redeemerBalance.beforeProof
-                              )
-                            ).to.be.equal(
-                              0,
-                              `Balance of redeemer with index ${i} has changed`
-                            )
-                          }
-                        })
-                      }
-                    )
-
-                    context(
-                      "when output vector consists of pending requested redemptions and reported timed out requested redemptions",
-                      () => {
-                        const data: RedemptionTestData =
-                          MultiplePendingRequestedRedemptions
-
-                        let tx: ContractTransaction
-                        let bridgeBalance: RedemptionBalanceChange
-                        let walletPendingRedemptionsValue: RedemptionBalanceChange
-                        let treasuryBalance: RedemptionBalanceChange
-                        let redeemersBalances: RedemptionBalanceChange[]
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // Simulate the situation when treasury fee is 0% to
-                          // allow using the whole wallet's main UTXO value
-                          // to fulfill the redemption requests.
-                          await bridge.setRedemptionTreasuryFeeDivisor(0)
-
-                          // Before submitting the redemption proof, wait
-                          // an amount of time that will make the requests
-                          // timed out but report timeout only the two first
-                          // requests.
-                          const beforeProofActions = async () => {
-                            await increaseTime(redemptionTimeout)
-
-                            await bridge.notifyRedemptionTimeout(
-                              data.wallet.pubKeyHash,
-                              [],
-                              data.redemptionRequests[0].redeemerOutputScript
-                            )
-                            await bridge.notifyRedemptionTimeout(
-                              data.wallet.pubKeyHash,
-                              [],
-                              data.redemptionRequests[1].redeemerOutputScript
-                            )
-                          }
-
-                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                          ;({
-                            tx,
-                            bridgeBalance,
-                            walletPendingRedemptionsValue,
-                            treasuryBalance,
-                            redeemersBalances,
-                          } = await runRedemptionScenario(
-                            data,
-                            beforeProofActions
-                          ))
-                        })
-
-                        after(async () => {
-                          walletRegistry.seize.reset()
-
-                          await restoreSnapshot()
-                        })
-
-                        it("should hold the timed out requests in the contract state", async () => {
-                          // Check the two first requests reported as timed out
-                          // are actually held in the contract state after
-                          // proof submission.
-                          for (let i = 0; i < 2; i++) {
-                            const redemptionRequest =
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.timedOutRedemptions(
-                                buildRedemptionKey(
-                                  data.wallet.pubKeyHash,
-                                  data.redemptionRequests[i]
-                                    .redeemerOutputScript
+                            it("should not change Bridge's balance in Bank", async () => {
+                              // All the bookkeeping regarding the timed out
+                              // request was done upon timeout report. The Bridge
+                              // balance in the bank should neither be decreased...
+                              await expect(tx)
+                                .to.emit(bank, "BalanceDecreased")
+                                .withArgs(bridge.address, 0)
+                              // ...nor changed in any other way.
+                              expect(
+                                bridgeBalance.afterProof.sub(
+                                  bridgeBalance.beforeProof
                                 )
-                              )
+                              ).to.equal(0)
+                            })
 
-                            expect(
-                              redemptionRequest.requestedAt
-                            ).to.be.greaterThan(
-                              0,
-                              `Timed out request with index ${i} was removed from the contract state`
-                            )
-                          }
-                        })
-
-                        it("should close processed redemption requests", async () => {
-                          // Check the remaining requests not reported as
-                          // timed out were actually closed after proof
-                          // submission.
-                          for (
-                            let i = 2;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redemptionRequest =
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.pendingRedemptions(
-                                buildRedemptionKey(
-                                  data.wallet.pubKeyHash,
-                                  data.redemptionRequests[i]
-                                    .redeemerOutputScript
+                            it("should not transfer anything to the treasury", async () => {
+                              // Treasury balance should not be increased in any way
+                              // since the only request handled by the redemption
+                              // transaction is reported as timed out and is just
+                              // skipped during processing.
+                              expect(
+                                treasuryBalance.afterProof.sub(
+                                  treasuryBalance.beforeProof
                                 )
-                              )
+                              ).to.equal(0)
+                            })
 
-                            expect(redemptionRequest.requestedAt).to.be.equal(
-                              0,
-                              `Redemption request with index ${i} has not been closed`
-                            )
-                          }
-                        })
+                            it("should not change redeemer balance in any way", async () => {
+                              // Redemption proof submission should NEVER cause
+                              // any change of the redeemer balance.
+                              const redeemerBalance = redeemersBalances[0]
 
-                        it("should delete the wallet's main UTXO", async () => {
-                          // The Bitcoin redemption transaction has no change
-                          // output so the wallet's main UTXO should be
-                          // deleted on the Bridge side.
-                          expect(
-                            (await bridge.wallets(data.wallet.pubKeyHash))
-                              .mainUtxoHash
-                          ).to.be.equal(ethers.constants.HashZero)
-                        })
-
-                        it("should mark the previous main UTXO as spent", async () => {
-                          const mainUtxoKey = ethers.utils.solidityKeccak256(
-                            ["bytes32", "uint32"],
-                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
-                          )
-
-                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
-                            .true
-                        })
-
-                        it("should decrease the wallet's pending redemptions value", async () => {
-                          // Wallet pending redemptions value should be
-                          // decreased by the total redeemable amount but since
-                          // the treasury fee is 0% in this test case, the
-                          // total redeemable amount is equal to the total
-                          // requested amount. However, only pending
-                          // requests are taken into account and all reported
-                          // timeouts should be ignored because the appropriate
-                          // bookkeeping was already made upon timeout reports.
-                          // See docs of the used test data for details.
-                          expect(
-                            walletPendingRedemptionsValue.afterProof.sub(
-                              walletPendingRedemptionsValue.beforeProof
-                            )
-                          ).to.equal(-575907)
-                        })
-
-                        it("should decrease Bridge's balance in Bank", async () => {
-                          // Balance should be decreased by the total
-                          // redeemable amount but since the treasury fee
-                          // is 0% in this test case, the total redeemable
-                          // amount is equal to the total requested amount.
-                          // However, only pending requests are taken into
-                          // account and all reported timeouts should be
-                          // ignored because the appropriate bookkeeping was
-                          // already made upon timeout reports. See docs of the
-                          // used test data for details.
-                          await expect(tx)
-                            .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 575907)
-                          // In this case, the total Bridge balance change
-                          // should be also equal to the same amount.
-                          expect(
-                            bridgeBalance.afterProof.sub(
-                              bridgeBalance.beforeProof
-                            )
-                          ).to.equal(-575907)
-                        })
-
-                        it("should not transfer anything to the treasury", async () => {
-                          // Treasury balance should not be increased because
-                          // the treasury fee is 0% in this test case.
-                          expect(
-                            treasuryBalance.afterProof.sub(
-                              treasuryBalance.beforeProof
-                            )
-                          ).to.equal(0)
-                        })
-
-                        it("should not change redeemers balances in any way", async () => {
-                          // Redemption proof submission should NEVER cause
-                          // any change of the redeemers balances.
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redeemerBalance = redeemersBalances[i]
-
-                            expect(
-                              redeemerBalance.afterProof.sub(
-                                redeemerBalance.beforeProof
-                              )
-                            ).to.be.equal(
-                              0,
-                              `Balance of redeemer with index ${i} has changed`
-                            )
-                          }
-                        })
-                      }
-                    )
-
-                    context(
-                      "when output vector consists of pending requested redemptions, reported timed out requested redemptions and a non-zero change",
-                      () => {
-                        const data: RedemptionTestData =
-                          MultiplePendingRequestedRedemptionsWithP2WPKHChange
-
-                        let tx: ContractTransaction
-                        let bridgeBalance: RedemptionBalanceChange
-                        let walletPendingRedemptionsValue: RedemptionBalanceChange
-                        let treasuryBalance: RedemptionBalanceChange
-                        let redeemersBalances: RedemptionBalanceChange[]
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // Before submitting the redemption proof, wait
-                          // an amount of time that will make the requests
-                          // timed out but report timeout only the two first
-                          // requests.
-                          const beforeProofActions = async () => {
-                            await increaseTime(redemptionTimeout)
-
-                            await bridge.notifyRedemptionTimeout(
-                              data.wallet.pubKeyHash,
-                              [],
-                              data.redemptionRequests[0].redeemerOutputScript
-                            )
-                            await bridge.notifyRedemptionTimeout(
-                              data.wallet.pubKeyHash,
-                              [],
-                              data.redemptionRequests[1].redeemerOutputScript
-                            )
-                          }
-
-                          // eslint-disable-next-line @typescript-eslint/no-extra-semi
-                          ;({
-                            tx,
-                            bridgeBalance,
-                            walletPendingRedemptionsValue,
-                            treasuryBalance,
-                            redeemersBalances,
-                          } = await runRedemptionScenario(
-                            data,
-                            beforeProofActions
-                          ))
-                        })
-
-                        after(async () => {
-                          walletRegistry.seize.reset()
-
-                          await restoreSnapshot()
-                        })
-
-                        it("should hold the timed out requests in the contract state", async () => {
-                          // Check the two first requests reported as timed out
-                          // are actually held in the contract state after
-                          // proof submission.
-                          for (let i = 0; i < 2; i++) {
-                            const redemptionRequest =
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.timedOutRedemptions(
-                                buildRedemptionKey(
-                                  data.wallet.pubKeyHash,
-                                  data.redemptionRequests[i]
-                                    .redeemerOutputScript
+                              expect(
+                                redeemerBalance.afterProof.sub(
+                                  redeemerBalance.beforeProof
                                 )
+                              ).to.be.equal(
+                                0,
+                                "Balance of redeemer has changed"
                               )
-
-                            expect(
-                              redemptionRequest.requestedAt
-                            ).to.be.greaterThan(
-                              0,
-                              `Timed out request with index ${i} was removed from the contract state`
-                            )
+                            })
                           }
-                        })
-
-                        it("should close processed redemption requests", async () => {
-                          // Check the remaining requests not reported as
-                          // timed out were actually closed after proof
-                          // submission.
-                          for (
-                            let i = 2;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redemptionRequest =
-                              // eslint-disable-next-line no-await-in-loop
-                              await bridge.pendingRedemptions(
-                                buildRedemptionKey(
-                                  data.wallet.pubKeyHash,
-                                  data.redemptionRequests[i]
-                                    .redeemerOutputScript
-                                )
-                              )
-
-                            expect(redemptionRequest.requestedAt).to.be.equal(
-                              0,
-                              `Redemption request with index ${i} has not been closed`
-                            )
-                          }
-                        })
-
-                        it("should update the wallet's main UTXO", async () => {
-                          // Change index and value can be taken by exploring
-                          // the redemption transaction structure and getting
-                          // the output pointing back to wallet PKH.
-                          const expectedMainUtxoHash = buildMainUtxoHash(
-                            data.redemptionTx.hash,
-                            5,
-                            137130866
-                          )
-
-                          expect(
-                            (await bridge.wallets(data.wallet.pubKeyHash))
-                              .mainUtxoHash
-                          ).to.be.equal(expectedMainUtxoHash)
-                        })
-
-                        it("should mark the previous main UTXO as spent", async () => {
-                          const mainUtxoKey = ethers.utils.solidityKeccak256(
-                            ["bytes32", "uint32"],
-                            [data.mainUtxo.txHash, data.mainUtxo.txOutputIndex]
-                          )
-
-                          expect(await bridge.spentMainUTXOs(mainUtxoKey)).to.be
-                            .true
-                        })
-
-                        it("should decrease the wallet's pending redemptions value", async () => {
-                          // Wallet pending redemptions value should be
-                          // decreased by the total redeemable amount. However,
-                          // only pending requests are taken into account and
-                          // all reported timeouts should be ignored because
-                          // the appropriate bookkeeping was already made upon
-                          // timeout reports. See docs of the used test data
-                          // for details.
-                          expect(
-                            walletPendingRedemptionsValue.afterProof.sub(
-                              walletPendingRedemptionsValue.beforeProof
-                            )
-                          ).to.equal(-4433350)
-                        })
-
-                        it("should decrease Bridge's balance in Bank", async () => {
-                          // Balance should be decreased by the total
-                          // redeemable amount. However, only pending requests
-                          // are taken into account and all reported timeouts
-                          // should be ignored because the appropriate
-                          // bookkeeping was already made upon timeout reports.
-                          // See docs of the used test data for details.
-                          await expect(tx)
-                            .to.emit(bank, "BalanceDecreased")
-                            .withArgs(bridge.address, 4433350)
-                          // However, the total balance change of the
-                          // Bridge should also consider the treasury
-                          // fee collected upon requests and transferred
-                          // to the treasury at the end of the proof.
-                          // This is why the total Bridge's balance change
-                          // is equal to the total requested amount for
-                          // all requests (without taking the reported timed
-                          // out ones into account). See docs of the used test
-                          // data for details.
-                          expect(
-                            bridgeBalance.afterProof.sub(
-                              bridgeBalance.beforeProof
-                            )
-                          ).to.equal(-4435567)
-                        })
-
-                        it("should transfer collected treasury fee", async () => {
-                          // Treasury balance should be increased by the total
-                          // treasury fee for all requests. However, only
-                          // pending requests are taken into account and all
-                          // reported timeouts should be ignored because the
-                          // appropriate bookkeeping was already made upon
-                          // timeout reports. See docs of the used test data
-                          // for details.
-                          expect(
-                            treasuryBalance.afterProof.sub(
-                              treasuryBalance.beforeProof
-                            )
-                          ).to.equal(2217)
-                        })
-
-                        it("should not change redeemers balances in any way", async () => {
-                          // Redemption proof submission should NEVER cause
-                          // any change of the redeemers balances.
-                          for (
-                            let i = 0;
-                            i < data.redemptionRequests.length;
-                            i++
-                          ) {
-                            const redeemerBalance = redeemersBalances[i]
-
-                            expect(
-                              redeemerBalance.afterProof.sub(
-                                redeemerBalance.beforeProof
-                              )
-                            ).to.be.equal(
-                              0,
-                              `Balance of redeemer with index ${i} has changed`
-                            )
-                          }
-                        })
-                      }
-                    )
-
-                    context(
-                      "when output vector contains a pending requested redemption with wrong amount redeemed",
-                      () => {
-                        const data: RedemptionTestData = JSON.parse(
-                          JSON.stringify(MultiplePendingRequestedRedemptions)
                         )
 
-                        let outcome: Promise<RedemptionScenarioOutcome>
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // Alter the last redemption requests in the test
-                          // data and set such an amount that will cause
-                          // the Bitcoin redemption transaction to be deemed
-                          // as invalid due to a wrong amount. The corresponding
-                          // transaction output has the value of 191169 so to
-                          // make this test scenario happen, the request amount
-                          // must be way different (lesser or greater) than the
-                          // output value. Worth noting that this test scenario
-                          // tests the amount condition in a general and simplified
-                          // way without stressing all specific edge cases.
-                          // Doing a detailed check would require more dedicated
-                          // test data sets which would make it far more
-                          // complicated without giving much value in return.
-                          data.redemptionRequests[4].amount = 100000
-
-                          outcome = runRedemptionScenario(data)
-                        })
-
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
-
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output value is not within the acceptable range of the pending request"
-                          )
-                        })
-                      }
-                    )
-
-                    context(
-                      "when output vector contains a reported timed out requested redemption with wrong amount redeemed",
-                      () => {
-                        const data: RedemptionTestData = JSON.parse(
-                          JSON.stringify(MultiplePendingRequestedRedemptions)
-                        )
-
-                        let outcome: Promise<RedemptionScenarioOutcome>
-
-                        before(async () => {
-                          await createSnapshot()
-
-                          // Alter the last redemption requests in the test
-                          // data and set such an amount that will cause
-                          // the Bitcoin redemption transaction to be deemed
-                          // as invalid due to a wrong amount. The corresponding
-                          // transaction output has the value of 191169 so to
-                          // make this test scenario happen, the request amount
-                          // must be way different (lesser or greater) than the
-                          // output value. Worth noting that this test scenario
-                          // tests the amount condition in a general and simplified
-                          // way without stressing all specific edge cases.
-                          // Doing a detailed check would require more dedicated
-                          // test data sets which would make it far more
-                          // complicated without giving much value in return.
-                          data.redemptionRequests[4].amount = 100000
-
-                          // Before submitting the redemption proof, wait
-                          // an amount of time that will make the last request
-                          // timed out and then report the timeout.
-                          const beforeProofActions = async () => {
-                            await increaseTime(redemptionTimeout)
-                            await bridge.notifyRedemptionTimeout(
-                              data.wallet.pubKeyHash,
-                              [],
-                              data.redemptionRequests[4].redeemerOutputScript
+                        context(
+                          "when the single output is a pending requested redemption but redeemed amount is wrong",
+                          () => {
+                            const data: RedemptionTestData = JSON.parse(
+                              JSON.stringify(SinglePendingRequestedRedemption)
                             )
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // Alter the single redemption request in the test
+                              // data and set such an amount that will cause
+                              // the Bitcoin redemption transaction to be deemed
+                              // as invalid due to a wrong amount. The transaction
+                              // output has the value of 1176924 so to make this
+                              // test scenario happen, the request amount must be
+                              // way different (lesser or greater) than the output
+                              // value. Worth noting that this test scenario tests
+                              // the amount condition in a general and simplified
+                              // way without stressing all specific edge cases.
+                              // Doing a detailed check would require more dedicated
+                              // test data sets which would make it far more
+                              // complicated without giving much value in return.
+                              data.redemptionRequests[0].amount = 300000
+
+                              outcome = runRedemptionScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output value is not within the acceptable range of the pending request"
+                              )
+                            })
                           }
-
-                          outcome = runRedemptionScenario(
-                            data,
-                            beforeProofActions
-                          )
-                        })
-
-                        after(async () => {
-                          walletRegistry.seize.reset()
-
-                          await restoreSnapshot()
-                        })
-
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output value is not within the acceptable range of the timed out request"
-                          )
-                        })
-                      }
-                    )
-
-                    context(
-                      "when output vector contains a non-zero P2SH change output",
-                      () => {
-                        const data: RedemptionTestData = JSON.parse(
-                          JSON.stringify(
-                            MultiplePendingRequestedRedemptionsWithP2SHChange
-                          )
                         )
 
-                        let outcome: Promise<RedemptionScenarioOutcome>
+                        context(
+                          "when the single output is a reported timed out requested redemption but amount is wrong",
+                          () => {
+                            const data: RedemptionTestData = JSON.parse(
+                              JSON.stringify(SinglePendingRequestedRedemption)
+                            )
 
-                        before(async () => {
-                          await createSnapshot()
+                            let outcome: Promise<RedemptionScenarioOutcome>
 
-                          outcome = runRedemptionScenario(data)
-                        })
+                            before(async () => {
+                              await createSnapshot()
 
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
+                              // Alter the single redemption request in the test
+                              // data and set such an amount that will cause
+                              // the Bitcoin redemption transaction to be deemed
+                              // as invalid due to a wrong amount. The transaction
+                              // output has the value of 1176924 so to make this
+                              // test scenario happen, the request amount must be
+                              // way different (lesser or greater) than the output
+                              // value. Worth noting that this test scenario tests
+                              // the amount condition in a general and simplified
+                              // way without stressing all specific edge cases.
+                              // Doing a detailed check would require more dedicated
+                              // test data sets which would make it far more
+                              // complicated without giving much value in return.
+                              data.redemptionRequests[0].amount = 300000
 
-                        // We have this case because P2SH script has a 20-byte
-                        // payload which may match the 20-byte wallet public
-                        // key hash though it should be always rejected as
-                        // non-requested output. There is no need to check for
-                        // P2WSH since the payload is always 32-byte there.
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output is a non-requested redemption"
-                          )
-                        })
-                      }
-                    )
+                              // Before submitting the redemption proof, wait
+                              // an amount of time that will make the request
+                              // timed out and then report the timeout.
+                              const beforeProofActions = async () => {
+                                await increaseTime(redemptionTimeout)
+                                await bridge.notifyRedemptionTimeout(
+                                  data.wallet.pubKeyHash,
+                                  [],
+                                  data.redemptionRequests[0]
+                                    .redeemerOutputScript
+                                )
+                              }
 
-                    context(
-                      "when output vector contains multiple non-zero change outputs",
-                      () => {
-                        const data: RedemptionTestData = JSON.parse(
-                          JSON.stringify(
-                            MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges
-                          )
+                              outcome = runRedemptionScenario(
+                                data,
+                                beforeProofActions
+                              )
+                            })
+
+                            after(async () => {
+                              walletRegistry.seize.reset()
+
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output value is not within the acceptable range of the timed out request"
+                              )
+                            })
+                          }
                         )
 
-                        let outcome: Promise<RedemptionScenarioOutcome>
+                        context(
+                          "when the single output is a legal P2PKH change with a non-zero value",
+                          () => {
+                            const data: RedemptionTestData = SingleP2PKHChange
 
-                        before(async () => {
-                          await createSnapshot()
+                            let outcome: Promise<RedemptionScenarioOutcome>
 
-                          outcome = runRedemptionScenario(data)
-                        })
+                            before(async () => {
+                              await createSnapshot()
 
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
+                              outcome = runRedemptionScenario(data)
+                            })
 
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output is a non-requested redemption"
-                          )
-                        })
-                      }
-                    )
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
 
-                    context(
-                      "when output vector contains one change but with zero as value",
-                      () => {
-                        const data: RedemptionTestData = JSON.parse(
-                          JSON.stringify(
-                            MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue
-                          )
+                            // Should be deemed as valid change though rejected
+                            // because this change is a single output and at least
+                            // one requested redemption is expected.
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Redemption transaction must process at least one redemption"
+                              )
+                            })
+                          }
                         )
 
-                        let outcome: Promise<RedemptionScenarioOutcome>
+                        context(
+                          "when the single output is a legal P2WPKH change with a non-zero value",
+                          () => {
+                            const data: RedemptionTestData = SingleP2WPKHChange
 
-                        before(async () => {
-                          await createSnapshot()
+                            let outcome: Promise<RedemptionScenarioOutcome>
 
-                          outcome = runRedemptionScenario(data)
-                        })
+                            before(async () => {
+                              await createSnapshot()
 
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
+                              outcome = runRedemptionScenario(data)
+                            })
 
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output is a non-requested redemption"
-                          )
-                        })
-                      }
-                    )
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
 
-                    context(
-                      "when output vector contains a non-requested redemption to an arbitrary script hash",
-                      () => {
-                        const data: RedemptionTestData = JSON.parse(
-                          JSON.stringify(
-                            MultiplePendingRequestedRedemptionsWithNonRequestedRedemption
-                          )
+                            // Should be deemed as valid change though rejected
+                            // because this change is a single output and at least
+                            // one requested redemption is expected.
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Redemption transaction must process at least one redemption"
+                              )
+                            })
+                          }
                         )
 
-                        let outcome: Promise<RedemptionScenarioOutcome>
+                        context(
+                          "when the single output is an illegal P2SH change with a non-zero value",
+                          () => {
+                            const data: RedemptionTestData = SingleP2SHChange
 
-                        before(async () => {
-                          await createSnapshot()
+                            let outcome: Promise<RedemptionScenarioOutcome>
 
-                          outcome = runRedemptionScenario(data)
-                        })
+                            before(async () => {
+                              await createSnapshot()
 
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
+                              outcome = runRedemptionScenario(data)
+                            })
 
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output is a non-requested redemption"
-                          )
-                        })
-                      }
-                    )
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
 
-                    context(
-                      "when output vector contains a provably unspendable OP_RETURN output",
-                      () => {
-                        const data: RedemptionTestData = JSON.parse(
-                          JSON.stringify(
-                            MultiplePendingRequestedRedemptionsWithProvablyUnspendable
-                          )
+                            // We have this case because P2SH script has a 20-byte
+                            // payload which may match the 20-byte wallet public
+                            // key hash though it should be always rejected as
+                            // non-requested output. There is no need to check for
+                            // P2WSH since the payload is always 32-byte there.
+                            // The main reason we need to bother about 20-byte
+                            // hashes is because the wallet public key hash has
+                            // always 20-bytes and we must make sure no redemption
+                            // request uses it as a redeemer script to not confuse
+                            // an output that will try to handle that request with
+                            // a proper change output also referencing the wallet
+                            // public key hash.
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output is a non-requested redemption"
+                              )
+                            })
+                          }
                         )
 
-                        let outcome: Promise<RedemptionScenarioOutcome>
+                        context(
+                          "when the single output is a change with a zero as value",
+                          () => {
+                            const data: RedemptionTestData =
+                              SingleP2WPKHChangeZeroValue
 
-                        before(async () => {
-                          await createSnapshot()
+                            let outcome: Promise<RedemptionScenarioOutcome>
 
-                          outcome = runRedemptionScenario(data)
-                        })
+                            before(async () => {
+                              await createSnapshot()
 
-                        after(async () => {
-                          await restoreSnapshot()
-                        })
+                              outcome = runRedemptionScenario(data)
+                            })
 
-                        it("should revert", async () => {
-                          await expect(outcome).to.be.revertedWith(
-                            "Output is a non-requested redemption"
-                          )
-                        })
-                      }
-                    )
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output is a non-requested redemption"
+                              )
+                            })
+                          }
+                        )
+
+                        context(
+                          "when the single output is a non-requested redemption to an arbitrary script",
+                          () => {
+                            const data: RedemptionTestData =
+                              SingleNonRequestedRedemption
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              outcome = runRedemptionScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output is a non-requested redemption"
+                              )
+                            })
+                          }
+                        )
+
+                        context(
+                          "when the single output is provably unspendable OP_RETURN",
+                          () => {
+                            const data: RedemptionTestData =
+                              SingleProvablyUnspendable
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              outcome = runRedemptionScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output is a non-requested redemption"
+                              )
+                            })
+                          }
+                        )
+                      })
+
+                      context("when there are multiple outputs", () => {
+                        context(
+                          "when output vector consists only of pending requested redemptions",
+                          () => {
+                            const data: RedemptionTestData =
+                              MultiplePendingRequestedRedemptions
+
+                            let tx: ContractTransaction
+                            let bridgeBalance: RedemptionBalanceChange
+                            let walletPendingRedemptionsValue: RedemptionBalanceChange
+                            let treasuryBalance: RedemptionBalanceChange
+                            let redeemersBalances: RedemptionBalanceChange[]
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // Simulate the situation when treasury fee is 0% to
+                              // allow using the whole wallet's main UTXO value
+                              // to fulfill the redemption requests.
+                              await bridge.setRedemptionTreasuryFeeDivisor(0)
+
+                              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                              ;({
+                                tx,
+                                bridgeBalance,
+                                walletPendingRedemptionsValue,
+                                treasuryBalance,
+                                redeemersBalances,
+                              } = await runRedemptionScenario(data))
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should close processed redemption requests", async () => {
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redemptionRequest =
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.pendingRedemptions(
+                                    buildRedemptionKey(
+                                      data.wallet.pubKeyHash,
+                                      data.redemptionRequests[i]
+                                        .redeemerOutputScript
+                                    )
+                                  )
+
+                                expect(
+                                  redemptionRequest.requestedAt
+                                ).to.be.equal(
+                                  0,
+                                  `Redemption request with index ${i} has not been closed`
+                                )
+                              }
+                            })
+
+                            it("should delete the wallet's main UTXO", async () => {
+                              // The Bitcoin redemption transaction has no change
+                              // output so the wallet's main UTXO should be
+                              // deleted on the Bridge side.
+                              expect(
+                                (await bridge.wallets(data.wallet.pubKeyHash))
+                                  .mainUtxoHash
+                              ).to.be.equal(ethers.constants.HashZero)
+                            })
+
+                            it("should mark the previous main UTXO as spent", async () => {
+                              const mainUtxoKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes32", "uint32"],
+                                  [
+                                    data.mainUtxo.txHash,
+                                    data.mainUtxo.txOutputIndex,
+                                  ]
+                                )
+
+                              expect(await bridge.spentMainUTXOs(mainUtxoKey))
+                                .to.be.true
+                            })
+
+                            it("should decrease the wallet's pending redemptions value", async () => {
+                              // Wallet pending redemptions value should be
+                              // decreased by the total redeemable amount but since
+                              // the treasury fee is 0% in this test case, the
+                              // total redeemable amount is equal to the total
+                              // requested amount. See docs of the used test
+                              // data for details.
+                              expect(
+                                walletPendingRedemptionsValue.afterProof.sub(
+                                  walletPendingRedemptionsValue.beforeProof
+                                )
+                              ).to.equal(-959845)
+                            })
+
+                            it("should decrease Bridge's balance in Bank", async () => {
+                              // Balance should be decreased by the total
+                              // redeemable amount but since the treasury fee
+                              // is 0% in this test case, the total redeemable
+                              // amount is equal to the total requested amount.
+                              // See docs of the used test data for details.
+                              await expect(tx)
+                                .to.emit(bank, "BalanceDecreased")
+                                .withArgs(bridge.address, 959845)
+                              // In this case, the total Bridge balance change
+                              // should be also equal to the same amount.
+                              expect(
+                                bridgeBalance.afterProof.sub(
+                                  bridgeBalance.beforeProof
+                                )
+                              ).to.equal(-959845)
+                            })
+
+                            it("should not transfer anything to the treasury", async () => {
+                              // Treasury balance should not be increased because
+                              // the treasury fee is 0% in this test case.
+                              expect(
+                                treasuryBalance.afterProof.sub(
+                                  treasuryBalance.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
+
+                            it("should not change redeemers balances in any way", async () => {
+                              // Redemption proof submission should NEVER cause
+                              // any change of the redeemers balances.
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redeemerBalance = redeemersBalances[i]
+
+                                expect(
+                                  redeemerBalance.afterProof.sub(
+                                    redeemerBalance.beforeProof
+                                  )
+                                ).to.be.equal(
+                                  0,
+                                  `Balance of redeemer with index ${i} has changed`
+                                )
+                              }
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector consists of pending requested redemptions and a non-zero change",
+                          () => {
+                            const data: RedemptionTestData =
+                              MultiplePendingRequestedRedemptionsWithP2WPKHChange
+
+                            let tx: ContractTransaction
+                            let bridgeBalance: RedemptionBalanceChange
+                            let walletPendingRedemptionsValue: RedemptionBalanceChange
+                            let treasuryBalance: RedemptionBalanceChange
+                            let redeemersBalances: RedemptionBalanceChange[]
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                              ;({
+                                tx,
+                                bridgeBalance,
+                                walletPendingRedemptionsValue,
+                                treasuryBalance,
+                                redeemersBalances,
+                              } = await runRedemptionScenario(data))
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should close processed redemption requests", async () => {
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redemptionRequest =
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.pendingRedemptions(
+                                    buildRedemptionKey(
+                                      data.wallet.pubKeyHash,
+                                      data.redemptionRequests[i]
+                                        .redeemerOutputScript
+                                    )
+                                  )
+
+                                expect(
+                                  redemptionRequest.requestedAt
+                                ).to.be.equal(
+                                  0,
+                                  `Redemption request with index ${i} has not been closed`
+                                )
+                              }
+                            })
+
+                            it("should update the wallet's main UTXO", async () => {
+                              // Change index and value can be taken by exploring
+                              // the redemption transaction structure and getting
+                              // the output pointing back to wallet PKH.
+                              const expectedMainUtxoHash = buildMainUtxoHash(
+                                data.redemptionTx.hash,
+                                5,
+                                137130866
+                              )
+
+                              expect(
+                                (await bridge.wallets(data.wallet.pubKeyHash))
+                                  .mainUtxoHash
+                              ).to.be.equal(expectedMainUtxoHash)
+                            })
+
+                            it("should mark the previous main UTXO as spent", async () => {
+                              const mainUtxoKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes32", "uint32"],
+                                  [
+                                    data.mainUtxo.txHash,
+                                    data.mainUtxo.txOutputIndex,
+                                  ]
+                                )
+
+                              expect(await bridge.spentMainUTXOs(mainUtxoKey))
+                                .to.be.true
+                            })
+
+                            it("should decrease the wallet's pending redemptions value", async () => {
+                              // Wallet pending redemptions value should be
+                              // decreased by the total redeemable amount. See docs
+                              // of the used test data for details.
+                              expect(
+                                walletPendingRedemptionsValue.afterProof.sub(
+                                  walletPendingRedemptionsValue.beforeProof
+                                )
+                              ).to.equal(-6432350)
+                            })
+
+                            it("should decrease Bridge's balance in Bank", async () => {
+                              // Balance should be decreased by the total
+                              // redeemable amount. See docs of the used test
+                              // data for details.
+                              await expect(tx)
+                                .to.emit(bank, "BalanceDecreased")
+                                .withArgs(bridge.address, 6432350)
+                              // However, the total balance change of the
+                              // Bridge should also consider the treasury
+                              // fee collected upon requests and transferred
+                              // to the treasury at the end of the proof.
+                              // This is why the total Bridge's balance change
+                              // is equal to the total requested amount for
+                              // all requests. See docs of the used test data
+                              // for details.
+                              expect(
+                                bridgeBalance.afterProof.sub(
+                                  bridgeBalance.beforeProof
+                                )
+                              ).to.equal(-6435567)
+                            })
+
+                            it("should transfer collected treasury fee", async () => {
+                              // Treasury balance should be increased by the total
+                              // treasury fee for all requests. See docs of the
+                              // used test data for details.
+                              expect(
+                                treasuryBalance.afterProof.sub(
+                                  treasuryBalance.beforeProof
+                                )
+                              ).to.equal(3217)
+                            })
+
+                            it("should not change redeemers balances in any way", async () => {
+                              // Redemption proof submission should NEVER cause
+                              // any change of the redeemers balances.
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redeemerBalance = redeemersBalances[i]
+
+                                expect(
+                                  redeemerBalance.afterProof.sub(
+                                    redeemerBalance.beforeProof
+                                  )
+                                ).to.be.equal(
+                                  0,
+                                  `Balance of redeemer with index ${i} has changed`
+                                )
+                              }
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector consists only of reported timed out requested redemptions",
+                          () => {
+                            const data: RedemptionTestData =
+                              MultiplePendingRequestedRedemptions
+
+                            let tx: ContractTransaction
+                            let bridgeBalance: RedemptionBalanceChange
+                            let walletPendingRedemptionsValue: RedemptionBalanceChange
+                            let treasuryBalance: RedemptionBalanceChange
+                            let redeemersBalances: RedemptionBalanceChange[]
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // Simulate the situation when treasury fee is 0% to
+                              // allow using the whole wallet's main UTXO value
+                              // to fulfill the redemption requests.
+                              await bridge.setRedemptionTreasuryFeeDivisor(0)
+
+                              // Before submitting the redemption proof, wait
+                              // an amount of time that will make the requests
+                              // timed out and then report the timeouts.
+                              const beforeProofActions = async () => {
+                                await increaseTime(redemptionTimeout)
+
+                                for (
+                                  let i = 0;
+                                  i < data.redemptionRequests.length;
+                                  i++
+                                ) {
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.notifyRedemptionTimeout(
+                                    data.wallet.pubKeyHash,
+                                    [],
+                                    data.redemptionRequests[i]
+                                      .redeemerOutputScript
+                                  )
+                                }
+                              }
+
+                              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                              ;({
+                                tx,
+                                bridgeBalance,
+                                walletPendingRedemptionsValue,
+                                treasuryBalance,
+                                redeemersBalances,
+                              } = await runRedemptionScenario(
+                                data,
+                                beforeProofActions
+                              ))
+                            })
+
+                            after(async () => {
+                              walletRegistry.seize.reset()
+
+                              await restoreSnapshot()
+                            })
+
+                            it("should hold the timed out requests in the contract state", async () => {
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redemptionRequest =
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.timedOutRedemptions(
+                                    buildRedemptionKey(
+                                      data.wallet.pubKeyHash,
+                                      data.redemptionRequests[i]
+                                        .redeemerOutputScript
+                                    )
+                                  )
+
+                                expect(
+                                  redemptionRequest.requestedAt
+                                ).to.be.greaterThan(
+                                  0,
+                                  `Timed out request with index ${i} was removed from the contract state`
+                                )
+                              }
+                            })
+
+                            it("should delete the wallet's main UTXO", async () => {
+                              // The Bitcoin redemption transaction has no change
+                              // output so the wallet's main UTXO should be
+                              // deleted on the Bridge side. It doesn't matter
+                              // that all redemptions handled by the transaction
+                              // are reported as timed out.
+                              expect(
+                                (await bridge.wallets(data.wallet.pubKeyHash))
+                                  .mainUtxoHash
+                              ).to.be.equal(ethers.constants.HashZero)
+                            })
+
+                            it("should mark the previous main UTXO as spent", async () => {
+                              const mainUtxoKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes32", "uint32"],
+                                  [
+                                    data.mainUtxo.txHash,
+                                    data.mainUtxo.txOutputIndex,
+                                  ]
+                                )
+
+                              expect(await bridge.spentMainUTXOs(mainUtxoKey))
+                                .to.be.true
+                            })
+
+                            it("should not change the wallet's pending redemptions value", async () => {
+                              // All the bookkeeping regarding the timed out
+                              // requests was done upon timeout reports. The
+                              // wallet pending redemptions value should not
+                              // be changed in any way.
+                              expect(
+                                walletPendingRedemptionsValue.afterProof.sub(
+                                  walletPendingRedemptionsValue.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
+
+                            it("should not change Bridge's balance in Bank", async () => {
+                              // All the bookkeeping regarding the timed out
+                              // requests was done upon timeout reports. The Bridge
+                              // balance in the bank should neither be decreased...
+                              await expect(tx)
+                                .to.emit(bank, "BalanceDecreased")
+                                .withArgs(bridge.address, 0)
+                              // ...nor changed in any other way.
+                              expect(
+                                bridgeBalance.afterProof.sub(
+                                  bridgeBalance.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
+
+                            it("should not transfer anything to the treasury", async () => {
+                              // Treasury balance should not be increased in any way
+                              // since all requests handled by the redemption
+                              // transaction are reported as timed out and are just
+                              // skipped during processing.
+                              expect(
+                                treasuryBalance.afterProof.sub(
+                                  treasuryBalance.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
+
+                            it("should not change redeemers balances in any way", async () => {
+                              // Redemption proof submission should NEVER cause
+                              // any change of the redeemers balances.
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redeemerBalance = redeemersBalances[i]
+
+                                expect(
+                                  redeemerBalance.afterProof.sub(
+                                    redeemerBalance.beforeProof
+                                  )
+                                ).to.be.equal(
+                                  0,
+                                  `Balance of redeemer with index ${i} has changed`
+                                )
+                              }
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector consists of reported timed out requested redemptions and a non-zero change",
+                          () => {
+                            const data: RedemptionTestData =
+                              MultiplePendingRequestedRedemptionsWithP2WPKHChange
+
+                            let tx: ContractTransaction
+                            let bridgeBalance: RedemptionBalanceChange
+                            let walletPendingRedemptionsValue: RedemptionBalanceChange
+                            let treasuryBalance: RedemptionBalanceChange
+                            let redeemersBalances: RedemptionBalanceChange[]
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // Before submitting the redemption proof, wait
+                              // an amount of time that will make the requests
+                              // timed out and then report the timeouts.
+                              const beforeProofActions = async () => {
+                                await increaseTime(redemptionTimeout)
+
+                                for (
+                                  let i = 0;
+                                  i < data.redemptionRequests.length;
+                                  i++
+                                ) {
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.notifyRedemptionTimeout(
+                                    data.wallet.pubKeyHash,
+                                    [],
+                                    data.redemptionRequests[i]
+                                      .redeemerOutputScript
+                                  )
+                                }
+                              }
+
+                              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                              ;({
+                                tx,
+                                bridgeBalance,
+                                walletPendingRedemptionsValue,
+                                treasuryBalance,
+                                redeemersBalances,
+                              } = await runRedemptionScenario(
+                                data,
+                                beforeProofActions
+                              ))
+                            })
+
+                            after(async () => {
+                              walletRegistry.seize.reset()
+
+                              await restoreSnapshot()
+                            })
+
+                            it("should hold the timed out requests in the contract state", async () => {
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redemptionRequest =
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.timedOutRedemptions(
+                                    buildRedemptionKey(
+                                      data.wallet.pubKeyHash,
+                                      data.redemptionRequests[i]
+                                        .redeemerOutputScript
+                                    )
+                                  )
+
+                                expect(
+                                  redemptionRequest.requestedAt
+                                ).to.be.greaterThan(
+                                  0,
+                                  `Timed out request with index ${i} was removed from the contract state`
+                                )
+                              }
+                            })
+
+                            it("should update the wallet's main UTXO", async () => {
+                              // Change index and value can be taken by exploring
+                              // the redemption transaction structure and getting
+                              // the output pointing back to wallet PKH.
+                              const expectedMainUtxoHash = buildMainUtxoHash(
+                                data.redemptionTx.hash,
+                                5,
+                                137130866
+                              )
+
+                              expect(
+                                (await bridge.wallets(data.wallet.pubKeyHash))
+                                  .mainUtxoHash
+                              ).to.be.equal(expectedMainUtxoHash)
+                            })
+
+                            it("should mark the previous main UTXO as spent", async () => {
+                              const mainUtxoKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes32", "uint32"],
+                                  [
+                                    data.mainUtxo.txHash,
+                                    data.mainUtxo.txOutputIndex,
+                                  ]
+                                )
+
+                              expect(await bridge.spentMainUTXOs(mainUtxoKey))
+                                .to.be.true
+                            })
+
+                            it("should not change the wallet's pending redemptions value", async () => {
+                              // All the bookkeeping regarding the timed out
+                              // requests was done upon timeout reports. The
+                              // wallet pending redemptions value should not
+                              // be changed in any way.
+                              expect(
+                                walletPendingRedemptionsValue.afterProof.sub(
+                                  walletPendingRedemptionsValue.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
+
+                            it("should not change Bridge's balance in Bank", async () => {
+                              // All the bookkeeping regarding the timed out
+                              // requests was done upon timeout reports. The Bridge
+                              // balance in the bank should neither be decreased...
+                              await expect(tx)
+                                .to.emit(bank, "BalanceDecreased")
+                                .withArgs(bridge.address, 0)
+                              // ...nor changed in any other way.
+                              expect(
+                                bridgeBalance.afterProof.sub(
+                                  bridgeBalance.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
+
+                            it("should not transfer anything to the treasury", async () => {
+                              // Treasury balance should not be increased in any way
+                              // since all requests handled by the redemption
+                              // transaction are reported as timed out and are just
+                              // skipped during processing.
+                              expect(
+                                treasuryBalance.afterProof.sub(
+                                  treasuryBalance.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
+
+                            it("should not change redeemers balances in any way", async () => {
+                              // Redemption proof submission should NEVER cause
+                              // any change of the redeemers balances.
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redeemerBalance = redeemersBalances[i]
+
+                                expect(
+                                  redeemerBalance.afterProof.sub(
+                                    redeemerBalance.beforeProof
+                                  )
+                                ).to.be.equal(
+                                  0,
+                                  `Balance of redeemer with index ${i} has changed`
+                                )
+                              }
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector consists of pending requested redemptions and reported timed out requested redemptions",
+                          () => {
+                            const data: RedemptionTestData =
+                              MultiplePendingRequestedRedemptions
+
+                            let tx: ContractTransaction
+                            let bridgeBalance: RedemptionBalanceChange
+                            let walletPendingRedemptionsValue: RedemptionBalanceChange
+                            let treasuryBalance: RedemptionBalanceChange
+                            let redeemersBalances: RedemptionBalanceChange[]
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // Simulate the situation when treasury fee is 0% to
+                              // allow using the whole wallet's main UTXO value
+                              // to fulfill the redemption requests.
+                              await bridge.setRedemptionTreasuryFeeDivisor(0)
+
+                              // Before submitting the redemption proof, wait
+                              // an amount of time that will make the requests
+                              // timed out but report timeout only the two first
+                              // requests.
+                              const beforeProofActions = async () => {
+                                await increaseTime(redemptionTimeout)
+
+                                await bridge.notifyRedemptionTimeout(
+                                  data.wallet.pubKeyHash,
+                                  [],
+                                  data.redemptionRequests[0]
+                                    .redeemerOutputScript
+                                )
+                                await bridge.notifyRedemptionTimeout(
+                                  data.wallet.pubKeyHash,
+                                  [],
+                                  data.redemptionRequests[1]
+                                    .redeemerOutputScript
+                                )
+                              }
+
+                              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                              ;({
+                                tx,
+                                bridgeBalance,
+                                walletPendingRedemptionsValue,
+                                treasuryBalance,
+                                redeemersBalances,
+                              } = await runRedemptionScenario(
+                                data,
+                                beforeProofActions
+                              ))
+                            })
+
+                            after(async () => {
+                              walletRegistry.seize.reset()
+
+                              await restoreSnapshot()
+                            })
+
+                            it("should hold the timed out requests in the contract state", async () => {
+                              // Check the two first requests reported as timed out
+                              // are actually held in the contract state after
+                              // proof submission.
+                              for (let i = 0; i < 2; i++) {
+                                const redemptionRequest =
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.timedOutRedemptions(
+                                    buildRedemptionKey(
+                                      data.wallet.pubKeyHash,
+                                      data.redemptionRequests[i]
+                                        .redeemerOutputScript
+                                    )
+                                  )
+
+                                expect(
+                                  redemptionRequest.requestedAt
+                                ).to.be.greaterThan(
+                                  0,
+                                  `Timed out request with index ${i} was removed from the contract state`
+                                )
+                              }
+                            })
+
+                            it("should close processed redemption requests", async () => {
+                              // Check the remaining requests not reported as
+                              // timed out were actually closed after proof
+                              // submission.
+                              for (
+                                let i = 2;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redemptionRequest =
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.pendingRedemptions(
+                                    buildRedemptionKey(
+                                      data.wallet.pubKeyHash,
+                                      data.redemptionRequests[i]
+                                        .redeemerOutputScript
+                                    )
+                                  )
+
+                                expect(
+                                  redemptionRequest.requestedAt
+                                ).to.be.equal(
+                                  0,
+                                  `Redemption request with index ${i} has not been closed`
+                                )
+                              }
+                            })
+
+                            it("should delete the wallet's main UTXO", async () => {
+                              // The Bitcoin redemption transaction has no change
+                              // output so the wallet's main UTXO should be
+                              // deleted on the Bridge side.
+                              expect(
+                                (await bridge.wallets(data.wallet.pubKeyHash))
+                                  .mainUtxoHash
+                              ).to.be.equal(ethers.constants.HashZero)
+                            })
+
+                            it("should mark the previous main UTXO as spent", async () => {
+                              const mainUtxoKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes32", "uint32"],
+                                  [
+                                    data.mainUtxo.txHash,
+                                    data.mainUtxo.txOutputIndex,
+                                  ]
+                                )
+
+                              expect(await bridge.spentMainUTXOs(mainUtxoKey))
+                                .to.be.true
+                            })
+
+                            it("should decrease the wallet's pending redemptions value", async () => {
+                              // Wallet pending redemptions value should be
+                              // decreased by the total redeemable amount but since
+                              // the treasury fee is 0% in this test case, the
+                              // total redeemable amount is equal to the total
+                              // requested amount. However, only pending
+                              // requests are taken into account and all reported
+                              // timeouts should be ignored because the appropriate
+                              // bookkeeping was already made upon timeout reports.
+                              // See docs of the used test data for details.
+                              expect(
+                                walletPendingRedemptionsValue.afterProof.sub(
+                                  walletPendingRedemptionsValue.beforeProof
+                                )
+                              ).to.equal(-575907)
+                            })
+
+                            it("should decrease Bridge's balance in Bank", async () => {
+                              // Balance should be decreased by the total
+                              // redeemable amount but since the treasury fee
+                              // is 0% in this test case, the total redeemable
+                              // amount is equal to the total requested amount.
+                              // However, only pending requests are taken into
+                              // account and all reported timeouts should be
+                              // ignored because the appropriate bookkeeping was
+                              // already made upon timeout reports. See docs of the
+                              // used test data for details.
+                              await expect(tx)
+                                .to.emit(bank, "BalanceDecreased")
+                                .withArgs(bridge.address, 575907)
+                              // In this case, the total Bridge balance change
+                              // should be also equal to the same amount.
+                              expect(
+                                bridgeBalance.afterProof.sub(
+                                  bridgeBalance.beforeProof
+                                )
+                              ).to.equal(-575907)
+                            })
+
+                            it("should not transfer anything to the treasury", async () => {
+                              // Treasury balance should not be increased because
+                              // the treasury fee is 0% in this test case.
+                              expect(
+                                treasuryBalance.afterProof.sub(
+                                  treasuryBalance.beforeProof
+                                )
+                              ).to.equal(0)
+                            })
+
+                            it("should not change redeemers balances in any way", async () => {
+                              // Redemption proof submission should NEVER cause
+                              // any change of the redeemers balances.
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redeemerBalance = redeemersBalances[i]
+
+                                expect(
+                                  redeemerBalance.afterProof.sub(
+                                    redeemerBalance.beforeProof
+                                  )
+                                ).to.be.equal(
+                                  0,
+                                  `Balance of redeemer with index ${i} has changed`
+                                )
+                              }
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector consists of pending requested redemptions, reported timed out requested redemptions and a non-zero change",
+                          () => {
+                            const data: RedemptionTestData =
+                              MultiplePendingRequestedRedemptionsWithP2WPKHChange
+
+                            let tx: ContractTransaction
+                            let bridgeBalance: RedemptionBalanceChange
+                            let walletPendingRedemptionsValue: RedemptionBalanceChange
+                            let treasuryBalance: RedemptionBalanceChange
+                            let redeemersBalances: RedemptionBalanceChange[]
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // Before submitting the redemption proof, wait
+                              // an amount of time that will make the requests
+                              // timed out but report timeout only the two first
+                              // requests.
+                              const beforeProofActions = async () => {
+                                await increaseTime(redemptionTimeout)
+
+                                await bridge.notifyRedemptionTimeout(
+                                  data.wallet.pubKeyHash,
+                                  [],
+                                  data.redemptionRequests[0]
+                                    .redeemerOutputScript
+                                )
+                                await bridge.notifyRedemptionTimeout(
+                                  data.wallet.pubKeyHash,
+                                  [],
+                                  data.redemptionRequests[1]
+                                    .redeemerOutputScript
+                                )
+                              }
+
+                              // eslint-disable-next-line @typescript-eslint/no-extra-semi
+                              ;({
+                                tx,
+                                bridgeBalance,
+                                walletPendingRedemptionsValue,
+                                treasuryBalance,
+                                redeemersBalances,
+                              } = await runRedemptionScenario(
+                                data,
+                                beforeProofActions
+                              ))
+                            })
+
+                            after(async () => {
+                              walletRegistry.seize.reset()
+
+                              await restoreSnapshot()
+                            })
+
+                            it("should hold the timed out requests in the contract state", async () => {
+                              // Check the two first requests reported as timed out
+                              // are actually held in the contract state after
+                              // proof submission.
+                              for (let i = 0; i < 2; i++) {
+                                const redemptionRequest =
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.timedOutRedemptions(
+                                    buildRedemptionKey(
+                                      data.wallet.pubKeyHash,
+                                      data.redemptionRequests[i]
+                                        .redeemerOutputScript
+                                    )
+                                  )
+
+                                expect(
+                                  redemptionRequest.requestedAt
+                                ).to.be.greaterThan(
+                                  0,
+                                  `Timed out request with index ${i} was removed from the contract state`
+                                )
+                              }
+                            })
+
+                            it("should close processed redemption requests", async () => {
+                              // Check the remaining requests not reported as
+                              // timed out were actually closed after proof
+                              // submission.
+                              for (
+                                let i = 2;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redemptionRequest =
+                                  // eslint-disable-next-line no-await-in-loop
+                                  await bridge.pendingRedemptions(
+                                    buildRedemptionKey(
+                                      data.wallet.pubKeyHash,
+                                      data.redemptionRequests[i]
+                                        .redeemerOutputScript
+                                    )
+                                  )
+
+                                expect(
+                                  redemptionRequest.requestedAt
+                                ).to.be.equal(
+                                  0,
+                                  `Redemption request with index ${i} has not been closed`
+                                )
+                              }
+                            })
+
+                            it("should update the wallet's main UTXO", async () => {
+                              // Change index and value can be taken by exploring
+                              // the redemption transaction structure and getting
+                              // the output pointing back to wallet PKH.
+                              const expectedMainUtxoHash = buildMainUtxoHash(
+                                data.redemptionTx.hash,
+                                5,
+                                137130866
+                              )
+
+                              expect(
+                                (await bridge.wallets(data.wallet.pubKeyHash))
+                                  .mainUtxoHash
+                              ).to.be.equal(expectedMainUtxoHash)
+                            })
+
+                            it("should mark the previous main UTXO as spent", async () => {
+                              const mainUtxoKey =
+                                ethers.utils.solidityKeccak256(
+                                  ["bytes32", "uint32"],
+                                  [
+                                    data.mainUtxo.txHash,
+                                    data.mainUtxo.txOutputIndex,
+                                  ]
+                                )
+
+                              expect(await bridge.spentMainUTXOs(mainUtxoKey))
+                                .to.be.true
+                            })
+
+                            it("should decrease the wallet's pending redemptions value", async () => {
+                              // Wallet pending redemptions value should be
+                              // decreased by the total redeemable amount. However,
+                              // only pending requests are taken into account and
+                              // all reported timeouts should be ignored because
+                              // the appropriate bookkeeping was already made upon
+                              // timeout reports. See docs of the used test data
+                              // for details.
+                              expect(
+                                walletPendingRedemptionsValue.afterProof.sub(
+                                  walletPendingRedemptionsValue.beforeProof
+                                )
+                              ).to.equal(-4433350)
+                            })
+
+                            it("should decrease Bridge's balance in Bank", async () => {
+                              // Balance should be decreased by the total
+                              // redeemable amount. However, only pending requests
+                              // are taken into account and all reported timeouts
+                              // should be ignored because the appropriate
+                              // bookkeeping was already made upon timeout reports.
+                              // See docs of the used test data for details.
+                              await expect(tx)
+                                .to.emit(bank, "BalanceDecreased")
+                                .withArgs(bridge.address, 4433350)
+                              // However, the total balance change of the
+                              // Bridge should also consider the treasury
+                              // fee collected upon requests and transferred
+                              // to the treasury at the end of the proof.
+                              // This is why the total Bridge's balance change
+                              // is equal to the total requested amount for
+                              // all requests (without taking the reported timed
+                              // out ones into account). See docs of the used test
+                              // data for details.
+                              expect(
+                                bridgeBalance.afterProof.sub(
+                                  bridgeBalance.beforeProof
+                                )
+                              ).to.equal(-4435567)
+                            })
+
+                            it("should transfer collected treasury fee", async () => {
+                              // Treasury balance should be increased by the total
+                              // treasury fee for all requests. However, only
+                              // pending requests are taken into account and all
+                              // reported timeouts should be ignored because the
+                              // appropriate bookkeeping was already made upon
+                              // timeout reports. See docs of the used test data
+                              // for details.
+                              expect(
+                                treasuryBalance.afterProof.sub(
+                                  treasuryBalance.beforeProof
+                                )
+                              ).to.equal(2217)
+                            })
+
+                            it("should not change redeemers balances in any way", async () => {
+                              // Redemption proof submission should NEVER cause
+                              // any change of the redeemers balances.
+                              for (
+                                let i = 0;
+                                i < data.redemptionRequests.length;
+                                i++
+                              ) {
+                                const redeemerBalance = redeemersBalances[i]
+
+                                expect(
+                                  redeemerBalance.afterProof.sub(
+                                    redeemerBalance.beforeProof
+                                  )
+                                ).to.be.equal(
+                                  0,
+                                  `Balance of redeemer with index ${i} has changed`
+                                )
+                              }
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector contains a pending requested redemption with wrong amount redeemed",
+                          () => {
+                            const data: RedemptionTestData = JSON.parse(
+                              JSON.stringify(
+                                MultiplePendingRequestedRedemptions
+                              )
+                            )
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // Alter the last redemption requests in the test
+                              // data and set such an amount that will cause
+                              // the Bitcoin redemption transaction to be deemed
+                              // as invalid due to a wrong amount. The corresponding
+                              // transaction output has the value of 191169 so to
+                              // make this test scenario happen, the request amount
+                              // must be way different (lesser or greater) than the
+                              // output value. Worth noting that this test scenario
+                              // tests the amount condition in a general and simplified
+                              // way without stressing all specific edge cases.
+                              // Doing a detailed check would require more dedicated
+                              // test data sets which would make it far more
+                              // complicated without giving much value in return.
+                              data.redemptionRequests[4].amount = 100000
+
+                              outcome = runRedemptionScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output value is not within the acceptable range of the pending request"
+                              )
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector contains a reported timed out requested redemption with wrong amount redeemed",
+                          () => {
+                            const data: RedemptionTestData = JSON.parse(
+                              JSON.stringify(
+                                MultiplePendingRequestedRedemptions
+                              )
+                            )
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              // Alter the last redemption requests in the test
+                              // data and set such an amount that will cause
+                              // the Bitcoin redemption transaction to be deemed
+                              // as invalid due to a wrong amount. The corresponding
+                              // transaction output has the value of 191169 so to
+                              // make this test scenario happen, the request amount
+                              // must be way different (lesser or greater) than the
+                              // output value. Worth noting that this test scenario
+                              // tests the amount condition in a general and simplified
+                              // way without stressing all specific edge cases.
+                              // Doing a detailed check would require more dedicated
+                              // test data sets which would make it far more
+                              // complicated without giving much value in return.
+                              data.redemptionRequests[4].amount = 100000
+
+                              // Before submitting the redemption proof, wait
+                              // an amount of time that will make the last request
+                              // timed out and then report the timeout.
+                              const beforeProofActions = async () => {
+                                await increaseTime(redemptionTimeout)
+                                await bridge.notifyRedemptionTimeout(
+                                  data.wallet.pubKeyHash,
+                                  [],
+                                  data.redemptionRequests[4]
+                                    .redeemerOutputScript
+                                )
+                              }
+
+                              outcome = runRedemptionScenario(
+                                data,
+                                beforeProofActions
+                              )
+                            })
+
+                            after(async () => {
+                              walletRegistry.seize.reset()
+
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output value is not within the acceptable range of the timed out request"
+                              )
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector contains a non-zero P2SH change output",
+                          () => {
+                            const data: RedemptionTestData = JSON.parse(
+                              JSON.stringify(
+                                MultiplePendingRequestedRedemptionsWithP2SHChange
+                              )
+                            )
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              outcome = runRedemptionScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            // We have this case because P2SH script has a 20-byte
+                            // payload which may match the 20-byte wallet public
+                            // key hash though it should be always rejected as
+                            // non-requested output. There is no need to check for
+                            // P2WSH since the payload is always 32-byte there.
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output is a non-requested redemption"
+                              )
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector contains multiple non-zero change outputs",
+                          () => {
+                            const data: RedemptionTestData = JSON.parse(
+                              JSON.stringify(
+                                MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges
+                              )
+                            )
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              outcome = runRedemptionScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output is a non-requested redemption"
+                              )
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector contains one change but with zero as value",
+                          () => {
+                            const data: RedemptionTestData = JSON.parse(
+                              JSON.stringify(
+                                MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue
+                              )
+                            )
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              outcome = runRedemptionScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output is a non-requested redemption"
+                              )
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector contains a non-requested redemption to an arbitrary script hash",
+                          () => {
+                            const data: RedemptionTestData = JSON.parse(
+                              JSON.stringify(
+                                MultiplePendingRequestedRedemptionsWithNonRequestedRedemption
+                              )
+                            )
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              outcome = runRedemptionScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output is a non-requested redemption"
+                              )
+                            })
+                          }
+                        )
+
+                        context(
+                          "when output vector contains a provably unspendable OP_RETURN output",
+                          () => {
+                            const data: RedemptionTestData = JSON.parse(
+                              JSON.stringify(
+                                MultiplePendingRequestedRedemptionsWithProvablyUnspendable
+                              )
+                            )
+
+                            let outcome: Promise<RedemptionScenarioOutcome>
+
+                            before(async () => {
+                              await createSnapshot()
+
+                              outcome = runRedemptionScenario(data)
+                            })
+
+                            after(async () => {
+                              await restoreSnapshot()
+                            })
+
+                            it("should revert", async () => {
+                              await expect(outcome).to.be.revertedWith(
+                                "Output is a non-requested redemption"
+                              )
+                            })
+                          }
+                        )
+                      })
+                    }
+                  )
+
+                  context("when the total transaction fee is too high", () => {
+                    const data: RedemptionTestData =
+                      MultiplePendingRequestedRedemptions
+
+                    let outcome: Promise<RedemptionScenarioOutcome>
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      // We must lower the redemption transaction per-request
+                      // max fee in order to make the update of the
+                      // redemption transaction max total fee in the next step.
+                      await bridgeGovernance
+                        .connect(governance)
+                        .beginRedemptionTxMaxFeeUpdate(3999)
+                      await increaseTime(
+                        await bridgeGovernance.governanceDelays(0)
+                      )
+                      await bridgeGovernance
+                        .connect(governance)
+                        .finalizeRedemptionTxMaxFeeUpdate()
+
+                      // The transaction used by this scenario's
+                      // test data has a total fee of 4000 satoshis. Lowering
+                      // the max fee in the Bridge by one should
+                      // cause the expected failure.
+                      await bridgeGovernance
+                        .connect(governance)
+                        .beginRedemptionTxMaxTotalFeeUpdate(3999)
+                      await increaseTime(
+                        await bridgeGovernance.governanceDelays(0)
+                      )
+                      await bridgeGovernance
+                        .connect(governance)
+                        .finalizeRedemptionTxMaxTotalFeeUpdate()
+
+                      // Simulate the situation when treasury fee is 0% to
+                      // allow using the whole wallet's main UTXO value
+                      // to fulfill the redemption request.
+                      await bridge.setRedemptionTreasuryFeeDivisor(0)
+
+                      outcome = runRedemptionScenario(data)
+                    })
+
+                    after(async () => {
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      await expect(outcome).to.be.revertedWith(
+                        "Transaction fee is too high"
+                      )
+                    })
                   })
                 })
 

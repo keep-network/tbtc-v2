@@ -960,6 +960,155 @@ describe("Bridge - Governance", () => {
     )
   })
 
+  describe("beginRedemptionTxMaxTotalFeeUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginRedemptionTxMaxTotalFeeUpdate(1)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bridgeGovernance
+          .connect(governance)
+          .beginRedemptionTxMaxTotalFeeUpdate(1337)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not update the redemption tx max total fee", async () => {
+        const { redemptionTxMaxTotalFee } = await bridge.redemptionParameters()
+        expect(redemptionTxMaxTotalFee).to.be.equal(
+          constants.redemptionTxMaxTotalFee
+        )
+      })
+
+      it("should start the redemption tx max total fee timer", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        const initTimestamp = (await tx.wait()).events[0].args.timestamp
+        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
+
+        expect(
+          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
+        ).to.be.equal(constants.governanceDelay)
+      })
+
+      it("should emit RedemptionTxMaxTotalFeeUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(bridgeGovernance, "RedemptionTxMaxTotalFeeUpdateStarted")
+          .withArgs(1337, blockTimestamp)
+      })
+    })
+  })
+
+  describe("finalizeRedemptionTxMaxTotalFeeUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .finalizeRedemptionTxMaxTotalFeeUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        // If the update was not initialized, the transaction will fail because
+        // the new value of the parameter is 0 and that value is not
+        // greater than the redemption transaction per-deposit max fee
+        // parameter. The initialization check is done after that.
+        await expect(
+          bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTxMaxTotalFeeUpdate()
+        ).to.be.revertedWith(
+          "Redemption transaction max total fee must be greater than or equal to the redemption transaction per-request max fee"
+        )
+      })
+    })
+
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridgeGovernance
+          .connect(governance)
+          .beginRedemptionTxMaxTotalFeeUpdate(
+            constants.redemptionTxMaxTotalFee * 3
+          )
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTxMaxTotalFeeUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context(
+      "when the update process is initialized and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginRedemptionTxMaxTotalFeeUpdate(
+              constants.redemptionTxMaxTotalFee * 3
+            )
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx = await bridgeGovernance
+            .connect(governance)
+            .finalizeRedemptionTxMaxTotalFeeUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the redemption tx max total fee", async () => {
+          const { redemptionTxMaxTotalFee } =
+            await bridge.redemptionParameters()
+          expect(redemptionTxMaxTotalFee).to.be.equal(
+            constants.redemptionTxMaxTotalFee * 3
+          )
+        })
+
+        it("should emit RedemptionTxMaxTotalFeeUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridgeGovernance, "RedemptionTxMaxTotalFeeUpdated")
+            .withArgs(constants.redemptionTxMaxTotalFee * 3)
+        })
+      }
+    )
+  })
+
   describe("beginRedemptionTimeoutUpdate", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {

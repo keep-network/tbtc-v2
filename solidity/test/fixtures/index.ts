@@ -8,6 +8,7 @@ export const constants = {
   redemptionDustThreshold: 1000000, // 1000000 satoshi = 0.01 BTC
   redemptionTreasuryFeeDivisor: 2000, // 1/2000 == 5bps == 0.05% == 0.0005
   redemptionTxMaxFee: 100000, // 100000 satoshi = 0.001 BTC
+  redemptionTxMaxTotalFee: 1000000, // 1000000 satoshi = 0.01 BTC
   redemptionTimeout: 432000, // 5 days
   redemptionTimeoutSlashingAmount: to1ePrecision(100, 18), // 100 T
   redemptionTimeoutNotifierRewardMultiplier: 100, // 100%

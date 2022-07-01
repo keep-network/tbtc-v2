@@ -825,10 +825,12 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption request.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data)
+              tx = await runRedemptionScenario(data, beforeRequestActions)
             })
 
             after(async () => {
@@ -867,7 +869,9 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption request.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // Before submitting the redemption proof, wait
               // an amount of time that will make the request
@@ -877,7 +881,11 @@ describe("MaintainerProxy", () => {
               }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                beforeRequestActions,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -916,7 +924,9 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption request.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // Before submitting the redemption proof, wait
               // an amount of time that will make the request
@@ -931,7 +941,11 @@ describe("MaintainerProxy", () => {
               }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                beforeRequestActions,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -972,10 +986,12 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption requests.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data)
+              tx = await runRedemptionScenario(data, beforeRequestActions)
             })
 
             after(async () => {
@@ -1052,7 +1068,9 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption requests.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // Before submitting the redemption proof, wait
               // an amount of time that will make the requests
@@ -1071,7 +1089,11 @@ describe("MaintainerProxy", () => {
               }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                beforeRequestActions,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -1125,7 +1147,11 @@ describe("MaintainerProxy", () => {
               }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                undefined,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -1164,7 +1190,9 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption requests.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // Before submitting the redemption proof, wait
               // an amount of time that will make the requests
@@ -1185,7 +1213,11 @@ describe("MaintainerProxy", () => {
                 )
               }
 
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                beforeRequestActions,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -1241,7 +1273,11 @@ describe("MaintainerProxy", () => {
                 )
               }
 
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                undefined,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -3701,15 +3737,34 @@ describe("MaintainerProxy", () => {
 
   async function runRedemptionScenario(
     data: RedemptionTestData,
+    beforeRequestActions?: () => Promise<void>,
     beforeProofActions?: () => Promise<void>
   ): Promise<ContractTransaction> {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
-    // Scaling down deposit dust threshold 100x to what is in Bridge default
-    // parameters. Scaling down redemption TX max fee accordingly.
+    // Scaling down redemption dust threshold 100x to what is in Bridge default
+    // parameters.
     await bridge.setRedemptionDustThreshold(10000)
-    await bridge.setRedemptionTxMaxFee(1000)
+    // Scaling down moving funds dust threshold 100x to what is in Bridge
+    // default parameters. This is needed because we lowered the redemption
+    // dust threshold and the moving funds dust threshold must be always
+    // below it.
+    await bridgeGovernance
+      .connect(governance)
+      .beginMovingFundsDustThresholdUpdate(2000)
+    await increaseTime(await bridgeGovernance.governanceDelays(0))
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeMovingFundsDustThresholdUpdate()
+    // Scaling down redemption TX max fee accordingly.
+    await bridgeGovernance
+      .connect(governance)
+      .beginRedemptionTxMaxFeeUpdate(1000)
+    await increaseTime(await bridgeGovernance.governanceDelays(0))
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeRedemptionTxMaxFeeUpdate()
 
     // Simulate the wallet is a registered one.
     await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -3725,6 +3780,10 @@ describe("MaintainerProxy", () => {
     })
     // Simulate the prepared main UTXO belongs to the wallet.
     await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+
+    if (beforeRequestActions) {
+      await beforeRequestActions()
+    }
 
     for (let i = 0; i < data.redemptionRequests.length; i++) {
       const { redeemer, redeemerOutputScript, amount } =
