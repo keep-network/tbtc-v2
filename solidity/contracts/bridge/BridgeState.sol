@@ -501,8 +501,8 @@ library BridgeState {
         );
 
         require(
-            _redemptionTxMaxTotalFee > _redemptionTxMaxFee,
-            "Redemption transaction max total fee must be greater than redemption transaction per-request max fee"
+            _redemptionTxMaxTotalFee >= _redemptionTxMaxFee,
+            "Redemption transaction max total fee must be greater than or equal to the redemption transaction per-request max fee"
         );
 
         require(

@@ -3017,7 +3017,7 @@ describe("Bridge - Redemption", () => {
                       // redemption transaction max total fee in the next step.
                       await bridgeGovernance
                         .connect(governance)
-                        .beginRedemptionTxMaxFeeUpdate(3998)
+                        .beginRedemptionTxMaxFeeUpdate(3999)
                       await increaseTime(
                         await bridgeGovernance.governanceDelays(0)
                       )

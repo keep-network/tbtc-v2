@@ -596,12 +596,14 @@ describe("Bridge - Parameters", () => {
       })
 
       context(
-        "when new redemption transaction max total fee is not greater than the redemption transaction per-request max fee",
+        "when new redemption transaction max total fee is lesser than the redemption transaction per-request max fee",
         () => {
           it("should revert", async () => {
             await bridgeGovernance
               .connect(governance)
-              .beginRedemptionTxMaxTotalFeeUpdate(constants.redemptionTxMaxFee)
+              .beginRedemptionTxMaxTotalFeeUpdate(
+                constants.redemptionTxMaxFee - 1
+              )
 
             await helpers.time.increaseTime(constants.governanceDelay)
 
@@ -610,7 +612,7 @@ describe("Bridge - Parameters", () => {
                 .connect(governance)
                 .finalizeRedemptionTxMaxTotalFeeUpdate()
             ).to.be.revertedWith(
-              "Redemption transaction max total fee must be greater than redemption transaction per-request max fee"
+              "Redemption transaction max total fee must be greater than or equal to the redemption transaction per-request max fee"
             )
           })
         }

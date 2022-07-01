@@ -1036,7 +1036,7 @@ describe("Bridge - Governance", () => {
             .connect(governance)
             .finalizeRedemptionTxMaxTotalFeeUpdate()
         ).to.be.revertedWith(
-          "Redemption transaction max total fee must be greater than redemption transaction per-request max fee"
+          "Redemption transaction max total fee must be greater than or equal to the redemption transaction per-request max fee"
         )
       })
     })
