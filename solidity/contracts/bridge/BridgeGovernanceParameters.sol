@@ -325,7 +325,6 @@ library BridgeGovernanceParameters {
     // --- Deposit
 
     /// @notice Begins the deposit dust threshold amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newDepositDustThreshold New deposit dust threshold amount.
     function beginDepositDustThresholdUpdate(
         DepositData storage self,
@@ -342,8 +341,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the deposit dust threshold amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeDepositDustThresholdUpdate(
         DepositData storage self,
         uint256 governanceDelay
@@ -371,7 +369,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the deposit treasury fee divisor amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newDepositTreasuryFeeDivisor New deposit treasury fee divisor amount.
     function beginDepositTreasuryFeeDivisorUpdate(
         DepositData storage self,
@@ -388,8 +385,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the deposit treasury fee divisor amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeDepositTreasuryFeeDivisorUpdate(
         DepositData storage self,
         uint256 governanceDelay
@@ -419,7 +415,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the deposit tx max fee amount update process.
-    /// @dev Can be called only by the contract owner.
+
     /// @param _newDepositTxMaxFee New deposit tx max fee amount.
     function beginDepositTxMaxFeeUpdate(
         DepositData storage self,
@@ -433,8 +429,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the deposit tx max fee amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeDepositTxMaxFeeUpdate(
         DepositData storage self,
         uint256 governanceDelay
@@ -464,7 +459,6 @@ library BridgeGovernanceParameters {
     // --- Redemption
 
     /// @notice Begins the redemption dust threshold amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionDustThreshold New redemption dust threshold amount.
     function beginRedemptionDustThresholdUpdate(
         RedemptionData storage self,
@@ -481,8 +475,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the redemption dust threshold amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeRedemptionDustThresholdUpdate(
         RedemptionData storage self,
         uint256 governanceDelay
@@ -510,7 +503,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the redemption treasury fee divisor amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionTreasuryFeeDivisor New redemption treasury fee divisor
     ///         amount.
     function beginRedemptionTreasuryFeeDivisorUpdate(
@@ -528,8 +520,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the redemption treasury fee divisor amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeRedemptionTreasuryFeeDivisorUpdate(
         RedemptionData storage self,
         uint256 governanceDelay
@@ -559,7 +550,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the redemption tx max fee amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionTxMaxFee New redemption tx max fee amount.
     function beginRedemptionTxMaxFeeUpdate(
         RedemptionData storage self,
@@ -576,8 +566,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the redemption tx max fee amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeRedemptionTxMaxFeeUpdate(
         RedemptionData storage self,
         uint256 governanceDelay
@@ -605,7 +594,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the redemption tx max total fee amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionTxMaxTotalFee New redemption tx max total fee amount.
     function beginRedemptionTxMaxTotalFeeUpdate(
         RedemptionData storage self,
@@ -622,8 +610,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the redemption tx max total fee amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeRedemptionTxMaxTotalFeeUpdate(
         RedemptionData storage self,
         uint256 governanceDelay
@@ -651,7 +638,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the redemption timeout amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionTimeout New redemption timeout amount.
     function beginRedemptionTimeoutUpdate(
         RedemptionData storage self,
@@ -669,8 +655,7 @@ library BridgeGovernanceParameters {
 
     /// @notice Finalizes the redemption timeout amount update
     ///         process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeRedemptionTimeoutUpdate(
         RedemptionData storage self,
         uint256 governanceDelay
@@ -698,7 +683,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the redemption timeout slashing amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionTimeoutSlashingAmount New redemption timeout slashing
     ///         amount.
     function beginRedemptionTimeoutSlashingAmountUpdate(
@@ -717,8 +701,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the redemption timeout slashing amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeRedemptionTimeoutSlashingAmountUpdate(
         RedemptionData storage self,
         uint256 governanceDelay
@@ -749,7 +732,6 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the redemption timeout notifier reward multiplier amount
     ///         update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newRedemptionTimeoutNotifierRewardMultiplier New redemption
     ///         timeout notifier reward multiplier amount.
     function beginRedemptionTimeoutNotifierRewardMultiplierUpdate(
@@ -769,8 +751,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the redemption timeout notifier reward multiplier amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate(
         RedemptionData storage self,
         uint256 governanceDelay
@@ -800,7 +781,6 @@ library BridgeGovernanceParameters {
     // --- Moving funds
 
     /// @notice Begins the moving funds tx max total fee amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovingFundsTxMaxTotalFee New moving funds tx max total fee amount.
     function beginMovingFundsTxMaxTotalFeeUpdate(
         MovingFundsData storage self,
@@ -817,8 +797,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the moving funds tx max total fee amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovingFundsTxMaxTotalFeeUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -846,7 +825,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the moving funds dust threshold amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovingFundsDustThreshold New moving funds dust threshold amount.
     function beginMovingFundsDustThresholdUpdate(
         MovingFundsData storage self,
@@ -863,8 +841,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the moving funds dust threshold amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovingFundsDustThresholdUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -892,7 +869,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the moving funds timeout reset delay amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovingFundsTimeoutResetDelay New moving funds timeout reset
     ///         delay amount.
     function beginMovingFundsTimeoutResetDelayUpdate(
@@ -910,8 +886,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the moving funds timeout reset delay amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovingFundsTimeoutResetDelayUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -941,7 +916,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the moving funds timeout amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovingFundsTimeout New moving funds timeout amount.
     function beginMovingFundsTimeoutUpdate(
         MovingFundsData storage self,
@@ -958,8 +932,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the moving funds timeout amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovingFundsTimeoutUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -987,7 +960,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the moving funds timeout slashing amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovingFundsTimeoutSlashingAmount New moving funds timeout slashing amount.
     function beginMovingFundsTimeoutSlashingAmountUpdate(
         MovingFundsData storage self,
@@ -1005,8 +977,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the moving funds timeout slashing amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovingFundsTimeoutSlashingAmountUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -1035,7 +1006,6 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the moving funds timeout notifier reward multiplier amount
     ///         update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovingFundsTimeoutNotifierRewardMultiplier New moving funds
     ///         timeout notifier reward multiplier amount.
     function beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(
@@ -1056,8 +1026,7 @@ library BridgeGovernanceParameters {
 
     /// @notice Finalizes the moving funds timeout notifier reward multiplier
     ///         amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -1085,7 +1054,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the moved funds sweep tx max total fee amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovedFundsSweepTxMaxTotalFee New moved funds sweep tx max total
     ///         fee amount.
     function beginMovedFundsSweepTxMaxTotalFeeUpdate(
@@ -1104,8 +1072,7 @@ library BridgeGovernanceParameters {
 
     /// @notice Finalizes the moved funds sweep tx max total fee amount update
     ///         process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovedFundsSweepTxMaxTotalFeeUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -1135,7 +1102,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the moved funds sweep timeout amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovedFundsSweepTimeout New moved funds sweep timeout amount.
     function beginMovedFundsSweepTimeoutUpdate(
         MovingFundsData storage self,
@@ -1152,8 +1118,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the moved funds sweep timeout amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovedFundsSweepTimeoutUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -1182,7 +1147,6 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the moved funds sweep timeout slashing amount update
     ///         process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovedFundsSweepTimeoutSlashingAmount New moved funds sweep
     ///         timeout slashing amount.
     function beginMovedFundsSweepTimeoutSlashingAmountUpdate(
@@ -1203,8 +1167,7 @@ library BridgeGovernanceParameters {
 
     /// @notice Finalizes the moved funds sweep timeout slashing amount
     ///         update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovedFundsSweepTimeoutSlashingAmountUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -1233,7 +1196,6 @@ library BridgeGovernanceParameters {
 
     /// @notice Begins the moved funds sweep timeout notifier reward multiplier
     ///         amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newMovedFundsSweepTimeoutNotifierRewardMultiplier New moved funds
     ///         sweep timeout notifier reward multiplier amount.
     function beginMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
@@ -1255,8 +1217,7 @@ library BridgeGovernanceParameters {
 
     /// @notice Finalizes the moved funds sweep timeout notifier reward multiplier
     ///         amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
         MovingFundsData storage self,
         uint256 governanceDelay
@@ -1286,7 +1247,6 @@ library BridgeGovernanceParameters {
     // --- Wallet params
 
     /// @notice Begins the wallet creation period amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newWalletCreationPeriod New wallet creation period amount.
     function beginWalletCreationPeriodUpdate(
         WalletData storage self,
@@ -1303,8 +1263,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the wallet creation period amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeWalletCreationPeriodUpdate(
         WalletData storage self,
         uint256 governanceDelay
@@ -1332,7 +1291,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the wallet creation min btc balance amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newWalletCreationMinBtcBalance New wallet creation min btc balance
     ///         amount.
     function beginWalletCreationMinBtcBalanceUpdate(
@@ -1350,8 +1308,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the wallet creation min btc balance amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeWalletCreationMinBtcBalanceUpdate(
         WalletData storage self,
         uint256 governanceDelay
@@ -1381,7 +1338,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the wallet creation max btc balance amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newWalletCreationMaxBtcBalance New wallet creation max btc balance
     ///         amount.
     function beginWalletCreationMaxBtcBalanceUpdate(
@@ -1399,8 +1355,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the wallet creation max btc balance amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeWalletCreationMaxBtcBalanceUpdate(
         WalletData storage self,
         uint256 governanceDelay
@@ -1430,7 +1385,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the wallet closure min btc balance amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newWalletClosureMinBtcBalance New wallet closure min btc balance amount.
     function beginWalletClosureMinBtcBalanceUpdate(
         WalletData storage self,
@@ -1447,8 +1401,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the wallet closure min btc balance amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeWalletClosureMinBtcBalanceUpdate(
         WalletData storage self,
         uint256 governanceDelay
@@ -1478,7 +1431,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the wallet max age amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newWalletMaxAge New wallet max age amount.
     function beginWalletMaxAgeUpdate(
         WalletData storage self,
@@ -1492,8 +1444,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the wallet max age amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeWalletMaxAgeUpdate(
         WalletData storage self,
         uint256 governanceDelay
@@ -1521,7 +1472,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the wallet max btc transfer amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newWalletMaxBtcTransfer New wallet max btc transfer amount.
     function beginWalletMaxBtcTransferUpdate(
         WalletData storage self,
@@ -1538,8 +1488,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the wallet max btc transfer amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeWalletMaxBtcTransferUpdate(
         WalletData storage self,
         uint256 governanceDelay
@@ -1567,7 +1516,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the wallet closing period amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newWalletClosingPeriod New wallet closing period amount.
     function beginWalletClosingPeriodUpdate(
         WalletData storage self,
@@ -1584,8 +1532,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the wallet closing period amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeWalletClosingPeriodUpdate(
         WalletData storage self,
         uint256 governanceDelay
@@ -1615,7 +1562,6 @@ library BridgeGovernanceParameters {
     // --- Fraud
 
     /// @notice Begins the fraud challenge deposit amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newFraudChallengeDepositAmount New fraud challenge deposit amount.
     function beginFraudChallengeDepositAmountUpdate(
         FraudData storage self,
@@ -1632,8 +1578,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the fraud challenge deposit amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeFraudChallengeDepositAmountUpdate(
         FraudData storage self,
         uint256 governanceDelay
@@ -1663,7 +1608,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the fraud challenge defeat timeout amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newFraudChallengeDefeatTimeout New fraud challenge defeat timeout
     ///         amount.
     function beginFraudChallengeDefeatTimeoutUpdate(
@@ -1681,8 +1625,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the fraud challenge defeat timeout amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeFraudChallengeDefeatTimeoutUpdate(
         FraudData storage self,
         uint256 governanceDelay
@@ -1712,7 +1655,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the fraud slashing amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newFraudSlashingAmount New fraud slashing amount.
     function beginFraudSlashingAmountUpdate(
         FraudData storage self,
@@ -1729,8 +1671,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the fraud slashing amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeFraudSlashingAmountUpdate(
         FraudData storage self,
         uint256 governanceDelay
@@ -1758,7 +1699,6 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Begins the fraud notifier reward multiplier amount update process.
-    /// @dev Can be called only by the contract owner.
     /// @param _newFraudNotifierRewardMultiplier New fraud notifier reward multiplier
     ///         amount.
     function beginFraudNotifierRewardMultiplierUpdate(
@@ -1777,8 +1717,7 @@ library BridgeGovernanceParameters {
     }
 
     /// @notice Finalizes the fraud notifier reward multiplier amount update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    /// @dev Can be called after the governance delay elapses.
     function finalizeFraudNotifierRewardMultiplierUpdate(
         FraudData storage self,
         uint256 governanceDelay
