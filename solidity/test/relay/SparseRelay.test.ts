@@ -81,14 +81,6 @@ describe.only("SparseRelay", () => {
         await restoreSnapshot()
       })
 
-      // it("should record the relay as ready for use", async () => {
-      //   expect(await relay.ready()).to.be.true
-      // })
-
-      // it("should emit the Genesis event", async () => {
-      //   await expect(tx).to.emit(relay, "Genesis").withArgs(genesisHeight)
-      // })
-
       it("should record the genesis height correctly", async () => {
         expect(await relay.getHeight()).to.equal(
           genesis.height
@@ -205,43 +197,29 @@ describe.only("SparseRelay", () => {
             741804
           )
         })
-
-      //   it("should emit the Retarget event", async () => {
-      //     await expect(tx)
-      //       .to.emit(relay, "Retarget")
-      //       .withArgs(genesisDifficulty, nextDifficulty)
-      //   })
       })
 
-      // context("when called with many headers", () => {
-      //   let tx: ContractTransaction
-      //   const newHeaders = concatenateHexStrings(headerHex.slice(0, 19))
+      context("when called with many headers", () => {
+        const newHeaders = concatenateHexStrings(headerHex.slice(0, 19))
 
-      //   before(async () => {
-      //     await createSnapshot()
-      //     tx = await relay.addHeaders(heightOf[0], newHeaders)
-      //   })
+        before(async () => {
+          await createSnapshot()
+          await relay.addHeaders(heightOf[0], newHeaders)
+        })
 
-      //   after(async () => {
-      //     await restoreSnapshot()
-      //   })
+        after(async () => {
+          await restoreSnapshot()
+        })
 
-      //   it("should store the new height", async () => {
-      //     expect(await relay.getHeight()).to.equal(
-      //       741816
-      //     )
-      //   })
-
-      //   it("should emit the Retarget event", async () => {
-      //     await expect(tx)
-      //       .to.emit(relay, "Retarget")
-      //       .withArgs(genesisDifficulty, nextDifficulty)
-      //   })
-      // })
+        it("should store the new height", async () => {
+          expect(await relay.getHeight()).to.equal(
+            741816
+          )
+        })
+      })
 
       context("with full buffer", () => {
         const newHeaders = concatenateHexStrings(headerHex.slice(0, 7))
-        const moreHeaders = concatenateHexStrings(headerHex.slice(0, 19))
 
         before(async () => {
           await createSnapshot()
@@ -347,12 +325,6 @@ describe.only("SparseRelay", () => {
             741882
           )
         })
-
-      //   it("should emit the Retarget event", async () => {
-      //     await expect(tx)
-      //       .to.emit(relay, "Retarget")
-      //       .withArgs(genesisDifficulty, nextDifficulty)
-      //   })
       })
 
       context("when called with many headers, including a retarget", () => {
@@ -374,12 +346,6 @@ describe.only("SparseRelay", () => {
             741894
           )
         })
-
-      //   it("should emit the Retarget event", async () => {
-      //     await expect(tx)
-      //       .to.emit(relay, "Retarget")
-      //       .withArgs(genesisDifficulty, nextDifficulty)
-      //   })
       })
     })
 
