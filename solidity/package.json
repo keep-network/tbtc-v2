@@ -8,6 +8,7 @@
     "contracts/",
     "!**/test/",
     "deploy/",
+    "export/",
     "export.json"
   ],
   "scripts": {
@@ -24,6 +25,7 @@
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
     "test": "TEST_USE_STUBS_TBTC=true hardhat test",
     "test:integration": "NODE_ENV=integration-test hardhat test ./test/integration/*.test.ts",
+    "prepack": "tsc -p tsconfig.export.json && hardhat export-artifacts export/artifacts",
     "prepublishOnly": "./scripts/prepare-artifacts.sh --network $npm_config_network"
   },
   "dependencies": {

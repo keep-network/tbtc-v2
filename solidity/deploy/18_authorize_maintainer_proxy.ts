@@ -14,6 +14,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     "authorize",
     MaintainerProxy.address
   )
+
+  await execute(
+    "Bridge",
+    { from: deployer },
+    "setSpvMaintainerStatus",
+    MaintainerProxy.address,
+    true
+  )
 }
 
 export default func

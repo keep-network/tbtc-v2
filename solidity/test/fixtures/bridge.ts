@@ -1,4 +1,5 @@
 import { deployments, ethers, helpers } from "hardhat"
+import { randomBytes } from "crypto"
 import { smock } from "@defi-wonderland/smock"
 import type {
   Bank,
@@ -21,7 +22,7 @@ import type {
 export default async function bridgeFixture() {
   await deployments.fixture()
 
-  const { deployer, governance, treasury } =
+  const { deployer, governance, spvMaintainer, treasury } =
     await helpers.signers.getNamedSigners()
   const [thirdParty] = await helpers.signers.getUnnamedSigners()
 
@@ -65,22 +66,48 @@ export default async function bridgeFixture() {
 
   await bank.connect(governance).updateBridge(bridge.address)
 
-  const BridgeFactory = await ethers.getContractFactory("BridgeStub", {
-    libraries: {
-      Deposit: (await helpers.contracts.getContract("Deposit")).address,
-      DepositSweep: (
-        await helpers.contracts.getContract("DepositSweep")
-      ).address,
-      Redemption: (await helpers.contracts.getContract("Redemption")).address,
-      Wallets: (await helpers.contracts.getContract("Wallets")).address,
-      Fraud: (await helpers.contracts.getContract("Fraud")).address,
-      MovingFunds: (await helpers.contracts.getContract("MovingFunds")).address,
-    },
-  })
+  // Deploys a new instance of Bridge contract behind a proxy. Allows to
+  // specify txProofDifficultyFactor. The new instance is deployed with
+  // a random name to do not conflict with the main deployed instance.
+  // Same parameters as in `05_deploy_bridge.ts` deployment script are used.
+  const deployBridge = async (txProofDifficultyFactor: number) =>
+    helpers.upgrades.deployProxy(`Bridge_${randomBytes(8).toString("hex")}`, {
+      contractName: "BridgeStub",
+      initializerArgs: [
+        bank.address,
+        relay.address,
+        treasury.address,
+        walletRegistry.address,
+        txProofDifficultyFactor,
+      ],
+      factoryOpts: {
+        signer: deployer,
+        libraries: {
+          Deposit: (await helpers.contracts.getContract("Deposit")).address,
+          DepositSweep: (await helpers.contracts.getContract("DepositSweep"))
+            .address,
+          Redemption: (await helpers.contracts.getContract("Redemption"))
+            .address,
+          Wallets: (await helpers.contracts.getContract("Wallets")).address,
+          Fraud: (await helpers.contracts.getContract("Fraud")).address,
+          MovingFunds: (await helpers.contracts.getContract("MovingFunds"))
+            .address,
+        },
+      },
+      proxyOpts: {
+        kind: "transparent",
+        // Allow external libraries linking. We need to ensure manually that the
+        // external  libraries we link are upgrade safe, as the OpenZeppelin plugin
+        // doesn't perform such a validation yet.
+        // See: https://docs.openzeppelin.com/upgrades-plugins/1.x/faq#why-cant-i-use-external-libraries
+        unsafeAllow: ["external-library-linking"],
+      },
+    })
 
   return {
     deployer,
     governance,
+    spvMaintainer,
     thirdParty,
     treasury,
     tbtc,
@@ -90,9 +117,9 @@ export default async function bridgeFixture() {
     relay,
     walletRegistry,
     bridge,
-    BridgeFactory,
     reimbursementPool,
     maintainerProxy,
     bridgeGovernance,
+    deployBridge,
   }
 }

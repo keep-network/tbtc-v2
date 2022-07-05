@@ -22,6 +22,18 @@ const ecdsaSolidityCompilerConfig = {
   },
 }
 
+// Reduce the number of optimizer runs to 100 to keep the contract size sane.
+// BridgeGovernance contract does not need to be super gas-efficient.
+const bridgeGovernanceCompilerConfig = {
+  version: "0.8.9",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200,
+    },
+  },
+}
+
 // Configuration for testing environment.
 export const testConfig = {
   // How many accounts we expect to define for non-staking related signers, e.g.
@@ -53,6 +65,7 @@ const config: HardhatUserConfig = {
     overrides: {
       "@keep-network/ecdsa/contracts/WalletRegistry.sol":
         ecdsaSolidityCompilerConfig,
+      "contracts/bridge/BridgeGovernance.sol": bridgeGovernanceCompilerConfig,
     },
   },
 
@@ -158,6 +171,9 @@ const config: HardhatUserConfig = {
     esdm: {
       default: 6,
       // mainnet: ""
+    },
+    spvMaintainer: {
+      default: 7,
     },
   },
   dependencyCompiler: {

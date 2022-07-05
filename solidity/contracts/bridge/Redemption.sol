@@ -154,6 +154,9 @@ library Redemption {
     /// @notice Represents an outcome of the redemption Bitcoin transaction
     ///         outputs processing.
     struct RedemptionTxOutputsInfo {
+        // Sum of all outputs values i.e. all redemptions and change value,
+        // if present.
+        uint256 outputsTotalValue;
         // Total TBTC value in satoshi that should be burned by the Bridge.
         // It includes the total amount of all BTC redeemed in the transaction
         // and the fee paid to BTC miners for the redemption transaction.
@@ -594,6 +597,12 @@ library Redemption {
             walletPubKeyHash
         );
 
+        require(
+            mainUtxo.txOutputValue - outputsInfo.outputsTotalValue <=
+                self.redemptionTxMaxTotalFee,
+            "Transaction fee is too high"
+        );
+
         if (outputsInfo.changeValue > 0) {
             // If the change value is grater than zero, it means the change
             // output exists and can be used as new wallet's main UTXO.
@@ -830,6 +839,8 @@ library Redemption {
                 resultInfo.totalTreasuryFee += treasuryFee;
                 redemptionPresent = true;
             }
+
+            resultInfo.outputsTotalValue += outputValue;
 
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.

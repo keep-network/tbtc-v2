@@ -17,7 +17,7 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "@keep-network/tbtc-v2": "0.1.1-dev.84",
+    "@keep-network/tbtc-v2": "development",
     "bcoin": "git+https://github.com/bcoin-org/bcoin.git#semver:~2.2.0",
     "bcrypto": "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0",
     "bufio": "^1.0.6",

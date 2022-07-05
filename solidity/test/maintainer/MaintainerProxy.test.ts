@@ -75,7 +75,8 @@ const { publicKey: walletPublicKey, pubKeyHash160: walletPublicKeyHash } =
 describe("MaintainerProxy", () => {
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
-  let authorizedMaintainer: SignerWithAddress
+  let walletMaintainer: SignerWithAddress
+  let spvMaintainer: SignerWithAddress
   let thirdParty: SignerWithAddress
 
   let bridge: Bridge & BridgeStub
@@ -89,7 +90,8 @@ describe("MaintainerProxy", () => {
   let fraudChallengeDepositAmount: BigNumber
   let movingFundsTimeoutResetDelay: number
 
-  let initialAuthorizedMaintainerBalance: BigNumber
+  let initialWalletMaintainerBalance: BigNumber
+  let initialSpvMaintainerBalance: BigNumber
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -126,20 +128,31 @@ describe("MaintainerProxy", () => {
       value: ethers.utils.parseEther("100"),
     })
     ;({ fraudChallengeDepositAmount } = await bridge.fraudParameters())
-    ;[thirdParty, authorizedMaintainer] =
+    ;[thirdParty, walletMaintainer, spvMaintainer] =
       await helpers.signers.getUnnamedSigners()
 
     await maintainerProxy
       .connect(governance)
-      .authorize(authorizedMaintainer.address)
+      .authorizeWalletMaintainer(walletMaintainer.address)
+    await maintainerProxy
+      .connect(governance)
+      .authorizeSpvMaintainer(spvMaintainer.address)
 
-    initialAuthorizedMaintainerBalance = await provider.getBalance(
-      authorizedMaintainer.address
+    initialWalletMaintainerBalance = await provider.getBalance(
+      walletMaintainer.address
+    )
+    initialSpvMaintainerBalance = await provider.getBalance(
+      spvMaintainer.address
     )
   })
 
   describe("requestNewWallet", () => {
-    context("when called by an unauthorized third party", async () => {
+    context("when called by an unauthorized third party", () => {
+      // Even though transaction reverts some funds were spent.
+      // We need to restore the state to keep the balances as initially.
+      before(async () => createSnapshot())
+      after(async () => restoreSnapshot())
+
       it("should revert", async () => {
         await expect(
           maintainerProxy.connect(thirdParty).requestNewWallet(NO_MAIN_UTXO)
@@ -147,7 +160,25 @@ describe("MaintainerProxy", () => {
       })
     })
 
-    context("when called by an authorized maintainer", async () => {
+    context(
+      "when called by an SPV maintainer that is not wallet maintainer",
+      () => {
+        // Even though transaction reverts some funds were spent.
+        // We need to restore the state to keep the balances as initially.
+        before(async () => createSnapshot())
+        after(async () => restoreSnapshot())
+
+        it("should revert", async () => {
+          await expect(
+            maintainerProxy
+              .connect(spvMaintainer)
+              .requestNewWallet(NO_MAIN_UTXO)
+          ).to.be.revertedWith("Caller is not authorized")
+        })
+      }
+    )
+
+    context("when called by a wallet maintainer", async () => {
       const activeWalletMainUtxo = {
         txHash:
           "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
@@ -161,7 +192,7 @@ describe("MaintainerProxy", () => {
         await createSnapshot()
 
         tx = await maintainerProxy
-          .connect(authorizedMaintainer)
+          .connect(walletMaintainer)
           .requestNewWallet(activeWalletMainUtxo)
       })
 
@@ -175,11 +206,9 @@ describe("MaintainerProxy", () => {
 
       it("should refund ETH", async () => {
         const postMaintainerBalance = await provider.getBalance(
-          authorizedMaintainer.address
+          walletMaintainer.address
         )
-        const diff = postMaintainerBalance.sub(
-          initialAuthorizedMaintainerBalance
-        )
+        const diff = postMaintainerBalance.sub(initialWalletMaintainerBalance)
 
         expect(diff).to.be.gt(0)
         expect(diff).to.be.lt(
@@ -216,8 +245,13 @@ describe("MaintainerProxy", () => {
       await restoreSnapshot()
     })
 
-    context("when called by an unauthorized third party", async () => {
+    context("when called by an unauthorized third party", () => {
       const data: DepositSweepTestData = SingleP2SHDeposit
+
+      // Even though transaction reverts some funds were spent.
+      // We need to restore the state to keep the balances as initially.
+      before(async () => createSnapshot())
+      after(async () => restoreSnapshot())
 
       it("should revert", async () => {
         const tx = maintainerProxy
@@ -233,7 +267,32 @@ describe("MaintainerProxy", () => {
       })
     })
 
-    context("when called by an authorized maintainer", async () => {
+    context(
+      "when called by a wallet maintainer that is not SPV maintainer",
+      () => {
+        const data: DepositSweepTestData = SingleP2SHDeposit
+
+        // Even though transaction reverts some funds were spent.
+        // We need to restore the state to keep the balances as initially.
+        before(async () => createSnapshot())
+        after(async () => restoreSnapshot())
+
+        it("should revert", async () => {
+          const tx = maintainerProxy
+            .connect(walletMaintainer)
+            .submitDepositSweepProof(
+              data.sweepTx,
+              data.sweepProof,
+              data.mainUtxo,
+              data.vault
+            )
+
+          await expect(tx).to.be.revertedWith("Caller is not authorized")
+        })
+      }
+    )
+
+    context("when called by an SPV maintainer", () => {
       context("when there is only one input", () => {
         context(
           "when the single input is a revealed unswept P2SH deposit",
@@ -257,10 +316,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -293,10 +352,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -309,7 +368,7 @@ describe("MaintainerProxy", () => {
 
         context(
           "when the single input is a revealed unswept deposit with a trusted vault",
-          async () => {
+          () => {
             const data: DepositSweepTestData = SingleP2WSHDeposit
             let vault: FakeContract<IVault>
             let tx: ContractTransaction
@@ -343,10 +402,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -359,7 +418,7 @@ describe("MaintainerProxy", () => {
 
         context(
           "when the single input is a revealed unswept deposit with a non-trusted vault",
-          async () => {
+          () => {
             const data: DepositSweepTestData = SingleP2WSHDeposit
             let vault: FakeContract<IVault>
             let tx: ContractTransaction
@@ -404,10 +463,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -449,10 +508,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -510,10 +569,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -581,10 +640,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -646,10 +705,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -683,10 +742,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -703,25 +762,20 @@ describe("MaintainerProxy", () => {
   describe("submitRedemptionProof", () => {
     let redemptionTimeout: BigNumber
 
-    context("when called by an unauthorized third party", async () => {
-      before(async () => {
-        await createSnapshot()
-        redemptionTimeout = BigNumber.from(
-          (await bridge.redemptionParameters()).redemptionTimeout
-        )
-      })
+    before(async () => {
+      redemptionTimeout = BigNumber.from(
+        (await bridge.redemptionParameters()).redemptionTimeout
+      )
+    })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+    context("when called by an unauthorized third party", () => {
+      // Even though transaction reverts some funds were spent.
+      // We need to restore the state to keep the balances as initially.
+      before(async () => createSnapshot())
+      after(async () => restoreSnapshot())
 
       it("should revert", async () => {
-        // Simulate the situation when treasury fee is 0% to
-        // allow using the whole wallet's main UTXO value
-        // to fulfill the redemption request.
-        await bridge.setRedemptionTreasuryFeeDivisor(0)
         const data: RedemptionTestData = SinglePendingRequestedRedemption
-
         const tx = maintainerProxy
           .connect(thirdParty)
           .submitRedemptionProof(
@@ -734,7 +788,30 @@ describe("MaintainerProxy", () => {
       })
     })
 
-    context("when called by an authorized maintainer", async () => {
+    context(
+      "when called by a wallet maintainer that is not SPV maintainer",
+      () => {
+        // Even though transaction reverts some funds were spent.
+        // We need to restore the state to keep the balances as initially.
+        before(async () => createSnapshot())
+        after(async () => restoreSnapshot())
+
+        it("should revert", async () => {
+          const data: RedemptionTestData = SinglePendingRequestedRedemption
+          const tx = maintainerProxy
+            .connect(walletMaintainer)
+            .submitRedemptionProof(
+              data.redemptionTx,
+              data.redemptionProof,
+              data.mainUtxo,
+              data.wallet.pubKeyHash
+            )
+          await expect(tx).to.be.revertedWith("Caller is not authorized")
+        })
+      }
+    )
+
+    context("when called by an SPV maintainer", async () => {
       context("when there is only one output", () => {
         context(
           "when the single output is a pending requested redemption",
@@ -748,10 +825,12 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption request.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data)
+              tx = await runRedemptionScenario(data, beforeRequestActions)
             })
 
             after(async () => {
@@ -764,10 +843,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -790,7 +869,9 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption request.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // Before submitting the redemption proof, wait
               // an amount of time that will make the request
@@ -800,7 +881,11 @@ describe("MaintainerProxy", () => {
               }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                beforeRequestActions,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -813,10 +898,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -839,7 +924,9 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption request.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // Before submitting the redemption proof, wait
               // an amount of time that will make the request
@@ -854,7 +941,11 @@ describe("MaintainerProxy", () => {
               }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                beforeRequestActions,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -867,10 +958,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -895,10 +986,12 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption requests.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data)
+              tx = await runRedemptionScenario(data, beforeRequestActions)
             })
 
             after(async () => {
@@ -911,10 +1004,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -949,11 +1042,11 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
 
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
@@ -975,7 +1068,9 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption requests.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // Before submitting the redemption proof, wait
               // an amount of time that will make the requests
@@ -994,7 +1089,11 @@ describe("MaintainerProxy", () => {
               }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                beforeRequestActions,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -1007,10 +1106,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(ethers.utils.parseUnits("-1000000", "gwei")) // // -0,001 ETH
@@ -1048,7 +1147,11 @@ describe("MaintainerProxy", () => {
               }
 
               // eslint-disable-next-line @typescript-eslint/no-extra-semi
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                undefined,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -1061,10 +1164,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(ethers.utils.parseUnits("-2000000", "gwei")) // -0,002 ETH
@@ -1087,7 +1190,9 @@ describe("MaintainerProxy", () => {
               // Simulate the situation when treasury fee is 0% to
               // allow using the whole wallet's main UTXO value
               // to fulfill the redemption requests.
-              await bridge.setRedemptionTreasuryFeeDivisor(0)
+              const beforeRequestActions = async () => {
+                await bridge.setRedemptionTreasuryFeeDivisor(0)
+              }
 
               // Before submitting the redemption proof, wait
               // an amount of time that will make the requests
@@ -1108,7 +1213,11 @@ describe("MaintainerProxy", () => {
                 )
               }
 
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                beforeRequestActions,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -1121,10 +1230,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -1164,7 +1273,11 @@ describe("MaintainerProxy", () => {
                 )
               }
 
-              tx = await runRedemptionScenario(data, beforeProofActions)
+              tx = await runRedemptionScenario(
+                data,
+                undefined,
+                beforeProofActions
+              )
             })
 
             after(async () => {
@@ -1177,10 +1290,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -1195,7 +1308,12 @@ describe("MaintainerProxy", () => {
   })
 
   describe("notifyWalletCloseable", () => {
-    context("when called by an unauthorized third party", async () => {
+    context("when called by an unauthorized third party", () => {
+      // Even though transaction reverts some funds were spent.
+      // We need to restore the state to keep the balances as initially.
+      before(async () => createSnapshot())
+      after(async () => restoreSnapshot())
+
       it("should revert", async () => {
         await expect(
           maintainerProxy
@@ -1208,7 +1326,28 @@ describe("MaintainerProxy", () => {
       })
     })
 
-    context("when called by an authorized maintainer", async () => {
+    context(
+      "when called by an SPV maintainer that is not wallet maintainer",
+      () => {
+        // Even though transaction reverts some funds were spent.
+        // We need to restore the state to keep the balances as initially.
+        before(async () => createSnapshot())
+        after(async () => restoreSnapshot())
+
+        it("should revert", async () => {
+          await expect(
+            maintainerProxy
+              .connect(spvMaintainer)
+              .notifyWalletCloseable(
+                ecdsaWalletTestData.pubKeyHash160,
+                NO_MAIN_UTXO
+              )
+          ).to.be.revertedWith("Caller is not authorized")
+        })
+      }
+    )
+
+    context("when called by a wallet maintainer", () => {
       before(async () => {
         await createSnapshot()
 
@@ -1247,7 +1386,7 @@ describe("MaintainerProxy", () => {
             await createSnapshot()
 
             tx = await maintainerProxy
-              .connect(authorizedMaintainer)
+              .connect(walletMaintainer)
               .notifyWalletCloseable(
                 ecdsaWalletTestData.pubKeyHash160,
                 NO_MAIN_UTXO
@@ -1264,10 +1403,10 @@ describe("MaintainerProxy", () => {
 
           it("should refund ETH", async () => {
             const postMaintainerBalance = await provider.getBalance(
-              authorizedMaintainer.address
+              walletMaintainer.address
             )
             const diff = postMaintainerBalance.sub(
-              initialAuthorizedMaintainerBalance
+              initialWalletMaintainerBalance
             )
 
             expect(diff).to.be.gt(0)
@@ -1296,7 +1435,7 @@ describe("MaintainerProxy", () => {
             )
 
             tx = await maintainerProxy
-              .connect(authorizedMaintainer)
+              .connect(walletMaintainer)
               .notifyWalletCloseable(
                 ecdsaWalletTestData.pubKeyHash160,
                 walletMainUtxo
@@ -1313,10 +1452,10 @@ describe("MaintainerProxy", () => {
 
           it("should refund ETH", async () => {
             const postMaintainerBalance = await provider.getBalance(
-              authorizedMaintainer.address
+              walletMaintainer.address
             )
             const diff = postMaintainerBalance.sub(
-              initialAuthorizedMaintainerBalance
+              initialWalletMaintainerBalance
             )
 
             expect(diff).to.be.gt(0)
@@ -1337,7 +1476,7 @@ describe("MaintainerProxy", () => {
               await createSnapshot()
 
               tx = await maintainerProxy
-                .connect(authorizedMaintainer)
+                .connect(walletMaintainer)
                 .notifyWalletCloseable(
                   ecdsaWalletTestData.pubKeyHash160,
                   NO_MAIN_UTXO
@@ -1354,10 +1493,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                walletMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialWalletMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -1386,7 +1525,7 @@ describe("MaintainerProxy", () => {
               )
 
               tx = await maintainerProxy
-                .connect(authorizedMaintainer)
+                .connect(walletMaintainer)
                 .notifyWalletCloseable(
                   ecdsaWalletTestData.pubKeyHash160,
                   walletMainUtxo
@@ -1403,10 +1542,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                walletMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialWalletMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -1815,56 +1954,101 @@ describe("MaintainerProxy", () => {
   })
 
   describe("submitMovingFundsProof", () => {
-    const testData: {
-      testName: string
-      data: MovingFundsTestData
-    }[] = [
-      {
-        testName: "when there is a single target wallet",
-        data: SingleTargetWallet,
-      },
-      {
-        testName:
-          "when there are multiple target wallets and the amount is indivisible",
-        data: MultipleTargetWalletsAndIndivisibleAmount,
-      },
-      {
-        testName:
-          "when there are multiple target wallets and the amount is divisible",
-        data: MultipleTargetWalletsAndDivisibleAmount,
-      },
-    ]
+    context("when called by an unauthorized third party", () => {
+      // Even though transaction reverts some funds were spent.
+      // We need to restore the state to keep the balances as initially.
+      before(async () => createSnapshot())
+      after(async () => restoreSnapshot())
 
-    testData.forEach((test) => {
-      context(test.testName, () => {
-        let tx: ContractTransaction
+      it("should revert", async () => {
+        const data = SingleTargetWallet
+        expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .submitMovingFundsProof(
+              data.movingFundsTx,
+              data.movingFundsProof,
+              data.mainUtxo,
+              data.wallet.pubKeyHash
+            )
+        ).to.be.to.be.revertedWith("Caller is not authorized")
+      })
+    })
 
-        before(async () => {
-          await createSnapshot()
+    context(
+      "when called by a wallet maintainer that is not SPV maintainer",
+      () => {
+        // Even though transaction reverts some funds were spent.
+        // We need to restore the state to keep the balances as initially.
+        before(async () => createSnapshot())
+        after(async () => restoreSnapshot())
 
-          tx = await runMovingFundsScenario(test.data)
+        it("should revert", async () => {
+          const data = SingleTargetWallet
+          expect(
+            maintainerProxy
+              .connect(walletMaintainer)
+              .submitMovingFundsProof(
+                data.movingFundsTx,
+                data.movingFundsProof,
+                data.mainUtxo,
+                data.wallet.pubKeyHash
+              )
+          ).to.be.to.be.revertedWith("Caller is not authorized")
         })
+      }
+    )
 
-        after(async () => {
-          await restoreSnapshot()
-        })
+    context("when called by an SPV maintainer", () => {
+      const testData: {
+        testName: string
+        data: MovingFundsTestData
+      }[] = [
+        {
+          testName: "when there is a single target wallet",
+          data: SingleTargetWallet,
+        },
+        {
+          testName:
+            "when there are multiple target wallets and the amount is indivisible",
+          data: MultipleTargetWalletsAndIndivisibleAmount,
+        },
+        {
+          testName:
+            "when there are multiple target wallets and the amount is divisible",
+          data: MultipleTargetWalletsAndDivisibleAmount,
+        },
+      ]
 
-        it("should emit MovingFundsCompleted event", async () => {
-          await expect(tx).to.emit(bridge, "MovingFundsCompleted")
-        })
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          let tx: ContractTransaction
 
-        it("should refund ETH", async () => {
-          const postMaintainerBalance = await provider.getBalance(
-            authorizedMaintainer.address
-          )
-          const diff = postMaintainerBalance.sub(
-            initialAuthorizedMaintainerBalance
-          )
+          before(async () => {
+            await createSnapshot()
 
-          expect(diff).to.be.gt(0)
-          expect(diff).to.be.lt(
-            ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
-          )
+            tx = await runMovingFundsScenario(test.data)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should emit MovingFundsCompleted event", async () => {
+            await expect(tx).to.emit(bridge, "MovingFundsCompleted")
+          })
+
+          it("should refund ETH", async () => {
+            const postMaintainerBalance = await provider.getBalance(
+              spvMaintainer.address
+            )
+            const diff = postMaintainerBalance.sub(initialSpvMaintainerBalance)
+
+            expect(diff).to.be.gt(0)
+            expect(diff).to.be.lt(
+              ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+            )
+          })
         })
       })
     })
@@ -2045,54 +2229,103 @@ describe("MaintainerProxy", () => {
 
     let tx: ContractTransaction
 
-    before(async () => {
-      await createSnapshot()
+    context("when called by an unauthorized third party", () => {
+      // Even though transaction reverts some funds were spent.
+      // We need to restore the state to keep the balances as initially.
+      before(async () => createSnapshot())
+      after(async () => restoreSnapshot())
 
-      await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
-        ecdsaWalletID: ecdsaWalletTestData.walletID,
-        mainUtxoHash: ethers.constants.HashZero,
-        pendingRedemptionsValue: 0,
-        createdAt: 0,
-        movingFundsRequestedAt: 0,
-        closingStartedAt: 0,
-        pendingMovedFundsSweepRequestsCount: 0,
-        state: walletState.MovingFunds,
-        movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+      it("should revert", async () => {
+        await expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .notifyMovingFundsBelowDust(
+              ecdsaWalletTestData.pubKeyHash160,
+              mainUtxo
+            )
+        ).to.be.revertedWith("Caller is not authorized")
+      })
+    })
+
+    context(
+      "when called by an SPV mantainer that is not wallet maintainer",
+      () => {
+        // Even though transaction reverts some funds were spent.
+        // We need to restore the state to keep the balances as initially.
+        before(async () => createSnapshot())
+        after(async () => restoreSnapshot())
+
+        it("should revert", async () => {
+          await expect(
+            maintainerProxy
+              .connect(spvMaintainer)
+              .notifyMovingFundsBelowDust(
+                ecdsaWalletTestData.pubKeyHash160,
+                mainUtxo
+              )
+          ).to.be.revertedWith("Caller is not authorized")
+        })
+      }
+    )
+
+    context("when called by a wallet maintainer", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ecdsaWalletID: ecdsaWalletTestData.walletID,
+          mainUtxoHash: ethers.constants.HashZero,
+          pendingRedemptionsValue: 0,
+          createdAt: 0,
+          movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
+          state: walletState.MovingFunds,
+          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+        })
+
+        await bridge.setWalletMainUtxo(
+          ecdsaWalletTestData.pubKeyHash160,
+          mainUtxo
+        )
+
+        tx = await maintainerProxy
+          .connect(walletMaintainer)
+          .notifyMovingFundsBelowDust(
+            ecdsaWalletTestData.pubKeyHash160,
+            mainUtxo
+          )
       })
 
-      await bridge.setWalletMainUtxo(
-        ecdsaWalletTestData.pubKeyHash160,
-        mainUtxo
-      )
+      after(async () => {
+        await restoreSnapshot()
+      })
 
-      tx = await maintainerProxy
-        .connect(authorizedMaintainer)
-        .notifyMovingFundsBelowDust(ecdsaWalletTestData.pubKeyHash160, mainUtxo)
-    })
+      it("should emit MovingFundsBelowDustReported event", async () => {
+        await expect(tx).to.emit(bridge, "MovingFundsBelowDustReported")
+      })
 
-    after(async () => {
-      await restoreSnapshot()
-    })
+      it("should refund ETH", async () => {
+        const postMaintainerBalance = await provider.getBalance(
+          walletMaintainer.address
+        )
+        const diff = postMaintainerBalance.sub(initialWalletMaintainerBalance)
 
-    it("should emit MovingFundsBelowDustReported event", async () => {
-      await expect(tx).to.emit(bridge, "MovingFundsBelowDustReported")
-    })
-
-    it("should refund ETH", async () => {
-      const postMaintainerBalance = await provider.getBalance(
-        authorizedMaintainer.address
-      )
-      const diff = postMaintainerBalance.sub(initialAuthorizedMaintainerBalance)
-
-      expect(diff).to.be.gt(0)
-      expect(diff).to.be.lt(
-        ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-      )
+        expect(diff).to.be.gt(0)
+        expect(diff).to.be.lt(
+          ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+        )
+      })
     })
   })
 
   describe("submitMovedFundsSweepProof", () => {
     context("when called by an unauthorized third party", () => {
+      // Even though transaction reverts some funds were spent.
+      // We need to restore the state to keep the balances as initially.
+      before(async () => createSnapshot())
+      after(async () => restoreSnapshot())
+
       it("should revert", async () => {
         const data: MovedFundsSweepTestData = MovedFundsSweepWithoutMainUtxo
         const tx = maintainerProxy
@@ -2106,7 +2339,29 @@ describe("MaintainerProxy", () => {
       })
     })
 
-    context("when called by an authorized maintainer", () => {
+    context(
+      "when called by a wallet maintainer that is not SPV maintainer",
+      () => {
+        // Even though transaction reverts some funds were spent.
+        // We need to restore the state to keep the balances as initially.
+        before(async () => createSnapshot())
+        after(async () => restoreSnapshot())
+
+        it("should revert", async () => {
+          const data: MovedFundsSweepTestData = MovedFundsSweepWithoutMainUtxo
+          const tx = maintainerProxy
+            .connect(walletMaintainer)
+            .submitMovedFundsSweepProof(
+              data.sweepTx,
+              data.sweepProof,
+              data.mainUtxo
+            )
+          await expect(tx).to.be.revertedWith("Caller is not authorized")
+        })
+      }
+    )
+
+    context("when called by an SPV maintainer", () => {
       context("when the sweeping wallet has no main UTXO set", () => {
         context(
           "when there is a single input referring to a Pending sweep request",
@@ -2130,10 +2385,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -2169,10 +2424,10 @@ describe("MaintainerProxy", () => {
 
             it("should refund ETH", async () => {
               const postMaintainerBalance = await provider.getBalance(
-                authorizedMaintainer.address
+                spvMaintainer.address
               )
               const diff = postMaintainerBalance.sub(
-                initialAuthorizedMaintainerBalance
+                initialSpvMaintainerBalance
               )
 
               expect(diff).to.be.gt(0)
@@ -2187,67 +2442,110 @@ describe("MaintainerProxy", () => {
   })
 
   describe("notifyWalletClosingPeriodElapsed", () => {
-    let tx: ContractTransaction
+    context("when called by an unauthorized third party", () => {
+      // Even though transaction reverts some funds were spent.
+      // We need to restore the state to keep the balances as initially.
+      before(async () => createSnapshot())
+      after(async () => restoreSnapshot())
 
-    before(async () => {
-      await createSnapshot()
-
-      await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
-        ecdsaWalletID: ecdsaWalletTestData.walletID,
-        mainUtxoHash: ethers.constants.HashZero,
-        pendingRedemptionsValue: 0,
-        createdAt: 0,
-        movingFundsRequestedAt: 0,
-        closingStartedAt: 0,
-        pendingMovedFundsSweepRequestsCount: 0,
-        state: walletState.Live,
-        movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+      it("should revert", async () => {
+        await expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .notifyWalletClosingPeriodElapsed(ecdsaWalletTestData.pubKeyHash160)
+        ).to.be.revertedWith("Caller is not authorized")
       })
+    })
 
-      // Switches the wallet to Closing state because the wallet has
-      // no main UTXO set.
-      await bridge
-        .connect(walletRegistry.wallet)
-        .__ecdsaWalletHeartbeatFailedCallback(
-          ecdsaWalletTestData.walletID,
-          ecdsaWalletTestData.publicKeyX,
-          ecdsaWalletTestData.publicKeyY
+    context(
+      "when called by an SPV maintainer that is not wallet maintainer",
+      () => {
+        // Even though transaction reverts some funds were spent.
+        // We need to restore the state to keep the balances as initially.
+        before(async () => createSnapshot())
+        after(async () => restoreSnapshot())
+
+        it("should revert", async () => {
+          await expect(
+            maintainerProxy
+              .connect(spvMaintainer)
+              .notifyWalletClosingPeriodElapsed(
+                ecdsaWalletTestData.pubKeyHash160
+              )
+          ).to.be.revertedWith("Caller is not authorized")
+        })
+      }
+    )
+
+    context("when called by a wallet maintainer", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
+          ecdsaWalletID: ecdsaWalletTestData.walletID,
+          mainUtxoHash: ethers.constants.HashZero,
+          pendingRedemptionsValue: 0,
+          createdAt: 0,
+          movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
+          state: walletState.Live,
+          movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+        })
+
+        // Switches the wallet to Closing state because the wallet has
+        // no main UTXO set.
+        await bridge
+          .connect(walletRegistry.wallet)
+          .__ecdsaWalletHeartbeatFailedCallback(
+            ecdsaWalletTestData.walletID,
+            ecdsaWalletTestData.publicKeyX,
+            ecdsaWalletTestData.publicKeyY
+          )
+
+        await increaseTime(
+          (
+            await bridge.walletParameters()
+          ).walletClosingPeriod
         )
 
-      await increaseTime((await bridge.walletParameters()).walletClosingPeriod)
+        tx = await maintainerProxy
+          .connect(walletMaintainer)
+          .notifyWalletClosingPeriodElapsed(ecdsaWalletTestData.pubKeyHash160)
+      })
 
-      tx = await maintainerProxy
-        .connect(authorizedMaintainer)
-        .notifyWalletClosingPeriodElapsed(ecdsaWalletTestData.pubKeyHash160)
-    })
+      after(async () => {
+        await restoreSnapshot()
+        await walletRegistry.closeWallet.reset()
+      })
 
-    after(async () => {
-      await restoreSnapshot()
-      await walletRegistry.closeWallet.reset()
-    })
+      it("should emit WalletClosed event", async () => {
+        await expect(tx).to.emit(bridge, "WalletClosed")
+      })
 
-    it("should emit WalletClosed event", async () => {
-      await expect(tx).to.emit(bridge, "WalletClosed")
-    })
+      it("should refund ETH", async () => {
+        const postMaintainerBalance = await provider.getBalance(
+          walletMaintainer.address
+        )
+        const diff = postMaintainerBalance.sub(initialWalletMaintainerBalance)
 
-    it("should refund ETH", async () => {
-      const postMaintainerBalance = await provider.getBalance(
-        authorizedMaintainer.address
-      )
-      const diff = postMaintainerBalance.sub(initialAuthorizedMaintainerBalance)
-
-      expect(diff).to.be.gt(0)
-      expect(diff).to.be.lt(
-        ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-      )
+        expect(diff).to.be.gt(0)
+        expect(diff).to.be.lt(
+          ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+        )
+      })
     })
   })
 
-  describe("authorize", () => {
+  describe("authorizeWalletMaintainer", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          maintainerProxy.connect(thirdParty).authorize(thirdParty.address)
+          maintainerProxy
+            .connect(thirdParty)
+            .authorizeWalletMaintainer(thirdParty.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -2257,11 +2555,10 @@ describe("MaintainerProxy", () => {
 
       before(async () => {
         await createSnapshot()
-        const maintainers = await maintainerProxy.allMaintainers()
 
         tx = await maintainerProxy
           .connect(governance)
-          .authorize(thirdParty.address)
+          .authorizeWalletMaintainer(thirdParty.address)
       })
 
       after(async () => {
@@ -2270,41 +2567,97 @@ describe("MaintainerProxy", () => {
 
       it("should be already populated with the authorized maintainer", async () => {
         expect(
-          await maintainerProxy.isAuthorized(authorizedMaintainer.address)
+          await maintainerProxy.isWalletMaintainer(walletMaintainer.address)
         ).to.be.equal(1)
       })
 
       it("should authorize a thirdParty", async () => {
         expect(
-          await maintainerProxy.isAuthorized(thirdParty.address)
+          await maintainerProxy.isWalletMaintainer(thirdParty.address)
         ).to.be.equal(2)
       })
 
       it("should be total of 2 authorized maintainers", async () => {
-        const maintainers = await maintainerProxy.allMaintainers()
+        const maintainers = await maintainerProxy.allWalletMaintainers()
         expect(maintainers.length).to.be.equal(2)
       })
 
       it("should add a thirdParty to a maintainers list", async () => {
-        const thirdPartyAddress = await maintainerProxy.maintainers(1)
+        const thirdPartyAddress = await maintainerProxy.walletMaintainers(1)
         expect(thirdPartyAddress).to.be.equal(thirdParty.address)
       })
 
-      it("should emit a MaintainerAuthorized event", async () => {
+      it("should emit a WalletMaintainerAuthorized event", async () => {
         await expect(tx)
-          .to.emit(maintainerProxy, "MaintainerAuthorized")
+          .to.emit(maintainerProxy, "WalletMaintainerAuthorized")
           .withArgs(thirdParty.address)
       })
     })
   })
 
-  describe("unauthorize", () => {
+  describe("authorizeSpvMaintainer", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .authorizeSpvMaintainer(thirdParty.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await maintainerProxy
+          .connect(governance)
+          .authorizeSpvMaintainer(thirdParty.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should be already populated with the authorized maintainer", async () => {
+        expect(
+          await maintainerProxy.isSpvMaintainer(spvMaintainer.address)
+        ).to.be.equal(1)
+      })
+
+      it("should authorize a thirdParty", async () => {
+        expect(
+          await maintainerProxy.isSpvMaintainer(thirdParty.address)
+        ).to.be.equal(2)
+      })
+
+      it("should be total of 2 authorized maintainers", async () => {
+        const maintainers = await maintainerProxy.allSpvMaintainers()
+        expect(maintainers.length).to.be.equal(2)
+      })
+
+      it("should add a thirdParty to a maintainers list", async () => {
+        const thirdPartyAddress = await maintainerProxy.spvMaintainers(1)
+        expect(thirdPartyAddress).to.be.equal(thirdParty.address)
+      })
+
+      it("should emit an SpvMaintainerAuthorized event", async () => {
+        await expect(tx)
+          .to.emit(maintainerProxy, "SpvMaintainerAuthorized")
+          .withArgs(thirdParty.address)
+      })
+    })
+  })
+
+  describe("unauthorizeWalletMaintainer", () => {
     before(async () => {
       await createSnapshot()
 
       await maintainerProxy
         .connect(governance)
-        .unauthorize(authorizedMaintainer.address)
+        .unauthorizeWalletMaintainer(walletMaintainer.address)
     })
 
     after(async () => {
@@ -2314,14 +2667,17 @@ describe("MaintainerProxy", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          maintainerProxy.connect(thirdParty).unauthorize(thirdParty.address)
+          maintainerProxy
+            .connect(thirdParty)
+            .unauthorizeWalletMaintainer(thirdParty.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
     context("when the caller is the owner", () => {
       it("should be a total of 0 authorized maintainers", async () => {
-        const authorizedMaintainers = await maintainerProxy.allMaintainers()
+        const authorizedMaintainers =
+          await maintainerProxy.allWalletMaintainers()
         await expect(authorizedMaintainers.length).to.be.equal(0)
       })
 
@@ -2336,7 +2692,9 @@ describe("MaintainerProxy", () => {
 
         it("should revert", async () => {
           await expect(
-            maintainerProxy.connect(governance).unauthorize(thirdParty.address)
+            maintainerProxy
+              .connect(governance)
+              .unauthorizeWalletMaintainer(thirdParty.address)
           ).to.be.revertedWith("No maintainer to unauthorize")
         })
       })
@@ -2363,7 +2721,7 @@ describe("MaintainerProxy", () => {
                 /* eslint-disable no-await-in-loop */
                 await maintainerProxy
                   .connect(governance)
-                  .authorize(maintainers[i].address)
+                  .authorizeWalletMaintainer(maintainers[i].address)
               }
             })
 
@@ -2375,7 +2733,7 @@ describe("MaintainerProxy", () => {
               await expect(
                 maintainerProxy
                   .connect(governance)
-                  .unauthorize(governance.address)
+                  .unauthorizeWalletMaintainer(governance.address)
               ).to.be.revertedWith("No maintainer to unauthorize")
             })
           }
@@ -2391,11 +2749,11 @@ describe("MaintainerProxy", () => {
 
             await maintainerProxy
               .connect(governance)
-              .authorize(thirdParty.address)
+              .authorizeWalletMaintainer(thirdParty.address)
 
             tx = await maintainerProxy
               .connect(governance)
-              .unauthorize(thirdParty.address)
+              .unauthorizeWalletMaintainer(thirdParty.address)
           })
 
           after(async () => {
@@ -2404,13 +2762,13 @@ describe("MaintainerProxy", () => {
 
           it("should unauthorize the maintainer", async () => {
             expect(
-              await maintainerProxy.isAuthorized(thirdParty.address)
+              await maintainerProxy.isWalletMaintainer(thirdParty.address)
             ).to.be.equal(0)
           })
 
-          it("should emit a MaintainerUnauthorized event", async () => {
+          it("should emit a WalletMaintainerUnauthorized event", async () => {
             await expect(tx)
-              .to.emit(maintainerProxy, "MaintainerUnauthorized")
+              .to.emit(maintainerProxy, "WalletMaintainerUnauthorized")
               .withArgs(thirdParty.address)
           })
         })
@@ -2454,7 +2812,7 @@ describe("MaintainerProxy", () => {
             /* eslint-disable no-await-in-loop */
             await maintainerProxy
               .connect(governance)
-              .authorize(maintainers[i].address)
+              .authorizeWalletMaintainer(maintainers[i].address)
           }
         })
 
@@ -2476,11 +2834,11 @@ describe("MaintainerProxy", () => {
 
               tx1 = await maintainerProxy
                 .connect(governance)
-                .unauthorize(maintainer1.address)
+                .unauthorizeWalletMaintainer(maintainer1.address)
 
               tx3 = await maintainerProxy
                 .connect(governance)
-                .unauthorize(maintainer3.address)
+                .unauthorizeWalletMaintainer(maintainer3.address)
             })
 
             after(async () => {
@@ -2489,31 +2847,31 @@ describe("MaintainerProxy", () => {
 
             it("should unauthorize the maintainer", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer1.address)
+                await maintainerProxy.isWalletMaintainer(maintainer1.address)
               ).to.be.equal(0)
             })
 
             it("should change the last maintainer's index with the unauthorized one", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer8.address)
+                await maintainerProxy.isWalletMaintainer(maintainer8.address)
               ).to.be.equal(1)
             })
 
             it("should unauthorize the other maintainer", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer3.address)
+                await maintainerProxy.isWalletMaintainer(maintainer3.address)
               ).to.be.equal(0)
             })
 
             it("should change the last maintainer's index with the unauthorized one", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer7.address)
+                await maintainerProxy.isWalletMaintainer(maintainer7.address)
               ).to.be.equal(3)
             })
 
             it("should remove 2 maintainers from the maintainers array", async () => {
               const authorizedMaintainers =
-                await maintainerProxy.allMaintainers()
+                await maintainerProxy.allWalletMaintainers()
 
               expect(authorizedMaintainers.length).to.be.equal(6)
               const expectedMaintainers = [
@@ -2530,15 +2888,15 @@ describe("MaintainerProxy", () => {
               )
             })
 
-            it("should emit a MaintainerUnauthorized event", async () => {
+            it("should emit a WalletMaintainerUnauthorized event", async () => {
               await expect(tx1)
-                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .to.emit(maintainerProxy, "WalletMaintainerUnauthorized")
                 .withArgs(maintainer1.address)
             })
 
-            it("should emit a MaintainerUnauthorized event", async () => {
+            it("should emit a WalletMaintainerUnauthorized event", async () => {
               await expect(tx3)
-                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .to.emit(maintainerProxy, "WalletMaintainerUnauthorized")
                 .withArgs(maintainer3.address)
             })
           }
@@ -2558,11 +2916,11 @@ describe("MaintainerProxy", () => {
 
               tx3 = await maintainerProxy
                 .connect(governance)
-                .unauthorize(maintainer3.address)
+                .unauthorizeWalletMaintainer(maintainer3.address)
 
               tx6 = await maintainerProxy
                 .connect(governance)
-                .unauthorize(maintainer6.address)
+                .unauthorizeWalletMaintainer(maintainer6.address)
             })
 
             after(async () => {
@@ -2571,31 +2929,31 @@ describe("MaintainerProxy", () => {
 
             it("should unauthorize a maintainer", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer3.address)
+                await maintainerProxy.isWalletMaintainer(maintainer3.address)
               ).to.be.equal(0)
             })
 
             it("should change the last maintainer's index with the unauthorized one", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer8.address)
+                await maintainerProxy.isWalletMaintainer(maintainer8.address)
               ).to.be.equal(3)
             })
 
             it("should unauthorize the other maintainer", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer6.address)
+                await maintainerProxy.isWalletMaintainer(maintainer6.address)
               ).to.be.equal(0)
             })
 
             it("should change the last maintainer's index with the unauthorized one", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer7.address)
+                await maintainerProxy.isWalletMaintainer(maintainer7.address)
               ).to.be.equal(6)
             })
 
             it("should remove 2 maintainers from the maintainers array", async () => {
               const authorizedMaintainers =
-                await maintainerProxy.allMaintainers()
+                await maintainerProxy.allWalletMaintainers()
 
               expect(authorizedMaintainers.length).to.be.equal(6)
               const expectedMaintainers = [
@@ -2612,15 +2970,15 @@ describe("MaintainerProxy", () => {
               )
             })
 
-            it("should emit a MaintainerUnauthorized event", async () => {
+            it("should emit a WalletMaintainerUnauthorized event", async () => {
               await expect(tx3)
-                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .to.emit(maintainerProxy, "WalletMaintainerUnauthorized")
                 .withArgs(maintainer3.address)
             })
 
-            it("should emit a MaintainerUnauthorized event", async () => {
+            it("should emit a WalletMaintainerUnauthorized event", async () => {
               await expect(tx6)
-                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .to.emit(maintainerProxy, "WalletMaintainerUnauthorized")
                 .withArgs(maintainer6.address)
             })
           }
@@ -2640,11 +2998,11 @@ describe("MaintainerProxy", () => {
 
               tx5 = await maintainerProxy
                 .connect(governance)
-                .unauthorize(maintainer5.address)
+                .unauthorizeWalletMaintainer(maintainer5.address)
 
               tx8 = await maintainerProxy
                 .connect(governance)
-                .unauthorize(maintainer8.address)
+                .unauthorizeWalletMaintainer(maintainer8.address)
             })
 
             after(async () => {
@@ -2653,25 +3011,25 @@ describe("MaintainerProxy", () => {
 
             it("should unauthorize a maintainer", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer5.address)
+                await maintainerProxy.isWalletMaintainer(maintainer5.address)
               ).to.be.equal(0)
             })
 
             it("should unauthorize the other maintainer", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer8.address)
+                await maintainerProxy.isWalletMaintainer(maintainer8.address)
               ).to.be.equal(0)
             })
 
             it("should change the last maintainer's index with the unauthorized one", async () => {
               expect(
-                await maintainerProxy.isAuthorized(maintainer7.address)
+                await maintainerProxy.isWalletMaintainer(maintainer7.address)
               ).to.be.equal(5)
             })
 
             it("should remove 2 maintainers from the maintainers array", async () => {
               const authorizedMaintainers =
-                await maintainerProxy.allMaintainers()
+                await maintainerProxy.allWalletMaintainers()
 
               expect(authorizedMaintainers.length).to.be.equal(6)
               const expectedMaintainers = [
@@ -2688,15 +3046,426 @@ describe("MaintainerProxy", () => {
               )
             })
 
-            it("should emit a MaintainerUnauthorized event", async () => {
+            it("should emit a WalletMaintainerUnauthorized event", async () => {
               await expect(tx5)
-                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .to.emit(maintainerProxy, "WalletMaintainerUnauthorized")
                 .withArgs(maintainer5.address)
             })
 
-            it("should emit a MaintainerUnauthorized event", async () => {
+            it("should emit a WalletMaintainerUnauthorized event", async () => {
               await expect(tx8)
-                .to.emit(maintainerProxy, "MaintainerUnauthorized")
+                .to.emit(maintainerProxy, "WalletMaintainerUnauthorized")
+                .withArgs(maintainer8.address)
+            })
+          }
+        )
+      })
+    })
+  })
+
+  describe("unauthorizeSpvMaintainer", () => {
+    before(async () => {
+      await createSnapshot()
+
+      await maintainerProxy
+        .connect(governance)
+        .unauthorizeSpvMaintainer(spvMaintainer.address)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          maintainerProxy
+            .connect(thirdParty)
+            .unauthorizeSpvMaintainer(thirdParty.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      it("should be a total of 0 authorized maintainers", async () => {
+        const authorizedMaintainers = await maintainerProxy.allSpvMaintainers()
+        await expect(authorizedMaintainers.length).to.be.equal(0)
+      })
+
+      context("when there are no authorized maintainers", () => {
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            maintainerProxy
+              .connect(governance)
+              .unauthorizeSpvMaintainer(thirdParty.address)
+          ).to.be.revertedWith("No maintainer to unauthorize")
+        })
+      })
+
+      context("when there are authorized maintainers", () => {
+        context(
+          "when maintainer to unauthorize is not among the authorized maintainers",
+          () => {
+            before(async () => {
+              await createSnapshot()
+              const signers = await helpers.signers.getUnnamedSigners()
+              const maintainers = [
+                signers[1],
+                signers[2],
+                signers[3],
+                signers[4],
+                signers[5],
+                signers[6],
+                signers[7],
+                signers[8],
+              ]
+
+              for (let i = 0; i < maintainers.length; i++) {
+                /* eslint-disable no-await-in-loop */
+                await maintainerProxy
+                  .connect(governance)
+                  .authorizeSpvMaintainer(maintainers[i].address)
+              }
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                maintainerProxy
+                  .connect(governance)
+                  .unauthorizeSpvMaintainer(governance.address)
+              ).to.be.revertedWith("No maintainer to unauthorize")
+            })
+          }
+        )
+      })
+
+      context("when there is one authorized maintainer", () => {
+        context("when unauthorizing the one that is authorized", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await maintainerProxy
+              .connect(governance)
+              .authorizeSpvMaintainer(thirdParty.address)
+
+            tx = await maintainerProxy
+              .connect(governance)
+              .unauthorizeSpvMaintainer(thirdParty.address)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should unauthorize the maintainer", async () => {
+            expect(
+              await maintainerProxy.isSpvMaintainer(thirdParty.address)
+            ).to.be.equal(0)
+          })
+
+          it("should emit an SpvMaintainerUnauthorized event", async () => {
+            await expect(tx)
+              .to.emit(maintainerProxy, "SpvMaintainerUnauthorized")
+              .withArgs(thirdParty.address)
+          })
+        })
+      })
+
+      context("when there are many authorized maintainers", () => {
+        let maintainer1: SignerWithAddress
+        let maintainer2: SignerWithAddress
+        let maintainer3: SignerWithAddress
+        let maintainer4: SignerWithAddress
+        let maintainer5: SignerWithAddress
+        let maintainer6: SignerWithAddress
+        let maintainer7: SignerWithAddress
+        let maintainer8: SignerWithAddress
+
+        before(async () => {
+          await createSnapshot()
+          const signers = await helpers.signers.getUnnamedSigners()
+          /* eslint-disable */
+          maintainer1 = signers[1]
+          maintainer2 = signers[2]
+          maintainer3 = signers[3]
+          maintainer4 = signers[4]
+          maintainer5 = signers[5]
+          maintainer6 = signers[6]
+          maintainer7 = signers[7]
+          maintainer8 = signers[8]
+          /* eslint-enable */
+          const maintainers = [
+            maintainer1,
+            maintainer2,
+            maintainer3,
+            maintainer4,
+            maintainer5,
+            maintainer6,
+            maintainer7,
+            maintainer8,
+          ]
+
+          for (let i = 0; i < maintainers.length; i++) {
+            /* eslint-disable no-await-in-loop */
+            await maintainerProxy
+              .connect(governance)
+              .authorizeSpvMaintainer(maintainers[i].address)
+          }
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        // Init authorized maintainers: [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+        // Unauthorize: [0x1, 0x3]
+        // Swap the last maintainer with the one to unauthorize
+        // New authorized maintainers: [0x8, 0x2, 0x7, 0x4, 0x5, 0x6]
+        context(
+          "when unauthorizing a couple of maintainers from the beginning",
+          () => {
+            let tx1: ContractTransaction
+            let tx3: ContractTransaction
+            before(async () => {
+              await createSnapshot()
+
+              tx1 = await maintainerProxy
+                .connect(governance)
+                .unauthorizeSpvMaintainer(maintainer1.address)
+
+              tx3 = await maintainerProxy
+                .connect(governance)
+                .unauthorizeSpvMaintainer(maintainer3.address)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should unauthorize the maintainer", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer1.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer8.address)
+              ).to.be.equal(1)
+            })
+
+            it("should unauthorize the other maintainer", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer3.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer7.address)
+              ).to.be.equal(3)
+            })
+
+            it("should remove 2 maintainers from the maintainers array", async () => {
+              const authorizedMaintainers =
+                await maintainerProxy.allSpvMaintainers()
+
+              expect(authorizedMaintainers.length).to.be.equal(6)
+              const expectedMaintainers = [
+                maintainer8.address,
+                maintainer2.address,
+                maintainer7.address,
+                maintainer4.address,
+                maintainer5.address,
+                maintainer6.address,
+              ]
+
+              expect(authorizedMaintainers).to.be.deep.equal(
+                expectedMaintainers
+              )
+            })
+
+            it("should emit an SpvMaintainerUnauthorized event", async () => {
+              await expect(tx1)
+                .to.emit(maintainerProxy, "SpvMaintainerUnauthorized")
+                .withArgs(maintainer1.address)
+            })
+
+            it("should emit an SpvMaintainerUnauthorized event", async () => {
+              await expect(tx3)
+                .to.emit(maintainerProxy, "SpvMaintainerUnauthorized")
+                .withArgs(maintainer3.address)
+            })
+          }
+        )
+
+        // Init authorized maintainers: [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+        // Unauthorize: [0x3, 0x6]
+        // Swap the last maintainer with the one to unauthorize
+        // New authorized maintainers: [0x1, 0x2, 0x8, 0x4, 0x5, 0x7]
+        context(
+          "when unauthorizing a couple of maintainers from the middle",
+          () => {
+            let tx3: ContractTransaction
+            let tx6: ContractTransaction
+            before(async () => {
+              await createSnapshot()
+
+              tx3 = await maintainerProxy
+                .connect(governance)
+                .unauthorizeSpvMaintainer(maintainer3.address)
+
+              tx6 = await maintainerProxy
+                .connect(governance)
+                .unauthorizeSpvMaintainer(maintainer6.address)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should unauthorize a maintainer", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer3.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer8.address)
+              ).to.be.equal(3)
+            })
+
+            it("should unauthorize the other maintainer", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer6.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer7.address)
+              ).to.be.equal(6)
+            })
+
+            it("should remove 2 maintainers from the maintainers array", async () => {
+              const authorizedMaintainers =
+                await maintainerProxy.allSpvMaintainers()
+
+              expect(authorizedMaintainers.length).to.be.equal(6)
+              const expectedMaintainers = [
+                maintainer1.address,
+                maintainer2.address,
+                maintainer8.address,
+                maintainer4.address,
+                maintainer5.address,
+                maintainer7.address,
+              ]
+
+              expect(authorizedMaintainers).to.be.deep.equal(
+                expectedMaintainers
+              )
+            })
+
+            it("should emit an SpvMaintainerUnauthorized event", async () => {
+              await expect(tx3)
+                .to.emit(maintainerProxy, "SpvMaintainerUnauthorized")
+                .withArgs(maintainer3.address)
+            })
+
+            it("should emit an SpvMaintainerUnauthorized event", async () => {
+              await expect(tx6)
+                .to.emit(maintainerProxy, "SpvMaintainerUnauthorized")
+                .withArgs(maintainer6.address)
+            })
+          }
+        )
+
+        // Init authorized maintainers: [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+        // Unauthorize: [0x5, 0x8]
+        // Swap the last maintainer with the one to unauthorize
+        // New authorized maintainers: [0x1, 0x2, 0x3, 0x4, 0x7, 0x6]
+        context(
+          "when unauthorizing a couple of maintainers from the end",
+          () => {
+            let tx5: ContractTransaction
+            let tx8: ContractTransaction
+            before(async () => {
+              await createSnapshot()
+
+              tx5 = await maintainerProxy
+                .connect(governance)
+                .unauthorizeSpvMaintainer(maintainer5.address)
+
+              tx8 = await maintainerProxy
+                .connect(governance)
+                .unauthorizeSpvMaintainer(maintainer8.address)
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should unauthorize a maintainer", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer5.address)
+              ).to.be.equal(0)
+            })
+
+            it("should unauthorize the other maintainer", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer8.address)
+              ).to.be.equal(0)
+            })
+
+            it("should change the last maintainer's index with the unauthorized one", async () => {
+              expect(
+                await maintainerProxy.isSpvMaintainer(maintainer7.address)
+              ).to.be.equal(5)
+            })
+
+            it("should remove 2 maintainers from the maintainers array", async () => {
+              const authorizedMaintainers =
+                await maintainerProxy.allSpvMaintainers()
+
+              expect(authorizedMaintainers.length).to.be.equal(6)
+              const expectedMaintainers = [
+                maintainer1.address,
+                maintainer2.address,
+                maintainer3.address,
+                maintainer4.address,
+                maintainer7.address,
+                maintainer6.address,
+              ]
+
+              expect(authorizedMaintainers).to.be.deep.equal(
+                expectedMaintainers
+              )
+            })
+
+            it("should emit an SpvMaintainerUnauthorized event", async () => {
+              await expect(tx5)
+                .to.emit(maintainerProxy, "SpvMaintainerUnauthorized")
+                .withArgs(maintainer5.address)
+            })
+
+            it("should emit an SpvMaintainerUnauthorized event", async () => {
+              await expect(tx8)
+                .to.emit(maintainerProxy, "SpvMaintainerUnauthorized")
                 .withArgs(maintainer8.address)
             })
           }
@@ -2951,7 +3720,7 @@ describe("MaintainerProxy", () => {
     }
 
     return maintainerProxy
-      .connect(authorizedMaintainer)
+      .connect(spvMaintainer)
       .submitDepositSweepProof(
         data.sweepTx,
         data.sweepProof,
@@ -2968,15 +3737,34 @@ describe("MaintainerProxy", () => {
 
   async function runRedemptionScenario(
     data: RedemptionTestData,
+    beforeRequestActions?: () => Promise<void>,
     beforeProofActions?: () => Promise<void>
   ): Promise<ContractTransaction> {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
     relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
 
-    // Scaling down deposit dust threshold 100x to what is in Bridge default
-    // parameters. Scaling down redemption TX max fee accordingly.
+    // Scaling down redemption dust threshold 100x to what is in Bridge default
+    // parameters.
     await bridge.setRedemptionDustThreshold(10000)
-    await bridge.setRedemptionTxMaxFee(1000)
+    // Scaling down moving funds dust threshold 100x to what is in Bridge
+    // default parameters. This is needed because we lowered the redemption
+    // dust threshold and the moving funds dust threshold must be always
+    // below it.
+    await bridgeGovernance
+      .connect(governance)
+      .beginMovingFundsDustThresholdUpdate(2000)
+    await increaseTime(await bridgeGovernance.governanceDelays(0))
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeMovingFundsDustThresholdUpdate()
+    // Scaling down redemption TX max fee accordingly.
+    await bridgeGovernance
+      .connect(governance)
+      .beginRedemptionTxMaxFeeUpdate(1000)
+    await increaseTime(await bridgeGovernance.governanceDelays(0))
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeRedemptionTxMaxFeeUpdate()
 
     // Simulate the wallet is a registered one.
     await bridge.setWallet(data.wallet.pubKeyHash, {
@@ -2992,6 +3780,10 @@ describe("MaintainerProxy", () => {
     })
     // Simulate the prepared main UTXO belongs to the wallet.
     await bridge.setWalletMainUtxo(data.wallet.pubKeyHash, data.mainUtxo)
+
+    if (beforeRequestActions) {
+      await beforeRequestActions()
+    }
 
     for (let i = 0; i < data.redemptionRequests.length; i++) {
       const { redeemer, redeemerOutputScript, amount } =
@@ -3021,7 +3813,7 @@ describe("MaintainerProxy", () => {
     }
 
     return maintainerProxy
-      .connect(authorizedMaintainer)
+      .connect(spvMaintainer)
       .submitRedemptionProof(
         data.redemptionTx,
         data.redemptionProof,
@@ -3069,7 +3861,7 @@ describe("MaintainerProxy", () => {
     }
 
     return maintainerProxy
-      .connect(authorizedMaintainer)
+      .connect(spvMaintainer)
       .submitMovingFundsProof(
         data.movingFundsTx,
         data.movingFundsProof,
@@ -3128,7 +3920,7 @@ describe("MaintainerProxy", () => {
     }
 
     return maintainerProxy
-      .connect(authorizedMaintainer)
+      .connect(spvMaintainer)
       .submitMovedFundsSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
       .then((tx: ContractTransaction) => {
         relay.getCurrentEpochDifficulty.reset()

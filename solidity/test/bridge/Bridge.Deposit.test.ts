@@ -3,7 +3,7 @@
 
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { ContractTransaction } from "ethers"
+import { Contract, ContractTransaction } from "ethers"
 import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import type {
@@ -11,7 +11,6 @@ import type {
   BankStub,
   Bridge,
   BridgeStub,
-  BridgeStub__factory,
   IRelay,
   IVault,
   BridgeGovernance,
@@ -39,24 +38,26 @@ const ZERO_ADDRESS = ethers.constants.AddressZero
 
 describe("Bridge - Deposit", () => {
   let governance: SignerWithAddress
+  let spvMaintainer: SignerWithAddress
   let treasury: SignerWithAddress
 
   let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
-  let BridgeFactory: BridgeStub__factory
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
+  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
       governance,
+      spvMaintainer,
       treasury,
       bank,
       relay,
-      BridgeFactory,
       bridge,
       bridgeGovernance,
+      deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
@@ -1124,12 +1125,14 @@ describe("Bridge - Deposit", () => {
 
                             // Try replaying the already done sweep.
                             await expect(
-                              bridge.submitDepositSweepProof(
-                                data.sweepTx,
-                                data.sweepProof,
-                                mainUtxo,
-                                ethers.constants.AddressZero
-                              )
+                              bridge
+                                .connect(spvMaintainer)
+                                .submitDepositSweepProof(
+                                  data.sweepTx,
+                                  data.sweepProof,
+                                  mainUtxo,
+                                  ethers.constants.AddressZero
+                                )
                             ).to.be.revertedWith("Deposit already swept")
                           })
                         }
@@ -1168,12 +1171,14 @@ describe("Bridge - Deposit", () => {
                           // Try to sweep a deposit which was not revealed before and
                           // is unknown from system's point of view.
                           await expect(
-                            bridge.submitDepositSweepProof(
-                              data.sweepTx,
-                              data.sweepProof,
-                              NO_MAIN_UTXO,
-                              ethers.constants.AddressZero
-                            )
+                            bridge
+                              .connect(spvMaintainer)
+                              .submitDepositSweepProof(
+                                data.sweepTx,
+                                data.sweepProof,
+                                NO_MAIN_UTXO,
+                                ethers.constants.AddressZero
+                              )
                           ).to.be.revertedWith("Unknown input type")
                         })
                       })
@@ -2006,12 +2011,14 @@ describe("Bridge - Deposit", () => {
 
                             // Try replaying the already done sweep.
                             await expect(
-                              bridge.submitDepositSweepProof(
-                                data.sweepTx,
-                                data.sweepProof,
-                                mainUtxo,
-                                ethers.constants.AddressZero
-                              )
+                              bridge
+                                .connect(spvMaintainer)
+                                .submitDepositSweepProof(
+                                  data.sweepTx,
+                                  data.sweepProof,
+                                  mainUtxo,
+                                  ethers.constants.AddressZero
+                                )
                             ).to.be.revertedWith("Deposit already swept")
                           })
                         }
@@ -2200,12 +2207,14 @@ describe("Bridge - Deposit", () => {
               }
 
               await expect(
-                bridge.submitDepositSweepProof(
-                  sweepTx,
-                  sweepProof,
-                  NO_MAIN_UTXO,
-                  ethers.constants.AddressZero
-                )
+                bridge
+                  .connect(spvMaintainer)
+                  .submitDepositSweepProof(
+                    sweepTx,
+                    sweepProof,
+                    NO_MAIN_UTXO,
+                    ethers.constants.AddressZero
+                  )
               ).to.be.revertedWith(
                 "Output's public key hash must have 20 bytes"
               )
@@ -2265,12 +2274,14 @@ describe("Bridge - Deposit", () => {
             }
 
             await expect(
-              bridge.submitDepositSweepProof(
-                sweepTx,
-                sweepProof,
-                NO_MAIN_UTXO,
-                ethers.constants.AddressZero
-              )
+              bridge
+                .connect(spvMaintainer)
+                .submitDepositSweepProof(
+                  sweepTx,
+                  sweepProof,
+                  NO_MAIN_UTXO,
+                  ethers.constants.AddressZero
+                )
             ).to.be.revertedWith("Sweep transaction must have a single output")
           })
         })
@@ -2587,15 +2598,11 @@ describe("Bridge - Deposit", () => {
               // to deem transaction proof validity. This scenario uses test
               // data which has only 6 confirmations. That should force the
               // failure we expect within this scenario.
-              otherBridge = await BridgeFactory.deploy()
-              await otherBridge.initialize(
-                bank.address,
-                relay.address,
-                treasury.address,
-                ethers.utils.hexZeroPad("0x01", 20),
-                12
+              otherBridge = (await deployBridge(12)) as BridgeStub
+              await otherBridge.setSpvMaintainerStatus(
+                spvMaintainer.address,
+                true
               )
-              await otherBridge.deployed()
             })
 
             after(async () => {
@@ -2604,12 +2611,14 @@ describe("Bridge - Deposit", () => {
 
             it("should revert", async () => {
               await expect(
-                otherBridge.submitDepositSweepProof(
-                  data.sweepTx,
-                  data.sweepProof,
-                  data.mainUtxo,
-                  ethers.constants.AddressZero
-                )
+                otherBridge
+                  .connect(spvMaintainer)
+                  .submitDepositSweepProof(
+                    data.sweepTx,
+                    data.sweepProof,
+                    data.mainUtxo,
+                    ethers.constants.AddressZero
+                  )
               ).to.be.revertedWith(
                 "Insufficient accumulated difficulty in header chain"
               )
@@ -2655,12 +2664,14 @@ describe("Bridge - Deposit", () => {
 
       it("should succeed", async () => {
         await expect(
-          bridge.submitDepositSweepProof(
-            data.sweepTx,
-            data.sweepProof,
-            data.mainUtxo,
-            ethers.constants.AddressZero
-          )
+          bridge
+            .connect(spvMaintainer)
+            .submitDepositSweepProof(
+              data.sweepTx,
+              data.sweepProof,
+              data.mainUtxo,
+              ethers.constants.AddressZero
+            )
         ).not.to.be.reverted
       })
     })
@@ -2718,12 +2729,14 @@ describe("Bridge - Deposit", () => {
 
           it("should revert", async () => {
             await expect(
-              bridge.submitDepositSweepProof(
-                data.sweepTx,
-                data.sweepProof,
-                data.mainUtxo,
-                ethers.constants.AddressZero
-              )
+              bridge
+                .connect(spvMaintainer)
+                .submitDepositSweepProof(
+                  data.sweepTx,
+                  data.sweepProof,
+                  data.mainUtxo,
+                  ethers.constants.AddressZero
+                )
             ).to.be.revertedWith("Wallet must be in Live or MovingFunds state")
           })
         })
@@ -2748,11 +2761,13 @@ describe("Bridge - Deposit", () => {
       await beforeProofActions()
     }
 
-    return bridge.submitDepositSweepProof(
-      data.sweepTx,
-      data.sweepProof,
-      data.mainUtxo,
-      data.vault
-    )
+    return bridge
+      .connect(spvMaintainer)
+      .submitDepositSweepProof(
+        data.sweepTx,
+        data.sweepProof,
+        data.mainUtxo,
+        data.vault
+      )
   }
 })

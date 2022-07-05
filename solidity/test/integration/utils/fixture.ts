@@ -32,6 +32,7 @@ export const fixture = deployments.createFixture(
   async (): Promise<{
     deployer: SignerWithAddress
     governance: SignerWithAddress
+    spvMaintainer: SignerWithAddress
     tbtc: TBTC
     bridge: Bridge
     bridgeGovernance: BridgeGovernance
@@ -43,7 +44,13 @@ export const fixture = deployments.createFixture(
     relay: FakeContract<TestRelay>
   }> => {
     await deployments.fixture()
-    const { deployer, governance } = await helpers.signers.getNamedSigners()
+    const {
+      deployer,
+      governance,
+      spvMaintainer,
+      keepTechnicalWalletTeam,
+      keepCommunityMultiSig,
+    } = await helpers.signers.getNamedSigners()
 
     const tbtc = await helpers.contracts.getContract<TBTC>("TBTC")
     const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
@@ -66,8 +73,8 @@ export const fixture = deployments.createFixture(
       tbtcVault,
       await helpers.contracts.getContract("VendingMachine"),
       governance,
-      deployer,
-      deployer
+      keepTechnicalWalletTeam,
+      keepCommunityMultiSig
     )
 
     // TODO: INTEGRATE WITH THE REAL BEACON
@@ -129,6 +136,7 @@ export const fixture = deployments.createFixture(
     return {
       deployer,
       governance,
+      spvMaintainer,
       tbtc,
       bridge,
       bridgeGovernance,
