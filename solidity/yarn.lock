@@ -1559,14 +1559,14 @@
     openzeppelin-solidity "2.3.0"
 
 "@keep-network/random-beacon@^2.0.0-dev.39", "@keep-network/random-beacon@development":
-  version "2.0.0-dev.39"
-  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.39.tgz#592e0df954931dd18896b6a6be479577d075cc59"
-  integrity sha512-fm07pJE1E2bPhw1zmY695+DVPVikRUZ/Jm2MvnDJ0Ly2mhyHOVp96zW4Yd35sNXmMN/dL+eXRc1Jkwr58NoCXA==
+  version "2.0.0-dev.43"
+  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dev.43.tgz#3a586ee76c9b1aa449112eec1dc2f11829d9cb58"
+  integrity sha512-dtQMZtBysAMZ135+0QO0RTdAvfaWa9/6KULJ376OjjKg+cTlitIqAHRfx2/Z/j2gHJWhOt3R4FrxrIdjgSBjLA==
   dependencies:
     "@keep-network/sortition-pools" "^2.0.0-pre.9"
     "@openzeppelin/contracts" "^4.6.0"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
-    "@threshold-network/solidity-contracts" ">1.2.0-dev <1.2.0-ropsten"
+    "@threshold-network/solidity-contracts" development
 
 "@keep-network/sortition-pools@1.2.0-dev.1":
   version "1.2.0-dev.1"
@@ -2065,10 +2065,10 @@
   dependencies:
     "@openzeppelin/contracts" "^4.1.0"
 
-"@threshold-network/solidity-contracts@>1.2.0-dev <1.2.0-ropsten":
-  version "1.2.0-dev.12"
-  resolved "https://registry.yarnpkg.com/@threshold-network/solidity-contracts/-/solidity-contracts-1.2.0-dev.12.tgz#3168d8adca8b4d14fba4c6a2a74ec0e5fa16ee2b"
-  integrity sha512-IUg3oeN4A2p6fpUvaew7CPC525pi55HBNfvaNryJELM3vLmtkkK3evXXvdXMtrEcEGzkQFX2wum0EBo91yph1Q==
+"@threshold-network/solidity-contracts@>1.2.0-dev <1.2.0-ropsten", "@threshold-network/solidity-contracts@development":
+  version "1.2.0-dev.15"
+  resolved "https://registry.yarnpkg.com/@threshold-network/solidity-contracts/-/solidity-contracts-1.2.0-dev.15.tgz#3415579a3be37aed452656a91124c8bd575df569"
+  integrity sha512-kETXCaWVho0uTh8Dtq3pAewlbw37tfqzFQRwh2cHjiQ78xtKpj1JZ+VbsAOnsPuLqqfCLHZmfWvK2dLfLaeFZQ==
   dependencies:
     "@keep-network/keep-core" ">1.8.1-dev <1.8.1-pre"
     "@openzeppelin/contracts" "~4.5.0"
