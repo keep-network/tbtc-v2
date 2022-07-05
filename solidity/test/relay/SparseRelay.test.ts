@@ -507,10 +507,18 @@ describe.only("SparseRelay", () => {
           relay.validate(heightOf[7], proofHeaders)
         ).to.be.revertedWith("Headers not part of the longest chain")
       })
+
+      it("should reject header chains with misreported height", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(1, 7))
+
+        await expect(
+          relay.validate(heightOf[0], proofHeaders)
+        ).to.be.revertedWith("Headers not part of the longest chain")
+      })
     })
 
     context("gas costs", () => {
-      const storedHeaders = concatenateHexStrings(headerHex.slice(0, 7))
+      const storedHeaders = concatenateHexStrings(headerHex.slice(0, 13))
 
       before(async () => {
         await createSnapshot()
@@ -539,10 +547,18 @@ describe.only("SparseRelay", () => {
         expect(txr.status).to.equal(1)
       })
 
-      it("should accept valid header chains 6..11", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(6, 12))
+      it("should accept valid header chains 3..8", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(3, 9))
 
-        const tx = await relay.validateGasReport(heightOf[6], proofHeaders)
+        const tx = await relay.validateGasReport(heightOf[3], proofHeaders)
+        const txr = await tx.wait()
+        expect(txr.status).to.equal(1)
+      })
+
+      it("should accept valid header chains 12..17", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(12, 18))
+
+        const tx = await relay.validateGasReport(heightOf[12], proofHeaders)
         const txr = await tx.wait()
         expect(txr.status).to.equal(1)
       })
