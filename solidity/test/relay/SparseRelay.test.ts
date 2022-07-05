@@ -328,13 +328,12 @@ describe.only("SparseRelay", () => {
       })
 
       context("when called with many headers, including a retarget", () => {
-        let tx: ContractTransaction
         const newHeaders = concatenateHexStrings(headerHex.slice(78, 97))
 
         before(async () => {
           await createSnapshot()
           await relay.fillBuffer(heightOf[78], 20)
-          tx = await relay.addHeaders(heightOf[78], newHeaders)
+          await relay.addHeaders(heightOf[78], newHeaders)
         })
 
         after(async () => {
@@ -426,6 +425,10 @@ describe.only("SparseRelay", () => {
   // validate
   //
   describe("validate", () => {
+    const { chain } = headers
+    const headerHex = chain.map((header) => header.hex)
+    const heightOf = chain.map((header) => header.height)
+
     before(async () => {
       await createSnapshot()
     })
@@ -434,225 +437,111 @@ describe.only("SparseRelay", () => {
       await restoreSnapshot()
     })
 
-    /*
     context("when called before genesis", () => {
-      const { chain } = headers
-      const headerHex = chain.map((header) => header.hex)
-      const proofHeaders = concatenateHexStrings(headerHex.slice(0, 4))
+      const proofHeaders = concatenateHexStrings(headerHex.slice(0, 6))
 
       it("should revert", async () => {
-        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
-          "Relay is not ready for use"
+        await expect(relay.validate(heightOf[0], proofHeaders)).to.be.revertedWith(
+          "Headers not part of the longest chain"
         )
       })
     })
 
-    context("when called after genesis (epoch 274)", () => {
-      const { chain } = headers
-      const headerHex = chain.map((header) => header.hex)
+    context("when called after genesis (block 741798)", () => {
+      const storedHeaders = concatenateHexStrings(headerHex.slice(0, 7))
 
       before(async () => {
         await createSnapshot()
-        await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
+        await relay.connect(governance).genesis(epochStart.hex, genesis.hex, genesis.height)
+        await relay.addHeaders(heightOf[0], storedHeaders)
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should accept valid header chains", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(0, 4))
-        const res = await relay.validateChain(proofHeaders)
-        expect(res[0]).to.be.above(0)
+      it("should accept valid header chains 0..5", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(0, 6))
+        expect(await relay.validate(heightOf[0], proofHeaders)).to.be.true
       })
 
-      it("should accept short header chains", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(0, 3))
-
-        const res = await relay.validateChain(proofHeaders)
-        expect(res[0]).to.be.above(0)
+      it("should accept valid header chains 1..6", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(1, 7))
+        expect(await relay.validate(heightOf[1], proofHeaders)).to.be.true
       })
 
-      it("should accept long header chains", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(0, 9))
-
-        const res = await relay.validateChain(proofHeaders)
-        expect(res[0]).to.be.above(0)
+      it("should accept valid header chains 6..11", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(6, 12))
+        expect(await relay.validate(heightOf[6], proofHeaders)).to.be.true
       })
 
       it("should reject single headers", async () => {
-        await expect(relay.validateChain(headerHex[0])).to.be.revertedWith(
-          "Invalid number of headers"
+        await expect(relay.validate(heightOf[0], headerHex[0])).to.be.revertedWith(
+          "Invalid header length"
         )
       })
 
-      it("should reject header chains with an unknown retarget", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(6, 10))
+      it("should reject 5 headers", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(0, 5))
 
-        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
-          "Invalid target in header chain"
+        await expect(relay.validate(heightOf[0], proofHeaders)).to.be.revertedWith(
+          "Invalid header length"
         )
       })
 
-      it("should reject header chains in a future epoch", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(9, 13))
+      it("should reject 7 headers", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(0, 7))
 
-        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
-          "Invalid target in header chain"
-        )
-      })
-    })
-
-    context("when called after genesis (epoch 275)", () => {
-      const { chain } = headers
-      const headerHex = chain.map((header) => header.hex)
-
-      before(async () => {
-        await createSnapshot()
-        await relay
-          .connect(governance)
-          .genesis(nextStartHeader, nextEpochHeight, 4)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      it("should accept valid header chains", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(9, 13))
-        const res = await relay.validateChain(proofHeaders)
-        expect(res[0]).to.be.above(0)
-      })
-
-      it("should reject header chains partially in a past epoch", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(8, 12))
-
-        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
-          "Cannot validate chains before relay genesis"
+        await expect(relay.validate(heightOf[0], proofHeaders)).to.be.revertedWith(
+          "Invalid header length"
         )
       })
 
-      it("should reject header chains fully in a past epoch", async () => {
-        const proofHeaders = concatenateHexStrings(headerHex.slice(5, 9))
+      it("should reject header chains not anchored to the relay", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(7, 13))
 
-        await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
-          "Cannot validate chains before relay genesis"
+        await expect(relay.validate(heightOf[7], proofHeaders)).to.be.revertedWith(
+          "Headers not part of the longest chain"
         )
-      })
-    })
-
-    context("when called after a retarget", () => {
-      const { chain } = headers
-      const headerHex = chain.map((header) => header.hex)
-      const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
-
-      before(async () => {Chain
-        await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
-        await relay.connect(thirdParty).retarget(retargetHeaders)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      context("in the genesis epoch", () => {
-        it("should accept valid header chains", async () => {
-          const proofHeaders = concatenateHexStrings(headerHex.slice(0, 4))
-          const res = await relay.validateChain(proofHeaders)
-          expect(res[0]).to.be.above(0)Chain
-          expect(res[0]).to.be.above(0)
-        })
-
-        it("should accept valid header chains (2 before, 2 after)", async () => {
-          const proofHeaders = concatenateHexStrings(headerHex.slice(7, 11))
-          const res = await relay.validateChain(proofHeaders)
-          expect(res[0]).to.be.above(0)
-        })
-
-        it("should accept valid header chains (1 before, 3 after)", async () => {
-          const proofHeaders = concatenateHexStrings(headerHex.slice(8, 12))
-          const res = await relay.validateChain(proofHeaders)
-          expect(res[0]).to.be.above(0)
-        })
-      })
-
-      context("in the new epoch", () => {
-        it("should accept valid header chains", async () => {
-          const proofHeaders = concatenateHexStrings(headerHex.slice(9, 13))
-          const res = await relay.validateChain(proofHeaders)
-          expect(res[0]).to.be.above(0)
-        })
-      })
-    })
-
-    context("with chain reorgs", () => {
-      const { postRetargetChain } = reorgHeadersChain
-          .genesis(reorgGenesis.hex, reorgGenesis.height, 8)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      context("valid chains", () => {
-        it("should be accepted", async () => {
-          const proofHeaders = concatenateHexStrings(reorgHex)
-          const res = await relay.validateChain(proofHeaders)
-          expect(res[0]).to.be.above(0)
-        })
-      })
-
-      context("invalid chains", () => {
-        it("should be rejected", async () => {
-          const pre = concatenateHexStrings(reorgHex.slice(0, 6))
-          const orphan = reorgHeaders.orphan_437478.hex
-          const post = reorgHex[7]
-          const proofHeaders = concatenateHexStrings([pre, orphan, post])
-          await expect(relay.validateChain(proofHeaders)).to.be.revertedWith(
-            "Invalid chain"
-          )
-        })
       })
     })
 
     context("gas costs", () => {
-      const { chain } = headers
-      const headerHex = chain.map((header) => header.hex)
-      const retargetHeaders = concatenateHexStrings(headerHex.slice(5, 13))
+      const storedHeaders = concatenateHexStrings(headerHex.slice(0, 7))
 
       before(async () => {
         await createSnapshot()
-        await relay.connect(governance).genesis(genesisHeader, genesisHeight, 4)
-        await relay.connect(thirdParty).retarget(retargetHeaders)
+        await relay.connect(governance).genesis(epochStart.hex, genesis.hex, genesis.height)
+        await relay.addHeaders(heightOf[0], storedHeaders)
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      context("with proof length 6", () => {
-        it("should accept valid header chains", async () => {
-          const proofHeaders = concatenateHexStrings(headerHex.slice(5, 11))
-          await relay.connect(governance).setProofLength(6)
-          const tx = await relay.validateChainGasReport(proofHeaders)
-          const txr = await tx.wait()
-
-          expect(txr.status).to.equal(1)
-        })
+      it("should accept valid header chains 0..5", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(0, 6))
+        const tx = await relay.validateGasReport(heightOf[0], proofHeaders)
+        const txr = await tx.wait()
+        expect(txr.status).to.equal(1)
       })
 
-      context("with proof length 18", () => {
-        it("should accept valid header chains", async () => {
-          const proofHeaders = concatenateHexStrings(headerHex)
-          await relay.connect(governance).setProofLength(18)
-          const tx = await relay.validateChainGasReport(proofHeaders)
-          const txr = await tx.wait()
+      it("should accept valid header chains 1..6", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(1, 7))
 
-          expect(txr.status).to.equal(1)
-        })
+        const tx = await relay.validateGasReport(heightOf[1], proofHeaders)
+        const txr = await tx.wait()
+        expect(txr.status).to.equal(1)
+      })
+
+      it("should accept valid header chains 6..11", async () => {
+        const proofHeaders = concatenateHexStrings(headerHex.slice(6, 12))
+
+        const tx = await relay.validateGasReport(heightOf[6], proofHeaders)
+        const txr = await tx.wait()
+        expect(txr.status).to.equal(1)
       })
     })
-    */
   })
   //
   // end validate
