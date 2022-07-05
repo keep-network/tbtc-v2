@@ -45,7 +45,7 @@ interface ISparseRelay {}
 
 library SparseRelayUtils {
     using BytesLib for bytes;
-    
+
     function position(uint256 height) internal pure returns (uint256) {
         return height % 2016;
     }
@@ -57,11 +57,19 @@ library SparseRelayUtils {
         }
     }
 
-    function addBlock(Chain storage self, uint256 height, bytes32 digest) internal {
+    function addBlock(
+        Chain storage self,
+        uint256 height,
+        bytes32 digest
+    ) internal {
         self.blocks[height % 2016] = digest;
     }
 
-    function getDigest(Chain storage self, uint256 height) internal view returns (bytes32) {
+    function getDigest(Chain storage self, uint256 height)
+        internal
+        view
+        returns (bytes32)
+    {
         return self.blocks[height % 2016];
     }
 
@@ -141,20 +149,16 @@ contract SparseRelay is Ownable, ISparseRelay {
     /// non-orphan block recorded in the relay that is present in both chains.
     /// The number of new headers must be divisible by six; thus the total
     /// number of headers will be of the form 6k+1.
-    function addHeaders(uint256 ancestorHeight, bytes calldata headers) external {
+    function addHeaders(uint256 ancestorHeight, bytes calldata headers)
+        external
+    {
         require(ancestorHeight % 6 == 0, "Invalid ancestor height");
         require(chain.height > 0, "Relay is not initialised");
         require(headers.length % 80 == 0, "Invalid header array");
         uint256 headerCount = headers.length / 80;
         require(headerCount % 6 == 1, "Invalid number of headers");
 
-        Data memory data = Data(
-            0,
-            0,
-            bytes32(0),
-            0,
-            0
-        );
+        Data memory data = Data(0, 0, bytes32(0), 0, 0);
 
         data.previousHeaderDigest = headers.getDigest(0);
 
@@ -193,7 +197,7 @@ contract SparseRelay is Ownable, ISparseRelay {
                 else {
                     epochStartTime = chain.previousEpochStart;
                 }
-                
+
                 uint256 epochEndTimestamp = headers.extractTimestampAt(i * 80);
                 // Prevent difficulty manipulation by requiring that the epoch
                 // ends in the past. Without this check, an attacker could
@@ -250,7 +254,10 @@ contract SparseRelay is Ownable, ISparseRelay {
             //
             // If the attempted retarget is not strictly longer than the
             // previous longest chain, we revert to reverses all state changes.
-            require(chain.height < data.newHeight, "Insufficient length in reorg");
+            require(
+                chain.height < data.newHeight,
+                "Insufficient length in reorg"
+            );
         }
         chain.height = uint32(data.newHeight);
     }

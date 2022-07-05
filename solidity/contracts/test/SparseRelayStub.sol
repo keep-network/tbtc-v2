@@ -18,7 +18,10 @@ contract SparseRelayStub is SparseRelay {
     // Fill the ring buffer with garbage from ancestorHeight onwards
     function fillBuffer(uint256 ancestorHeight, uint256 positions) external {
         for (uint256 i = 1; i <= positions; i++) {
-            chain.addBlock(ancestorHeight + (i * 6), keccak256(abi.encodePacked(i)));
+            chain.addBlock(
+                ancestorHeight + (i * 6),
+                keccak256(abi.encodePacked(i))
+            );
         }
         chain.previousEpochStart = 1;
     }
