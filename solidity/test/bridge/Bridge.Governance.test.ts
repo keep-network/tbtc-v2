@@ -1,7 +1,7 @@
-import { helpers, waffle, ethers } from "hardhat"
+import { helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
-import { ContractTransaction, BigNumber } from "ethers"
+import { ContractTransaction } from "ethers"
 import type { BridgeGovernance, Bridge } from "../../typechain"
 import { constants } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
@@ -48,17 +48,6 @@ describe("Bridge - Governance", () => {
         expect(await bridgeGovernance.governanceDelays(0)).to.be.equal(
           constants.governanceDelay
         )
-      })
-
-      it("should start the governance delay timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = await bridgeGovernance.governanceDelays(2)
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
       })
     })
   })
@@ -170,20 +159,8 @@ describe("Bridge - Governance", () => {
         expect(await bridgeGovernance.owner()).to.be.equal(governance.address)
       })
 
-      it("should start the bridge governance transfer timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit BridgeGovernanceTransferStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "BridgeGovernanceTransferStarted")
           .withArgs(thirdParty.address, blockTimestamp)
@@ -301,20 +278,8 @@ describe("Bridge - Governance", () => {
         expect(depositDustThreshold).to.be.equal(constants.depositDustThreshold)
       })
 
-      it("should start the deposit dust threshold timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit DepositDustThresholdUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "DepositDustThresholdUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -439,20 +404,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the deposit treasury fee divisor timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit DepositTreasuryFeeDivisorUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "DepositTreasuryFeeDivisorUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -573,20 +526,8 @@ describe("Bridge - Governance", () => {
         expect(depositTxMaxFee).to.be.equal(constants.depositTxMaxFee)
       })
 
-      it("should start the deposit tx max fee timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit DepositTxMaxFeeUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "DepositTxMaxFeeUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -705,20 +646,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the redemption dust threshold timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit RedemptionDustThresholdUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "RedemptionDustThresholdUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -851,20 +780,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the redemption treasury fee divisor timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit RedemptionTreasuryFeeDivisorUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
@@ -993,20 +910,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the redemption tx max total fee timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit RedemptionTxMaxTotalFeeUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "RedemptionTxMaxTotalFeeUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -1138,20 +1043,8 @@ describe("Bridge - Governance", () => {
         expect(redemptionTimeout).to.be.equal(constants.redemptionTimeout)
       })
 
-      it("should start the redemption timeout timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit RedemptionTimeoutUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "RedemptionTimeoutUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -1269,20 +1162,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the redemption timeout slashing amount timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit RedemptionTimeoutSlashingAmountUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
@@ -1410,20 +1291,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the redemption timeout notifier reward multiplier timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit RedemptionTimeoutNotifierRewardMultiplierUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
@@ -1554,20 +1423,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the moving funds tx max total fee timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovingFundsTxMaxTotalFeeUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "MovingFundsTxMaxTotalFeeUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -1694,20 +1551,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the moving funds dust threshold timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovingFundsDustThresholdUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "MovingFundsDustThresholdUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -1834,20 +1679,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the moving funds timeout reset delay timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovingFundsTimeoutResetDelayUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
@@ -1972,20 +1805,8 @@ describe("Bridge - Governance", () => {
         expect(movingFundsTimeout).to.be.equal(constants.movingFundsTimeout)
       })
 
-      it("should start the moving funds timeout timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovingFundsTimeoutUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "MovingFundsTimeoutUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -2115,20 +1936,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the moving funds timeout slashing amount timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovingFundsTimeoutSlashingAmountUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
@@ -2259,20 +2068,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the moving funds timeout notifier reward multiplier timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovingFundsTimeoutNotifierRewardMultiplierUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
@@ -2403,20 +2200,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the moved funds sweep tx max total fee timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovedFundsSweepTxMaxTotalFeeUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
@@ -2545,20 +2330,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the moved funds sweep timeout timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovedFundsSweepTimeoutUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "MovedFundsSweepTimeoutUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -2685,20 +2458,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the moved funds sweep timeout slashing amount timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovedFundsSweepTimeoutSlashingAmountUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
@@ -2829,20 +2590,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the moved funds sweep timeout notifier reward multiplier timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit MovedFundsSweepTimeoutNotifierRewardMultiplierUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
@@ -2970,20 +2719,8 @@ describe("Bridge - Governance", () => {
         expect(walletCreationPeriod).to.be.equal(constants.walletCreationPeriod)
       })
 
-      it("should start the wallet creation period timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit WalletCreationPeriodUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "WalletCreationPeriodUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -3106,20 +2843,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the wallet creation min btc balance timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit WalletCreationMinBtcBalanceUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "WalletCreationMinBtcBalanceUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -3243,20 +2968,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the wallet creation max btc balance timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit WalletCreationMaxBtcBalanceUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "WalletCreationMaxBtcBalanceUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -3388,20 +3101,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the wallet closure min btc balance timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit WalletClosureMinBtcBalanceUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "WalletClosureMinBtcBalanceUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -3522,20 +3223,8 @@ describe("Bridge - Governance", () => {
         expect(walletMaxAge).to.be.equal(constants.walletMaxAge)
       })
 
-      it("should start the wallet max age timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit WalletMaxAgeUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "WalletMaxAgeUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -3648,20 +3337,8 @@ describe("Bridge - Governance", () => {
         expect(walletMaxBtcTransfer).to.be.equal(constants.walletMaxBtcTransfer)
       })
 
-      it("should start the wallet max btc transfer timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit WalletMaxBtcTransferUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "WalletMaxBtcTransferUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -3782,20 +3459,8 @@ describe("Bridge - Governance", () => {
         expect(walletClosingPeriod).to.be.equal(constants.walletClosingPeriod)
       })
 
-      it("should start the wallet closing period timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit WalletClosingPeriodUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "WalletClosingPeriodUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -3918,20 +3583,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the fraud challenge deposit amount timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit FraudChallengeDepositAmountUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "FraudChallengeDepositAmountUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -4054,20 +3707,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the fraud challenge defeat timeout timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit FraudChallengeDefeatTimeoutUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "FraudChallengeDefeatTimeoutUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -4188,20 +3829,8 @@ describe("Bridge - Governance", () => {
         expect(fraudSlashingAmount).to.be.equal(constants.fraudSlashingAmount)
       })
 
-      it("should start the fraud slashing amount timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit FraudSlashingAmountUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(bridgeGovernance, "FraudSlashingAmountUpdateStarted")
           .withArgs(1337, blockTimestamp)
@@ -4324,20 +3953,8 @@ describe("Bridge - Governance", () => {
         )
       })
 
-      it("should start the fraud notifier reward multiplier timer", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        const initTimestamp = (await tx.wait()).events[0].args.timestamp
-        const elapsedTime = BigNumber.from(blockTimestamp).sub(initTimestamp)
-
-        expect(
-          BigNumber.from(constants.governanceDelay).sub(elapsedTime)
-        ).to.be.equal(constants.governanceDelay)
-      })
-
       it("should emit FraudNotifierRewardMultiplierUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
+        const blockTimestamp = await helpers.time.lastBlockTime()
         await expect(tx)
           .to.emit(
             bridgeGovernance,
