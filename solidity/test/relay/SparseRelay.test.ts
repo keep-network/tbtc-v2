@@ -251,6 +251,14 @@ describe.only("SparseRelay", () => {
       })
 
       context("with incorrect number of headers", () => {
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+        
         const newHeaders = concatenateHexStrings(headerHex.slice(0, 6))
         it("should revert", async () => {
           await expect(
@@ -260,6 +268,14 @@ describe.only("SparseRelay", () => {
       })
 
       context("with invalid ancestor", () => {
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         const newHeaders = concatenateHexStrings(headerHex.slice(1, 8))
         it("should revert", async () => {
           await expect(
@@ -275,6 +291,14 @@ describe.only("SparseRelay", () => {
       })
 
       context("with ancestor that isn't the most recent one", () => {
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
         const newHeaders = concatenateHexStrings(headerHex.slice(0, 7))
         const newerHeaders = concatenateHexStrings(headerHex.slice(0, 13))
 
@@ -283,6 +307,21 @@ describe.only("SparseRelay", () => {
           await expect(
             relay.addHeaders(heightOf[0], newerHeaders)
           ).to.be.revertedWith("Invalid ancestor block")
+        })
+      })
+
+      context("with zero new headers", () => {
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("does an oopsie woopsie", async () => {
+          await relay.addHeaders(heightOf[0], headerHex[0])
+          expect(await relay.getHeight()).to.equal(0)
         })
       })
     })
