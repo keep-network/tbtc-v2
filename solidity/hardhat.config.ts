@@ -95,7 +95,6 @@ const config: HardhatUserConfig = {
       // for gas refund tests than when the default hardhat ~1 gwei gas price is
       // used
       gasPrice: 200000000000, // 200 gwei
-      allowUnlimitedContractSize: true,
     },
     development: {
       url: "http://localhost:8545",
