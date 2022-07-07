@@ -156,7 +156,10 @@ contract SparseRelay is Ownable, ISparseRelay {
         require(chain.height > 0, "Relay is not initialised");
         require(headers.length % 80 == 0, "Invalid header array");
         uint256 headerCount = headers.length / 80;
-        require(headerCount % 6 == 1, "Invalid number of headers");
+        require(
+            headerCount % 6 == 1 && headerCount > 1,
+            "Invalid number of headers"
+        );
 
         Data memory data = Data(0, 0, bytes32(0), 0, 0);
 

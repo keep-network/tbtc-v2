@@ -258,7 +258,7 @@ describe.only("SparseRelay", () => {
         after(async () => {
           await restoreSnapshot()
         })
-        
+
         const newHeaders = concatenateHexStrings(headerHex.slice(0, 6))
         it("should revert", async () => {
           await expect(
@@ -319,9 +319,10 @@ describe.only("SparseRelay", () => {
           await restoreSnapshot()
         })
 
-        it("does an oopsie woopsie", async () => {
-          await relay.addHeaders(heightOf[0], headerHex[0])
-          expect(await relay.getHeight()).to.equal(0)
+        it("should revert", async () => {
+          await expect(
+            relay.addHeaders(heightOf[0], headerHex[0])
+          ).to.be.revertedWith("Invalid number of headers")
         })
       })
     })
