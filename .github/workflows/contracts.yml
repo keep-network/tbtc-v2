@@ -146,21 +146,34 @@ jobs:
         id: upstream-builds-query
         with:
           upstream-builds: ${{ github.event.inputs.upstream_builds }}
-          query: tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
+          query: |
+            random-beacon-contracts-version = github.com/keep-network/keep-core/solidity/random-beacon#version
+            ecdsa-contracts-version = github.com/keep-network/keep-core/solidity/ecdsa#version
 
       - name: Resolve latest contracts
-        run: yarn upgrade @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+        run: |
+          yarn upgrade \
+            @keep-network/random-beacon@${{ steps.upstream-builds-query.outputs.random-beacon-contracts-version }} \
+            @keep-network/ecdsa@${{ steps.upstream-builds-query.outputs.ecdsa-contracts-version }}
+            @keep-network/tbtc@1.1.2-goerli.0
 
       - name: Configure tenderly
-        if: github.event.inputs.environment == 'ropsten'
         env:
           TENDERLY_TOKEN: ${{ secrets.TENDERLY_TOKEN }}
         run: ./config_tenderly.sh
 
-      - name: Deploy contracts
+      - name: Deploy contracts on Ropsten
+        if: github.event.inputs.environment == 'ropsten'
         env:
-          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
-          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.KEEP_TEST_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
+          CHAIN_API_URL: ${{ secrets.ROPSTEN_ETH_HOSTNAME_HTTP }}
+          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.ROPSTEN_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
+        run: yarn deploy --network ${{ github.event.inputs.environment }}
+
+      - name: Deploy contracts on Goerli
+        if: github.event.inputs.environment == 'goerli'
+        env:
+          CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
+          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOERLI_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
         run: yarn deploy --network ${{ github.event.inputs.environment }}
 
       - name: Bump up package version
@@ -175,10 +188,13 @@ jobs:
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access=public --tag ${{ github.event.inputs.environment }} --network=${{ github.event.inputs.environment }}
+        # TODO: remove `--dry-run` before merge to main
+        run: npm publish --access=public --tag ${{ github.event.inputs.environment }} --network=${{ github.event.inputs.environment }}  --dry-run
 
+      # TODO: restore commented out `uses` config before merge to `main``
       - name: Notify CI about completion of the workflow
-        uses: keep-network/ci/actions/notify-workflow-completed@v1
+        # uses: keep-network/ci/actions/notify-workflow-completed@v1
+        uses: keep-network/ci/actions/notify-workflow-completed@ci-goerli
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         with:
