@@ -39,6 +39,8 @@ jobs:
       - name: Resolve latest contracts
         run: |
           yarn upgrade --exact \
+            @keep-network/ecdsa \
+            @keep-network/random-beacon \
             @keep-network/tbtc
 
       # Deploy contracts to a local network to generate deployment artifacts that
