@@ -113,7 +113,9 @@ jobs:
 
   contracts-deployment-testnet:
     needs: [contracts-detect-changes, contracts-build-and-test]
-    if: github.event_name == 'workflow_dispatch'
+    if: |
+      github.event_name == 'workflow_dispatch'
+        && github.event.inputs.environment == 'goerli'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -162,15 +164,7 @@ jobs:
           TENDERLY_TOKEN: ${{ secrets.TENDERLY_TOKEN }}
         run: ./config_tenderly.sh
 
-      - name: Deploy contracts on Ropsten
-        if: github.event.inputs.environment == 'ropsten'
-        env:
-          CHAIN_API_URL: ${{ secrets.ROPSTEN_ETH_HOSTNAME_HTTP }}
-          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.ROPSTEN_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
-        run: yarn deploy --network ${{ github.event.inputs.environment }}
-
-      - name: Deploy contracts on Goerli
-        if: github.event.inputs.environment == 'goerli'
+      - name: Deploy contract
         env:
           CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
           CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOERLI_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
@@ -258,7 +252,7 @@ jobs:
       - name: Verify contracts on Etherscan
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
-          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
+          CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
         run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify --license MIT
 
   contracts-format:
