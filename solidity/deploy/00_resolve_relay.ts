@@ -11,8 +11,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (BitcoinRelay && helpers.address.isValid(BitcoinRelay.address)) {
     log(`using external BitcoinRelay at ${BitcoinRelay.address}`)
   } else if (
-    !hre.network.tags.allowStubs ||
-    (hre.network.config as HardhatNetworkConfig)?.forking?.enabled
+    // TODO: Temporarily deploy a stub for Goerli network.
+    hre.network.name !== "goerli" &&
+    (!hre.network.tags.allowStubs ||
+      (hre.network.config as HardhatNetworkConfig)?.forking?.enabled)
   ) {
     throw new Error("deployed BitcoinRelay contract not found")
   } else {
