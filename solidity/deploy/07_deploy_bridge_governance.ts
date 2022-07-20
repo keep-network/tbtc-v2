@@ -13,6 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     {
       from: deployer,
       log: true,
+      waitConfirmations: 1,
     }
   )
 
@@ -25,6 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     libraries: {
       BridgeGovernanceParameters: BridgeGovernanceParameters.address,
     },
+    waitConfirmations: 1,
   })
 
   if (hre.network.tags.tenderly) {

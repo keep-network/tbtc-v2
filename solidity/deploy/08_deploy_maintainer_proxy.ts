@@ -14,6 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [Bridge.address, ReimbursementPool.address],
     log: true,
+    waitConfirmations: 1,
   })
 
   if (hre.network.tags.tenderly) {

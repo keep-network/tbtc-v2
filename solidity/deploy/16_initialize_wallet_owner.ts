@@ -6,6 +6,8 @@ import initializeWalletOwner from "@keep-network/ecdsa/export/tasks/initialize-w
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   const Bridge = await hre.deployments.get("Bridge")
 
+  hre.deployments.log("initializing Bridge as ECDSA wallet owner")
+
   await initializeWalletOwner(hre, Bridge.address)
 }
 

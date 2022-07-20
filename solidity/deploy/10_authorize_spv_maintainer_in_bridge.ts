@@ -3,8 +3,10 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
-  const { execute } = deployments
+  const { execute, log } = deployments
   const { deployer, spvMaintainer } = await getNamedAccounts()
+
+  log(`authorizing spv maintainer: ${spvMaintainer}`)
 
   await execute(
     "Bridge",
