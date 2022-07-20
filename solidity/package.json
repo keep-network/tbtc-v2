@@ -12,7 +12,7 @@
     "export.json"
   ],
   "scripts": {
-    "clean": "hardhat clean",
+    "clean": "hardhat clean && rm -rf cache/ export/ external/npm export.json",
     "build": "hardhat compile",
     "deploy": "hardhat deploy --export export.json",
     "deploy:test": "TEST_USE_STUBS_TBTC=true npm run deploy",
