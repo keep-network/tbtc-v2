@@ -6,4 +6,6 @@ import fs from "fs"
 if (fs.existsSync("./typechain")) {
   // eslint-disable-next-line global-require
   require("./test-utils")
+  // eslint-disable-next-line global-require
+  require("./stake")
 }
