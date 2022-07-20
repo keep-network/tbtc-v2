@@ -22,6 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "TestRelay",
       from: deployer,
       log: true,
+      waitConfirmations: 1,
     })
   }
 }
