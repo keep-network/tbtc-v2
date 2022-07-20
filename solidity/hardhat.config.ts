@@ -145,8 +145,18 @@ const config: HardhatUserConfig = {
     deployments: {
       // For development environment we expect the local dependencies to be
       // linked with `yarn link` command.
-      development: ["node_modules/@keep-network/tbtc/artifacts"],
-      ropsten: ["node_modules/@keep-network/tbtc/artifacts"],
+      development: [
+        "node_modules/@keep-network/tbtc/artifacts",
+        "node_modules/@threshold-network/solidity-contracts/artifacts",
+        "node_modules/@keep-network/random-beacon/artifacts",
+        "node_modules/@keep-network/ecdsa/artifacts",
+      ],
+      goerli: [
+        "node_modules/@keep-network/tbtc/artifacts",
+        "node_modules/@threshold-network/solidity-contracts/artifacts",
+        "node_modules/@keep-network/random-beacon/artifacts",
+        "node_modules/@keep-network/ecdsa/artifacts",
+      ],
       mainnet: ["./external/mainnet"],
     },
   },
