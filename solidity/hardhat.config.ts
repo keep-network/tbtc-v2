@@ -104,9 +104,9 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["allowStubs"],
     },
-    ropsten: {
+    goerli: {
       url: process.env.CHAIN_API_URL || "",
-      chainId: 3,
+      chainId: 5,
       accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
@@ -154,29 +154,36 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 1,
+      goerli: 0,
     },
     treasury: {
       default: 2,
+      goerli: 0,
     },
     // TODO: Governance should be the Threshold Council.
     //       Inspect usages and rename.
     governance: {
       default: 3,
+      goerli: 0,
     },
     keepTechnicalWalletTeam: {
       default: 4,
+      goerli: 0,
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
       default: 5,
+      goerli: 0,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
     esdm: {
       default: 6,
+      goerli: 0,
       // mainnet: ""
     },
     spvMaintainer: {
       default: 7,
+      goerli: 0,
     },
   },
   dependencyCompiler: {
