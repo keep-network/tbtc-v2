@@ -123,25 +123,29 @@ const config: HardhatUserConfig = {
   // localNetworksConfig: "./.hardhat/networks.ts",
 
   external: {
-    contracts: [
-      {
-        artifacts: "node_modules/@keep-network/tbtc/artifacts",
-      },
-      {
-        artifacts:
-          "node_modules/@threshold-network/solidity-contracts/export/artifacts",
-        deploy:
-          "node_modules/@threshold-network/solidity-contracts/export/deploy",
-      },
-      {
-        artifacts: "node_modules/@keep-network/random-beacon/export/artifacts",
-        deploy: "node_modules/@keep-network/random-beacon/export/deploy",
-      },
-      {
-        artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
-        deploy: "node_modules/@keep-network/ecdsa/export/deploy",
-      },
-    ],
+    contracts:
+      process.env.USE_EXTERNAL_DEPLOY === "true"
+        ? [
+            {
+              artifacts: "node_modules/@keep-network/tbtc/artifacts",
+            },
+            {
+              artifacts:
+                "node_modules/@threshold-network/solidity-contracts/export/artifacts",
+              deploy:
+                "node_modules/@threshold-network/solidity-contracts/export/deploy",
+            },
+            {
+              artifacts:
+                "node_modules/@keep-network/random-beacon/export/artifacts",
+              deploy: "node_modules/@keep-network/random-beacon/export/deploy",
+            },
+            {
+              artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
+              deploy: "node_modules/@keep-network/ecdsa/export/deploy",
+            },
+          ]
+        : undefined,
     deployments: {
       // For development environment we expect the local dependencies to be
       // linked with `yarn link` command.
