@@ -6,12 +6,7 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types"
 task("increase-authorization", "Increases authorization")
   .addParam("owner", "Stake Owner address", undefined, types.string)
   .addParam("provider", "Staking Provider", undefined, types.string)
-  .addParam(
-    "application",
-    "Application Contract Name",
-    undefined,
-    types.string
-  )
+  .addParam("application", "Application Contract Name", undefined, types.string)
   .addOptionalParam("authorizer", "Stake Authorizer", undefined, types.string)
   .addOptionalParam(
     "authorization",

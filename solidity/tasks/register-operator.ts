@@ -6,12 +6,7 @@ task("register-operator", "Registers the operator")
   .addParam("owner", "Stake Owner address", undefined, types.string)
   .addParam("provider", "Staking Provider", undefined, types.string)
   .addParam("operator", "Staking Operator", undefined, types.string)
-  .addParam(
-    "application",
-    "Application Contract Name",
-    undefined,
-    types.string
-  )
+  .addParam("application", "Application Contract Name", undefined, types.string)
   .setAction(async (args, hre) => {
     await setup(hre, args)
   })
