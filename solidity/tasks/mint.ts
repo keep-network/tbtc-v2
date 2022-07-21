@@ -5,7 +5,7 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types"
 
 task("mint", "Mints and approves T tokens for staking")
   .addParam("owner", "Stake Owner address", undefined, types.string)
-  .addOptionalParam("amount", "Stake amount", 1_000_000, types.int)
+  .addOptionalParam("amount", "Amount to mint", 1_000_000, types.int)
   .setAction(async (args, hre) => {
     await setup(hre, args)
   })

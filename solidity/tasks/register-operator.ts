@@ -8,7 +8,7 @@ task("register-operator", "Registers the operator")
   .addParam("operator", "Staking Operator", undefined, types.string)
   .addParam(
     "application",
-    "Name of the Application Contract",
+    "Application Contract Name",
     undefined,
     types.string
   )

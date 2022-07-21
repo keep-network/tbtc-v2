@@ -8,7 +8,7 @@ task("increase-authorization", "Increases authorization")
   .addParam("provider", "Staking Provider", undefined, types.string)
   .addParam(
     "application",
-    "Name of the Application Contract",
+    "Application Contract Name",
     undefined,
     types.string
   )
