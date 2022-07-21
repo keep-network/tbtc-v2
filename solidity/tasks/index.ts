@@ -7,5 +7,11 @@ if (fs.existsSync("./typechain")) {
   // eslint-disable-next-line global-require
   require("./test-utils")
   // eslint-disable-next-line global-require
+  require("./mint")
+  // eslint-disable-next-line global-require
   require("./stake")
+  // eslint-disable-next-line global-require
+  require("./increase-authorization")
+  // eslint-disable-next-line global-require
+  require("./register-operator")
 }
