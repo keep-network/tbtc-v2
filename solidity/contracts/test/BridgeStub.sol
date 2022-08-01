@@ -8,43 +8,6 @@ import "../bridge/MovingFunds.sol";
 import "../bridge/Wallets.sol";
 
 contract BridgeStub is Bridge {
-    function setSweptDeposits(BitcoinTx.UTXO[] calldata utxos) external {
-        for (uint256 i = 0; i < utxos.length; i++) {
-            uint256 utxoKey = uint256(
-                keccak256(
-                    abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
-                )
-            );
-            self.deposits[utxoKey].sweptAt = 1641650400;
-        }
-    }
-
-    function setSpentMainUtxos(BitcoinTx.UTXO[] calldata utxos) external {
-        for (uint256 i = 0; i < utxos.length; i++) {
-            uint256 utxoKey = uint256(
-                keccak256(
-                    abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
-                )
-            );
-            self.spentMainUTXOs[utxoKey] = true;
-        }
-    }
-
-    function setProcessedMovedFundsSweepRequests(
-        BitcoinTx.UTXO[] calldata utxos
-    ) external {
-        for (uint256 i = 0; i < utxos.length; i++) {
-            uint256 utxoKey = uint256(
-                keccak256(
-                    abi.encodePacked(utxos[i].txHash, utxos[i].txOutputIndex)
-                )
-            );
-            self.movedFundsSweepRequests[utxoKey].state = MovingFunds
-                .MovedFundsSweepRequestState
-                .Processed;
-        }
-    }
-
     function setActiveWallet(bytes20 activeWalletPubKeyHash) external {
         self.activeWalletPubKeyHash = activeWalletPubKeyHash;
     }

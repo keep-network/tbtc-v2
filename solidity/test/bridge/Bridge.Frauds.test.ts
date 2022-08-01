@@ -5,10 +5,10 @@ import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { SigningKey } from "ethers/lib/utils"
 import chai, { expect } from "chai"
-import { BigNumber, ContractTransaction } from "ethers"
+import { BigNumber, Contract, ContractTransaction } from "ethers"
 import { BytesLike } from "@ethersproject/bytes"
 import { FakeContract, smock } from "@defi-wonderland/smock"
-import type { IWalletRegistry, Bridge, BridgeStub } from "../../typechain"
+import type { IWalletRegistry, Bridge, BridgeFraudStub } from "../../typechain"
 import {
   wallet as fraudWallet,
   nonWitnessSignSingleInputTx,
@@ -35,7 +35,7 @@ describe("Bridge - Fraud", () => {
   let treasury: SignerWithAddress
 
   let walletRegistry: FakeContract<IWalletRegistry>
-  let bridge: Bridge & BridgeStub
+  let bridge: Bridge & BridgeFraudStub
 
   let fraudChallengeDepositAmount: BigNumber
   let fraudChallengeDefeatTimeout: number
@@ -43,9 +43,14 @@ describe("Bridge - Fraud", () => {
   let fraudNotifierRewardMultiplier: number
 
   before(async () => {
+    let deployBridge: (bridgeType: string, txProofDifficultyFactor: number) => Promise<Contract>
+
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ thirdParty, treasury, walletRegistry, bridge } =
+    ;({ thirdParty, treasury, walletRegistry, deployBridge } =
       await waffle.loadFixture(bridgeFixture))
+
+    bridge = (await deployBridge("BridgeFraudStub", 6)) as BridgeFraudStub
+
     ;({
       fraudChallengeDepositAmount,
       fraudChallengeDefeatTimeout,

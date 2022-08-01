@@ -52,7 +52,7 @@ describe("Bridge - Moving funds", () => {
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
-  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
+  let deployBridge: (bridgeType: string, txProofDifficultyFactor: number) => Promise<Contract>
 
   let movingFundsTimeoutResetDelay: number
   let movingFundsTimeout: number
@@ -1921,7 +1921,7 @@ describe("Bridge - Moving funds", () => {
       context(
         "when accumulated difficulty in headers chain is insufficient",
         () => {
-          let otherBridge: BridgeStub
+          let otherBridge: Bridge
           const data: MovingFundsTestData = JSON.parse(
             JSON.stringify(SingleTargetWallet)
           )
@@ -1938,7 +1938,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = (await deployBridge(12)) as BridgeStub
+            otherBridge = (await deployBridge("Bridge", 12)) as Bridge
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true
@@ -3436,7 +3436,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = (await deployBridge(12)) as BridgeStub
+            otherBridge = (await deployBridge("Bridge", 12)) as Bridge
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true

@@ -66,13 +66,25 @@ export default async function bridgeFixture() {
 
   await bank.connect(governance).updateBridge(bridge.address)
 
-  // Deploys a new instance of Bridge contract behind a proxy. Allows to
-  // specify txProofDifficultyFactor. The new instance is deployed with
-  // a random name to do not conflict with the main deployed instance.
+  // Deploys a new instance of `Bridge` contract behind a proxy. Allows to
+  // specify bridge type (e.g. `Bridge`, `BridgeStub`, `BridgeFraudStub`) and
+  // `txProofDifficultyFactor`.
+  //
+  // Deployment scripts deploy `BridgeStub` for hardhat network. `BridgeStub`
+  // may not be enough for all unit tests, so if another version is needed
+  // (e.g. `BridgeFraudStub`), this function should be used to deploy the 
+  // desired instance for tests.
+  //
+  // The new instance is deployed with a random name to do not conflict with the
+  // main deployed instance.
+  //
   // Same parameters as in `05_deploy_bridge.ts` deployment script are used.
-  const deployBridge = async (txProofDifficultyFactor: number) =>
+  const deployBridge = async (
+    bridgeType: string,
+    txProofDifficultyFactor: number
+  ) =>
     helpers.upgrades.deployProxy(`Bridge_${randomBytes(8).toString("hex")}`, {
-      contractName: "BridgeStub",
+      contractName: bridgeType,
       initializerArgs: [
         bank.address,
         relay.address,
