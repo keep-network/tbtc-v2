@@ -1968,6 +1968,52 @@ describe("Bridge - Moving funds", () => {
           })
         }
       )
+
+      context("when transaction data is limited to 64 bytes", () => {
+        // This test proves it is impossible to construct a valid proof if
+        // the transaction data (version, locktime, inputs, outputs)
+        // length is 64 bytes or less.
+
+        const data: MovingFundsTestData = JSON.parse(
+          JSON.stringify(SingleTargetWallet)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Modify the `movingFundsTx` part of test data in such a way so it
+          // is only 64 bytes in length and correctly passes as many SPV proof
+          // checks as possible.
+          data.movingFundsTx.version = "0x01000000" // 4 bytes
+          data.movingFundsTx.locktime = "0x00000000" // 4 bytes
+
+          // 42 bytes at minimum to pass input formatting validation (1 byte
+          // for inputs length, 32 bytes for tx hash, 4 bytes for tx index,
+          // 1 byte for script sig length, 4 bytes for sequence number).
+          data.movingFundsTx.inputVector =
+            "0x01aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+            "aaaaaa1111111100ffffffff"
+
+          // 32 bytes at minimum to pass output formatting validation and the
+          // output script check (1 byte for outputs length, 8 bytes for
+          // output amount, 23 bytes for length-prefixed output script -
+          // `submitMovingFundsProof` checks that the output contains
+          // a 23-byte or 26-byte long script). Since 50 bytes has already been
+          // used on version, locktime and inputs, the output must be shortened
+          // to 14 bytes, so that the total transaction length is 64 bytes.
+          data.movingFundsTx.outputVector = "0x01aaaaaaaaaaaaaaaa160014bbbb"
+
+          await expect(runMovingFundsScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
+        })
+      })
     })
   })
 
@@ -3465,6 +3511,52 @@ describe("Bridge - Moving funds", () => {
           })
         }
       )
+
+      context("when transaction data is limited to 64 bytes", () => {
+        // This test proves it is impossible to construct a valid proof if
+        // the transaction data (version, locktime, inputs, outputs)
+        // length is 64 bytes or less.
+
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Modify the `sweepTx` part of test data in such a way so it is only
+          // 64 bytes in length and correctly passes as many SPV proof checks as
+          // possible.
+          data.sweepTx.version = "0x01000000" // 4 bytes
+          data.sweepTx.locktime = "0x00000000" // 4 bytes
+
+          // 42 bytes at minimum to pass input formatting validation (1 byte
+          // for inputs length, 32 bytes for tx hash, 4 bytes for tx index,
+          // 1 byte for script sig length, 4 bytes for sequence number).
+          data.sweepTx.inputVector =
+            "0x01aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+            "aaaaaa1111111100ffffffff"
+
+          // 32 bytes at minimum to pass output formatting validation and the
+          // output script check (1 byte for outputs length, 8 bytes for
+          // output amount, 23 bytes for length-prefixed output script -
+          // `submitMovedFundsSweepProof` checks that the output contains
+          // a 23-byte or 26-byte long script). Since 50 bytes has already been
+          // used on version, locktime and inputs, the output must be shortened
+          // to 14 bytes, so that the total transaction length is 64 bytes.
+          data.sweepTx.outputVector = "0x01aaaaaaaaaaaaaaaa14bbbbbbbb"
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
+        })
+      })
     })
   })
 
