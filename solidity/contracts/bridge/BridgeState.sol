@@ -65,6 +65,12 @@ library BridgeState {
         //
         // This is a per-deposit input max fee for the sweep transaction.
         uint64 depositTxMaxFee;
+        // Defines the length of the period that must be preserved between
+        // the deposit reveal time and the deposit refund locktime. For example,
+        // if the deposit become refundable on August 1st, and the ahead period
+        // is 7 days, the latest moment for deposit reveal is July 25th.
+        // Value in seconds.
+        uint32 depositRevealAheadPeriod;
         // Move movingFundsTxMaxTotalFee to the next storage slot for a more
         // efficient variable layout in the storage.
         // slither-disable-next-line unused-state
