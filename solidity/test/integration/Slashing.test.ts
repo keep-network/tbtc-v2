@@ -86,6 +86,14 @@ describeFn("Integration Test - Slashing", async () => {
       governance,
       dkgResultChallengePeriodLength
     )
+
+    await bridgeGovernance
+      .connect(governance)
+      .beginDepositRevealAheadPeriodUpdate(0)
+    await increaseTime(constants.governanceDelay)
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeDepositRevealAheadPeriodUpdate()
   })
 
   describe("notifyFraudChallengeDefeatTimeout", async () => {

@@ -33,6 +33,7 @@ import { fixture } from "./utils/fixture"
 import { constants } from "../fixtures"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
+const { increaseTime } = helpers.time
 
 const describeFn =
   process.env.NODE_ENV === "integration-test" ? describe : describe.skip
@@ -73,6 +74,14 @@ describeFn("Integration Test - Full flow", async () => {
       governance,
       dkgResultChallengePeriodLength
     )
+
+    await bridgeGovernance
+      .connect(governance)
+      .beginDepositRevealAheadPeriodUpdate(0)
+    await increaseTime(constants.governanceDelay)
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeDepositRevealAheadPeriodUpdate()
   })
 
   describe("Check deposit and redemption flow", async () => {
