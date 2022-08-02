@@ -3548,6 +3548,59 @@ describe("Bridge - Redemption", () => {
           })
         }
       )
+
+      context("when transaction data is limited to 64 bytes", () => {
+        // This test proves it is impossible to construct a valid proof if
+        // the transaction data (version, locktime, inputs, outputs)
+        // length is 64 bytes or less.
+
+        const data: RedemptionTestData = JSON.parse(
+          JSON.stringify(SinglePendingRequestedRedemption)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Modify the `redemptionTx` part of test data in such a way so it is only
+          // 64 bytes in length and correctly passes as many SPV proof checks as
+          // possible.
+          data.redemptionTx.version = "0x01000000" // 4 bytes
+          data.redemptionTx.locktime = "0x00000000" // 4 bytes
+
+          // 42 bytes at minimum to pass input formatting validation (1 byte
+          // for inputs length, 32 bytes for tx hash, 4 bytes for tx index,
+          // 1 byte for script sig length, 4 bytes for sequence number).
+          data.redemptionTx.inputVector =
+            "0x01aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+            "aaaaaa1111111100ffffffff"
+
+          // 32 bytes at minimum to pass output formatting validation and the
+          // output hash check (1 byte for outputs length, 8 bytes for output
+          // amount, 1 byte for output script hash length, 22 bytes for output
+          // script hash - `submitRedemptionProof` must have at least one
+          // non-change (redeeming) output. During processing of that output
+          // the script is extracted from the output and used to build a
+          // redemption key. The redemption key must represent a pending or
+          // timed-out redemption which in turn must be of standard type
+          // (P2PKH, P2SH, P2WPKH, P2WSH) - this is checked during redemption
+          // request. The standard type check ensures that the output script
+          // length is no shorter than 22 bytes). Since 50 bytes has already been
+          // used on version, locktime and inputs, the output must be
+          // shortened to 14 bytes, so that the total transaction length is
+          // 64 bytes.
+          data.redemptionTx.outputVector = "0x01aaaaaaaaaaaaaaaa160014bbbb"
+
+          await expect(runRedemptionScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
+        })
+      })
     })
   })
 
