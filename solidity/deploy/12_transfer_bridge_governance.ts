@@ -7,13 +7,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const BridgeGovernance = await deployments.get("BridgeGovernance")
 
-  deployments.log(
-    `transferring Bridge governance to: ${BridgeGovernance.address}`
-  )
-
   await deployments.execute(
     "Bridge",
-    { from: deployer },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "transferGovernance",
     BridgeGovernance.address
   )

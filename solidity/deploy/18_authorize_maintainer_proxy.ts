@@ -3,29 +3,21 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
-  const { execute, log } = deployments
+  const { execute } = deployments
   const { deployer } = await getNamedAccounts()
 
   const MaintainerProxy = await deployments.get("MaintainerProxy")
 
-  log(
-    `authorizing MaintainerProxy (${MaintainerProxy.address}) in ReimbursementPool`
-  )
-
   await execute(
     "ReimbursementPool",
-    { from: deployer },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "authorize",
     MaintainerProxy.address
   )
 
-  log(
-    `setting MaintainerProxy (${MaintainerProxy.address}) as trusted SPV Maintainer in Bridge`
-  )
-
   await execute(
     "Bridge",
-    { from: deployer },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "setSpvMaintainerStatus",
     MaintainerProxy.address,
     true
