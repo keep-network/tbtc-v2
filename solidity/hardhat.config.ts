@@ -123,28 +123,36 @@ const config: HardhatUserConfig = {
   // localNetworksConfig: "./.hardhat/networks.ts",
 
   external: {
-    contracts: [
-      {
-        artifacts: "node_modules/@keep-network/tbtc/artifacts",
-      },
-      {
-        artifacts:
-          "node_modules/@threshold-network/solidity-contracts/export/artifacts",
-        deploy:
-          "node_modules/@threshold-network/solidity-contracts/export/deploy",
-      },
-      {
-        artifacts: "node_modules/@keep-network/random-beacon/export/artifacts",
-        deploy: "node_modules/@keep-network/random-beacon/export/deploy",
-      },
-      {
-        artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
-        deploy: "node_modules/@keep-network/ecdsa/export/deploy",
-      },
-    ],
+    contracts:
+      process.env.USE_EXTERNAL_DEPLOY === "true"
+        ? [
+            {
+              artifacts: "node_modules/@keep-network/tbtc/artifacts",
+            },
+            {
+              artifacts:
+                "node_modules/@threshold-network/solidity-contracts/export/artifacts",
+              deploy:
+                "node_modules/@threshold-network/solidity-contracts/export/deploy",
+            },
+            {
+              artifacts:
+                "node_modules/@keep-network/random-beacon/export/artifacts",
+              deploy: "node_modules/@keep-network/random-beacon/export/deploy",
+            },
+            {
+              artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
+              deploy: "node_modules/@keep-network/ecdsa/export/deploy",
+            },
+          ]
+        : undefined,
     deployments: {
       // For development environment we expect the local dependencies to be
       // linked with `yarn link` command.
+      development: [
+        "node_modules/@keep-network/random-beacon/deployments/development",
+        "node_modules/@keep-network/ecdsa/deployments/development",
+      ],
       ropsten: ["node_modules/@keep-network/tbtc/artifacts"],
       mainnet: ["./external/mainnet"],
     },
@@ -154,13 +162,14 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 1,
     },
-    treasury: {
-      default: 2,
-    },
     // TODO: Governance should be the Threshold Council.
     //       Inspect usages and rename.
     governance: {
+      default: 2,
+    },
+    esdm: {
       default: 3,
+      // mainnet: ""
     },
     keepTechnicalWalletTeam: {
       default: 4,
@@ -170,9 +179,8 @@ const config: HardhatUserConfig = {
       default: 5,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
-    esdm: {
+    treasury: {
       default: 6,
-      // mainnet: ""
     },
     spvMaintainer: {
       default: 7,
