@@ -301,9 +301,9 @@ library Deposit {
         // sweep the deposit and avoid a potential competition with the
         // depositor making the deposit refund.
         require(
-        /* solhint-disable-next-line not-rely-on-time */
+            /* solhint-disable-next-line not-rely-on-time */
             block.timestamp + self.depositRevealAheadPeriod <=
-            depositRefundableTimestamp,
+                depositRefundableTimestamp,
             "Deposit refund locktime is too close"
         );
     }

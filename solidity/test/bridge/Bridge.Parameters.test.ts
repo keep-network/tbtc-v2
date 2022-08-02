@@ -27,10 +27,13 @@ describe("Bridge - Parameters", () => {
         const newDepositTreasuryFeeDivisor =
           constants.depositTreasuryFeeDivisor * 2
         const newDepositTxMaxFee = constants.depositTxMaxFee * 3
+        const newDepositRevealAheadPeriod =
+          constants.depositRevealAheadPeriod * 2
 
         let tx1: ContractTransaction
         let tx2: ContractTransaction
         let tx3: ContractTransaction
+        let tx4: ContractTransaction
 
         before(async () => {
           await createSnapshot()
@@ -47,6 +50,10 @@ describe("Bridge - Parameters", () => {
             .connect(governance)
             .beginDepositTxMaxFeeUpdate(newDepositTxMaxFee)
 
+          await bridgeGovernance
+            .connect(governance)
+            .beginDepositRevealAheadPeriodUpdate(newDepositRevealAheadPeriod)
+
           await helpers.time.increaseTime(constants.governanceDelay)
 
           tx1 = await bridgeGovernance
@@ -60,6 +67,10 @@ describe("Bridge - Parameters", () => {
           tx3 = await bridgeGovernance
             .connect(governance)
             .finalizeDepositTxMaxFeeUpdate()
+
+          tx4 = await bridgeGovernance
+            .connect(governance)
+            .finalizeDepositRevealAheadPeriodUpdate()
         })
 
         after(async () => {
@@ -76,6 +87,9 @@ describe("Bridge - Parameters", () => {
             newDepositTreasuryFeeDivisor
           )
           expect(params.depositTxMaxFee).to.be.equal(newDepositTxMaxFee)
+          expect(params.depositRevealAheadPeriod).to.be.equal(
+            newDepositRevealAheadPeriod
+          )
         })
 
         it("should emit DepositParametersUpdated event", async () => {
@@ -84,7 +98,8 @@ describe("Bridge - Parameters", () => {
             .withArgs(
               newDepositDustThreshold,
               constants.depositTreasuryFeeDivisor,
-              constants.depositTxMaxFee
+              constants.depositTxMaxFee,
+              constants.depositRevealAheadPeriod
             )
         })
 
@@ -94,7 +109,8 @@ describe("Bridge - Parameters", () => {
             .withArgs(
               newDepositDustThreshold,
               newDepositTreasuryFeeDivisor,
-              constants.depositTxMaxFee
+              constants.depositTxMaxFee,
+              constants.depositRevealAheadPeriod
             )
         })
 
@@ -104,7 +120,19 @@ describe("Bridge - Parameters", () => {
             .withArgs(
               newDepositDustThreshold,
               newDepositTreasuryFeeDivisor,
-              newDepositTxMaxFee
+              newDepositTxMaxFee,
+              constants.depositRevealAheadPeriod
+            )
+        })
+
+        it("should emit DepositParametersUpdated event", async () => {
+          await expect(tx4)
+            .to.emit(bridge, "DepositParametersUpdated")
+            .withArgs(
+              newDepositDustThreshold,
+              newDepositTreasuryFeeDivisor,
+              newDepositTxMaxFee,
+              newDepositRevealAheadPeriod
             )
         })
       })
@@ -202,6 +230,24 @@ describe("Bridge - Parameters", () => {
           )
         })
       })
+
+      context("when new deposit reveal ahead period is zero", () => {
+        it("should revert", async () => {
+          await bridgeGovernance
+            .connect(governance)
+            .beginDepositRevealAheadPeriodUpdate(0)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          await expect(
+            bridgeGovernance
+              .connect(governance)
+              .finalizeDepositRevealAheadPeriodUpdate()
+          ).to.be.revertedWith(
+            "Deposit reveal ahead period must be greater than zero"
+          )
+        })
+      })
     })
 
     context("when caller is not the contract guvnor", () => {
@@ -228,6 +274,14 @@ describe("Bridge - Parameters", () => {
           bridgeGovernance
             .connect(thirdParty)
             .beginDepositTxMaxFeeUpdate(constants.depositTxMaxFee)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginDepositRevealAheadPeriodUpdate(constants.depositRevealAheadPeriod)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })

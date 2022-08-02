@@ -318,7 +318,8 @@ library BridgeState {
     event DepositParametersUpdated(
         uint64 depositDustThreshold,
         uint64 depositTreasuryFeeDivisor,
-        uint64 depositTxMaxFee
+        uint64 depositTxMaxFee,
+        uint32 depositRevealAheadPeriod
     );
 
     event RedemptionParametersUpdated(
@@ -381,16 +382,22 @@ library BridgeState {
     ///        be incurred by each swept deposit being part of the given sweep
     ///        transaction. If the maximum BTC transaction fee is exceeded,
     ///        such transaction is considered a fraud.
+    /// @param _depositRevealAheadPeriod New value of the deposit reveal ahead
+    ///        period parameter in seconds. It defines the length of the period
+    ///        that must be preserved between the deposit reveal time and the
+    ///        deposit refund locktime.
     /// @dev Requirements:
     ///      - Deposit dust threshold must be greater than zero,
     ///      - Deposit dust threshold must be greater than deposit TX max fee,
     ///      - Deposit treasury fee divisor must be greater than zero,
     ///      - Deposit transaction max fee must be greater than zero.
+    ///      - Deposit reveal ahead period must be grater than zero.
     function updateDepositParameters(
         Storage storage self,
         uint64 _depositDustThreshold,
         uint64 _depositTreasuryFeeDivisor,
-        uint64 _depositTxMaxFee
+        uint64 _depositTxMaxFee,
+        uint32 _depositRevealAheadPeriod
     ) internal {
         require(
             _depositDustThreshold > 0,
@@ -412,14 +419,21 @@ library BridgeState {
             "Deposit transaction max fee must be greater than zero"
         );
 
+        require(
+            _depositRevealAheadPeriod > 0,
+            "Deposit reveal ahead period must be greater than zero"
+        );
+
         self.depositDustThreshold = _depositDustThreshold;
         self.depositTreasuryFeeDivisor = _depositTreasuryFeeDivisor;
         self.depositTxMaxFee = _depositTxMaxFee;
+        self.depositRevealAheadPeriod = _depositRevealAheadPeriod;
 
         emit DepositParametersUpdated(
             _depositDustThreshold,
             _depositTreasuryFeeDivisor,
-            _depositTxMaxFee
+            _depositTxMaxFee,
+            _depositRevealAheadPeriod
         );
     }
 

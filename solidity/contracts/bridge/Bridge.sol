@@ -188,7 +188,8 @@ contract Bridge is
     event DepositParametersUpdated(
         uint64 depositDustThreshold,
         uint64 depositTreasuryFeeDivisor,
-        uint64 depositTxMaxFee
+        uint64 depositTxMaxFee,
+        uint32 depositRevealAheadPeriod
     );
 
     event RedemptionParametersUpdated(
@@ -1214,19 +1215,26 @@ contract Bridge is
     ///        be incurred by each swept deposit being part of the given sweep
     ///        transaction. If the maximum BTC transaction fee is exceeded,
     ///        such transaction is considered a fraud.
+    /// @param depositRevealAheadPeriod New value of the deposit reveal ahead
+    ///        period parameter in seconds. It defines the length of the period
+    ///        that must be preserved between the deposit reveal time and the
+    ///        deposit refund locktime.
     /// @dev Requirements:
     ///      - Deposit dust threshold must be greater than zero,
     ///      - Deposit treasury fee divisor must be greater than zero,
     ///      - Deposit transaction max fee must be greater than zero.
+    ///      - Deposit reveal ahead period must be grater than zero.
     function updateDepositParameters(
         uint64 depositDustThreshold,
         uint64 depositTreasuryFeeDivisor,
-        uint64 depositTxMaxFee
+        uint64 depositTxMaxFee,
+        uint32 depositRevealAheadPeriod
     ) external onlyGovernance {
         self.updateDepositParameters(
             depositDustThreshold,
             depositTreasuryFeeDivisor,
-            depositTxMaxFee
+            depositTxMaxFee,
+            depositRevealAheadPeriod
         );
     }
 
@@ -1615,18 +1623,25 @@ contract Bridge is
     ///         be incurred by each swept deposit being part of the given sweep
     ///         transaction. If the maximum BTC transaction fee is exceeded,
     ///         such transaction is considered a fraud.
+    /// @return depositRevealAheadPeriod Defines the length of the period that
+    ///         must be preserved between the deposit reveal time and the
+    ///         deposit refund locktime. For example, if the deposit become
+    ///         refundable on August 1st, and the ahead period is 7 days, the
+    ///         latest moment for deposit reveal is July 25th. Value in seconds.
     function depositParameters()
         external
         view
         returns (
             uint64 depositDustThreshold,
             uint64 depositTreasuryFeeDivisor,
-            uint64 depositTxMaxFee
+            uint64 depositTxMaxFee,
+            uint32 depositRevealAheadPeriod
         )
     {
         depositDustThreshold = self.depositDustThreshold;
         depositTreasuryFeeDivisor = self.depositTreasuryFeeDivisor;
         depositTxMaxFee = self.depositTxMaxFee;
+        depositRevealAheadPeriod = self.depositRevealAheadPeriod;
     }
 
     /// @notice Returns the current values of Bridge redemption parameters.

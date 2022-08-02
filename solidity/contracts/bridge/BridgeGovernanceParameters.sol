@@ -24,6 +24,8 @@ library BridgeGovernanceParameters {
         uint256 depositTreasuryFeeDivisorChangeInitiated;
         uint64 newDepositTxMaxFee;
         uint256 depositTxMaxFeeChangeInitiated;
+        uint32 newDepositRevealAheadPeriod;
+        uint256 depositRevealAheadPeriodChangeInitiated;
     }
 
     struct RedemptionData {
@@ -111,6 +113,12 @@ library BridgeGovernanceParameters {
         uint256 timestamp
     );
     event DepositTxMaxFeeUpdated(uint64 depositTxMaxFee);
+
+    event DepositRevealAheadPeriodUpdateStarted(
+        uint32 newDepositRevealAheadPeriod,
+        uint256 timestamp
+    );
+    event DepositRevealAheadPeriodUpdated(uint32 depositRevealAheadPeriod);
 
     event RedemptionDustThresholdUpdateStarted(
         uint64 newRedemptionDustThreshold,
@@ -454,6 +462,49 @@ library BridgeGovernanceParameters {
         returns (uint64)
     {
         return self.newDepositTxMaxFee;
+    }
+
+    /// @param _newDepositRevealAheadPeriod New deposit reveal ahead period.
+    function beginDepositRevealAheadPeriodUpdate(
+        DepositData storage self,
+        uint32 _newDepositRevealAheadPeriod
+    ) external {
+        /* solhint-disable not-rely-on-time */
+        self.newDepositRevealAheadPeriod = _newDepositRevealAheadPeriod;
+        self.depositRevealAheadPeriodChangeInitiated = block.timestamp;
+        emit DepositRevealAheadPeriodUpdateStarted(
+            _newDepositRevealAheadPeriod,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the deposit reveal ahead period update process.
+    /// @dev Can be called after the governance delay elapses.
+    function finalizeDepositRevealAheadPeriodUpdate(
+        DepositData storage self,
+        uint256 governanceDelay
+    )
+        external
+        onlyAfterGovernanceDelay(
+            self.depositRevealAheadPeriodChangeInitiated,
+            governanceDelay
+        )
+    {
+        emit DepositRevealAheadPeriodUpdated(self.newDepositRevealAheadPeriod);
+
+        self.newDepositRevealAheadPeriod = 0;
+        self.depositRevealAheadPeriodChangeInitiated = 0;
+    }
+
+    // https://github.com/crytic/slither/issues/1265
+    // slither-disable-next-line dead-code
+    function getNewDepositRevealAheadPeriod(DepositData storage self)
+        internal
+        view
+        returns (uint32)
+    {
+        return self.newDepositRevealAheadPeriod;
     }
 
     // --- Redemption
