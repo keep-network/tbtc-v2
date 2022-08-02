@@ -159,10 +159,4 @@ contract BridgeStub is Bridge {
             .registeredWallets[walletPubKeyHash]
             .pendingMovedFundsSweepRequestsCount--;
     }
-
-    function setMovedFundsSweepTxMaxTotalFee(
-        uint64 _movedFundsSweepTxMaxTotalFee
-    ) external {
-        self.movedFundsSweepTxMaxTotalFee = _movedFundsSweepTxMaxTotalFee;
-    }
 }
