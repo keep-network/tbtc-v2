@@ -69,7 +69,8 @@ library BridgeState {
         // the deposit reveal time and the deposit refund locktime. For example,
         // if the deposit become refundable on August 1st, and the ahead period
         // is 7 days, the latest moment for deposit reveal is July 25th.
-        // Value in seconds.
+        // Value in seconds. The value equal to zero disables the validation
+        // of this parameter.
         uint32 depositRevealAheadPeriod;
         // Move movingFundsTxMaxTotalFee to the next storage slot for a more
         // efficient variable layout in the storage.
@@ -417,11 +418,6 @@ library BridgeState {
         require(
             _depositTxMaxFee > 0,
             "Deposit transaction max fee must be greater than zero"
-        );
-
-        require(
-            _depositRevealAheadPeriod > 0,
-            "Deposit reveal ahead period must be greater than zero"
         );
 
         self.depositDustThreshold = _depositDustThreshold;

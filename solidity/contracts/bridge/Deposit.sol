@@ -162,7 +162,9 @@ library Deposit {
             "Vault is not trusted"
         );
 
-        validateDepositRefundLocktime(self, reveal.refundLocktime);
+        if (self.depositRevealAheadPeriod > 0) {
+            validateDepositRefundLocktime(self, reveal.refundLocktime);
+        }
 
         bytes memory expectedScript = abi.encodePacked(
             hex"14", // Byte length of depositor Ethereum address.
