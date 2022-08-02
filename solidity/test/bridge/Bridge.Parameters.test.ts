@@ -230,24 +230,6 @@ describe("Bridge - Parameters", () => {
           )
         })
       })
-
-      context("when new deposit reveal ahead period is zero", () => {
-        it("should revert", async () => {
-          await bridgeGovernance
-            .connect(governance)
-            .beginDepositRevealAheadPeriodUpdate(0)
-
-          await helpers.time.increaseTime(constants.governanceDelay)
-
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeDepositRevealAheadPeriodUpdate()
-          ).to.be.revertedWith(
-            "Deposit reveal ahead period must be greater than zero"
-          )
-        })
-      })
     })
 
     context("when caller is not the contract guvnor", () => {
@@ -281,7 +263,9 @@ describe("Bridge - Parameters", () => {
         await expect(
           bridgeGovernance
             .connect(thirdParty)
-            .beginDepositRevealAheadPeriodUpdate(constants.depositRevealAheadPeriod)
+            .beginDepositRevealAheadPeriodUpdate(
+              constants.depositRevealAheadPeriod
+            )
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })

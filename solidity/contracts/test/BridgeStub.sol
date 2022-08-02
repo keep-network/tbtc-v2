@@ -159,4 +159,10 @@ contract BridgeStub is Bridge {
             .registeredWallets[walletPubKeyHash]
             .pendingMovedFundsSweepRequestsCount--;
     }
+
+    function setDepositRevealAheadPeriod(uint32 _depositRevealAheadPeriod)
+        external
+    {
+        self.depositRevealAheadPeriod = _depositRevealAheadPeriod;
+    }
 }

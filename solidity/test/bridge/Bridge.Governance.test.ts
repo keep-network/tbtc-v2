@@ -639,7 +639,7 @@ describe("Bridge - Governance", () => {
         await restoreSnapshot()
       })
 
-      it("should not update the deposit tx max fee", async () => {
+      it("should not update the deposit reveal ahead period", async () => {
         const { depositRevealAheadPeriod } = await bridge.depositParameters()
         expect(depositRevealAheadPeriod).to.be.equal(
           constants.depositRevealAheadPeriod
@@ -672,9 +672,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeDepositRevealAheadPeriodUpdate()
-        ).to.be.revertedWith(
-          "Deposit reveal ahead period must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
