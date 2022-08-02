@@ -150,14 +150,11 @@ const config: HardhatUserConfig = {
       // For development environment we expect the local dependencies to be
       // linked with `yarn link` command.
       development: [
-        "node_modules/@keep-network/tbtc/artifacts",
-        "node_modules/@threshold-network/solidity-contracts/artifacts",
-        "node_modules/@keep-network/random-beacon/artifacts",
-        "node_modules/@keep-network/ecdsa/artifacts",
+        "node_modules/@keep-network/random-beacon/deployments/development",
+        "node_modules/@keep-network/ecdsa/deployments/development",
       ],
       goerli: [
         "node_modules/@keep-network/tbtc/artifacts",
-        "node_modules/@threshold-network/solidity-contracts/artifacts",
         "node_modules/@keep-network/random-beacon/artifacts",
         "node_modules/@keep-network/ecdsa/artifacts",
       ],
@@ -170,15 +167,14 @@ const config: HardhatUserConfig = {
       default: 1,
       goerli: 0,
     },
-    treasury: {
-      default: 2,
-      goerli: 0,
-    },
     // TODO: Governance should be the Threshold Council.
     //       Inspect usages and rename.
     governance: {
+      default: 2,
+    },
+    esdm: {
       default: 3,
-      goerli: 0,
+      // mainnet: ""
     },
     keepTechnicalWalletTeam: {
       default: 4,
@@ -190,10 +186,8 @@ const config: HardhatUserConfig = {
       goerli: 0,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
-    esdm: {
+    treasury: {
       default: 6,
-      goerli: 0,
-      // mainnet: ""
     },
     spvMaintainer: {
       default: 7,
