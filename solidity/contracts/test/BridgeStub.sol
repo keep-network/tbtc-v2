@@ -160,6 +160,12 @@ contract BridgeStub is Bridge {
             .pendingMovedFundsSweepRequestsCount--;
     }
 
+    function setMovedFundsSweepTxMaxTotalFee(
+        uint64 _movedFundsSweepTxMaxTotalFee
+    ) external {
+        self.movedFundsSweepTxMaxTotalFee = _movedFundsSweepTxMaxTotalFee;
+    }
+
     function setDepositRevealAheadPeriod(uint32 _depositRevealAheadPeriod)
         external
     {

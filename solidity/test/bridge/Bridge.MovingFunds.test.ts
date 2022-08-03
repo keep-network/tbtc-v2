@@ -3067,13 +3067,7 @@ describe("Bridge - Moving funds", () => {
 
                           // Set the max fee to one satoshi less than the fee
                           // used by the transaction.
-                          await bridgeGovernance
-                            .connect(governance)
-                            .beginMovedFundsSweepTxMaxTotalFeeUpdate(1999)
-                          await increaseTime(constants.governanceDelay)
-                          await bridgeGovernance
-                            .connect(governance)
-                            .finalizeMovedFundsSweepTxMaxTotalFeeUpdate()
+                          await bridge.setMovedFundsSweepTxMaxTotalFee(1999)
                         })
 
                         after(async () => {
