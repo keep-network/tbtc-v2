@@ -198,6 +198,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+    except: ["^contracts/test"],
   },
   mocha: {
     timeout: 60_000,
