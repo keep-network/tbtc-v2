@@ -188,6 +188,7 @@ const config: HardhatUserConfig = {
     },
     treasury: {
       default: 6,
+      goerli: 0,
     },
     spvMaintainer: {
       default: 7,
