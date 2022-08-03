@@ -76,6 +76,12 @@ contract BridgeGovernance is Ownable {
     );
     event DepositTxMaxFeeUpdated(uint64 depositTxMaxFee);
 
+    event DepositRevealAheadPeriodUpdateStarted(
+        uint32 newDepositRevealAheadPeriod,
+        uint256 timestamp
+    );
+    event DepositRevealAheadPeriodUpdated(uint32 depositRevealAheadPeriod);
+
     event RedemptionDustThresholdUpdateStarted(
         uint64 newRedemptionDustThreshold,
         uint256 timestamp
@@ -400,12 +406,17 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeDepositDustThresholdUpdate() external onlyOwner {
-        (, uint64 depositTreasuryFeeDivisor, uint64 depositTxMaxFee) = bridge
-            .depositParameters();
+        (
+            ,
+            uint64 depositTreasuryFeeDivisor,
+            uint64 depositTxMaxFee,
+            uint32 depositRevealAheadPeriod
+        ) = bridge.depositParameters();
         bridge.updateDepositParameters(
             depositData.getNewDepositDustThreshold(),
             depositTreasuryFeeDivisor,
-            depositTxMaxFee
+            depositTxMaxFee,
+            depositRevealAheadPeriod
         );
         depositData.finalizeDepositDustThresholdUpdate(governanceDelay());
     }
@@ -425,13 +436,18 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeDepositTreasuryFeeDivisorUpdate() external onlyOwner {
-        (uint64 depositDustThreshold, , uint64 depositTxMaxFee) = bridge
-            .depositParameters();
+        (
+            uint64 depositDustThreshold,
+            ,
+            uint64 depositTxMaxFee,
+            uint32 depositRevealAheadPeriod
+        ) = bridge.depositParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateDepositParameters(
             depositDustThreshold,
             depositData.getNewDepositTreasuryFeeDivisor(),
-            depositTxMaxFee
+            depositTxMaxFee,
+            depositRevealAheadPeriod
         );
         depositData.finalizeDepositTreasuryFeeDivisorUpdate(governanceDelay());
     }
@@ -453,15 +469,48 @@ contract BridgeGovernance is Ownable {
         (
             uint64 depositDustThreshold,
             uint64 depositTreasuryFeeDivisor,
+            ,
+            uint32 depositRevealAheadPeriod
+        ) = bridge.depositParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateDepositParameters(
+            depositDustThreshold,
+            depositTreasuryFeeDivisor,
+            depositData.getNewDepositTxMaxFee(),
+            depositRevealAheadPeriod
+        );
+        depositData.finalizeDepositTxMaxFeeUpdate(governanceDelay());
+    }
+
+    /// @notice Begins the deposit reveal ahead period update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newDepositRevealAheadPeriod New deposit reveal ahead period.
+    function beginDepositRevealAheadPeriodUpdate(
+        uint32 _newDepositRevealAheadPeriod
+    ) external onlyOwner {
+        depositData.beginDepositRevealAheadPeriodUpdate(
+            _newDepositRevealAheadPeriod
+        );
+    }
+
+    /// @notice Finalizes the deposit reveal ahead period update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeDepositRevealAheadPeriodUpdate() external onlyOwner {
+        (
+            uint64 depositDustThreshold,
+            uint64 depositTreasuryFeeDivisor,
+            uint64 depositTxMaxFee,
 
         ) = bridge.depositParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateDepositParameters(
             depositDustThreshold,
             depositTreasuryFeeDivisor,
-            depositData.getNewDepositTxMaxFee()
+            depositTxMaxFee,
+            depositData.getNewDepositRevealAheadPeriod()
         );
-        depositData.finalizeDepositTxMaxFeeUpdate(governanceDelay());
+        depositData.finalizeDepositRevealAheadPeriodUpdate(governanceDelay());
     }
 
     // --- Redemption

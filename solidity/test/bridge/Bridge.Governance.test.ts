@@ -613,6 +613,130 @@ describe("Bridge - Governance", () => {
     )
   })
 
+  describe("beginDepositRevealAheadPeriodUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginDepositRevealAheadPeriodUpdate(1)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bridgeGovernance
+          .connect(governance)
+          .beginDepositRevealAheadPeriodUpdate(1337)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not update the deposit reveal ahead period", async () => {
+        const { depositRevealAheadPeriod } = await bridge.depositParameters()
+        expect(depositRevealAheadPeriod).to.be.equal(
+          constants.depositRevealAheadPeriod
+        )
+      })
+
+      it("should emit DepositRevealAheadPeriodUpdateStarted event", async () => {
+        const blockTimestamp = await helpers.time.lastBlockTime()
+        await expect(tx)
+          .to.emit(bridgeGovernance, "DepositRevealAheadPeriodUpdateStarted")
+          .withArgs(1337, blockTimestamp)
+      })
+    })
+  })
+
+  describe("finalizeDepositRevealAheadPeriodUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .finalizeDepositRevealAheadPeriodUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(governance)
+            .finalizeDepositRevealAheadPeriodUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridgeGovernance
+          .connect(governance)
+          .beginDepositRevealAheadPeriodUpdate(7331)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(governance)
+            .finalizeDepositRevealAheadPeriodUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context(
+      "when the update process is initialized and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginDepositRevealAheadPeriodUpdate(7331)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx = await bridgeGovernance
+            .connect(governance)
+            .finalizeDepositRevealAheadPeriodUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the deposit reveal ahead period", async () => {
+          const { depositRevealAheadPeriod } = await bridge.depositParameters()
+          expect(depositRevealAheadPeriod).to.be.equal(7331)
+        })
+
+        it("should emit DepositRevealAheadPeriodUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridgeGovernance, "DepositRevealAheadPeriodUpdated")
+            .withArgs(7331)
+        })
+      }
+    )
+  })
+
   describe("beginRedemptionDustThresholdUpdate", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
