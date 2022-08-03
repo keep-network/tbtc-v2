@@ -171,9 +171,11 @@ const config: HardhatUserConfig = {
     //       Inspect usages and rename.
     governance: {
       default: 2,
+      goerli: 0,
     },
     esdm: {
       default: 3,
+      goerli: 0,
       // mainnet: ""
     },
     keepTechnicalWalletTeam: {
