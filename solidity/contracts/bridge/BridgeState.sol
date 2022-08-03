@@ -392,7 +392,6 @@ library BridgeState {
     ///      - Deposit dust threshold must be greater than deposit TX max fee,
     ///      - Deposit treasury fee divisor must be greater than zero,
     ///      - Deposit transaction max fee must be greater than zero.
-    ///      - Deposit reveal ahead period must be grater than zero.
     function updateDepositParameters(
         Storage storage self,
         uint64 _depositDustThreshold,
