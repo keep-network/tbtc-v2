@@ -117,6 +117,9 @@ describe("MaintainerProxy", () => {
     // Scaling down deposit TX max fee as well.
     await bridge.setDepositDustThreshold(10000)
     await bridge.setDepositTxMaxFee(2000)
+    // Disable the reveal ahead period since refund locktimes are fixed
+    // within transactions used in this test suite.
+    await bridge.setDepositRevealAheadPeriod(0)
 
     await deployer.sendTransaction({
       to: walletRegistry.address,
