@@ -16,6 +16,7 @@
 pragma solidity ^0.8.9;
 
 import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
+import "@keep-network/random-beacon/contracts/ReimbursementPool.sol";
 
 import "./IRelay.sol";
 import "./Deposit.sol";
@@ -37,6 +38,8 @@ library BridgeState {
         uint96 txProofDifficultyFactor;
         // ECDSA Wallet Registry contract handle.
         EcdsaWalletRegistry ecdsaWalletRegistry;
+        // Reimbursement Pool contract handle.
+        ReimbursementPool reimbursementPool;
         // Address where the deposit and redemption treasury fees will be sent
         // to. Treasury takes part in the operators rewarding process.
         address treasury;
@@ -105,6 +108,9 @@ library BridgeState {
         // the notifier of a moving funds timeout receives. The value is in the
         // range [0, 100].
         uint32 movingFundsTimeoutNotifierRewardMultiplier;
+        // The gas offset used for the target wallet commitment transaction cost
+        // reimbursement.
+        uint16 movingFundsCommitmentGasOffset;
         // Move movedFundsSweepTxMaxTotalFee to the next storage slot for a more
         // efficient variable layout in the storage.
         // slither-disable-next-line unused-state
@@ -332,6 +338,7 @@ library BridgeState {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint32 movingFundsTimeoutNotifierRewardMultiplier,
+        uint16 movingFundsCommitmentGasOffset,
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -606,6 +613,7 @@ library BridgeState {
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
         uint32 _movingFundsTimeoutNotifierRewardMultiplier,
+        uint16 _movingFundsCommitmentGasOffset,
         uint64 _movedFundsSweepTxMaxTotalFee,
         uint32 _movedFundsSweepTimeout,
         uint96 _movedFundsSweepTimeoutSlashingAmount,
@@ -660,6 +668,7 @@ library BridgeState {
             .movingFundsTimeoutSlashingAmount = _movingFundsTimeoutSlashingAmount;
         self
             .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
+        self.movingFundsCommitmentGasOffset = _movingFundsCommitmentGasOffset;
         self.movedFundsSweepTxMaxTotalFee = _movedFundsSweepTxMaxTotalFee;
         self.movedFundsSweepTimeout = _movedFundsSweepTimeout;
         self
@@ -674,6 +683,7 @@ library BridgeState {
             _movingFundsTimeout,
             _movingFundsTimeoutSlashingAmount,
             _movingFundsTimeoutNotifierRewardMultiplier,
+            _movingFundsCommitmentGasOffset,
             _movedFundsSweepTxMaxTotalFee,
             _movedFundsSweepTimeout,
             _movedFundsSweepTimeoutSlashingAmount,
