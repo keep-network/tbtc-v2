@@ -206,6 +206,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+    except: ["BridgeStub$"],
   },
   mocha: {
     timeout: 60_000,
