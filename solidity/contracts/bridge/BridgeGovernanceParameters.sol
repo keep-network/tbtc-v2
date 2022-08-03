@@ -56,6 +56,8 @@ library BridgeGovernanceParameters {
         uint256 movingFundsTimeoutSlashingAmountChangeInitiated;
         uint32 newMovingFundsTimeoutNotifierRewardMultiplier;
         uint256 movingFundsTimeoutNotifierRewardMultiplierChangeInitiated;
+        uint16 newMovingFundsCommitmentGasOffset;
+        uint256 movingFundsCommitmentGasOffsetChangeInitiated;
         uint64 newMovedFundsSweepTxMaxTotalFee;
         uint256 movedFundsSweepTxMaxTotalFeeChangeInitiated;
         uint32 newMovedFundsSweepTimeout;
@@ -200,6 +202,14 @@ library BridgeGovernanceParameters {
     );
     event MovingFundsTimeoutNotifierRewardMultiplierUpdated(
         uint32 movingFundsTimeoutNotifierRewardMultiplier
+    );
+
+    event MovingFundsCommitmentGasOffsetUpdateStarted(
+        uint16 newMovingFundsCommitmentGasOffset,
+        uint256 timestamp
+    );
+    event MovingFundsCommitmentGasOffsetUpdated(
+        uint16 movingFundsCommitmentGasOffset
     );
 
     event MovedFundsSweepTxMaxTotalFeeUpdateStarted(
@@ -1051,6 +1061,54 @@ library BridgeGovernanceParameters {
         MovingFundsData storage self
     ) internal view returns (uint32) {
         return self.newMovingFundsTimeoutNotifierRewardMultiplier;
+    }
+
+    /// @notice Begins the moving funds commitment gas offset update process.
+    /// @param _newMovingFundsCommitmentGasOffset New moving funds commitment
+    ///        gas offset.
+    function beginMovingFundsCommitmentGasOffsetUpdate(
+        MovingFundsData storage self,
+        uint16 _newMovingFundsCommitmentGasOffset
+    ) external {
+        /* solhint-disable not-rely-on-time */
+        self
+            .newMovingFundsCommitmentGasOffset = _newMovingFundsCommitmentGasOffset;
+        self.movingFundsCommitmentGasOffsetChangeInitiated = block.timestamp;
+        emit MovingFundsCommitmentGasOffsetUpdateStarted(
+            _newMovingFundsCommitmentGasOffset,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the moving funds commitment gas offset update process.
+    /// @dev Can be called after the governance delay elapses.
+    function finalizeMovingFundsCommitmentGasOffsetUpdate(
+        MovingFundsData storage self,
+        uint256 governanceDelay
+    )
+        external
+        onlyAfterGovernanceDelay(
+            self.movingFundsCommitmentGasOffsetChangeInitiated,
+            governanceDelay
+        )
+    {
+        emit MovingFundsCommitmentGasOffsetUpdated(
+            self.newMovingFundsCommitmentGasOffset
+        );
+
+        self.newMovingFundsCommitmentGasOffset = 0;
+        self.movingFundsCommitmentGasOffsetChangeInitiated = 0;
+    }
+
+    // https://github.com/crytic/slither/issues/1265
+    // slither-disable-next-line dead-code
+    function getNewMovingFundsCommitmentGasOffset(MovingFundsData storage self)
+        internal
+        view
+        returns (uint16)
+    {
+        return self.newMovingFundsCommitmentGasOffset;
     }
 
     /// @notice Begins the moved funds sweep tx max total fee amount update process.
