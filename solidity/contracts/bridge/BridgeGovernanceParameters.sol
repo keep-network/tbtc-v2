@@ -464,6 +464,7 @@ library BridgeGovernanceParameters {
         return self.newDepositTxMaxFee;
     }
 
+    /// @notice Begins the deposit reveal ahead period update process.
     /// @param _newDepositRevealAheadPeriod New deposit reveal ahead period.
     function beginDepositRevealAheadPeriodUpdate(
         DepositData storage self,
