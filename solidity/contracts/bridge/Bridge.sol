@@ -1522,7 +1522,7 @@ contract Bridge is
     ///         - `notifyRedemptionTimeout` which puts the redemption key
     ///           to this mapping based on a timed out request stored
     ///           previously in `pendingRedemptions` mapping.
-    ///         Only one method removes entries from this mapping:
+    ///         Only one method can remove entries from this mapping:
     ///         - `submitRedemptionProof` in case the timed out redemption
     ///           request was a part of the proven transaction.
     function timedOutRedemptions(uint256 redemptionKey)
