@@ -16,6 +16,7 @@
 pragma solidity ^0.8.9;
 
 import "@keep-network/random-beacon/contracts/Governable.sol";
+import "@keep-network/random-beacon/contracts/ReimbursementPool.sol";
 import {IWalletOwner as EcdsaWalletOwner} from "@keep-network/ecdsa/contracts/api/IWalletOwner.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -209,6 +210,7 @@ contract Bridge is
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint32 movingFundsTimeoutNotifierRewardMultiplier,
+        uint16 movingFundsCommitmentGasOffset,
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -252,6 +254,7 @@ contract Bridge is
     /// @param _treasury Address where the deposit and redemption treasury fees
     ///        will be sent to.
     /// @param _ecdsaWalletRegistry Address of the ECDSA Wallet Registry contract.
+    /// @param _reimbursementPool Address of the Reimbursement Pool contract.
     /// @param _txProofDifficultyFactor The number of confirmations on the Bitcoin
     ///        chain required to successfully evaluate an SPV proof.
     function initialize(
@@ -259,6 +262,7 @@ contract Bridge is
         address _relay,
         address _treasury,
         address _ecdsaWalletRegistry,
+        address payable _reimbursementPool,
         uint96 _txProofDifficultyFactor
     ) external initializer {
         require(_bank != address(0), "Bank address cannot be zero");
@@ -272,6 +276,12 @@ contract Bridge is
             "ECDSA Wallet Registry address cannot be zero"
         );
         self.ecdsaWalletRegistry = EcdsaWalletRegistry(_ecdsaWalletRegistry);
+
+        require(
+            _reimbursementPool != address(0),
+            "Reimbursement Pool address cannot be zero"
+        );
+        self.reimbursementPool = ReimbursementPool(_reimbursementPool);
 
         require(_treasury != address(0), "Treasury address cannot be zero");
         self.treasury = _treasury;
@@ -303,6 +313,7 @@ contract Bridge is
         self.movingFundsTimeout = 7 days;
         self.movingFundsTimeoutSlashingAmount = 100 * 1e18; // 100 T
         self.movingFundsTimeoutNotifierRewardMultiplier = 100; //100%
+        self.movingFundsCommitmentGasOffset = 15000;
         self.movedFundsSweepTxMaxTotalFee = 100000; // 100000 satoshi = 0.001 BTC
         self.movedFundsSweepTimeout = 7 days;
         self.movedFundsSweepTimeoutSlashingAmount = 100 * 1e18; // 100 T
@@ -656,6 +667,7 @@ contract Bridge is
     ///         Once all requirements are met, that function registers the
     ///         target wallets commitment and opens the way for moving funds
     ///         proof submission.
+    ///         The caller is reimbursed for the transaction costs.
     /// @param walletPubKeyHash 20-byte public key hash of the source wallet.
     /// @param walletMainUtxo Data of the source wallet's main UTXO, as
     ///        currently known on the Ethereum chain.
@@ -699,12 +711,19 @@ contract Bridge is
         uint256 walletMemberIndex,
         bytes20[] calldata targetWallets
     ) external {
+        uint256 gasStart = gasleft();
+
         self.submitMovingFundsCommitment(
             walletPubKeyHash,
             walletMainUtxo,
             walletMembersIDs,
             walletMemberIndex,
             targetWallets
+        );
+
+        self.reimbursementPool.refund(
+            (gasStart - gasleft()) + self.movingFundsCommitmentGasOffset,
+            msg.sender
         );
     }
 
@@ -1340,6 +1359,9 @@ contract Bridge is
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
     ///        The value must be in the range [0, 100].
+    /// @param movingFundsCommitmentGasOffset New value of the gas offset for
+    ///        moving funds target wallet commitment transaction gas costs
+    ///        reimbursement.
     /// @param movedFundsSweepTxMaxTotalFee New value of the moved funds sweep
     ///        transaction max total fee in satoshis. It is the maximum amount
     ///        of the total BTC transaction fee that is acceptable in a single
@@ -1378,6 +1400,7 @@ contract Bridge is
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint32 movingFundsTimeoutNotifierRewardMultiplier,
+        uint16 movingFundsCommitmentGasOffset,
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -1390,6 +1413,7 @@ contract Bridge is
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
@@ -1730,6 +1754,9 @@ contract Bridge is
     /// @return movingFundsTimeoutNotifierRewardMultiplier The percentage of the
     ///         notifier reward from the staking contract the notifier of a
     ///         moving funds timeout receives. The value is in the range [0, 100].
+    /// @return movingFundsCommitmentGasOffset The gas offset used for the
+    ///         moving funds target wallet commitment transaction cost
+    ///         reimbursement.
     /// @return movedFundsSweepTxMaxTotalFee Maximum amount of the total BTC
     ///         transaction fee that is acceptable in a single moved funds
     ///         sweep transaction. This is a _total_ max fee for the entire
@@ -1754,6 +1781,7 @@ contract Bridge is
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -1768,6 +1796,7 @@ contract Bridge is
             .movingFundsTimeoutSlashingAmount;
         movingFundsTimeoutNotifierRewardMultiplier = self
             .movingFundsTimeoutNotifierRewardMultiplier;
+        movingFundsCommitmentGasOffset = self.movingFundsCommitmentGasOffset;
         movedFundsSweepTxMaxTotalFee = self.movedFundsSweepTxMaxTotalFee;
         movedFundsSweepTimeout = self.movedFundsSweepTimeout;
         movedFundsSweepTimeoutSlashingAmount = self
@@ -1846,18 +1875,21 @@ contract Bridge is
     /// @return relay Address of the Bitcoin relay providing the current Bitcoin
     ///         network difficulty.
     /// @return ecdsaWalletRegistry Address of the ECDSA Wallet Registry.
+    /// @return reimbursementPool Address of the Reimbursement Pool.
     function contractReferences()
         external
         view
         returns (
             Bank bank,
             IRelay relay,
-            EcdsaWalletRegistry ecdsaWalletRegistry
+            EcdsaWalletRegistry ecdsaWalletRegistry,
+            ReimbursementPool reimbursementPool
         )
     {
         bank = self.bank;
         relay = self.relay;
         ecdsaWalletRegistry = self.ecdsaWalletRegistry;
+        reimbursementPool = self.reimbursementPool;
     }
 
     /// @notice Address where the deposit treasury fees will be sent to.

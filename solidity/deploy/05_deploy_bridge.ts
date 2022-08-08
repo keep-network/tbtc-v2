@@ -14,6 +14,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // script from `@keep-network/ecdsa` is not invoked once again.
   const WalletRegistry = await deployments.get("WalletRegistry")
 
+  const ReimbursementPool = await deployments.get("ReimbursementPool")
+
   // For local tests use `1`.
   const txProofDifficultyFactor =
     deployments.getNetworkName() === "hardhat" ||
@@ -46,6 +48,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       Relay.address,
       treasury,
       WalletRegistry.address,
+      ReimbursementPool.address,
       txProofDifficultyFactor,
     ],
     factoryOpts: {

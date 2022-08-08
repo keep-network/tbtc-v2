@@ -2290,6 +2290,135 @@ describe("Bridge - Governance", () => {
     )
   })
 
+  describe("beginMovingFundsCommitmentGasOffsetUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .beginMovingFundsCommitmentGasOffsetUpdate(1)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await bridgeGovernance
+          .connect(governance)
+          .beginMovingFundsCommitmentGasOffsetUpdate(1337)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not update the moving funds commitment gas offset", async () => {
+        const { movingFundsCommitmentGasOffset } =
+          await bridge.movingFundsParameters()
+        expect(movingFundsCommitmentGasOffset).to.be.equal(
+          constants.movingFundsCommitmentGasOffset
+        )
+      })
+
+      it("should emit MovingFundsCommitmentGasOffsetUpdateStarted event", async () => {
+        const blockTimestamp = await helpers.time.lastBlockTime()
+        await expect(tx)
+          .to.emit(
+            bridgeGovernance,
+            "MovingFundsCommitmentGasOffsetUpdateStarted"
+          )
+          .withArgs(1337, blockTimestamp)
+      })
+    })
+  })
+
+  describe("finalizeMovingFundsCommitmentGasOffsetUpdate", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .finalizeMovingFundsCommitmentGasOffsetUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(governance)
+            .finalizeMovingFundsCommitmentGasOffsetUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridgeGovernance
+          .connect(governance)
+          .beginMovingFundsCommitmentGasOffsetUpdate(20000)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(governance)
+            .finalizeMovingFundsCommitmentGasOffsetUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context(
+      "when the update process is initialized and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsCommitmentGasOffsetUpdate(20122)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovingFundsCommitmentGasOffsetUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the moving funds commitment gas offset", async () => {
+          const { movingFundsCommitmentGasOffset } =
+            await bridge.movingFundsParameters()
+          expect(movingFundsCommitmentGasOffset).to.be.equal(20122)
+        })
+
+        it("should emit MovingFundsCommitmentGasOffsetUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridgeGovernance, "MovingFundsCommitmentGasOffsetUpdated")
+            .withArgs(20122)
+        })
+      }
+    )
+  })
+
   describe("beginMovedFundsSweepTxMaxTotalFeeUpdate", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {

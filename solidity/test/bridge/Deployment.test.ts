@@ -156,7 +156,14 @@ describe("Deployment", async () => {
 
     it("should revert when initialize called again", async () => {
       await expect(
-        bridge.initialize(AddressZero, AddressZero, AddressZero, AddressZero, 0)
+        bridge.initialize(
+          AddressZero,
+          AddressZero,
+          AddressZero,
+          AddressZero,
+          AddressZero,
+          0
+        )
       ).to.be.revertedWith("Initializable: contract is already initialized")
     })
   })

@@ -69,11 +69,6 @@ contract MaintainerProxy is Ownable, Reimbursable {
     ///         market conditions.
     uint256 public submitRedemptionProofGasOffset;
 
-    /// @notice Gas that is meant to balance the submission of moving funds commitment
-    ///         overall cost. Can be updated by the governance based on the current
-    ///         market conditions.
-    uint256 public submitMovingFundsCommitmentGasOffset;
-
     /// @notice Gas that is meant to balance the reset of moving funds timeout
     ///         overall cost. Can be updated by the governance based on the current
     ///         market conditions.
@@ -132,7 +127,6 @@ contract MaintainerProxy is Ownable, Reimbursable {
     event GasOffsetParametersUpdated(
         uint256 submitDepositSweepProofGasOffset,
         uint256 submitRedemptionProofGasOffset,
-        uint256 submitMovingFundsCommitmentGasOffset,
         uint256 resetMovingFundsTimeoutGasOffset,
         uint256 submitMovingFundsProofGasOffset,
         uint256 notifyMovingFundsBelowDustGasOffset,
@@ -167,7 +161,6 @@ contract MaintainerProxy is Ownable, Reimbursable {
         reimbursementPool = _reimbursementPool;
         submitDepositSweepProofGasOffset = 27000;
         submitRedemptionProofGasOffset = 0;
-        submitMovingFundsCommitmentGasOffset = 8000;
         resetMovingFundsTimeoutGasOffset = 1000;
         submitMovingFundsProofGasOffset = 15000;
         notifyMovingFundsBelowDustGasOffset = 3500;
@@ -218,32 +211,6 @@ contract MaintainerProxy is Ownable, Reimbursable {
 
         reimbursementPool.refund(
             (gasStart - gasleft()) + submitRedemptionProofGasOffset,
-            msg.sender
-        );
-    }
-
-    /// @notice Wraps `Bridge.submitMovingFundsCommitment` call and reimburses the
-    ///         caller's transaction cost.
-    /// @dev See `Bridge.submitMovingFundsCommitment` function documentation.
-    function submitMovingFundsCommitment(
-        bytes20 walletPubKeyHash,
-        BitcoinTx.UTXO calldata walletMainUtxo,
-        uint32[] calldata walletMembersIDs,
-        uint256 walletMemberIndex,
-        bytes20[] calldata targetWallets
-    ) external {
-        uint256 gasStart = gasleft();
-
-        bridge.submitMovingFundsCommitment(
-            walletPubKeyHash,
-            walletMainUtxo,
-            walletMembersIDs,
-            walletMemberIndex,
-            targetWallets
-        );
-
-        reimbursementPool.refund(
-            (gasStart - gasleft()) + submitMovingFundsCommitmentGasOffset,
             msg.sender
         );
     }
@@ -524,8 +491,6 @@ contract MaintainerProxy is Ownable, Reimbursable {
     ///        proof gas offset.
     /// @param newSubmitRedemptionProofGasOffset New submit redemption proof gas
     ///        offset.
-    /// @param newSubmitMovingFundsCommitmentGasOffset New submit moving funds
-    ///        commitment gas offset.
     /// @param newResetMovingFundsTimeoutGasOffset New reset moving funds
     ///        timeout gas offset.
     /// @param newSubmitMovingFundsProofGasOffset New submit moving funds proof
@@ -546,7 +511,6 @@ contract MaintainerProxy is Ownable, Reimbursable {
     function updateGasOffsetParameters(
         uint256 newSubmitDepositSweepProofGasOffset,
         uint256 newSubmitRedemptionProofGasOffset,
-        uint256 newSubmitMovingFundsCommitmentGasOffset,
         uint256 newResetMovingFundsTimeoutGasOffset,
         uint256 newSubmitMovingFundsProofGasOffset,
         uint256 newNotifyMovingFundsBelowDustGasOffset,
@@ -559,7 +523,6 @@ contract MaintainerProxy is Ownable, Reimbursable {
     ) external onlyOwner {
         submitDepositSweepProofGasOffset = newSubmitDepositSweepProofGasOffset;
         submitRedemptionProofGasOffset = newSubmitRedemptionProofGasOffset;
-        submitMovingFundsCommitmentGasOffset = newSubmitMovingFundsCommitmentGasOffset;
         resetMovingFundsTimeoutGasOffset = newResetMovingFundsTimeoutGasOffset;
         submitMovingFundsProofGasOffset = newSubmitMovingFundsProofGasOffset;
         notifyMovingFundsBelowDustGasOffset = newNotifyMovingFundsBelowDustGasOffset;
@@ -573,7 +536,6 @@ contract MaintainerProxy is Ownable, Reimbursable {
         emit GasOffsetParametersUpdated(
             submitDepositSweepProofGasOffset,
             submitRedemptionProofGasOffset,
-            submitMovingFundsCommitmentGasOffset,
             resetMovingFundsTimeoutGasOffset,
             submitMovingFundsProofGasOffset,
             notifyMovingFundsBelowDustGasOffset,
