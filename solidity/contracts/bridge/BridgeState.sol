@@ -291,12 +291,14 @@ library BridgeState {
         // (computed using Bitcoin HASH160 over the compressed ECDSA
         // public key) and `redeemerOutputScript` is the Bitcoin script
         // (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed
-        // out request. Timed out requests are stored in this mapping to
-        // avoid slashing the wallets multiple times for the same timeout.
+        // out request.
         // Only one method can add to this mapping:
         // - `notifyRedemptionTimeout` which puts the redemption key to this
-        //    mapping basing on a timed out request stored previously in
+        //    mapping based on a timed out request stored previously in
         //    `pendingRedemptions` mapping.
+        // Only one method can remove entries from this mapping:
+        // - `submitRedemptionProof` in case the timed out redemption request
+        //    was a part of the proven transaction.
         mapping(uint256 => Redemption.RedemptionRequest) timedOutRedemptions;
         // Collection of all submitted fraud challenges indexed by challenge
         // key built as `keccak256(walletPublicKey|sighash)`.

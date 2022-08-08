@@ -46,6 +46,8 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 const { impersonateAccount } = helpers.account
 
+const ZERO_ADDRESS = ethers.constants.AddressZero
+
 describe("Bridge - Redemption", () => {
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
@@ -1301,7 +1303,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out request in the contract state", async () => {
+                            it("should remove the timed out request from the contract state", async () => {
                               const redemptionRequest =
                                 await bridge.timedOutRedemptions(
                                   buildRedemptionKey(
@@ -1311,12 +1313,15 @@ describe("Bridge - Redemption", () => {
                                   )
                                 )
 
-                              expect(
-                                redemptionRequest.requestedAt
-                              ).to.be.greaterThan(
-                                0,
-                                "Timed out request was removed from the contract state"
+                              expect(redemptionRequest.redeemer).to.equal(
+                                ZERO_ADDRESS
                               )
+                              expect(
+                                redemptionRequest.requestedAmount
+                              ).to.equal(0)
+                              expect(redemptionRequest.treasuryFee).to.equal(0)
+                              expect(redemptionRequest.txMaxFee).to.equal(0)
+                              expect(redemptionRequest.requestedAt).to.equal(0)
                             })
 
                             it("should delete the wallet's main UTXO", async () => {
@@ -2035,7 +2040,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out requests in the contract state", async () => {
+                            it("should remove the timed out requests from the contract state", async () => {
                               for (
                                 let i = 0;
                                 i < data.redemptionRequests.length;
@@ -2051,11 +2056,18 @@ describe("Bridge - Redemption", () => {
                                     )
                                   )
 
+                                expect(redemptionRequest.redeemer).to.equal(
+                                  ZERO_ADDRESS
+                                )
                                 expect(
-                                  redemptionRequest.requestedAt
-                                ).to.be.greaterThan(
-                                  0,
-                                  `Timed out request with index ${i} was removed from the contract state`
+                                  redemptionRequest.requestedAmount
+                                ).to.equal(0)
+                                expect(redemptionRequest.treasuryFee).to.equal(
+                                  0
+                                )
+                                expect(redemptionRequest.txMaxFee).to.equal(0)
+                                expect(redemptionRequest.requestedAt).to.equal(
+                                  0
                                 )
                               }
                             })
@@ -2203,7 +2215,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out requests in the contract state", async () => {
+                            it("should remove the timed out requests from the contract state", async () => {
                               for (
                                 let i = 0;
                                 i < data.redemptionRequests.length;
@@ -2219,11 +2231,18 @@ describe("Bridge - Redemption", () => {
                                     )
                                   )
 
+                                expect(redemptionRequest.redeemer).to.equal(
+                                  ZERO_ADDRESS
+                                )
                                 expect(
-                                  redemptionRequest.requestedAt
-                                ).to.be.greaterThan(
-                                  0,
-                                  `Timed out request with index ${i} was removed from the contract state`
+                                  redemptionRequest.requestedAmount
+                                ).to.equal(0)
+                                expect(redemptionRequest.treasuryFee).to.equal(
+                                  0
+                                )
+                                expect(redemptionRequest.txMaxFee).to.equal(0)
+                                expect(redemptionRequest.requestedAt).to.equal(
+                                  0
                                 )
                               }
                             })
@@ -2380,7 +2399,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out requests in the contract state", async () => {
+                            it("should remove the timed out requests from the contract state", async () => {
                               // Check the two first requests reported as timed out
                               // are actually held in the contract state after
                               // proof submission.
@@ -2395,11 +2414,18 @@ describe("Bridge - Redemption", () => {
                                     )
                                   )
 
+                                expect(redemptionRequest.redeemer).to.equal(
+                                  ZERO_ADDRESS
+                                )
                                 expect(
-                                  redemptionRequest.requestedAt
-                                ).to.be.greaterThan(
-                                  0,
-                                  `Timed out request with index ${i} was removed from the contract state`
+                                  redemptionRequest.requestedAmount
+                                ).to.equal(0)
+                                expect(redemptionRequest.treasuryFee).to.equal(
+                                  0
+                                )
+                                expect(redemptionRequest.txMaxFee).to.equal(0)
+                                expect(redemptionRequest.requestedAt).to.equal(
+                                  0
                                 )
                               }
                             })
@@ -2583,7 +2609,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out requests in the contract state", async () => {
+                            it("should remove the timed out requests from the contract state", async () => {
                               // Check the two first requests reported as timed out
                               // are actually held in the contract state after
                               // proof submission.
@@ -2598,11 +2624,18 @@ describe("Bridge - Redemption", () => {
                                     )
                                   )
 
+                                expect(redemptionRequest.redeemer).to.equal(
+                                  ZERO_ADDRESS
+                                )
                                 expect(
-                                  redemptionRequest.requestedAt
-                                ).to.be.greaterThan(
-                                  0,
-                                  `Timed out request with index ${i} was removed from the contract state`
+                                  redemptionRequest.requestedAmount
+                                ).to.equal(0)
+                                expect(redemptionRequest.treasuryFee).to.equal(
+                                  0
+                                )
+                                expect(redemptionRequest.txMaxFee).to.equal(0)
+                                expect(redemptionRequest.requestedAt).to.equal(
+                                  0
                                 )
                               }
                             })

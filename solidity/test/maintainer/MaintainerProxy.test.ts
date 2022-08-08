@@ -1114,9 +1114,13 @@ describe("MaintainerProxy", () => {
                 initialSpvMaintainerBalance
               )
 
-              expect(diff).to.be.gt(ethers.utils.parseUnits("-1000000", "gwei")) // // -0,001 ETH
+              expect(diff).to.be.gt(0)
+              // The submitter deletes from `timedOutRedemptions` mapping
+              // multiple times in this scenario. They will end up being more
+              // net-positive than in all other scenarios.
+              // Such a situation is quite unlikely to happen in practice.
               expect(diff).to.be.lt(
-                ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+                ethers.utils.parseUnits("10000000", "gwei") // 0,01 ETH
               )
             })
           }
@@ -1172,9 +1176,13 @@ describe("MaintainerProxy", () => {
                 initialSpvMaintainerBalance
               )
 
-              expect(diff).to.be.gt(ethers.utils.parseUnits("-2000000", "gwei")) // -0,002 ETH
+              expect(diff).to.be.gt(0)
+              // The submitter deletes from `timedOutRedemptions` mapping
+              // multiple times in this scenario. They will end up being more
+              // net-positive than in all other scenarios.
+              // Such a situation is quite unlikely to happen in practice.
               expect(diff).to.be.lt(
-                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+                ethers.utils.parseUnits("10000000", "gwei") // 0,01 ETH
               )
             })
           }
@@ -1240,7 +1248,7 @@ describe("MaintainerProxy", () => {
 
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
-                ethers.utils.parseUnits("6000000", "gwei") // 0,006 ETH
+                ethers.utils.parseUnits("7000000", "gwei") // 0,007 ETH
               )
             })
           }
@@ -1300,7 +1308,7 @@ describe("MaintainerProxy", () => {
 
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
-                ethers.utils.parseUnits("5500000", "gwei") // 0,0055 ETH
+                ethers.utils.parseUnits("7000000", "gwei") // 0,007 ETH
               )
             })
           }

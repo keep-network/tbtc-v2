@@ -940,6 +940,8 @@ library Redemption {
                     outputValue <= redeemableAmount,
                 "Output value is not within the acceptable range of the timed out request"
             );
+
+            delete self.timedOutRedemptions[redemptionKey];
         }
     }
 
