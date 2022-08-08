@@ -6,7 +6,6 @@ import { assert, expect } from "chai"
 import { ContractTransaction, BigNumber, BigNumberish } from "ethers"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { smock } from "@defi-wonderland/smock"
-import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import type {
