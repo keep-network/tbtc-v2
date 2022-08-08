@@ -589,6 +589,9 @@ library BridgeState {
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
     ///        The value must be in the range [0, 100].
+    /// @param _movingFundsCommitmentGasOffset New value of the gas offset for
+    ///        moving funds target wallet commitment transaction gas costs
+    ///        reimbursement.
     /// @param _movedFundsSweepTxMaxTotalFee New value of the moved funds sweep
     ///        transaction max total fee in satoshis. It is the maximum amount
     ///        of the total BTC transaction fee that is acceptable in a single
