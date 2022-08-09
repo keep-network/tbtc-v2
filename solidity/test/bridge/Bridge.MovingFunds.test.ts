@@ -10,6 +10,8 @@ import type {
   BridgeStub,
   IRelay,
   IWalletRegistry,
+  BridgeGovernance,
+  ReimbursementPool,
 } from "../../typechain"
 import bridgeFixture from "../fixtures/bridge"
 import {
@@ -36,7 +38,6 @@ import {
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
-import { BridgeGovernance } from "../../typechain"
 
 chai.use(smock.matchers)
 
@@ -44,6 +45,7 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 
 describe("Bridge - Moving funds", () => {
+  let deployer: SignerWithAddress
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let spvMaintainer: SignerWithAddress
@@ -52,6 +54,7 @@ describe("Bridge - Moving funds", () => {
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
+  let reimbursementPool: ReimbursementPool
   let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
 
   let movingFundsTimeoutResetDelay: number
@@ -65,6 +68,7 @@ describe("Bridge - Moving funds", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
+      deployer,
       governance,
       thirdParty,
       spvMaintainer,
@@ -72,6 +76,7 @@ describe("Bridge - Moving funds", () => {
       walletRegistry,
       bridge,
       bridgeGovernance,
+      reimbursementPool,
       deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
     ;({
@@ -239,8 +244,23 @@ describe("Bridge - Moving funds", () => {
                                               expectedTargetWalletsCount
                                             )
 
+                                          const { provider } = waffle
+
+                                          let initialCallerBalance: BigNumber
+
                                           before(async () => {
                                             await createSnapshot()
+
+                                            await deployer.sendTransaction({
+                                              to: reimbursementPool.address,
+                                              value:
+                                                ethers.utils.parseEther("100"),
+                                            })
+
+                                            initialCallerBalance =
+                                              await provider.getBalance(
+                                                caller.address
+                                              )
 
                                             tx = await bridge
                                               .connect(caller)
@@ -284,6 +304,25 @@ describe("Bridge - Moving funds", () => {
                                                 targetWallets,
                                                 caller.address
                                               )
+                                          })
+
+                                          it("should refund ETH", async () => {
+                                            const postCallerBalance =
+                                              await provider.getBalance(
+                                                caller.address
+                                              )
+                                            const diff =
+                                              postCallerBalance.sub(
+                                                initialCallerBalance
+                                              )
+
+                                            expect(diff).to.be.gt(0)
+                                            expect(diff).to.be.lt(
+                                              ethers.utils.parseUnits(
+                                                "1000000",
+                                                "gwei"
+                                              ) // 0,001 ETH
+                                            )
                                           })
                                         }
                                       )

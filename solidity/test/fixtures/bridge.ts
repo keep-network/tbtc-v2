@@ -78,6 +78,7 @@ export default async function bridgeFixture() {
         relay.address,
         treasury.address,
         walletRegistry.address,
+        reimbursementPool.address,
         txProofDifficultyFactor,
       ],
       factoryOpts: {
