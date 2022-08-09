@@ -249,7 +249,7 @@ jobs:
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
-        run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify --license MIT
+        run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify
 
   contracts-format:
     needs: contracts-detect-changes
