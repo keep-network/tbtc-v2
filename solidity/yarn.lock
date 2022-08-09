@@ -1519,10 +1519,10 @@
     "@openzeppelin/contracts-upgradeable" "^4.6.0"
     "@threshold-network/solidity-contracts" "^1.2.0-dev.17"
 
-"@keep-network/hardhat-helpers@^0.6.0-pre.10":
-  version "0.6.0-pre.10"
-  resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.10.tgz#e202e79bed99b6cbcd6e8ec13944d4bcdefbc443"
-  integrity sha512-qvSixo9bjG4vSMJjwn60DkhSpLqYI+zVf77wuEo62nXcw9nb87kcTp4VKvQhwDwCLJZCEZiDUEf8fkNeDswR7g==
+"@keep-network/hardhat-helpers@^0.6.0-pre.11":
+  version "0.6.0-pre.11"
+  resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.11.tgz#5f7221f3e479b368be1f191c867fe0c62438c2c1"
+  integrity sha512-Ru+mf6tXDz8awhoJdOP4reED7/HYc0Bwq2Y7YPvOiLxclOt5zzNHNGRUbMLX1B4krufgKiNeL/nxu9eTQGMJKA==
 
 "@keep-network/hardhat-local-networks-config@^0.1.0-pre.4":
   version "0.1.0-pre.4"
