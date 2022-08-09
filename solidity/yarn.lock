@@ -1593,10 +1593,10 @@
     "@openzeppelin/contracts" "^4.3.2"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
-"@keep-network/tbtc@>1.1.2-dev <1.1.2-pre":
-  version "1.1.2-dev.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc/-/tbtc-1.1.2-dev.0.tgz#52f61f6455406c2d3650d9f14cc3d734fe2addab"
-  integrity sha512-G/JbDht/IgdX8Ety0i0iUl+kB2J2ofiAmNw+HmN/YUN9BYFhhzQqltPtYjS/krBkWzBYmNJmZBFeX/h+q4EJvA==
+"@keep-network/tbtc@development":
+  version "1.1.2-dev.1"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc/-/tbtc-1.1.2-dev.1.tgz#dd1e734c0fed50474c74d7170c8749127231d1f9"
+  integrity sha512-IRa0j1D7JBG8UpduaFxkaq2Ii6F61HhNMUBmxr7kAIZwj/yx8sYXWi921mn0L2Z+hAYNcwEUVhCM91VKQH29pQ==
   dependencies:
     "@celo/contractkit" "^1.0.2"
     "@keep-network/keep-ecdsa" ">1.9.0-dev <1.9.0-ropsten"
