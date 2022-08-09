@@ -24,6 +24,8 @@ library BridgeGovernanceParameters {
         uint256 depositTreasuryFeeDivisorChangeInitiated;
         uint64 newDepositTxMaxFee;
         uint256 depositTxMaxFeeChangeInitiated;
+        uint32 newDepositRevealAheadPeriod;
+        uint256 depositRevealAheadPeriodChangeInitiated;
     }
 
     struct RedemptionData {
@@ -56,6 +58,8 @@ library BridgeGovernanceParameters {
         uint256 movingFundsTimeoutSlashingAmountChangeInitiated;
         uint32 newMovingFundsTimeoutNotifierRewardMultiplier;
         uint256 movingFundsTimeoutNotifierRewardMultiplierChangeInitiated;
+        uint16 newMovingFundsCommitmentGasOffset;
+        uint256 movingFundsCommitmentGasOffsetChangeInitiated;
         uint64 newMovedFundsSweepTxMaxTotalFee;
         uint256 movedFundsSweepTxMaxTotalFeeChangeInitiated;
         uint32 newMovedFundsSweepTimeout;
@@ -111,6 +115,12 @@ library BridgeGovernanceParameters {
         uint256 timestamp
     );
     event DepositTxMaxFeeUpdated(uint64 depositTxMaxFee);
+
+    event DepositRevealAheadPeriodUpdateStarted(
+        uint32 newDepositRevealAheadPeriod,
+        uint256 timestamp
+    );
+    event DepositRevealAheadPeriodUpdated(uint32 depositRevealAheadPeriod);
 
     event RedemptionDustThresholdUpdateStarted(
         uint64 newRedemptionDustThreshold,
@@ -200,6 +210,14 @@ library BridgeGovernanceParameters {
     );
     event MovingFundsTimeoutNotifierRewardMultiplierUpdated(
         uint32 movingFundsTimeoutNotifierRewardMultiplier
+    );
+
+    event MovingFundsCommitmentGasOffsetUpdateStarted(
+        uint16 newMovingFundsCommitmentGasOffset,
+        uint256 timestamp
+    );
+    event MovingFundsCommitmentGasOffsetUpdated(
+        uint16 movingFundsCommitmentGasOffset
     );
 
     event MovedFundsSweepTxMaxTotalFeeUpdateStarted(
@@ -454,6 +472,50 @@ library BridgeGovernanceParameters {
         returns (uint64)
     {
         return self.newDepositTxMaxFee;
+    }
+
+    /// @notice Begins the deposit reveal ahead period update process.
+    /// @param _newDepositRevealAheadPeriod New deposit reveal ahead period.
+    function beginDepositRevealAheadPeriodUpdate(
+        DepositData storage self,
+        uint32 _newDepositRevealAheadPeriod
+    ) external {
+        /* solhint-disable not-rely-on-time */
+        self.newDepositRevealAheadPeriod = _newDepositRevealAheadPeriod;
+        self.depositRevealAheadPeriodChangeInitiated = block.timestamp;
+        emit DepositRevealAheadPeriodUpdateStarted(
+            _newDepositRevealAheadPeriod,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the deposit reveal ahead period update process.
+    /// @dev Can be called after the governance delay elapses.
+    function finalizeDepositRevealAheadPeriodUpdate(
+        DepositData storage self,
+        uint256 governanceDelay
+    )
+        external
+        onlyAfterGovernanceDelay(
+            self.depositRevealAheadPeriodChangeInitiated,
+            governanceDelay
+        )
+    {
+        emit DepositRevealAheadPeriodUpdated(self.newDepositRevealAheadPeriod);
+
+        self.newDepositRevealAheadPeriod = 0;
+        self.depositRevealAheadPeriodChangeInitiated = 0;
+    }
+
+    // https://github.com/crytic/slither/issues/1265
+    // slither-disable-next-line dead-code
+    function getNewDepositRevealAheadPeriod(DepositData storage self)
+        internal
+        view
+        returns (uint32)
+    {
+        return self.newDepositRevealAheadPeriod;
     }
 
     // --- Redemption
@@ -1051,6 +1113,54 @@ library BridgeGovernanceParameters {
         MovingFundsData storage self
     ) internal view returns (uint32) {
         return self.newMovingFundsTimeoutNotifierRewardMultiplier;
+    }
+
+    /// @notice Begins the moving funds commitment gas offset update process.
+    /// @param _newMovingFundsCommitmentGasOffset New moving funds commitment
+    ///        gas offset.
+    function beginMovingFundsCommitmentGasOffsetUpdate(
+        MovingFundsData storage self,
+        uint16 _newMovingFundsCommitmentGasOffset
+    ) external {
+        /* solhint-disable not-rely-on-time */
+        self
+            .newMovingFundsCommitmentGasOffset = _newMovingFundsCommitmentGasOffset;
+        self.movingFundsCommitmentGasOffsetChangeInitiated = block.timestamp;
+        emit MovingFundsCommitmentGasOffsetUpdateStarted(
+            _newMovingFundsCommitmentGasOffset,
+            block.timestamp
+        );
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the moving funds commitment gas offset update process.
+    /// @dev Can be called after the governance delay elapses.
+    function finalizeMovingFundsCommitmentGasOffsetUpdate(
+        MovingFundsData storage self,
+        uint256 governanceDelay
+    )
+        external
+        onlyAfterGovernanceDelay(
+            self.movingFundsCommitmentGasOffsetChangeInitiated,
+            governanceDelay
+        )
+    {
+        emit MovingFundsCommitmentGasOffsetUpdated(
+            self.newMovingFundsCommitmentGasOffset
+        );
+
+        self.newMovingFundsCommitmentGasOffset = 0;
+        self.movingFundsCommitmentGasOffsetChangeInitiated = 0;
+    }
+
+    // https://github.com/crytic/slither/issues/1265
+    // slither-disable-next-line dead-code
+    function getNewMovingFundsCommitmentGasOffset(MovingFundsData storage self)
+        internal
+        view
+        returns (uint16)
+    {
+        return self.newMovingFundsCommitmentGasOffset;
     }
 
     /// @notice Begins the moved funds sweep tx max total fee amount update process.

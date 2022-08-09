@@ -104,9 +104,9 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["allowStubs"],
     },
-    ropsten: {
+    goerli: {
       url: process.env.CHAIN_API_URL || "",
-      chainId: 3,
+      chainId: 5,
       accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
@@ -123,30 +123,42 @@ const config: HardhatUserConfig = {
   // localNetworksConfig: "./.hardhat/networks.ts",
 
   external: {
-    contracts: [
-      {
-        artifacts: "node_modules/@keep-network/tbtc/artifacts",
-      },
-      {
-        artifacts:
-          "node_modules/@threshold-network/solidity-contracts/export/artifacts",
-        deploy:
-          "node_modules/@threshold-network/solidity-contracts/export/deploy",
-      },
-      {
-        artifacts: "node_modules/@keep-network/random-beacon/export/artifacts",
-        deploy: "node_modules/@keep-network/random-beacon/export/deploy",
-      },
-      {
-        artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
-        deploy: "node_modules/@keep-network/ecdsa/export/deploy",
-      },
-    ],
+    contracts:
+      process.env.USE_EXTERNAL_DEPLOY === "true"
+        ? [
+            {
+              artifacts: "node_modules/@keep-network/tbtc/artifacts",
+            },
+            {
+              artifacts:
+                "node_modules/@threshold-network/solidity-contracts/export/artifacts",
+              deploy:
+                "node_modules/@threshold-network/solidity-contracts/export/deploy",
+            },
+            {
+              artifacts:
+                "node_modules/@keep-network/random-beacon/export/artifacts",
+              deploy: "node_modules/@keep-network/random-beacon/export/deploy",
+            },
+            {
+              artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
+              deploy: "node_modules/@keep-network/ecdsa/export/deploy",
+            },
+          ]
+        : undefined,
     deployments: {
       // For development environment we expect the local dependencies to be
       // linked with `yarn link` command.
-      development: ["node_modules/@keep-network/tbtc/artifacts"],
-      ropsten: ["node_modules/@keep-network/tbtc/artifacts"],
+      development: [
+        "node_modules/@threshold-network/solidity-contracts/deployments/development",
+        "node_modules/@keep-network/random-beacon/deployments/development",
+        "node_modules/@keep-network/ecdsa/deployments/development",
+      ],
+      goerli: [
+        "node_modules/@keep-network/tbtc/artifacts",
+        "node_modules/@keep-network/random-beacon/artifacts",
+        "node_modules/@keep-network/ecdsa/artifacts",
+      ],
       mainnet: ["./external/mainnet"],
     },
   },
@@ -154,29 +166,36 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 1,
-    },
-    treasury: {
-      default: 2,
+      goerli: 0,
     },
     // TODO: Governance should be the Threshold Council.
     //       Inspect usages and rename.
     governance: {
+      default: 2,
+      goerli: 0,
+    },
+    esdm: {
       default: 3,
+      goerli: 0,
+      // mainnet: ""
     },
     keepTechnicalWalletTeam: {
       default: 4,
+      goerli: 0,
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
       default: 5,
+      goerli: 0,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
-    esdm: {
+    treasury: {
       default: 6,
-      // mainnet: ""
+      goerli: 0,
     },
     spvMaintainer: {
       default: 7,
+      goerli: 0,
     },
   },
   dependencyCompiler: {
@@ -199,6 +218,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+    except: ["BridgeStub$"],
   },
   mocha: {
     timeout: 60_000,

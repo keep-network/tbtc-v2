@@ -13,7 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await execute(
     "VendingMachine",
-    { from: deployer },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "transferVendingMachineUpgradeInitiatorRole",
     keepTechnicalWalletTeam
   )
@@ -24,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await execute(
     "VendingMachine",
-    { from: deployer },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "transferUnmintFeeUpdateInitiatorRole",
     keepTechnicalWalletTeam
   )

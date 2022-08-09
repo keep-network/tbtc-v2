@@ -3,20 +3,21 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
+  const { execute } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const BridgeGovernance = await deployments.get("BridgeGovernance")
+  const MaintainerProxy = await deployments.get("MaintainerProxy")
 
-  await deployments.execute(
+  await execute(
     "Bridge",
     { from: deployer, log: true, waitConfirmations: 1 },
-    "transferGovernance",
-    BridgeGovernance.address
+    "setSpvMaintainerStatus",
+    MaintainerProxy.address,
+    true
   )
 }
 
 export default func
 
-func.tags = ["TransferBridgeGovernance"]
-func.dependencies = ["Bridge"]
-func.runAtTheEnd = true
+func.tags = ["AuthorizeMaintainerProxyInBridge"]
+func.dependencies = ["Bridge", "MaintainerProxy"]

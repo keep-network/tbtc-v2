@@ -3,7 +3,7 @@
 
 import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { Contract, ContractTransaction } from "ethers"
+import { BigNumber, Contract, ContractTransaction } from "ethers"
 import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import type {
@@ -17,7 +17,7 @@ import type {
 } from "../../typechain"
 import type { DepositRevealInfoStruct } from "../../typechain/Bridge"
 import bridgeFixture from "../fixtures/bridge"
-import { walletState } from "../fixtures"
+import { constants, walletState } from "../fixtures"
 import {
   DepositSweepTestData,
   MultipleDepositsNoMainUtxo,
@@ -32,7 +32,7 @@ import {
 chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const { lastBlockTime } = helpers.time
+const { lastBlockTime, increaseTime } = helpers.time
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
@@ -63,6 +63,9 @@ describe("Bridge - Deposit", () => {
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
     await bridge.setDepositDustThreshold(10000)
+    // Disable the reveal ahead period since refund locktimes are fixed
+    // within transactions used in this test suite.
+    await bridge.setDepositRevealAheadPeriod(0)
   })
 
   describe("revealDeposit", () => {
@@ -138,17 +141,201 @@ describe("Bridge - Deposit", () => {
         await restoreSnapshot()
       })
 
-      context("when funding transaction is P2SH", () => {
-        context("when funding output script hash is correct", () => {
-          context("when deposit was not revealed yet", () => {
-            context("when amount is not below the dust threshold", () => {
+      context("when reveal ahead period validation is disabled", () => {
+        context("when funding transaction is P2SH", () => {
+          context("when funding output script hash is correct", () => {
+            context("when deposit was not revealed yet", () => {
+              context("when amount is not below the dust threshold", () => {
+                context("when deposit is routed to a trusted vault", () => {
+                  let tx: ContractTransaction
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    tx = await bridge.revealDeposit(P2SHFundingTx, reveal)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should store proper deposit data", async () => {
+                    // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                    const depositKey = ethers.utils.solidityKeccak256(
+                      ["bytes32", "uint32"],
+                      [
+                        "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                        reveal.fundingOutputIndex,
+                      ]
+                    )
+
+                    const deposit = await bridge.deposits(depositKey)
+
+                    // Depositor address, same as in `reveal.depositor`.
+                    expect(deposit.depositor).to.be.equal(
+                      "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
+                    )
+                    // Deposit amount in satoshi. In this case it's 10000 satoshi
+                    // because the P2SH deposit transaction set this value for the
+                    // funding output.
+                    expect(deposit.amount).to.be.equal(10000)
+                    // Revealed time should be set.
+                    expect(deposit.revealedAt).to.be.equal(
+                      await lastBlockTime()
+                    )
+                    // Deposit vault, same as in `reveal.vault`.
+                    expect(deposit.vault).to.be.equal(
+                      "0x594cfd89700040163727828AE20B52099C58F02C"
+                    )
+                    // Treasury fee should be computed according to the current
+                    // value of the `depositTreasuryFeeDivisor`.
+                    expect(deposit.treasuryFee).to.be.equal(5)
+                    // Swept time should be unset.
+                    expect(deposit.sweptAt).to.be.equal(0)
+                  })
+
+                  it("should emit DepositRevealed event", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "DepositRevealed")
+                      .withArgs(
+                        "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                        reveal.fundingOutputIndex,
+                        "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                        10000,
+                        "0xf9f0c90d00039523",
+                        "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                        "0x28e081f285138ccbe389c1eb8985716230129f89",
+                        "0x60bcea61",
+                        reveal.vault
+                      )
+                  })
+                })
+
+                context("when deposit is not routed to a vault", () => {
+                  let tx: ContractTransaction
+                  let nonRoutedReveal: DepositRevealInfoStruct
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    nonRoutedReveal = { ...reveal }
+                    nonRoutedReveal.vault = ZERO_ADDRESS
+                    tx = await bridge.revealDeposit(
+                      P2SHFundingTx,
+                      nonRoutedReveal
+                    )
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should accept the deposit", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "DepositRevealed")
+                      .withArgs(
+                        "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                        reveal.fundingOutputIndex,
+                        "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                        10000,
+                        "0xf9f0c90d00039523",
+                        "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                        "0x28e081f285138ccbe389c1eb8985716230129f89",
+                        "0x60bcea61",
+                        ZERO_ADDRESS
+                      )
+                  })
+                })
+
+                context("when deposit is routed to a non-trusted vault", () => {
+                  let nonTrustedVaultReveal
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    nonTrustedVaultReveal = { ...reveal }
+                    nonTrustedVaultReveal.vault =
+                      "0x92499afEAD6c41f757Ec3558D0f84bf7ec5aD967"
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should revert", async () => {
+                    await expect(
+                      bridge.revealDeposit(P2SHFundingTx, nonTrustedVaultReveal)
+                    ).to.be.revertedWith("Vault is not trusted")
+                  })
+                })
+              })
+
+              context("when amount is below the dust threshold", () => {
+                before(async () => {
+                  await createSnapshot()
+
+                  // The `P2SHFundingTx` used within this scenario has an output
+                  // whose value is 10000 satoshi. To make the scenario happen, it
+                  // is enough that the contract's deposit dust threshold is
+                  // bigger by 1 satoshi.
+                  await bridge.setDepositDustThreshold(10001)
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  await expect(
+                    bridge.revealDeposit(P2SHFundingTx, reveal)
+                  ).to.be.revertedWith("Deposit amount too small")
+                })
+              })
+            })
+
+            context("when deposit was already revealed", () => {
+              before(async () => {
+                await createSnapshot()
+
+                await bridge.revealDeposit(P2SHFundingTx, reveal)
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  bridge.revealDeposit(P2SHFundingTx, reveal)
+                ).to.be.revertedWith("Deposit already revealed")
+              })
+            })
+          })
+
+          context("when funding output script hash is wrong", () => {
+            it("should revert", async () => {
+              // Corrupt reveal data by setting a wrong depositor address.
+              const corruptedReveal = { ...reveal }
+              corruptedReveal.depositor =
+                "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
+
+              await expect(
+                bridge.revealDeposit(P2SHFundingTx, corruptedReveal)
+              ).to.be.revertedWith("Wrong 20-byte script hash")
+            })
+          })
+        })
+
+        context("when funding transaction is P2WSH", () => {
+          context("when funding output script hash is correct", () => {
+            context("when deposit was not revealed yet", () => {
               context("when deposit is routed to a trusted vault", () => {
                 let tx: ContractTransaction
 
                 before(async () => {
                   await createSnapshot()
 
-                  tx = await bridge.revealDeposit(P2SHFundingTx, reveal)
+                  tx = await bridge.revealDeposit(P2WSHFundingTx, reveal)
                 })
 
                 after(async () => {
@@ -160,7 +347,7 @@ describe("Bridge - Deposit", () => {
                   const depositKey = ethers.utils.solidityKeccak256(
                     ["bytes32", "uint32"],
                     [
-                      "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                      "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                       reveal.fundingOutputIndex,
                     ]
                   )
@@ -192,7 +379,7 @@ describe("Bridge - Deposit", () => {
                   await expect(tx)
                     .to.emit(bridge, "DepositRevealed")
                     .withArgs(
-                      "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                      "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                       reveal.fundingOutputIndex,
                       "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                       10000,
@@ -215,7 +402,7 @@ describe("Bridge - Deposit", () => {
                   nonRoutedReveal = { ...reveal }
                   nonRoutedReveal.vault = ZERO_ADDRESS
                   tx = await bridge.revealDeposit(
-                    P2SHFundingTx,
+                    P2WSHFundingTx,
                     nonRoutedReveal
                   )
                 })
@@ -228,7 +415,7 @@ describe("Bridge - Deposit", () => {
                   await expect(tx)
                     .to.emit(bridge, "DepositRevealed")
                     .withArgs(
-                      "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                      "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
                       reveal.fundingOutputIndex,
                       "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
                       10000,
@@ -258,21 +445,17 @@ describe("Bridge - Deposit", () => {
 
                 it("should revert", async () => {
                   await expect(
-                    bridge.revealDeposit(P2SHFundingTx, nonTrustedVaultReveal)
+                    bridge.revealDeposit(P2WSHFundingTx, nonTrustedVaultReveal)
                   ).to.be.revertedWith("Vault is not trusted")
                 })
               })
             })
 
-            context("when amount is below the dust threshold", () => {
+            context("when deposit was already revealed", () => {
               before(async () => {
                 await createSnapshot()
 
-                // The `P2SHFundingTx` used within this scenario has an output
-                // whose value is 10000 satoshi. To make the scenario happen, it
-                // is enough that the contract's deposit dust threshold is
-                // bigger by 1 satoshi.
-                await bridge.setDepositDustThreshold(10001)
+                await bridge.revealDeposit(P2WSHFundingTx, reveal)
               })
 
               after(async () => {
@@ -281,212 +464,131 @@ describe("Bridge - Deposit", () => {
 
               it("should revert", async () => {
                 await expect(
-                  bridge.revealDeposit(P2SHFundingTx, reveal)
-                ).to.be.revertedWith("Deposit amount too small")
+                  bridge.revealDeposit(P2WSHFundingTx, reveal)
+                ).to.be.revertedWith("Deposit already revealed")
               })
             })
           })
 
-          context("when deposit was already revealed", () => {
-            before(async () => {
-              await createSnapshot()
-
-              await bridge.revealDeposit(P2SHFundingTx, reveal)
-            })
-
-            after(async () => {
-              await restoreSnapshot()
-            })
-
+          context("when funding output script hash is wrong", () => {
             it("should revert", async () => {
+              // Corrupt reveal data by setting a wrong depositor address.
+              const corruptedReveal = { ...reveal }
+              corruptedReveal.depositor =
+                "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
+
               await expect(
-                bridge.revealDeposit(P2SHFundingTx, reveal)
-              ).to.be.revertedWith("Deposit already revealed")
+                bridge.revealDeposit(P2WSHFundingTx, corruptedReveal)
+              ).to.be.revertedWith("Wrong 32-byte script hash")
             })
           })
         })
 
-        context("when funding output script hash is wrong", () => {
+        context("when funding transaction is neither P2SH nor P2WSH", () => {
           it("should revert", async () => {
-            // Corrupt reveal data by setting a wrong depositor address.
-            const corruptedReveal = { ...reveal }
-            corruptedReveal.depositor =
-              "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
+            // Corrupt transaction output data by making a 21-byte script hash.
+            const corruptedP2SHFundingTx = { ...P2SHFundingTx }
+            corruptedP2SHFundingTx.outputVector =
+              "0x02102700000000000017a9156a6ade1c799a3e5a59678e776f21be14d66dc" +
+              "15ed8877ed73b00000000001600147ac2d9378a1c47e589dfb8095ca95ed2" +
+              "140d2726"
 
             await expect(
-              bridge.revealDeposit(P2SHFundingTx, corruptedReveal)
-            ).to.be.revertedWith("Wrong 20-byte script hash")
+              bridge.revealDeposit(corruptedP2SHFundingTx, reveal)
+            ).to.be.revertedWith("Wrong script hash length")
           })
         })
       })
 
-      context("when funding transaction is P2WSH", () => {
-        context("when funding output script hash is correct", () => {
-          context("when deposit was not revealed yet", () => {
-            context("when deposit is routed to a trusted vault", () => {
-              let tx: ContractTransaction
+      context("when reveal ahead period validation is enabled", () => {
+        const encodeRefundLocktime = (refundLocktimeTimestamp: number) => {
+          const refundLocktimeTimestampHex = BigNumber.from(
+            refundLocktimeTimestamp
+          )
+            .toHexString()
+            .substring(2)
+          const refundLocktimeBuffer = Buffer.from(
+            refundLocktimeTimestampHex,
+            "hex"
+          )
+          return `0x${refundLocktimeBuffer.reverse().toString("hex")}`
+        }
 
-              before(async () => {
-                await createSnapshot()
+        before(async () => {
+          await createSnapshot()
 
-                tx = await bridge.revealDeposit(P2WSHFundingTx, reveal)
-              })
+          // Reveal ahead period is disabled by default in this test suite
+          // (see root before clause). We need to enable it manually.
+          await bridge.setDepositRevealAheadPeriod(
+            constants.depositRevealAheadPeriod
+          )
+        })
 
-              after(async () => {
-                await restoreSnapshot()
-              })
+        after(async () => {
+          await restoreSnapshot()
+        })
 
-              it("should store proper deposit data", async () => {
-                // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
-                const depositKey = ethers.utils.solidityKeccak256(
-                  ["bytes32", "uint32"],
-                  [
-                    "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
-                    reveal.fundingOutputIndex,
-                  ]
-                )
+        context("when reveal ahead period is preserved", () => {
+          it("should pass the refund locktime validation", async () => {
+            const now = Math.floor(Date.now() / 1000)
+            const refundLocktimeDuration = 2592000 // 30 days
+            const refundLocktimeTimestamp = now + refundLocktimeDuration
+            const latestPossibleRevealTimestamp =
+              refundLocktimeTimestamp - constants.depositRevealAheadPeriod
 
-                const deposit = await bridge.deposits(depositKey)
+            const alteredReveal = {
+              ...reveal,
+              refundLocktime: encodeRefundLocktime(refundLocktimeTimestamp),
+            }
 
-                // Depositor address, same as in `reveal.depositor`.
-                expect(deposit.depositor).to.be.equal(
-                  "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
-                )
-                // Deposit amount in satoshi. In this case it's 10000 satoshi
-                // because the P2SH deposit transaction set this value for the
-                // funding output.
-                expect(deposit.amount).to.be.equal(10000)
-                // Revealed time should be set.
-                expect(deposit.revealedAt).to.be.equal(await lastBlockTime())
-                // Deposit vault, same as in `reveal.vault`.
-                expect(deposit.vault).to.be.equal(
-                  "0x594cfd89700040163727828AE20B52099C58F02C"
-                )
-                // Treasury fee should be computed according to the current
-                // value of the `depositTreasuryFeeDivisor`.
-                expect(deposit.treasuryFee).to.be.equal(5)
-                // Swept time should be unset.
-                expect(deposit.sweptAt).to.be.equal(0)
-              })
+            await ethers.provider.send("evm_setNextBlockTimestamp", [
+              BigNumber.from(latestPossibleRevealTimestamp).toHexString(),
+            ])
 
-              it("should emit DepositRevealed event", async () => {
-                await expect(tx)
-                  .to.emit(bridge, "DepositRevealed")
-                  .withArgs(
-                    "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
-                    reveal.fundingOutputIndex,
-                    "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
-                    10000,
-                    "0xf9f0c90d00039523",
-                    "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
-                    "0x28e081f285138ccbe389c1eb8985716230129f89",
-                    "0x60bcea61",
-                    reveal.vault
-                  )
-              })
-            })
-
-            context("when deposit is not routed to a vault", () => {
-              let tx: ContractTransaction
-              let nonRoutedReveal: DepositRevealInfoStruct
-
-              before(async () => {
-                await createSnapshot()
-
-                nonRoutedReveal = { ...reveal }
-                nonRoutedReveal.vault = ZERO_ADDRESS
-                tx = await bridge.revealDeposit(P2WSHFundingTx, nonRoutedReveal)
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should accept the deposit", async () => {
-                await expect(tx)
-                  .to.emit(bridge, "DepositRevealed")
-                  .withArgs(
-                    "0x6a81de17ce3da1eadc833c5fd9d85dac307d3b78235f57afbcd9f068fc01b99e",
-                    reveal.fundingOutputIndex,
-                    "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
-                    10000,
-                    "0xf9f0c90d00039523",
-                    "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
-                    "0x28e081f285138ccbe389c1eb8985716230129f89",
-                    "0x60bcea61",
-                    ZERO_ADDRESS
-                  )
-              })
-            })
-
-            context("when deposit is routed to a non-trusted vault", () => {
-              let nonTrustedVaultReveal
-
-              before(async () => {
-                await createSnapshot()
-
-                nonTrustedVaultReveal = { ...reveal }
-                nonTrustedVaultReveal.vault =
-                  "0x92499afEAD6c41f757Ec3558D0f84bf7ec5aD967"
-              })
-
-              after(async () => {
-                await restoreSnapshot()
-              })
-
-              it("should revert", async () => {
-                await expect(
-                  bridge.revealDeposit(P2WSHFundingTx, nonTrustedVaultReveal)
-                ).to.be.revertedWith("Vault is not trusted")
-              })
-            })
-          })
-
-          context("when deposit was already revealed", () => {
-            before(async () => {
-              await createSnapshot()
-
-              await bridge.revealDeposit(P2WSHFundingTx, reveal)
-            })
-
-            after(async () => {
-              await restoreSnapshot()
-            })
-
-            it("should revert", async () => {
-              await expect(
-                bridge.revealDeposit(P2WSHFundingTx, reveal)
-              ).to.be.revertedWith("Deposit already revealed")
-            })
+            // We cannot assert that the reveal transaction succeeded since
+            // we modified the revealed refund locktime which differs from
+            // the one embedded in the transaction P2SH. We just make sure
+            // the execution does not revert on the refund locktime validation.
+            await expect(
+              bridge.revealDeposit(P2WSHFundingTx, alteredReveal)
+            ).to.be.not.revertedWith("Deposit refund locktime is too close")
           })
         })
 
-        context("when funding output script hash is wrong", () => {
+        context("when reveal ahead period is not preserved", () => {
           it("should revert", async () => {
-            // Corrupt reveal data by setting a wrong depositor address.
-            const corruptedReveal = { ...reveal }
-            corruptedReveal.depositor =
-              "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
+            const now = Math.floor(Date.now() / 1000)
+            const refundLocktimeDuration = 2592000 // 30 days
+            const refundLocktimeTimestamp = now + refundLocktimeDuration
+            const latestPossibleRevealTimestamp =
+              refundLocktimeTimestamp - constants.depositRevealAheadPeriod
+
+            const alteredReveal = {
+              ...reveal,
+              refundLocktime: encodeRefundLocktime(refundLocktimeTimestamp),
+            }
+
+            await ethers.provider.send("evm_setNextBlockTimestamp", [
+              BigNumber.from(latestPossibleRevealTimestamp + 1).toHexString(),
+            ])
 
             await expect(
-              bridge.revealDeposit(P2WSHFundingTx, corruptedReveal)
-            ).to.be.revertedWith("Wrong 32-byte script hash")
+              bridge.revealDeposit(P2WSHFundingTx, alteredReveal)
+            ).to.be.revertedWith("Deposit refund locktime is too close")
           })
         })
-      })
 
-      context("when funding transaction is neither P2SH nor P2WSH", () => {
-        it("should revert", async () => {
-          // Corrupt transaction output data by making a 21-byte script hash.
-          const corruptedP2SHFundingTx = { ...P2SHFundingTx }
-          corruptedP2SHFundingTx.outputVector =
-            "0x02102700000000000017a9156a6ade1c799a3e5a59678e776f21be14d66dc" +
-            "15ed8877ed73b00000000001600147ac2d9378a1c47e589dfb8095ca95ed2" +
-            "140d2726"
+        context("when refund locktime integer value is less than 500M", () => {
+          it("should revert", async () => {
+            const alteredReveal = {
+              ...reveal,
+              refundLocktime: encodeRefundLocktime(499999999),
+            }
 
-          await expect(
-            bridge.revealDeposit(corruptedP2SHFundingTx, reveal)
-          ).to.be.revertedWith("Wrong script hash length")
+            await expect(
+              bridge.revealDeposit(P2WSHFundingTx, alteredReveal)
+            ).to.be.revertedWith("Refund locktime must be a value >= 500M")
+          })
         })
       })
     })
@@ -2625,6 +2727,63 @@ describe("Bridge - Deposit", () => {
             })
           }
         )
+
+        context("when transaction data is limited to 64 bytes", () => {
+          // This test proves it is impossible to construct a valid proof if
+          // the transaction data (version, locktime, inputs, outputs)
+          // length is 64 bytes or less.
+
+          const data: DepositSweepTestData = JSON.parse(
+            JSON.stringify(SingleP2SHDeposit)
+          )
+          // Take wallet public key hash from first deposit. All
+          // deposits in same sweep batch should have the same value
+          // of that field.
+          const { walletPubKeyHash } = data.deposits[0].reveal
+
+          before(async () => {
+            await createSnapshot()
+
+            // Simulate the wallet is a Live one and is known in
+            // the system.
+            await bridge.setWallet(walletPubKeyHash, {
+              ...walletDraft,
+              state: walletState.Live,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            // Modify the `sweepTx` part of test data in such a way so it is only
+            // 64 bytes in length and correctly passes as many SPV proof checks as
+            // possible.
+            data.sweepTx.version = "0x01000000" // 4 bytes
+            data.sweepTx.locktime = "0x00000000" // 4 bytes
+
+            // 42 bytes at minimum to pass input formatting validation (1 byte
+            // for inputs length, 32 bytes for tx hash, 4 bytes for tx index,
+            // 1 byte for script sig length, 4 bytes for sequence number).
+            data.sweepTx.inputVector =
+              "0x01aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+              "aaaaaa1111111100ffffffff"
+
+            // 32 bytes at minimum to pass output formatting validation and the
+            // output script check (1 byte for outputs length, 8 bytes for
+            // output amount, 23 bytes for length-prefixed output script -
+            // `submitDepositSweepProof` checks that the output contains
+            // a 23-byte or 26-byte long script). Since 50 bytes has already been
+            // used on version, locktime and inputs, the output must be shortened
+            // to 14 bytes, so that the total transaction length is 64 bytes.
+            data.sweepTx.outputVector = "0x01aaaaaaaaaaaaaaaa160014bbbb"
+
+            await expect(runDepositSweepScenario(data)).to.be.revertedWith(
+              "Invalid output vector provided"
+            )
+          })
+        })
       })
     })
 

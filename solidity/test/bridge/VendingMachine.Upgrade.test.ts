@@ -84,6 +84,9 @@ describe("VendingMachine - Upgrade", () => {
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
     await bridge.setDepositDustThreshold(10000)
+    // Disable the reveal ahead period since refund locktimes are fixed
+    // within transactions used in this test suite.
+    await bridge.setDepositRevealAheadPeriod(0)
 
     await bridgeGovernance
       .connect(governance)

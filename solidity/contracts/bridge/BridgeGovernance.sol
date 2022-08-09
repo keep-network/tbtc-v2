@@ -76,6 +76,12 @@ contract BridgeGovernance is Ownable {
     );
     event DepositTxMaxFeeUpdated(uint64 depositTxMaxFee);
 
+    event DepositRevealAheadPeriodUpdateStarted(
+        uint32 newDepositRevealAheadPeriod,
+        uint256 timestamp
+    );
+    event DepositRevealAheadPeriodUpdated(uint32 depositRevealAheadPeriod);
+
     event RedemptionDustThresholdUpdateStarted(
         uint64 newRedemptionDustThreshold,
         uint256 timestamp
@@ -164,6 +170,14 @@ contract BridgeGovernance is Ownable {
     );
     event MovingFundsTimeoutNotifierRewardMultiplierUpdated(
         uint32 movingFundsTimeoutNotifierRewardMultiplier
+    );
+
+    event MovingFundsCommitmentGasOffsetUpdateStarted(
+        uint16 newMovingFundsCommitmentGasOffset,
+        uint256 timestamp
+    );
+    event MovingFundsCommitmentGasOffsetUpdated(
+        uint16 movingFundsCommitmentGasOffset
     );
 
     event MovedFundsSweepTxMaxTotalFeeUpdateStarted(
@@ -392,12 +406,17 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeDepositDustThresholdUpdate() external onlyOwner {
-        (, uint64 depositTreasuryFeeDivisor, uint64 depositTxMaxFee) = bridge
-            .depositParameters();
+        (
+            ,
+            uint64 depositTreasuryFeeDivisor,
+            uint64 depositTxMaxFee,
+            uint32 depositRevealAheadPeriod
+        ) = bridge.depositParameters();
         bridge.updateDepositParameters(
             depositData.getNewDepositDustThreshold(),
             depositTreasuryFeeDivisor,
-            depositTxMaxFee
+            depositTxMaxFee,
+            depositRevealAheadPeriod
         );
         depositData.finalizeDepositDustThresholdUpdate(governanceDelay());
     }
@@ -417,13 +436,18 @@ contract BridgeGovernance is Ownable {
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
     function finalizeDepositTreasuryFeeDivisorUpdate() external onlyOwner {
-        (uint64 depositDustThreshold, , uint64 depositTxMaxFee) = bridge
-            .depositParameters();
+        (
+            uint64 depositDustThreshold,
+            ,
+            uint64 depositTxMaxFee,
+            uint32 depositRevealAheadPeriod
+        ) = bridge.depositParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateDepositParameters(
             depositDustThreshold,
             depositData.getNewDepositTreasuryFeeDivisor(),
-            depositTxMaxFee
+            depositTxMaxFee,
+            depositRevealAheadPeriod
         );
         depositData.finalizeDepositTreasuryFeeDivisorUpdate(governanceDelay());
     }
@@ -445,15 +469,48 @@ contract BridgeGovernance is Ownable {
         (
             uint64 depositDustThreshold,
             uint64 depositTreasuryFeeDivisor,
+            ,
+            uint32 depositRevealAheadPeriod
+        ) = bridge.depositParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateDepositParameters(
+            depositDustThreshold,
+            depositTreasuryFeeDivisor,
+            depositData.getNewDepositTxMaxFee(),
+            depositRevealAheadPeriod
+        );
+        depositData.finalizeDepositTxMaxFeeUpdate(governanceDelay());
+    }
+
+    /// @notice Begins the deposit reveal ahead period update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newDepositRevealAheadPeriod New deposit reveal ahead period.
+    function beginDepositRevealAheadPeriodUpdate(
+        uint32 _newDepositRevealAheadPeriod
+    ) external onlyOwner {
+        depositData.beginDepositRevealAheadPeriodUpdate(
+            _newDepositRevealAheadPeriod
+        );
+    }
+
+    /// @notice Finalizes the deposit reveal ahead period update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeDepositRevealAheadPeriodUpdate() external onlyOwner {
+        (
+            uint64 depositDustThreshold,
+            uint64 depositTreasuryFeeDivisor,
+            uint64 depositTxMaxFee,
 
         ) = bridge.depositParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateDepositParameters(
             depositDustThreshold,
             depositTreasuryFeeDivisor,
-            depositData.getNewDepositTxMaxFee()
+            depositTxMaxFee,
+            depositData.getNewDepositRevealAheadPeriod()
         );
-        depositData.finalizeDepositTxMaxFeeUpdate(governanceDelay());
+        depositData.finalizeDepositRevealAheadPeriodUpdate(governanceDelay());
     }
 
     // --- Redemption
@@ -762,6 +819,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -775,6 +833,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
@@ -807,6 +866,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -820,6 +880,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
@@ -853,6 +914,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -866,6 +928,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
@@ -897,6 +960,7 @@ contract BridgeGovernance is Ownable {
             ,
             uint96 movingFundsTimeoutSlashingAmount,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -910,6 +974,7 @@ contract BridgeGovernance is Ownable {
             movingFundsData.getNewMovingFundsTimeout(),
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
@@ -944,6 +1009,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeout,
             ,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -957,6 +1023,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsData.getNewMovingFundsTimeoutSlashingAmount(),
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
@@ -995,6 +1062,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             ,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -1008,6 +1076,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsData.getNewMovingFundsTimeoutNotifierRewardMultiplier(),
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
@@ -1017,6 +1086,54 @@ contract BridgeGovernance is Ownable {
             .finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate(
                 governanceDelay()
             );
+    }
+
+    /// @notice Begins the moving funds commitment gas offset update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newMovingFundsCommitmentGasOffset New moving funds commitment
+    ///        gas offset.
+    function beginMovingFundsCommitmentGasOffsetUpdate(
+        uint16 _newMovingFundsCommitmentGasOffset
+    ) external onlyOwner {
+        movingFundsData.beginMovingFundsCommitmentGasOffsetUpdate(
+            _newMovingFundsCommitmentGasOffset
+        );
+    }
+
+    /// @notice Finalizes the moving funds commitment gas offset update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeMovingFundsCommitmentGasOffsetUpdate() external onlyOwner {
+        (
+            uint64 movingFundsTxMaxTotalFee,
+            uint64 movingFundsDustThreshold,
+            uint32 movingFundsTimeoutResetDelay,
+            uint32 movingFundsTimeout,
+            uint96 movingFundsTimeoutSlashingAmount,
+            uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            ,
+            uint64 movedFundsSweepTxMaxTotalFee,
+            uint32 movedFundsSweepTimeout,
+            uint96 movedFundsSweepTimeoutSlashingAmount,
+            uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
+        ) = bridge.movingFundsParameters();
+        // slither-disable-next-line reentrancy-no-eth
+        bridge.updateMovingFundsParameters(
+            movingFundsTxMaxTotalFee,
+            movingFundsDustThreshold,
+            movingFundsTimeoutResetDelay,
+            movingFundsTimeout,
+            movingFundsTimeoutSlashingAmount,
+            movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsData.getNewMovingFundsCommitmentGasOffset(),
+            movedFundsSweepTxMaxTotalFee,
+            movedFundsSweepTimeout,
+            movedFundsSweepTimeoutSlashingAmount,
+            movedFundsSweepTimeoutNotifierRewardMultiplier
+        );
+        movingFundsData.finalizeMovingFundsCommitmentGasOffsetUpdate(
+            governanceDelay()
+        );
     }
 
     /// @notice Begins the moved funds sweep tx max total fee update process.
@@ -1042,6 +1159,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             ,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -1055,6 +1173,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movingFundsData.getNewMovedFundsSweepTxMaxTotalFee(),
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
@@ -1087,6 +1206,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             ,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -1100,6 +1220,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movingFundsData.getNewMovedFundsSweepTimeout(),
             movedFundsSweepTimeoutSlashingAmount,
@@ -1135,6 +1256,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             ,
@@ -1148,6 +1270,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movingFundsData.getNewMovedFundsSweepTimeoutSlashingAmount(),
@@ -1187,6 +1310,7 @@ contract BridgeGovernance is Ownable {
             uint32 movingFundsTimeout,
             uint96 movingFundsTimeoutSlashingAmount,
             uint32 movingFundsTimeoutNotifierRewardMultiplier,
+            uint16 movingFundsCommitmentGasOffset,
             uint64 movedFundsSweepTxMaxTotalFee,
             uint32 movedFundsSweepTimeout,
             uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -1199,6 +1323,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
+            movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
