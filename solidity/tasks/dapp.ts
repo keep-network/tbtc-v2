@@ -39,6 +39,35 @@ task("dapp:register-wallet", "Registers the new mocked ECDSA wallet")
     })
   })
 
+task("dapp:submitDepositSweepProof", "Sweeps a deposit")
+  .addParam(
+    "walletPubKeyHash",
+    "20-byte wallet public key hash.",
+    undefined,
+    types.string
+  )
+  .addParam(
+    "fundingTxHash",
+    "Funding transaction hash. Emitted in the `DepositRevealed` event.",
+    undefined,
+    types.string
+  )
+  .addParam(
+    "fundingOutputIndex",
+    "Index of the funding output belonging to the funding transaction. Emitted in the `DepositRevealed` event.",
+    undefined,
+    types.int
+  )
+  .setAction(async (args, hre) => {
+    const { walletPubKeyHash, fundingTxHash, fundingOutputIndex } = args
+    await submitDepositSweepProof(
+      hre,
+      walletPubKeyHash,
+      fundingTxHash,
+      fundingOutputIndex
+    )
+  })
+
 async function registerWallet(hre: HardhatRuntimeEnvironment, utxo: UTXO) {
   const { ethers, helpers } = hre
   const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
@@ -52,4 +81,22 @@ async function registerWallet(hre: HardhatRuntimeEnvironment, utxo: UTXO) {
   const walletPublicKey = await bridge.activeWalletPubKeyHash()
 
   console.log(`Created wallet with public key ${walletPublicKey}`)
+}
+
+async function submitDepositSweepProof(
+  hre: HardhatRuntimeEnvironment,
+  walletPubKeyHash: string,
+  fundingTxHash: string,
+  fundingOutputIndex: number
+) {
+  const { helpers } = hre
+  const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
+
+  await bridge.mock__submitDepositSweepProof(
+    walletPubKeyHash,
+    fundingTxHash,
+    fundingOutputIndex
+  )
+
+  console.log("Deposit swept successfully")
 }
