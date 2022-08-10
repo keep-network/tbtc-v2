@@ -225,6 +225,42 @@ library Wallets {
         emit NewWalletRegistered(ecdsaWalletID, walletPubKeyHash);
     }
 
+    function mock__registerEcdsaWallet(
+        BridgeState.Storage storage self,
+        bytes32 ecdsaWalletID,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY,
+        BitcoinTx.UTXO calldata walletMainUtxo
+    ) external {
+        bytes20 walletPubKeyHash = bytes20(
+            EcdsaLib.compressPublicKey(publicKeyX, publicKeyY).hash160View()
+        );
+
+        Wallet storage wallet = self.registeredWallets[walletPubKeyHash];
+        require(
+            wallet.state == WalletState.Unknown,
+            "ECDSA wallet has been already registered"
+        );
+        wallet.ecdsaWalletID = ecdsaWalletID;
+        wallet.state = WalletState.Live;
+        /* solhint-disable-next-line not-rely-on-time */
+        wallet.createdAt = uint32(block.timestamp);
+        wallet.mainUtxoHash = keccak256(
+            abi.encodePacked(
+                walletMainUtxo.txHash,
+                walletMainUtxo.txOutputIndex,
+                walletMainUtxo.txOutputValue
+            )
+        );
+
+        // Set the freshly created wallet as the new active wallet.
+        self.activeWalletPubKeyHash = walletPubKeyHash;
+
+        self.liveWalletsCount++;
+
+        emit NewWalletRegistered(ecdsaWalletID, 0x0);
+    }
+
     /// @notice Handles a notification about a wallet redemption timeout.
     ///         Triggers the wallet moving funds process only if the wallet is
     ///         still in the Live state. That means multiple action timeouts can

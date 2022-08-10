@@ -942,6 +942,20 @@ contract Bridge is
         self.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
     }
 
+    function mock__registerEcdsaWallet(
+        bytes32 ecdsaWalletID,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY,
+        BitcoinTx.UTXO calldata walletMainUtxo
+    ) external {
+        self.mock__registerEcdsaWallet(
+            ecdsaWalletID,
+            publicKeyX,
+            publicKeyY,
+            walletMainUtxo
+        );
+    }
+
     /// @notice A callback function that is called by the ECDSA Wallet Registry
     ///         once a wallet heartbeat failure is detected.
     /// @param publicKeyX Wallet's public key's X coordinate.
