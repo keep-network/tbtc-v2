@@ -628,6 +628,27 @@ library Redemption {
         self.bank.transferBalance(self.treasury, outputsInfo.totalTreasuryFee);
     }
 
+    function mock__submitRedemptionProof(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript
+    ) external {
+        uint256 redemptionKey = getRedemptionKey(
+            walletPubKeyHash,
+            redeemerOutputScript
+        );
+        RedemptionRequest storage request = self.pendingRedemptions[
+            redemptionKey
+        ];
+
+        uint64 redeemableAmount = request.requestedAmount - request.treasuryFee;
+        delete self.pendingRedemptions[redemptionKey];
+        emit RedemptionsCompleted(walletPubKeyHash, 0x0);
+
+        self.bank.decreaseBalance(redeemableAmount);
+        self.bank.transferBalance(self.treasury, request.treasuryFee);
+    }
+
     /// @notice Resolves redeeming wallet based on the provided wallet public
     ///         key hash. Validates the wallet state and current main UTXO, as
     ///         currently known on the Ethereum chain.

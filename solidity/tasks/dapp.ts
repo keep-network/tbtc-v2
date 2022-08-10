@@ -68,6 +68,29 @@ task("dapp:submitDepositSweepProof", "Sweeps a deposit")
     )
   })
 
+  task("dapp:submitDepositSweepProof", "Sweeps a deposit")
+  .addParam(
+    "walletPubKeyHash",
+    "20-byte wallet public key hash.",
+    undefined,
+    types.string
+  )
+  .addParam(
+    "redeemerOutputScript",
+    "The redeemer's length-prefixed output script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock redeemed BTC. Emitted in the `RedemptionRequested` event",
+    undefined,
+    types.string
+  )
+  .setAction(async (args, hre) => {
+    const { walletPubKeyHash, redeemerOutputScript } = args
+    await submitRedemptionProof(
+      hre,
+      walletPubKeyHash,
+      redeemerOutputScript,
+    )
+  })
+
+
 async function registerWallet(hre: HardhatRuntimeEnvironment, utxo: UTXO) {
   const { ethers, helpers } = hre
   const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
@@ -99,4 +122,20 @@ async function submitDepositSweepProof(
   )
 
   console.log("Deposit swept successfully")
+}
+
+async function submitRedemptionProof(
+  hre: HardhatRuntimeEnvironment,
+  walletPubKeyHash: string,
+  redeemerOutputScript: string,
+) {
+  const { helpers } = hre
+  const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
+
+  await bridge.mock__submitRedemptionProof(
+    walletPubKeyHash,
+    redeemerOutputScript
+  )
+
+  console.log("Redemptions completed")
 }

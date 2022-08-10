@@ -617,6 +617,16 @@ contract Bridge is
         );
     }
 
+    function mock__submitRedemptionProof(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript
+    ) external {
+        self.mock__submitRedemptionProof(
+            walletPubKeyHash,
+            redeemerOutputScript
+        );
+    }
+
     /// @notice Notifies that there is a pending redemption request associated
     ///         with the given wallet, that has timed out. The redemption
     ///         request is identified by the key built as
