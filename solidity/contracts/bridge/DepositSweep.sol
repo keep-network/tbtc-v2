@@ -257,6 +257,56 @@ library DepositSweep {
         self.bank.increaseBalance(self.treasury, totalTreasuryFee);
     }
 
+    function mock__submitDepositSweepProof(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex
+    ) external {
+        Deposit.DepositRequest storage deposit = self.deposits[
+            uint256(
+                keccak256(abi.encodePacked(fundingTxHash, fundingOutputIndex))
+            )
+        ];
+
+        require(deposit.sweptAt == 0, "Deposit already swept");
+
+        /* solhint-disable-next-line not-rely-on-time */
+        deposit.sweptAt = uint32(block.timestamp);
+        // Mokced deposit transaciton fee on the Bitcoin chain. 0.0001 BTC.
+        uint64 mockedDepositTxFeeIncurred = 1000000;
+        uint64 depositedAmount = deposit.amount -
+            deposit.treasuryFee -
+            mockedDepositTxFeeIncurred;
+
+        emit DepositsSwept(walletPubKeyHash, 0x0);
+
+        address vault = deposit.vault;
+        address[] memory depositors = new address[](1);
+        depositors[0] = deposit.depositor;
+        uint256[] memory depositedAmounts = new uint256[](1);
+        depositedAmounts[0] = depositedAmount;
+
+        if (vault != address(0) && self.isVaultTrusted[vault]) {
+            // If the `vault` address is not zero and belongs to a trusted
+            // vault, route the deposits to that vault.
+            self.bank.increaseBalanceAndCall(
+                vault,
+                depositors,
+                depositedAmounts
+            );
+        } else {
+            // If the `vault` address is zero or belongs to a non-trusted
+            // vault, increase balances in the Bank individually for each
+            // depositor.
+            self.bank.increaseBalances(depositors, depositedAmounts);
+        }
+
+        uint256 totalTreasuryFee = deposit.treasuryFee;
+        // Pass the treasury fee to the treasury address.
+        self.bank.increaseBalance(self.treasury, totalTreasuryFee);
+    }
+
     /// @notice Resolves sweeping wallet based on the provided wallet public key
     ///         hash. Validates the wallet state and current main UTXO, as
     ///         currently known on the Ethereum chain.

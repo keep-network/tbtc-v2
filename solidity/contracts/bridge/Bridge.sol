@@ -420,6 +420,18 @@ contract Bridge is
         self.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo, vault);
     }
 
+    function mock__submitDepositSweepProof(
+        bytes20 walletPubKeyHash,
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex
+    ) external {
+        self.mock__submitDepositSweepProof(
+            walletPubKeyHash,
+            fundingTxHash,
+            fundingOutputIndex
+        );
+    }
+
     /// @notice Requests redemption of the given amount from the specified
     ///         wallet to the redeemer Bitcoin output script. Handles the
     ///         simplest case in which the redeemer's balance is decreased in
