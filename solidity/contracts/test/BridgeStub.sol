@@ -165,4 +165,10 @@ contract BridgeStub is Bridge {
     ) external {
         self.movedFundsSweepTxMaxTotalFee = _movedFundsSweepTxMaxTotalFee;
     }
+
+    function setDepositRevealAheadPeriod(uint32 _depositRevealAheadPeriod)
+        external
+    {
+        self.depositRevealAheadPeriod = _depositRevealAheadPeriod;
+    }
 }

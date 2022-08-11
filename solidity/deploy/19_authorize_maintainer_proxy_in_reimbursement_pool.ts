@@ -10,21 +10,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await execute(
     "ReimbursementPool",
-    { from: deployer },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "authorize",
     MaintainerProxy.address
-  )
-
-  await execute(
-    "Bridge",
-    { from: deployer },
-    "setSpvMaintainerStatus",
-    MaintainerProxy.address,
-    true
   )
 }
 
 export default func
 
-func.tags = ["AuthorizeMaintainerProxy"]
+func.tags = ["AuthorizeMaintainerProxyInReimbursementPool"]
 func.dependencies = ["ReimbursementPool", "MaintainerProxy"]

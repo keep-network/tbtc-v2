@@ -86,6 +86,16 @@ describeFn("Integration Test - Slashing", async () => {
       governance,
       dkgResultChallengePeriodLength
     )
+
+    // Disable the reveal ahead period since refund locktimes are fixed
+    // within transactions used in this test suite.
+    await bridgeGovernance
+      .connect(governance)
+      .beginDepositRevealAheadPeriodUpdate(0)
+    await increaseTime(constants.governanceDelay)
+    await bridgeGovernance
+      .connect(governance)
+      .finalizeDepositRevealAheadPeriodUpdate()
   })
 
   describe("notifyFraudChallengeDefeatTimeout", async () => {

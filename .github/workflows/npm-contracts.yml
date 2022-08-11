@@ -38,12 +38,15 @@ jobs:
 
       - name: Resolve latest contracts
         run: |
-          yarn upgrade @keep-network/tbtc
+          yarn upgrade --exact \
+            @keep-network/ecdsa \
+            @keep-network/random-beacon \
+            @keep-network/tbtc
 
       # Deploy contracts to a local network to generate deployment artifacts that
       # are required by dashboard compilation.
       - name: Deploy contracts
-        run: yarn deploy --network hardhat --write true
+        run: yarn deploy:test --network hardhat --write true
 
       - name: Bump up package version
         id: npm-version-bump

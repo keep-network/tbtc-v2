@@ -15,6 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [TBTCToken.address, TBTC.address, unmintFee],
     log: true,
+    waitConfirmations: 1,
   })
 
   await helpers.ownable.transferOwnership(
