@@ -129,9 +129,10 @@ jobs:
 
   contracts-deployment-testnet:
     needs: [contracts-build-and-test]
+    # TODO: Remove ` && github.ref != 'refs/heads/ci-dapp-dev-test'` befpre merge to main
     if: |
       github.event_name == 'workflow_dispatch'
-        && github.ref != 'refs/heads/dapp-development'
+        && github.ref != 'refs/heads/dapp-development' && github.ref != 'refs/heads/ci-dapp-dev-test'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -275,9 +276,10 @@ jobs:
   # `dapp-development`.
   contracts-dapp-development-deployment-testnet:
     needs: [contracts-build-and-test]
+    # TODO: Remove ` || github.ref == 'refs/heads/ci-dapp-dev-test'` before merge to main
     if: |
       github.event_name == 'workflow_dispatch'
-        && github.ref == 'refs/heads/dapp-development'
+        && (github.ref == 'refs/heads/dapp-development' || github.ref == 'refs/heads/ci-dapp-dev-test')
     runs-on: ubuntu-latest
     defaults:
       run:
