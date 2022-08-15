@@ -68,7 +68,7 @@ task("dapp:submitDepositSweepProof", "Sweeps a deposit")
     )
   })
 
-  task("dapp:submitDepositSweepProof", "Sweeps a deposit")
+task("dapp:submitRedemptionProof", "Submits a redemption proof")
   .addParam(
     "walletPubKeyHash",
     "20-byte wallet public key hash.",
