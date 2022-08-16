@@ -12,5 +12,12 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "test", "typechain", "typings.d.ts"]
+  "include": ["src", "test", "typechain", "typings.d.ts"],
+  "ts-node": {
+    "files": true
+  },
+  "files": [
+    "src",
+    "typings.d.ts"
+  ],
 }
