@@ -94,16 +94,32 @@ task("dapp:submitRedemptionProof", "Submits a redemption proof")
 async function registerWallet(hre: HardhatRuntimeEnvironment, utxo: UTXO) {
   const { ethers, helpers } = hre
   const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
+  const walletRegistry = await helpers.contracts.getContract("WalletRegistry")
 
   const ecdsaID = ethers.utils.randomBytes(32)
   const publicKeyX = ethers.utils.randomBytes(32)
   const publicKeyY = ethers.utils.randomBytes(32)
 
-  await bridge.mock__registerEcdsaWallet(ecdsaID, publicKeyX, publicKeyY, utxo)
-
-  const walletPublicKey = await bridge.activeWalletPubKeyHash()
-
+  await walletRegistry.mock__createWallet(ecdsaID, publicKeyX, publicKeyY)
+  const walletPublicKey = await walletRegistry.getWalletPublicKey(ecdsaID)
   console.log(`Created wallet with public key ${walletPublicKey}`)
+
+  const finalUtxo = {
+    ...utxo,
+    // The Ethereum Bridge expects this hash to be in the Bitcoin internal
+    // byte order.
+    txHash: `0x${Buffer.from(utxo.txHash.slice(2), "hex")
+      .reverse()
+      .toString("hex")}`,
+  }
+  await bridge.mock__registerEcdsaWallet(
+    ecdsaID,
+    publicKeyX,
+    publicKeyY,
+    finalUtxo
+  )
+  const walletPublicKeyHash = await bridge.activeWalletPubKeyHash()
+  console.log(`Created wallet with public key hash ${walletPublicKeyHash}`)
 }
 
 async function submitDepositSweepProof(
