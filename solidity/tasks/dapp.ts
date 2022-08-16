@@ -83,13 +83,28 @@ task("dapp:submitRedemptionProof", "Submits a redemption proof")
   )
   .setAction(async (args, hre) => {
     const { walletPubKeyHash, redeemerOutputScript } = args
-    await submitRedemptionProof(
-      hre,
-      walletPubKeyHash,
-      redeemerOutputScript,
-    )
+    await submitRedemptionProof(hre, walletPubKeyHash, redeemerOutputScript)
   })
 
+task(
+  "dapp:getRevealedDeposits",
+  "Returns the revealed deposits by depositor address."
+)
+  .addParam("depositorAddress", "Depositor address", undefined, types.string)
+  .setAction(async (args, hre) => {
+    const { depositorAddress } = args
+    await getRevealedDeposits(hre, depositorAddress)
+  })
+
+task(
+  "dapp:getRedemptions",
+  "Returns the requested redemptions by redeemer address."
+)
+  .addParam("redeemerAddress", "Redeemer address", undefined, types.string)
+  .setAction(async (args, hre) => {
+    const { redeemerAddress } = args
+    await getRedemptions(hre, redeemerAddress)
+  })
 
 async function registerWallet(hre: HardhatRuntimeEnvironment, utxo: UTXO) {
   const { ethers, helpers } = hre
@@ -150,7 +165,7 @@ async function submitDepositSweepProof(
 async function submitRedemptionProof(
   hre: HardhatRuntimeEnvironment,
   walletPubKeyHash: string,
-  redeemerOutputScript: string,
+  redeemerOutputScript: string
 ) {
   const { helpers } = hre
   const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
@@ -161,4 +176,44 @@ async function submitRedemptionProof(
   )
 
   console.log("Redemptions completed")
+}
+
+async function getRevealedDeposits(
+  hre: HardhatRuntimeEnvironment,
+  depositorAddress: string
+) {
+  const { helpers } = hre
+  const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
+  const filter = bridge.filters.DepositRevealed(
+    undefined,
+    undefined,
+    depositorAddress
+  )
+
+  const events = (await bridge.queryFilter(filter)).map((event) => ({
+    ...event.args,
+  }))
+  console.table(events, [
+    "walletPubKeyHash",
+    "fundingTxHash",
+    "fundingOutputIndex",
+  ])
+}
+
+async function getRedemptions(
+  hre: HardhatRuntimeEnvironment,
+  redeemerAddress: string
+) {
+  const { helpers } = hre
+  const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
+  const filter = bridge.filters.RedemptionRequested(
+    undefined,
+    undefined,
+    redeemerAddress
+  )
+
+  const events = (await bridge.queryFilter(filter)).map((event) => ({
+    ...event.args,
+  }))
+  console.table(events, ["walletPubKeyHash", "redeemerOutputScript"])
 }
