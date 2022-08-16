@@ -273,8 +273,8 @@ library DepositSweep {
 
         /* solhint-disable-next-line not-rely-on-time */
         deposit.sweptAt = uint32(block.timestamp);
-        // Mokced deposit transaciton fee on the Bitcoin chain. 0.0001 BTC.
-        uint64 mockedDepositTxFeeIncurred = 1000000;
+        // Mokced deposit transaciton fee on the Bitcoin chain. 
+        uint64 mockedDepositTxFeeIncurred = 400; // 0.000004 BTC.
         uint64 depositedAmount = deposit.amount -
             deposit.treasuryFee -
             mockedDepositTxFeeIncurred;
