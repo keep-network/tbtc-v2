@@ -39,7 +39,7 @@ task("dapp:register-wallet", "Registers the new mocked ECDSA wallet")
     })
   })
 
-task("dapp:submitDepositSweepProof", "Sweeps a deposit")
+task("dapp:submit-deposit-sweep-proof", "Sweeps a deposit")
   .addParam(
     "walletPubKeyHash",
     "20-byte wallet public key hash.",
@@ -68,7 +68,7 @@ task("dapp:submitDepositSweepProof", "Sweeps a deposit")
     )
   })
 
-task("dapp:submitRedemptionProof", "Submits a redemption proof")
+task("dapp:submit-redemption-proof", "Submits a redemption proof")
   .addParam(
     "walletPubKeyHash",
     "20-byte wallet public key hash.",
@@ -87,7 +87,7 @@ task("dapp:submitRedemptionProof", "Submits a redemption proof")
   })
 
 task(
-  "dapp:getRevealedDeposits",
+  "dapp:get-revealed-deposits",
   "Returns the revealed deposits by depositor address."
 )
   .addParam("depositorAddress", "Depositor address", undefined, types.string)
@@ -97,7 +97,7 @@ task(
   })
 
 task(
-  "dapp:getRedemptions",
+  "dapp:get-redemptions",
   "Returns the requested redemptions by redeemer address."
 )
   .addParam("redeemerAddress", "Redeemer address", undefined, types.string)
