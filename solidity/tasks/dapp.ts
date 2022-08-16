@@ -128,7 +128,7 @@ async function submitDepositSweepProof(
   fundingTxHash: string,
   fundingOutputIndex: number
 ) {
-  const { helpers } = hre
+  const { helpers, ethers } = hre
   const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
 
   await bridge.mock__submitDepositSweepProof(
@@ -137,7 +137,14 @@ async function submitDepositSweepProof(
     fundingOutputIndex
   )
 
-  console.log("Deposit swept successfully")
+  const depositKey = ethers.utils.solidityKeccak256(
+    ["bytes32", "uint32"],
+    [fundingTxHash, fundingOutputIndex]
+  )
+
+  const deposit = await bridge.deposits(depositKey)
+
+  console.log("Deposit swept successfully at: ", deposit.sweptAt.toString())
 }
 
 async function submitRedemptionProof(
