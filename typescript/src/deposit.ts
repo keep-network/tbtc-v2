@@ -1,6 +1,4 @@
-// @ts-ignore
 import bcoin from "bcoin"
-// @ts-ignore
 import { opcodes } from "bcoin/lib/script/common"
 import { BigNumber } from "ethers"
 import {
@@ -11,6 +9,7 @@ import {
   createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
+  TransactionHash,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 
@@ -65,21 +64,63 @@ export interface Deposit {
 }
 
 /**
- * Makes a deposit by creating and broadcasting a Bitcoin P2(W)SH
+ * Helper type that groups deposit's fields required to assemble a deposit script.
+ */
+export type DepositScriptParameters = Pick<
+  Deposit,
+  | "depositor"
+  | "blindingFactor"
+  | "walletPublicKey"
+  | "refundPublicKey"
+  | "refundLocktime"
+>
+
+/**
+ * Represents a deposit revealed to the on-chain bridge. This type emphasizes
+ * the on-chain state of the revealed deposit and omits the deposit script
+ * parameters as they are not relevant in this context.
+ */
+export type RevealedDeposit = Pick<
+  Deposit,
+  "depositor" | "amount" | "vault"
+> & {
+  /**
+   * UNIX timestamp the deposit was revealed at.
+   */
+  revealedAt: number
+  /**
+   * UNIX timestamp the request was swept at. If not swept yet, this parameter
+   * should have zero as value.
+   */
+  sweptAt: number
+  /**
+   * Value of the treasury fee calculated for this revealed deposit.
+   * Denominated in satoshi.
+   */
+  treasuryFee: BigNumber
+}
+
+/**
+ * Submits a deposit by creating and broadcasting a Bitcoin P2(W)SH
  * deposit transaction.
  * @param deposit - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @returns The deposit UTXO that will be created by the deposit transaction
+ * @returns The outcome consisting of:
+ *          - the deposit transaction hash,
+ *          - the deposit UTXO produced by this transaction.
  */
-export async function makeDeposit(
+export async function submitDepositTransaction(
   deposit: Deposit,
   depositorPrivateKey: string,
   bitcoinClient: BitcoinClient,
   witness: boolean
-): Promise<UnspentTransactionOutput> {
+): Promise<{
+  transactionHash: TransactionHash
+  depositUtxo: UnspentTransactionOutput
+}> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
@@ -89,43 +130,54 @@ export async function makeDeposit(
 
   const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
   for (const utxo of utxos) {
-    const rawTransaction = await bitcoinClient.getRawTransaction(
+    const utxoRawTransaction = await bitcoinClient.getRawTransaction(
       utxo.transactionHash
     )
 
     utxosWithRaw.push({
       ...utxo,
-      transactionHex: rawTransaction.transactionHex,
+      transactionHex: utxoRawTransaction.transactionHex,
     })
   }
 
-  const { transactionHex, ...depositUtxo } = await createDepositTransaction(
-    deposit,
-    utxosWithRaw,
-    depositorPrivateKey,
-    witness
-  )
+  const { transactionHash, depositUtxo, rawTransaction } =
+    await assembleDepositTransaction(
+      deposit,
+      utxosWithRaw,
+      depositorPrivateKey,
+      witness
+    )
 
-  await bitcoinClient.broadcast({ transactionHex })
+  await bitcoinClient.broadcast(rawTransaction)
 
-  return depositUtxo
+  return {
+    transactionHash,
+    depositUtxo,
+  }
 }
 
 /**
- * Creates a Bitcoin P2(W)SH deposit transaction.
+ * Assembles a Bitcoin P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
  * @param utxos - UTXOs that should be used as transaction inputs.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @returns Deposit UTXO with Bitcoin P2(W)SH deposit transaction data in raw format.
+ * @returns The outcome consisting of:
+ *          - the deposit transaction hash,
+ *          - the deposit UTXO produced by this transaction.
+ *          - the deposit transaction in the raw format
  */
-export async function createDepositTransaction(
+export async function assembleDepositTransaction(
   deposit: Deposit,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   depositorPrivateKey: string,
   witness: boolean
-): Promise<UnspentTransactionOutput & RawTransaction> {
+): Promise<{
+  transactionHash: TransactionHash
+  depositUtxo: UnspentTransactionOutput
+  rawTransaction: RawTransaction
+}> {
   const depositorKeyRing = createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
@@ -139,7 +191,7 @@ export async function createDepositTransaction(
 
   const transaction = new bcoin.MTX()
 
-  const scriptHash = await createDepositScriptHash(deposit, witness)
+  const scriptHash = await calculateDepositScriptHash(deposit, witness)
   const outputValue = deposit.amount
 
   transaction.addOutput({
@@ -157,21 +209,30 @@ export async function createDepositTransaction(
 
   transaction.sign(depositorKeyRing)
 
+  const transactionHash = transaction.txid()
+
   return {
-    transactionHash: transaction.txid(),
-    outputIndex: 0, // There is only one output.
-    value: outputValue,
-    transactionHex: transaction.toRaw().toString("hex"),
+    transactionHash,
+    depositUtxo: {
+      transactionHash,
+      outputIndex: 0, // The deposit is always the first output.
+      value: outputValue,
+    },
+    rawTransaction: {
+      transactionHex: transaction.toRaw().toString("hex"),
+    },
   }
 }
 
 /**
- * Creates a Bitcoin locking script for P2(W)SH deposit transaction.
+ * Assembles a Bitcoin locking script for P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
  * @returns Script as an un-prefixed hex string.
  */
-export async function createDepositScript(deposit: Deposit): Promise<string> {
-  validateDeposit(deposit)
+export async function assembleDepositScript(
+  deposit: DepositScriptParameters
+): Promise<string> {
+  validateDepositScriptParameters(deposit)
 
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
@@ -204,16 +265,15 @@ export async function createDepositScript(deposit: Deposit): Promise<string> {
 
 // eslint-disable-next-line valid-jsdoc
 /**
- * Validates the given deposit parameters. Throws in case of a validation error.
- * @param deposit - The validated deposit.
+ * Validates the given deposit script parameters. Throws in case of a
+ * validation error.
+ * @param deposit - The validated deposit script parameters.
  * @dev This function does not validate the depositor's identifier as its
  *      validity is chain-specific. This parameter must be validated outside.
  */
-export function validateDeposit(deposit: Deposit) {
-  if (!deposit.amount.gt(0)) {
-    throw new Error("Amount must be greater than 0")
-  }
-
+export function validateDepositScriptParameters(
+  deposit: DepositScriptParameters
+) {
   if (deposit.blindingFactor.length != 16) {
     throw new Error("Blinding factor must be an 8-byte number")
   }
@@ -232,14 +292,16 @@ export function validateDeposit(deposit: Deposit) {
 }
 
 /**
- * Computes a refund locktime parameter for the given deposit creation timestamp.
+ * Calculates a refund locktime parameter for the given deposit creation timestamp.
  * Throws if the resulting locktime is not a 4-byte number.
  * @param depositCreatedAt - Unix timestamp in seconds determining the moment
  *                           of deposit creation.
  * @returns A 4-byte little-endian deposit refund locktime as an un-prefixed
  *          hex string.
  */
-export function computeDepositRefundLocktime(depositCreatedAt: number): string {
+export function calculateDepositRefundLocktime(
+  depositCreatedAt: number
+): string {
   // Locktime is a Unix timestamp in seconds, computed as deposit creation
   // timestamp plus locktime duration.
   const locktime = BigNumber.from(
@@ -258,17 +320,17 @@ export function computeDepositRefundLocktime(depositCreatedAt: number): string {
 }
 
 /**
- * Creates a Bitcoin locking script hash for P2(W)SH deposit transaction.
+ * Calculates a Bitcoin locking script hash for P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
  * @param witness - If true, a witness script hash will be created.
  *        Otherwise, a legacy script hash will be made.
  * @returns Buffer with script hash.
  */
-export async function createDepositScriptHash(
-  deposit: Deposit,
+export async function calculateDepositScriptHash(
+  deposit: DepositScriptParameters,
   witness: boolean
 ): Promise<Buffer> {
-  const script = await createDepositScript(deposit)
+  const script = await assembleDepositScript(deposit)
   // Parse the script from HEX string.
   const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
   // If witness script hash should be produced, SHA256 should be used.
@@ -277,7 +339,7 @@ export async function createDepositScriptHash(
 }
 
 /**
- * Creates a Bitcoin target address for P2(W)SH deposit transaction.
+ * Calculates a Bitcoin target address for P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
  * @param network - Network that the address should be created for.
  *        For example, `main` or `testnet`.
@@ -285,12 +347,12 @@ export async function createDepositScriptHash(
  *        Otherwise, a legacy address will be made.
  * @returns Address as string.
  */
-export async function createDepositAddress(
-  deposit: Deposit,
+export async function calculateDepositAddress(
+  deposit: DepositScriptParameters,
   network: string,
   witness: boolean
 ): Promise<string> {
-  const scriptHash = await createDepositScriptHash(deposit, witness)
+  const scriptHash = await calculateDepositScriptHash(deposit, witness)
   const address = witness
     ? bcoin.Address.fromWitnessScripthash(scriptHash)
     : bcoin.Address.fromScripthash(scriptHash)
@@ -319,4 +381,29 @@ export async function revealDeposit(
   )
 
   await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit)
+}
+
+/**
+ * Gets a revealed deposit from the bridge.
+ * @param utxo Deposit UTXO of the revealed deposit
+ * @param bridge Handle to the Bridge on-chain contract
+ * @returns Revealed deposit data.
+ */
+export async function getRevealedDeposit(
+  utxo: UnspentTransactionOutput,
+  bridge: Bridge
+): Promise<RevealedDeposit> {
+  return bridge.deposits(utxo.transactionHash, utxo.outputIndex)
+}
+
+/**
+ * Suggests a wallet that should be used as the deposit target at the given moment.
+ * @param bridge Handle to the Bridge on-chain contract.
+ * @returns Compressed (33 bytes long with 02 or 03 prefix) public key of
+ *          the wallet.
+ */
+export async function suggestDepositWallet(
+  bridge: Bridge
+): Promise<string | undefined> {
+  return bridge.activeWalletPublicKey()
 }

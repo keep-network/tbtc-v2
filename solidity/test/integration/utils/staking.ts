@@ -1,8 +1,8 @@
-import { helpers } from "hardhat"
-
 import type { BigNumberish, Contract, Signer } from "ethers"
+import { HardhatRuntimeEnvironment } from "hardhat/types"
 
 export async function stake(
+  hre: HardhatRuntimeEnvironment,
   t: Contract,
   staking: Contract,
   stakeAmount: BigNumberish,
@@ -11,6 +11,7 @@ export async function stake(
   beneficiary: string,
   authorizer: string
 ): Promise<void> {
+  const { helpers } = hre
   const { deployer } = await helpers.signers.getNamedSigners()
 
   await t.connect(deployer).mint(await owner.getAddress(), stakeAmount)

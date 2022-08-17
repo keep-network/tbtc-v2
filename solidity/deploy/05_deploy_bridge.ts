@@ -1,5 +1,5 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types"
-import { DeployFunction } from "hardhat-deploy/types"
+import { DeployFunction, DeployOptions } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers, helpers, deployments, getNamedAccounts } = hre
@@ -7,42 +7,47 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, treasury } = await getNamedAccounts()
 
   const Bank = await deployments.get("Bank")
-  const Relay = await deployments.get("Relay")
+  const BitcoinRelay = await deployments.get("BitcoinRelay")
 
   // TODO: Test for mainnet deployment that when `WalletRegistry` is provided
   // in `external/mainnet/` directory it gets resolved correctly, and the deployment
   // script from `@keep-network/ecdsa` is not invoked once again.
   const WalletRegistry = await deployments.get("WalletRegistry")
 
+  const ReimbursementPool = await deployments.get("ReimbursementPool")
+
   // For local tests use `1`.
   const txProofDifficultyFactor =
-    deployments.getNetworkName() === "hardhat" ? 1 : 6
+    deployments.getNetworkName() === "hardhat" ||
+    deployments.getNetworkName() === "development"
+      ? 1
+      : 6
 
-  const Deposit = await deploy("Deposit", { from: deployer, log: true })
-  const DepositSweep = await deploy("DepositSweep", {
+  const deployOptions: DeployOptions = {
     from: deployer,
     log: true,
-  })
-  const Redemption = await deploy("Redemption", { from: deployer, log: true })
+    waitConfirmations: 1,
+  }
+
+  const Deposit = await deploy("Deposit", deployOptions)
+  const DepositSweep = await deploy("DepositSweep", deployOptions)
+  const Redemption = await deploy("Redemption", deployOptions)
   const Wallets = await deploy("Wallets", {
     contract: "contracts/bridge/Wallets.sol:Wallets",
-    from: deployer,
-    log: true,
+    ...deployOptions,
   })
-  const Fraud = await deploy("Fraud", { from: deployer, log: true })
-  const MovingFunds = await deploy("MovingFunds", {
-    from: deployer,
-    log: true,
-  })
+  const Fraud = await deploy("Fraud", deployOptions)
+  const MovingFunds = await deploy("MovingFunds", deployOptions)
 
   const bridge = await helpers.upgrades.deployProxy("Bridge", {
     contractName:
       process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
     initializerArgs: [
       Bank.address,
-      Relay.address,
+      BitcoinRelay.address,
       treasury,
       WalletRegistry.address,
+      ReimbursementPool.address,
       txProofDifficultyFactor,
     ],
     factoryOpts: {
@@ -77,4 +82,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["Bridge"]
-func.dependencies = ["Bank", "Relay", "Treasury", "WalletRegistry"]
+func.dependencies = ["Bank", "BitcoinRelay", "Treasury", "WalletRegistry"]

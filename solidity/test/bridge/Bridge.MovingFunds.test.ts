@@ -4,15 +4,14 @@ import chai, { assert, expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { BigNumber, ContractTransaction } from "ethers"
+import { BigNumber, Contract, ContractTransaction } from "ethers"
 import type {
-  Bank,
-  BankStub,
   Bridge,
   BridgeStub,
-  BridgeStub__factory,
   IRelay,
   IWalletRegistry,
+  BridgeGovernance,
+  ReimbursementPool,
 } from "../../typechain"
 import bridgeFixture from "../fixtures/bridge"
 import {
@@ -46,14 +45,17 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 
 describe("Bridge - Moving funds", () => {
+  let deployer: SignerWithAddress
+  let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
-  let treasury: SignerWithAddress
+  let spvMaintainer: SignerWithAddress
 
-  let bank: Bank & BankStub
   let relay: FakeContract<IRelay>
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
-  let BridgeFactory: BridgeStub__factory
+  let bridgeGovernance: BridgeGovernance
+  let reimbursementPool: ReimbursementPool
+  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
 
   let movingFundsTimeoutResetDelay: number
   let movingFundsTimeout: number
@@ -66,13 +68,16 @@ describe("Bridge - Moving funds", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
+      deployer,
+      governance,
       thirdParty,
-      treasury,
-      bank,
+      spvMaintainer,
       relay,
       walletRegistry,
       bridge,
-      BridgeFactory,
+      bridgeGovernance,
+      reimbursementPool,
+      deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
     ;({
       movingFundsTimeoutResetDelay,
@@ -239,8 +244,23 @@ describe("Bridge - Moving funds", () => {
                                               expectedTargetWalletsCount
                                             )
 
+                                          const { provider } = waffle
+
+                                          let initialCallerBalance: BigNumber
+
                                           before(async () => {
                                             await createSnapshot()
+
+                                            await deployer.sendTransaction({
+                                              to: reimbursementPool.address,
+                                              value:
+                                                ethers.utils.parseEther("100"),
+                                            })
+
+                                            initialCallerBalance =
+                                              await provider.getBalance(
+                                                caller.address
+                                              )
 
                                             tx = await bridge
                                               .connect(caller)
@@ -284,6 +304,25 @@ describe("Bridge - Moving funds", () => {
                                                 targetWallets,
                                                 caller.address
                                               )
+                                          })
+
+                                          it("should refund ETH", async () => {
+                                            const postCallerBalance =
+                                              await provider.getBalance(
+                                                caller.address
+                                              )
+                                            const diff =
+                                              postCallerBalance.sub(
+                                                initialCallerBalance
+                                              )
+
+                                            expect(diff).to.be.gt(0)
+                                            expect(diff).to.be.lt(
+                                              ethers.utils.parseUnits(
+                                                "1000000",
+                                                "gwei"
+                                              ) // 0,001 ETH
+                                            )
                                           })
                                         }
                                       )
@@ -1457,7 +1496,15 @@ describe("Bridge - Moving funds", () => {
                                   // test data has a fee of 9000 satoshis. Lowering
                                   // the max fee in the Bridge by one should
                                   // cause the expected failure.
-                                  await bridge.setMovingFundsTxMaxTotalFee(8999)
+                                  await bridgeGovernance
+                                    .connect(governance)
+                                    .beginMovingFundsTxMaxTotalFeeUpdate(8999)
+                                  await increaseTime(
+                                    await bridgeGovernance.governanceDelays(0)
+                                  )
+                                  await bridgeGovernance
+                                    .connect(governance)
+                                    .finalizeMovingFundsTxMaxTotalFeeUpdate()
                                 }
 
                                 tx = runMovingFundsScenario(
@@ -1665,12 +1712,14 @@ describe("Bridge - Moving funds", () => {
             }
 
             await expect(
-              bridge.submitMovingFundsProof(
-                data.movingFundsTx,
-                data.movingFundsProof,
-                corruptedMainUtxo,
-                data.wallet.pubKeyHash
-              )
+              bridge
+                .connect(spvMaintainer)
+                .submitMovingFundsProof(
+                  data.movingFundsTx,
+                  data.movingFundsProof,
+                  corruptedMainUtxo,
+                  data.wallet.pubKeyHash
+                )
             ).to.be.revertedWith("Invalid main UTXO data")
           })
         })
@@ -1698,12 +1747,14 @@ describe("Bridge - Moving funds", () => {
           // There was no preparations before `submitMovingFundsProof` call
           // so no main UTXO is set for the given wallet.
           await expect(
-            bridge.submitMovingFundsProof(
-              data.movingFundsTx,
-              data.movingFundsProof,
-              data.mainUtxo,
-              data.wallet.pubKeyHash
-            )
+            bridge
+              .connect(spvMaintainer)
+              .submitMovingFundsProof(
+                data.movingFundsTx,
+                data.movingFundsProof,
+                data.mainUtxo,
+                data.wallet.pubKeyHash
+              )
           ).to.be.revertedWith("No main UTXO for given wallet")
         })
       })
@@ -1926,13 +1977,10 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await BridgeFactory.deploy()
-            await otherBridge.initialize(
-              bank.address,
-              relay.address,
-              treasury.address,
-              walletRegistry.address,
-              12
+            otherBridge = (await deployBridge(12)) as BridgeStub
+            await otherBridge.setSpvMaintainerStatus(
+              spvMaintainer.address,
+              true
             )
           })
 
@@ -1945,18 +1993,66 @@ describe("Bridge - Moving funds", () => {
 
           it("should revert", async () => {
             await expect(
-              otherBridge.submitMovingFundsProof(
-                data.movingFundsTx,
-                data.movingFundsProof,
-                data.mainUtxo,
-                data.wallet.pubKeyHash
-              )
+              otherBridge
+                .connect(spvMaintainer)
+                .submitMovingFundsProof(
+                  data.movingFundsTx,
+                  data.movingFundsProof,
+                  data.mainUtxo,
+                  data.wallet.pubKeyHash
+                )
             ).to.be.revertedWith(
               "Insufficient accumulated difficulty in header chain"
             )
           })
         }
       )
+
+      context("when transaction data is limited to 64 bytes", () => {
+        // This test proves it is impossible to construct a valid proof if
+        // the transaction data (version, locktime, inputs, outputs)
+        // length is 64 bytes or less.
+
+        const data: MovingFundsTestData = JSON.parse(
+          JSON.stringify(SingleTargetWallet)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Modify the `movingFundsTx` part of test data in such a way so it
+          // is only 64 bytes in length and correctly passes as many SPV proof
+          // checks as possible.
+          data.movingFundsTx.version = "0x01000000" // 4 bytes
+          data.movingFundsTx.locktime = "0x00000000" // 4 bytes
+
+          // 42 bytes at minimum to pass input formatting validation (1 byte
+          // for inputs length, 32 bytes for tx hash, 4 bytes for tx index,
+          // 1 byte for script sig length, 4 bytes for sequence number).
+          data.movingFundsTx.inputVector =
+            "0x01aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+            "aaaaaa1111111100ffffffff"
+
+          // 32 bytes at minimum to pass output formatting validation and the
+          // output script check (1 byte for outputs length, 8 bytes for
+          // output amount, 23 bytes for length-prefixed output script -
+          // `submitMovingFundsProof` checks that the output contains
+          // a 23-byte or 26-byte long script). Since 50 bytes has already been
+          // used on version, locktime and inputs, the output must be shortened
+          // to 14 bytes, so that the total transaction length is 64 bytes.
+          data.movingFundsTx.outputVector = "0x01aaaaaaaaaaaaaaaa160014bbbb"
+
+          await expect(runMovingFundsScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
+        })
+      })
     })
   })
 
@@ -3425,15 +3521,11 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = await BridgeFactory.deploy()
-            await otherBridge.initialize(
-              bank.address,
-              relay.address,
-              treasury.address,
-              walletRegistry.address,
-              12
+            otherBridge = (await deployBridge(12)) as BridgeStub
+            await otherBridge.setSpvMaintainerStatus(
+              spvMaintainer.address,
+              true
             )
-            await otherBridge.deployed()
           })
 
           after(async () => {
@@ -3445,17 +3537,65 @@ describe("Bridge - Moving funds", () => {
 
           it("should revert", async () => {
             await expect(
-              otherBridge.submitMovedFundsSweepProof(
-                data.sweepTx,
-                data.sweepProof,
-                data.mainUtxo
-              )
+              otherBridge
+                .connect(spvMaintainer)
+                .submitMovedFundsSweepProof(
+                  data.sweepTx,
+                  data.sweepProof,
+                  data.mainUtxo
+                )
             ).to.be.revertedWith(
               "Insufficient accumulated difficulty in header chain"
             )
           })
         }
       )
+
+      context("when transaction data is limited to 64 bytes", () => {
+        // This test proves it is impossible to construct a valid proof if
+        // the transaction data (version, locktime, inputs, outputs)
+        // length is 64 bytes or less.
+
+        const data: MovedFundsSweepTestData = JSON.parse(
+          JSON.stringify(MovedFundsSweepWithoutMainUtxo)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Modify the `sweepTx` part of test data in such a way so it is only
+          // 64 bytes in length and correctly passes as many SPV proof checks as
+          // possible.
+          data.sweepTx.version = "0x01000000" // 4 bytes
+          data.sweepTx.locktime = "0x00000000" // 4 bytes
+
+          // 42 bytes at minimum to pass input formatting validation (1 byte
+          // for inputs length, 32 bytes for tx hash, 4 bytes for tx index,
+          // 1 byte for script sig length, 4 bytes for sequence number).
+          data.sweepTx.inputVector =
+            "0x01aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
+            "aaaaaa1111111100ffffffff"
+
+          // 32 bytes at minimum to pass output formatting validation and the
+          // output script check (1 byte for outputs length, 8 bytes for
+          // output amount, 23 bytes for length-prefixed output script -
+          // `submitMovedFundsSweepProof` checks that the output contains
+          // a 23-byte or 26-byte long script). Since 50 bytes has already been
+          // used on version, locktime and inputs, the output must be shortened
+          // to 14 bytes, so that the total transaction length is 64 bytes.
+          data.sweepTx.outputVector = "0x01aaaaaaaaaaaaaaaa14bbbbbbbb"
+
+          await expect(runMovedFundsSweepScenario(data)).to.be.revertedWith(
+            "Invalid output vector provided"
+          )
+        })
+      })
     })
   })
 
@@ -3955,12 +4095,14 @@ describe("Bridge - Moving funds", () => {
       await beforeProofActions()
     }
 
-    const tx = await bridge.submitMovingFundsProof(
-      data.movingFundsTx,
-      data.movingFundsProof,
-      data.mainUtxo,
-      data.wallet.pubKeyHash
-    )
+    const tx = await bridge
+      .connect(spvMaintainer)
+      .submitMovingFundsProof(
+        data.movingFundsTx,
+        data.movingFundsProof,
+        data.mainUtxo,
+        data.wallet.pubKeyHash
+      )
 
     relay.getCurrentEpochDifficulty.reset()
     relay.getPrevEpochDifficulty.reset()
@@ -4011,11 +4153,9 @@ describe("Bridge - Moving funds", () => {
       await beforeProofActions()
     }
 
-    const tx = await bridge.submitMovedFundsSweepProof(
-      data.sweepTx,
-      data.sweepProof,
-      data.mainUtxo
-    )
+    const tx = await bridge
+      .connect(spvMaintainer)
+      .submitMovedFundsSweepProof(data.sweepTx, data.sweepProof, data.mainUtxo)
 
     relay.getCurrentEpochDifficulty.reset()
     relay.getPrevEpochDifficulty.reset()

@@ -154,6 +154,9 @@ library Redemption {
     /// @notice Represents an outcome of the redemption Bitcoin transaction
     ///         outputs processing.
     struct RedemptionTxOutputsInfo {
+        // Sum of all outputs values i.e. all redemptions and change value,
+        // if present.
+        uint256 outputsTotalValue;
         // Total TBTC value in satoshi that should be burned by the Bridge.
         // It includes the total amount of all BTC redeemed in the transaction
         // and the fee paid to BTC miners for the redemption transaction.
@@ -218,7 +221,7 @@ library Redemption {
     ///        the Ethereum chain.
     /// @param balanceOwner The address of the Bank balance owner whose balance
     ///        is getting redeemed. Balance owner address is stored as
-    ///        a redemeer address who will be able co claim back the Bank
+    ///        a redeemer address who will be able co claim back the Bank
     ///        balance if anything goes wrong during the redemption.
     /// @param redeemerOutputScript The redeemer's length-prefixed output
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that will be used to lock
@@ -289,10 +292,10 @@ library Redemption {
     ///        - redeemer: The Ethereum address of the redeemer who will be able
     ///        to claim Bank balance if anything goes wrong during the redemption.
     ///        In the most basic case, when someone redeems their Bitcoin
-    ///        balance from the Bank, `balanceOwner` is the same as `redemeer`.
+    ///        balance from the Bank, `balanceOwner` is the same as `redeemer`.
     ///        However, when a Vault is redeeming part of its balance for some
     ///        redeemer address (for example, someone who has earlier deposited
-    ///        into that Vault), `balanceOwner` is the Vault, and `redemeer` is
+    ///        into that Vault), `balanceOwner` is the Vault, and `redeemer` is
     ///        the address for which the vault is redeeming its balance to,
     ///        - walletPubKeyHash: The 20-byte wallet public key hash (computed
     ///        using Bitcoin HASH160 over the compressed ECDSA public key),
@@ -594,6 +597,12 @@ library Redemption {
             walletPubKeyHash
         );
 
+        require(
+            mainUtxo.txOutputValue - outputsInfo.outputsTotalValue <=
+                self.redemptionTxMaxTotalFee,
+            "Transaction fee is too high"
+        );
+
         if (outputsInfo.changeValue > 0) {
             // If the change value is grater than zero, it means the change
             // output exists and can be used as new wallet's main UTXO.
@@ -831,6 +840,8 @@ library Redemption {
                 redemptionPresent = true;
             }
 
+            resultInfo.outputsTotalValue += outputValue;
+
             // Make the `outputStartingIndex` pointing to the next output by
             // increasing it by current output's length.
             processInfo.outputStartingIndex += outputLength;
@@ -929,6 +940,8 @@ library Redemption {
                     outputValue <= redeemableAmount,
                 "Output value is not within the acceptable range of the timed out request"
             );
+
+            delete self.timedOutRedemptions[redemptionKey];
         }
     }
 

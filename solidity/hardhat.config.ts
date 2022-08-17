@@ -1,4 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config"
+import "./tasks"
 
 import "@keep-network/hardhat-helpers"
 import "@keep-network/hardhat-local-networks-config"
@@ -12,6 +13,18 @@ import "@typechain/hardhat"
 import "hardhat-dependency-compiler"
 
 const ecdsaSolidityCompilerConfig = {
+  version: "0.8.9",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200,
+    },
+  },
+}
+
+// Reduce the number of optimizer runs to 100 to keep the contract size sane.
+// BridgeGovernance contract does not need to be super gas-efficient.
+const bridgeGovernanceCompilerConfig = {
   version: "0.8.9",
   settings: {
     optimizer: {
@@ -52,6 +65,7 @@ const config: HardhatUserConfig = {
     overrides: {
       "@keep-network/ecdsa/contracts/WalletRegistry.sol":
         ecdsaSolidityCompilerConfig,
+      "contracts/bridge/BridgeGovernance.sol": bridgeGovernanceCompilerConfig,
     },
   },
 
@@ -76,16 +90,23 @@ const config: HardhatUserConfig = {
           testConfig.nonStakingAccountsCount +
           testConfig.stakingRolesCount * testConfig.operatorsCount,
       },
-      tags: ["local"],
+      tags: ["allowStubs"],
+      // we use higher gas price for tests to obtain more realistic results
+      // for gas refund tests than when the default hardhat ~1 gwei gas price is
+      // used
+      gasPrice: 200000000000, // 200 gwei
+      // Ignore contract size on deployment to hardhat network, to be able to
+      // deploy stub contracts in tests.
+      allowUnlimitedContractSize: process.env.TEST_USE_STUBS_TBTC === "true",
     },
     development: {
       url: "http://localhost:8545",
       chainId: 1101,
-      tags: ["local"],
+      tags: ["allowStubs"],
     },
-    ropsten: {
+    goerli: {
       url: process.env.CHAIN_API_URL || "",
-      chainId: 3,
+      chainId: 5,
       accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
@@ -102,30 +123,42 @@ const config: HardhatUserConfig = {
   // localNetworksConfig: "./.hardhat/networks.ts",
 
   external: {
-    contracts: [
-      {
-        artifacts: "node_modules/@keep-network/tbtc/artifacts",
-      },
-      {
-        artifacts:
-          "node_modules/@threshold-network/solidity-contracts/export/artifacts",
-        deploy:
-          "node_modules/@threshold-network/solidity-contracts/export/deploy",
-      },
-      {
-        artifacts: "node_modules/@keep-network/random-beacon/export/artifacts",
-        deploy: "node_modules/@keep-network/random-beacon/export/deploy",
-      },
-      {
-        artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
-        deploy: "node_modules/@keep-network/ecdsa/export/deploy",
-      },
-    ],
+    contracts:
+      process.env.USE_EXTERNAL_DEPLOY === "true"
+        ? [
+            {
+              artifacts: "node_modules/@keep-network/tbtc/artifacts",
+            },
+            {
+              artifacts:
+                "node_modules/@threshold-network/solidity-contracts/export/artifacts",
+              deploy:
+                "node_modules/@threshold-network/solidity-contracts/export/deploy",
+            },
+            {
+              artifacts:
+                "node_modules/@keep-network/random-beacon/export/artifacts",
+              deploy: "node_modules/@keep-network/random-beacon/export/deploy",
+            },
+            {
+              artifacts: "node_modules/@keep-network/ecdsa/export/artifacts",
+              deploy: "node_modules/@keep-network/ecdsa/export/deploy",
+            },
+          ]
+        : undefined,
     deployments: {
       // For development environment we expect the local dependencies to be
       // linked with `yarn link` command.
-      development: ["node_modules/@keep-network/tbtc/artifacts"],
-      ropsten: ["node_modules/@keep-network/tbtc/artifacts"],
+      development: [
+        "node_modules/@threshold-network/solidity-contracts/deployments/development",
+        "node_modules/@keep-network/random-beacon/deployments/development",
+        "node_modules/@keep-network/ecdsa/deployments/development",
+      ],
+      goerli: [
+        "node_modules/@keep-network/tbtc/artifacts",
+        "node_modules/@keep-network/random-beacon/artifacts",
+        "node_modules/@keep-network/ecdsa/artifacts",
+      ],
       mainnet: ["./external/mainnet"],
     },
   },
@@ -133,24 +166,36 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 1,
+      goerli: 0,
     },
-    treasury: {
-      default: 2,
-    },
+    // TODO: Governance should be the Threshold Council.
+    //       Inspect usages and rename.
     governance: {
+      default: 2,
+      goerli: 0,
+    },
+    esdm: {
       default: 3,
+      goerli: 0,
+      // mainnet: ""
     },
     keepTechnicalWalletTeam: {
       default: 4,
+      goerli: 0,
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
       default: 5,
+      goerli: 0,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
-    esdm: {
+    treasury: {
       default: 6,
-      // mainnet: ""
+      goerli: 0,
+    },
+    spvMaintainer: {
+      default: 7,
+      goerli: 0,
     },
   },
   dependencyCompiler: {
@@ -173,6 +218,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+    except: ["BridgeStub$"],
   },
   mocha: {
     timeout: 60_000,

@@ -13,7 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await execute(
     "VendingMachine",
-    { from: deployer },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "transferVendingMachineUpgradeInitiatorRole",
     keepTechnicalWalletTeam
   )
@@ -24,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await execute(
     "VendingMachine",
-    { from: deployer },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "transferUnmintFeeUpdateInitiatorRole",
     keepTechnicalWalletTeam
   )
@@ -41,6 +41,3 @@ export default func
 func.tags = ["TransferVendingMachineRoles"]
 func.dependencies = ["TBTC", "VendingMachine"]
 func.runAtTheEnd = true
-func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
-  return hre.network.name !== "mainnet"
-}

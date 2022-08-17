@@ -162,6 +162,10 @@ library Deposit {
             "Vault is not trusted"
         );
 
+        if (self.depositRevealAheadPeriod > 0) {
+            validateDepositRefundLocktime(self, reveal.refundLocktime);
+        }
+
         bytes memory expectedScript = abi.encodePacked(
             hex"14", // Byte length of depositor Ethereum address.
             reveal.depositor,
@@ -264,6 +268,45 @@ library Deposit {
             reveal.refundPubKeyHash,
             reveal.refundLocktime,
             reveal.vault
+        );
+    }
+
+    /// @notice Validates the deposit refund locktime. The validation passes
+    ///         successfully only if the deposit reveal is done respectively
+    ///         earlier than the moment when the deposit refund locktime is
+    ///         reached, i.e. the deposit become refundable. Reverts otherwise.
+    /// @param refundLocktime The deposit refund locktime as 4-byte LE.
+    /// @dev Requirements:
+    ///      - `refundLocktime` as integer must be >= 500M
+    ///      - `refundLocktime` must denote a timestamp that is at least
+    ///        `depositRevealAheadPeriod` seconds later than the moment
+    ///        of `block.timestamp`
+    function validateDepositRefundLocktime(
+        BridgeState.Storage storage self,
+        bytes4 refundLocktime
+    ) internal {
+        // Convert the refund locktime byte array to a LE integer. This is
+        // the moment in time when the deposit become refundable.
+        uint32 depositRefundableTimestamp = BTCUtils.reverseUint32(
+            uint32(refundLocktime)
+        );
+        // According to https://developer.bitcoin.org/devguide/transactions.html#locktime-and-sequence-number
+        // the locktime is parsed as a block number if less than 500M. We always
+        // want to parse the locktime as an Unix timestamp so we allow only for
+        // values bigger than or equal to 500M.
+        require(
+            depositRefundableTimestamp >= 500 * 1e6,
+            "Refund locktime must be a value >= 500M"
+        );
+        // The deposit must be revealed before it becomes refundable.
+        // This is because the sweeping wallet needs to have some time to
+        // sweep the deposit and avoid a potential competition with the
+        // depositor making the deposit refund.
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp + self.depositRevealAheadPeriod <=
+                depositRefundableTimestamp,
+            "Deposit refund locktime is too close"
         );
     }
 }

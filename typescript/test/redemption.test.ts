@@ -1,6 +1,9 @@
-import TBTC from "./../src"
-import { Transaction, RawTransaction } from "../src/bitcoin"
-// @ts-ignore
+import {
+  Transaction,
+  RawTransaction,
+  TransactionHash,
+  UnspentTransactionOutput,
+} from "./bitcoin"
 import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
@@ -18,7 +21,14 @@ import {
   p2wpkhWalletAddress,
   RedemptionTestData,
 } from "./data/redemption"
-import { RedemptionRequest } from "./redemption"
+import {
+  assembleRedemptionTransaction,
+  getRedemptionRequest,
+  RedemptionRequest,
+  requestRedemption,
+  submitRedemptionProof,
+  submitRedemptionTransaction,
+} from "../src/redemption"
 import { MockBridge } from "./utils/mock-bridge"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
@@ -39,7 +49,7 @@ describe("Redemption", () => {
     beforeEach(async () => {
       bcoin.set("testnet")
 
-      await TBTC.requestRedemption(
+      await requestRedemption(
         walletPublicKey,
         mainUtxo,
         redeemerOutputScript,
@@ -60,7 +70,7 @@ describe("Redemption", () => {
     })
   })
 
-  describe("makeRedemptions", () => {
+  describe("submitRedemptionTransaction", () => {
     let bitcoinClient: MockBitcoinClient
     let bridge: MockBridge
 
@@ -83,13 +93,17 @@ describe("Redemption", () => {
                     const data: RedemptionTestData =
                       singleP2PKHRedemptionWithWitnessChange
 
+                    let transactionHash: TransactionHash
+                    let newMainUtxo: UnspentTransactionOutput | undefined
+
                     beforeEach(async () => {
-                      await runRedemptionScenario(
-                        walletPrivateKey,
-                        bitcoinClient,
-                        bridge,
-                        data
-                      )
+                      ;({ transactionHash, newMainUtxo } =
+                        await runRedemptionScenario(
+                          walletPrivateKey,
+                          bitcoinClient,
+                          bridge,
+                          data
+                        ))
                     })
 
                     it("should broadcast redemption transaction with proper structure", () => {
@@ -97,6 +111,23 @@ describe("Redemption", () => {
                       expect(bitcoinClient.broadcastLog[0]).to.be.eql(
                         data.expectedRedemption.transaction
                       )
+                    })
+
+                    it("should return the proper transaction hash", async () => {
+                      expect(transactionHash).to.be.equal(
+                        data.expectedRedemption.transactionHash
+                      )
+                    })
+
+                    it("should return the proper new main UTXO", () => {
+                      const expectedNewMainUtxo = {
+                        transactionHash:
+                          data.expectedRedemption.transactionHash,
+                        outputIndex: 1,
+                        value: BigNumber.from(1472680),
+                      }
+
+                      expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
                     })
                   }
                 )
@@ -107,13 +138,17 @@ describe("Redemption", () => {
                     const data: RedemptionTestData =
                       singleP2WPKHRedemptionWithWitnessChange
 
+                    let transactionHash: TransactionHash
+                    let newMainUtxo: UnspentTransactionOutput | undefined
+
                     beforeEach(async () => {
-                      await runRedemptionScenario(
-                        walletPrivateKey,
-                        bitcoinClient,
-                        bridge,
-                        data
-                      )
+                      ;({ transactionHash, newMainUtxo } =
+                        await runRedemptionScenario(
+                          walletPrivateKey,
+                          bitcoinClient,
+                          bridge,
+                          data
+                        ))
                     })
 
                     it("should broadcast redemption transaction with proper structure", () => {
@@ -121,6 +156,23 @@ describe("Redemption", () => {
                       expect(bitcoinClient.broadcastLog[0]).to.be.eql(
                         data.expectedRedemption.transaction
                       )
+                    })
+
+                    it("should return the proper transaction hash", async () => {
+                      expect(transactionHash).to.be.equal(
+                        data.expectedRedemption.transactionHash
+                      )
+                    })
+
+                    it("should return the proper new main UTXO", () => {
+                      const expectedNewMainUtxo = {
+                        transactionHash:
+                          data.expectedRedemption.transactionHash,
+                        outputIndex: 1,
+                        value: BigNumber.from(1458780),
+                      }
+
+                      expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
                     })
                   }
                 )
@@ -131,13 +183,17 @@ describe("Redemption", () => {
                     const data: RedemptionTestData =
                       singleP2SHRedemptionWithWitnessChange
 
+                    let transactionHash: TransactionHash
+                    let newMainUtxo: UnspentTransactionOutput | undefined
+
                     beforeEach(async () => {
-                      await runRedemptionScenario(
-                        walletPrivateKey,
-                        bitcoinClient,
-                        bridge,
-                        data
-                      )
+                      ;({ transactionHash, newMainUtxo } =
+                        await runRedemptionScenario(
+                          walletPrivateKey,
+                          bitcoinClient,
+                          bridge,
+                          data
+                        ))
                     })
 
                     it("should broadcast redemption transaction with proper structure", () => {
@@ -145,6 +201,23 @@ describe("Redemption", () => {
                       expect(bitcoinClient.broadcastLog[0]).to.be.eql(
                         data.expectedRedemption.transaction
                       )
+                    })
+
+                    it("should return the proper transaction hash", async () => {
+                      expect(transactionHash).to.be.equal(
+                        data.expectedRedemption.transactionHash
+                      )
+                    })
+
+                    it("should return the proper new main UTXO", () => {
+                      const expectedNewMainUtxo = {
+                        transactionHash:
+                          data.expectedRedemption.transactionHash,
+                        outputIndex: 1,
+                        value: BigNumber.from(1446580),
+                      }
+
+                      expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
                     })
                   }
                 )
@@ -155,13 +228,17 @@ describe("Redemption", () => {
                     const data: RedemptionTestData =
                       singleP2WSHRedemptionWithWitnessChange
 
+                    let transactionHash: TransactionHash
+                    let newMainUtxo: UnspentTransactionOutput | undefined
+
                     beforeEach(async () => {
-                      await runRedemptionScenario(
-                        walletPrivateKey,
-                        bitcoinClient,
-                        bridge,
-                        data
-                      )
+                      ;({ transactionHash, newMainUtxo } =
+                        await runRedemptionScenario(
+                          walletPrivateKey,
+                          bitcoinClient,
+                          bridge,
+                          data
+                        ))
                     })
 
                     it("should broadcast redemption transaction with proper structure", () => {
@@ -169,6 +246,23 @@ describe("Redemption", () => {
                       expect(bitcoinClient.broadcastLog[0]).to.be.eql(
                         data.expectedRedemption.transaction
                       )
+                    })
+
+                    it("should return the proper transaction hash", async () => {
+                      expect(transactionHash).to.be.equal(
+                        data.expectedRedemption.transactionHash
+                      )
+                    })
+
+                    it("should return the proper new main UTXO", () => {
+                      const expectedNewMainUtxo = {
+                        transactionHash:
+                          data.expectedRedemption.transactionHash,
+                        outputIndex: 1,
+                        value: BigNumber.from(1429580),
+                      }
+
+                      expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
                     })
                   }
                 )
@@ -178,13 +272,17 @@ describe("Redemption", () => {
                 const data: RedemptionTestData =
                   multipleRedemptionsWithWitnessChange
 
+                let transactionHash: TransactionHash
+                let newMainUtxo: UnspentTransactionOutput | undefined
+
                 beforeEach(async () => {
-                  await runRedemptionScenario(
-                    walletPrivateKey,
-                    bitcoinClient,
-                    bridge,
-                    data
-                  )
+                  ;({ transactionHash, newMainUtxo } =
+                    await runRedemptionScenario(
+                      walletPrivateKey,
+                      bitcoinClient,
+                      bridge,
+                      data
+                    ))
                 })
 
                 it("should broadcast redemption transaction with proper structure", () => {
@@ -192,6 +290,22 @@ describe("Redemption", () => {
                   expect(bitcoinClient.broadcastLog[0]).to.be.eql(
                     data.expectedRedemption.transaction
                   )
+                })
+
+                it("should return the proper transaction hash", async () => {
+                  expect(transactionHash).to.be.equal(
+                    data.expectedRedemption.transactionHash
+                  )
+                })
+
+                it("should return the proper new main UTXO", () => {
+                  const expectedNewMainUtxo = {
+                    transactionHash: data.expectedRedemption.transactionHash,
+                    outputIndex: 4,
+                    value: BigNumber.from(1375180),
+                  }
+
+                  expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
                 })
               })
             })
@@ -203,13 +317,17 @@ describe("Redemption", () => {
               const data: RedemptionTestData =
                 singleP2SHRedemptionWithNonWitnessChange
 
+              let transactionHash: TransactionHash
+              let newMainUtxo: UnspentTransactionOutput | undefined
+
               beforeEach(async () => {
-                await runRedemptionScenario(
-                  walletPrivateKey,
-                  bitcoinClient,
-                  bridge,
-                  data
-                )
+                ;({ transactionHash, newMainUtxo } =
+                  await runRedemptionScenario(
+                    walletPrivateKey,
+                    bitcoinClient,
+                    bridge,
+                    data
+                  ))
               })
 
               it("should broadcast redemption transaction with proper structure", () => {
@@ -217,6 +335,22 @@ describe("Redemption", () => {
                 expect(bitcoinClient.broadcastLog[0]).to.be.eql(
                   data.expectedRedemption.transaction
                 )
+              })
+
+              it("should return the proper transaction hash", async () => {
+                expect(transactionHash).to.be.equal(
+                  data.expectedRedemption.transactionHash
+                )
+              })
+
+              it("should return the proper new main UTXO", () => {
+                const expectedNewMainUtxo = {
+                  transactionHash: data.expectedRedemption.transactionHash,
+                  outputIndex: 1,
+                  value: BigNumber.from(1364180),
+                }
+
+                expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
               })
             })
           })
@@ -227,13 +361,16 @@ describe("Redemption", () => {
             // will not contain the change output.
             const data: RedemptionTestData = multipleRedemptionsWithoutChange
 
+            let transactionHash: TransactionHash
+            let newMainUtxo: UnspentTransactionOutput | undefined
+
             beforeEach(async () => {
-              await runRedemptionScenario(
+              ;({ transactionHash, newMainUtxo } = await runRedemptionScenario(
                 walletPrivateKey,
                 bitcoinClient,
                 bridge,
                 data
-              )
+              ))
             })
 
             it("should broadcast redemption transaction with proper structure", () => {
@@ -241,6 +378,16 @@ describe("Redemption", () => {
               expect(bitcoinClient.broadcastLog[0]).to.be.eql(
                 data.expectedRedemption.transaction
               )
+            })
+
+            it("should return the proper transaction hash", async () => {
+              expect(transactionHash).to.be.equal(
+                data.expectedRedemption.transactionHash
+              )
+            })
+
+            it("should not return the new main UTXO", () => {
+              expect(newMainUtxo).to.be.undefined
             })
           })
         }
@@ -268,7 +415,7 @@ describe("Redemption", () => {
             // Before setting the pending redemption map in the Bridge, delete
             // one element to simulate absence of that redemption
             pendingRedemptions.delete(data.pendingRedemptions[2].redemptionKey)
-            bridge.requestRedemptions = pendingRedemptions
+            bridge.setPendingRedemptions(pendingRedemptions)
           })
 
           it("should revert", async () => {
@@ -277,7 +424,7 @@ describe("Redemption", () => {
             )
 
             await expect(
-              TBTC.makeRedemptions(
+              submitRedemptionTransaction(
                 bitcoinClient,
                 bridge,
                 walletPrivateKey,
@@ -286,7 +433,7 @@ describe("Redemption", () => {
                 data.witness
               )
             ).to.be.rejectedWith(
-              "Provided redeemer output script and wallet public key do not identify a pending redemption"
+              "Provided redeemer output script and wallet public key do not identify a redemption request"
             )
           })
         }
@@ -306,7 +453,7 @@ describe("Redemption", () => {
 
       it("should revert", async () => {
         await expect(
-          TBTC.makeRedemptions(
+          submitRedemptionTransaction(
             bitcoinClient,
             bridge,
             walletPrivateKey,
@@ -319,7 +466,7 @@ describe("Redemption", () => {
     })
   })
 
-  describe("createRedemptionTransaction", () => {
+  describe("assembleRedemptionTransaction", () => {
     context("when there are redemption requests provided", () => {
       context("when there is a change UTXO created", () => {
         describe("when the change output is P2WPKH", () => {
@@ -329,6 +476,9 @@ describe("Redemption", () => {
               () => {
                 const data: RedemptionTestData =
                   singleP2PKHRedemptionWithWitnessChange
+
+                let transactionHash: TransactionHash
+                let newMainUtxo: UnspentTransactionOutput | undefined
                 let transaction: RawTransaction
 
                 beforeEach(async () => {
@@ -336,12 +486,16 @@ describe("Redemption", () => {
                     (redemption) => redemption.pendingRedemption
                   )
 
-                  transaction = await TBTC.createRedemptionTransaction(
+                  ;({
+                    transactionHash,
+                    newMainUtxo,
+                    rawTransaction: transaction,
+                  } = await assembleRedemptionTransaction(
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
                     data.witness
-                  )
+                  ))
                 })
 
                 it("should return transaction with proper structure", async () => {
@@ -411,6 +565,22 @@ describe("Redemption", () => {
                   // The change output address should be the P2WPKH address of the wallet
                   expect(changeOutput.address).to.be.equal(p2wpkhWalletAddress)
                 })
+
+                it("should return the proper transaction hash", async () => {
+                  expect(transactionHash).to.be.equal(
+                    data.expectedRedemption.transactionHash
+                  )
+                })
+
+                it("should return the proper new main UTXO", () => {
+                  const expectedNewMainUtxo = {
+                    transactionHash: data.expectedRedemption.transactionHash,
+                    outputIndex: 1,
+                    value: BigNumber.from(1472680),
+                  }
+
+                  expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
+                })
               }
             )
 
@@ -419,6 +589,9 @@ describe("Redemption", () => {
               () => {
                 const data: RedemptionTestData =
                   singleP2WPKHRedemptionWithWitnessChange
+
+                let transactionHash: TransactionHash
+                let newMainUtxo: UnspentTransactionOutput | undefined
                 let transaction: RawTransaction
 
                 beforeEach(async () => {
@@ -426,12 +599,16 @@ describe("Redemption", () => {
                     (redemption) => redemption.pendingRedemption
                   )
 
-                  transaction = await TBTC.createRedemptionTransaction(
+                  ;({
+                    transactionHash,
+                    newMainUtxo,
+                    rawTransaction: transaction,
+                  } = await assembleRedemptionTransaction(
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
                     data.witness
-                  )
+                  ))
                 })
 
                 it("should return transaction with proper structure", async () => {
@@ -500,6 +677,22 @@ describe("Redemption", () => {
                   // The change output address should be the P2WPKH address of the wallet
                   expect(changeOutput.address).to.be.equal(p2wpkhWalletAddress)
                 })
+
+                it("should return the proper transaction hash", async () => {
+                  expect(transactionHash).to.be.equal(
+                    data.expectedRedemption.transactionHash
+                  )
+                })
+
+                it("should return the proper new main UTXO", () => {
+                  const expectedNewMainUtxo = {
+                    transactionHash: data.expectedRedemption.transactionHash,
+                    outputIndex: 1,
+                    value: BigNumber.from(1458780),
+                  }
+
+                  expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
+                })
               }
             )
 
@@ -508,6 +701,9 @@ describe("Redemption", () => {
               () => {
                 const data: RedemptionTestData =
                   singleP2SHRedemptionWithWitnessChange
+
+                let transactionHash: TransactionHash
+                let newMainUtxo: UnspentTransactionOutput | undefined
                 let transaction: RawTransaction
 
                 beforeEach(async () => {
@@ -515,12 +711,16 @@ describe("Redemption", () => {
                     (redemption) => redemption.pendingRedemption
                   )
 
-                  transaction = await TBTC.createRedemptionTransaction(
+                  ;({
+                    transactionHash,
+                    newMainUtxo,
+                    rawTransaction: transaction,
+                  } = await assembleRedemptionTransaction(
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
                     data.witness
-                  )
+                  ))
                 })
 
                 it("should return transaction with proper structure", async () => {
@@ -589,6 +789,22 @@ describe("Redemption", () => {
                   // The change output address should be the P2WPKH address of the wallet
                   expect(changeOutput.address).to.be.equal(p2wpkhWalletAddress)
                 })
+
+                it("should return the proper transaction hash", async () => {
+                  expect(transactionHash).to.be.equal(
+                    data.expectedRedemption.transactionHash
+                  )
+                })
+
+                it("should return the proper new main UTXO", () => {
+                  const expectedNewMainUtxo = {
+                    transactionHash: data.expectedRedemption.transactionHash,
+                    outputIndex: 1,
+                    value: BigNumber.from(1446580),
+                  }
+
+                  expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
+                })
               }
             )
 
@@ -597,6 +813,9 @@ describe("Redemption", () => {
               () => {
                 const data: RedemptionTestData =
                   singleP2WSHRedemptionWithWitnessChange
+
+                let transactionHash: TransactionHash
+                let newMainUtxo: UnspentTransactionOutput | undefined
                 let transaction: RawTransaction
 
                 beforeEach(async () => {
@@ -604,12 +823,16 @@ describe("Redemption", () => {
                     (redemption) => redemption.pendingRedemption
                   )
 
-                  transaction = await TBTC.createRedemptionTransaction(
+                  ;({
+                    transactionHash,
+                    newMainUtxo,
+                    rawTransaction: transaction,
+                  } = await assembleRedemptionTransaction(
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
                     data.witness
-                  )
+                  ))
                 })
 
                 it("should return transaction with proper structure", async () => {
@@ -678,6 +901,22 @@ describe("Redemption", () => {
                   // The change output address should be the P2WPKH address of the wallet
                   expect(changeOutput.address).to.be.equal(p2wpkhWalletAddress)
                 })
+
+                it("should return the proper transaction hash", async () => {
+                  expect(transactionHash).to.be.equal(
+                    data.expectedRedemption.transactionHash
+                  )
+                })
+
+                it("should return the proper new main UTXO", () => {
+                  const expectedNewMainUtxo = {
+                    transactionHash: data.expectedRedemption.transactionHash,
+                    outputIndex: 1,
+                    value: BigNumber.from(1429580),
+                  }
+
+                  expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
+                })
               }
             )
           })
@@ -685,6 +924,9 @@ describe("Redemption", () => {
           context("when there are multiple redeemers", () => {
             const data: RedemptionTestData =
               multipleRedemptionsWithWitnessChange
+
+            let transactionHash: TransactionHash
+            let newMainUtxo: UnspentTransactionOutput | undefined
             let transaction: RawTransaction
 
             beforeEach(async () => {
@@ -692,12 +934,16 @@ describe("Redemption", () => {
                 (redemption) => redemption.pendingRedemption
               )
 
-              transaction = await TBTC.createRedemptionTransaction(
+              ;({
+                transactionHash,
+                newMainUtxo,
+                rawTransaction: transaction,
+              } = await assembleRedemptionTransaction(
                 walletPrivateKey,
                 data.mainUtxo,
                 redemptionRequests,
                 data.witness
-              )
+              ))
             })
 
             it("should return transaction with proper structure", async () => {
@@ -808,6 +1054,22 @@ describe("Redemption", () => {
               // The change output address should be the P2WPKH address of the wallet
               expect(changeOutput.address).to.be.equal(p2wpkhWalletAddress)
             })
+
+            it("should return the proper transaction hash", async () => {
+              expect(transactionHash).to.be.equal(
+                data.expectedRedemption.transactionHash
+              )
+            })
+
+            it("should return the proper new main UTXO", () => {
+              const expectedNewMainUtxo = {
+                transactionHash: data.expectedRedemption.transactionHash,
+                outputIndex: 4,
+                value: BigNumber.from(1375180),
+              }
+
+              expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
+            })
           })
         })
 
@@ -819,6 +1081,9 @@ describe("Redemption", () => {
           // covered for P2WPKH change output tests.
           const data: RedemptionTestData =
             singleP2SHRedemptionWithNonWitnessChange
+
+          let transactionHash: TransactionHash
+          let newMainUtxo: UnspentTransactionOutput | undefined
           let transaction: RawTransaction
 
           beforeEach(async () => {
@@ -826,12 +1091,16 @@ describe("Redemption", () => {
               (redemption) => redemption.pendingRedemption
             )
 
-            transaction = await TBTC.createRedemptionTransaction(
+            ;({
+              transactionHash,
+              newMainUtxo,
+              rawTransaction: transaction,
+            } = await assembleRedemptionTransaction(
               walletPrivateKey,
               data.mainUtxo,
               redemptionRequests,
               data.witness
-            )
+            ))
           })
 
           it("should return transaction with proper structure", async () => {
@@ -897,11 +1166,30 @@ describe("Redemption", () => {
             // The change output address should be the P2PKH address of the wallet
             expect(changeOutput.address).to.be.equal(p2pkhWalletAddress)
           })
+
+          it("should return the proper transaction hash", async () => {
+            expect(transactionHash).to.be.equal(
+              data.expectedRedemption.transactionHash
+            )
+          })
+
+          it("should return the proper new main UTXO", () => {
+            const expectedNewMainUtxo = {
+              transactionHash: data.expectedRedemption.transactionHash,
+              outputIndex: 1,
+              value: BigNumber.from(1364180),
+            }
+
+            expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
+          })
         })
       })
 
       context("when there is no change UTXO created", () => {
         const data: RedemptionTestData = multipleRedemptionsWithoutChange
+
+        let transactionHash: TransactionHash
+        let newMainUtxo: UnspentTransactionOutput | undefined
         let transaction: RawTransaction
 
         beforeEach(async () => {
@@ -909,12 +1197,16 @@ describe("Redemption", () => {
             (redemption) => redemption.pendingRedemption
           )
 
-          transaction = await TBTC.createRedemptionTransaction(
+          ;({
+            transactionHash,
+            newMainUtxo,
+            rawTransaction: transaction,
+          } = await assembleRedemptionTransaction(
             walletPrivateKey,
             data.mainUtxo,
             redemptionRequests,
             data.witness
-          )
+          ))
         })
 
         it("should return transaction with proper structure", async () => {
@@ -978,6 +1270,16 @@ describe("Redemption", () => {
             "tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx"
           )
         })
+
+        it("should return the proper transaction hash", async () => {
+          expect(transactionHash).to.be.equal(
+            data.expectedRedemption.transactionHash
+          )
+        })
+
+        it("should not return the new main UTXO", () => {
+          expect(newMainUtxo).to.be.undefined
+        })
       })
     })
 
@@ -986,7 +1288,7 @@ describe("Redemption", () => {
 
       it("should revert", async () => {
         await expect(
-          TBTC.createRedemptionTransaction(
+          assembleRedemptionTransaction(
             walletPrivateKey,
             data.mainUtxo,
             [], // empty list of redemption requests
@@ -997,7 +1299,7 @@ describe("Redemption", () => {
     })
   })
 
-  describe("proveRedemption", () => {
+  describe("submitRedemptionProof", () => {
     const mainUtxo = {
       transactionHash:
         "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
@@ -1043,7 +1345,7 @@ describe("Redemption", () => {
       )
       bitcoinClient.confirmations = confirmations
 
-      await TBTC.proveRedemption(
+      await submitRedemptionProof(
         transactionHash,
         mainUtxo,
         walletPublicKey,
@@ -1073,6 +1375,60 @@ describe("Redemption", () => {
       )
     })
   })
+
+  describe("getRedemptionRequest", () => {
+    context("when asked for a pending request", () => {
+      const { redemptionKey, pendingRedemption: redemptionRequest } =
+        multipleRedemptionsWithWitnessChange.pendingRedemptions[0]
+
+      let bridge: MockBridge
+
+      beforeEach(async () => {
+        const pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
+        pendingRedemptions.set(redemptionKey, redemptionRequest)
+
+        bridge = new MockBridge()
+        bridge.setPendingRedemptions(pendingRedemptions)
+      })
+
+      it("should return the expected redemption request", async () => {
+        const actualRedemptionRequest = await getRedemptionRequest(
+          walletPublicKey,
+          redemptionRequest.redeemerOutputScript,
+          "pending",
+          bridge
+        )
+
+        expect(actualRedemptionRequest).to.be.eql(redemptionRequest)
+      })
+    })
+
+    context("when asked for a timed-out request", () => {
+      const { redemptionKey, pendingRedemption: redemptionRequest } =
+        multipleRedemptionsWithWitnessChange.pendingRedemptions[0]
+
+      let bridge: MockBridge
+
+      beforeEach(async () => {
+        const pendingRedemptions = new Map<BigNumberish, RedemptionRequest>()
+        pendingRedemptions.set(redemptionKey, redemptionRequest)
+
+        bridge = new MockBridge()
+        bridge.setTimedOutRedemptions(pendingRedemptions)
+      })
+
+      it("should return the expected redemption request", async () => {
+        const actualRedemptionRequest = await getRedemptionRequest(
+          walletPublicKey,
+          redemptionRequest.redeemerOutputScript,
+          "timedOut",
+          bridge
+        )
+
+        expect(actualRedemptionRequest).to.be.eql(redemptionRequest)
+      })
+    })
+  })
 })
 
 async function runRedemptionScenario(
@@ -1080,25 +1436,30 @@ async function runRedemptionScenario(
   bitcoinClient: MockBitcoinClient,
   bridge: MockBridge,
   data: RedemptionTestData
-) {
+): Promise<{
+  transactionHash: TransactionHash
+  newMainUtxo?: UnspentTransactionOutput
+}> {
   const rawTransactions = new Map<string, RawTransaction>()
   rawTransactions.set(data.mainUtxo.transactionHash, {
     transactionHex: data.mainUtxo.transactionHex,
   })
   bitcoinClient.rawTransactions = rawTransactions
 
-  bridge.requestRedemptions = new Map<BigNumberish, RedemptionRequest>(
-    data.pendingRedemptions.map((redemption) => [
-      redemption.redemptionKey,
-      redemption.pendingRedemption,
-    ])
+  bridge.setPendingRedemptions(
+    new Map<BigNumberish, RedemptionRequest>(
+      data.pendingRedemptions.map((redemption) => [
+        redemption.redemptionKey,
+        redemption.pendingRedemption,
+      ])
+    )
   )
 
   const redeemerOutputScripts = data.pendingRedemptions.map(
     (redemption) => redemption.pendingRedemption.redeemerOutputScript
   )
 
-  await TBTC.makeRedemptions(
+  return submitRedemptionTransaction(
     bitcoinClient,
     bridge,
     walletPrivKey,

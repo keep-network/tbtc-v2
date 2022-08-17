@@ -5,9 +5,11 @@ export const constants = {
   depositDustThreshold: 1000000, // 1000000 satoshi = 0.01 BTC
   depositTxMaxFee: 100000, // 100000 satoshi = 0.001 BTC
   depositTreasuryFeeDivisor: 2000, // 1/2000 == 5bps == 0.05% == 0.0005
+  depositRevealAheadPeriod: 1296000, // 15 days
   redemptionDustThreshold: 1000000, // 1000000 satoshi = 0.01 BTC
   redemptionTreasuryFeeDivisor: 2000, // 1/2000 == 5bps == 0.05% == 0.0005
   redemptionTxMaxFee: 100000, // 100000 satoshi = 0.001 BTC
+  redemptionTxMaxTotalFee: 1000000, // 1000000 satoshi = 0.01 BTC
   redemptionTimeout: 432000, // 5 days
   redemptionTimeoutSlashingAmount: to1ePrecision(100, 18), // 100 T
   redemptionTimeoutNotifierRewardMultiplier: 100, // 100%
@@ -21,6 +23,7 @@ export const constants = {
   movedFundsSweepTimeout: 604800, // 1 week
   movedFundsSweepTimeoutSlashingAmount: to1ePrecision(100, 18), // 100 T
   movedFundsSweepTimeoutNotifierRewardMultiplier: 100, // 100%
+  movingFundsCommitmentGasOffset: 15000,
   fraudChallengeDepositAmount: to1ePrecision(5, 18), // 5 ether
   fraudChallengeDefeatTimeout: 604800, // 1 week
   fraudSlashingAmount: to1ePrecision(100, 18), // 100 T
@@ -29,9 +32,10 @@ export const constants = {
   walletCreationMinBtcBalance: to1ePrecision(1, 8), // 1 BTC
   walletCreationMaxBtcBalance: to1ePrecision(100, 8), // 100 BTC
   walletClosureMinBtcBalance: to1ePrecision(5, 7), // 0.5 BTC
-  walletMaxAge: 26 * 7 * 604800, // 26 weeks ~ 6 months
+  walletMaxAge: 26 * 604800, // 26 weeks ~ 6 months
   walletMaxBtcTransfer: to1ePrecision(10, 8), // 10 BTC
   walletClosingPeriod: 3456000, // 40 days
+  governanceDelay: 604800, // 1 week
 }
 
 export const walletState = {

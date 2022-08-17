@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2018",
+    "module": "commonJS",
     "downlevelIteration": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "resolveJsonModule": true
   },
   "files": ["./hardhat.config.ts"],
-  "include": ["./deploy", "./test", "./typechain"]
+  "include": ["./deploy", "./tasks", "./test", "./typechain"]
 }

@@ -86,20 +86,10 @@ contract BridgeStub is Bridge {
         self.redemptionDustThreshold = _redemptionDustThreshold;
     }
 
-    function setRedemptionTxMaxFee(uint64 _redemptionTxMaxFee) external {
-        self.redemptionTxMaxFee = _redemptionTxMaxFee;
-    }
-
     function setRedemptionTreasuryFeeDivisor(
         uint64 _redemptionTreasuryFeeDivisor
     ) external {
         self.redemptionTreasuryFeeDivisor = _redemptionTreasuryFeeDivisor;
-    }
-
-    function setMovingFundsTxMaxTotalFee(uint64 _movingFundsTxMaxTotalFee)
-        external
-    {
-        self.movingFundsTxMaxTotalFee = _movingFundsTxMaxTotalFee;
     }
 
     function setPendingMovedFundsSweepRequest(
@@ -174,5 +164,11 @@ contract BridgeStub is Bridge {
         uint64 _movedFundsSweepTxMaxTotalFee
     ) external {
         self.movedFundsSweepTxMaxTotalFee = _movedFundsSweepTxMaxTotalFee;
+    }
+
+    function setDepositRevealAheadPeriod(uint32 _depositRevealAheadPeriod)
+        external
+    {
+        self.depositRevealAheadPeriod = _depositRevealAheadPeriod;
     }
 }

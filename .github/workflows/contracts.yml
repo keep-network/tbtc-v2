@@ -109,7 +109,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Deploy contracts
-        run: yarn deploy
+        run: yarn deploy:test
 
   contracts-deployment-testnet:
     needs: [contracts-detect-changes, contracts-build-and-test]
@@ -142,25 +142,30 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Get upstream packages versions
-        uses: keep-network/ci/actions/upstream-builds-query@v1
+        uses: keep-network/ci/actions/upstream-builds-query@v2
         id: upstream-builds-query
         with:
           upstream-builds: ${{ github.event.inputs.upstream_builds }}
-          query: tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
+          query: |
+            random-beacon-contracts-version = github.com/keep-network/keep-core/random-beacon#version
+            ecdsa-contracts-version = github.com/keep-network/keep-core/ecdsa#version
 
       - name: Resolve latest contracts
-        run: yarn upgrade @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+        run: |
+          yarn upgrade \
+            @keep-network/random-beacon@${{ steps.upstream-builds-query.outputs.random-beacon-contracts-version }} \
+            @keep-network/ecdsa@${{ steps.upstream-builds-query.outputs.ecdsa-contracts-version }} \
+            @keep-network/tbtc@${{ github.event.inputs.environment }}
 
       - name: Configure tenderly
-        if: github.event.inputs.environment == 'ropsten'
         env:
           TENDERLY_TOKEN: ${{ secrets.TENDERLY_TOKEN }}
         run: ./config_tenderly.sh
 
-      - name: Deploy contracts
+      - name: Deploy contract
         env:
-          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
-          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.KEEP_TEST_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
+          CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
+          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOERLI_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
         run: yarn deploy --network ${{ github.event.inputs.environment }}
 
       - name: Bump up package version
@@ -178,11 +183,11 @@ jobs:
         run: npm publish --access=public --tag ${{ github.event.inputs.environment }} --network=${{ github.event.inputs.environment }}
 
       - name: Notify CI about completion of the workflow
-        uses: keep-network/ci/actions/notify-workflow-completed@v1
+        uses: keep-network/ci/actions/notify-workflow-completed@v2
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         with:
-          module: "github.com/keep-network/tbtc-v2/solidity"
+          module: "github.com/keep-network/tbtc-v2"
           url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           environment: ${{ github.event.inputs.environment }}
           upstream_builds: ${{ github.event.inputs.upstream_builds }}
@@ -231,19 +236,19 @@ jobs:
       - name: Install needed dependencies
         run: yarn install --frozen-lockfile
 
-      # If we don't remove the `ecdsa` and `tbtc` contracts from `node-modules`,
-      # the `etherscan-verify` plugins tries to verify them, which is not
-      # desired.
+      # If we don't remove the contracts from `node-modules`, the
+      # `etherscan-verify` plugins tries to verify them, which is not desired.
       - name: Prepare for verification on Etherscan
         run: |
-          rm -rf ./node_modules/@keep-network/ecdsa
-          rm -rf ./node_modules/@keep-network/tbtc
+          rm -rf ./node_modules/@keep-network/random-beacon/artifacts
+          rm -rf ./node_modules/@keep-network/ecdsa/artifacts
+          rm -rf ./node_modules/@keep-network/tbtc/artifacts
 
       - name: Verify contracts on Etherscan
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
-          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
-        run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify --license MIT
+          CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
+        run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify
 
   contracts-format:
     needs: contracts-detect-changes

@@ -1,19 +1,18 @@
-// @ts-ignore
 import bcoin from "bcoin"
 import {
   Client as BitcoinClient,
   RawTransaction,
   Transaction,
+  TransactionHash,
   TransactionInput,
   TransactionMerkleBranch,
   TransactionOutput,
   UnspentTransactionOutput,
 } from "./bitcoin"
-// @ts-ignore
 import Electrum from "electrum-client-js"
-// @ts-ignore
 import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
+import { URL } from "url"
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.
@@ -38,7 +37,7 @@ export interface Credentials {
  * is supposed to take a proper Electrum connection, do the work, and return
  * a promise holding the outcome of given type.
  */
-type Action<T> = (electrum: Electrum) => Promise<T>
+type Action<T> = (electrum: any) => Promise<T>
 
 /**
  * Electrum-based implementation of the Bitcoin client.
@@ -48,6 +47,36 @@ export class Client implements BitcoinClient {
 
   constructor(credentials: Credentials) {
     this.credentials = credentials
+  }
+
+  /**
+   * Creates an Electrum client instance from a URL.
+   * @param url - Connection URL.
+   * @returns Electrum client instance.
+   */
+  static fromUrl(url: string): Client {
+    const credentials = this.parseElectrumCredentials(url)
+    return new Client(credentials)
+  }
+
+  /**
+   * Create Electrum credentials by parsing an URL.
+   * @param url - URL to be parsed.
+   * @returns Electrum credentials object.
+   */
+  private static parseElectrumCredentials(url: string): Credentials {
+    const urlObj = new URL(url)
+
+    return {
+      host: urlObj.hostname,
+      port: Number.parseInt(urlObj.port, 10),
+      protocol: urlObj.protocol.replace(":", "") as
+        | "tcp"
+        | "tls"
+        | "ssl"
+        | "ws"
+        | "wss",
+    }
   }
 
   /**
@@ -88,7 +117,7 @@ export class Client implements BitcoinClient {
     address: string
   ): Promise<UnspentTransactionOutput[]> {
     return this.withElectrum<UnspentTransactionOutput[]>(
-      async (electrum: Electrum) => {
+      async (electrum: any) => {
         const script = bcoin.Script.fromAddress(address).toRaw().toString("hex")
 
         const unspentTransactions =
@@ -109,8 +138,8 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getTransaction}
    */
-  getTransaction(transactionHash: string): Promise<Transaction> {
-    return this.withElectrum<Transaction>(async (electrum: Electrum) => {
+  getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
+    return this.withElectrum<Transaction>(async (electrum: any) => {
       const transaction = await electrum.blockchain_transaction_get(
         transactionHash,
         true
@@ -128,7 +157,7 @@ export class Client implements BitcoinClient {
         (output: any): TransactionOutput => ({
           outputIndex: output.n,
           // The `output.value` is in BTC so it must be converted to satoshis.
-          value: BigNumber.from(parseFloat(output.value) * 1e8),
+          value: BigNumber.from((parseFloat(output.value) * 1e8).toFixed(0)),
           scriptPubKey: output.scriptPubKey,
         })
       )
@@ -145,8 +174,8 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getRawTransaction}
    */
-  getRawTransaction(transactionHash: string): Promise<RawTransaction> {
-    return this.withElectrum<RawTransaction>(async (electrum: Electrum) => {
+  getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction> {
+    return this.withElectrum<RawTransaction>(async (electrum: any) => {
       const transaction = await electrum.blockchain_transaction_get(
         transactionHash,
         true
@@ -162,8 +191,10 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getTransactionConfirmations}
    */
-  getTransactionConfirmations(transactionHash: string): Promise<number> {
-    return this.withElectrum<number>(async (electrum: Electrum) => {
+  getTransactionConfirmations(
+    transactionHash: TransactionHash
+  ): Promise<number> {
+    return this.withElectrum<number>(async (electrum: any) => {
       const transaction = await electrum.blockchain_transaction_get(
         transactionHash,
         true
@@ -178,7 +209,7 @@ export class Client implements BitcoinClient {
    * @see {BitcoinClient#latestBlockHeight}
    */
   latestBlockHeight(): Promise<number> {
-    return this.withElectrum<number>(async (electrum: Electrum) => {
+    return this.withElectrum<number>(async (electrum: any) => {
       const header = await electrum.blockchain_headers_subscribe()
 
       return header.height
@@ -190,7 +221,7 @@ export class Client implements BitcoinClient {
    * @see {BitcoinClient#getHeadersChain}
    */
   getHeadersChain(blockHeight: number, chainLength: number): Promise<string> {
-    return this.withElectrum<string>(async (electrum: Electrum) => {
+    return this.withElectrum<string>(async (electrum: any) => {
       const headersChain = await electrum.blockchain_block_headers(
         blockHeight,
         chainLength + 1
@@ -205,23 +236,21 @@ export class Client implements BitcoinClient {
    * @see {BitcoinClient#getTransactionMerkle}
    */
   getTransactionMerkle(
-    transactionHash: string,
+    transactionHash: TransactionHash,
     blockHeight: number
   ): Promise<TransactionMerkleBranch> {
-    return this.withElectrum<TransactionMerkleBranch>(
-      async (electrum: Electrum) => {
-        const merkle = await electrum.blockchain_transaction_getMerkle(
-          transactionHash,
-          blockHeight
-        )
+    return this.withElectrum<TransactionMerkleBranch>(async (electrum: any) => {
+      const merkle = await electrum.blockchain_transaction_getMerkle(
+        transactionHash,
+        blockHeight
+      )
 
-        return {
-          blockHeight: merkle.block_height,
-          merkle: merkle.merkle,
-          position: merkle.pos,
-        }
+      return {
+        blockHeight: merkle.block_height,
+        merkle: merkle.merkle,
+        position: merkle.pos,
       }
-    )
+    })
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -229,7 +258,7 @@ export class Client implements BitcoinClient {
    * @see {BitcoinClient#broadcast}
    */
   broadcast(transaction: RawTransaction): Promise<void> {
-    return this.withElectrum<void>(async (electrum: Electrum) => {
+    return this.withElectrum<void>(async (electrum: any) => {
       await electrum.blockchain_transaction_broadcast(
         transaction.transactionHex
       )

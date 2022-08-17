@@ -1,14 +1,17 @@
-// @ts-ignore
 import bcoin, { TX } from "bcoin"
-// @ts-ignore
 import wif from "wif"
-// @ts-ignore
 import bufio from "bufio"
-// @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
-// @ts-ignore
-import { StaticWriter, BufferWriter } from "bufio"
 import { BigNumber } from "ethers"
+
+/**
+ * Represents a transaction hash (or transaction ID) as an un-prefixed hex
+ * string. This hash is supposed to have the same byte order as used by the
+ * Bitcoin block explorers which is the opposite of the byte order used
+ * by the Bitcoin protocol internally. That means the hash must be reversed in
+ * the use cases that expect the Bitcoin internal byte order.
+ */
+export type TransactionHash = string
 
 /**
  * Represents a raw transaction.
@@ -27,7 +30,7 @@ export interface Transaction {
   /**
    * The transaction hash (or transaction ID) as an un-prefixed hex string.
    */
-  transactionHash: string
+  transactionHash: TransactionHash
 
   /**
    * The vector of transaction inputs.
@@ -47,7 +50,7 @@ export interface TransactionOutpoint {
   /**
    * The hash of the transaction the outpoint belongs to.
    */
-  transactionHash: string
+  transactionHash: TransactionHash
 
   /**
    * The zero-based index of the output from the specified transaction.
@@ -185,14 +188,14 @@ export interface Client {
    * @param transactionHash - Hash of the transaction.
    * @returns Transaction object.
    */
-  getTransaction(transactionHash: string): Promise<Transaction>
+  getTransaction(transactionHash: TransactionHash): Promise<Transaction>
 
   /**
    * Gets the raw transaction data for given transaction hash.
    * @param transactionHash - Hash of the transaction.
    * @returns Raw transaction.
    */
-  getRawTransaction(transactionHash: string): Promise<RawTransaction>
+  getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction>
 
   /**
    * Gets the number of confirmations that a given transaction has accumulated
@@ -200,7 +203,7 @@ export interface Client {
    * @param transactionHash - Hash of the transaction.
    * @returns The number of confirmations.
    */
-  getTransactionConfirmations(transactionHash: string): Promise<number>
+  getTransactionConfirmations(transactionHash: TransactionHash): Promise<number>
 
   /**
    * Gets height of the latest mined block.
@@ -224,7 +227,7 @@ export interface Client {
    * @return Merkle branch.
    */
   getTransactionMerkle(
-    transactionHash: string,
+    transactionHash: TransactionHash,
     blockHeight: number
   ): Promise<TransactionMerkleBranch>
 
@@ -244,7 +247,7 @@ export interface Client {
 export function decomposeRawTransaction(
   rawTransaction: RawTransaction
 ): DecomposedRawTransaction {
-  const toHex = (bufferWriter: StaticWriter | BufferWriter) => {
+  const toHex = (bufferWriter: any) => {
     return bufferWriter.render().toString("hex")
   }
 
@@ -257,21 +260,21 @@ export function decomposeRawTransaction(
     return toHex(buffer)
   }
 
-  const getTxInputVector = (tx: TX) => {
+  const getTxInputVector = (tx: any) => {
     return vectorToRaw(tx.inputs)
   }
 
-  const getTxOutputVector = (tx: TX) => {
+  const getTxOutputVector = (tx: any) => {
     return vectorToRaw(tx.outputs)
   }
 
-  const getTxVersion = (tx: TX) => {
+  const getTxVersion = (tx: any) => {
     const buffer = bufio.write()
     buffer.writeU32(tx.version)
     return toHex(buffer)
   }
 
-  const getTxLocktime = (tx: TX) => {
+  const getTxLocktime = (tx: any) => {
     const buffer = bufio.write()
     buffer.writeU32(tx.locktime)
     return toHex(buffer)
@@ -301,6 +304,34 @@ export function isCompressedPublicKey(publicKey: string): boolean {
 }
 
 /**
+ * Compresses the given uncompressed Bitcoin public key.
+ * @param publicKey Uncompressed 64-byte public key as an unprefixed hex string.
+ * @returns Compressed 33-byte public key prefixed with 02 or 03.
+ */
+export function compressPublicKey(publicKey: string): string {
+  // Must have 64 bytes and no prefix.
+  if (publicKey.length != 128) {
+    throw new Error(
+      "The public key parameter must be 64-byte. Neither 0x nor 04 prefix is allowed"
+    )
+  }
+
+  // The X coordinate is the first 32 bytes.
+  const publicKeyX = publicKey.substring(0, 64)
+  // The Y coordinate is the next 32 bytes.
+  const publicKeyY = publicKey.substring(64)
+
+  let prefix: string
+  if (BigNumber.from(`0x${publicKeyY}`).mod(2).eq(0)) {
+    prefix = "02"
+  } else {
+    prefix = "03"
+  }
+
+  return `${prefix}${publicKeyX}`
+}
+
+/**
  * Creates a Bitcoin key ring based on the given private key.
  * @param privateKey Private key that should be used to create the key ring
  * @param witness Flag indicating whether the key ring will create witness
@@ -310,7 +341,7 @@ export function isCompressedPublicKey(publicKey: string): boolean {
 export function createKeyRing(
   privateKey: string,
   witness: boolean = true
-): bcoin.KeyRing {
+): any {
   const decodedPrivateKey = wif.decode(privateKey)
 
   return new bcoin.KeyRing({
