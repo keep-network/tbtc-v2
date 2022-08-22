@@ -1,5 +1,4 @@
 import bcoin from "bcoin"
-import { opcodes } from "bcoin/lib/script/common"
 import { BigNumber } from "ethers"
 import {
   Client as BitcoinClient,
@@ -12,6 +11,8 @@ import {
   TransactionHash,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
+
+const { opcodes } = bcoin.script.common
 
 /**
  * Duration of the deposit refund locktime in seconds. After that time, the
