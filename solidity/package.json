@@ -31,8 +31,8 @@
   },
   "dependencies": {
     "@keep-network/bitcoin-spv-sol": "3.4.0-solc-0.8",
-    "@keep-network/ecdsa": "development",
-    "@keep-network/random-beacon": "development",
+    "@keep-network/ecdsa": "dapp-development-goerli",
+    "@keep-network/random-beacon": "dapp-development-goerli",
     "@keep-network/tbtc": "development",
     "@openzeppelin/contracts": "^4.6.0",
     "@openzeppelin/contracts-upgradeable": "^4.6.0",
