@@ -8,7 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await execute(
     "Bridge",
-    { from: deployer },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "setSpvMaintainerStatus",
     spvMaintainer,
     true

@@ -23,6 +23,7 @@ export const constants = {
   movedFundsSweepTimeout: 604800, // 1 week
   movedFundsSweepTimeoutSlashingAmount: to1ePrecision(100, 18), // 100 T
   movedFundsSweepTimeoutNotifierRewardMultiplier: 100, // 100%
+  movingFundsCommitmentGasOffset: 15000,
   fraudChallengeDepositAmount: to1ePrecision(5, 18), // 5 ether
   fraudChallengeDefeatTimeout: 604800, // 1 week
   fraudSlashingAmount: to1ePrecision(100, 18), // 100 T
