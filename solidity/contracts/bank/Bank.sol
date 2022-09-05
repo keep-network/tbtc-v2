@@ -43,7 +43,7 @@ contract Bank is Ownable {
     ///         provided balance owner to protect against replay attacks. Used
     ///         to construct an EIP2612 signature provided to the `permit`
     ///         function.
-    mapping(address => uint256) public nonce;
+    mapping(address => uint256) public nonces;
 
     uint256 public immutable cachedChainId;
     bytes32 public immutable cachedDomainSeparator;
@@ -277,7 +277,7 @@ contract Bank is Ownable {
                         owner,
                         spender,
                         amount,
-                        nonce[owner]++,
+                        nonces[owner]++,
                         deadline
                     )
                 )
