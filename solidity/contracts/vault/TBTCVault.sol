@@ -91,13 +91,12 @@ contract TBTCVault is IVault, Ownable {
     ///      for at least `amount`.
     /// @param amount Amount of TBTC to mint.
     function mint(uint256 amount) external {
-        address minter = msg.sender;
         require(
-            bank.balanceOf(minter) >= amount,
+            bank.balanceOf(msg.sender) >= amount,
             "Amount exceeds balance in the bank"
         );
-        _mint(minter, amount);
-        bank.transferBalanceFrom(minter, address(this), amount);
+        _mint(msg.sender, amount);
+        bank.transferBalanceFrom(msg.sender, address(this), amount);
     }
 
     /// @notice Transfers the given `amount` of the Bank balance from the caller
