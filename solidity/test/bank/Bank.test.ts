@@ -399,24 +399,51 @@ describe("Bank", () => {
     context("when the spender had no approved balance before", () => {
       let tx: ContractTransaction
 
-      before(async () => {
-        await createSnapshot()
+      context("when setting approval to non-zero amount", () => {
+        before(async () => {
+          await createSnapshot()
 
-        tx = await bank.connect(owner).approveBalance(spender, amount)
+          tx = await bank.connect(owner).approveBalance(spender, amount)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should approve the requested amount", async () => {
+          expect(await bank.allowance(owner.address, spender)).to.equal(amount)
+        })
+
+        it("should emit the BalanceApproved event", async () => {
+          await expect(tx)
+            .to.emit(bank, "BalanceApproved")
+            .withArgs(owner.address, spender, amount)
+        })
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      // This case should not happen in a real-world because setting approval
+      // to 0 when it's already 0 does not really make sense. However, we want
+      // to make sure nothing unexpected happens in this scenario.
+      context("when setting approval to zero", () => {
+        before(async () => {
+          await createSnapshot()
 
-      it("should approve the requested amount", async () => {
-        expect(await bank.allowance(owner.address, spender)).to.equal(amount)
-      })
+          tx = await bank.connect(owner).approveBalance(spender, 0)
+        })
 
-      it("should emit the BalanceApproved event", async () => {
-        await expect(tx)
-          .to.emit(bank, "BalanceApproved")
-          .withArgs(owner.address, spender, amount)
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should not change the zero approval", async () => {
+          expect(await bank.allowance(owner.address, spender)).to.equal(0)
+        })
+
+        it("should emit the BalanceApproved event", async () => {
+          await expect(tx)
+            .to.emit(bank, "BalanceApproved")
+            .withArgs(owner.address, spender, 0)
+        })
       })
     })
 
