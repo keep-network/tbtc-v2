@@ -919,7 +919,7 @@ describe("Bank", () => {
 
       const domainSeparator = await bank.DOMAIN_SEPARATOR()
       const permitTypehash = await bank.PERMIT_TYPEHASH()
-      const nonce = await bank.nonce(owner.address)
+      const nonce = await bank.nonces(owner.address)
 
       const approvalDigest = ethers.utils.keccak256(
         ethers.utils.solidityPack(
@@ -1134,8 +1134,8 @@ describe("Bank", () => {
       })
 
       it("should increment the nonce for the permitting owner", async () => {
-        expect(await bank.nonce(owner.address)).to.equal(1)
-        expect(await bank.nonce(spender)).to.equal(0)
+        expect(await bank.nonces(owner.address)).to.equal(1)
+        expect(await bank.nonces(spender)).to.equal(0)
       })
     })
 
@@ -1190,8 +1190,8 @@ describe("Bank", () => {
       })
 
       it("should increment the nonce for the permitting owner", async () => {
-        expect(await bank.nonce(owner.address)).to.equal(2)
-        expect(await bank.nonce(spender)).to.equal(0)
+        expect(await bank.nonces(owner.address)).to.equal(2)
+        expect(await bank.nonces(spender)).to.equal(0)
       })
     })
 
