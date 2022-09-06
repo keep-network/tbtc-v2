@@ -73,12 +73,15 @@ library Wallets {
         // that wallet.
         uint64 pendingRedemptionsValue;
         // UNIX timestamp the wallet was created at.
+        // XXX: unsigned 32-bit integer unix seconds, will break around 2106
         uint32 createdAt;
         // UNIX timestamp indicating the moment the wallet was requested to
         // move their funds.
+        // XXX: unsigned 32-bit integer unix seconds, will break around 2106
         uint32 movingFundsRequestedAt;
         // UNIX timestamp indicating the moment the wallet's closing period
         // started.
+        // XXX: unsigned 32-bit integer unix seconds, will break around 2106
         uint32 closingStartedAt;
         // Total count of pending moved funds sweep requests targeting this wallet.
         uint32 pendingMovedFundsSweepRequestsCount;

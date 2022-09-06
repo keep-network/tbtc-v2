@@ -145,6 +145,7 @@ library Redemption {
         // creation.
         uint64 txMaxFee;
         // UNIX timestamp the request was created at.
+        // XXX: unsigned 32-bit integer unix seconds, will break around 2106
         uint32 requestedAt;
         // This struct doesn't contain `__gap` property as the structure is stored
         // in a mapping, mappings store values in different slots and they are

@@ -84,6 +84,7 @@ library MovingFunds {
         // Value of the received funds.
         uint64 value;
         // UNIX timestamp the request was created at.
+        // XXX: unsigned 32-bit integer unix seconds, will break around 2106
         uint32 createdAt;
         // The current state of the request.
         MovedFundsSweepRequestState state;
