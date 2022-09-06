@@ -399,24 +399,51 @@ describe("Bank", () => {
     context("when the spender had no approved balance before", () => {
       let tx: ContractTransaction
 
-      before(async () => {
-        await createSnapshot()
+      context("when setting approval to non-zero amount", () => {
+        before(async () => {
+          await createSnapshot()
 
-        tx = await bank.connect(owner).approveBalance(spender, amount)
+          tx = await bank.connect(owner).approveBalance(spender, amount)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should approve the requested amount", async () => {
+          expect(await bank.allowance(owner.address, spender)).to.equal(amount)
+        })
+
+        it("should emit the BalanceApproved event", async () => {
+          await expect(tx)
+            .to.emit(bank, "BalanceApproved")
+            .withArgs(owner.address, spender, amount)
+        })
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      // This case should not happen in a real-world because setting approval
+      // to 0 when it's already 0 does not really make sense. However, we want
+      // to make sure nothing unexpected happens in this scenario.
+      context("when setting approval to zero", () => {
+        before(async () => {
+          await createSnapshot()
 
-      it("should approve the requested amount", async () => {
-        expect(await bank.allowance(owner.address, spender)).to.equal(amount)
-      })
+          tx = await bank.connect(owner).approveBalance(spender, 0)
+        })
 
-      it("should emit the BalanceApproved event", async () => {
-        await expect(tx)
-          .to.emit(bank, "BalanceApproved")
-          .withArgs(owner.address, spender, amount)
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should not change the zero approval", async () => {
+          expect(await bank.allowance(owner.address, spender)).to.equal(0)
+        })
+
+        it("should emit the BalanceApproved event", async () => {
+          await expect(tx)
+            .to.emit(bank, "BalanceApproved")
+            .withArgs(owner.address, spender, 0)
+        })
       })
     })
 
@@ -424,15 +451,33 @@ describe("Bank", () => {
       before(async () => {
         await createSnapshot()
         await bank.connect(owner).approveBalance(spender, to1e18(1337))
-        await bank.connect(owner).approveBalance(spender, amount)
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should replace the previous allowance", async () => {
-        expect(await bank.allowance(owner.address, spender)).to.equal(amount)
+      context("when setting approval back to zero", () => {
+        before(async () => {
+          await createSnapshot()
+          await bank.connect(owner).approveBalance(spender, 0)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should replace the previous allowance with zero", async () => {
+          expect(await bank.allowance(owner.address, spender)).to.equal(0)
+        })
+      })
+
+      context("when trying to overwrite with a non-zero value", () => {
+        it("should revert", async () => {
+          await expect(
+            bank.connect(owner).approveBalance(spender, 1)
+          ).to.be.revertedWith("Non-atomic allowance change not allowed")
+        })
       })
     })
   })
@@ -644,6 +689,10 @@ describe("Bank", () => {
 
       before(async () => {
         await createSnapshot()
+        // the initial approval was done in the `before` setup for
+        // `transferBalanceFrom`'s describe; we need to set back to 0
+        // before approving again
+        await bank.connect(owner).approveBalance(spender.address, 0)
         await bank.connect(owner).approveBalance(spender.address, amount)
       })
 
@@ -778,6 +827,10 @@ describe("Bank", () => {
 
       before(async () => {
         await createSnapshot()
+        // the initial approval was done in the `before` setup for
+        // `transferBalanceFrom`'s describe; we need to set back to 0
+        // before approving again
+        await bank.connect(owner).approveBalance(spender.address, 0)
         await bank.connect(owner).approveBalance(spender.address, amount)
         await bank
           .connect(spender)
@@ -804,6 +857,10 @@ describe("Bank", () => {
 
       before(async () => {
         await createSnapshot()
+        // the initial approval was done in the `before` setup for
+        // `transferBalanceFrom`'s describe; we need to set back to 0
+        // before approving again
+        await bank.connect(owner).approveBalance(spender.address, 0)
         await bank.connect(owner).approveBalance(spender.address, allowance)
         await bank
           .connect(spender)
