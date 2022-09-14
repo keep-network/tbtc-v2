@@ -85,6 +85,7 @@ library Deposit {
         // Deposit amount in satoshi.
         uint64 amount;
         // UNIX timestamp the deposit was revealed at.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 revealedAt;
         // Address of the Bank vault the deposit is routed to.
         // Optional, can be 0x0.
@@ -94,6 +95,7 @@ library Deposit {
         // UNIX timestamp the deposit was swept at. Note this is not the
         // time when the deposit was swept on the Bitcoin chain but actually
         // the time when the sweep proof was delivered to the Ethereum chain.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 sweptAt;
         // This struct doesn't contain `__gap` property as the structure is stored
         // in a mapping, mappings store values in different slots and they are
