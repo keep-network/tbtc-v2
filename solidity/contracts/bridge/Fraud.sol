@@ -65,6 +65,7 @@ library Fraud {
         // The amount of ETH the challenger deposited.
         uint256 depositAmount;
         // The timestamp the challenge was submitted at.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 reportedAt;
         // The flag indicating whether the challenge has been resolved.
         bool resolved;
