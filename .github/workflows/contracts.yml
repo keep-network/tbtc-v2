@@ -86,11 +86,13 @@ jobs:
         run: yarn build
 
       - name: Run tests
-        if: github.ref != 'refs/heads/dapp-development'
+        # TODO: remove ` && github.ref != 'refs/heads/ci-dapp-dev-test'`
+        if: github.ref != 'refs/heads/dapp-development' && github.ref != 'refs/heads/ci-dapp-dev-test'
         run: yarn test
 
       - name: Run integration tests
-        if: github.ref != 'refs/heads/dapp-development'
+      # TODO: remove ` && github.ref != 'refs/heads/ci-dapp-dev-test'`
+        if: github.ref != 'refs/heads/dapp-development' && github.ref != 'refs/heads/ci-dapp-dev-test'
         run: yarn test:integration
 
   contracts-deployment-dry-run:
