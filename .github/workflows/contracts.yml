@@ -312,8 +312,8 @@ jobs:
         with:
           upstream-builds: ${{ github.event.inputs.upstream_builds }}
           query: |
-            random-beacon-contracts-version = github.com/keep-network/keep-core/solidity/random-beacon#version
-            ecdsa-contracts-version = github.com/keep-network/keep-core/solidity/ecdsa#version
+            random-beacon-contracts-version = github.com/keep-network/keep-core/random-beacon#version
+            ecdsa-contracts-version = github.com/keep-network/keep-core/ecdsa#version
 
       - name: Resolve latest contracts
         run: |
