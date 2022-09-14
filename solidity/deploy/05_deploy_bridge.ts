@@ -40,8 +40,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const MovingFunds = await deploy("MovingFunds", deployOptions)
 
   const bridge = await helpers.upgrades.deployProxy("Bridge", {
-    // contractName:
-    //   process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
+    contractName:
+      process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
     initializerArgs: [
       Bank.address,
       BitcoinRelay.address,
