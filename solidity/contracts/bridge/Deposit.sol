@@ -42,7 +42,7 @@ import "./Wallets.sol";
 ///      ```
 ///
 ///      Since each depositor has their own Ethereum address and their own
-///      secret blinding factor, each depositor’s script is unique, and the hash
+///      blinding factor, each depositor’s script is unique, and the hash
 ///      of each depositor’s script is unique.
 library Deposit {
     using BTCUtils for bytes;
@@ -56,7 +56,8 @@ library Deposit {
         // Ethereum depositor address.
         address depositor;
         // The blinding factor as 8 bytes. Byte endianness doesn't matter
-        // as this factor is not interpreted as uint.
+        // as this factor is not interpreted as uint. The blinding factor allows
+        // to distinguish deposits from the same depositor.
         bytes8 blindingFactor;
         // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
         // of the deposit's wallet hashed in the HASH160 Bitcoin opcode style.

@@ -158,9 +158,9 @@ ELSE
 ENDIF
 ```
 
-Since each depositor has their own ethereum address and their own secret
-blinding factor (which is an additional security layer), each depositor's
-script will be unique, and the hash of each depositor's script will be unique.
+Since each depositor has their own ethereum address and their own blinding
+factor, each depositor's script will be unique, and the hash of each depositor's
+script will be unique.
 
 In order to unlock the funds, one must provide the unhashed script, (which
 means that they know the eth address and blinding factor), as well as an
