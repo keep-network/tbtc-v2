@@ -322,6 +322,9 @@ describe("TBTCVault", () => {
 
       before(async () => {
         await createSnapshot()
+        // the initial approval was done in the top-level `before` setup;
+        // we need to set back to 0 before approving again
+        await bank.connect(account1).approveBalance(vault.address, 0)
         await bank.connect(account1).approveBalance(vault.address, amount)
       })
 

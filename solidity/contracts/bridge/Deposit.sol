@@ -42,7 +42,7 @@ import "./Wallets.sol";
 ///      ```
 ///
 ///      Since each depositor has their own Ethereum address and their own
-///      secret blinding factor, each depositor’s script is unique, and the hash
+///      blinding factor, each depositor’s script is unique, and the hash
 ///      of each depositor’s script is unique.
 library Deposit {
     using BTCUtils for bytes;
@@ -56,7 +56,8 @@ library Deposit {
         // Ethereum depositor address.
         address depositor;
         // The blinding factor as 8 bytes. Byte endianness doesn't matter
-        // as this factor is not interpreted as uint.
+        // as this factor is not interpreted as uint. The blinding factor allows
+        // to distinguish deposits from the same depositor.
         bytes8 blindingFactor;
         // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
         // of the deposit's wallet hashed in the HASH160 Bitcoin opcode style.
@@ -85,6 +86,7 @@ library Deposit {
         // Deposit amount in satoshi.
         uint64 amount;
         // UNIX timestamp the deposit was revealed at.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 revealedAt;
         // Address of the Bank vault the deposit is routed to.
         // Optional, can be 0x0.
@@ -94,6 +96,7 @@ library Deposit {
         // UNIX timestamp the deposit was swept at. Note this is not the
         // time when the deposit was swept on the Bitcoin chain but actually
         // the time when the sweep proof was delivered to the Ethereum chain.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 sweptAt;
         // This struct doesn't contain `__gap` property as the structure is stored
         // in a mapping, mappings store values in different slots and they are
