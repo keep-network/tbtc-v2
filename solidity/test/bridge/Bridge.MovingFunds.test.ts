@@ -5,6 +5,7 @@ import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { BigNumber, Contract, ContractTransaction } from "ethers"
+import { Deployment } from "hardhat-deploy/types"
 import type {
   Bridge,
   BridgeStub,
@@ -38,7 +39,6 @@ import {
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
-import { Deployment } from "hardhat-deploy/types"
 
 chai.use(smock.matchers)
 
@@ -56,7 +56,9 @@ describe("Bridge - Moving funds", () => {
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
   let reimbursementPool: ReimbursementPool
-  let deployBridge: (txProofDifficultyFactor: number) => Promise<[Contract, Deployment]>
+  let deployBridge: (
+    txProofDifficultyFactor: number
+  ) => Promise<[Contract, Deployment]>
 
   let movingFundsTimeoutResetDelay: number
   let movingFundsTimeout: number

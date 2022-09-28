@@ -39,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const Fraud = await deploy("Fraud", deployOptions)
   const MovingFunds = await deploy("MovingFunds", deployOptions)
 
-  const [bridge, _] = await helpers.upgrades.deployProxy("Bridge", {
+  const [bridge] = await helpers.upgrades.deployProxy("Bridge", {
     contractName:
       process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
     initializerArgs: [

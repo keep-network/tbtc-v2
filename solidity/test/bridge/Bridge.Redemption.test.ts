@@ -8,6 +8,7 @@ import { BigNumber, BigNumberish, Contract, ContractTransaction } from "ethers"
 import { BytesLike } from "@ethersproject/bytes"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
+import { Deployment } from "hardhat-deploy/types"
 import type {
   Bank,
   BankStub,
@@ -39,7 +40,6 @@ import {
 } from "../data/redemption"
 import { walletState } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
-import { Deployment } from "hardhat-deploy/types"
 
 chai.use(smock.matchers)
 
@@ -61,7 +61,9 @@ describe("Bridge - Redemption", () => {
   let bridgeGovernance: BridgeGovernance
   let walletRegistry: FakeContract<IWalletRegistry>
 
-  let deployBridge: (txProofDifficultyFactor: number) => Promise<[Contract, Deployment]>
+  let deployBridge: (
+    txProofDifficultyFactor: number
+  ) => Promise<[Contract, Deployment]>
 
   let redemptionTimeout: number
   let redemptionTimeoutSlashingAmount: BigNumber

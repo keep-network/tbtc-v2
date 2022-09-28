@@ -6,6 +6,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { BigNumber, Contract, ContractTransaction } from "ethers"
 import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
+import { Deployment } from "hardhat-deploy/types"
 import type {
   Bank,
   BankStub,
@@ -28,7 +29,6 @@ import {
   SingleP2SHDeposit,
   SingleP2WSHDeposit,
 } from "../data/deposit-sweep"
-import { Deployment } from "hardhat-deploy/types"
 
 chai.use(smock.matchers)
 
@@ -46,7 +46,9 @@ describe("Bridge - Deposit", () => {
   let relay: FakeContract<IRelay>
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
-  let deployBridge: (txProofDifficultyFactor: number) => Promise<[Contract, Deployment]>
+  let deployBridge: (
+    txProofDifficultyFactor: number
+  ) => Promise<[Contract, Deployment]>
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
