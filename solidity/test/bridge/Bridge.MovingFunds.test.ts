@@ -38,6 +38,7 @@ import {
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
+import { Deployment } from "hardhat-deploy/types"
 
 chai.use(smock.matchers)
 
@@ -55,7 +56,7 @@ describe("Bridge - Moving funds", () => {
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
   let reimbursementPool: ReimbursementPool
-  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
+  let deployBridge: (txProofDifficultyFactor: number) => Promise<[Contract, Deployment]>
 
   let movingFundsTimeoutResetDelay: number
   let movingFundsTimeout: number
@@ -1977,7 +1978,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = (await deployBridge(12)) as BridgeStub
+            otherBridge = (await deployBridge(12))[0] as BridgeStub
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true
@@ -3521,7 +3522,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = (await deployBridge(12)) as BridgeStub
+            otherBridge = (await deployBridge(12))[0] as BridgeStub
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true

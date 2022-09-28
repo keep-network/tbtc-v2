@@ -39,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const Fraud = await deploy("Fraud", deployOptions)
   const MovingFunds = await deploy("MovingFunds", deployOptions)
 
-  const bridge = await helpers.upgrades.deployProxy("Bridge", {
+  const [bridge, _] = await helpers.upgrades.deployProxy("Bridge", {
     contractName:
       process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
     initializerArgs: [
@@ -70,6 +70,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       unsafeAllow: ["external-library-linking"],
     },
   })
+
+  // TODO: Take proxyDeployment and use it for Etherscan verification.
 
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
