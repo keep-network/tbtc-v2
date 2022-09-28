@@ -111,8 +111,8 @@ describeFn("Integration Test - Wallet Creation", async () => {
       await assertGasUsed(requestNewWalletTx, 94_000)
     })
 
-    it("should consume around 340 000 gas for WalletRegistry.approveDkgResult transaction", async () => {
-      await assertGasUsed(walletRegistrationTx, 340_000)
+    it("should consume around 341 000 gas for WalletRegistry.approveDkgResult transaction", async () => {
+      await assertGasUsed(walletRegistrationTx, 341_000)
     })
   })
 })
