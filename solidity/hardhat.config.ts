@@ -174,27 +174,32 @@ const config: HardhatUserConfig = {
       default: 2,
       goerli: 0,
     },
-    esdm: {
+    chaosnetOwner: {
       default: 3,
       goerli: 0,
       // mainnet: ""
     },
-    keepTechnicalWalletTeam: {
+    esdm: {
       default: 4,
+      goerli: 0,
+      // mainnet: ""
+    },
+    keepTechnicalWalletTeam: {
+      default: 5,
       goerli: 0,
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
-      default: 5,
+      default: 6,
       goerli: 0,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
     treasury: {
-      default: 6,
+      default: 7,
       goerli: 0,
     },
     spvMaintainer: {
-      default: 7,
+      default: 8,
       goerli: 0,
     },
   },
