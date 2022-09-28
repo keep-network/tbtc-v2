@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 library GovernanceUtils {
     /// @notice Reverts if the governance delay has not passed since
