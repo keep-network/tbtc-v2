@@ -107,12 +107,12 @@ describeFn("Integration Test - Wallet Creation", async () => {
       )
     })
 
-    it("should consume around 93 000 gas for Bridge.requestNewWallet transaction", async () => {
-      await assertGasUsed(requestNewWalletTx, 93_000)
+    it("should consume around 94 000 gas for Bridge.requestNewWallet transaction", async () => {
+      await assertGasUsed(requestNewWalletTx, 94_000)
     })
 
-    it("should consume around 339 000 gas for WalletRegistry.approveDkgResult transaction", async () => {
-      await assertGasUsed(walletRegistrationTx, 339_000)
+    it("should consume around 340 000 gas for WalletRegistry.approveDkgResult transaction", async () => {
+      await assertGasUsed(walletRegistrationTx, 340_000)
     })
   })
 })
