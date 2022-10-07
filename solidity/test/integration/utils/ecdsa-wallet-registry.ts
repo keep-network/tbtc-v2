@@ -14,6 +14,9 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import type { WalletRegistry, SortitionPool } from "../../../typechain"
 import type { ClaimStruct } from "../../../typechain/EcdsaInactivity"
 
+// default Hardhat's networks blockchain, see https://hardhat.org/config/
+export const hardhatNetworkId = 31337
+
 export async function registerOperator(
   walletRegistry: WalletRegistry,
   sortitionPool: SortitionPool,
@@ -139,10 +142,17 @@ export async function produceOperatorInactivityClaim(
   numberOfSignatures: number
 ): Promise<ClaimStruct> {
   const { ethers } = hre
-
-  const messageHash = ethers.utils.solidityKeccak256(
-    ["uint256", "bytes", "uint8[]", "bool"],
-    [nonce, groupPubKey, inactiveMembersIndices, heartbeatFailed]
+  const messageHash = ethers.utils.keccak256(
+    ethers.utils.defaultAbiCoder.encode(
+      ["uint256", "uint256", "bytes", "uint8[]", "bool"],
+      [
+        hardhatNetworkId,
+        nonce,
+        groupPubKey,
+        inactiveMembersIndices,
+        heartbeatFailed,
+      ]
+    )
   )
 
   const signingMembersIndices: number[] = []
@@ -256,9 +266,11 @@ async function signDkgResult(
 
   const numberOfSignatures: number = signers.length / 2 + 1
 
-  const resultHash = ethers.utils.solidityKeccak256(
-    ["bytes", "uint8[]", "uint256"],
-    [groupPublicKey, misbehavedMembersIndices, startBlock]
+  const resultHash = ethers.utils.keccak256(
+    ethers.utils.defaultAbiCoder.encode(
+      ["uint256", "bytes", "uint8[]", "uint256"],
+      [hardhatNetworkId, groupPublicKey, misbehavedMembersIndices, startBlock]
+    )
   )
 
   const members: number[] = []
