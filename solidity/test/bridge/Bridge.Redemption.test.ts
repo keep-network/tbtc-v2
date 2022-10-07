@@ -8,6 +8,7 @@ import { BigNumber, BigNumberish, Contract, ContractTransaction } from "ethers"
 import { BytesLike } from "@ethersproject/bytes"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
+import { Deployment } from "hardhat-deploy/types"
 import type {
   Bank,
   BankStub,
@@ -60,7 +61,9 @@ describe("Bridge - Redemption", () => {
   let bridgeGovernance: BridgeGovernance
   let walletRegistry: FakeContract<IWalletRegistry>
 
-  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
+  let deployBridge: (
+    txProofDifficultyFactor: number
+  ) => Promise<[Contract, Deployment]>
 
   let redemptionTimeout: number
   let redemptionTimeoutSlashingAmount: BigNumber
@@ -3554,7 +3557,7 @@ describe("Bridge - Redemption", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = (await deployBridge(12)) as BridgeStub
+            otherBridge = (await deployBridge(12))[0] as BridgeStub
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true

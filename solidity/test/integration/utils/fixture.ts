@@ -47,6 +47,7 @@ export const fixture = deployments.createFixture(
     const {
       deployer,
       governance,
+      chaosnetOwner,
       spvMaintainer,
       keepTechnicalWalletTeam,
       keepCommunityMultiSig,
@@ -84,6 +85,7 @@ export const fixture = deployments.createFixture(
       "SortitionPool",
       await walletRegistry.sortitionPool()
     )
+    await sortitionPool.connect(chaosnetOwner).deactivateChaosnet()
 
     const relay = await smock.fake<TestRelay>("TestRelay", {
       address: await (await bridge.contractReferences()).relay,

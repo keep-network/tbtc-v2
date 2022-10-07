@@ -6,6 +6,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { BigNumber, Contract, ContractTransaction } from "ethers"
 import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
+import { Deployment } from "hardhat-deploy/types"
 import type {
   Bank,
   BankStub,
@@ -45,7 +46,9 @@ describe("Bridge - Deposit", () => {
   let relay: FakeContract<IRelay>
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
-  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
+  let deployBridge: (
+    txProofDifficultyFactor: number
+  ) => Promise<[Contract, Deployment]>
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -2700,7 +2703,7 @@ describe("Bridge - Deposit", () => {
               // to deem transaction proof validity. This scenario uses test
               // data which has only 6 confirmations. That should force the
               // failure we expect within this scenario.
-              otherBridge = (await deployBridge(12)) as BridgeStub
+              otherBridge = (await deployBridge(12))[0] as BridgeStub
               await otherBridge.setSpvMaintainerStatus(
                 spvMaintainer.address,
                 true
