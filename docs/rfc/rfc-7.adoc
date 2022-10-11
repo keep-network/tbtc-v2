@@ -126,10 +126,11 @@ window, the attempt is skipped.
 
 The Coordinator chooses sufficiently confirmed deposits for the sweep. To avoid
 synchronization problems with deposits on the brink of being sufficiently
-confirmed, the Coordinator may choose deposits with more than 6/20 confirmations.
-To avoid problems with a maximum size of a transaction, the Coordinator should
-not pick more than 500 deposits. The Coordinator chooses Bitcoin transaction fee
-reflecting the current situation in the Bitcoin network.
+confirmed, the Coordinator may choose deposits with more than 6 confirmations
+on Bitcoin and 20 confirmations on Ethereum. To avoid problems with a maximum
+size of a transaction, the Coordinator should not pick more than 500 deposits.
+The Coordinator chooses Bitcoin transaction fee reflecting the current situation
+in the Bitcoin network.
 
 The Coordinator must not propose a sweep if there is another transaction from
 the wallet in the Bitcoin mempool.
@@ -138,8 +139,9 @@ The Coordinator proposes a sweep over the wallet's broadcast channel.
 
 All signing group members must confirm that all deposits in the proposed sweep
 are sufficiently confirmed, that the maximum number of deposits is not exceeded,
-and that the proposed fee reflects the current situation in the Bitcoin network
-plus/minus some margin.
+that the proposed fee reflects the current situation in the Bitcoin network
+plus/minus some margin, and that all deposit UTXOs can be unlocked with the
+wallet's public key.
 
 If everything is as expected, the signing group members proceed with tECDSA
 signing protocol.
@@ -197,5 +199,7 @@ block number.
 == Open Questions
 
 Is the maximum of 500 transactions in a batch enough to not risk not being able
-to defeat the fraud challenge? Check what is the size of a sweep transaction
-with 500 inputs and confirm defending a challenge is possible.
+to defeat the fraud challenge? Is the maximum 500 transactions in a batch enough
+to not risk not being able to submit SPV proof? Check what is the size of a
+sweep transaction with 500 inputs and confirm submitting SPV proof and defeating
+a challenge is possible.
