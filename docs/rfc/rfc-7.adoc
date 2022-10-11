@@ -120,3 +120,41 @@ propose a sweep between:
 
 If the current Coordinator does not propose a sweep within the given time
 window, the attempt is skipped.
+
+
+==== Sweep transaction
+
+The Coordinator chooses sufficiently confirmed deposits for the sweep. To avoid
+synchronization problems with deposits on the brink of being sufficiently
+confirmed, the Coordinator may choose deposits with more than 6 confirmations.
+To avoid problems with a maximum size of a transaction, the Coordinator should
+not pick more than 500 deposits. The Coordinator chooses Bitcoin transaction fee
+reflecting the current situation in the Bitcoin network.
+
+The Coordinator must not propose a sweep if there is another transaction from
+the wallet in the Bitcoin mempool.
+
+The Coordinator proposes a sweep over the wallet's broadcast channel.
+
+All signing group members must confirm that all deposits in the proposed sweep
+are sufficiently confirmed, that the maximum number of deposits is not exceeded,
+and that the proposed fee reflects the current situation in the Bitcoin network
+plus/minus some margin.
+
+If everything is as expected, the signing group members proceed with tECDSA
+signing protocol.
+
+==== Timeouts
+
+The sweep should be completed in 4 hours to leave the floor for redemptions.
+\This time includes retries and a potential increase of the Bitcoin transaction
+fee. The signing protocol takes 72 blocks. Assuming an average block time of 12
+seconds, it takes approximately 15 minutes to execute the protocol. With 3
+malicious members in a signing group, we need 10 retries of the protocol in the
+worst case, so 2h 30 min (`P = (97 choose 51) / (100 choose 51) = 0.11393939393`).
+Thus, the timeout for signing a sweep transaction should be set to 2h 30 minutes
+leaving 30 minutes for a potential fee increase.
+
+INFO: If the active wallet is permanently struggling with signing and can't
+produce a signature after 10 retries, it is better to not accept new deposits to
+that wallet and let another active wallet be created.
