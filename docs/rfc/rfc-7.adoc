@@ -126,7 +126,7 @@ window, the attempt is skipped.
 
 The Coordinator chooses sufficiently confirmed deposits for the sweep. To avoid
 synchronization problems with deposits on the brink of being sufficiently
-confirmed, the Coordinator may choose deposits with more than 6 confirmations.
+confirmed, the Coordinator may choose deposits with more than 6/20 confirmations.
 To avoid problems with a maximum size of a transaction, the Coordinator should
 not pick more than 500 deposits. The Coordinator chooses Bitcoin transaction fee
 reflecting the current situation in the Bitcoin network.
@@ -197,4 +197,20 @@ Bridge. Given that the wallet is blocked with any other action until the sweep
 transaction is in the mempool, the fee bump signing protocol retries until the
 signature is produced.
 
+== Future Work
 
+The link:https://github.com/keep-network/tbtc-v2/pull/374[sparse relay] provides
+true proof of inclusion but requires every 6th block in the Bitcoin network to
+be recorded on Ethereum. We started with a proof of work in tBTC v2 Bridge and
+the light relay but one day we may switch to the sparse relay. This would allow
+establishing a reference between a point in time on Ethereum and Bitcoin chains.
+The reference point in time on Ethereum is a fixed block number - for example,
+we sweep every 100th block - and the reference point in time on Bitcoin is the
+last Bitcoin block recorded on Ethereum's sparse relay at the given Ethereum's
+block number.
+
+== Open Questions
+
+Is the maximum of 500 transactions in a batch enough to not risk not being able
+to defeat the fraud challenge? Check what is the size of a sweep transaction
+with 500 inputs and confirm defending a challenge is possible.
