@@ -1,0 +1,46 @@
+:toc: macro
+
+= RFC 7: Sweeping coordination
+
+:icons: font
+:numbered:
+toc::[]
+
+== Background
+
+Before generating tECDSA signature, the off-chain client software needs to agree
+in the signing group on the message being signed. In tBTC v2, the information
+needed to evaluate the signed message comes from multiple sources that might not
+be ideally synced with each other. Moreover, it is not possible to establish a
+precise point in time based on which the information should be retrieved.
+
+=== Current Functionality
+
+In tBTC v1, the message to be signed is calculated on-chain
+link:https://github.com/keep-network/tbtc/blob/d18ef9aec7656f0ec7d317ece3e3d5c7aca92cda/solidity/contracts/deposit/DepositRedemption.sol#L133-L160[during the redemption request]
+and link:https://github.com/keep-network/tbtc/blob/d18ef9aec7656f0ec7d317ece3e3d5c7aca92cda/solidity/contracts/deposit/DepositRedemption.sol#L291-L316[when increasing the redemption fee].
+Every single deposit is under a separate P2WPKH address and is confirmed with
+SPV proof. This, plus the fact the redemption can be done only one time for the
+given deposit makes it possible to generate the message to be signed on-chain
+and does not require additional coordination between signing group members. The
+signing group members do not have to worry about confirming the P2WPKH deposit
+transaction on Bitcoin because it is covered by the SPV on-chain proof submitted
+to Ethereum by the depositor.
+
+This approach is easy to integrate with off-chain client software but is way
+more expensive on-chain compared to the approach taken by tBTC v2.
+
+In tBTC v2, 51-of-100 tECDSA-backed wallets accept multiple deposits. Depositors
+send BTC to the most-recently-created-wallet using P2SH transaction and reveal
+their deposit transaction to Ethereum chain. The off-chain client software must
+listen for these sorts of events and periodically check the Bitcoin network to
+ensure P2SH deposits are sufficiently confirmed. If everything checks out, the
+off-chain client software should coordinate to produce a signature and perform
+a sweeping Bitcoin transaction that is confirmed on Ethereum with SPV proof and
+updates depositors' balances in the Bridge.
+
+This approach is more cost-effective: it allows to split of the cost of SPV
+proof between multiple depositors and does not require expensive signing group
+key generation for every single deposit. Yet, it requires the off-chain client
+software to coordinate - before producing a signature - to decide which deposits
+should be swept and with what Bitcoin network fee.
