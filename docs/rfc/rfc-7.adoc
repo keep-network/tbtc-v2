@@ -185,3 +185,16 @@ protocol only if there are at least 51 messages informing them about the
 transaction and its successful validation. Group members who have turned on
 their nodes can learn about the transaction the rest of the group wants to sign
 and they can join the signing protocol if necessary.
+
+==== Increasing fee
+
+At any point in time, the current Coordinator (who is not necessarily the same
+Coordinator who proposed the batch) can propose increasing the Bitcoin fee for
+the sweep transaction that is in the mempool. The signing group members sign the
+transaction if the original transaction is in the mempool for at least 30
+minutes and the fee increase does not exceed the maximum one allowed by the
+Bridge. Given that the wallet is blocked with any other action until the sweep
+transaction is in the mempool, the fee bump signing protocol retries until the
+signature is produced.
+
+
