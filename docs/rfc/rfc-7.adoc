@@ -44,3 +44,56 @@ proof between multiple depositors and does not require expensive signing group
 key generation for every single deposit. Yet, it requires the off-chain client
 software to coordinate - before producing a signature - to decide which deposits
 should be swept and with what Bitcoin network fee.
+
+== Proposal
+
+This document aims at describing a protocol for reaching an agreement about the
+Bitcoin sweep transaction between the signing group members.
+
+=== Goal
+
+The protocol should tolerate small differences in the state of the world, as
+seen by individual signing group members. It should be compatible with a light
+relay, and support signing retries. All transactions must be sufficiently
+confirmed and the transaction being signed must adhere to the recent Bitcoin
+network fees.
+
+==== Sufficiently confirmed transactions
+
+The P2SH transactions on Bitcoin must be sufficiently confirmed (at least 6
+confirmations) before they are eligible for sweeping. The deposit reveal
+transactions on Ethereum must be sufficiently confirmed (at least 20
+confirmations) before they are eligible for sweeping.
+
+==== No order guaranteed
+
+There is no guarantee which transaction gets a sufficient number of
+confirmations first: Bitcoin P2SH deposit transaction or Ethereum deposit reveal
+transactions. The order in which P2SH deposit transactions gets confirmed on
+Bitcoin does not need to correspond to the order in which deposit reveal
+transaction gets confirmed on Ethereum. There is also no guarantee that the
+Ethereum reveal transaction points to an existing Bitcoin P2SH transaction.
+
+==== State differences
+
+Every tBTC v2 client software instance is connected to different Ethereum and
+Bitcoin clients. Ethereum clients in the network will have a slightly different
+synchronization state at any given point in time. Bitcoin clients in the network
+will also have a slightly different synchronization state. Since the light relay
+is not submitting all Bitcoin headers to Ethereum, there is no way to reference
+from Ethereum to a fixed point in time on Bitcoin. We must accept all tBTC v2
+client software will have a slightly different view of the world at any point in
+time.
+
+==== Adhere to network conditions
+
+The Bitcoin sweep transaction must have a fee that allows it to be mined in a
+reasonable time. If the Bitcoin network conditions change, there must be a
+mechanism to increase the fee and replace transactions. The wallet must finish
+the current operation before attempting another one.
+
+==== Retries
+
+The tECDSA protocol used for signing must be able to retry in case some signing
+group members are offline or corrupted. The tBTC v2 client software should join
+the pending signing after the client restart.
