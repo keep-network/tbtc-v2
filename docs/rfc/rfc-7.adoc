@@ -121,45 +121,41 @@ propose a sweep between:
 If the current Coordinator does not propose a sweep within the given time
 window, the attempt is skipped.
 
+The Coordinator must not propose a sweep if there is currently a pending signing
+operation being executed by the wallet or if the last signed transaction does
+not have 6 Bitcoin confirmations yet.
 
 ==== Sweep transaction
 
 The Coordinator chooses sufficiently confirmed deposits for the sweep. To avoid
 synchronization problems with deposits on the brink of being sufficiently
 confirmed, the Coordinator may choose deposits with more than 6 confirmations
-on Bitcoin and 20 confirmations on Ethereum. To avoid problems with a maximum
-size of a transaction, the Coordinator should not pick more than 500 deposits.
-The Coordinator chooses Bitcoin transaction fee reflecting the current situation
-in the Bitcoin network.
+on Bitcoin and 20 confirmations on Ethereum. To avoid problems with proving
+large transactions and too many signatures to be executed, the Coordinator
+should not pick more than 20 deposits. The Coordinator chooses the Bitcoin
+transaction fee reflecting the current situation in the Bitcoin network. To
+leave enough time for retries, deposits for which Bitcoin transactions unlock
+for a refund earlier than two weeks from now are skipped.
 
-The Coordinator must not propose a sweep if there is another transaction from
-the wallet in the Bitcoin mempool.
+The Coordinator must not propose a sweep if there is currently a pending signing
+operation being executed by the wallet or if the last signed transaction does
+not have 6 Bitcoin confirmations yet.
 
 The Coordinator proposes a sweep over the wallet's broadcast channel.
 
 All signing group members must confirm that all deposits in the proposed sweep
 are sufficiently confirmed, that the maximum number of deposits is not exceeded,
 that the proposed fee reflects the current situation in the Bitcoin network
-plus/minus some margin, and that all deposit UTXOs can be unlocked with the
-wallet's public key.
+plus/minus some margin, that all deposit UTXOs can be unlocked with the
+wallet's public key, and that there is enough time to unlock UTXO before the
+refund.
 
-If everything is as expected, the signing group members proceed with tECDSA
-signing protocol.
+If all these requirements are met, the last transaction executed by the wallet
+is sufficiently confirmed, and there is no other signing by the wallet in
+progress, the signing group members proceed with tECDSA signing protocol. Each
+input is signed in a separate state machine instance, independently from other
+signatures being executed.
 
-==== Timeouts
-
-The sweep should be completed in 4 hours to leave the floor for redemptions.
-\This time includes retries and a potential increase of the Bitcoin transaction
-fee. The signing protocol takes 72 blocks. Assuming an average block time of 12
-seconds, it takes approximately 15 minutes to execute the protocol. With 3
-malicious members in a signing group, we need 10 retries of the protocol in the
-worst case, so 2h 30 min (`P = (97 choose 51) / (100 choose 51) = 0.11393939393`).
-Thus, the timeout for signing a sweep transaction should be set to 2h 30 minutes
-leaving 60 minutes for a potential fee increase.
-
-Note that if the active wallet is permanently struggling with signing and can't
-produce a signature after 10 retries, it is better to not accept new deposits to
-that wallet and let another active wallet be created.
 
 ==== Retries
 
@@ -173,6 +169,33 @@ transaction and its successful validation. Group members who have turned on
 their nodes can learn about the transaction the rest of the group wants to sign
 and they can join the signing protocol if necessary.
 
+The signing protocol takes 72 blocks. Assuming an average block time of 12
+seconds, it takes approximately 15 minutes to execute the protocol.
+
+- With 2 malicious members in a signing group, we need 5 retries of the protocol
+in the worst case (`P = (98 choose 51) / (100 choose 51) = 0.23757575757`),
+which takes 1h 15min.
+- With 3 malicious members in a signing group, we need 10 retries of the
+protocol in the worst case (`P = (97 choose 51) / (100 choose 51) = 0.11393939393`),
+which takes 2h 30 min.
+- With 4 malicious members in a signing group, we need 20 retries of the
+protocol in the worst case (`P = (96 choose 51) / (100 choose 51) = 0.05403311465`),
+which takes 5h.
+- With 5 malicious members in a signing group, we need 50 retries of the
+protocol in the worst case (`P = (95 choose 51) / (100 choose 51) = 0.02532802249`),
+which takes 12h 30 min.
+
+Given the fact, the first few retries will focus on inactivity and the
+probability of having more than 2 malicious members in a signing group is low,
+in the vast majority of cases, it should take less than 2 hours to complete the
+signing. Since all inputs are signed simultaneously, it is expected that
+signatures for all inputs are available within 2 hours.
+
+The signing that keeps failing is retried for one week. If all combinations of
+operators were tried, the retry loop starts from zero again. If, after one week,
+it is not possible to sign the transaction, the wallet should give up.
+Eventually, this will be a signal for a wallet to begin moving funds procedure.
+
 ==== Increasing fee
 
 At any point in time, the current Coordinator (who is not necessarily the same
@@ -182,7 +205,7 @@ transaction if the original transaction is in the mempool for at least 30
 minutes and the fee increase does not exceed the maximum one allowed by the
 Bridge. Given that the wallet is blocked with any other action until the sweep
 transaction is in the mempool, the fee bump signing protocol retries until the
-signature is produced.
+signature is produced or until the transaction is mined.
 
 == Future Work
 
@@ -195,11 +218,3 @@ The reference point in time on Ethereum is a fixed block number - for example,
 we sweep every 100th block - and the reference point in time on Bitcoin is the
 last Bitcoin block recorded on Ethereum's sparse relay at the given Ethereum's
 block number.
-
-== Open Questions
-
-Is the maximum of 500 transactions in a batch enough to not risk not being able
-to defeat the fraud challenge? Is the maximum 500 transactions in a batch enough
-to not risk not being able to submit SPV proof? Check what is the size of a
-sweep transaction with 500 inputs and confirm submitting SPV proof and defeating
-a challenge is possible.
