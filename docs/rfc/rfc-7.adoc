@@ -103,7 +103,7 @@ the pending signing after the client restart.
 ==== Coordinator
 
 We introduce a rotating role of Coordinator responsible for proposing a sweep
-Bitcoin transaction. The role of Coordinator rotates every 6 hours across all
+Bitcoin transaction. The role of Coordinator rotates every 8 hours across all
 operators in the group. For example, if the group consist of the following
 members: `[0xA, 0xB, 0xC, 0xC, 0xB, 0xD`] the rotation rounds are: `0xA, 0xB,
 0xC, 0xD`. The rotation schedule begins at UNIX epoch (00:00:00 UTC on 1 January
