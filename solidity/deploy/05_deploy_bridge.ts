@@ -7,7 +7,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, treasury } = await getNamedAccounts()
 
   const Bank = await deployments.get("Bank")
-  const BitcoinRelay = await deployments.get("BitcoinRelay")
+  const LightRelay = await deployments.get("LightRelay")
 
   // TODO: Test for mainnet deployment that when `WalletRegistry` is provided
   // in `external/mainnet/` directory it gets resolved correctly, and the deployment
@@ -44,7 +44,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
     initializerArgs: [
       Bank.address,
-      BitcoinRelay.address,
+      LightRelay.address,
       treasury,
       WalletRegistry.address,
       ReimbursementPool.address,
@@ -84,4 +84,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["Bridge"]
-func.dependencies = ["Bank", "BitcoinRelay", "Treasury", "WalletRegistry"]
+func.dependencies = ["Bank", "LightRelay", "Treasury", "WalletRegistry"]

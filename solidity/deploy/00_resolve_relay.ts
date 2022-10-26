@@ -6,21 +6,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const BitcoinRelay = await deployments.getOrNull("BitcoinRelay")
+  const LightRelay = await deployments.getOrNull("LightRelay")
 
-  if (BitcoinRelay && helpers.address.isValid(BitcoinRelay.address)) {
-    log(`using external BitcoinRelay at ${BitcoinRelay.address}`)
+  if (LightRelay && helpers.address.isValid(LightRelay.address)) {
+    log(`using external LightRelay at ${LightRelay.address}`)
   } else if (
     // TODO: Temporarily deploy a stub for Goerli network.
     hre.network.name !== "goerli" &&
     (!hre.network.tags.allowStubs ||
       (hre.network.config as HardhatNetworkConfig)?.forking?.enabled)
   ) {
-    throw new Error("deployed BitcoinRelay contract not found")
+    throw new Error("deployed LightRelay contract not found")
   } else {
-    log("deploying BitcoinRelay stub")
+    log("deploying LightRelay stub")
 
-    await deployments.deploy("BitcoinRelay", {
+    await deployments.deploy("LightRelay", {
       contract: "TestRelay",
       from: deployer,
       log: true,
@@ -31,4 +31,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["BitcoinRelay"]
+func.tags = ["LightRelay"]
