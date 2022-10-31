@@ -35,14 +35,14 @@ send BTC to the most-recently-created-wallet using P2SH transaction and reveal
 their deposit transaction to Ethereum chain. The off-chain client software must
 listen for these sorts of events and periodically check the Bitcoin network to
 ensure P2SH deposits are sufficiently confirmed. If everything checks out, the
-off-chain client software should coordinate to produce a signature and perform
+off-chain client software should coordinate to produce signatures and perform
 a sweeping Bitcoin transaction that is confirmed on Ethereum with SPV proof and
 updates depositors' balances in the Bridge.
 
 This approach is more cost-effective: it allows to split of the cost of SPV
 proof between multiple depositors and does not require expensive signing group
 key generation for every single deposit. Yet, it requires the off-chain client
-software to coordinate - before producing a signature - to decide which deposits
+software to coordinate - before producing signatures - to decide which deposits
 should be swept and with what Bitcoin network fee.
 
 == Proposal
@@ -55,8 +55,8 @@ Bitcoin sweep transaction between the signing group members.
 The protocol should tolerate small differences in the state of the world, as
 seen by individual signing group members. It should be compatible with a light
 relay, and support signing retries. All transactions must be sufficiently
-confirmed and the transaction being signed must adhere to the recent Bitcoin
-network fees.
+confirmed and the sweep transaction must adhere to the recent Bitcoin network
+fees.
 
 ==== Sufficiently confirmed transactions
 
@@ -81,9 +81,9 @@ Bitcoin clients. Ethereum clients in the network will have a slightly different
 synchronization state at any given point in time. Bitcoin clients in the network
 will also have a slightly different synchronization state. Since the light relay
 is not submitting all Bitcoin headers to Ethereum, there is no way to reference
-from Ethereum to a fixed point in time on Bitcoin. We must accept all tBTC v2
-client software will have a slightly different view of the world at any point in
-time.
+from Ethereum to a fixed point in time on Bitcoin. We must accept the fact that
+all tBTC v2 client software will have a slightly different view of the world at
+any point in time.
 
 ==== Adhere to network conditions
 
@@ -95,8 +95,7 @@ the current operation before attempting another one.
 ==== Retries
 
 The tECDSA protocol used for signing must be able to retry in case some signing
-group members are offline or corrupted. The tBTC v2 client software should join
-the pending signing after the client restart.
+group members are offline or corrupted.
 
 === Implementation
 
@@ -122,8 +121,11 @@ If the current Coordinator does not propose a sweep within the given time
 window, the attempt is skipped.
 
 The Coordinator must not propose a sweep if there is currently a pending signing
-operation being executed by the wallet or if the last signed transaction does
-not have 6 Bitcoin confirmations yet.
+operation being executed by the wallet or if the last signed transaction from
+the wallet does not have 6 Bitcoin confirmations yet.
+
+The coordinator may slightly delay broadcasting the proposition to give all
+clients in the group a chance to properly recognize a Coordinator rotation.
 
 ==== Sweep transaction
 
@@ -132,14 +134,14 @@ synchronization problems with deposits on the brink of being sufficiently
 confirmed, the Coordinator may choose deposits with more than 6 confirmations
 on Bitcoin and 20 confirmations on Ethereum. To avoid problems with proving
 large transactions and too many signatures to be executed, the Coordinator
-should not pick more than 20 deposits. The Coordinator chooses the Bitcoin
+should not pick more than 10 deposits. The Coordinator chooses the Bitcoin
 transaction fee reflecting the current situation in the Bitcoin network. To
 leave enough time for retries, deposits for which Bitcoin transactions unlock
 for a refund earlier than two weeks from now are skipped.
 
 The Coordinator must not propose a sweep if there is currently a pending signing
-operation being executed by the wallet or if the last signed transaction does
-not have 6 Bitcoin confirmations yet.
+operation being executed by the wallet or if the last transaction from the
+wallet does not have 6 Bitcoin confirmations yet.
 
 The Coordinator proposes a sweep over the wallet's broadcast channel.
 
@@ -150,51 +152,66 @@ plus/minus some margin, that all deposit UTXOs can be unlocked with the
 wallet's public key, and that there is enough time to unlock UTXO before the
 refund.
 
+When proposing a sweep, the Coordinator sets the Ethereum block number at which
+the signing protocol should start. All clients validate if that block's number
+is +-2 blocks from the current one.
+
 If all these requirements are met, the last transaction executed by the wallet
 is sufficiently confirmed, and there is no other signing by the wallet in
-progress, the signing group members proceed with tECDSA signing protocol. Each
-input is signed in a separate state machine instance, independently from other
-signatures being executed.
+progress, the signing group members proceed with tECDSA signing protocol.
 
+The signing starts with the announcement phase where each signing group member
+announces their readiness to participate in the signing of sweep transaction inputs.
+51 signers from the ones who announced their readiness are selected for the
+protocol. They unlock each deposit UTXO with a signature. Signatures are
+computed in parallel and no signature should be completed without all others.
+This approach simplifies defeating fraud proofs as this is all-or-nothing
+situation for a sweep transaction signing. There is a timeout for unlocking all
+inputs of the sweep transactions. If the timeout is exceeded, the retry is
+executed. The retry starts with a new announcement phase to establish a set of
+signers ready to execute the protocol.
+
+```
+|                  | ------------ signature 1 ------------> |                   |
+| ... announce ... | ------------ signature 2 ------------> | protocol end      | timeout
+|                  | ------------ signature 3 ------------> |                   |
+```
 
 ==== Retries
 
-The signing protocol should be extended by an additional phase at the very
-beginning of each retry that will inform about the data being signed. For
-sweeping, it will inform about the Bitcoin sweep transaction proposed by the
-Coordinator. All signing members should broadcast this information if they have
-already validated the proposition. The signing group members continue with the
-protocol only if there are at least 51 messages informing them about the
-transaction and its successful validation. Group members who have turned on
-their nodes can learn about the transaction the rest of the group wants to sign
-and they can join the signing protocol if necessary.
+The most computationally expensive part of the signing protocol takes 2 seconds
+on a 10-core M1 machine for a single signing group member. Assuming the client
+works on a 2-core machine and there are no more than 5 signing group members on
+a single machine, the bottleneck phase should take no more than 1 minute. For
+the sake of establishing a sufficient timeout, we assume a single signing should
+take no more than 5 minutes not counting the announcement phase. It means that
+all signatures for a sweep transaction with a maximum number of 10 inputs
+should be completed in less than an hour.
 
-The signing protocol takes 72 blocks. Assuming an average block time of 12
-seconds, it takes approximately 15 minutes to execute the protocol.
+The timeout for signing should be proportional to the number of inputs in the
+sweep transaction.
+
+The signing protocol is non-attributable and we need to retry in case of
+corrupted data:
 
 - With 2 malicious members in a signing group, we need 5 retries of the protocol
 in the worst case (`P = (98 choose 51) / (100 choose 51) = 0.23757575757`),
-which takes 1h 15min.
+which takes 5 hours for 10 inputs.
 - With 3 malicious members in a signing group, we need 10 retries of the
 protocol in the worst case (`P = (97 choose 51) / (100 choose 51) = 0.11393939393`),
-which takes 2h 30 min.
+which takes 10 hours for 10 inputs.
 - With 4 malicious members in a signing group, we need 20 retries of the
 protocol in the worst case (`P = (96 choose 51) / (100 choose 51) = 0.05403311465`),
-which takes 5h.
-- With 5 malicious members in a signing group, we need 50 retries of the
-protocol in the worst case (`P = (95 choose 51) / (100 choose 51) = 0.02532802249`),
-which takes 12h 30 min.
+which takes 20 hours for 10 inputs.
 
-Given the fact, the first few retries will focus on inactivity and the
-probability of having more than 2 malicious members in a signing group is low,
-in the vast majority of cases, it should take less than 2 hours to complete the
-signing. Since all inputs are signed simultaneously, it is expected that
-signatures for all inputs are available within 2 hours.
+The signing that keeps failing is retried for no more than 48 hours. Since no
+interim signatures were produced, it is safe to stop the signing without exposing
+wallet for risk of being slashed for signature fraud.
 
-The signing that keeps failing is retried for one week. If all combinations of
-operators were tried, the retry loop starts from zero again. If, after one week,
-it is not possible to sign the transaction, the wallet should give up.
-Eventually, this will be a signal for a wallet to begin moving funds procedure.
+No state management logic is required for retries other than keeping information
+in-memory about the sweep transaction being signed. If more than t+1 clients get
+restarted during the sweep transaction signing, the sweep attempt is skipped and
+everyone needs to wait for another sweep window.
 
 ==== Increasing fee
 
