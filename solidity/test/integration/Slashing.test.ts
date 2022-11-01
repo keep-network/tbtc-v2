@@ -16,7 +16,7 @@ import type {
   TBTC,
   Bridge,
   TBTCVault,
-  TestRelay,
+  IRelay,
   IRandomBeacon,
   WalletRegistry,
   BridgeGovernance,
@@ -55,7 +55,7 @@ describeFn("Integration Test - Slashing", async () => {
   let staking: Contract
   let walletRegistry: WalletRegistry
   let randomBeacon: FakeContract<IRandomBeacon>
-  let relay: FakeContract<TestRelay>
+  let relay: FakeContract<IRelay>
   let deployer: SignerWithAddress
   let governance: SignerWithAddress
   let spvMaintainer: SignerWithAddress
