@@ -17,8 +17,8 @@ import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import bcoin from "bcoin"
 import hash160 from "bcrypto/lib/hash160"
 import {
-  assembleDepositScript,
   assembleDepositTransaction,
+  buildDepositScriptHash,
   calculateDepositAddress,
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
@@ -389,7 +389,7 @@ describe("Deposit", () => {
     let script: string
 
     beforeEach(async () => {
-      script = await assembleDepositScript(deposit)
+      script = await buildDepositScriptHash(deposit)
     })
 
     it("should return script with proper structure", async () => {
