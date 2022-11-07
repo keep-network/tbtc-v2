@@ -366,7 +366,7 @@ export function calculateDepositRefundLocktime(
  *        refundPKHAddress
  * @returns Script as an un-prefixed hex string.
  */
-export async function buildDepositScriptHash(
+export async function buildDepositScript(
   deposit: DepositScriptParameters
 ): Promise<string> {
   validateDepositScriptParameters(deposit)
@@ -396,7 +396,7 @@ export async function calculateDepositScriptHash(
   deposit: DepositScriptParameters,
   witness: boolean
 ): Promise<Buffer> {
-  const script = await buildDepositScriptHash(deposit)
+  const script = await buildDepositScript(deposit)
   // Parse the script from HEX string.
   const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
   // If witness script hash should be produced, SHA256 should be used.

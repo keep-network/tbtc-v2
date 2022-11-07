@@ -18,7 +18,7 @@ import bcoin from "bcoin"
 import hash160 from "bcrypto/lib/hash160"
 import {
   assembleDepositTransaction,
-  buildDepositScriptHash,
+  buildDepositScript,
   calculateDepositAddress,
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
@@ -389,7 +389,7 @@ describe("Deposit", () => {
     let script: string
 
     beforeEach(async () => {
-      script = await buildDepositScriptHash(deposit)
+      script = await buildDepositScript(deposit)
     })
 
     it("should return script with proper structure", async () => {
