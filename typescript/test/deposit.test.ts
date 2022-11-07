@@ -123,106 +123,104 @@ describe("Deposit", () => {
    * @returns void
    */
   function shouldReturnProperDepositScript(script: string): void {
-      // Returned script should be the same as expectedDepositScript but
-      // here we make a breakdown and assert specific parts are as expected.
-      expect(script.length).to.be.equal(expectedDepositScript.length)
+    // Returned script should be the same as expectedDepositScript but
+    // here we make a breakdown and assert specific parts are as expected.
+    expect(script.length).to.be.equal(expectedDepositScript.length)
 
-      // Assert the depositor identifier is encoded correctly.
-      // According the Bitcoin script format, the first byte before arbitrary
-      // data must determine the length of those data. In this case the first
-      // byte is 0x14 which is 20 in decimal, and this is correct because we
-      // have a 20 bytes depositor identifier as subsequent data.
-      expect(script.substring(0, 2)).to.be.equal("14")
-      expect(script.substring(2, 42)).to.be.equal(
-        deposit.depositor.identifierHex
+    // Assert the depositor identifier is encoded correctly.
+    // According the Bitcoin script format, the first byte before arbitrary
+    // data must determine the length of those data. In this case the first
+    // byte is 0x14 which is 20 in decimal, and this is correct because we
+    // have a 20 bytes depositor identifier as subsequent data.
+    expect(script.substring(0, 2)).to.be.equal("14")
+    expect(script.substring(2, 42)).to.be.equal(deposit.depositor.identifierHex)
+
+    // According to https://en.bitcoin.it/wiki/Script#Constants, the
+    // OP_DROP opcode is 0x75.
+    expect(script.substring(42, 44)).to.be.equal("75")
+
+    // Assert the blinding factor is encoded correctly.
+    // The first byte (0x08) before the blinding factor is this byte length.
+    // In this case it's 8 bytes.
+    expect(script.substring(44, 46)).to.be.equal("08")
+    expect(script.substring(46, 62)).to.be.equal(deposit.blindingFactor)
+
+    // OP_DROP opcode is 0x75.
+    expect(script.substring(62, 64)).to.be.equal("75")
+
+    // OP_DUP opcode is 0x76.
+    expect(script.substring(64, 66)).to.be.equal("76")
+
+    // OP_HASH160 opcode is 0xa9.
+    expect(script.substring(66, 68)).to.be.equal("a9")
+
+    // Assert the wallet public key hash is encoded correctly.
+    // The first byte (0x14) before the public key is this byte length.
+    // In this case it's 20 bytes which is a correct length for a HASH160.
+    expect(script.substring(68, 70)).to.be.equal("14")
+    expect(script.substring(70, 110)).to.be.equal(
+      hash160
+        .digest(Buffer.from(deposit.walletPublicKey, "hex"))
+        .toString("hex")
+    )
+
+    // OP_EQUAL opcode is 0x87.
+    expect(script.substring(110, 112)).to.be.equal("87")
+
+    // OP_IF opcode is 0x63.
+    expect(script.substring(112, 114)).to.be.equal("63")
+
+    // OP_CHECKSIG opcode is 0xac.
+    expect(script.substring(114, 116)).to.be.equal("ac")
+
+    // OP_ELSE opcode is 0x67.
+    expect(script.substring(116, 118)).to.be.equal("67")
+
+    // OP_DUP opcode is 0x76.
+    expect(script.substring(118, 120)).to.be.equal("76")
+
+    // OP_HASH160 opcode is 0xa9.
+    expect(script.substring(120, 122)).to.be.equal("a9")
+
+    // Assert the refund public key hash is encoded correctly.
+    // The first byte (0x14) before the public key is this byte length.
+    // In this case it's 20 bytes which is a correct length for a HASH160.
+    expect(script.substring(122, 124)).to.be.equal("14")
+    expect(script.substring(124, 164)).to.be.equal(
+      hash160
+        .digest(Buffer.from(deposit.refundPublicKey, "hex"))
+        .toString("hex")
+    )
+
+    // OP_EQUALVERIFY opcode is 0x88.
+    expect(script.substring(164, 166)).to.be.equal("88")
+
+    // Assert the locktime is encoded correctly.
+    // The first byte (0x04) before the locktime is this byte length.
+    // In this case it's 4 bytes.
+    expect(script.substring(166, 168)).to.be.equal("04")
+    expect(script.substring(168, 176)).to.be.equal(
+      Buffer.from(
+        BigNumber.from(1640181600 + DepositRefundLocktimeDuration)
+          .toHexString()
+          .substring(2),
+        "hex"
       )
+        .reverse()
+        .toString("hex")
+    )
 
-      // According to https://en.bitcoin.it/wiki/Script#Constants, the
-      // OP_DROP opcode is 0x75.
-      expect(script.substring(42, 44)).to.be.equal("75")
+    // OP_CHECKLOCKTIMEVERIFY opcode is 0xb1.
+    expect(script.substring(176, 178)).to.be.equal("b1")
 
-      // Assert the blinding factor is encoded correctly.
-      // The first byte (0x08) before the blinding factor is this byte length.
-      // In this case it's 8 bytes.
-      expect(script.substring(44, 46)).to.be.equal("08")
-      expect(script.substring(46, 62)).to.be.equal(deposit.blindingFactor)
+    // OP_DROP opcode is 0x75.
+    expect(script.substring(178, 180)).to.be.equal("75")
 
-      // OP_DROP opcode is 0x75.
-      expect(script.substring(62, 64)).to.be.equal("75")
+    // OP_CHECKSIG opcode is 0xac.
+    expect(script.substring(180, 182)).to.be.equal("ac")
 
-      // OP_DUP opcode is 0x76.
-      expect(script.substring(64, 66)).to.be.equal("76")
-
-      // OP_HASH160 opcode is 0xa9.
-      expect(script.substring(66, 68)).to.be.equal("a9")
-
-      // Assert the wallet public key hash is encoded correctly.
-      // The first byte (0x14) before the public key is this byte length.
-      // In this case it's 20 bytes which is a correct length for a HASH160.
-      expect(script.substring(68, 70)).to.be.equal("14")
-      expect(script.substring(70, 110)).to.be.equal(
-        hash160
-          .digest(Buffer.from(deposit.walletPublicKey, "hex"))
-          .toString("hex")
-      )
-
-      // OP_EQUAL opcode is 0x87.
-      expect(script.substring(110, 112)).to.be.equal("87")
-
-      // OP_IF opcode is 0x63.
-      expect(script.substring(112, 114)).to.be.equal("63")
-
-      // OP_CHECKSIG opcode is 0xac.
-      expect(script.substring(114, 116)).to.be.equal("ac")
-
-      // OP_ELSE opcode is 0x67.
-      expect(script.substring(116, 118)).to.be.equal("67")
-
-      // OP_DUP opcode is 0x76.
-      expect(script.substring(118, 120)).to.be.equal("76")
-
-      // OP_HASH160 opcode is 0xa9.
-      expect(script.substring(120, 122)).to.be.equal("a9")
-
-      // Assert the refund public key hash is encoded correctly.
-      // The first byte (0x14) before the public key is this byte length.
-      // In this case it's 20 bytes which is a correct length for a HASH160.
-      expect(script.substring(122, 124)).to.be.equal("14")
-      expect(script.substring(124, 164)).to.be.equal(
-        hash160
-          .digest(Buffer.from(deposit.refundPublicKey, "hex"))
-          .toString("hex")
-      )
-
-      // OP_EQUALVERIFY opcode is 0x88.
-      expect(script.substring(164, 166)).to.be.equal("88")
-
-      // Assert the locktime is encoded correctly.
-      // The first byte (0x04) before the locktime is this byte length.
-      // In this case it's 4 bytes.
-      expect(script.substring(166, 168)).to.be.equal("04")
-      expect(script.substring(168, 176)).to.be.equal(
-        Buffer.from(
-          BigNumber.from(1640181600 + DepositRefundLocktimeDuration)
-            .toHexString()
-            .substring(2),
-          "hex"
-        )
-          .reverse()
-          .toString("hex")
-      )
-
-      // OP_CHECKLOCKTIMEVERIFY opcode is 0xb1.
-      expect(script.substring(176, 178)).to.be.equal("b1")
-
-      // OP_DROP opcode is 0x75.
-      expect(script.substring(178, 180)).to.be.equal("75")
-
-      // OP_CHECKSIG opcode is 0xac.
-      expect(script.substring(180, 182)).to.be.equal("ac")
-
-      // OP_ENDIF opcode is 0x68.
-      expect(script.substring(182, 184)).to.be.equal("68")
+    // OP_ENDIF opcode is 0x68.
+    expect(script.substring(182, 184)).to.be.equal("68")
   }
 
   describe("submitDepositTransaction", () => {
@@ -509,7 +507,9 @@ describe("Deposit", () => {
     let script: string
 
     beforeEach(async () => {
-      script = await assembleDepositScript(depositScritpParamsWithRefundPKHAddress)
+      script = await assembleDepositScript(
+        depositScritpParamsWithRefundPKHAddress
+      )
     })
 
     it("should return script with proper structure", async () => {
@@ -552,7 +552,7 @@ describe("Deposit", () => {
 
   describe("buildDepositScript", () => {
     let script: string
-    
+
     context("when refundPublicKey is passed", () => {
       beforeEach(async () => {
         script = await buildDepositScript(deposit)
@@ -565,9 +565,11 @@ describe("Deposit", () => {
 
     context("when refundPKHAddress is passed", () => {
       beforeEach(async () => {
-        script = await buildDepositScript(depositScritpParamsWithRefundPKHAddress)
+        script = await buildDepositScript(
+          depositScritpParamsWithRefundPKHAddress
+        )
       })
-      
+
       it("should call assembleDepositScript with proper deposit object", async () => {
         shouldReturnProperDepositScript(script)
       })
