@@ -2,6 +2,8 @@ import bcoin, { TX } from "bcoin"
 import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
+import sha256 from "bcrypto/lib/sha256.js"
+import base58 from "bcrypto/lib/encoding/base58.js"
 import { BigNumber } from "ethers"
 
 /**
@@ -358,4 +360,41 @@ export function createKeyRing(
  */
 export function computeHash160(text: string): string {
   return hash160.digest(Buffer.from(text, "hex")).toString("hex")
+}
+
+/**
+ * Computes the SHA256 for the given text.
+ * @param text - Text the SHA256 is computed for.
+ * @returns Hashed hex string
+ */
+export function computeSha256(text: string): string {
+  return sha256.digest(Buffer.from(text, "hex")).toString("hex")
+}
+
+/**
+ * Encodes plain text to base58 encoded data
+ * @param text - Text that will be encoded
+ * @returns Encoded base58 text
+ */
+export function encodeBase58(text: string): string {
+  return base58.encode(Buffer.from(text, "hex"))
+}
+
+/**
+ * Decodes base58 encoded data to plain text
+ * @param text - Base58 encoded text that will be decoded
+ * @returns Decoded text
+ */
+export function decodeBase58(text: string): string {
+  return base58.decode(text).toString("hex")
+}
+
+/**
+ * Encodes public key hash into a P2PKH address
+ * @param publicKeyHash - public key hash that will be encoded
+ * @returns P2PKH address encoded from the given public key hash
+ */
+export function generateP2PKHAddress(publicKeyHash: string) {
+  const checksum = computeSha256(computeSha256("00" + publicKeyHash))
+  return encodeBase58("00" + publicKeyHash + checksum)
 }
