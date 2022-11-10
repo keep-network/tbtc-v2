@@ -2,6 +2,8 @@
 
 = Yearn components for tBTC v2
 
+https://github.com/keep-network/tbtc-v2/actions/workflows/yearn.yml[image:https://img.shields.io/github/workflow/status/keep-network/tbtc-v2/Yearn/main?event=push&label=Yearn%20build[Yearn build status]]
+
 This package contains Yearn components (like strategies) intended to be used
 with Yearn vaults working on top of tBTC v2.
 
