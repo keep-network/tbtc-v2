@@ -390,11 +390,15 @@ export function decodeBase58(text: string): string {
 }
 
 /**
- * Encodes public key hash into a P2PKH address
- * @param publicKeyHash - public key hash that will be encoded
+ * Generates a P2PKH address from a publick key hash
+ * @param publicKeyHash - compressed public key that will be encoded
  * @returns P2PKH address encoded from the given public key hash
  */
 export function generateP2PKHAddress(publicKeyHash: string) {
-  const checksum = computeSha256(computeSha256("00" + publicKeyHash))
-  return encodeBase58("00" + publicKeyHash + checksum)
+  if (!isCompressedPublicKey(publicKeyHash)) {
+    throw new Error("Public key must be compressed")
+  }
+
+  const checksum = computeSha256(computeSha256(publicKeyHash)).substring(0, 8)
+  return encodeBase58(publicKeyHash + checksum.substring(0, 8))
 }
