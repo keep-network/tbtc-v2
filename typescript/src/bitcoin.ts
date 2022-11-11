@@ -2,8 +2,6 @@ import bcoin, { TX } from "bcoin"
 import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
-import sha256 from "bcrypto/lib/sha256.js"
-import base58 from "bcrypto/lib/encoding/base58.js"
 import { BigNumber } from "ethers"
 
 /**
@@ -363,28 +361,36 @@ export function computeHash160(text: string): string {
 }
 
 /**
- * Encodes a public key has into a P2PKH address
+ * Encodes a public key hash into a P2PKH/P2WPKH address
  * @param publicKeyHash - public key hash that will be encoded. Must be an
  *        unprefixed hex string (without 0x prefix)
+ * @param witness - If true, a witness public key hash will be encoded and
+ *        P2WPKH address will be returned. Returns P2PKH address otherwise
  * @param network - Network that the address should be encoded for.
  *        For example, `main` or `testnet`.
- * @returns P2PKH address encoded from the given public key hash
+ * @returns P2PKH or P2WPKH address encoded from the given public key hash
  */
-export function encodeToP2PKHAddress(publicKeyHash: string, network: string) {
-  return bcoin.Address.fromPubkeyhash(
-    Buffer.from(publicKeyHash, "hex")
-  ).toString(network)
+export function encodeToAddress(
+  publicKeyHash: string,
+  witness: boolean,
+  network: string
+) {
+  return witness
+    ? bcoin.Address.fromWitnessPubkeyhash(
+        Buffer.from(publicKeyHash, "hex")
+      ).toString(network)
+    : bcoin.Address.fromPubkeyhash(Buffer.from(publicKeyHash, "hex")).toString(
+        network
+      )
 }
 
 /**
- * Decodes P2PKH address into a public key hash
- * @param p2pkhAddress - P2PKH address that will be decoded
- * @param network - Network that the address should be encoded for.
- *        For example, `main` or `testnet`.
- * @returns Public key hash decoded from the P2PKH address. This will be
- *        an unprefixed hex string (without 0x prefix)
+ * Decodes P2PKH or P2WPKH address into a public key hash
+ * @param address - P2PKH or P2WPKH address that will be decoded
+ * @returns Public key hash decoded from the address. This will be an unprefixed
+ *        hex string (without 0x prefix)
  */
-export function decodeP2PKHAddress(p2pkhAddress: string, network: string) {
-  const address = new bcoin.Address(p2pkhAddress)
-  return address.getHash("hex").toString(network)
+export function decodeAddress(address: string) {
+  const addressObject = new bcoin.Address(address)
+  return addressObject.getHash("hex")
 }
