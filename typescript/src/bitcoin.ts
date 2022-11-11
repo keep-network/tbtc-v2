@@ -363,33 +363,6 @@ export function computeHash160(text: string): string {
 }
 
 /**
- * Computes the SHA256 for the given text.
- * @param text - Text the SHA256 is computed for.
- * @returns Hashed hex string
- */
-export function computeSha256(text: string): string {
-  return sha256.digest(Buffer.from(text, "hex")).toString("hex")
-}
-
-/**
- * Encodes plain text to base58 encoded data
- * @param text - Text that will be encoded
- * @returns Encoded base58 text
- */
-export function encodeBase58(text: string): string {
-  return base58.encode(Buffer.from(text, "hex"))
-}
-
-/**
- * Decodes base58 encoded data to plain text
- * @param text - Base58 encoded text that will be decoded
- * @returns Decoded text
- */
-export function decodeBase58(text: string): string {
-  return base58.decode(text).toString("hex")
-}
-
-/**
  * Encodes a public key has into a P2PKH address
  * @param publicKeyHash - public key hash that will be encoded. Must be an
  *        unprefixed hex string (without 0x prefix)
