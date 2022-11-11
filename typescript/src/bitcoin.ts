@@ -390,26 +390,28 @@ export function decodeBase58(text: string): string {
 }
 
 /**
- * Generates a P2PKH address from a publick key hash
- * @param publicKeyHash - compressed public key that will be encoded
+ * Encodes a public key has into a P2PKH address
+ * @param publicKeyHash - public key hash that will be encoded. Must be an
+ *        unprefixed hex string (without 0x prefix)
+ * @param network - Network that the address should be encoded for.
+ *        For example, `main` or `testnet`.
  * @returns P2PKH address encoded from the given public key hash
  */
-export function generateP2PKHAddress(publicKeyHash: string) {
-  if (!isCompressedPublicKey(publicKeyHash)) {
-    throw new Error("Public key must be compressed")
-  }
-
-  const checksum = computeSha256(computeSha256(publicKeyHash)).substring(0, 8)
-  return encodeBase58(publicKeyHash + checksum.substring(0, 8))
+export function encodeToP2PKHAddress(publicKeyHash: string, network: string) {
+  return bcoin.Address.fromPubkeyhash(
+    Buffer.from(publicKeyHash, "hex")
+  ).toString(network)
 }
 
 /**
- * Decodes P2PKH address into a compressed public key
+ * Decodes P2PKH address into a public key hash
  * @param p2pkhAddress - P2PKH address that will be decoded
- * @returns Prefixed public key hash decoded from the P2PKH address
+ * @param network - Network that the address should be encoded for.
+ *        For example, `main` or `testnet`.
+ * @returns Public key hash decoded from the P2PKH address. This will be
+ *        an unprefixed hex string (without 0x prefix)
  */
-export function decodeP2PKHAddress(p2pkhAddress: string) {
-  const decodedAddress = decodeBase58(p2pkhAddress)
-  // remove checksum (last 8 characters)
-  return decodedAddress.substring(0, decodedAddress.length - 8)
+export function decodeP2PKHAddress(p2pkhAddress: string, network: string) {
+  const address = new bcoin.Address(p2pkhAddress)
+  return address.getHash("hex").toString(network)
 }
