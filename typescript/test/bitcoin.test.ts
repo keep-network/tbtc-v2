@@ -1,8 +1,8 @@
 import { expect } from "chai"
 import {
   compressPublicKey,
-  encodeToAddress,
-  decodeAddress,
+  encodeToBitcoinAddress,
+  decodeBitcoinAddress,
 } from "../src/bitcoin"
 
 describe("Bitcoin", () => {
@@ -59,12 +59,12 @@ describe("Bitcoin", () => {
     const P2WPKHAddressTestnet = "tb1q8gudgnt2pjxshwzwqgevccet0eyvwtswpf2q8h"
     const P2PKHAddressTestnet = "mkpoZkRvtd3SDGWgUDuXK1aEXZfHRM2gKw"
 
-    describe("encodeToAddress", () => {
+    describe("encodeToBitcoinAddress", () => {
       context("when network is main", () => {
         context("when witness option is true", () => {
           context("when proper public key hash is provided", () => {
-            it("should encode public key hash into address properly", () => {
-              expect(encodeToAddress(publicKeyHash, true, "main")).to.be.equal(
+            it("should encode public key hash into bitcoin address properly", () => {
+              expect(encodeToBitcoinAddress(publicKeyHash, true, "main")).to.be.equal(
                 P2WPKHAddress
               )
             })
@@ -74,15 +74,15 @@ describe("Bitcoin", () => {
             it("should throw", () => {
               const wrontPublicKeyHash = "02" + publicKeyHash
     
-              expect(() => encodeToAddress(wrontPublicKeyHash, true, "main")).to.throw()
+              expect(() => encodeToBitcoinAddress(wrontPublicKeyHash, true, "main")).to.throw()
             })
           })
         })
   
         context("when witness option is false", () => {
           context("when proper public key hash is provided", () => {
-            it("should encode public key hash into address properly", () => {
-              expect(encodeToAddress(publicKeyHash, false, "main")).to.be.equal(
+            it("should encode public key hash into bitcoin address properly", () => {
+              expect(encodeToBitcoinAddress(publicKeyHash, false, "main")).to.be.equal(
                 P2PKHAddress
               )
             })
@@ -92,7 +92,7 @@ describe("Bitcoin", () => {
             it("should throw", () => {
               const wrongPublicKeyHash = "02" + publicKeyHash
     
-              expect(() => encodeToAddress(wrongPublicKeyHash, false, "main")).to.throw()
+              expect(() => encodeToBitcoinAddress(wrongPublicKeyHash, false, "main")).to.throw()
             })
           })
         })
@@ -103,7 +103,7 @@ describe("Bitcoin", () => {
       context("when network is main", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
-            expect(decodeAddress(P2WPKHAddress)).to.be.equal(
+            expect(decodeBitcoinAddress(P2WPKHAddress)).to.be.equal(
               publicKeyHashTestnet
             )
           })
@@ -111,7 +111,7 @@ describe("Bitcoin", () => {
 
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
-            expect(decodeAddress(P2PKHAddress)).to.be.equal(
+            expect(decodeBitcoinAddress(P2PKHAddress)).to.be.equal(
               publicKeyHashTestnet
             )
           })
@@ -121,7 +121,7 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddress
   
-            expect(() => decodeAddress(bitcoinAddress)).to.throw()
+            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw()
           })
         })
       })
@@ -129,7 +129,7 @@ describe("Bitcoin", () => {
       context("when network is testnet", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
-            expect(decodeAddress(P2WPKHAddressTestnet)).to.be.equal(
+            expect(decodeBitcoinAddress(P2WPKHAddressTestnet)).to.be.equal(
               publicKeyHashTestnet
             )
           })
@@ -137,7 +137,7 @@ describe("Bitcoin", () => {
 
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
-            expect(decodeAddress(P2PKHAddressTestnet)).to.be.equal(
+            expect(decodeBitcoinAddress(P2PKHAddressTestnet)).to.be.equal(
               publicKeyHashTestnet
             )
           })
@@ -147,7 +147,7 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddressTestnet
   
-            expect(() => decodeAddress(bitcoinAddress)).to.throw()
+            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw()
           })
         })
       })

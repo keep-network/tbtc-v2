@@ -370,7 +370,7 @@ export function computeHash160(text: string): string {
  *        For example, `main` or `testnet`.
  * @returns P2PKH or P2WPKH address encoded from the given public key hash
  */
-export function encodeToAddress(
+export function encodeToBitcoinAddress(
   publicKeyHash: string,
   witness: boolean,
   network: string
@@ -390,7 +390,7 @@ export function encodeToAddress(
  * @returns Public key hash decoded from the address. This will be an unprefixed
  *        hex string (without 0x prefix)
  */
-export function decodeAddress(address: string) {
+export function decodeBitcoinAddress(address: string) {
   const addressObject = new bcoin.Address(address)
   return addressObject.getHash("hex")
 }
