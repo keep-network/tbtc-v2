@@ -9,7 +9,7 @@ import {
   createKeyRing,
   TransactionHash,
 } from "./bitcoin"
-import { buildDepositScript, Deposit } from "./deposit"
+import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge } from "./chain"
 import { assembleTransactionProof } from "./proof"
 
@@ -368,7 +368,7 @@ async function prepareInputSignData(
   }
 
   const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await buildDepositScript(deposit), "hex")
+    Buffer.from(await assembleDepositScript(deposit), "hex")
   )
 
   return {

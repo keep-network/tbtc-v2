@@ -19,13 +19,11 @@ import hash160 from "bcrypto/lib/hash160"
 import {
   assembleDepositScript,
   assembleDepositTransaction,
-  buildDepositScript,
   calculateDepositAddress,
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
   Deposit,
   DepositRefundLocktimeDuration,
-  DepositScriptParametersWithRefundPKHAddress,
   getRevealedDeposit,
   revealDeposit,
   RevealedDeposit,
@@ -45,16 +43,6 @@ describe("Deposit", () => {
     blindingFactor: "f9f0c90d00039523",
     refundLocktime: calculateDepositRefundLocktime(1640181600),
   }
-
-  const depositScritpParamsWithRefundPKHAddress: DepositScriptParametersWithRefundPKHAddress =
-    {
-      depositor: { identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637" },
-      walletPublicKey:
-        "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-      refundPKHAddress: "28e081f285138ccbe389c1eb8985716230129f89",
-      blindingFactor: "f9f0c90d00039523",
-      refundLocktime: calculateDepositRefundLocktime(1640181600),
-    }
 
   // All test scenarios using the deposit script within `Deposit` group
   // expect the same deposit script:
@@ -507,9 +495,7 @@ describe("Deposit", () => {
     let script: string
 
     beforeEach(async () => {
-      script = await assembleDepositScript(
-        depositScritpParamsWithRefundPKHAddress
-      )
+      script = await assembleDepositScript(deposit)
     })
 
     it("should return script with proper structure", async () => {
@@ -546,32 +532,6 @@ describe("Deposit", () => {
         // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
         // is represented as 30ecaa62 hex in the little-endian format.
         expect(refundLocktime).to.be.equal("30ecaa62")
-      })
-    })
-  })
-
-  describe("buildDepositScript", () => {
-    let script: string
-
-    context("when refundPublicKey is passed", () => {
-      beforeEach(async () => {
-        script = await buildDepositScript(deposit)
-      })
-
-      it("should call assembleDepositScript with proper deposit object", async () => {
-        shouldReturnProperDepositScript(script)
-      })
-    })
-
-    context("when refundPKHAddress is passed", () => {
-      beforeEach(async () => {
-        script = await buildDepositScript(
-          depositScritpParamsWithRefundPKHAddress
-        )
-      })
-
-      it("should call assembleDepositScript with proper deposit object", async () => {
-        shouldReturnProperDepositScript(script)
       })
     })
   })

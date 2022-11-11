@@ -67,50 +67,14 @@ export interface Deposit {
 /**
  * Helper type that groups deposit's fields required to assemble a deposit script.
  */
-export type DepositScriptParametersBase = Pick<
+export type DepositScriptParameters = Pick<
   Deposit,
-  "depositor" | "blindingFactor" | "walletPublicKey" | "refundLocktime"
+  | "depositor"
+  | "blindingFactor"
+  | "walletPublicKey"
+  | "refundPublicKey"
+  | "refundLocktime"
 >
-
-/**
- * Helper type that adds refundPublicKey as a field to the
- * DepositScriptParametersBase and also indicates that refundPKHAddress can't
- * occur with refundPublicKey
- */
-export type DepositScriptParametersWithRefundPublicKey =
-  DepositScriptParametersBase & {
-    refundPublicKey: string
-    refundPKHAddress?: never
-  }
-
-/**
- * Helper type that adds refundPKHAddress as a field to the
- * DepositScriptParametersBase and also indicates that refundPublicKey can't
- * occur with refundPKHAddress
- */
-export type DepositScriptParametersWithRefundPKHAddress =
-  DepositScriptParametersBase & {
-    refundPublicKey?: never
-
-    /**
-     * PKH Address created from compressed Bitcoin public key (refundPublicKey)
-     * that is meant to be used during deposit refund after the locktime passes.
-     *
-     * The address is created by hashing the compressed public key using HASH160.
-     */
-    refundPKHAddress: string
-  }
-
-/**
- * Helper type that groups deposit's fields required to assemble a deposit
- * script.
- *
- * Note that it can have either refundPublicKey OR refundPKHAddress - it can't
- * have both or none of this.
- */
-export type DepositScriptParameters =
-  | DepositScriptParametersWithRefundPublicKey
-  | DepositScriptParametersWithRefundPKHAddress
 
 /**
  * Represents a deposit revealed to the on-chain bridge. This type emphasizes
@@ -267,8 +231,10 @@ export async function assembleDepositTransaction(
  * @returns Script as an un-prefixed hex string.
  */
 export async function assembleDepositScript(
-  deposit: DepositScriptParametersWithRefundPKHAddress
+  deposit: DepositScriptParameters
 ): Promise<string> {
+  validateDepositScriptParameters(deposit)
+
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
   script.clear()
@@ -285,7 +251,7 @@ export async function assembleDepositScript(
   script.pushOp(opcodes.OP_ELSE)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(deposit.refundPKHAddress, "hex"))
+  script.pushData(Buffer.from(computeHash160(deposit.refundPublicKey), "hex"))
   script.pushOp(opcodes.OP_EQUALVERIFY)
   script.pushData(Buffer.from(deposit.refundLocktime, "hex"))
   script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
@@ -317,10 +283,7 @@ export function validateDepositScriptParameters(
     throw new Error("Wallet public key must be compressed")
   }
 
-  if (
-    deposit.refundPublicKey &&
-    !isCompressedPublicKey(deposit.refundPublicKey)
-  ) {
+  if (!isCompressedPublicKey(deposit.refundPublicKey)) {
     throw new Error("Refund public key must be compressed")
   }
 
@@ -358,33 +321,6 @@ export function calculateDepositRefundLocktime(
 }
 
 /**
- * Builds a Bitcoin locking script for P2(W)SH deposit transaction based on
- * either refundPublicKey or refundPKHAddress.
- *
- * @param deposit - Details of the deposit with either refundPublicKey or
- *        refundPKHAddress
- * @returns Script as an un-prefixed hex string.
- */
-export async function buildDepositScript(
-  deposit: DepositScriptParameters
-): Promise<string> {
-  validateDepositScriptParameters(deposit)
-
-  if (deposit.refundPKHAddress) return await assembleDepositScript(deposit)
-
-  // If refundPKHAddress is not defined then it means that it has
-  // refundPublicKey property. We hash it into PKH Address to assemble deposit
-  // script.
-  const { refundPublicKey, ...depositScriptRestParams } = deposit
-  const depositWithRefundPKHAddress = {
-    ...depositScriptRestParams,
-    refundPKHAddress: computeHash160(refundPublicKey!),
-  }
-
-  return await assembleDepositScript(depositWithRefundPKHAddress)
-}
-
-/**
  * Calculates a Bitcoin locking script hash for P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
  * @param witness - If true, a witness script hash will be created.
@@ -395,7 +331,7 @@ export async function calculateDepositScriptHash(
   deposit: DepositScriptParameters,
   witness: boolean
 ): Promise<Buffer> {
-  const script = await buildDepositScript(deposit)
+  const script = await assembleDepositScript(deposit)
   // Parse the script from HEX string.
   const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
   // If witness script hash should be produced, SHA256 should be used.
