@@ -402,3 +402,14 @@ export function generateP2PKHAddress(publicKeyHash: string) {
   const checksum = computeSha256(computeSha256(publicKeyHash)).substring(0, 8)
   return encodeBase58(publicKeyHash + checksum.substring(0, 8))
 }
+
+/**
+ * Decodes P2PKH address into a compressed public key
+ * @param p2pkhAddress - P2PKH address that will be decoded
+ * @returns Prefixed public key hash decoded from the P2PKH address
+ */
+export function decodeP2PKHAddress(p2pkhAddress: string) {
+  const decodedAddress = decodeBase58(p2pkhAddress)
+  // remove checksum (last 8 characters)
+  return decodedAddress.substring(0, decodedAddress.length - 8)
+}
