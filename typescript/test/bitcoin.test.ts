@@ -3,6 +3,7 @@ import {
   compressPublicKey,
   encodeToBitcoinAddress,
   decodeBitcoinAddress,
+  isPubkeyhash,
 } from "../src/bitcoin"
 
 describe("Bitcoin", () => {
@@ -153,6 +154,39 @@ describe("Bitcoin", () => {
 
             expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw()
           })
+        })
+      })
+    })
+  })
+
+  describe("isPubkeyhash", () => {
+    const publicKeyHash = "3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e"
+    const witnessPublicKeyHash = "3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e"
+
+    context("when witness option is true", () => {
+      context("when proper witness publicKeyHash is provided", () => {
+        it("should return true", () => {
+          expect(isPubkeyhash(witnessPublicKeyHash, true)).to.be.equal(true)
+        })
+      })
+
+      context("when random string is provided", () => {
+        it("should return true", () => {
+          expect(isPubkeyhash("randomString", true)).to.be.equal(false)
+        })
+      })
+    })
+
+    context("when witness option is false", () => {
+      context("when proper publicKeyHash is provided", () => {
+        it("should return true", () => {
+          expect(isPubkeyhash(publicKeyHash, false)).to.be.equal(true)
+        })
+      })
+
+      context("when random string is provided", () => {
+        it("should return true", () => {
+          expect(isPubkeyhash("randomString", false)).to.be.equal(false)
         })
       })
     })

@@ -24,6 +24,8 @@ import {
   calculateDepositScriptHash,
   Deposit,
   DepositRefundLocktimeDuration,
+  DepositScriptParameters,
+  getDepositScriptParameters,
   getRevealedDeposit,
   revealDeposit,
   RevealedDeposit,
@@ -493,9 +495,11 @@ describe("Deposit", () => {
 
   describe("assembleDepositScript", () => {
     let script: string
+    let depositScriptParameters: DepositScriptParameters
 
     beforeEach(async () => {
-      script = await assembleDepositScript(deposit)
+      depositScriptParameters = getDepositScriptParameters(deposit)
+      script = await assembleDepositScript(depositScriptParameters)
     })
 
     it("should return script with proper structure", async () => {
@@ -539,9 +543,14 @@ describe("Deposit", () => {
   describe("calculateDepositScriptHash", () => {
     context("when witness option is true", () => {
       let scriptHash: Buffer
+      let depositScriptParameters: DepositScriptParameters
 
       beforeEach(async () => {
-        scriptHash = await calculateDepositScriptHash(deposit, true)
+        depositScriptParameters = getDepositScriptParameters(deposit)
+        scriptHash = await calculateDepositScriptHash(
+          depositScriptParameters,
+          true
+        )
       })
 
       it("should return proper witness script hash", async () => {
@@ -560,9 +569,14 @@ describe("Deposit", () => {
 
     context("when witness option is false", () => {
       let scriptHash: Buffer
+      let depositScriptParameters: DepositScriptParameters
 
       beforeEach(async () => {
-        scriptHash = await calculateDepositScriptHash(deposit, false)
+        depositScriptParameters = getDepositScriptParameters(deposit)
+        scriptHash = await calculateDepositScriptHash(
+          depositScriptParameters,
+          false
+        )
       })
 
       it("should return proper non-witness script hash", async () => {
@@ -582,11 +596,17 @@ describe("Deposit", () => {
 
   describe("calculateDepositAddress", () => {
     let address: string
+    let depositScriptParameters: DepositScriptParameters
 
     context("when network is main", () => {
       context("when witness option is true", () => {
         beforeEach(async () => {
-          address = await calculateDepositAddress(deposit, "main", true)
+          depositScriptParameters = getDepositScriptParameters(deposit)
+          address = await calculateDepositAddress(
+            depositScriptParameters,
+            "main",
+            true
+          )
         })
 
         it("should return proper address with prefix bc1", async () => {
@@ -600,7 +620,12 @@ describe("Deposit", () => {
 
       context("when witness option is false", () => {
         beforeEach(async () => {
-          address = await calculateDepositAddress(deposit, "main", false)
+          depositScriptParameters = getDepositScriptParameters(deposit)
+          address = await calculateDepositAddress(
+            depositScriptParameters,
+            "main",
+            false
+          )
         })
 
         it("should return proper address with prefix 3", async () => {
@@ -616,7 +641,12 @@ describe("Deposit", () => {
     context("when network is testnet", () => {
       context("when witness option is true", () => {
         beforeEach(async () => {
-          address = await calculateDepositAddress(deposit, "testnet", true)
+          depositScriptParameters = getDepositScriptParameters(deposit)
+          address = await calculateDepositAddress(
+            depositScriptParameters,
+            "testnet",
+            true
+          )
         })
 
         it("should return proper address with prefix tb1", async () => {
@@ -630,7 +660,12 @@ describe("Deposit", () => {
 
       context("when witness option is false", () => {
         beforeEach(async () => {
-          address = await calculateDepositAddress(deposit, "testnet", false)
+          depositScriptParameters = getDepositScriptParameters(deposit)
+          address = await calculateDepositAddress(
+            depositScriptParameters,
+            "testnet",
+            false
+          )
         })
 
         it("should return proper address with prefix 2", async () => {

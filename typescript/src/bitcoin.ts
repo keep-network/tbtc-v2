@@ -361,9 +361,9 @@ export function computeHash160(text: string): string {
 }
 
 /**
- * Encodes a public key hash into a P2PKH/P2WPKH address
+ * Encodes a public key hash into a P2PKH/P2WPKH address.
  * @param publicKeyHash - public key hash that will be encoded. Must be an
- *        unprefixed hex string (without 0x prefix)
+ *        unprefixed hex string (without 0x prefix).
  * @param witness - If true, a witness public key hash will be encoded and
  *        P2WPKH address will be returned. Returns P2PKH address otherwise
  * @param network - Network that the address should be encoded for.
@@ -374,7 +374,7 @@ export function encodeToBitcoinAddress(
   publicKeyHash: string,
   witness: boolean,
   network: string
-) {
+): string {
   return witness
     ? bcoin.Address.fromWitnessPubkeyhash(
         Buffer.from(publicKeyHash, "hex")
@@ -385,12 +385,36 @@ export function encodeToBitcoinAddress(
 }
 
 /**
- * Decodes P2PKH or P2WPKH address into a public key hash
- * @param address - P2PKH or P2WPKH address that will be decoded
+ * Decodes P2PKH or P2WPKH address into a public key hash.
+ * @param address - P2PKH or P2WPKH address that will be decoded.
  * @returns Public key hash decoded from the address. This will be an unprefixed
- *        hex string (without 0x prefix)
+ *        hex string (without 0x prefix).
  */
-export function decodeBitcoinAddress(address: string) {
+export function decodeBitcoinAddress(address: string): string {
   const addressObject = new bcoin.Address(address)
   return addressObject.getHash("hex")
+}
+
+/**
+ * Checks if given string is a publick key hash.
+ * @param publicKeyHash - text that will be checked if it's proper pub key hash.
+ * @param witness - If true, it will check whenever it's witness public key
+          hash. It will check it it's "normal" public key hash otherwise.
+ * @returns true if the given public key hash is a proper public key hash, false
+          otherwise.
+ */
+export function isPubkeyhash(publicKeyHash: string, witness: boolean): boolean {
+  try {
+    const addressObject = new bcoin.Address()
+    if (witness) {
+      addressObject.fromWitnessPubkeyhash(Buffer.from(publicKeyHash, "hex"))
+    } else {
+      addressObject.fromPubkeyhash(Buffer.from(publicKeyHash, "hex"))
+    }
+    return witness
+      ? addressObject.isWitnessPubkeyhash()
+      : addressObject.isPubkeyhash()
+  } catch (err) {
+    return false
+  }
 }
