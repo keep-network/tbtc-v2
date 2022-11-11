@@ -134,7 +134,7 @@ synchronization problems with deposits on the brink of being sufficiently
 confirmed, the Coordinator may choose deposits with more than 6 confirmations
 on Bitcoin and 20 confirmations on Ethereum. To avoid problems with proving
 large transactions and too many signatures to be executed, the Coordinator
-should not pick more than 10 deposits. The Coordinator chooses the Bitcoin
+should not pick more than 15 deposits. The Coordinator chooses the Bitcoin
 transaction fee reflecting the current situation in the Bitcoin network. To
 leave enough time for retries, deposits for which Bitcoin transactions unlock
 for a refund earlier than two weeks from now are skipped.
@@ -160,78 +160,95 @@ If all these requirements are met, the last transaction executed by the wallet
 is sufficiently confirmed, and there is no other signing by the wallet in
 progress, the signing group members proceed with tECDSA signing protocol.
 
-The signing starts with the announcement phase where each signing group member
-announces their readiness to participate in the signing of sweep transaction inputs.
-51 signers from the ones who announced their readiness are selected for the
-protocol. They unlock each deposit UTXO with a signature. Signatures are
-computed in parallel and no signature should be completed without all others.
-This approach simplifies defeating fraud proofs as this is all-or-nothing
-situation for a sweep transaction signing. There is a timeout for unlocking all
-inputs of the sweep transactions. If the timeout is exceeded, the retry is
-executed. The retry starts with a new announcement phase to establish a set of
-signers ready to execute the protocol.
+Each UTXO being an input to the sweep transaction is unlocked sequentially in
+a separate signing session. Each signing session begins with an announcement
+phase allowing to exclude offline operators. There is a 30-blocks (~6 minutes)
+timeout for each signing attempt.
 
-```
-|                  | ------------ signature 1 ------------> |                   |
-| ... announce ... | ------------ signature 2 ------------> | protocol end      | timeout
-|                  | ------------ signature 3 ------------> |                   |
-```
+If the given signing attempt fails for any reason (error or timeout), the next
+attempt starts exactly 30 blocks after the previous one started.
+
+All signers selected for the given signing attempt must confirm successful
+execution by sending a message with the produced signature over the broadcast
+channel. The signing attempt is considered successful only if all signers
+produced a valid signature. Successful signers broadcast the block number at
+which the signing completed from their perspective in the message with the
+signature. Once all successful execution confirmation messages are received,
+the signing of the next UTXO starts. The start block of the announcement phase
+is set to the highest block number from all the confirmation messages. The block
+must be confirmed as already mined.
+
+==== Benchmarks
+
+The most computationally expensive part of the signing protocol takes 2.08s
+on a 10-core Apple M1 machine for a single signing group member. Assuming the
+client works on a 2-core machine and there are no more than 5 signing group
+members on a single machine, the bottleneck phase should take no more than
+1 minute.
+
+The announcement phase takes always 7 blocks, so ~1.5 minutes assuming 12s block
+time. With 30 blocks timeout for a single attempt, it leaves more than 3 minutes
+for the rest of the signing protocol which should be more than enough.
+This should also be enough for local development when all signing group members
+reside on the same computer. Based on the local benchmarks, the entire signing
+never takes more than 5 minutes locally, and usually, it takes less than 4
+minutes.
+
+Assuming it takes no more than 4 minutes in the happy path to sign a single
+input, it should take no more than an hour to sign 15 inputs. Given that the
+entire sweep operation - including 6 Bitcoin confirmations - should complete
+within 4 hours, it gives just enough time for a single Bitcoin miner fee bump.
 
 ==== Retries
 
-The most computationally expensive part of the signing protocol takes 2 seconds
-on a 10-core M1 machine for a single signing group member. Assuming the client
-works on a 2-core machine and there are no more than 5 signing group members on
-a single machine, the bottleneck phase should take no more than 1 minute. For
-the sake of establishing a sufficient timeout, we assume a single signing should
-take no more than 5 minutes not counting the announcement phase. It means that
-all signatures for a sweep transaction with a maximum number of 10 inputs
-should be completed in less than an hour.
-
-The timeout for signing should be proportional to the number of inputs in the
-sweep transaction.
 
 The signing protocol is non-attributable and we need to retry in case of
 corrupted data:
 
-- With 2 malicious members in a signing group, we need 5 retries of the protocol
-in the worst case (`P = (98 choose 51) / (100 choose 51) = 0.23757575757`),
-which takes 5 hours for 10 inputs.
-- With 3 malicious members in a signing group, we need 10 retries of the
-protocol in the worst case (`P = (97 choose 51) / (100 choose 51) = 0.11393939393`),
-which takes 10 hours for 10 inputs.
-- With 4 malicious members in a signing group, we need 20 retries of the
-protocol in the worst case (`P = (96 choose 51) / (100 choose 51) = 0.05403311465`),
-which takes 20 hours for 10 inputs.
+- With 1 malicious member in a signing group, we need 2 attempts of the protocol
+in the worst case (`P = (99 choose 51) / (100 choose 51) = 0.49`).
+In the worst case, it takes approximately 2 hours to sign 15 inputs.
 
-The signing that keeps failing is retried for no more than 48 hours. Since no
-interim signatures were produced, it is safe to stop the signing without exposing
-wallet for risk of being slashed for signature fraud.
+- With 2 malicious members in a signing group, we need 5 attempts of the protocol
+in the worst case (`P = (98 choose 51) / (100 choose 51) = 0.2375757575`).
+In the worst case, it takes approximately 7h 30min to sign 15 inputs.
 
-No state management logic is required for retries other than keeping information
-in-memory about the sweep transaction being signed. If more than t+1 clients get
-restarted during the sweep transaction signing, the sweep attempt is skipped and
-everyone needs to wait for another sweep window.
+- With 3 malicious members in a signing group, we need 10 attempts of the protocol
+in the worst case (`P = (97 choose 51) / (100 choose 51) = 0.1139393939`).
+In the worst case, it takes approximately 15 hours to sign 15 inputs.
+
+- With 4 malicious members in a signing group, we need 20 attempts of the
+protocol in the worst case (`P = (96 choose 51) / (100 choose 51) = 0.0540331146`).
+In the worst case, it takes approximately 30 hours to sign 15 inputs.
+
+- With 5 malicious members in a signing group, we need 40 attempts of the protocol
+in the worst case (`P = (95 choose 51) / (100 choose 51) = 0.0253280224`).
+In the worst case, it takes approximately 60 hours to sign 15 inputs.
+
+This attack slows down the sweeping schedule but given that the active wallet is
+not performing redemptions or moving funds, it does not affect the funds already
+bridged.
+
+In the first release, the client should assume no more than 3% of the network is
+corrupted and retry the signing of a single input no more than 10 times. If the
+signing of an input failed 10 times, the entire sweep is stopped. This puts the
+group in danger of a fraud challenge from one of the group members but the group
+will have a chance to sweep the deposit during the next sweep window. To defeat
+the fraud challenge, it is enough that the deposit has been swept, and it does
+not matter in which particular transaction.
+
+In the first release, the group maintains the signing state in memory, without
+persisting it to disk. It means that if more than t+1 members restarted their
+clients, the current sweep will not succeed, and everyone needs to wait for the
+next sweep window.
 
 ==== Increasing fee
 
 At any point in time, the current Coordinator (who is not necessarily the same
 Coordinator who proposed the batch) can propose increasing the Bitcoin fee for
 the sweep transaction that is in the mempool. The signing group members sign the
-transaction if the original transaction is in the mempool for at least 30
+transaction if the original transaction is in the mempool for at least 60
 minutes and the fee increase does not exceed the maximum one allowed by the
 Bridge. Given that the wallet is blocked with any other action until the sweep
 transaction is in the mempool, the fee bump signing protocol retries until the
 signature is produced or until the transaction is mined.
-
-== Future Work
-
-The link:https://github.com/keep-network/tbtc-v2/pull/374[sparse relay] provides
-true proof of inclusion but requires every 6th block in the Bitcoin network to
-be recorded on Ethereum. We started with a proof of work in tBTC v2 Bridge and
-the light relay but one day we may switch to the sparse relay. This would allow
-establishing a reference between a point in time on Ethereum and Bitcoin chains.
-The reference point in time on Ethereum is a fixed block number - for example,
-we sweep every 100th block - and the reference point in time on Bitcoin is the
-last Bitcoin block recorded on Ethereum's sparse relay at the given Ethereum's
-block number.
