@@ -128,6 +128,16 @@ the wallet has not been proven to the Bridge yet.
 The Coordinator may slightly delay broadcasting the proposition to give all
 clients in the group a chance to properly recognize a Coordinator rotation.
 
+If we sweep early because a lot of deposits have been revealed, then we don't
+"push back" our scheduled `sweep_period` sweep. Rather, that sweep continues
+as planned.
+
+*Example*: We have a `sweep_period = 8 hours` and `sweep_max_deposits = 15`. At
+08:00 UTC, a sweep just occurred, and the next is scheduled for 16:00 UTC.
+At 10:00 UTC, 15 deposits get revealed which triggers an early sweep due to
+`sweep_max_deposits`. Rather than pushing back the next scheduled sweep to
+18:00 UTC, it remains at 16:00 UTC.
+
 ==== Sweep transaction
 
 The Coordinator chooses sufficiently confirmed deposits for the sweep. To avoid
