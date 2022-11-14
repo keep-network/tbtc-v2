@@ -146,9 +146,10 @@ confirmed, the Coordinator may choose deposits with more than 6 confirmations
 on Bitcoin and 20 confirmations on Ethereum. To avoid problems with proving
 large transactions and too many signatures to be executed, the Coordinator
 should not pick more than 15 deposits. The Coordinator chooses the Bitcoin
-transaction fee reflecting the current situation in the Bitcoin network. To
-leave enough time for retries, deposits for which Bitcoin transactions unlock
-for a refund earlier than two weeks from now are skipped.
+transaction fee reflecting the current situation in the Bitcoin network and the
+maximum possible fee accepted by the Bridge. To leave enough time for retries,
+deposits for which Bitcoin transactions unlock for a refund earlier than two
+weeks from now are skipped.
 
 The Coordinator must not propose a sweep if there is currently a pending signing
 operation being executed by the wallet or if the last transaction from the
@@ -269,6 +270,10 @@ When increasing a fee, we increment a fee multiplier:
 calculate the new fee: `fee = base_fee * fee_multiplier`. We repeat until
 either the transaction posts or the fee exceeds the maximum one allowed by the
 Bridge.
+
+The wallet members must hold all the signed preimages to be able to defeat fraud
+challenges, even if the signatures were not used for the eventually mined
+transaction, that is, the transaction fee was increased.
 
 ==== Governable parameters
 
