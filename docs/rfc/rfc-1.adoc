@@ -336,33 +336,6 @@ to be included in a sweep, we do it. Otherwise, we schedule the next sweep for
 Here, we're making the tradeoff between reducing fees (having less frequent
 batches) and increasing reliability from a user experience standpoint.
 
-===== Skipping the Sweeping Line
-
-Governable Parameters:
-
-- `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
-  operator for the gas of the sweep and collect their account balance.
-
-Some depositors are not going to want to wait for the next sweep to occur, and
-are willing to pay the entire cost of the sweeping transaction to avoid
-waiting. We can accommodate them with the following flow:
-
-When the make their reveal transaction, they include a piece of information
-that lets us know that they want their deposit swept **right now**. As soon as
-the operators are available, they sweep the btc and an operator posts the
-balance update transaction to the ethereum chain, paying the associated gas
-costs.
-
-We send the account balance to a holding contract locked by the amount
-of ether that the operator had to pay in gas fees, unlockable only by the
-depositor's eth address. Once the depositor has paid the contract, the account
-balance moves to their address, and the operator who originally paid for the
-transaction is reimbursed.
-
-If the depositor does not pay to unlock their account balance within the
-`skip_sweep_timeout`, then the system seizes the balance, mints TBTC, uses it
-to buy back T tokens, and then uses those to reimburse the operator.
-
 [[redemption]]
 === Redemption
 
