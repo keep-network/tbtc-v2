@@ -258,8 +258,26 @@ next sweep window.
 At any point in time, the current Coordinator (who is not necessarily the same
 Coordinator who proposed the batch) can propose increasing the Bitcoin fee for
 the sweep transaction that is in the mempool. The signing group members sign the
-transaction if the original transaction is in the mempool for at least 60
-minutes and the fee increase does not exceed the maximum one allowed by the
-Bridge. Given that the wallet is blocked with any other action until the sweep
-transaction is in the mempool, the fee bump signing protocol retries until the
-signature is produced or until the transaction is mined.
+transaction if the original transaction is in the mempool for at least
+`sweeping_fee_bump_period` and the fee increase does not exceed the maximum one
+allowed by the Bridge. Given that the wallet is blocked with any other action
+until the sweep transaction is in the mempool, the fee bump signing protocol
+retries until the signature is produced or until the transaction is mined.
+
+When increasing a fee, we increment a fee multiplier:
+`fee_multiplier = fee_multiplier + sweeping_fee_multiplier_increment` and then
+calculate the new fee: `fee = base_fee * fee_multiplier`. We repeat until
+either the transaction posts or the fee exceeds the maximum one allowed by the
+Bridge.
+
+==== Governable parameters
+
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+- `sweep_max_deposits`: The number of non-dust unswept revealed bitcoin deposits
+  that will trigger an early sweep on a wallet.
+- `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
+  transaction is mined before increasing the fee.
+- `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
+  multiplier each time a sweeping transaction is not mined within the
+  `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
+  are currently at 1.6x, then the next time we would try 1.8x.
