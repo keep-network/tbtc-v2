@@ -110,21 +110,22 @@ members: `[0xA, 0xB, 0xC, 0xC, 0xB, 0xD`] the rotation rounds are: `0xA, 0xB,
 
 ==== Sweeping schedule
 
-Sweep can only be proposed by the current Coordinator. The Coordinator can only
-propose a sweep between:
+Sweep can only be proposed by the current Coordinator.
 
-- 00:00 UTC - 0:30 UTC
-- 08:00 UTC - 08:30 UTC
-- 16:00 UTC - 16:30 UTC
-
-If the current Coordinator does not propose a sweep within the given time
-window, the attempt is skipped.
+The Coordinator may propose a sweep at any time if either `sweep_period` seconds
+passed since the proof of the last sweep was accepted by the Bridge or
+`sweep_max_deposits` waits in the queue for sweeping. The time it takes to sign
+a sweep transaction input and Ethereum block gas limits put a cap on how many
+deposits can be swept at once. Given that in normal circumstances, the active
+wallet is not redeeming or moving funds, the active wallet can focus on sweeping
+and optimize its work schedule for this operation, depending on the current
+situation in the Bridge. 
 
 The Coordinator must not propose a sweep if there is currently a pending signing
 operation being executed by the wallet or if the last signed transaction from
-the wallet does not have 6 Bitcoin confirmations yet.
+the wallet has not been proven to the Bridge yet.
 
-The coordinator may slightly delay broadcasting the proposition to give all
+The Coordinator may slightly delay broadcasting the proposition to give all
 clients in the group a chance to properly recognize a Coordinator rotation.
 
 ==== Sweep transaction
