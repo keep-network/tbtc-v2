@@ -1,5 +1,7 @@
 = TBTC v2
 
+https://github.com/keep-network/tbtc-v2/actions/workflows/contracts.yml[image:https://img.shields.io/github/workflow/status/keep-network/tbtc-v2/Solidity/main?event=push&label=TBTC%20contracts%20build[TBTC contracts build status]]
+
 == Abstract
 
 For many Bitcoin holders, one question remains: how can I move my assets across
