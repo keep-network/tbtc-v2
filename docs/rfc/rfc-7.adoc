@@ -149,7 +149,7 @@ should not pick more than 15 deposits. The Coordinator chooses the Bitcoin
 transaction fee reflecting the current situation in the Bitcoin network and the
 maximum possible fee accepted by the Bridge. To leave enough time for retries,
 deposits for which Bitcoin transactions unlock for a refund earlier than two
-weeks from now are skipped.
+weeks from now are skipped (`sweeping_refund_safety_time`).
 
 The Coordinator must not propose a sweep if there is currently a pending signing
 operation being executed by the wallet or if the last transaction from the
@@ -277,12 +277,19 @@ transaction, that is, the transaction fee was increased.
 
 ==== Governable parameters
 
+- `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
+  becomes eligible for a refund where we will not include it in a sweeping
+  transaction.
 - `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+  Set to 8 hours initially.
 - `sweep_max_deposits`: The number of non-dust unswept revealed bitcoin deposits
   that will trigger an early sweep on a wallet.
+  Set to 15 initially.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
   transaction is mined before increasing the fee.
+  Set to 1 hours initially.
 - `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
   multiplier each time a sweeping transaction is not mined within the
   `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
   are currently at 1.6x, then the next time we would try 1.8x.
+  Set to 0.2 initially.
