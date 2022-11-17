@@ -219,7 +219,7 @@ corrupted data:
 
 - With 1 malicious member in a signing group, we need 2 attempts of the protocol
 in the worst case (`P = (99 choose 51) / (100 choose 51) = 0.49`).
-In the worst case, it takes approximately 2 hours to sign 15 inputs.
+In the worst case, it takes approximately 2h 30min to sign 15 inputs.
 
 - With 2 malicious members in a signing group, we need 5 attempts of the protocol
 in the worst case (`P = (98 choose 51) / (100 choose 51) = 0.2375757575`).
@@ -227,15 +227,15 @@ In the worst case, it takes approximately 7h 30min to sign 15 inputs.
 
 - With 3 malicious members in a signing group, we need 10 attempts of the protocol
 in the worst case (`P = (97 choose 51) / (100 choose 51) = 0.1139393939`).
-In the worst case, it takes approximately 15 hours to sign 15 inputs.
+In the worst case, it takes approximately 15h to sign 15 inputs.
 
 - With 4 malicious members in a signing group, we need 20 attempts of the
 protocol in the worst case (`P = (96 choose 51) / (100 choose 51) = 0.0540331146`).
-In the worst case, it takes approximately 30 hours to sign 15 inputs.
+In the worst case, it takes approximately 30h to sign 15 inputs.
 
 - With 5 malicious members in a signing group, we need 40 attempts of the protocol
 in the worst case (`P = (95 choose 51) / (100 choose 51) = 0.0253280224`).
-In the worst case, it takes approximately 60 hours to sign 15 inputs.
+In the worst case, it takes approximately 60h to sign 15 inputs.
 
 This attack slows down the sweeping schedule but given that the active wallet is
 not performing redemptions or moving funds, it does not affect the funds already
