@@ -113,13 +113,13 @@ members: `[0xA, 0xB, 0xC, 0xC, 0xB, 0xD`] the rotation rounds are: `0xA, 0xB,
 Sweep can only be proposed by the current Coordinator.
 
 The Coordinator may propose a sweep at any time if either `sweep_period` seconds
-passed since the proof of the last sweep was accepted by the Bridge or
-`sweep_max_deposits` waits in the queue for sweeping. The time it takes to sign
-a sweep transaction input and Ethereum block gas limits put a cap on how many
-deposits can be swept at once. Given that in normal circumstances, the active
-wallet is not redeeming or moving funds, the active wallet can focus on sweeping
-and optimize its work schedule for this operation, depending on the current
-situation in the Bridge. 
+passed since the proof of the last sweep was accepted by the Bridge or if at least
+`sweep_max_deposits` wait in the queue for sweeping. Two aspects put a cap on
+how many deposits can be swept at once: Ethereum block gas limits and the time
+it takes to sign a sweep transaction input. Given that in normal circumstances,
+the active wallet is not redeeming or moving funds, the active wallet can focus
+on sweeping and optimize its work schedule for this operation, depending on the
+current situation in the Bridge. 
 
 The Coordinator must not propose a sweep if there is currently a pending signing
 operation being executed by the wallet or if the last signed transaction from
