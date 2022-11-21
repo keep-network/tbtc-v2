@@ -249,13 +249,14 @@ signing of an input failed 10 times, the entire sweep is stopped. This puts the
 group in danger of a fraud challenge from one of the group members but the group
 will have a chance to sweep the deposit during the next sweep window. To defeat
 the fraud challenge, it is enough that the deposit has been swept, and it does
-not matter in which particular transaction.
+not matter in which particular transaction (see <<increasing-fee,Increasine Fee>>).
 
 In the first release, the group maintains the signing state in memory, without
 persisting it to disk. It means that if more than t+1 members restarted their
 clients, the current sweep will not succeed, and everyone needs to wait for the
 next sweep window.
 
+[[increasing-fee]]
 ==== Increasing fee
 
 At any point in time, the current Coordinator (who is not necessarily the same
@@ -276,6 +277,12 @@ Bridge.
 The wallet members must hold all the signed preimages to be able to defeat fraud
 challenges, even if the signatures were not used for the eventually mined
 transaction, that is, the transaction fee was increased.
+
+*Note*: Frauds work in a challenge and defeat-the-challenge mode. The challenger
+provides a signature and sha256 of the preimage. If the wallet signed
+a transaction, submitted it to the mempool, and after some time decided to bump
+up the miner fee providing signature over another transaction, the first
+signature can be used for a challenge.
 
 ==== Governable parameters
 
