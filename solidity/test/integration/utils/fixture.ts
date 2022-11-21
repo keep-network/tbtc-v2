@@ -8,7 +8,7 @@ import {
   TBTC,
   Bridge,
   TBTCVault,
-  TestRelay,
+  IRelay,
   IRandomBeacon,
   WalletRegistry,
   VendingMachine,
@@ -41,7 +41,7 @@ export const fixture = deployments.createFixture(
     walletRegistry: WalletRegistry
     staking: Contract
     randomBeacon: FakeContract<IRandomBeacon>
-    relay: FakeContract<TestRelay>
+    relay: FakeContract<IRelay>
   }> => {
     await deployments.fixture()
     const {
@@ -87,7 +87,8 @@ export const fixture = deployments.createFixture(
     )
     await sortitionPool.connect(chaosnetOwner).deactivateChaosnet()
 
-    const relay = await smock.fake<TestRelay>("TestRelay", {
+    // TODO: INTEGRATE WITH THE REAL LIGHT RELAY
+    const relay = await smock.fake<IRelay>("IRelay", {
       address: await (await bridge.contractReferences()).relay,
     })
 

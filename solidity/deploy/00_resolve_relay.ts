@@ -6,22 +6,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const BitcoinRelay = await deployments.getOrNull("BitcoinRelay")
+  const LightRelay = await deployments.getOrNull("LightRelay")
 
-  if (BitcoinRelay && helpers.address.isValid(BitcoinRelay.address)) {
-    log(`using external BitcoinRelay at ${BitcoinRelay.address}`)
-  } else if (
-    // TODO: Temporarily deploy a stub for Goerli network.
-    hre.network.name !== "goerli" &&
-    (!hre.network.tags.allowStubs ||
-      (hre.network.config as HardhatNetworkConfig)?.forking?.enabled)
-  ) {
-    throw new Error("deployed BitcoinRelay contract not found")
+  // We expect the `LightRelay` contract to be deployed just once and reused
+  // for future deployments.The artifact of the contract to use should be committed to
+  // the `deployments/<network>/LightRelay.json` file.
+  // If the existing deployment artifact is not found, the script will deploy
+  // the contract.
+  if (LightRelay && helpers.address.isValid(LightRelay.address)) {
+    log(`using external LightRelay at ${LightRelay.address}`)
   } else {
-    log("deploying BitcoinRelay stub")
-
-    await deployments.deploy("BitcoinRelay", {
-      contract: "TestRelay",
+    // Temporarily for goerli we deploy `TestRelay` contract, until the relay
+    // maintainer is ready.
+    await deployments.deploy("LightRelay", {
+      contract: hre.network.name === "goerli" ? "TestRelay" : "LightRelay",
       from: deployer,
       log: true,
       waitConfirmations: 1,
@@ -31,4 +29,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["BitcoinRelay"]
+func.tags = ["LightRelay"]
