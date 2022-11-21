@@ -252,7 +252,7 @@ the fraud challenge, it is enough that the deposit has been swept, and it does
 not matter in which particular transaction (see <<increasing-fee,Increasine Fee>>).
 
 In the first release, the group maintains the signing state in memory, without
-persisting it to disk. It means that if more than t+1 members restarted their
+persisting it to disk. It means that if t+1 or more members restarted their
 clients, the current sweep will not succeed, and everyone needs to wait for the
 next sweep window.
 
@@ -296,7 +296,7 @@ signature can be used for a challenge.
   Set to 15 initially.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
   transaction is mined before increasing the fee.
-  Set to 1 hours initially.
+  Set to 1 hour initially.
 - `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
   multiplier each time a sweeping transaction is not mined within the
   `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
