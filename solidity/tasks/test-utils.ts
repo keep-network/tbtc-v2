@@ -66,12 +66,16 @@ async function registerOperators(
 ): Promise<void> {
   const { helpers } = hre
 
+  const { chaosnetOwner } = await helpers.signers.getNamedSigners()
+
   const walletRegistry = await helpers.contracts.getContract<WalletRegistry>(
     "WalletRegistry"
   )
   const sortitionPool = await helpers.contracts.getContract<SortitionPool>(
     "EcdsaSortitionPool"
   )
+  await sortitionPool.connect(chaosnetOwner).deactivateChaosnet()
+
   const t = await helpers.contracts.getContract("T")
   const staking = await helpers.contracts.getContract("TokenStaking")
 
