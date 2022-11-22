@@ -17,8 +17,14 @@ jobs:
           cache: "yarn"
           cache-dependency-path: system-tests/yarn.lock
 
-      - name: Configure git to don't use unauthenticated protocol
+      - name: Configure git to not use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
+
+      - name: Cleanup for fresh installation
+        working-directory: ./solidity
+        run: |
+          yarn clean
+          rm -rf node_modules
 
       - name: Setup scenario prerequisites
         working-directory: ./solidity
