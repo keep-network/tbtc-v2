@@ -23,7 +23,6 @@ jobs:
       - name: Cleanup for fresh installation
         working-directory: ./solidity
         run: |
-          yarn clean
           rm -rf node_modules
 
       - name: Setup scenario prerequisites
@@ -33,6 +32,7 @@ jobs:
           ETH_NETWORK: localhost
         run: |
           yarn install
+          yarn clean
           USE_EXTERNAL_DEPLOY=true TEST_USE_STUBS_TBTC=true npx hardhat node --export export.json &
           HH_NODE_PID=$!
           while ! lsof -n -Fn -p $HH_NODE_PID | grep -q '^n.*:8545$'; do sleep 10; done
