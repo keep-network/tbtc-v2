@@ -112,7 +112,7 @@ describe("Deposit", () => {
    * @param script - script as an un-prefixed hex string.
    * @returns void
    */
-  function shouldReturnProperDepositScript(script: string): void {
+  function assertValidDepositScript(script: string): void {
     // Returned script should be the same as expectedDepositScript but
     // here we make a breakdown and assert specific parts are as expected.
     expect(script.length).to.be.equal(expectedDepositScript.length)
@@ -503,7 +503,7 @@ describe("Deposit", () => {
     })
 
     it("should return script with proper structure", async () => {
-      shouldReturnProperDepositScript(script)
+      assertValidDepositScript(script)
     })
   })
 
