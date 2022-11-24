@@ -8,7 +8,7 @@ import {
   RawTransaction,
   UnspentTransactionOutput,
   TransactionHash,
-  isPubkeyhash,
+  isPublicKeyHashLength,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 
@@ -293,17 +293,11 @@ export function validateDepositScriptParameters(
     throw new Error("Blinding factor must be an 8-byte number")
   }
 
-  if (
-    !isPubkeyhash(deposit.walletPublicKeyHash, true) &&
-    !isPubkeyhash(deposit.walletPublicKeyHash, false)
-  ) {
+  if (!isPublicKeyHashLength(deposit.walletPublicKeyHash)) {
     throw new Error("Invalid wallet public key hash")
   }
 
-  if (
-    !isPubkeyhash(deposit.refundPublicKeyHash, true) &&
-    !isPubkeyhash(deposit.refundPublicKeyHash, false)
-  ) {
+  if (!isPublicKeyHashLength(deposit.refundPublicKeyHash)) {
     throw new Error("Invalid refund public key hash")
   }
 

@@ -396,25 +396,10 @@ export function decodeBitcoinAddress(address: string): string {
 }
 
 /**
- * Checks if given string is a publick key hash.
- * @param publicKeyHash - text that will be checked if it's proper pub key hash.
- * @param witness - If true, it will check whenever it's witness public key
-          hash. It will check it it's "normal" public key hash otherwise.
- * @returns true if the given public key hash is a proper public key hash, false
-          otherwise.
+ * Checks if given public key hash has proper length (20-byte)
+ * @param publicKeyHash - text that will be checked for the correct length
+ * @returns true if the given string is 20-byte long, false otherwise
  */
-export function isPubkeyhash(publicKeyHash: string, witness: boolean): boolean {
-  try {
-    const addressObject = new bcoin.Address()
-    if (witness) {
-      addressObject.fromWitnessPubkeyhash(Buffer.from(publicKeyHash, "hex"))
-    } else {
-      addressObject.fromPubkeyhash(Buffer.from(publicKeyHash, "hex"))
-    }
-    return witness
-      ? addressObject.isWitnessPubkeyhash()
-      : addressObject.isPubkeyhash()
-  } catch (err) {
-    return false
-  }
+export function isPublicKeyHashLength(publicKeyHash: string): boolean {
+  return publicKeyHash.length === 40
 }

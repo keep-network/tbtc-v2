@@ -3,7 +3,7 @@ import {
   compressPublicKey,
   encodeToBitcoinAddress,
   decodeBitcoinAddress,
-  isPubkeyhash,
+  isPublicKeyHashLength,
 } from "../src/bitcoin"
 
 describe("Bitcoin", () => {
@@ -157,35 +157,19 @@ describe("Bitcoin", () => {
     })
   })
 
-  describe("isPubkeyhash", () => {
+  describe("isPublicKeyHashLength", () => {
     const publicKeyHash = "3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e"
-    const witnessPublicKeyHash = "3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e"
+    const wrongPublicKeyHash = "3a38d44d6a0c8d0"
 
-    context("when witness option is true", () => {
-      context("when proper witness publicKeyHash is provided", () => {
-        it("should return true", () => {
-          expect(isPubkeyhash(witnessPublicKeyHash, true)).to.be.equal(true)
-        })
-      })
-
-      context("when random string is provided", () => {
-        it("should return true", () => {
-          expect(isPubkeyhash("randomString", true)).to.be.equal(false)
-        })
+    context("when proper public key hash is provided", () => {
+      it("should return true", () => {
+        expect(isPublicKeyHashLength(publicKeyHash)).to.be.equal(true)
       })
     })
 
-    context("when witness option is false", () => {
-      context("when proper publicKeyHash is provided", () => {
-        it("should return true", () => {
-          expect(isPubkeyhash(publicKeyHash, false)).to.be.equal(true)
-        })
-      })
-
-      context("when random string is provided", () => {
-        it("should return true", () => {
-          expect(isPubkeyhash("randomString", false)).to.be.equal(false)
-        })
+    context("when wrong public key hash is provided", () => {
+      it("should return false", () => {
+        expect(isPublicKeyHashLength(wrongPublicKeyHash)).to.be.equal(false)
       })
     })
   })
