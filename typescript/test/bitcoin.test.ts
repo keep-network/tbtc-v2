@@ -55,8 +55,6 @@ describe("Bitcoin", () => {
     const publicKeyHash = "3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e"
     const P2WPKHAddress = "bc1q8gudgnt2pjxshwzwqgevccet0eyvwtswt03nuy"
     const P2PKHAddress = "16JrGhLx5bcBSA34kew9V6Mufa4aXhFe9X"
-
-    const publicKeyHashTestnet = "3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e"
     const P2WPKHAddressTestnet = "tb1q8gudgnt2pjxshwzwqgevccet0eyvwtswpf2q8h"
     const P2PKHAddressTestnet = "mkpoZkRvtd3SDGWgUDuXK1aEXZfHRM2gKw"
 
@@ -109,7 +107,7 @@ describe("Bitcoin", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
             expect(decodeBitcoinAddress(P2WPKHAddress)).to.be.equal(
-              publicKeyHashTestnet
+              publicKeyHash
             )
           })
         })
@@ -117,7 +115,7 @@ describe("Bitcoin", () => {
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
             expect(decodeBitcoinAddress(P2PKHAddress)).to.be.equal(
-              publicKeyHashTestnet
+              publicKeyHash
             )
           })
         })
@@ -135,7 +133,7 @@ describe("Bitcoin", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
             expect(decodeBitcoinAddress(P2WPKHAddressTestnet)).to.be.equal(
-              publicKeyHashTestnet
+              publicKeyHash
             )
           })
         })
@@ -143,7 +141,7 @@ describe("Bitcoin", () => {
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
             expect(decodeBitcoinAddress(P2PKHAddressTestnet)).to.be.equal(
-              publicKeyHashTestnet
+              publicKeyHash
             )
           })
         })
