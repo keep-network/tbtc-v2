@@ -375,13 +375,10 @@ export function encodeToBitcoinAddress(
   witness: boolean,
   network: string
 ): string {
+  const buffer = Buffer.from(publicKeyHash, "hex")
   return witness
-    ? bcoin.Address.fromWitnessPubkeyhash(
-        Buffer.from(publicKeyHash, "hex")
-      ).toString(network)
-    : bcoin.Address.fromPubkeyhash(Buffer.from(publicKeyHash, "hex")).toString(
-        network
-      )
+    ? bcoin.Address.fromWitnessPubkeyhash(buffer).toString(network)
+    : bcoin.Address.fromPubkeyhash(buffer).toString(network)
 }
 
 /**
