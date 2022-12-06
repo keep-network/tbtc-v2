@@ -4,11 +4,11 @@ import {
   Client as BitcoinClient,
   computeHash160,
   decomposeRawTransaction,
-  isCompressedPublicKey,
   createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
   TransactionHash,
+  isPublicKeyHashLength,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 
@@ -65,16 +65,25 @@ export interface Deposit {
 }
 
 /**
- * Helper type that groups deposit's fields required to assemble a deposit script.
+ * Helper type that groups deposit's fields required to assemble a deposit
+ * script.
  */
 export type DepositScriptParameters = Pick<
   Deposit,
-  | "depositor"
-  | "blindingFactor"
-  | "walletPublicKey"
-  | "refundPublicKey"
-  | "refundLocktime"
->
+  "depositor" | "blindingFactor" | "refundLocktime"
+> & {
+  /**
+   * Public key hash of the wallet that is meant to receive the deposit. Must
+   * be an unprefixed hex string (without 0x prefix).
+   */
+  walletPublicKeyHash: string
+
+  /**
+   * Public key hash that is meant to be used during deposit refund after the
+   * locktime passes. Must be an unprefixed hex string (without 0x prefix).
+   */
+  refundPublicKeyHash: string
+}
 
 /**
  * Represents a deposit revealed to the on-chain bridge. This type emphasizes
@@ -192,7 +201,12 @@ export async function assembleDepositTransaction(
 
   const transaction = new bcoin.MTX()
 
-  const scriptHash = await calculateDepositScriptHash(deposit, witness)
+  const depositScriptParameters = getDepositScriptParameters(deposit)
+
+  const scriptHash = await calculateDepositScriptHash(
+    depositScriptParameters,
+    witness
+  )
   const outputValue = deposit.amount
 
   transaction.addOutput({
@@ -244,14 +258,14 @@ export async function assembleDepositScript(
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(computeHash160(deposit.walletPublicKey), "hex"))
+  script.pushData(Buffer.from(deposit.walletPublicKeyHash, "hex"))
   script.pushOp(opcodes.OP_EQUAL)
   script.pushOp(opcodes.OP_IF)
   script.pushOp(opcodes.OP_CHECKSIG)
   script.pushOp(opcodes.OP_ELSE)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(computeHash160(deposit.refundPublicKey), "hex"))
+  script.pushData(Buffer.from(deposit.refundPublicKeyHash, "hex"))
   script.pushOp(opcodes.OP_EQUALVERIFY)
   script.pushData(Buffer.from(deposit.refundLocktime, "hex"))
   script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
@@ -279,12 +293,12 @@ export function validateDepositScriptParameters(
     throw new Error("Blinding factor must be an 8-byte number")
   }
 
-  if (!isCompressedPublicKey(deposit.walletPublicKey)) {
-    throw new Error("Wallet public key must be compressed")
+  if (!isPublicKeyHashLength(deposit.walletPublicKeyHash)) {
+    throw new Error("Invalid wallet public key hash")
   }
 
-  if (!isCompressedPublicKey(deposit.refundPublicKey)) {
-    throw new Error("Refund public key must be compressed")
+  if (!isPublicKeyHashLength(deposit.refundPublicKeyHash)) {
+    throw new Error("Invalid refund public key hash")
   }
 
   if (deposit.refundLocktime.length != 8) {
@@ -407,4 +421,30 @@ export async function suggestDepositWallet(
   bridge: Bridge
 ): Promise<string | undefined> {
   return bridge.activeWalletPublicKey()
+}
+
+/**
+ * Returns data specific to deposit script parameters from deposit details. The
+ * main thing of this function is that it hashes wallet public key and refund
+ * public key.
+ * @param deposit - Details of the deposit.
+ * @returns Data specific to deposit script parameters.
+ */
+export function getDepositScriptParameters(
+  deposit: Deposit
+): DepositScriptParameters {
+  const {
+    depositor,
+    blindingFactor,
+    refundLocktime,
+    walletPublicKey,
+    refundPublicKey,
+  } = deposit
+  return {
+    depositor,
+    blindingFactor,
+    refundLocktime,
+    walletPublicKeyHash: computeHash160(walletPublicKey),
+    refundPublicKeyHash: computeHash160(refundPublicKey),
+  }
 }
