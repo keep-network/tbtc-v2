@@ -141,3 +141,7 @@ export const redemptionData = {
       "ea8e5322cf029014be251ac968f38d8cdcfdcdf6cff8e4fdeed490628886021ab1663024",
   },
 }
+
+export const governanceDelay = 604800
+export const dkgResultChallengePeriodLength = 100
+export const offchainDkgTime = 72
