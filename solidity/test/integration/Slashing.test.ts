@@ -28,7 +28,7 @@ import {
   produceOperatorInactivityClaim,
   updateWalletRegistryDkgResultChallengePeriodLength,
 } from "./utils/ecdsa-wallet-registry"
-import { produceRelayEntry } from "./utils/random-beacon"
+import { produceRelayEntry } from "./utils/fake-random-beacon"
 
 import { assertGasUsed } from "./utils/gas"
 import { fixture } from "./utils/fixture"
