@@ -18,6 +18,7 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IVault.sol";
+import "./TBTCOptimisticMinting.sol";
 import "../bank/Bank.sol";
 import "../token/TBTC.sol";
 import "../GovernanceUtils.sol";
@@ -30,7 +31,7 @@ import "../GovernanceUtils.sol";
 ///         Bank.
 /// @dev TBTC Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
-contract TBTCVault is IVault, Ownable {
+contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     using SafeERC20 for IERC20;
 
     /// @notice The time delay that needs to pass between initializing and
@@ -70,7 +71,7 @@ contract TBTCVault is IVault, Ownable {
         _;
     }
 
-    constructor(Bank _bank, TBTC _tbtcToken) {
+    constructor(Bank _bank, TBTC _tbtcToken, Bridge _bridge) TBTCOptimisticMinting(_bridge) {
         require(
             address(_bank) != address(0),
             "Bank can not be the zero address"
@@ -129,7 +130,9 @@ contract TBTCVault is IVault, Ownable {
     ) external override onlyBank {
         require(depositors.length != 0, "No depositors specified");
         for (uint256 i = 0; i < depositors.length; i++) {
-            _mint(depositors[i], depositedAmounts[i]);
+            address depositor = depositors[i];
+            uint256 amount = depositedAmounts[i];
+            _mint(depositor, repayOptimisticMintDebt(depositor, amount));
         }
     }
 
@@ -281,7 +284,7 @@ contract TBTCVault is IVault, Ownable {
     }
 
     // slither-disable-next-line calls-loop
-    function _mint(address minter, uint256 amount) internal {
+    function _mint(address minter, uint256 amount) override internal {
         emit Minted(minter, amount);
         tbtcToken.mint(minter, amount);
     }
