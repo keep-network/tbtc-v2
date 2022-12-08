@@ -71,7 +71,11 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
         _;
     }
 
-    constructor(Bank _bank, TBTC _tbtcToken, Bridge _bridge) TBTCOptimisticMinting(_bridge) {
+    constructor(
+        Bank _bank,
+        TBTC _tbtcToken,
+        Bridge _bridge
+    ) TBTCOptimisticMinting(_bridge) {
         require(
             address(_bank) != address(0),
             "Bank can not be the zero address"
@@ -284,7 +288,7 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     }
 
     // slither-disable-next-line calls-loop
-    function _mint(address minter, uint256 amount) override internal {
+    function _mint(address minter, uint256 amount) internal override {
         emit Minted(minter, amount);
         tbtcToken.mint(minter, amount);
     }
