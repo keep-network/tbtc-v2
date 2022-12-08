@@ -27,8 +27,14 @@ describe.only("TBTCVault - OptimisticMinting", () => {
   let account1: SignerWithAddress
   let account2: SignerWithAddress
 
-  let depositReveal
+  // used by bridge.revealDeposit(fundingTx, depositReveal)
   let fundingTx
+  let depositReveal
+
+  // used by tbtcVault.optimisticMint(fundingTxHash, fundingOutputIndex)
+  let fundingTxHash: string
+  let fundingOutputIndex: number
+
   let depositKey: string
 
   before(async () => {
@@ -48,10 +54,12 @@ describe.only("TBTCVault - OptimisticMinting", () => {
     depositReveal = bitcoinTestData.deposits[0].reveal
     depositReveal.vault = tbtcVault.address
     fundingTx = bitcoinTestData.deposits[0].fundingTx
+    fundingTxHash = fundingTx.hash
+    fundingOutputIndex = depositReveal.fundingOutputIndex
     // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
     depositKey = ethers.utils.solidityKeccak256(
       ["bytes32", "uint32"],
-      [fundingTx.hash, depositReveal.fundingOutputIndex]
+      [fundingTxHash, fundingOutputIndex]
     )
     const { walletPubKeyHash } = depositReveal
 
@@ -285,7 +293,9 @@ describe.only("TBTCVault - OptimisticMinting", () => {
     context("when called not by a minter", () => {
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(account1).optimisticMint(1)
+          tbtcVault
+            .connect(account1)
+            .optimisticMint(fundingTxHash, fundingOutputIndex)
         ).to.be.revertedWith("Caller is not a minter")
       })
     })
@@ -307,7 +317,7 @@ describe.only("TBTCVault - OptimisticMinting", () => {
       context("when the deposit has not been revealed", () => {
         it("should revert", async () => {
           await expect(
-            tbtcVault.connect(minter).optimisticMint(1)
+            tbtcVault.connect(minter).optimisticMint(fundingTxHash, 10)
           ).to.be.revertedWith("The deposit has not been revealed")
         })
       })
@@ -337,7 +347,9 @@ describe.only("TBTCVault - OptimisticMinting", () => {
 
           it("should revert", async () => {
             await expect(
-              tbtcVault.connect(minter).optimisticMint(depositKey)
+              tbtcVault
+                .connect(minter)
+                .optimisticMint(fundingTxHash, fundingOutputIndex)
             ).to.be.revertedWith("Unexpected vault address")
           })
         })
@@ -349,7 +361,9 @@ describe.only("TBTCVault - OptimisticMinting", () => {
             await createSnapshot()
 
             await bridge.revealDeposit(fundingTx, depositReveal)
-            tx = await tbtcVault.connect(minter).optimisticMint(depositKey)
+            tx = await tbtcVault
+              .connect(minter)
+              .optimisticMint(fundingTxHash, fundingOutputIndex)
           })
 
           after(async () => {
@@ -365,7 +379,12 @@ describe.only("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingRequested")
-              .withArgs(minter.address, depositKey)
+              .withArgs(
+                minter.address,
+                fundingTxHash,
+                fundingOutputIndex,
+                depositKey
+              )
           })
         })
       })

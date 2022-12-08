@@ -33,6 +33,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     event OptimisticMintingRequested(
         address indexed minter,
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex,
         uint256 depositKey
     );
     event MinterAdded(address indexed minter);
@@ -61,7 +63,14 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     function _mint(address minter, uint256 amount) internal virtual;
 
-    function optimisticMint(uint256 depositKey) external onlyMinter {
+    function optimisticMint(bytes32 fundingTxHash, uint32 fundingOutputIndex)
+        external
+        onlyMinter
+    {
+        uint256 depositKey = calculateDepositKey(
+            fundingTxHash,
+            fundingOutputIndex
+        );
         Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
 
         // TODO: validate when it was revealed?
@@ -73,10 +82,23 @@ abstract contract TBTCOptimisticMinting is Ownable {
         /* solhint-disable-next-line not-rely-on-time */
         pendingOptimisticMints[depositKey] = block.timestamp;
 
-        emit OptimisticMintingRequested(msg.sender, depositKey);
+        emit OptimisticMintingRequested(
+            msg.sender,
+            fundingTxHash,
+            fundingOutputIndex,
+            depositKey
+        );
     }
 
-    function finalizeOptimisticMint(uint256 depositKey) external onlyMinter {
+    function finalizeOptimisticMint(
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex
+    ) external onlyMinter {
+        uint256 depositKey = calculateDepositKey(
+            fundingTxHash,
+            fundingOutputIndex
+        );
+
         uint256 requestedAt = pendingOptimisticMints[depositKey];
         require(requestedAt != 0, "Optimistic minting not requested");
         require(
@@ -100,7 +122,14 @@ abstract contract TBTCOptimisticMinting is Ownable {
     // TODO: Is this function convenient enough to block minting at 3AM ?
     //       Do we want to give watchment a chance to temporarily disable
     //       finalizeOptimisticMint ?
-    function cancelOptimisticMint(uint256 depositKey) external onlyGuard {
+    function cancelOptimisticMint(
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex
+    ) external onlyGuard {
+        uint256 depositKey = calculateDepositKey(
+            fundingTxHash,
+            fundingOutputIndex
+        );
         delete pendingOptimisticMints[depositKey];
 
         // TODO: emit an event
@@ -128,6 +157,16 @@ abstract contract TBTCOptimisticMinting is Ownable {
         require(isGuard[guard], "This address is not a guard");
         delete isGuard[guard];
         emit GuardRemoved(guard);
+    }
+
+    function calculateDepositKey(
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex
+    ) public view returns (uint256) {
+        return
+            uint256(
+                keccak256(abi.encodePacked(fundingTxHash, fundingOutputIndex))
+            );
     }
 
     function repayOptimisticMintDebt(address depositor, uint256 amount)
