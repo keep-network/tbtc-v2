@@ -31,6 +31,10 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     mapping(address => uint256) public optimisticMintingDebt;
 
+    event OptimisticMintingRequested(
+        address indexed minter,
+        uint256 depositKey
+    );
     event MinterAdded(address indexed minter);
     event MinterRemoved(address indexed minter);
     event GuardAdded(address indexed guard);
@@ -60,6 +64,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
     function optimisticMint(uint256 depositKey) external onlyMinter {
         Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
 
+        // TODO: validate when it was revealed?
+
         require(deposit.revealedAt != 0, "The deposit has not been revealed");
         require(deposit.sweptAt == 0, "The deposit is already swept");
         require(deposit.vault == address(this), "Unexpected vault address");
@@ -67,7 +73,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         /* solhint-disable-next-line not-rely-on-time */
         pendingOptimisticMints[depositKey] = block.timestamp;
 
-        // TODO: emit an event
+        emit OptimisticMintingRequested(msg.sender, depositKey);
     }
 
     function finalizeOptimisticMint(uint256 depositKey) external onlyMinter {
