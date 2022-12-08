@@ -1,9 +1,9 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { expect } from "chai"
-
 import { ContractTransaction } from "ethers"
 import { FakeContract, smock } from "@defi-wonderland/smock"
+
 import type {
   Bank,
   Bridge,
@@ -60,7 +60,7 @@ const fixture = async () => {
   }
 }
 
-describe.only("TBTCVault", () => {
+describe("TBTCVault", () => {
   let bridge: FakeContract<Bridge>
   let governance: SignerWithAddress
   let bank: Bank
@@ -1117,212 +1117,6 @@ describe.only("TBTCVault", () => {
           it("should reset the new vault address", async () => {
             expect(await vault.newVault()).to.equal(ZERO_ADDRESS)
           })
-        })
-      })
-    })
-  })
-
-  //
-  // Functionalities from TBTCOptimisticMinting.sol
-  //
-
-  describe("addMinter", () => {
-    context("when called not by the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          vault.connect(account1).addMinter(account1.address)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the governance", () => {
-      context("when address is not a minter", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          tx = await vault.connect(governance).addMinter(account1.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should add address as a minter", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await vault.isMinter(account1.address)).to.be.true
-        })
-
-        it("should emit an event", async () => {
-          await expect(tx)
-            .to.emit(vault, "MinterAdded")
-            .withArgs(account1.address)
-        })
-      })
-
-      context("when address is a minter", () => {
-        before(async () => {
-          await createSnapshot()
-
-          await vault.connect(governance).addMinter(account1.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            vault.connect(governance).addMinter(account1.address)
-          ).to.be.revertedWith("This address is already a minter")
-        })
-      })
-    })
-  })
-
-  describe("removeMinter", () => {
-    context("when called not by the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          vault.connect(account1).removeMinter(account1.address)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the governance", () => {
-      context("when address is a minter", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          await vault.connect(governance).addMinter(account1.address)
-          tx = await vault.connect(governance).removeMinter(account1.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should take minter role from the address", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await vault.isMinter(account1.address)).to.be.false
-        })
-
-        it("should emit an event", async () => {
-          await expect(tx)
-            .to.emit(vault, "MinterRemoved")
-            .withArgs(account1.address)
-        })
-      })
-
-      context("when address is not a minter", () => {
-        it("should revert", async () => {
-          await expect(
-            vault.connect(governance).removeMinter(account1.address)
-          ).to.be.revertedWith("This address is not a minter")
-        })
-      })
-    })
-  })
-
-  describe("addGuard", () => {
-    context("when called not by the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          vault.connect(account1).addGuard(account1.address)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the governance", () => {
-      context("when address is not a guard", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          tx = await vault.connect(governance).addGuard(account1.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should add address as a guard", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await vault.isGuard(account1.address)).to.be.true
-        })
-
-        it("should emit an event", async () => {
-          await expect(tx)
-            .to.emit(vault, "GuardAdded")
-            .withArgs(account1.address)
-        })
-      })
-
-      context("when address is a guard", () => {
-        before(async () => {
-          await createSnapshot()
-
-          await vault.connect(governance).addGuard(account1.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            vault.connect(governance).addGuard(account1.address)
-          ).to.be.revertedWith("This address is already a guard")
-        })
-      })
-    })
-  })
-
-  describe("removeGuard", () => {
-    context("when called not by the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          vault.connect(account1).removeGuard(account1.address)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the governance", () => {
-      context("when address is a guard", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          await vault.connect(governance).addGuard(account1.address)
-          tx = await vault.connect(governance).removeGuard(account1.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should take guard role from the address", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await vault.isGuard(account1.address)).to.be.false
-        })
-
-        it("should emit an event", async () => {
-          await expect(tx)
-            .to.emit(vault, "GuardRemoved")
-            .withArgs(account1.address)
-        })
-      })
-
-      context("when address is not a guard", () => {
-        it("should revert", async () => {
-          await expect(
-            vault.connect(governance).removeGuard(account1.address)
-          ).to.be.revertedWith("This address is not a guard")
         })
       })
     })
