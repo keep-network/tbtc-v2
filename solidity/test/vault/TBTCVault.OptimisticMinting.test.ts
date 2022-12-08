@@ -12,41 +12,12 @@ import type {
   BridgeGovernance,
   TBTCVault,
 } from "../../typechain"
+import { SingleP2SHDeposit } from "../data/deposit-sweep"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime } = helpers.time
 
-describe("TBTCVault - OptimisticMinting", () => {
-  const walletPubKeyHash = "0x8db50eb52063ea9d98b3eac91489a90f738986f6"
-
-  const mainUtxo = {
-    txHash:
-      "0x3835ecdee2daa83c9a19b5012104ace55ecab197b5e16489c26d372e475f5d2a",
-    txOutputIndex: 0,
-    txOutputValue: 10000000,
-  }
-
-  // Data of a proper P2SH deposit funding transaction. Little-endian hash is:
-  // 0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2 and
-  // this is the same as `expectedP2SHDeposit.transaction` mentioned in
-  // tbtc-ts/test/deposit.test.ts file.
-  const P2SHFundingTx = {
-    version: "0x01000000",
-    inputVector:
-      "0x018348cdeb551134fe1f19d378a8adec9b146671cb67b945b71bf56b20d" +
-      "c2b952f0100000000ffffffff",
-    outputVector:
-      "0x02102700000000000017a9142c1444d23936c57bdd8b3e67e5938a5440c" +
-      "da455877ed73b00000000001600147ac2d9378a1c47e589dfb8095ca95ed2" +
-      "140d2726",
-    locktime: "0x00000000",
-  }
-
-  // Data matching the redeem script locking the funding output of
-  // P2SHFundingTx.
-  let depositReveal
-  let depositKey
-
+describe.only("TBTCVault - OptimisticMinting", () => {
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
   let tbtcVault: TBTCVault
@@ -55,6 +26,10 @@ describe("TBTCVault - OptimisticMinting", () => {
 
   let account1: SignerWithAddress
   let account2: SignerWithAddress
+
+  let depositReveal
+  let fundingTx
+  let depositKey: string
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -69,6 +44,17 @@ describe("TBTCVault - OptimisticMinting", () => {
     account1 = await ethers.getSigner(accounts[0])
     account2 = await ethers.getSigner(accounts[1])
 
+    const bitcoinTestData = JSON.parse(JSON.stringify(SingleP2SHDeposit))
+    depositReveal = bitcoinTestData.deposits[0].reveal
+    depositReveal.vault = tbtcVault.address
+    fundingTx = bitcoinTestData.deposits[0].fundingTx
+    // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+    depositKey = ethers.utils.solidityKeccak256(
+      ["bytes32", "uint32"],
+      [fundingTx.hash, depositReveal.fundingOutputIndex]
+    )
+    const { walletPubKeyHash } = depositReveal
+
     await bridge.setWallet(walletPubKeyHash, {
       ecdsaWalletID: ethers.constants.HashZero,
       mainUtxoHash: ethers.constants.HashZero,
@@ -80,7 +66,7 @@ describe("TBTCVault - OptimisticMinting", () => {
       state: walletState.Live,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
-    await bridge.setWalletMainUtxo(walletPubKeyHash, mainUtxo)
+    await bridge.setWalletMainUtxo(walletPubKeyHash, bitcoinTestData.mainUtxo)
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge; we had to save test Bitcoins when
@@ -89,27 +75,6 @@ describe("TBTCVault - OptimisticMinting", () => {
     // Disable the reveal ahead period since refund locktimes are fixed
     // within transactions used in this test suite.
     await bridge.setDepositRevealAheadPeriod(0)
-
-    depositReveal = {
-      fundingOutputIndex: 0,
-      depositor: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
-      blindingFactor: "0xf9f0c90d00039523",
-      // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-      walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
-      // HASH160 of 0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9.
-      refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
-      refundLocktime: "0x60bcea61",
-      vault: tbtcVault.address,
-    }
-
-    // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
-    depositKey = ethers.utils.solidityKeccak256(
-      ["bytes32", "uint32"],
-      [
-        "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
-        depositReveal.fundingOutputIndex,
-      ]
-    )
   })
 
   describe("addMinter", () => {
@@ -363,7 +328,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             )
             revealToAnotherVault.vault = anotherVault
 
-            await bridge.revealDeposit(P2SHFundingTx, revealToAnotherVault)
+            await bridge.revealDeposit(fundingTx, revealToAnotherVault)
           })
 
           after(async () => {
@@ -383,7 +348,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           before(async () => {
             await createSnapshot()
 
-            await bridge.revealDeposit(P2SHFundingTx, depositReveal)
+            await bridge.revealDeposit(fundingTx, depositReveal)
             tx = await tbtcVault.connect(minter).optimisticMint(depositKey)
           })
 
