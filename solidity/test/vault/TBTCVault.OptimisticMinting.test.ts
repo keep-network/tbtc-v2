@@ -470,4 +470,116 @@ describe("TBTCVault - OptimisticMinting", () => {
       })
     })
   })
+
+  // TODO: finalizeOptimisticMint
+
+  describe("cancelOptimisticMint", () => {
+    context("when called not by a guard", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault
+            .connect(thirdParty)
+            .cancelOptimisticMint(fundingTxHash, fundingOutputIndex)
+        ).to.be.revertedWith("Caller is not a guard")
+      })
+    })
+
+    context("when called by a guard", () => {
+      before(async () => {
+        await createSnapshot()
+        await tbtcVault.connect(governance).addMinter(minter.address)
+        await tbtcVault.connect(governance).addGuard(guard.address)
+
+        await bridge.revealDeposit(fundingTx, depositRevealInfo)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when minting has not been requested", () => {
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(guard).cancelOptimisticMint(fundingTxHash, 99)
+          ).to.be.revertedWith(
+            "Optimistic minting not requested of already finalized"
+          )
+        })
+      })
+
+      context("when requested minting has been finalized", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault
+            .connect(minter)
+            .optimisticMint(fundingTxHash, fundingOutputIndex)
+          await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+          await tbtcVault
+            .connect(minter)
+            .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault
+              .connect(guard)
+              .cancelOptimisticMint(fundingTxHash, fundingOutputIndex)
+          ).to.be.revertedWith(
+            "Optimistic minting not requested of already finalized"
+          )
+        })
+      })
+
+      context("when requested minting has not been finalized", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault
+            .connect(minter)
+            .optimisticMint(fundingTxHash, fundingOutputIndex)
+
+          tx = await tbtcVault
+            .connect(guard)
+            .cancelOptimisticMint(fundingTxHash, fundingOutputIndex)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should cancel optimistic minting", async () => {
+          expect(
+            await tbtcVault.pendingOptimisticMints(depositKey)
+          ).to.be.equal(0)
+
+          await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+          await expect(
+            tbtcVault
+              .connect(minter)
+              .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
+          ).to.be.revertedWith(
+            "Optimistic minting not requested or already finalized"
+          )
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "OptimisticMintingCancelled")
+            .withArgs(
+              guard.address,
+              fundingTxHash,
+              fundingOutputIndex,
+              depositKey
+            )
+        })
+      })
+    })
+  })
 })

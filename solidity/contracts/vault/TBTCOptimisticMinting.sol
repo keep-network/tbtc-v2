@@ -20,7 +20,7 @@ import "../bridge/Deposit.sol";
 
 abstract contract TBTCOptimisticMinting is Ownable {
     // TODO: make it governable?
-    uint256 public constant optimisticMintingDelay = 3 hours;
+    uint256 public constant OPTIMISTIC_MINTING_DELAY = 3 hours;
 
     Bridge public bridge;
 
@@ -112,10 +112,13 @@ abstract contract TBTCOptimisticMinting is Ownable {
         );
 
         uint256 requestedAt = pendingOptimisticMints[depositKey];
-        require(requestedAt != 0, "Optimistic minting not requested");
+        require(
+            requestedAt != 0,
+            "Optimistic minting not requested or already finalized"
+        );
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp - requestedAt > optimisticMintingDelay,
+            block.timestamp - requestedAt > OPTIMISTIC_MINTING_DELAY,
             "Optimistic minting delay has not passed yet"
         );
 
@@ -146,6 +149,11 @@ abstract contract TBTCOptimisticMinting is Ownable {
         uint256 depositKey = calculateDepositKey(
             fundingTxHash,
             fundingOutputIndex
+        );
+
+        require(
+            pendingOptimisticMints[depositKey] > 0,
+            "Optimistic minting not requested of already finalized"
         );
 
         delete pendingOptimisticMints[depositKey];
