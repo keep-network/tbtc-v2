@@ -2,6 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
+import { FakeContract } from "@defi-wonderland/smock"
 
 import { walletState } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
@@ -11,25 +12,36 @@ import type {
   BridgeStub,
   BridgeGovernance,
   TBTCVault,
+  IRelay,
+  VendingMachine,
 } from "../../typechain"
-import { SingleP2SHDeposit } from "../data/deposit-sweep"
+import { DepositSweepTestData, SingleP2SHDeposit } from "../data/deposit-sweep"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const { lastBlockTime } = helpers.time
+const { increaseTime, lastBlockTime } = helpers.time
 
-describe.only("TBTCVault - OptimisticMinting", () => {
+describe("TBTCVault - OptimisticMinting", () => {
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
   let tbtcVault: TBTCVault
+  let vendingMachine: VendingMachine
+  let relay: FakeContract<IRelay>
 
   let governance: SignerWithAddress
+  let spvMaintainer: SignerWithAddress
 
   let account1: SignerWithAddress
   let account2: SignerWithAddress
 
-  // used by bridge.revealDeposit(fundingTx, depositReveal)
+  // used by bridge.revealDeposit(fundingTx, depositRevealInfo)
   let fundingTx
-  let depositReveal
+  let depositRevealInfo
+
+  // used by bridge.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo)
+  let sweepTx
+  let sweepProof
+  let mainUtxo
+  let chainDifficulty: number
 
   // used by tbtcVault.optimisticMint(fundingTxHash, fundingOutputIndex)
   let fundingTxHash: string
@@ -39,8 +51,28 @@ describe.only("TBTCVault - OptimisticMinting", () => {
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, bridge, bridgeGovernance, tbtcVault } =
-      await waffle.loadFixture(bridgeFixture))
+    ;({
+      governance,
+      spvMaintainer,
+      relay,
+      bridge,
+      bridgeGovernance,
+      tbtcVault,
+      vendingMachine,
+    } = await waffle.loadFixture(bridgeFixture))
+
+    // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
+    // do not transfer the ownership of `TBTC` token to `TBTCVault`.
+    // We need to do it manually in tests covering `TBTCVault` behavior.
+    const { keepTechnicalWalletTeam, keepCommunityMultiSig } =
+      await helpers.signers.getNamedSigners()
+    await vendingMachine
+      .connect(keepTechnicalWalletTeam)
+      .initiateVendingMachineUpgrade(tbtcVault.address)
+    await increaseTime(await vendingMachine.GOVERNANCE_DELAY())
+    await vendingMachine
+      .connect(keepCommunityMultiSig)
+      .finalizeVendingMachineUpgrade()
 
     await bridgeGovernance
       .connect(governance)
@@ -50,19 +82,26 @@ describe.only("TBTCVault - OptimisticMinting", () => {
     account1 = await ethers.getSigner(accounts[0])
     account2 = await ethers.getSigner(accounts[1])
 
-    const bitcoinTestData = JSON.parse(JSON.stringify(SingleP2SHDeposit))
-    depositReveal = bitcoinTestData.deposits[0].reveal
-    depositReveal.vault = tbtcVault.address
+    const bitcoinTestData: DepositSweepTestData = JSON.parse(
+      JSON.stringify(SingleP2SHDeposit)
+    )
+    depositRevealInfo = bitcoinTestData.deposits[0].reveal
+    depositRevealInfo.vault = tbtcVault.address
     fundingTx = bitcoinTestData.deposits[0].fundingTx
     fundingTxHash = fundingTx.hash
-    fundingOutputIndex = depositReveal.fundingOutputIndex
+    fundingOutputIndex = depositRevealInfo.fundingOutputIndex
     // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
     depositKey = ethers.utils.solidityKeccak256(
       ["bytes32", "uint32"],
       [fundingTxHash, fundingOutputIndex]
     )
-    const { walletPubKeyHash } = depositReveal
 
+    sweepTx = bitcoinTestData.sweepTx
+    sweepProof = bitcoinTestData.sweepProof
+    mainUtxo = bitcoinTestData.mainUtxo
+    chainDifficulty = bitcoinTestData.chainDifficulty
+
+    const { walletPubKeyHash } = depositRevealInfo
     await bridge.setWallet(walletPubKeyHash, {
       ecdsaWalletID: ethers.constants.HashZero,
       mainUtxoHash: ethers.constants.HashZero,
@@ -74,7 +113,7 @@ describe.only("TBTCVault - OptimisticMinting", () => {
       state: walletState.Live,
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
-    await bridge.setWalletMainUtxo(walletPubKeyHash, bitcoinTestData.mainUtxo)
+    await bridge.setWalletMainUtxo(walletPubKeyHash, mainUtxo)
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge; we had to save test Bitcoins when
@@ -323,6 +362,38 @@ describe.only("TBTCVault - OptimisticMinting", () => {
       })
 
       context("when the deposit has been revealed", () => {
+        context("when the deposit has been swept", () => {
+          before(async () => {
+            await createSnapshot()
+
+            await bridge.revealDeposit(fundingTx, depositRevealInfo)
+
+            // Necessary to pass the proof validation.
+            relay.getPrevEpochDifficulty.returns(chainDifficulty)
+            relay.getCurrentEpochDifficulty.returns(chainDifficulty)
+            await bridge
+              .connect(spvMaintainer)
+              .submitDepositSweepProof(
+                sweepTx,
+                sweepProof,
+                mainUtxo,
+                tbtcVault.address
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              tbtcVault
+                .connect(minter)
+                .optimisticMint(fundingTxHash, fundingOutputIndex)
+            ).to.be.revertedWith("The deposit is already swept")
+          })
+        })
+
         context("when the deposit is targeted to another vault", () => {
           before(async () => {
             await createSnapshot()
@@ -334,7 +405,7 @@ describe.only("TBTCVault - OptimisticMinting", () => {
               .setVaultStatus(anotherVault, true)
 
             const revealToAnotherVault = JSON.parse(
-              JSON.stringify(depositReveal)
+              JSON.stringify(depositRevealInfo)
             )
             revealToAnotherVault.vault = anotherVault
 
@@ -360,7 +431,7 @@ describe.only("TBTCVault - OptimisticMinting", () => {
           before(async () => {
             await createSnapshot()
 
-            await bridge.revealDeposit(fundingTx, depositReveal)
+            await bridge.revealDeposit(fundingTx, depositRevealInfo)
             tx = await tbtcVault
               .connect(minter)
               .optimisticMint(fundingTxHash, fundingOutputIndex)
