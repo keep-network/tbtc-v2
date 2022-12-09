@@ -463,6 +463,8 @@ describe("TBTCVault - OptimisticMinting", () => {
               .to.emit(tbtcVault, "OptimisticMintingRequested")
               .withArgs(
                 minter.address,
+                depositRevealInfo.depositor,
+                20000,
                 fundingTxHash,
                 fundingOutputIndex,
                 depositKey
@@ -637,6 +639,8 @@ describe("TBTCVault - OptimisticMinting", () => {
             .to.emit(tbtcVault, "OptimisticMintingFinalized")
             .withArgs(
               minter.address,
+              depositRevealInfo.depositor,
+              20000,
               fundingTxHash,
               fundingOutputIndex,
               depositKey

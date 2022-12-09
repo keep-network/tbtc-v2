@@ -33,12 +33,16 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     event OptimisticMintingRequested(
         address indexed minter,
+        address depositor,
+        uint256 amount,
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
         uint256 depositKey
     );
     event OptimisticMintingFinalized(
         address indexed minter,
+        address depositor,
+        uint256 amount,
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
         uint256 depositKey
@@ -96,6 +100,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
         emit OptimisticMintingRequested(
             msg.sender,
+            deposit.depositor,
+            deposit.amount,
             fundingTxHash,
             fundingOutputIndex,
             depositKey
@@ -133,6 +139,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
         emit OptimisticMintingFinalized(
             msg.sender,
+            deposit.depositor,
+            deposit.amount,
             fundingTxHash,
             fundingOutputIndex,
             depositKey
