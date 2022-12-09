@@ -30,8 +30,9 @@ describe("TBTCVault - OptimisticMinting", () => {
   let governance: SignerWithAddress
   let spvMaintainer: SignerWithAddress
 
-  let account1: SignerWithAddress
-  let account2: SignerWithAddress
+  let minter: SignerWithAddress
+  let guard: SignerWithAddress
+  let thirdParty: SignerWithAddress
 
   // used by bridge.revealDeposit(fundingTx, depositRevealInfo)
   let fundingTx
@@ -50,6 +51,11 @@ describe("TBTCVault - OptimisticMinting", () => {
   let depositKey: string
 
   before(async () => {
+    const accounts = await getUnnamedAccounts()
+    minter = await ethers.getSigner(accounts[0])
+    guard = await ethers.getSigner(accounts[1])
+    thirdParty = await ethers.getSigner(accounts[2])
+
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
       governance,
@@ -63,7 +69,7 @@ describe("TBTCVault - OptimisticMinting", () => {
 
     // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
     // do not transfer the ownership of `TBTC` token to `TBTCVault`.
-    // We need to do it manually in tests covering `TBTCVault` behavior.
+    // We need to do it manually in tests covering `TBTCVault`'s behavior.
     const { keepTechnicalWalletTeam, keepCommunityMultiSig } =
       await helpers.signers.getNamedSigners()
     await vendingMachine
@@ -74,33 +80,50 @@ describe("TBTCVault - OptimisticMinting", () => {
       .connect(keepCommunityMultiSig)
       .finalizeVendingMachineUpgrade()
 
+    // Deployment scripts to not set the vault's status as trusted. We need to
+    // do it manually in tests covering `TBTCVault`'s behavior.
     await bridgeGovernance
       .connect(governance)
       .setVaultStatus(tbtcVault.address, true)
 
-    const accounts = await getUnnamedAccounts()
-    account1 = await ethers.getSigner(accounts[0])
-    account2 = await ethers.getSigner(accounts[1])
-
+    // Set up test data needed to reveal a deposit via
+    // bridge.revealDeposit(fundingTx, depositRevealInfo)
     const bitcoinTestData: DepositSweepTestData = JSON.parse(
       JSON.stringify(SingleP2SHDeposit)
     )
+    fundingTx = bitcoinTestData.deposits[0].fundingTx
     depositRevealInfo = bitcoinTestData.deposits[0].reveal
     depositRevealInfo.vault = tbtcVault.address
-    fundingTx = bitcoinTestData.deposits[0].fundingTx
+
+    // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
+    // the initial value in the Bridge; we had to save test Bitcoins when
+    // generating test data.
+    await bridge.setDepositDustThreshold(10000)
+    // Disable the reveal ahead period since refund locktimes are fixed
+    // within transactions used in this test suite.
+    await bridge.setDepositRevealAheadPeriod(0)
+
+    // Set up test data needed to submit deposit sweep proof via
+    // bridge.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo)
+    chainDifficulty = bitcoinTestData.chainDifficulty
+    sweepTx = bitcoinTestData.sweepTx
+    sweepProof = bitcoinTestData.sweepProof
+    mainUtxo = bitcoinTestData.mainUtxo
+
+    // Set up test data needed to request optimistic minting via
+    // tbtcVault.optimisticMint(fundingTxHash, fundingOutputIndex)
     fundingTxHash = fundingTx.hash
     fundingOutputIndex = depositRevealInfo.fundingOutputIndex
-    // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+
+    // Calculate the key of revealed deposit. This value is used in tests so we
+    // calculate it once, in the setup.
     depositKey = ethers.utils.solidityKeccak256(
       ["bytes32", "uint32"],
       [fundingTxHash, fundingOutputIndex]
     )
 
-    sweepTx = bitcoinTestData.sweepTx
-    sweepProof = bitcoinTestData.sweepProof
-    mainUtxo = bitcoinTestData.mainUtxo
-    chainDifficulty = bitcoinTestData.chainDifficulty
-
+    // Use the BridgeStubs' test utility functions to register a wallet. We do
+    // not want to execute the entire DKG in the setup for this test.
     const { walletPubKeyHash } = depositRevealInfo
     await bridge.setWallet(walletPubKeyHash, {
       ecdsaWalletID: ethers.constants.HashZero,
@@ -114,21 +137,13 @@ describe("TBTCVault - OptimisticMinting", () => {
       movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
     })
     await bridge.setWalletMainUtxo(walletPubKeyHash, mainUtxo)
-
-    // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
-    // the initial value in the Bridge; we had to save test Bitcoins when
-    // generating test data.
-    await bridge.setDepositDustThreshold(10000)
-    // Disable the reveal ahead period since refund locktimes are fixed
-    // within transactions used in this test suite.
-    await bridge.setDepositRevealAheadPeriod(0)
   })
 
   describe("addMinter", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(account1).addMinter(account1.address)
+          tbtcVault.connect(minter).addMinter(minter.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -140,7 +155,7 @@ describe("TBTCVault - OptimisticMinting", () => {
         before(async () => {
           await createSnapshot()
 
-          tx = await tbtcVault.connect(governance).addMinter(account1.address)
+          tx = await tbtcVault.connect(governance).addMinter(minter.address)
         })
 
         after(async () => {
@@ -149,13 +164,13 @@ describe("TBTCVault - OptimisticMinting", () => {
 
         it("should add address as a minter", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isMinter(account1.address)).to.be.true
+          expect(await tbtcVault.isMinter(minter.address)).to.be.true
         })
 
         it("should emit an event", async () => {
           await expect(tx)
             .to.emit(tbtcVault, "MinterAdded")
-            .withArgs(account1.address)
+            .withArgs(minter.address)
         })
       })
 
@@ -163,7 +178,7 @@ describe("TBTCVault - OptimisticMinting", () => {
         before(async () => {
           await createSnapshot()
 
-          await tbtcVault.connect(governance).addMinter(account1.address)
+          await tbtcVault.connect(governance).addMinter(minter.address)
         })
 
         after(async () => {
@@ -172,7 +187,7 @@ describe("TBTCVault - OptimisticMinting", () => {
 
         it("should revert", async () => {
           await expect(
-            tbtcVault.connect(governance).addMinter(account1.address)
+            tbtcVault.connect(governance).addMinter(minter.address)
           ).to.be.revertedWith("This address is already a minter")
         })
       })
@@ -183,7 +198,7 @@ describe("TBTCVault - OptimisticMinting", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(account1).removeMinter(account1.address)
+          tbtcVault.connect(thirdParty).removeMinter(minter.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -195,10 +210,8 @@ describe("TBTCVault - OptimisticMinting", () => {
         before(async () => {
           await createSnapshot()
 
-          await tbtcVault.connect(governance).addMinter(account1.address)
-          tx = await tbtcVault
-            .connect(governance)
-            .removeMinter(account1.address)
+          await tbtcVault.connect(governance).addMinter(minter.address)
+          tx = await tbtcVault.connect(governance).removeMinter(minter.address)
         })
 
         after(async () => {
@@ -207,20 +220,20 @@ describe("TBTCVault - OptimisticMinting", () => {
 
         it("should take minter role from the address", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isMinter(account1.address)).to.be.false
+          expect(await tbtcVault.isMinter(minter.address)).to.be.false
         })
 
         it("should emit an event", async () => {
           await expect(tx)
             .to.emit(tbtcVault, "MinterRemoved")
-            .withArgs(account1.address)
+            .withArgs(minter.address)
         })
       })
 
       context("when address is not a minter", () => {
         it("should revert", async () => {
           await expect(
-            tbtcVault.connect(governance).removeMinter(account1.address)
+            tbtcVault.connect(governance).removeMinter(thirdParty.address)
           ).to.be.revertedWith("This address is not a minter")
         })
       })
@@ -231,7 +244,7 @@ describe("TBTCVault - OptimisticMinting", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(account1).addGuard(account1.address)
+          tbtcVault.connect(guard).addGuard(guard.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -243,7 +256,7 @@ describe("TBTCVault - OptimisticMinting", () => {
         before(async () => {
           await createSnapshot()
 
-          tx = await tbtcVault.connect(governance).addGuard(account1.address)
+          tx = await tbtcVault.connect(governance).addGuard(guard.address)
         })
 
         after(async () => {
@@ -252,13 +265,13 @@ describe("TBTCVault - OptimisticMinting", () => {
 
         it("should add address as a guard", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isGuard(account1.address)).to.be.true
+          expect(await tbtcVault.isGuard(guard.address)).to.be.true
         })
 
         it("should emit an event", async () => {
           await expect(tx)
             .to.emit(tbtcVault, "GuardAdded")
-            .withArgs(account1.address)
+            .withArgs(guard.address)
         })
       })
 
@@ -266,7 +279,7 @@ describe("TBTCVault - OptimisticMinting", () => {
         before(async () => {
           await createSnapshot()
 
-          await tbtcVault.connect(governance).addGuard(account1.address)
+          await tbtcVault.connect(governance).addGuard(guard.address)
         })
 
         after(async () => {
@@ -275,7 +288,7 @@ describe("TBTCVault - OptimisticMinting", () => {
 
         it("should revert", async () => {
           await expect(
-            tbtcVault.connect(governance).addGuard(account1.address)
+            tbtcVault.connect(governance).addGuard(guard.address)
           ).to.be.revertedWith("This address is already a guard")
         })
       })
@@ -286,7 +299,7 @@ describe("TBTCVault - OptimisticMinting", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(account1).removeGuard(account1.address)
+          tbtcVault.connect(thirdParty).removeGuard(guard.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -298,8 +311,8 @@ describe("TBTCVault - OptimisticMinting", () => {
         before(async () => {
           await createSnapshot()
 
-          await tbtcVault.connect(governance).addGuard(account1.address)
-          tx = await tbtcVault.connect(governance).removeGuard(account1.address)
+          await tbtcVault.connect(governance).addGuard(guard.address)
+          tx = await tbtcVault.connect(governance).removeGuard(guard.address)
         })
 
         after(async () => {
@@ -308,20 +321,20 @@ describe("TBTCVault - OptimisticMinting", () => {
 
         it("should take guard role from the address", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isGuard(account1.address)).to.be.false
+          expect(await tbtcVault.isGuard(guard.address)).to.be.false
         })
 
         it("should emit an event", async () => {
           await expect(tx)
             .to.emit(tbtcVault, "GuardRemoved")
-            .withArgs(account1.address)
+            .withArgs(guard.address)
         })
       })
 
       context("when address is not a guard", () => {
         it("should revert", async () => {
           await expect(
-            tbtcVault.connect(governance).removeGuard(account1.address)
+            tbtcVault.connect(governance).removeGuard(guard.address)
           ).to.be.revertedWith("This address is not a guard")
         })
       })
@@ -333,19 +346,15 @@ describe("TBTCVault - OptimisticMinting", () => {
       it("should revert", async () => {
         await expect(
           tbtcVault
-            .connect(account1)
+            .connect(thirdParty)
             .optimisticMint(fundingTxHash, fundingOutputIndex)
         ).to.be.revertedWith("Caller is not a minter")
       })
     })
 
     context("when called by a minter", () => {
-      let minter: SignerWithAddress
-
       before(async () => {
         await createSnapshot()
-
-        minter = account1
         await tbtcVault.connect(governance).addMinter(minter.address)
       })
 
