@@ -37,6 +37,18 @@ abstract contract TBTCOptimisticMinting is Ownable {
         uint32 fundingOutputIndex,
         uint256 depositKey
     );
+    event OptimisticMintingFinalized(
+        address indexed minter,
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex,
+        uint256 depositKey
+    );
+    event OptimisticMintingCancelled(
+        address indexed guard,
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex,
+        uint256 depositKey
+    );
     event MinterAdded(address indexed minter);
     event MinterRemoved(address indexed minter);
     event GuardAdded(address indexed guard);
@@ -116,7 +128,12 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
         delete pendingOptimisticMints[depositKey];
 
-        // TODO: emit an event
+        emit OptimisticMintingFinalized(
+            msg.sender,
+            fundingTxHash,
+            fundingOutputIndex,
+            depositKey
+        );
     }
 
     // TODO: Is this function convenient enough to block minting at 3AM ?
@@ -130,9 +147,15 @@ abstract contract TBTCOptimisticMinting is Ownable {
             fundingTxHash,
             fundingOutputIndex
         );
+
         delete pendingOptimisticMints[depositKey];
 
-        // TODO: emit an event
+        emit OptimisticMintingCancelled(
+            msg.sender,
+            fundingTxHash,
+            fundingOutputIndex,
+            depositKey
+        );
     }
 
     function addMinter(address minter) external onlyOwner {
