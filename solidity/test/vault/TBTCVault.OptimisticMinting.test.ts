@@ -317,7 +317,9 @@ describe("TBTCVault - OptimisticMinting", () => {
           await createSnapshot()
 
           await tbtcVault.connect(governance).addGuardian(guardian.address)
-          tx = await tbtcVault.connect(governance).removeGuardian(guardian.address)
+          tx = await tbtcVault
+            .connect(governance)
+            .removeGuardian(guardian.address)
         })
 
         after(async () => {
@@ -616,18 +618,17 @@ describe("TBTCVault - OptimisticMinting", () => {
         })
 
         it("should mint TBTC", async () => {
-          // TODO: The output value is 0.0002 BTC. We should take into account
-          // fees in the contract
-          // See https://live.blockcypher.com/btc-testnet/tx/c580e0e352570d90e303d912a506055ceeb0ee06f97dce6988c69941374f5479/
+          // Deposit treasury fee is 0.05%. The output value is 0.0002 BTC.
+          // Treasury fee is deducted so we should mint 19990 sat.
           expect(await tbtc.balanceOf(depositRevealInfo.depositor)).to.be.equal(
-            20000
+            19990
           )
         })
 
         it("should incur optimistic mint debt", async () => {
           expect(
             await tbtcVault.optimisticMintingDebt(depositRevealInfo.depositor)
-          ).to.be.equal(20000)
+          ).to.be.equal(19990)
         })
 
         it("should remove the request", async () => {
@@ -640,7 +641,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             .withArgs(
               minter.address,
               depositRevealInfo.depositor,
-              20000,
+              19990,
               fundingTxHash,
               fundingOutputIndex,
               depositKey

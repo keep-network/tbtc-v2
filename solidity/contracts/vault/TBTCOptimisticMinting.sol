@@ -192,23 +192,27 @@ abstract contract TBTCOptimisticMinting is Ownable {
         Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
         require(deposit.sweptAt == 0, "The deposit is already swept");
 
-        // TODO: Deal with the minting fee. Right now we mint amount of TBTC
-        //       equal to the output value of the Bitcoin deposit transaction.
-        //       Bridge, when sweeping, will cut a sweeping fee and Bitcoin TX
-        //       fee. If we do not take it into account here, we will create
-        //       an imbalance in the system. Worth noting that even if we do not
-        //       decide to cut fees here, it is possible to fix this imbalance
-        //       later by a donation to the Bridge (see DonationVault).
-
-        _mint(deposit.depositor, deposit.amount);
-        optimisticMintingDebt[deposit.depositor] += deposit.amount;
+        // Bridge, when sweeping, cuts a deposit treasury fee and splits
+        // Bitcoin miner fee for the sweep transaction evenly between the
+        // depositors in the sweep.
+        //
+        // When tokens are optimistically minted, we do not know what the
+        // Bitcoin miner fee for the sweep transaction will look like.
+        // The Bitcoin miner fee is ignored. When sweeping, the miner fee is
+        // subtracted so the optimisticMintingDebt may stay non-zero after the
+        // deposit is swept.
+        //
+        // This imbalance is supposed to be solved by a donation to the Bridge.
+        uint256 amountToMint = deposit.amount - deposit.treasuryFee;
+        _mint(deposit.depositor, amountToMint);
+        optimisticMintingDebt[deposit.depositor] += amountToMint;
 
         delete pendingOptimisticMints[depositKey];
 
         emit OptimisticMintingFinalized(
             msg.sender,
             deposit.depositor,
-            deposit.amount,
+            amountToMint,
             fundingTxHash,
             fundingOutputIndex,
             depositKey
@@ -244,7 +248,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         );
     }
 
-    // TODO: Find a convenient way for a Guardian to block minting at 3AM and 
+    // TODO: Find a convenient way for a Guardian to block minting at 3AM and
     //       deal with an errant Minter.
 
     /// @notice Adds the address to the Minter set.
