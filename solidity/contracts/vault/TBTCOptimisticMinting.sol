@@ -21,11 +21,11 @@ import "../bridge/Deposit.sol";
 /// @title TBTC Optimistic Minting
 /// @notice The Optimistic Minting mechanism allows to mint TBTC before
 ///         TBTCVault receives the Bank balance. There are two permissioned sets
-///         in the system: Minters and Guards, both set up in 1-of-n mode.
+///         in the system: Minters and Guardians, both set up in 1-of-n mode.
 ///         Minters observe the revealed deposits and request minting TBTC.
 ///         Any single Minter can perform this action. There is a 3 hours delay
 ///         between the time of the request from a Minter to the time TBTC is
-///         minted. During the time of the delay, any Guard can cancel the
+///         minted. During the time of the delay, any Guardian can cancel the
 ///         minting.
 /// @dev This functionality is a part of TBTCVault. It is implemented in
 ///      a separate abstract contract to achieve better separation of concerns
@@ -38,13 +38,13 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     Bridge public bridge;
 
-    /// @notice Indicates if the given address is a minter. Only minters can
+    /// @notice Indicates if the given address is a Minter. Only Minters can
     ///         request optimistic minting.
     mapping(address => bool) public isMinter;
 
-    /// @notice Indicates if the given address is a guard. Only guards can
+    /// @notice Indicates if the given address is a Guardian. Only Guardians can
     ///         cancel requested optimistic minting.
-    mapping(address => bool) public isGuard;
+    mapping(address => bool) public isGuardian;
 
     /// @notice Collection of all revealed deposits for which the optimistic
     ///         minting was requested. Indexed by a deposit key computed as
@@ -78,23 +78,23 @@ abstract contract TBTCOptimisticMinting is Ownable {
         uint256 depositKey
     );
     event OptimisticMintingCancelled(
-        address indexed guard,
+        address indexed guardian,
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex,
         uint256 depositKey
     );
     event MinterAdded(address indexed minter);
     event MinterRemoved(address indexed minter);
-    event GuardAdded(address indexed guard);
-    event GuardRemoved(address indexed guard);
+    event GuardianAdded(address indexed guardian);
+    event GuardianRemoved(address indexed guardian);
 
     modifier onlyMinter() {
         require(isMinter[msg.sender], "Caller is not a minter");
         _;
     }
 
-    modifier onlyGuard() {
-        require(isGuard[msg.sender], "Caller is not a guard");
+    modifier onlyGuardian() {
+        require(isGuardian[msg.sender], "Caller is not a guardian");
         _;
     }
 
@@ -111,13 +111,13 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///      Implemented by TBTCVault.
     function _mint(address minter, uint256 amount) internal virtual;
 
-    /// @notice Allows a minter to request for an optimistic minting of TBTC.
+    /// @notice Allows a Minter to request for an optimistic minting of TBTC.
     ///         The following conditions must be met:
     ///         - The deposit with the given Bitcoin funding transaction hash
     ///           and output index has been revealed to the Bridge.
     ///         - The deposit has not been swept yet.
     ///         - The deposit is targeted into the TBTCVault.
-    ///         After calling this function, the minter has to wait for
+    ///         After calling this function, the Minter has to wait for
     ///         OPTIMISTIC_MINTING_DELAY before finalizing the mint with a call
     ///         to finalizeOptimisticMint.
     function optimisticMint(bytes32 fundingTxHash, uint32 fundingOutputIndex)
@@ -155,7 +155,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         );
     }
 
-    /// @notice Allows a minter to finalize previously requested optimistic
+    /// @notice Allows a Minter to finalize previously requested optimistic
     ///         minting. The following conditions must be met:
     ///         - The optimistic minting has been requested for the given
     ///           deposit.
@@ -165,7 +165,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         - The optimistic minting has not been finalized earlier for the
     ///           given deposit.
     ///         - The optimistic minting request for the given deposit has not
-    ///           been canceled by a guard.
+    ///           been canceled by a Guardian.
     ///         This function mints TBTC and increases pendingOptimisticMints
     ///         for the given depositor. The finalized optimistic minting
     ///         request is removed from the contract.
@@ -215,7 +215,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         );
     }
 
-    /// @notice Allows a guard to cancel optimistic minting request. The
+    /// @notice Allows a Guardian to cancel optimistic minting request. The
     ///         following conditions must be met:
     ///         - The optimistic minting request for the given deposit exists.
     ///         - The optimistic minting request for the given deposit has not
@@ -223,7 +223,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     function cancelOptimisticMint(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
-    ) external onlyGuard {
+    ) external onlyGuardian {
         uint256 depositKey = calculateDepositKey(
             fundingTxHash,
             fundingOutputIndex
@@ -244,35 +244,35 @@ abstract contract TBTCOptimisticMinting is Ownable {
         );
     }
 
-    // TODO: Find a convenient way for a guard to block minting at 3AM and deal
-    //       with an errant minter.
+    // TODO: Find a convenient way for a Guardian to block minting at 3AM and 
+    //       deal with an errant Minter.
 
-    /// @notice Adds the address to the minter set.
+    /// @notice Adds the address to the Minter set.
     function addMinter(address minter) external onlyOwner {
         require(!isMinter[minter], "This address is already a minter");
         isMinter[minter] = true;
         emit MinterAdded(minter);
     }
 
-    /// @notice Removes the address from the minter set.
+    /// @notice Removes the address from the Minter set.
     function removeMinter(address minter) external onlyOwner {
         require(isMinter[minter], "This address is not a minter");
         delete isMinter[minter];
         emit MinterRemoved(minter);
     }
 
-    /// @notice Adds the address to the guard set.
-    function addGuard(address guard) external onlyOwner {
-        require(!isGuard[guard], "This address is already a guard");
-        isGuard[guard] = true;
-        emit GuardAdded(guard);
+    /// @notice Adds the address to the Guardian set.
+    function addGuardian(address guardian) external onlyOwner {
+        require(!isGuardian[guardian], "This address is already a guardian");
+        isGuardian[guardian] = true;
+        emit GuardianAdded(guardian);
     }
 
-    /// @notice Removes the address from the guard set.
-    function removeGuard(address guard) external onlyOwner {
-        require(isGuard[guard], "This address is not a guard");
-        delete isGuard[guard];
-        emit GuardRemoved(guard);
+    /// @notice Removes the address from the Guardian set.
+    function removeGuardian(address guardian) external onlyOwner {
+        require(isGuardian[guardian], "This address is not a guardian");
+        delete isGuardian[guardian];
+        emit GuardianRemoved(guardian);
     }
 
     /// @notice Calculates deposit key the same way as the Bridge contract.

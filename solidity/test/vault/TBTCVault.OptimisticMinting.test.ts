@@ -33,7 +33,7 @@ describe("TBTCVault - OptimisticMinting", () => {
   let spvMaintainer: SignerWithAddress
 
   let minter: SignerWithAddress
-  let guard: SignerWithAddress
+  let guardian: SignerWithAddress
   let thirdParty: SignerWithAddress
 
   // used by bridge.revealDeposit(fundingTx, depositRevealInfo)
@@ -55,7 +55,7 @@ describe("TBTCVault - OptimisticMinting", () => {
   before(async () => {
     const accounts = await getUnnamedAccounts()
     minter = await ethers.getSigner(accounts[0])
-    guard = await ethers.getSigner(accounts[1])
+    guardian = await ethers.getSigner(accounts[1])
     thirdParty = await ethers.getSigner(accounts[2])
 
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -245,46 +245,46 @@ describe("TBTCVault - OptimisticMinting", () => {
     })
   })
 
-  describe("addGuard", () => {
+  describe("addGuardian", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(guard).addGuard(guard.address)
+          tbtcVault.connect(guardian).addGuardian(guardian.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
     context("when called by the governance", () => {
-      context("when address is not a guard", () => {
+      context("when address is not a guardian", () => {
         let tx: ContractTransaction
 
         before(async () => {
           await createSnapshot()
 
-          tx = await tbtcVault.connect(governance).addGuard(guard.address)
+          tx = await tbtcVault.connect(governance).addGuardian(guardian.address)
         })
 
         after(async () => {
           await restoreSnapshot()
         })
 
-        it("should add address as a guard", async () => {
+        it("should add address as a guardian", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isGuard(guard.address)).to.be.true
+          expect(await tbtcVault.isGuardian(guardian.address)).to.be.true
         })
 
         it("should emit an event", async () => {
           await expect(tx)
-            .to.emit(tbtcVault, "GuardAdded")
-            .withArgs(guard.address)
+            .to.emit(tbtcVault, "GuardianAdded")
+            .withArgs(guardian.address)
         })
       })
 
-      context("when address is a guard", () => {
+      context("when address is a guardian", () => {
         before(async () => {
           await createSnapshot()
 
-          await tbtcVault.connect(governance).addGuard(guard.address)
+          await tbtcVault.connect(governance).addGuardian(guardian.address)
         })
 
         after(async () => {
@@ -293,54 +293,54 @@ describe("TBTCVault - OptimisticMinting", () => {
 
         it("should revert", async () => {
           await expect(
-            tbtcVault.connect(governance).addGuard(guard.address)
-          ).to.be.revertedWith("This address is already a guard")
+            tbtcVault.connect(governance).addGuardian(guardian.address)
+          ).to.be.revertedWith("This address is already a guardian")
         })
       })
     })
   })
 
-  describe("removeGuard", () => {
+  describe("removeGuardian", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(thirdParty).removeGuard(guard.address)
+          tbtcVault.connect(thirdParty).removeGuardian(guardian.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
     context("when called by the governance", () => {
-      context("when address is a guard", () => {
+      context("when address is a guardian", () => {
         let tx: ContractTransaction
 
         before(async () => {
           await createSnapshot()
 
-          await tbtcVault.connect(governance).addGuard(guard.address)
-          tx = await tbtcVault.connect(governance).removeGuard(guard.address)
+          await tbtcVault.connect(governance).addGuardian(guardian.address)
+          tx = await tbtcVault.connect(governance).removeGuardian(guardian.address)
         })
 
         after(async () => {
           await restoreSnapshot()
         })
 
-        it("should take guard role from the address", async () => {
+        it("should take guardian role from the address", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isGuard(guard.address)).to.be.false
+          expect(await tbtcVault.isGuardian(guardian.address)).to.be.false
         })
 
         it("should emit an event", async () => {
           await expect(tx)
-            .to.emit(tbtcVault, "GuardRemoved")
-            .withArgs(guard.address)
+            .to.emit(tbtcVault, "GuardianRemoved")
+            .withArgs(guardian.address)
         })
       })
 
-      context("when address is not a guard", () => {
+      context("when address is not a guardian", () => {
         it("should revert", async () => {
           await expect(
-            tbtcVault.connect(governance).removeGuard(guard.address)
-          ).to.be.revertedWith("This address is not a guard")
+            tbtcVault.connect(governance).removeGuardian(guardian.address)
+          ).to.be.revertedWith("This address is not a guardian")
         })
       })
     })
@@ -651,21 +651,21 @@ describe("TBTCVault - OptimisticMinting", () => {
   })
 
   describe("cancelOptimisticMint", () => {
-    context("when called not by a guard", () => {
+    context("when called not by a guardian", () => {
       it("should revert", async () => {
         await expect(
           tbtcVault
             .connect(thirdParty)
             .cancelOptimisticMint(fundingTxHash, fundingOutputIndex)
-        ).to.be.revertedWith("Caller is not a guard")
+        ).to.be.revertedWith("Caller is not a guardian")
       })
     })
 
-    context("when called by a guard", () => {
+    context("when called by a guardian", () => {
       before(async () => {
         await createSnapshot()
         await tbtcVault.connect(governance).addMinter(minter.address)
-        await tbtcVault.connect(governance).addGuard(guard.address)
+        await tbtcVault.connect(governance).addGuardian(guardian.address)
 
         await bridge.revealDeposit(fundingTx, depositRevealInfo)
       })
@@ -677,7 +677,7 @@ describe("TBTCVault - OptimisticMinting", () => {
       context("when minting has not been requested", () => {
         it("should revert", async () => {
           await expect(
-            tbtcVault.connect(guard).cancelOptimisticMint(fundingTxHash, 99)
+            tbtcVault.connect(guardian).cancelOptimisticMint(fundingTxHash, 99)
           ).to.be.revertedWith(
             "Optimistic minting not requested of already finalized"
           )
@@ -704,7 +704,7 @@ describe("TBTCVault - OptimisticMinting", () => {
         it("should revert", async () => {
           await expect(
             tbtcVault
-              .connect(guard)
+              .connect(guardian)
               .cancelOptimisticMint(fundingTxHash, fundingOutputIndex)
           ).to.be.revertedWith(
             "Optimistic minting not requested of already finalized"
@@ -723,7 +723,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             .optimisticMint(fundingTxHash, fundingOutputIndex)
 
           tx = await tbtcVault
-            .connect(guard)
+            .connect(guardian)
             .cancelOptimisticMint(fundingTxHash, fundingOutputIndex)
         })
 
@@ -750,7 +750,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await expect(tx)
             .to.emit(tbtcVault, "OptimisticMintingCancelled")
             .withArgs(
-              guard.address,
+              guardian.address,
               fundingTxHash,
               fundingOutputIndex,
               depositKey
