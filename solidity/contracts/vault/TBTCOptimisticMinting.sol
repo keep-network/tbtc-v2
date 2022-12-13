@@ -120,6 +120,23 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         After calling this function, the Minter has to wait for
     ///         OPTIMISTIC_MINTING_DELAY before finalizing the mint with a call
     ///         to finalizeOptimisticMint.
+    /// @dev The deposit done on the Bitcoin side must be revealed early enough
+    ///      to the Bridge on Ethereum to pass the Bridge's validation. The
+    ///      validation passes successfully only if the deposit reveal is done
+    ///      respectively earlier than the moment when the deposit refund
+    ///      locktime is reached, i.e. the deposit becomes refundable. It may
+    ///      happen that the wallet does not sweep a revealed deposit and one of
+    ///      the Minters requests an optimistic mint for that deposit just
+    ///      before the locktime is reached. Guardians must cancel optimistic
+    ///      minting for this deposit because the wallet will not be able to
+    ///      sweep it. The on-chain optimistic minting code does not perform any
+    ///      validation for gas efficiency: it would have to perform the same
+    ///      validation as `validateDepositRefundLocktime` and expect the entire
+    ///      `DepositRevealInfo` to be passed to assemble the expected script
+    ///      hash on-chain. Guardians must validate if the deposit happened on
+    ///      Bitcoin, that the script hash has the expected format, and that the
+    ///      wallet is an active one so they can also validate the time left for
+    ///      the refund.
     function optimisticMint(bytes32 fundingTxHash, uint32 fundingOutputIndex)
         external
         onlyMinter
@@ -129,14 +146,6 @@ abstract contract TBTCOptimisticMinting is Ownable {
             fundingOutputIndex
         );
         Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
-
-        // TODO: Validate when it was revealed. The deposit must be revealed
-        //       early enough to the Bridge to pass the Bridge's validation.
-        //       It may happen that none of the Minters request for an
-        //       optimistic mint of a deposit early and one of them do it just
-        //       before the Bitcoin refund unlocks. It should not be possible
-        //       to request an optimistic mint for such a deposit because
-        //       there is no guarantee the wallet will be able to sweep it.
 
         require(deposit.revealedAt != 0, "The deposit has not been revealed");
         require(deposit.sweptAt == 0, "The deposit is already swept");
@@ -224,6 +233,14 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         - The optimistic minting request for the given deposit exists.
     ///         - The optimistic minting request for the given deposit has not
     ///           been finalized yet.
+    /// @dev Guardians must validate the following conditions for every deposit
+    ///      for which the optimistic minting was requested:
+    ///      - The deposit happened on Bitcoin side and it has enough
+    ///        confirmations.
+    ///      - The optimistic minting has been requested early enough so that
+    ///        the wallet has enough time to sweep the deposit.
+    ///      - The wallet is an active one and it does perform sweeps or it will
+    ///        perform sweeps once the sweeps are activated.
     function cancelOptimisticMint(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
