@@ -98,6 +98,14 @@ abstract contract TBTCOptimisticMinting is Ownable {
         _;
     }
 
+    modifier onlyOwnerOrGuardian() {
+        require(
+            owner() == msg.sender || isGuardian[msg.sender],
+            "Caller is not the owner or guardian"
+        );
+        _;
+    }
+
     constructor(Bridge _bridge) {
         require(
             address(_bridge) != address(0),
@@ -265,9 +273,6 @@ abstract contract TBTCOptimisticMinting is Ownable {
         );
     }
 
-    // TODO: Find a convenient way for a Guardian to block minting at 3AM and
-    //       deal with an errant Minter.
-
     /// @notice Adds the address to the Minter set.
     function addMinter(address minter) external onlyOwner {
         require(!isMinter[minter], "This address is already a minter");
@@ -276,7 +281,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     }
 
     /// @notice Removes the address from the Minter set.
-    function removeMinter(address minter) external onlyOwner {
+    function removeMinter(address minter) external onlyOwnerOrGuardian {
         require(isMinter[minter], "This address is not a minter");
         delete isMinter[minter];
         emit MinterRemoved(minter);

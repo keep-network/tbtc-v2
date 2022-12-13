@@ -200,11 +200,11 @@ describe("TBTCVault - OptimisticMinting", () => {
   })
 
   describe("removeMinter", () => {
-    context("when called not by the governance", () => {
+    context("when called not by the governance or a guardian", () => {
       it("should revert", async () => {
         await expect(
           tbtcVault.connect(thirdParty).removeMinter(minter.address)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
+        ).to.be.revertedWith("Caller is not the owner or guardian")
       })
     })
 
@@ -239,6 +239,53 @@ describe("TBTCVault - OptimisticMinting", () => {
         it("should revert", async () => {
           await expect(
             tbtcVault.connect(governance).removeMinter(thirdParty.address)
+          ).to.be.revertedWith("This address is not a minter")
+        })
+      })
+    })
+
+    context("when called by a guardian", () => {
+      context("when address is a minter", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addMinter(minter.address)
+          await tbtcVault.connect(governance).addGuardian(guardian.address)
+          tx = await tbtcVault.connect(guardian).removeMinter(minter.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should take minter role from the address", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await tbtcVault.isMinter(minter.address)).to.be.false
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "MinterRemoved")
+            .withArgs(minter.address)
+        })
+      })
+
+      context("when address is not a minter", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addGuardian(guardian.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(guardian).removeMinter(thirdParty.address)
           ).to.be.revertedWith("This address is not a minter")
         })
       })
