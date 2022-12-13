@@ -46,6 +46,12 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         cancel requested optimistic minting.
     mapping(address => bool) public isGuardian;
 
+    /// @notice Indicates if the optimistic minting has been paused. Only the
+    ///         Governance can pause optimistic minting. Note that the pause of
+    ///         the optimistic minting does not stop the standard minting flow
+    ///         where wallets sweep deposits.
+    bool public isOptimisticMintingPaused;
+
     /// @notice Collection of all revealed deposits for which the optimistic
     ///         minting was requested. Indexed by a deposit key computed as
     ///         keccak256(fundingTxHash | fundingOutputIndex). The value is
@@ -87,6 +93,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
     event MinterRemoved(address indexed minter);
     event GuardianAdded(address indexed guardian);
     event GuardianRemoved(address indexed guardian);
+    event OptimisticMintingPaused();
+    event OptimisticMintingUnpaused();
 
     modifier onlyMinter() {
         require(isMinter[msg.sender], "Caller is not a minter");
@@ -103,6 +111,11 @@ abstract contract TBTCOptimisticMinting is Ownable {
             owner() == msg.sender || isGuardian[msg.sender],
             "Caller is not the owner or guardian"
         );
+        _;
+    }
+
+    modifier whenOptimisticMintingNotPaused() {
+        require(!isOptimisticMintingPaused, "Optimistic minting paused");
         _;
     }
 
@@ -125,6 +138,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///           and output index has been revealed to the Bridge.
     ///         - The deposit has not been swept yet.
     ///         - The deposit is targeted into the TBTCVault.
+    ///         - The optimistic minting is not paused.
     ///         After calling this function, the Minter has to wait for
     ///         OPTIMISTIC_MINTING_DELAY before finalizing the mint with a call
     ///         to finalizeOptimisticMint.
@@ -148,6 +162,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     function optimisticMint(bytes32 fundingTxHash, uint32 fundingOutputIndex)
         external
         onlyMinter
+        whenOptimisticMintingNotPaused
     {
         uint256 depositKey = calculateDepositKey(
             fundingTxHash,
@@ -183,13 +198,14 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///           given deposit.
     ///         - The optimistic minting request for the given deposit has not
     ///           been canceled by a Guardian.
+    ///         - The optimistic minting is not paused.
     ///         This function mints TBTC and increases pendingOptimisticMints
     ///         for the given depositor. The finalized optimistic minting
     ///         request is removed from the contract.
     function finalizeOptimisticMint(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
-    ) external onlyMinter {
+    ) external onlyMinter whenOptimisticMintingNotPaused {
         uint256 depositKey = calculateDepositKey(
             fundingTxHash,
             fundingOutputIndex
@@ -299,6 +315,25 @@ abstract contract TBTCOptimisticMinting is Ownable {
         require(isGuardian[guardian], "This address is not a guardian");
         delete isGuardian[guardian];
         emit GuardianRemoved(guardian);
+    }
+
+    /// @notice Pauses the optimistic minting. Note that the pause of the
+    ///         optimistic minting does not stop the standard minting flow
+    ///         where wallets sweep deposits.
+    function pauseOptimisticMinting() external onlyOwner {
+        require(
+            !isOptimisticMintingPaused,
+            "Optimistic minting already paused"
+        );
+        isOptimisticMintingPaused = true;
+        emit OptimisticMintingPaused();
+    }
+
+    /// @notice Unpauses the optimistic minting.
+    function unpauseOptimisticMinting() external onlyOwner {
+        require(isOptimisticMintingPaused, "Optimistic minting is not paused");
+        isOptimisticMintingPaused = false;
+        emit OptimisticMintingUnpaused();
     }
 
     /// @notice Calculates deposit key the same way as the Bridge contract.

@@ -416,6 +416,25 @@ describe("TBTCVault - OptimisticMinting", () => {
         await restoreSnapshot()
       })
 
+      context("when optimistic minting is paused", () => {
+        before(async () => {
+          await createSnapshot()
+          await tbtcVault.connect(governance).pauseOptimisticMinting()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault
+              .connect(minter)
+              .optimisticMint(fundingTxHash, fundingOutputIndex)
+          ).to.be.revertedWith("Optimistic minting paused")
+        })
+      })
+
       context("when the deposit has not been revealed", () => {
         it("should revert", async () => {
           await expect(
@@ -545,6 +564,25 @@ describe("TBTCVault - OptimisticMinting", () => {
 
       after(async () => {
         await restoreSnapshot()
+      })
+
+      context("when optimistic minting is paused", () => {
+        before(async () => {
+          await createSnapshot()
+          await tbtcVault.connect(governance).pauseOptimisticMinting()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault
+              .connect(minter)
+              .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
+          ).to.be.revertedWith("Optimistic minting paused")
+        })
       })
 
       context("when minting has not been requested", () => {
@@ -803,6 +841,100 @@ describe("TBTCVault - OptimisticMinting", () => {
               fundingOutputIndex,
               depositKey
             )
+        })
+      })
+    })
+  })
+
+  describe("pauseOptimisticMinting", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(thirdParty).pauseOptimisticMinting()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when optimistic minting is already paused", () => {
+        before(async () => {
+          await createSnapshot()
+          await tbtcVault.connect(governance).pauseOptimisticMinting()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(governance).pauseOptimisticMinting()
+          ).to.be.revertedWith("Optimistic minting already paused")
+        })
+      })
+
+      context("when optimistic minting is not paused", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+          tx = await tbtcVault.connect(governance).pauseOptimisticMinting()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should pause optimistic minting", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await tbtcVault.isOptimisticMintingPaused()).to.be.true
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx).to.emit(tbtcVault, "OptimisticMintingPaused")
+        })
+      })
+    })
+  })
+
+  describe("unpauseOptimisticMinting", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(thirdParty).unpauseOptimisticMinting()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when optimistic minting is not paused", () => {
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(governance).unpauseOptimisticMinting()
+          ).to.be.revertedWith("Optimistic minting is not paused")
+        })
+      })
+
+      context("when optimistic minting is paused", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+          await tbtcVault.connect(governance).pauseOptimisticMinting()
+          tx = await tbtcVault.connect(governance).unpauseOptimisticMinting()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should unpause optimistic minting", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await tbtcVault.isOptimisticMintingPaused()).to.be.false
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx).to.emit(tbtcVault, "OptimisticMintingUnpaused")
         })
       })
     })
