@@ -939,4 +939,27 @@ describe("TBTCVault - OptimisticMinting", () => {
       })
     })
   })
+
+  describe("calculateDepositKey", () => {
+    before(async () => {
+      await createSnapshot()
+      await bridge.revealDeposit(fundingTx, depositRevealInfo)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    it("should calculate the key as expected", async () => {
+      expect(
+        await tbtcVault.calculateDepositKey(fundingTxHash, fundingOutputIndex)
+      ).to.equal(depositKey)
+    })
+
+    it("should calculate the same key as the Bridge", async () => {
+      expect((await bridge.deposits(depositKey)).revealedAt).to.equal(
+        await lastBlockTime()
+      )
+    })
+  })
 })
