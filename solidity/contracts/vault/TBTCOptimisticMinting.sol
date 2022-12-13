@@ -370,8 +370,6 @@ abstract contract TBTCOptimisticMinting is Ownable {
             return 0;
         }
 
-        // TODO: emit an event
-
-        // TODO: cover with unit tests
+        // TODO: emit an event ?
     }
 }
