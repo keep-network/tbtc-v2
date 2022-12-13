@@ -144,257 +144,6 @@ describe("TBTCVault - OptimisticMinting", () => {
     await bridge.setWalletMainUtxo(walletPubKeyHash, mainUtxo)
   })
 
-  describe("addMinter", () => {
-    context("when called not by the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          tbtcVault.connect(minter).addMinter(minter.address)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the governance", () => {
-      context("when address is not a minter", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          tx = await tbtcVault.connect(governance).addMinter(minter.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should add address as a minter", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isMinter(minter.address)).to.be.true
-        })
-
-        it("should emit an event", async () => {
-          await expect(tx)
-            .to.emit(tbtcVault, "MinterAdded")
-            .withArgs(minter.address)
-        })
-      })
-
-      context("when address is a minter", () => {
-        before(async () => {
-          await createSnapshot()
-
-          await tbtcVault.connect(governance).addMinter(minter.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            tbtcVault.connect(governance).addMinter(minter.address)
-          ).to.be.revertedWith("This address is already a minter")
-        })
-      })
-    })
-  })
-
-  describe("removeMinter", () => {
-    context("when called not by the governance or a guardian", () => {
-      it("should revert", async () => {
-        await expect(
-          tbtcVault.connect(thirdParty).removeMinter(minter.address)
-        ).to.be.revertedWith("Caller is not the owner or guardian")
-      })
-    })
-
-    context("when called by the governance", () => {
-      context("when address is a minter", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          await tbtcVault.connect(governance).addMinter(minter.address)
-          tx = await tbtcVault.connect(governance).removeMinter(minter.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should take minter role from the address", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isMinter(minter.address)).to.be.false
-        })
-
-        it("should emit an event", async () => {
-          await expect(tx)
-            .to.emit(tbtcVault, "MinterRemoved")
-            .withArgs(minter.address)
-        })
-      })
-
-      context("when address is not a minter", () => {
-        it("should revert", async () => {
-          await expect(
-            tbtcVault.connect(governance).removeMinter(thirdParty.address)
-          ).to.be.revertedWith("This address is not a minter")
-        })
-      })
-    })
-
-    context("when called by a guardian", () => {
-      context("when address is a minter", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          await tbtcVault.connect(governance).addMinter(minter.address)
-          await tbtcVault.connect(governance).addGuardian(guardian.address)
-          tx = await tbtcVault.connect(guardian).removeMinter(minter.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should take minter role from the address", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isMinter(minter.address)).to.be.false
-        })
-
-        it("should emit an event", async () => {
-          await expect(tx)
-            .to.emit(tbtcVault, "MinterRemoved")
-            .withArgs(minter.address)
-        })
-      })
-
-      context("when address is not a minter", () => {
-        before(async () => {
-          await createSnapshot()
-
-          await tbtcVault.connect(governance).addGuardian(guardian.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            tbtcVault.connect(guardian).removeMinter(thirdParty.address)
-          ).to.be.revertedWith("This address is not a minter")
-        })
-      })
-    })
-  })
-
-  describe("addGuardian", () => {
-    context("when called not by the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          tbtcVault.connect(guardian).addGuardian(guardian.address)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the governance", () => {
-      context("when address is not a guardian", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          tx = await tbtcVault.connect(governance).addGuardian(guardian.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should add address as a guardian", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isGuardian(guardian.address)).to.be.true
-        })
-
-        it("should emit an event", async () => {
-          await expect(tx)
-            .to.emit(tbtcVault, "GuardianAdded")
-            .withArgs(guardian.address)
-        })
-      })
-
-      context("when address is a guardian", () => {
-        before(async () => {
-          await createSnapshot()
-
-          await tbtcVault.connect(governance).addGuardian(guardian.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should revert", async () => {
-          await expect(
-            tbtcVault.connect(governance).addGuardian(guardian.address)
-          ).to.be.revertedWith("This address is already a guardian")
-        })
-      })
-    })
-  })
-
-  describe("removeGuardian", () => {
-    context("when called not by the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          tbtcVault.connect(thirdParty).removeGuardian(guardian.address)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the governance", () => {
-      context("when address is a guardian", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          await tbtcVault.connect(governance).addGuardian(guardian.address)
-          tx = await tbtcVault
-            .connect(governance)
-            .removeGuardian(guardian.address)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should take guardian role from the address", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await tbtcVault.isGuardian(guardian.address)).to.be.false
-        })
-
-        it("should emit an event", async () => {
-          await expect(tx)
-            .to.emit(tbtcVault, "GuardianRemoved")
-            .withArgs(guardian.address)
-        })
-      })
-
-      context("when address is not a guardian", () => {
-        it("should revert", async () => {
-          await expect(
-            tbtcVault.connect(governance).removeGuardian(guardian.address)
-          ).to.be.revertedWith("This address is not a guardian")
-        })
-      })
-    })
-  })
-
   describe("optimisticMint", () => {
     context("when called not by a minter", () => {
       it("should revert", async () => {
@@ -841,6 +590,257 @@ describe("TBTCVault - OptimisticMinting", () => {
               fundingOutputIndex,
               depositKey
             )
+        })
+      })
+    })
+  })
+
+  describe("addMinter", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(minter).addMinter(minter.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when address is not a minter", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          tx = await tbtcVault.connect(governance).addMinter(minter.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should add address as a minter", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await tbtcVault.isMinter(minter.address)).to.be.true
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "MinterAdded")
+            .withArgs(minter.address)
+        })
+      })
+
+      context("when address is a minter", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addMinter(minter.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(governance).addMinter(minter.address)
+          ).to.be.revertedWith("This address is already a minter")
+        })
+      })
+    })
+  })
+
+  describe("removeMinter", () => {
+    context("when called not by the governance or a guardian", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(thirdParty).removeMinter(minter.address)
+        ).to.be.revertedWith("Caller is not the owner or guardian")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when address is a minter", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addMinter(minter.address)
+          tx = await tbtcVault.connect(governance).removeMinter(minter.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should take minter role from the address", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await tbtcVault.isMinter(minter.address)).to.be.false
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "MinterRemoved")
+            .withArgs(minter.address)
+        })
+      })
+
+      context("when address is not a minter", () => {
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(governance).removeMinter(thirdParty.address)
+          ).to.be.revertedWith("This address is not a minter")
+        })
+      })
+    })
+
+    context("when called by a guardian", () => {
+      context("when address is a minter", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addMinter(minter.address)
+          await tbtcVault.connect(governance).addGuardian(guardian.address)
+          tx = await tbtcVault.connect(guardian).removeMinter(minter.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should take minter role from the address", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await tbtcVault.isMinter(minter.address)).to.be.false
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "MinterRemoved")
+            .withArgs(minter.address)
+        })
+      })
+
+      context("when address is not a minter", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addGuardian(guardian.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(guardian).removeMinter(thirdParty.address)
+          ).to.be.revertedWith("This address is not a minter")
+        })
+      })
+    })
+  })
+
+  describe("addGuardian", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(guardian).addGuardian(guardian.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when address is not a guardian", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          tx = await tbtcVault.connect(governance).addGuardian(guardian.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should add address as a guardian", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await tbtcVault.isGuardian(guardian.address)).to.be.true
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "GuardianAdded")
+            .withArgs(guardian.address)
+        })
+      })
+
+      context("when address is a guardian", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addGuardian(guardian.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(governance).addGuardian(guardian.address)
+          ).to.be.revertedWith("This address is already a guardian")
+        })
+      })
+    })
+  })
+
+  describe("removeGuardian", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(thirdParty).removeGuardian(guardian.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      context("when address is a guardian", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addGuardian(guardian.address)
+          tx = await tbtcVault
+            .connect(governance)
+            .removeGuardian(guardian.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should take guardian role from the address", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await tbtcVault.isGuardian(guardian.address)).to.be.false
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "GuardianRemoved")
+            .withArgs(guardian.address)
+        })
+      })
+
+      context("when address is not a guardian", () => {
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(governance).removeGuardian(guardian.address)
+          ).to.be.revertedWith("This address is not a guardian")
         })
       })
     })
