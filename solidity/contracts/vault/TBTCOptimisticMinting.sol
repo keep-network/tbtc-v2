@@ -276,7 +276,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
         require(
             pendingOptimisticMints[depositKey] > 0,
-            "Optimistic minting not requested of already finalized"
+            "Optimistic minting not requested or already finalized"
         );
 
         delete pendingOptimisticMints[depositKey];

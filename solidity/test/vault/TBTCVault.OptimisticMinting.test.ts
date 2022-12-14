@@ -523,7 +523,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await expect(
             tbtcVault.connect(guardian).cancelOptimisticMint(fundingTxHash, 99)
           ).to.be.revertedWith(
-            "Optimistic minting not requested of already finalized"
+            "Optimistic minting not requested or already finalized"
           )
         })
       })
@@ -551,7 +551,7 @@ describe("TBTCVault - OptimisticMinting", () => {
               .connect(guardian)
               .cancelOptimisticMint(fundingTxHash, fundingOutputIndex)
           ).to.be.revertedWith(
-            "Optimistic minting not requested of already finalized"
+            "Optimistic minting not requested or already finalized"
           )
         })
       })
