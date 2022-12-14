@@ -245,7 +245,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp - request.requestedAt > OPTIMISTIC_MINTING_DELAY,
+            block.timestamp > request.requestedAt + OPTIMISTIC_MINTING_DELAY,
             "Optimistic minting delay has not passed yet"
         );
 
@@ -317,7 +317,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         );
 
         // Delete it. It allows to request optimistic minting for the given
-        // deposit again. Useful in case of an errant Guarian.
+        // deposit again. Useful in case of an errant Guardian.
         delete optimisticMintingRequests[depositKey];
 
         emit OptimisticMintingCancelled(
