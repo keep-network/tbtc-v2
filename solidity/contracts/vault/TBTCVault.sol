@@ -306,6 +306,6 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ) internal {
         emit Unminted(redeemer, amount);
         tbtcToken.burnFrom(redeemer, amount);
-        bank.approveBalanceAndCall(bank.bridge(), amount, redemptionData);
+        bank.approveBalanceAndCall(address(bridge), amount, redemptionData);
     }
 }
