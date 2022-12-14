@@ -79,25 +79,25 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     event OptimisticMintingRequested(
         address indexed minter,
-        address depositor,
+        uint256 indexed depositKey,
+        address indexed depositor,
         uint256 amount,
         bytes32 fundingTxHash,
-        uint32 fundingOutputIndex,
-        uint256 depositKey
+        uint32 fundingOutputIndex
     );
     event OptimisticMintingFinalized(
         address indexed minter,
-        address depositor,
+        uint256 indexed depositKey,
+        address indexed depositor,
         uint256 amount,
         bytes32 fundingTxHash,
-        uint32 fundingOutputIndex,
-        uint256 depositKey
+        uint32 fundingOutputIndex
     );
     event OptimisticMintingCancelled(
         address indexed guardian,
+        uint256 indexed depositKey,
         bytes32 fundingTxHash,
-        uint32 fundingOutputIndex,
-        uint256 depositKey
+        uint32 fundingOutputIndex
     );
     event MinterAdded(address indexed minter);
     event MinterRemoved(address indexed minter);
@@ -199,11 +199,11 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
         emit OptimisticMintingRequested(
             msg.sender,
+            depositKey,
             deposit.depositor,
             deposit.amount,
             fundingTxHash,
-            fundingOutputIndex,
-            depositKey
+            fundingOutputIndex
         );
     }
 
@@ -272,11 +272,11 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
         emit OptimisticMintingFinalized(
             msg.sender,
+            depositKey,
             deposit.depositor,
             amountToMint,
             fundingTxHash,
-            fundingOutputIndex,
-            depositKey
+            fundingOutputIndex
         );
     }
 
@@ -322,9 +322,9 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
         emit OptimisticMintingCancelled(
             msg.sender,
+            depositKey,
             fundingTxHash,
-            fundingOutputIndex,
-            depositKey
+            fundingOutputIndex
         );
     }
 

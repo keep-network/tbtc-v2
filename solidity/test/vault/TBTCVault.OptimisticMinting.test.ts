@@ -312,11 +312,11 @@ describe("TBTCVault - OptimisticMinting", () => {
               .to.emit(tbtcVault, "OptimisticMintingRequested")
               .withArgs(
                 minter.address,
+                depositKey,
                 depositRevealInfo.depositor,
                 20000,
                 fundingTxHash,
-                fundingOutputIndex,
-                depositKey
+                fundingOutputIndex
               )
           })
         })
@@ -512,11 +512,11 @@ describe("TBTCVault - OptimisticMinting", () => {
             .to.emit(tbtcVault, "OptimisticMintingFinalized")
             .withArgs(
               minter.address,
+              depositKey,
               depositRevealInfo.depositor,
               19990,
               fundingTxHash,
-              fundingOutputIndex,
-              depositKey
+              fundingOutputIndex
             )
         })
       })
@@ -624,9 +624,9 @@ describe("TBTCVault - OptimisticMinting", () => {
             .to.emit(tbtcVault, "OptimisticMintingCancelled")
             .withArgs(
               guardian.address,
+              depositKey,
               fundingTxHash,
-              fundingOutputIndex,
-              depositKey
+              fundingOutputIndex
             )
         })
       })
