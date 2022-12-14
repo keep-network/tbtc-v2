@@ -136,7 +136,7 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
         for (uint256 i = 0; i < depositors.length; i++) {
             address depositor = depositors[i];
             uint256 amount = depositedAmounts[i];
-            _mint(depositor, repayOptimisticMintDebt(depositor, amount));
+            _mint(depositor, repayOptimisticMintingDebt(depositor, amount));
         }
     }
 

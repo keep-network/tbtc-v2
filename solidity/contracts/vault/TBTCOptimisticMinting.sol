@@ -356,7 +356,12 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         sweeps a deposit, the debt is fully or partially paid off, no
     ///         matter if that particular deposit was used for the optimistic
     ///         minting or not.
-    function repayOptimisticMintDebt(address depositor, uint256 amount)
+    /// @dev See TBTCVault.receiveBalanceIncrease
+    /// @param depositor The depositor whose balance increase is received.
+    /// @param amount The balance increase amount for the depositor received.
+    /// @return The TBTC amount that should be minted after paying off the
+    ///         optimistic minting debt.
+    function repayOptimisticMintingDebt(address depositor, uint256 amount)
         internal
         returns (uint256)
     {
