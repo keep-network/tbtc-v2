@@ -171,11 +171,10 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///      Bitcoin, that the script hash has the expected format, and that the
     ///      wallet is an active one so they can also validate the time left for
     ///      the refund.
-    function optimisticMint(bytes32 fundingTxHash, uint32 fundingOutputIndex)
-        external
-        onlyMinter
-        whenOptimisticMintingNotPaused
-    {
+    function requestOptimisticMint(
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex
+    ) external onlyMinter whenOptimisticMintingNotPaused {
         uint256 depositKey = calculateDepositKey(
             fundingTxHash,
             fundingOutputIndex
@@ -220,7 +219,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         - The optimistic minting request for the given deposit has not
     ///           been canceled by a Guardian.
     ///         - The optimistic minting is not paused.
-    ///         This function mints TBTC and increases pendingOptimisticMints
+    ///         This function mints TBTC and increases optimisticMintingDebt
     ///         for the given depositor. The finalized optimistic minting
     ///         request is removed from the contract.
     function finalizeOptimisticMint(
