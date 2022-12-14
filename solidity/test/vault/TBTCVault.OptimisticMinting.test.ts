@@ -185,6 +185,31 @@ describe("TBTCVault - OptimisticMinting", () => {
         })
       })
 
+      context("when optimistic minting has been already requested", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await bridge.revealDeposit(fundingTx, depositRevealInfo)
+          await tbtcVault
+            .connect(minter)
+            .optimisticMint(fundingTxHash, fundingOutputIndex)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault
+              .connect(minter)
+              .optimisticMint(fundingTxHash, fundingOutputIndex)
+          ).to.be.revertedWith(
+            "Optimistic minting already requested for the deposit"
+          )
+        })
+      })
+
       context("when the deposit has not been revealed", () => {
         it("should revert", async () => {
           await expect(
@@ -274,10 +299,12 @@ describe("TBTCVault - OptimisticMinting", () => {
             await restoreSnapshot()
           })
 
-          it("should register pending optimistic mint", async () => {
-            expect(
-              await tbtcVault.pendingOptimisticMints(depositKey)
-            ).to.be.equal(await lastBlockTime())
+          it("should request optimistic minting", async () => {
+            const request = await tbtcVault.optimisticMintingRequests(
+              depositKey
+            )
+            expect(request.requestedAt).to.be.equal(await lastBlockTime())
+            expect(request.finalizedAt).to.be.equal(0)
           })
 
           it("should emit an event", async () => {
@@ -346,7 +373,7 @@ describe("TBTCVault - OptimisticMinting", () => {
               .connect(minter)
               .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
           ).to.be.revertedWith(
-            "Optimistic minting not requested or already finalized"
+            "Optimistic minting not requested for the deposit"
           )
         })
       })
@@ -399,7 +426,7 @@ describe("TBTCVault - OptimisticMinting", () => {
               .connect(minter)
               .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
           ).to.be.revertedWith(
-            "Optimistic minting not requested or already finalized"
+            "Optimistic minting already finalized for the deposit"
           )
         })
       })
@@ -474,8 +501,10 @@ describe("TBTCVault - OptimisticMinting", () => {
           ).to.be.equal(19990)
         })
 
-        it("should remove the request", async () => {
-          expect(await tbtcVault.pendingOptimisticMints(depositKey)).to.equal(0)
+        it("should mark the request as finalized", async () => {
+          const request = await tbtcVault.optimisticMintingRequests(depositKey)
+          expect(request.requestedAt).to.not.be.equal(0)
+          expect(request.finalizedAt).to.be.equal(await lastBlockTime())
         })
 
         it("should emit an event", async () => {
@@ -523,7 +552,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await expect(
             tbtcVault.connect(guardian).cancelOptimisticMint(fundingTxHash, 99)
           ).to.be.revertedWith(
-            "Optimistic minting not requested or already finalized"
+            "Optimistic minting not requested for the deposit"
           )
         })
       })
@@ -551,7 +580,7 @@ describe("TBTCVault - OptimisticMinting", () => {
               .connect(guardian)
               .cancelOptimisticMint(fundingTxHash, fundingOutputIndex)
           ).to.be.revertedWith(
-            "Optimistic minting not requested or already finalized"
+            "Optimistic minting already finalized for the deposit"
           )
         })
       })
@@ -576,9 +605,9 @@ describe("TBTCVault - OptimisticMinting", () => {
         })
 
         it("should cancel optimistic minting", async () => {
-          expect(
-            await tbtcVault.pendingOptimisticMints(depositKey)
-          ).to.be.equal(0)
+          const request = await tbtcVault.optimisticMintingRequests(depositKey)
+          expect(request.requestedAt).to.be.equal(0)
+          expect(request.finalizedAt).to.be.equal(0)
 
           await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
           await expect(
@@ -586,7 +615,7 @@ describe("TBTCVault - OptimisticMinting", () => {
               .connect(minter)
               .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
           ).to.be.revertedWith(
-            "Optimistic minting not requested or already finalized"
+            "Optimistic minting not requested for the deposit"
           )
         })
 

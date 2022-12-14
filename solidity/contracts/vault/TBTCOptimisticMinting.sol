@@ -31,6 +31,16 @@ import "../bridge/Deposit.sol";
 ///      a separate abstract contract to achieve better separation of concerns
 ///      and easier-to-follow code.
 abstract contract TBTCOptimisticMinting is Ownable {
+    // Represents optimistic minting request for the given deposit revealed
+    // to the Bridge.
+    struct OptimisticMintingRequest {
+        // UNIX timestamp at which the optimistic minting was requested.
+        uint64 requestedAt;
+        // UNIX timestamp at which the optimistic minting was finalized.
+        // 0 if not yet finalized.
+        uint64 finalizedAt;
+    }
+
     /// @notice The time that needs to pass between the moment the optimistic
     ///         minting is requested and the moment optimistic minting is
     ///         finalized with minting TBTC.
@@ -54,9 +64,9 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     /// @notice Collection of all revealed deposits for which the optimistic
     ///         minting was requested. Indexed by a deposit key computed as
-    ///         keccak256(fundingTxHash | fundingOutputIndex). The value is
-    ///         a UNIX timestamp at which the optimistic minting was requested.
-    mapping(uint256 => uint256) public pendingOptimisticMints;
+    ///         keccak256(fundingTxHash | fundingOutputIndex).
+    mapping(uint256 => OptimisticMintingRequest)
+        public optimisticMintingRequests;
 
     /// @notice Optimistic minting debt value per depositor's address. The debt
     ///         represents the total value of all depositor's deposits revealed
@@ -134,6 +144,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     /// @notice Allows a Minter to request for an optimistic minting of TBTC.
     ///         The following conditions must be met:
+    ///         - There is no optimistic minting request for the deposit,
+    ///           finalized or not.
     ///         - The deposit with the given Bitcoin funding transaction hash
     ///           and output index has been revealed to the Bridge.
     ///         - The deposit has not been swept yet.
@@ -168,6 +180,15 @@ abstract contract TBTCOptimisticMinting is Ownable {
             fundingTxHash,
             fundingOutputIndex
         );
+
+        OptimisticMintingRequest storage request = optimisticMintingRequests[
+            depositKey
+        ];
+        require(
+            request.requestedAt == 0,
+            "Optimistic minting already requested for the deposit"
+        );
+
         Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
 
         require(deposit.revealedAt != 0, "The deposit has not been revealed");
@@ -175,7 +196,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         require(deposit.vault == address(this), "Unexpected vault address");
 
         /* solhint-disable-next-line not-rely-on-time */
-        pendingOptimisticMints[depositKey] = block.timestamp;
+        request.requestedAt = uint64(block.timestamp);
 
         emit OptimisticMintingRequested(
             msg.sender,
@@ -211,14 +232,21 @@ abstract contract TBTCOptimisticMinting is Ownable {
             fundingOutputIndex
         );
 
-        uint256 requestedAt = pendingOptimisticMints[depositKey];
+        OptimisticMintingRequest storage request = optimisticMintingRequests[
+            depositKey
+        ];
         require(
-            requestedAt != 0,
-            "Optimistic minting not requested or already finalized"
+            request.requestedAt != 0,
+            "Optimistic minting not requested for the deposit"
         );
         require(
+            request.finalizedAt == 0,
+            "Optimistic minting already finalized for the deposit"
+        );
+
+        require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp - requestedAt > OPTIMISTIC_MINTING_DELAY,
+            block.timestamp - request.requestedAt > OPTIMISTIC_MINTING_DELAY,
             "Optimistic minting delay has not passed yet"
         );
 
@@ -240,7 +268,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
         _mint(deposit.depositor, amountToMint);
         optimisticMintingDebt[deposit.depositor] += amountToMint;
 
-        delete pendingOptimisticMints[depositKey];
+        /* solhint-disable-next-line not-rely-on-time */
+        request.finalizedAt = uint64(block.timestamp);
 
         emit OptimisticMintingFinalized(
             msg.sender,
@@ -257,6 +286,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         - The optimistic minting request for the given deposit exists.
     ///         - The optimistic minting request for the given deposit has not
     ///           been finalized yet.
+    ///         Optimistic minting request is removed. It is possible to request
+    ///         optimistic minting again for the same deposit later.
     /// @dev Guardians must validate the following conditions for every deposit
     ///      for which the optimistic minting was requested:
     ///      - The deposit happened on Bitcoin side and it has enough
@@ -274,12 +305,21 @@ abstract contract TBTCOptimisticMinting is Ownable {
             fundingOutputIndex
         );
 
+        OptimisticMintingRequest storage request = optimisticMintingRequests[
+            depositKey
+        ];
         require(
-            pendingOptimisticMints[depositKey] > 0,
-            "Optimistic minting not requested or already finalized"
+            request.requestedAt != 0,
+            "Optimistic minting not requested for the deposit"
+        );
+        require(
+            request.finalizedAt == 0,
+            "Optimistic minting already finalized for the deposit"
         );
 
-        delete pendingOptimisticMints[depositKey];
+        // Delete it. It allows to request optimistic minting for the given
+        // deposit again. Useful in case of an errant Guarian.
+        delete optimisticMintingRequests[depositKey];
 
         emit OptimisticMintingCancelled(
             msg.sender,
