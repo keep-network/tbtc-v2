@@ -386,9 +386,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await tbtcVault
             .connect(minter)
             .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
-          await increaseTime(
-            (await tbtcVault.OPTIMISTIC_MINTING_DELAY()).sub(1)
-          )
+          await increaseTime((await tbtcVault.optimisticMintingDelay()).sub(1))
         })
 
         after(async () => {
@@ -413,7 +411,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await tbtcVault
             .connect(minter)
             .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
-          await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+          await increaseTime(await tbtcVault.optimisticMintingDelay())
           await tbtcVault
             .connect(minter)
             .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
@@ -443,7 +441,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await tbtcVault
             .connect(minter)
             .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
-          await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+          await increaseTime(await tbtcVault.optimisticMintingDelay())
 
           relay.getPrevEpochDifficulty.returns(chainDifficulty)
           relay.getCurrentEpochDifficulty.returns(chainDifficulty)
@@ -479,14 +477,20 @@ describe("TBTCVault - OptimisticMinting", () => {
           before(async () => {
             await createSnapshot()
 
-            await tbtcVault.connect(governance).updateOptimisticMintingFee(50) // 2%
+            await tbtcVault
+              .connect(governance)
+              .beginOptimisticMintingFeeUpdate(50) // 2%
+            await increaseTime(86400) // 24h
+            await tbtcVault
+              .connect(governance)
+              .finalizeOptimisticMintingFeeUpdate()
 
             await bridge.revealDeposit(fundingTx, depositRevealInfo)
 
             await tbtcVault
               .connect(minter)
               .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
-            await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+            await increaseTime(await tbtcVault.optimisticMintingDelay())
             tx = await tbtcVault
               .connect(minter)
               .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
@@ -554,14 +558,20 @@ describe("TBTCVault - OptimisticMinting", () => {
           before(async () => {
             await createSnapshot()
 
-            await tbtcVault.connect(governance).updateOptimisticMintingFee(0)
+            await tbtcVault
+              .connect(governance)
+              .beginOptimisticMintingFeeUpdate(0)
+            await increaseTime(86400) // 24h
+            await tbtcVault
+              .connect(governance)
+              .finalizeOptimisticMintingFeeUpdate()
 
             await bridge.revealDeposit(fundingTx, depositRevealInfo)
 
             await tbtcVault
               .connect(minter)
               .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
-            await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+            await increaseTime(await tbtcVault.optimisticMintingDelay())
             tx = await tbtcVault
               .connect(minter)
               .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
@@ -622,12 +632,16 @@ describe("TBTCVault - OptimisticMinting", () => {
           before(async () => {
             await createSnapshot()
 
-            await tbtcVault.connect(governance).updateOptimisticMintingFee(50) // 2%
-
             await bridgeGovernance
               .connect(governance)
               .beginDepositTreasuryFeeDivisorUpdate(0)
-            await helpers.time.increaseTime(constants.governanceDelay)
+            await tbtcVault
+              .connect(governance)
+              .beginOptimisticMintingFeeUpdate(50) // 2%
+            await increaseTime(constants.governanceDelay)
+            await tbtcVault
+              .connect(governance)
+              .finalizeOptimisticMintingFeeUpdate()
             await bridgeGovernance
               .connect(governance)
               .finalizeDepositTreasuryFeeDivisorUpdate()
@@ -637,7 +651,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             await tbtcVault
               .connect(minter)
               .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
-            await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+            await increaseTime(await tbtcVault.optimisticMintingDelay())
 
             tx = await tbtcVault
               .connect(minter)
@@ -703,12 +717,16 @@ describe("TBTCVault - OptimisticMinting", () => {
           before(async () => {
             await createSnapshot()
 
-            await tbtcVault.connect(governance).updateOptimisticMintingFee(0)
-
             await bridgeGovernance
               .connect(governance)
               .beginDepositTreasuryFeeDivisorUpdate(0)
-            await helpers.time.increaseTime(constants.governanceDelay)
+            await tbtcVault
+              .connect(governance)
+              .beginOptimisticMintingFeeUpdate(0)
+            await increaseTime(constants.governanceDelay)
+            await tbtcVault
+              .connect(governance)
+              .finalizeOptimisticMintingFeeUpdate()
             await bridgeGovernance
               .connect(governance)
               .finalizeDepositTreasuryFeeDivisorUpdate()
@@ -718,7 +736,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             await tbtcVault
               .connect(minter)
               .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
-            await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+            await increaseTime(await tbtcVault.optimisticMintingDelay())
             tx = await tbtcVault
               .connect(minter)
               .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
@@ -810,7 +828,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await tbtcVault
             .connect(minter)
             .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
-          await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+          await increaseTime(await tbtcVault.optimisticMintingDelay())
           await tbtcVault
             .connect(minter)
             .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
@@ -855,7 +873,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           expect(request.requestedAt).to.be.equal(0)
           expect(request.finalizedAt).to.be.equal(0)
 
-          await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+          await increaseTime(await tbtcVault.optimisticMintingDelay())
           await expect(
             tbtcVault
               .connect(minter)
@@ -1224,11 +1242,11 @@ describe("TBTCVault - OptimisticMinting", () => {
     })
   })
 
-  describe("updateOptimisticMintingFee", () => {
+  describe("beginOptimisticMintingFeeUpdate", () => {
     context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
-          tbtcVault.connect(thirdParty).updateOptimisticMintingFee(1)
+          tbtcVault.connect(thirdParty).beginOptimisticMintingFeeUpdate(10)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -1238,23 +1256,230 @@ describe("TBTCVault - OptimisticMinting", () => {
 
       before(async () => {
         await createSnapshot()
-        tx = await tbtcVault.connect(governance).updateOptimisticMintingFee(991)
+
+        tx = await tbtcVault
+          .connect(governance)
+          .beginOptimisticMintingFeeUpdate(10)
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should update the fee divisor", async () => {
-        expect(await tbtcVault.optimisticMintingFeeDivisor()).to.equal(991)
+      it("should not update the optimistic minting fee", async () => {
+        expect(await tbtcVault.optimisticMintingFeeDivisor()).to.equal(0)
+      })
+
+      it("should start the governance delay timer", async () => {
+        expect(
+          await tbtcVault.optimisticMintingFeeUpdateInitiatedTimestamp()
+        ).to.equal(await lastBlockTime())
       })
 
       it("should emit an event", async () => {
         await expect(tx)
-          .to.emit(tbtcVault, "OptimisticMintingFeeUpdated")
-          .withArgs(991)
+          .to.emit(tbtcVault, "OptimisticMintingFeeUpdateStarted")
+          .withArgs(10)
       })
     })
+  })
+
+  describe("finalizeOptimisticMintingFeeUpdate", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(thirdParty).finalizeOptimisticMintingFeeUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initiated", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(governance).finalizeOptimisticMintingFeeUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await tbtcVault.connect(governance).beginOptimisticMintingFeeUpdate(10)
+
+        await increaseTime(86400 - 60) // 24h - 1m
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(governance).finalizeOptimisticMintingFeeUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context(
+      "when the update process is initiated and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault
+            .connect(governance)
+            .beginOptimisticMintingFeeUpdate(15)
+          await increaseTime(86400) // 24h
+          tx = await tbtcVault
+            .connect(governance)
+            .finalizeOptimisticMintingFeeUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the optimistic minting fee", async () => {
+          expect(await tbtcVault.optimisticMintingFeeDivisor()).to.equal(15)
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "OptimisticMintingFeeUpdated")
+            .withArgs(15)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          expect(
+            await tbtcVault.optimisticMintingFeeUpdateInitiatedTimestamp()
+          ).to.equal(0)
+        })
+      }
+    )
+  })
+
+  describe("beginOptimisticMintingDelayUpdate", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(thirdParty).beginOptimisticMintingDelayUpdate(60)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await tbtcVault
+          .connect(governance)
+          .beginOptimisticMintingDelayUpdate(60)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not update the optimistic minting delay", async () => {
+        expect(await tbtcVault.optimisticMintingDelay()).to.equal(10800) // 3h
+      })
+
+      it("should start the governance delay timer", async () => {
+        expect(
+          await tbtcVault.optimisticMintingDelayUpdateInitiatedTimestamp()
+        ).to.equal(await lastBlockTime())
+      })
+
+      it("should emit an event", async () => {
+        await expect(tx)
+          .to.emit(tbtcVault, "OptimisticMintingDelayUpdateStarted")
+          .withArgs(60)
+      })
+    })
+  })
+
+  describe("finalizeOptimisticMintingDelayUpdate", () => {
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(thirdParty).finalizeOptimisticMintingDelayUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initiated", () => {
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(governance).finalizeOptimisticMintingDelayUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await tbtcVault
+          .connect(governance)
+          .beginOptimisticMintingDelayUpdate(60)
+
+        await increaseTime(86400 - 60) // 24h - 1m
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          tbtcVault.connect(governance).finalizeOptimisticMintingDelayUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context(
+      "when the update process is initiated and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault
+            .connect(governance)
+            .beginOptimisticMintingDelayUpdate(60)
+          await increaseTime(86400) // 24h
+          tx = await tbtcVault
+            .connect(governance)
+            .finalizeOptimisticMintingDelayUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the optimistic minting delay", async () => {
+          expect(await tbtcVault.optimisticMintingDelay()).to.equal(60)
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "OptimisticMintingDelayUpdated")
+            .withArgs(60)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          expect(
+            await tbtcVault.optimisticMintingDelayUpdateInitiatedTimestamp()
+          ).to.equal(0)
+        })
+      }
+    )
   })
 
   describe("calculateDepositKey", () => {
@@ -1293,7 +1518,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             .connect(minter)
             .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
 
-          await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+          await increaseTime(await tbtcVault.optimisticMintingDelay())
 
           await tbtcVault
             .connect(minter)
@@ -1420,7 +1645,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await f.tbtcVault
             .connect(minter)
             .requestOptimisticMint(fundingTxHash, 2)
-          await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+          await increaseTime(await tbtcVault.optimisticMintingDelay())
           await f.tbtcVault
             .connect(minter)
             .finalizeOptimisticMint(fundingTxHash, 1)
@@ -1478,7 +1703,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await f.tbtcVault
             .connect(minter)
             .requestOptimisticMint(fundingTxHash, 1)
-          await increaseTime(await tbtcVault.OPTIMISTIC_MINTING_DELAY())
+          await increaseTime(await tbtcVault.optimisticMintingDelay())
           await f.tbtcVault
             .connect(minter)
             .finalizeOptimisticMint(fundingTxHash, 1)

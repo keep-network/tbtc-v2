@@ -17,6 +17,7 @@ pragma solidity 0.8.17;
 
 import "../bridge/Bridge.sol";
 import "../bridge/Deposit.sol";
+import "../GovernanceUtils.sol";
 
 /// @title TBTC Optimistic Minting
 /// @notice The Optimistic Minting mechanism allows to mint TBTC before
@@ -41,12 +42,34 @@ abstract contract TBTCOptimisticMinting is Ownable {
         uint64 finalizedAt;
     }
 
+    /// @notice The time delay that needs to pass between initializing and
+    ///         finalizing the upgrade of governable parameters.
+    uint256 public constant GOVERNANCE_DELAY = 24 hours;
+
+    Bridge public immutable bridge;
+
+    /// @notice Indicates if the optimistic minting has been paused. Only the
+    ///         Governance can pause optimistic minting. Note that the pause of
+    ///         the optimistic minting does not stop the standard minting flow
+    ///         where wallets sweep deposits.
+    bool public isOptimisticMintingPaused;
+
+    /// @notice Divisor used to compute the treasury fee taken from each
+    ///         optimistically minted deposit and transferred to the treasury
+    ///         upon finalization of the optimistic mint. This fee is computed
+    ///         as follows: `fee = amount / optimisticMintingFeeDivisor`.
+    ///         For example, if the fee needs to be 2% of each deposit,
+    ///         the `optimisticMintingFeeDivisor` should be set to `50` because
+    ///         `1/50 = 0.02 = 2%`.
+    ///         Note that the optimistic minting fee does not replace the
+    ///         deposit treasury fee cut by the Bridge. Both fees are deducted
+    ///         from the minted token amount.
+    uint256 public optimisticMintingFeeDivisor;
+
     /// @notice The time that needs to pass between the moment the optimistic
     ///         minting is requested and the moment optimistic minting is
     ///         finalized with minting TBTC.
-    uint256 public constant OPTIMISTIC_MINTING_DELAY = 3 hours;
-
-    Bridge public bridge;
+    uint256 public optimisticMintingDelay = 3 hours;
 
     /// @notice Indicates if the given address is a Minter. Only Minters can
     ///         request optimistic minting.
@@ -55,12 +78,6 @@ abstract contract TBTCOptimisticMinting is Ownable {
     /// @notice Indicates if the given address is a Guardian. Only Guardians can
     ///         cancel requested optimistic minting.
     mapping(address => bool) public isGuardian;
-
-    /// @notice Indicates if the optimistic minting has been paused. Only the
-    ///         Governance can pause optimistic minting. Note that the pause of
-    ///         the optimistic minting does not stop the standard minting flow
-    ///         where wallets sweep deposits.
-    bool public isOptimisticMintingPaused;
 
     /// @notice Collection of all revealed deposits for which the optimistic
     ///         minting was requested. Indexed by a deposit key computed as
@@ -77,17 +94,21 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         not.
     mapping(address => uint256) public optimisticMintingDebt;
 
-    /// @notice Divisor used to compute the treasury fee taken from each
-    ///         optimistically minted deposit and transferred to the treasury
-    ///         upon finalization of the optimistic mint. This fee is computed
-    ///         as follows: `fee = amount / optimisticMintingFeeDivisor`.
-    ///         For example, if the fee needs to be 2% of each deposit,
-    ///         the `optimisticMintingFeeDivisor` should be set to `50` because
-    ///         `1/50 = 0.02 = 2%`.
-    ///         Note that the optimistic minting fee does not replace the
-    ///         deposit treasury fee cut by the Bridge. Both fees are deducted
-    ///         from the minted token amount.
-    uint256 public optimisticMintingFeeDivisor;
+    /// @notice New optimistic minting fee deivisor value. Set only when the
+    ///         parameter update process is pending. Once the update gets
+    //          finalized, this will be the value of the divisor.
+    uint256 public newOptimisticMintingFeeDivisor;
+    /// @notice The timestamp at which the update of the optimistic minting fee
+    ///         divisor started. Zero if update is not in progress.
+    uint256 public optimisticMintingFeeUpdateInitiatedTimestamp;
+
+    /// @notice New optimistic minting delay value. Set only when the parameter
+    ///         update process is pending. Once the update gets finalized, this
+    //          will be the value of the delay.
+    uint256 public newOptimisticMintingDelay;
+    /// @notice The timestamp at which the update of the optimistic minting
+    ///         delay started. Zero if update is not in progress.
+    uint256 public optimisticMintingDelayUpdateInitiatedTimestamp;
 
     event OptimisticMintingRequested(
         address indexed minter,
@@ -117,7 +138,16 @@ abstract contract TBTCOptimisticMinting is Ownable {
     event GuardianRemoved(address indexed guardian);
     event OptimisticMintingPaused();
     event OptimisticMintingUnpaused();
+
+    event OptimisticMintingFeeUpdateStarted(
+        uint256 newOptimisticMintingFeeDivisor
+    );
     event OptimisticMintingFeeUpdated(uint256 newOptimisticMintingFeeDivisor);
+
+    event OptimisticMintingDelayUpdateStarted(
+        uint256 newOptimisticMintingDelay
+    );
+    event OptimisticMintingDelayUpdated(uint256 newOptimisticMintingDelay);
 
     modifier onlyMinter() {
         require(isMinter[msg.sender], "Caller is not a minter");
@@ -139,6 +169,14 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     modifier whenOptimisticMintingNotPaused() {
         require(!isOptimisticMintingPaused, "Optimistic minting paused");
+        _;
+    }
+
+    modifier onlyAfterGovernanceDelay(uint256 updateInitiatedTimestamp) {
+        GovernanceUtils.onlyAfterGovernanceDelay(
+            updateInitiatedTimestamp,
+            GOVERNANCE_DELAY
+        );
         _;
     }
 
@@ -165,7 +203,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         - The deposit is targeted into the TBTCVault.
     ///         - The optimistic minting is not paused.
     ///         After calling this function, the Minter has to wait for
-    ///         OPTIMISTIC_MINTING_DELAY before finalizing the mint with a call
+    ///         `optimisticMintingDelay` before finalizing the mint with a call
     ///         to finalizeOptimisticMint.
     /// @dev The deposit done on the Bitcoin side must be revealed early enough
     ///      to the Bridge on Ethereum to pass the Bridge's validation. The
@@ -225,7 +263,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         - The optimistic minting has been requested for the given
     ///           deposit.
     ///         - The deposit has not been swept yet.
-    ///         - At least `OPTIMISTIC_MINTING_DELAY` passed since the optimistic
+    ///         - At least `optimisticMintingDelay` passed since the optimistic
     ///           minting was requested for the given deposit.
     ///         - The optimistic minting has not been finalized earlier for the
     ///           given deposit.
@@ -258,7 +296,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp > request.requestedAt + OPTIMISTIC_MINTING_DELAY,
+            block.timestamp > request.requestedAt + optimisticMintingDelay,
             "Optimistic minting delay has not passed yet"
         );
 
@@ -404,20 +442,56 @@ abstract contract TBTCOptimisticMinting is Ownable {
         emit OptimisticMintingUnpaused();
     }
 
-    // TODO: governance delay
-
-    /// @notice Updates the optimistic minting fee. The fee is computed
-    ///         as follows: `fee = amount / optimisticMintingFeeDivisor`.
+    /// @notice Begins the process of updating optimistic minting fee.
+    ///         The fee is computed as follows:
+    ///         `fee = amount / optimisticMintingFeeDivisor`.
     ///         For example, if the fee needs to be 2% of each deposit,
     ///         the `optimisticMintingFeeDivisor` should be set to `50` because
     ///         `1/50 = 0.02 = 2%`.
     /// @dev See the documentation for optimisticMintingFeeDivisor.
-    function updateOptimisticMintingFee(uint256 newOptimisticMintingFeeDivisor)
+    function beginOptimisticMintingFeeUpdate(
+        uint256 _newOptimisticMintingFeeDivisor
+    ) external onlyOwner {
+        /* solhint-disable-next-line not-rely-on-time */
+        optimisticMintingFeeUpdateInitiatedTimestamp = block.timestamp;
+        newOptimisticMintingFeeDivisor = _newOptimisticMintingFeeDivisor;
+        emit OptimisticMintingFeeUpdateStarted(_newOptimisticMintingFeeDivisor);
+    }
+
+    /// @notice Finalizes the update process of the optimistic minting fee.
+    function finalizeOptimisticMintingFeeUpdate()
         external
         onlyOwner
+        onlyAfterGovernanceDelay(optimisticMintingFeeUpdateInitiatedTimestamp)
     {
         optimisticMintingFeeDivisor = newOptimisticMintingFeeDivisor;
         emit OptimisticMintingFeeUpdated(newOptimisticMintingFeeDivisor);
+
+        newOptimisticMintingFeeDivisor = 0;
+        optimisticMintingFeeUpdateInitiatedTimestamp = 0;
+    }
+
+    /// @notice Begins the process of updating optimistic minting delay.
+    function beginOptimisticMintingDelayUpdate(
+        uint256 _newOptimisticMintingDelay
+    ) external onlyOwner {
+        /* solhint-disable-next-line not-rely-on-time */
+        optimisticMintingDelayUpdateInitiatedTimestamp = block.timestamp;
+        newOptimisticMintingDelay = _newOptimisticMintingDelay;
+        emit OptimisticMintingDelayUpdateStarted(_newOptimisticMintingDelay);
+    }
+
+    /// @notice Finalizes the update process of the optimistic minting delay.
+    function finalizeOptimisticMintingDelayUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(optimisticMintingDelayUpdateInitiatedTimestamp)
+    {
+        optimisticMintingDelay = newOptimisticMintingDelay;
+        emit OptimisticMintingDelayUpdated(newOptimisticMintingDelay);
+
+        newOptimisticMintingDelay = 0;
+        optimisticMintingDelayUpdateInitiatedTimestamp = 0;
     }
 
     /// @notice Calculates deposit key the same way as the Bridge contract.

@@ -21,7 +21,6 @@ import "./IVault.sol";
 import "./TBTCOptimisticMinting.sol";
 import "../bank/Bank.sol";
 import "../token/TBTC.sol";
-import "../GovernanceUtils.sol";
 
 /// @title TBTC application vault
 /// @notice TBTC is a fully Bitcoin-backed ERC-20 token pegged to the price of
@@ -34,15 +33,8 @@ import "../GovernanceUtils.sol";
 contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     using SafeERC20 for IERC20;
 
-    /// @notice The time delay that needs to pass between initializing and
-    ///         finalizing upgrade to a new vault. The time delay forces the
-    ///         upgrading party to reflect on the vault address it is upgrading
-    ///         to and lets all TBTC holders notice the planned
-    ///         upgrade.
-    uint256 public constant UPGRADE_GOVERNANCE_DELAY = 24 hours;
-
-    Bank public bank;
-    TBTC public tbtcToken;
+    Bank public immutable bank;
+    TBTC public immutable tbtcToken;
 
     /// @notice The address of a new TBTC vault. Set only when the upgrade
     ///         process is pending. Once the upgrade gets finalized, the new
@@ -60,14 +52,6 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
 
     modifier onlyBank() {
         require(msg.sender == address(bank), "Caller is not the Bank");
-        _;
-    }
-
-    modifier onlyAfterUpgradeGovernanceDelay() {
-        GovernanceUtils.onlyAfterGovernanceDelay(
-            upgradeInitiatedTimestamp,
-            UPGRADE_GOVERNANCE_DELAY
-        );
         _;
     }
 
@@ -212,14 +196,14 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
 
     /// @notice Allows the governance to finalize vault upgrade process. The
     ///         upgrade process needs to be first initiated with a call to
-    ///         `initiateUpgrade` and the `UPGRADE_GOVERNANCE_DELAY` needs to
-    ///         pass. Once the upgrade is finalized, the new vault becomes the
-    ///         owner of the TBTC token and receives the whole Bank balance of
-    ///         this vault.
+    ///         `initiateUpgrade` and the `GOVERNANCE_DELAY` needs to pass.
+    ///         Once the upgrade is finalized, the new vault becomes the owner
+    ///         of the TBTC token and receives the whole Bank balance of this
+    ///         vault.
     function finalizeUpgrade()
         external
         onlyOwner
-        onlyAfterUpgradeGovernanceDelay
+        onlyAfterGovernanceDelay(upgradeInitiatedTimestamp)
     {
         emit UpgradeFinalized(newVault);
         // slither-disable-next-line reentrancy-no-eth
