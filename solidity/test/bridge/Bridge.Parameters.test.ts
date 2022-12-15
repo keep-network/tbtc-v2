@@ -197,24 +197,6 @@ describe("Bridge - Parameters", () => {
         }
       )
 
-      context("when new deposit treasury fee divisor is zero", () => {
-        it("should revert", async () => {
-          await bridgeGovernance
-            .connect(governance)
-            .beginDepositTreasuryFeeDivisorUpdate(0)
-
-          await helpers.time.increaseTime(constants.governanceDelay)
-
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeDepositTreasuryFeeDivisorUpdate()
-          ).to.be.revertedWith(
-            "Deposit treasury fee divisor must be greater than zero"
-          )
-        })
-      })
-
       context("when new deposit transaction max fee is zero", () => {
         it("should revert", async () => {
           await bridgeGovernance
