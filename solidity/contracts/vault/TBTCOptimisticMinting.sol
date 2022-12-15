@@ -500,7 +500,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     function calculateDepositKey(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         return
             uint256(
                 keccak256(abi.encodePacked(fundingTxHash, fundingOutputIndex))
