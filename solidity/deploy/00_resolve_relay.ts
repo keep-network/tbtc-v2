@@ -16,10 +16,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (LightRelay && helpers.address.isValid(LightRelay.address)) {
     log(`using external LightRelay at ${LightRelay.address}`)
   } else {
-    // Temporarily for goerli we deploy `TestRelay` contract, until the relay
-    // maintainer is ready.
     await deployments.deploy("LightRelay", {
-      contract: hre.network.name === "goerli" ? "TestRelay" : "LightRelay",
+      contract: "LightRelay",
       from: deployer,
       log: true,
       waitConfirmations: 1,
