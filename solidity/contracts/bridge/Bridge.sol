@@ -1305,6 +1305,8 @@ contract Bridge is
     ///      - Redemption dust threshold must be greater than the redemption TX
     ///        max fee,
     ///      - Redemption transaction max fee must be greater than zero,
+    ///      - Redemption transaction max total fee must be greater than or
+    ///        equal to the redemption transaction per-request max fee,
     ///      - Redemption timeout must be greater than zero,
     ///      - Redemption timeout notifier reward multiplier must be in the
     ///        range [0, 100].
