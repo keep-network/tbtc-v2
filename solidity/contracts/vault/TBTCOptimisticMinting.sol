@@ -20,14 +20,14 @@ import "../bridge/Deposit.sol";
 
 /// @title TBTC Optimistic Minting
 /// @notice The Optimistic Minting mechanism allows to mint TBTC before
-///         TBTCVault receives the Bank balance. There are two permissioned sets
-///         in the system: Minters and Guardians, both set up in 1-of-n mode.
-///         Minters observe the revealed deposits and request minting TBTC.
+///         `TBTCVault` receives the Bank balance. There are two permissioned
+///         sets in the system: Minters and Guardians, both set up in 1-of-n
+///         mode. Minters observe the revealed deposits and request minting TBTC.
 ///         Any single Minter can perform this action. There is a 3 hours delay
 ///         between the time of the request from a Minter to the time TBTC is
 ///         minted. During the time of the delay, any Guardian can cancel the
 ///         minting.
-/// @dev This functionality is a part of TBTCVault. It is implemented in
+/// @dev This functionality is a part of `TBTCVault`. It is implemented in
 ///      a separate abstract contract to achieve better separation of concerns
 ///      and easier-to-follow code.
 abstract contract TBTCOptimisticMinting is Ownable {
@@ -64,18 +64,30 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     /// @notice Collection of all revealed deposits for which the optimistic
     ///         minting was requested. Indexed by a deposit key computed as
-    ///         keccak256(fundingTxHash | fundingOutputIndex).
+    ///         `keccak256(fundingTxHash | fundingOutputIndex)`.
     mapping(uint256 => OptimisticMintingRequest)
         public optimisticMintingRequests;
 
     /// @notice Optimistic minting debt value per depositor's address. The debt
     ///         represents the total value of all depositor's deposits revealed
     ///         to the Bridge that has not been yet swept and led to the
-    ///         optimistic minting of TBTC. When TBTCVault sweeps a deposit,
+    ///         optimistic minting of TBTC. When `TBTCVault` sweeps a deposit,
     ///         the debt is fully or partially paid off, no matter if that
     ///         particular swept deposit was used for the optimistic minting or
     ///         not.
     mapping(address => uint256) public optimisticMintingDebt;
+
+    /// @notice Divisor used to compute the treasury fee taken from each
+    ///         optimistically minted deposit and transferred to the treasury
+    ///         upon finalization of the optimistic mint. This fee is computed
+    ///         as follows: `fee = amount / optimisticMintingFeeDivisor`.
+    ///         For example, if the fee needs to be 2% of each deposit,
+    ///         the `optimisticMintingFeeDivisor` should be set to `50` because
+    ///         `1/50 = 0.02 = 2%`.
+    ///         Note that the optimistic minting fee does not replace the
+    ///         deposit treasury fee cut by the Bridge. Both fees are deducted
+    ///         from the minted token amount.
+    uint256 public optimisticMintingFeeDivisor;
 
     event OptimisticMintingRequested(
         address indexed minter,
@@ -105,6 +117,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     event GuardianRemoved(address indexed guardian);
     event OptimisticMintingPaused();
     event OptimisticMintingUnpaused();
+    event OptimisticMintingFeeUpdated(uint256 newOptimisticMintingFeeDivisor);
 
     modifier onlyMinter() {
         require(isMinter[msg.sender], "Caller is not a minter");
@@ -212,14 +225,14 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         - The optimistic minting has been requested for the given
     ///           deposit.
     ///         - The deposit has not been swept yet.
-    ///         - At least OPTIMISTIC_MINTING_DELAY passed since the optimistic
+    ///         - At least `OPTIMISTIC_MINTING_DELAY` passed since the optimistic
     ///           minting was requested for the given deposit.
     ///         - The optimistic minting has not been finalized earlier for the
     ///           given deposit.
     ///         - The optimistic minting request for the given deposit has not
     ///           been canceled by a Guardian.
     ///         - The optimistic minting is not paused.
-    ///         This function mints TBTC and increases optimisticMintingDebt
+    ///         This function mints TBTC and increases `optimisticMintingDebt`
     ///         for the given depositor. The finalized optimistic minting
     ///         request is removed from the contract.
     function finalizeOptimisticMint(
@@ -264,8 +277,24 @@ abstract contract TBTCOptimisticMinting is Ownable {
         //
         // This imbalance is supposed to be solved by a donation to the Bridge.
         uint256 amountToMint = deposit.amount - deposit.treasuryFee;
-        _mint(deposit.depositor, amountToMint);
+
+        // The Optimistic Minting mechanism may additionally cut a fee from the
+        // amount that is left after deducting the Bridge deposit treasury fee.
+        // Think of this fee as an extra payment for faster processing of
+        // deposits. One does not need to use the Optimistic Minting mechanism
+        // and they may wait for the Bridge to sweep their deposit if they do
+        // not want to pay the Optimistic Minting fee.
+        uint256 optimisticMintFee = optimisticMintingFeeDivisor > 0
+            ? amountToMint / optimisticMintingFeeDivisor
+            : 0;
+        amountToMint -= optimisticMintFee;
+
         optimisticMintingDebt[deposit.depositor] += amountToMint;
+
+        _mint(deposit.depositor, amountToMint);
+        if (optimisticMintFee > 0) {
+            _mint(bridge.treasury(), optimisticMintFee);
+        }
 
         /* solhint-disable-next-line not-rely-on-time */
         request.finalizedAt = uint64(block.timestamp);
@@ -375,9 +404,25 @@ abstract contract TBTCOptimisticMinting is Ownable {
         emit OptimisticMintingUnpaused();
     }
 
+    // TODO: governance delay
+
+    /// @notice Updates the optimistic minting fee. The fee is computed
+    ///         as follows: `fee = amount / optimisticMintingFeeDivisor`.
+    ///         For example, if the fee needs to be 2% of each deposit,
+    ///         the `optimisticMintingFeeDivisor` should be set to `50` because
+    ///         `1/50 = 0.02 = 2%`.
+    /// @dev See the documentation for optimisticMintingFeeDivisor.
+    function updateOptimisticMintingFee(uint256 newOptimisticMintingFeeDivisor)
+        external
+        onlyOwner
+    {
+        optimisticMintingFeeDivisor = newOptimisticMintingFeeDivisor;
+        emit OptimisticMintingFeeUpdated(newOptimisticMintingFeeDivisor);
+    }
+
     /// @notice Calculates deposit key the same way as the Bridge contract.
     ///         The deposit key is computed as
-    ///         keccak256(fundingTxHash | fundingOutputIndex).
+    ///         `keccak256(fundingTxHash | fundingOutputIndex)`.
     function calculateDepositKey(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
@@ -388,14 +433,14 @@ abstract contract TBTCOptimisticMinting is Ownable {
             );
     }
 
-    /// @notice Used by TBTCVault.receiveBalanceIncrease to repay the optimistic
+    /// @notice Used by `TBTCVault.receiveBalanceIncrease` to repay the optimistic
     ///         minting debt before TBTC is minted. When optimistic minting is
     ///         finalized, debt equal to the value of the deposit being
-    ///         a subject of the optimistic minting is incurred. When TBTCVault
+    ///         a subject of the optimistic minting is incurred. When `TBTCVault`
     ///         sweeps a deposit, the debt is fully or partially paid off, no
     ///         matter if that particular deposit was used for the optimistic
     ///         minting or not.
-    /// @dev See TBTCVault.receiveBalanceIncrease
+    /// @dev See `TBTCVault.receiveBalanceIncrease`
     /// @param depositor The depositor whose balance increase is received.
     /// @param amount The balance increase amount for the depositor received.
     /// @return The TBTC amount that should be minted after paying off the
