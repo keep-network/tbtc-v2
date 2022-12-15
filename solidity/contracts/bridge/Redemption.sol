@@ -626,7 +626,13 @@ library Redemption {
         emit RedemptionsCompleted(walletPubKeyHash, redemptionTxHash);
 
         self.bank.decreaseBalance(outputsInfo.totalBurnableValue);
-        self.bank.transferBalance(self.treasury, outputsInfo.totalTreasuryFee);
+
+        if (outputsInfo.totalTreasuryFee > 0) {
+            self.bank.transferBalance(
+                self.treasury,
+                outputsInfo.totalTreasuryFee
+            );
+        }
     }
 
     /// @notice Resolves redeeming wallet based on the provided wallet public
