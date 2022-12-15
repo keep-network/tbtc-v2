@@ -340,8 +340,6 @@ describe("TBTCVault - OptimisticMinting", () => {
       before(async () => {
         await createSnapshot()
         await tbtcVault.connect(governance).addMinter(minter.address)
-
-        await bridge.revealDeposit(fundingTx, depositRevealInfo)
       })
 
       after(async () => {
@@ -383,6 +381,8 @@ describe("TBTCVault - OptimisticMinting", () => {
         before(async () => {
           await createSnapshot()
 
+          await bridge.revealDeposit(fundingTx, depositRevealInfo)
+
           await tbtcVault
             .connect(minter)
             .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
@@ -407,6 +407,8 @@ describe("TBTCVault - OptimisticMinting", () => {
       context("when requested minting has been already finalized", () => {
         before(async () => {
           await createSnapshot()
+
+          await bridge.revealDeposit(fundingTx, depositRevealInfo)
 
           await tbtcVault
             .connect(minter)
@@ -435,6 +437,8 @@ describe("TBTCVault - OptimisticMinting", () => {
       context("when the deposit has been already swept", () => {
         before(async () => {
           await createSnapshot()
+
+          await bridge.revealDeposit(fundingTx, depositRevealInfo)
 
           await tbtcVault
             .connect(minter)
@@ -476,6 +480,8 @@ describe("TBTCVault - OptimisticMinting", () => {
             await createSnapshot()
 
             await tbtcVault.connect(governance).updateOptimisticMintingFee(50) // 2%
+
+            await bridge.revealDeposit(fundingTx, depositRevealInfo)
 
             await tbtcVault
               .connect(minter)
@@ -550,6 +556,8 @@ describe("TBTCVault - OptimisticMinting", () => {
 
             await tbtcVault.connect(governance).updateOptimisticMintingFee(0)
 
+            await bridge.revealDeposit(fundingTx, depositRevealInfo)
+
             await tbtcVault
               .connect(minter)
               .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
@@ -623,6 +631,8 @@ describe("TBTCVault - OptimisticMinting", () => {
             await bridgeGovernance
               .connect(governance)
               .finalizeDepositTreasuryFeeDivisorUpdate()
+
+            await bridge.revealDeposit(fundingTx, depositRevealInfo)
 
             await tbtcVault
               .connect(minter)
@@ -703,6 +713,8 @@ describe("TBTCVault - OptimisticMinting", () => {
               .connect(governance)
               .finalizeDepositTreasuryFeeDivisorUpdate()
 
+            await bridge.revealDeposit(fundingTx, depositRevealInfo)
+
             await tbtcVault
               .connect(minter)
               .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
@@ -716,20 +728,20 @@ describe("TBTCVault - OptimisticMinting", () => {
             await restoreSnapshot()
           })
 
-          // Output value is 200000.
+          // Output value is 20000.
           // Bridge deposit treasury fee is 0.
           // Optimistic minting fee is 0.
 
           it("should mint TBTC to depositor", async () => {
             expect(
               await tbtc.balanceOf(depositRevealInfo.depositor)
-            ).to.be.equal(200000)
+            ).to.be.equal(20000)
           })
 
           it("should incur optimistic mint debt", async () => {
             expect(
               await tbtcVault.optimisticMintingDebt(depositRevealInfo.depositor)
-            ).to.be.equal(200000)
+            ).to.be.equal(20000)
           })
 
           it("should mark the request as finalized", async () => {
@@ -747,7 +759,7 @@ describe("TBTCVault - OptimisticMinting", () => {
                 minter.address,
                 depositKey,
                 depositRevealInfo.depositor,
-                200000,
+                20000,
                 fundingTxHash,
                 fundingOutputIndex
               )
