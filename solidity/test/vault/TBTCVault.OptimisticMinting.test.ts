@@ -386,7 +386,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           await tbtcVault
             .connect(minter)
             .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
-          await increaseTime((await tbtcVault.optimisticMintingDelay()).sub(1))
+          await increaseTime((await tbtcVault.optimisticMintingDelay()) - 1)
         })
 
         after(async () => {
@@ -541,14 +541,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(
-                minter.address,
-                depositKey,
-                depositRevealInfo.depositor,
-                19591,
-                fundingTxHash,
-                fundingOutputIndex
-              )
+              .withArgs(minter.address, depositKey)
           })
         })
 
@@ -615,14 +608,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(
-                minter.address,
-                depositKey,
-                depositRevealInfo.depositor,
-                19990,
-                fundingTxHash,
-                fundingOutputIndex
-              )
+              .withArgs(minter.address, depositKey)
           })
         })
 
@@ -700,14 +686,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(
-                minter.address,
-                depositKey,
-                depositRevealInfo.depositor,
-                19600,
-                fundingTxHash,
-                fundingOutputIndex
-              )
+              .withArgs(minter.address, depositKey)
           })
         })
 
@@ -773,14 +752,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(
-                minter.address,
-                depositKey,
-                depositRevealInfo.depositor,
-                20000,
-                fundingTxHash,
-                fundingOutputIndex
-              )
+              .withArgs(minter.address, depositKey)
           })
         })
       })
@@ -886,12 +858,7 @@ describe("TBTCVault - OptimisticMinting", () => {
         it("should emit an event", async () => {
           await expect(tx)
             .to.emit(tbtcVault, "OptimisticMintingCancelled")
-            .withArgs(
-              guardian.address,
-              depositKey,
-              fundingTxHash,
-              fundingOutputIndex
-            )
+            .withArgs(guardian.address, depositKey)
         })
       })
     })

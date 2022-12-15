@@ -64,12 +64,12 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         Note that the optimistic minting fee does not replace the
     ///         deposit treasury fee cut by the Bridge. Both fees are deducted
     ///         from the minted token amount.
-    uint256 public optimisticMintingFeeDivisor;
+    uint32 public optimisticMintingFeeDivisor;
 
     /// @notice The time that needs to pass between the moment the optimistic
     ///         minting is requested and the moment optimistic minting is
     ///         finalized with minting TBTC.
-    uint256 public optimisticMintingDelay = 3 hours;
+    uint32 public optimisticMintingDelay = 3 hours;
 
     /// @notice Indicates if the given address is a Minter. Only Minters can
     ///         request optimistic minting.
@@ -97,7 +97,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     /// @notice New optimistic minting fee deivisor value. Set only when the
     ///         parameter update process is pending. Once the update gets
     //          finalized, this will be the value of the divisor.
-    uint256 public newOptimisticMintingFeeDivisor;
+    uint32 public newOptimisticMintingFeeDivisor;
     /// @notice The timestamp at which the update of the optimistic minting fee
     ///         divisor started. Zero if update is not in progress.
     uint256 public optimisticMintingFeeUpdateInitiatedTimestamp;
@@ -105,7 +105,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     /// @notice New optimistic minting delay value. Set only when the parameter
     ///         update process is pending. Once the update gets finalized, this
     //          will be the value of the delay.
-    uint256 public newOptimisticMintingDelay;
+    uint32 public newOptimisticMintingDelay;
     /// @notice The timestamp at which the update of the optimistic minting
     ///         delay started. Zero if update is not in progress.
     uint256 public optimisticMintingDelayUpdateInitiatedTimestamp;
@@ -120,17 +120,11 @@ abstract contract TBTCOptimisticMinting is Ownable {
     );
     event OptimisticMintingFinalized(
         address indexed minter,
-        uint256 indexed depositKey,
-        address indexed depositor,
-        uint256 amount,
-        bytes32 fundingTxHash,
-        uint32 fundingOutputIndex
+        uint256 indexed depositKey
     );
     event OptimisticMintingCancelled(
         address indexed guardian,
-        uint256 indexed depositKey,
-        bytes32 fundingTxHash,
-        uint32 fundingOutputIndex
+        uint256 indexed depositKey
     );
     event MinterAdded(address indexed minter);
     event MinterRemoved(address indexed minter);
@@ -140,14 +134,12 @@ abstract contract TBTCOptimisticMinting is Ownable {
     event OptimisticMintingUnpaused();
 
     event OptimisticMintingFeeUpdateStarted(
-        uint256 newOptimisticMintingFeeDivisor
+        uint32 newOptimisticMintingFeeDivisor
     );
-    event OptimisticMintingFeeUpdated(uint256 newOptimisticMintingFeeDivisor);
+    event OptimisticMintingFeeUpdated(uint32 newOptimisticMintingFeeDivisor);
 
-    event OptimisticMintingDelayUpdateStarted(
-        uint256 newOptimisticMintingDelay
-    );
-    event OptimisticMintingDelayUpdated(uint256 newOptimisticMintingDelay);
+    event OptimisticMintingDelayUpdateStarted(uint32 newOptimisticMintingDelay);
+    event OptimisticMintingDelayUpdated(uint32 newOptimisticMintingDelay);
 
     modifier onlyMinter() {
         require(isMinter[msg.sender], "Caller is not a minter");
@@ -337,14 +329,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         /* solhint-disable-next-line not-rely-on-time */
         request.finalizedAt = uint64(block.timestamp);
 
-        emit OptimisticMintingFinalized(
-            msg.sender,
-            depositKey,
-            deposit.depositor,
-            amountToMint,
-            fundingTxHash,
-            fundingOutputIndex
-        );
+        emit OptimisticMintingFinalized(msg.sender, depositKey);
     }
 
     /// @notice Allows a Guardian to cancel optimistic minting request. The
@@ -387,12 +372,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         // deposit again. Useful in case of an errant Guardian.
         delete optimisticMintingRequests[depositKey];
 
-        emit OptimisticMintingCancelled(
-            msg.sender,
-            depositKey,
-            fundingTxHash,
-            fundingOutputIndex
-        );
+        emit OptimisticMintingCancelled(msg.sender, depositKey);
     }
 
     /// @notice Adds the address to the Minter set.
@@ -450,7 +430,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         `1/50 = 0.02 = 2%`.
     /// @dev See the documentation for optimisticMintingFeeDivisor.
     function beginOptimisticMintingFeeUpdate(
-        uint256 _newOptimisticMintingFeeDivisor
+        uint32 _newOptimisticMintingFeeDivisor
     ) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
         optimisticMintingFeeUpdateInitiatedTimestamp = block.timestamp;
@@ -473,7 +453,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     /// @notice Begins the process of updating optimistic minting delay.
     function beginOptimisticMintingDelayUpdate(
-        uint256 _newOptimisticMintingDelay
+        uint32 _newOptimisticMintingDelay
     ) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
         optimisticMintingDelayUpdateInitiatedTimestamp = block.timestamp;
