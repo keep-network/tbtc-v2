@@ -931,9 +931,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeRedemptionTreasuryFeeDivisorUpdate()
-        ).to.be.revertedWith(
-          "Redemption treasury fee divisor must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 

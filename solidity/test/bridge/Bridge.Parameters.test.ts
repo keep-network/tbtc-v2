@@ -579,24 +579,6 @@ describe("Bridge - Parameters", () => {
         }
       )
 
-      context("when new redemption treasury fee divisor is zero", () => {
-        it("should revert", async () => {
-          await bridgeGovernance
-            .connect(governance)
-            .beginRedemptionTreasuryFeeDivisorUpdate(0)
-
-          await helpers.time.increaseTime(constants.governanceDelay)
-
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeRedemptionTreasuryFeeDivisorUpdate()
-          ).to.be.revertedWith(
-            "Redemption treasury fee divisor must be greater than zero"
-          )
-        })
-      })
-
       context("when new redemption transaction max fee is zero", () => {
         it("should revert", async () => {
           await bridgeGovernance

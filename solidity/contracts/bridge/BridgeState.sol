@@ -483,7 +483,6 @@ library BridgeState {
     ///        threshold,
     ///      - Redemption dust threshold must be greater than the redemption TX
     ///        max fee,
-    ///      - Redemption treasury fee divisor must be greater than zero,
     ///      - Redemption transaction max fee must be greater than zero,
     ///      - Redemption timeout must be greater than zero,
     ///      - Redemption timeout notifier reward multiplier must be in the
@@ -506,11 +505,6 @@ library BridgeState {
         require(
             _redemptionDustThreshold > _redemptionTxMaxFee,
             "Redemption dust threshold must be greater than redemption TX max fee"
-        );
-
-        require(
-            _redemptionTreasuryFeeDivisor > 0,
-            "Redemption treasury fee divisor must be greater than zero"
         );
 
         require(

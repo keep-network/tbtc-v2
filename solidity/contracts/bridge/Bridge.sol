@@ -1302,7 +1302,8 @@ contract Bridge is
     /// @dev Requirements:
     ///      - Redemption dust threshold must be greater than moving funds dust
     ///        threshold,
-    ///      - Redemption treasury fee divisor must be greater than zero,
+    ///      - Redemption dust threshold must be greater than the redemption TX
+    ///        max fee,
     ///      - Redemption transaction max fee must be greater than zero,
     ///      - Redemption timeout must be greater than zero,
     ///      - Redemption timeout notifier reward multiplier must be in the
