@@ -150,9 +150,12 @@ export async function submitDepositTransaction(
     })
   }
 
+  const depositScriptParameters = getDepositScriptParameters(deposit)
+
   const { transactionHash, depositUtxo, rawTransaction } =
     await assembleDepositTransaction(
-      deposit,
+      depositScriptParameters,
+      deposit.amount,
       utxosWithRaw,
       depositorPrivateKey,
       witness
@@ -169,6 +172,7 @@ export async function submitDepositTransaction(
 /**
  * Assembles a Bitcoin P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
+ * @param amount - output amount of the deposit transaction
  * @param utxos - UTXOs that should be used as transaction inputs.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
@@ -179,7 +183,8 @@ export async function submitDepositTransaction(
  *          - the deposit transaction in the raw format
  */
 export async function assembleDepositTransaction(
-  deposit: Deposit,
+  deposit: DepositScriptParameters,
+  amount: BigNumber,
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   depositorPrivateKey: string,
   witness: boolean
@@ -201,19 +206,13 @@ export async function assembleDepositTransaction(
 
   const transaction = new bcoin.MTX()
 
-  const depositScriptParameters = getDepositScriptParameters(deposit)
-
-  const scriptHash = await calculateDepositScriptHash(
-    depositScriptParameters,
-    witness
-  )
-  const outputValue = deposit.amount
+  const scriptHash = await calculateDepositScriptHash(deposit, witness)
 
   transaction.addOutput({
     script: witness
       ? bcoin.Script.fromProgram(0, scriptHash)
       : bcoin.Script.fromScripthash(scriptHash),
-    value: outputValue.toNumber(),
+    value: amount.toNumber(),
   })
 
   await transaction.fund(inputCoins, {
@@ -231,7 +230,7 @@ export async function assembleDepositTransaction(
     depositUtxo: {
       transactionHash,
       outputIndex: 0, // The deposit is always the first output.
-      value: outputValue,
+      value: amount,
     },
     rawTransaction: {
       transactionHex: transaction.toRaw().toString("hex"),
