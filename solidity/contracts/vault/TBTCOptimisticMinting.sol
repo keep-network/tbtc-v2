@@ -58,12 +58,13 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         optimistically minted deposit and transferred to the treasury
     ///         upon finalization of the optimistic mint. This fee is computed
     ///         as follows: `fee = amount / optimisticMintingFeeDivisor`.
-    ///         For example, if the fee needs to be 2% of each deposit,
-    ///         the `optimisticMintingFeeDivisor` should be set to `50` because
+    ///         For example, if the fee needs to be 2%, the
+    ///         `optimisticMintingFeeDivisor` should be set to `50` because
     ///         `1/50 = 0.02 = 2%`.
-    ///         Note that the optimistic minting fee does not replace the
-    ///         deposit treasury fee cut by the Bridge. Both fees are deducted
-    ///         from the minted token amount.
+    ///         The optimistic minting fee does not replace the deposit treasury
+    ///         fee cut by the Bridge. The optimistic fee is a percentage AFTER
+    ///         the treasury fee is cut:
+    ///         `optimisticMintingFee = (depositAmount - treasuryFee) / optimisticMintingFeeDivisor`
     uint32 public optimisticMintingFeeDivisor;
 
     /// @notice The time that needs to pass between the moment the optimistic
@@ -99,7 +100,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         not.
     mapping(address => uint256) public optimisticMintingDebt;
 
-    /// @notice New optimistic minting fee deivisor value. Set only when the
+    /// @notice New optimistic minting fee divisor value. Set only when the
     ///         parameter update process is pending. Once the update gets
     //          finalized, this will be the value of the divisor.
     uint32 public newOptimisticMintingFeeDivisor;
