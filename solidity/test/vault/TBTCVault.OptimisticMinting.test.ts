@@ -936,6 +936,30 @@ describe("TBTCVault - OptimisticMinting", () => {
           ).to.be.revertedWith("This address is already a minter")
         })
       })
+
+      context("when there are multiple minters", () => {
+        const minters = [
+          "0x54DeA8194aaF652Cd296B162A2809dd95529f775",
+          "0x575E6d8802e7b6A7E8F940640804385D8Bbe2ce0",
+          "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+        ]
+
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addMinter(minters[0])
+          await tbtcVault.connect(governance).addMinter(minters[1])
+          await tbtcVault.connect(governance).addMinter(minters[2])
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should add them into the list", async () => {
+          expect(await tbtcVault.getMinters()).to.deep.equal(minters)
+        })
+      })
     })
   })
 
@@ -985,6 +1009,24 @@ describe("TBTCVault - OptimisticMinting", () => {
     })
 
     context("when called by a guardian", () => {
+      context("when address is not a minter", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await tbtcVault.connect(governance).addGuardian(guardian.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            tbtcVault.connect(guardian).removeMinter(thirdParty.address)
+          ).to.be.revertedWith("This address is not a minter")
+        })
+      })
+
       context("when address is a minter", () => {
         let tx: ContractTransaction
 
@@ -1012,21 +1054,82 @@ describe("TBTCVault - OptimisticMinting", () => {
         })
       })
 
-      context("when address is not a minter", () => {
+      context("when there are multiple minters", () => {
+        const minters = [
+          "0x54DeA8194aaF652Cd296B162A2809dd95529f775",
+          "0x575E6d8802e7b6A7E8F940640804385D8Bbe2ce0",
+          "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+          "0xF844A3a4dA34fDDf51A0Ec7A0a89d1ed5A105e40",
+        ]
+
         before(async () => {
           await createSnapshot()
 
-          await tbtcVault.connect(governance).addGuardian(guardian.address)
+          await tbtcVault.connect(governance).addMinter(minters[0])
+          await tbtcVault.connect(governance).addMinter(minters[1])
+          await tbtcVault.connect(governance).addMinter(minters[2])
+          await tbtcVault.connect(governance).addMinter(minters[3])
         })
 
         after(async () => {
           await restoreSnapshot()
         })
 
-        it("should revert", async () => {
-          await expect(
-            tbtcVault.connect(guardian).removeMinter(thirdParty.address)
-          ).to.be.revertedWith("This address is not a minter")
+        context("when deleting the first minter", () => {
+          before(async () => {
+            await createSnapshot()
+            await tbtcVault.connect(governance).removeMinter(minters[0])
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should update the minters list", async () => {
+            expect(await tbtcVault.getMinters()).to.deep.equal([
+              "0xF844A3a4dA34fDDf51A0Ec7A0a89d1ed5A105e40",
+              "0x575E6d8802e7b6A7E8F940640804385D8Bbe2ce0",
+              "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+            ])
+          })
+        })
+
+        context("when deleting the last minter", () => {
+          before(async () => {
+            await createSnapshot()
+            await tbtcVault.connect(governance).removeMinter(minters[3])
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should update the minters list", async () => {
+            expect(await tbtcVault.getMinters()).to.deep.equal([
+              "0x54DeA8194aaF652Cd296B162A2809dd95529f775",
+              "0x575E6d8802e7b6A7E8F940640804385D8Bbe2ce0",
+              "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+            ])
+          })
+        })
+
+        context("when deleting minter from the middle of the list", () => {
+          before(async () => {
+            await createSnapshot()
+            await tbtcVault.connect(governance).removeMinter(minters[1])
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should update the minters list", async () => {
+            expect(await tbtcVault.getMinters()).to.deep.equal([
+              "0x54DeA8194aaF652Cd296B162A2809dd95529f775",
+              "0xF844A3a4dA34fDDf51A0Ec7A0a89d1ed5A105e40",
+              "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+            ])
+          })
         })
       })
     })

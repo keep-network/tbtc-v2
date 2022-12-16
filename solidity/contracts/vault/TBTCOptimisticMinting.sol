@@ -75,6 +75,11 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         request optimistic minting.
     mapping(address => bool) public isMinter;
 
+    /// @notice List of all Minters.
+    /// @dev May be used to establish an order in which the Minters should
+    ///      request for an optimistic minting.
+    address[] public minters;
+
     /// @notice Indicates if the given address is a Guardian. Only Guardians can
     ///         cancel requested optimistic minting.
     mapping(address => bool) public isGuardian;
@@ -190,6 +195,11 @@ abstract contract TBTCOptimisticMinting is Ownable {
     /// @dev Mints the given amount of TBTC to the given depositor's address.
     ///      Implemented by TBTCVault.
     function _mint(address minter, uint256 amount) internal virtual;
+
+    /// @notice Allows to fetch a list of all Minters.
+    function getMinters() external view returns (address[] memory) {
+        return minters;
+    }
 
     /// @notice Allows a Minter to request for an optimistic minting of TBTC.
     ///         The following conditions must be met:
@@ -388,17 +398,29 @@ abstract contract TBTCOptimisticMinting is Ownable {
         emit OptimisticMintingCancelled(msg.sender, depositKey);
     }
 
-    /// @notice Adds the address to the Minter set.
+    /// @notice Adds the address to the Minter list.
     function addMinter(address minter) external onlyOwner {
         require(!isMinter[minter], "This address is already a minter");
         isMinter[minter] = true;
+        minters.push(minter);
         emit MinterAdded(minter);
     }
 
-    /// @notice Removes the address from the Minter set.
+    /// @notice Removes the address from the Minter list.
     function removeMinter(address minter) external onlyOwnerOrGuardian {
         require(isMinter[minter], "This address is not a minter");
         delete isMinter[minter];
+
+        // We do not expect too many Minters so a simple loop is safe.
+        for (uint256 i = 0; i < minters.length; i++) {
+            if (minters[i] == minter) {
+                minters[i] = minters[minters.length - 1];
+                // slither-disable-next-line costly-loop
+                minters.pop();
+                break;
+            }
+        }
+
         emit MinterRemoved(minter);
     }
 
