@@ -541,7 +541,12 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(minter.address, depositKey)
+              .withArgs(
+                minter.address,
+                depositKey,
+                depositRevealInfo.depositor,
+                19591
+              )
           })
         })
 
@@ -608,7 +613,12 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(minter.address, depositKey)
+              .withArgs(
+                minter.address,
+                depositKey,
+                depositRevealInfo.depositor,
+                19990
+              )
           })
         })
 
@@ -686,7 +696,12 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(minter.address, depositKey)
+              .withArgs(
+                minter.address,
+                depositKey,
+                depositRevealInfo.depositor,
+                19600
+              )
           })
         })
 
@@ -752,7 +767,12 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(minter.address, depositKey)
+              .withArgs(
+                minter.address,
+                depositKey,
+                depositRevealInfo.depositor,
+                20000
+              )
           })
         })
       })
@@ -1476,6 +1496,8 @@ describe("TBTCVault - OptimisticMinting", () => {
     context(
       "when the deposit for which optimistic minting was requested gets swept",
       () => {
+        let tx: ContractTransaction
+
         before(async () => {
           await createSnapshot()
           await tbtcVault.connect(governance).addMinter(minter.address)
@@ -1493,7 +1515,7 @@ describe("TBTCVault - OptimisticMinting", () => {
 
           relay.getPrevEpochDifficulty.returns(chainDifficulty)
           relay.getCurrentEpochDifficulty.returns(chainDifficulty)
-          await bridge
+          tx = await bridge
             .connect(spvMaintainer)
             .submitDepositSweepProof(
               sweepTx,
@@ -1520,6 +1542,12 @@ describe("TBTCVault - OptimisticMinting", () => {
           expect(
             await tbtcVault.optimisticMintingDebt(depositRevealInfo.depositor)
           ).to.equal(1500)
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(tbtcVault, "OptimisticMintingDebtRepaid")
+            .withArgs(depositRevealInfo.depositor, 1500)
         })
       }
     )
@@ -1576,6 +1604,7 @@ describe("TBTCVault - OptimisticMinting", () => {
 
       context("when both deposits were optimistically minted", () => {
         let f: Fixture
+        let tx: ContractTransaction
 
         before(async () => {
           await createSnapshot()
@@ -1620,7 +1649,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             .connect(minter)
             .finalizeOptimisticMint(fundingTxHash, 2)
 
-          await f.tbtcVault
+          tx = await f.tbtcVault
             .connect(f.mockBank.wallet)
             .receiveBalanceIncrease([depositor, depositor], [800, 1900])
         })
@@ -1645,10 +1674,23 @@ describe("TBTCVault - OptimisticMinting", () => {
         it("should mint the right amount of TBTC", async () => {
           expect(await f.tbtc.balanceOf(depositor)).to.equal(2975)
         })
+
+        it("should emit an event", async () => {
+          // 2975 - 800 = 2175
+          await expect(tx)
+            .to.emit(f.tbtcVault, "OptimisticMintingDebtRepaid")
+            .withArgs(depositor, 2175)
+
+          // 2175 - 1900 = 275
+          await expect(tx)
+            .to.emit(f.tbtcVault, "OptimisticMintingDebtRepaid")
+            .withArgs(depositor, 275)
+        })
       })
 
       context("when only one deposit was optimistically minted", () => {
         let f: Fixture
+        let tx: ContractTransaction
 
         before(async () => {
           await createSnapshot()
@@ -1675,7 +1717,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             .connect(minter)
             .finalizeOptimisticMint(fundingTxHash, 1)
 
-          await f.tbtcVault
+          tx = await f.tbtcVault
             .connect(f.mockBank.wallet)
             .receiveBalanceIncrease([depositor, depositor], [800, 1900])
         })
@@ -1703,6 +1745,18 @@ describe("TBTCVault - OptimisticMinting", () => {
           // the second deposit and 990 was minted for the first deposit.
           // 1710 + 990 = 2700 is minted in total.
           expect(await f.tbtc.balanceOf(depositor)).to.equal(2700)
+        })
+
+        it("should emit an event", async () => {
+          // 990 - 800 = 190
+          await expect(tx)
+            .to.emit(f.tbtcVault, "OptimisticMintingDebtRepaid")
+            .withArgs(depositor, 190)
+
+          // 190 - 1900 = -1000 (so 1000 to mint, debt is 0)
+          await expect(tx)
+            .to.emit(f.tbtcVault, "OptimisticMintingDebtRepaid")
+            .withArgs(depositor, 0)
         })
       })
     })

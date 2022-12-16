@@ -120,11 +120,17 @@ abstract contract TBTCOptimisticMinting is Ownable {
     );
     event OptimisticMintingFinalized(
         address indexed minter,
-        uint256 indexed depositKey
+        uint256 indexed depositKey,
+        address indexed depositor,
+        uint256 optimisticMintingDebt
     );
     event OptimisticMintingCancelled(
         address indexed guardian,
         uint256 indexed depositKey
+    );
+    event OptimisticMintingDebtRepaid(
+        address indexed depositor,
+        uint256 optimisticMintingDebt
     );
     event MinterAdded(address indexed minter);
     event MinterRemoved(address indexed minter);
@@ -319,7 +325,9 @@ abstract contract TBTCOptimisticMinting is Ownable {
             : 0;
         amountToMint -= optimisticMintFee;
 
-        optimisticMintingDebt[deposit.depositor] += amountToMint;
+        uint256 newDebt = optimisticMintingDebt[deposit.depositor] +
+            amountToMint;
+        optimisticMintingDebt[deposit.depositor] = newDebt;
 
         _mint(deposit.depositor, amountToMint);
         if (optimisticMintFee > 0) {
@@ -329,7 +337,12 @@ abstract contract TBTCOptimisticMinting is Ownable {
         /* solhint-disable-next-line not-rely-on-time */
         request.finalizedAt = uint64(block.timestamp);
 
-        emit OptimisticMintingFinalized(msg.sender, depositKey);
+        emit OptimisticMintingFinalized(
+            msg.sender,
+            depositKey,
+            deposit.depositor,
+            newDebt
+        );
     }
 
     /// @notice Allows a Guardian to cancel optimistic minting request. The
@@ -504,15 +517,18 @@ abstract contract TBTCOptimisticMinting is Ownable {
         returns (uint256)
     {
         uint256 debt = optimisticMintingDebt[depositor];
+        if (debt == 0) {
+            return amount;
+        }
 
         if (amount > debt) {
             optimisticMintingDebt[depositor] = 0;
+            emit OptimisticMintingDebtRepaid(depositor, 0);
             return amount - debt;
         } else {
-            optimisticMintingDebt[depositor] -= amount;
+            optimisticMintingDebt[depositor] = debt - amount;
+            emit OptimisticMintingDebtRepaid(depositor, debt - amount);
             return 0;
         }
-
-        // TODO: emit an event ?
     }
 }
