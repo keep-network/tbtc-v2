@@ -1,7 +1,13 @@
 import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
 import { BigNumber, constants, Contract, Signer, utils } from "ethers"
-import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
+import {
+  abi as BridgeABI,
+  address as BridgeAddress,
+} from "@keep-network/tbtc-v2/artifacts/Bridge.json"
+import {
+  abi as WalletRegistryABI,
+  address as WalletRegistryAddress,
+} from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
 import { Deposit, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
@@ -39,7 +45,7 @@ export interface ContractConfig {
   /**
    * Address of the Ethereum contract as a 0x-prefixed hex string.
    */
-  address: string
+  address?: string
   /**
    * Signer that will sign all contract transactions.
    */
@@ -55,7 +61,7 @@ export class Bridge implements ChainBridge {
 
   constructor(config: ContractConfig) {
     this._bridge = new Contract(
-      config.address,
+      config.address || utils.getAddress(BridgeAddress),
       `${JSON.stringify(BridgeABI)}`,
       config.signer
     )
@@ -415,7 +421,7 @@ class WalletRegistry {
 
   constructor(config: ContractConfig) {
     this._walletRegistry = new Contract(
-      config.address,
+      config.address || utils.getAddress(WalletRegistryAddress),
       `${JSON.stringify(WalletRegistryABI)}`,
       config.signer
     )
