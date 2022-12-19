@@ -1,11 +1,11 @@
-import { BigNumber } from "ethers"
+import { BigNumber, ContractTransaction } from "ethers"
 import {
   Proof,
   UnspentTransactionOutput,
   DecomposedRawTransaction,
   TransactionHash,
 } from "./bitcoin"
-import { Deposit, RevealedDeposit } from "./deposit"
+import { DepositScriptParameters, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 
 /**
@@ -47,8 +47,9 @@ export interface Bridge {
   revealDeposit(
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
-    deposit: Deposit
-  ): Promise<void>
+    deposit: DepositScriptParameters,
+    vault?: Identifier
+  ): Promise<ContractTransaction>
 
   /**
    * Gets a revealed deposit from the on-chain contract.

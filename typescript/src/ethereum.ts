@@ -1,8 +1,8 @@
-import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
-import { BigNumber, constants, Contract, Signer, utils } from "ethers"
+import { Bridge as ChainBridge, Identifier as ChainIdentifier, Identifier } from "./chain"
+import { BigNumber, constants, Contract, ContractTransaction, Signer, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
-import { Deposit, RevealedDeposit } from "./deposit"
+import { DepositScriptParameters, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -158,8 +158,9 @@ export class Bridge implements ChainBridge {
   async revealDeposit(
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
-    deposit: Deposit
-  ): Promise<void> {
+    deposit: DepositScriptParameters,
+    vault?: Identifier
+  ): Promise<ContractTransaction> {
     const depositTxParam = {
       version: `0x${depositTx.version}`,
       inputVector: `0x${depositTx.inputs}`,
@@ -171,15 +172,19 @@ export class Bridge implements ChainBridge {
       fundingOutputIndex: depositOutputIndex,
       depositor: `0x${deposit.depositor.identifierHex}`,
       blindingFactor: `0x${deposit.blindingFactor}`,
-      walletPubKeyHash: `0x${computeHash160(deposit.walletPublicKey)}`,
-      refundPubKeyHash: `0x${computeHash160(deposit.refundPublicKey)}`,
+      walletPubKeyHash: `0x${deposit.walletPublicKeyHash}`,
+      refundPubKeyHash: `0x${deposit.refundPublicKeyHash}`,
       refundLocktime: `0x${deposit.refundLocktime}`,
-      vault: deposit.vault
-        ? `0x${deposit.vault.identifierHex}`
+      vault: vault
+        ? `0x${vault.identifierHex}`
         : constants.AddressZero,
     }
 
-    await this._bridge.revealDeposit(depositTxParam, revealParam)
+    console.log('depositTxParam', depositTxParam)
+    console.log('revealParams', revealParam)
+    console.log('bridge address', this._bridge.address)
+
+    return await this._bridge.revealDeposit(depositTxParam, revealParam)
   }
 
   // eslint-disable-next-line valid-jsdoc

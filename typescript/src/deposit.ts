@@ -1,5 +1,5 @@
 import bcoin from "bcoin"
-import { BigNumber } from "ethers"
+import { BigNumber, ContractTransaction } from "ethers"
 import {
   Client as BitcoinClient,
   computeHash160,
@@ -379,6 +379,7 @@ export async function calculateDepositAddress(
  * @param deposit - Data of the revealed deposit
  * @param bitcoinClient - Bitcoin client used to interact with the network
  * @param bridge - Handle to the Bridge on-chain contract
+ * @param vault - vault
  * @returns Empty promise
  * @dev The caller must ensure that the given deposit data are valid and
  *      the given deposit UTXO actually originates from a deposit transaction
@@ -386,15 +387,16 @@ export async function calculateDepositAddress(
  */
 export async function revealDeposit(
   utxo: UnspentTransactionOutput,
-  deposit: Deposit,
+  deposit: DepositScriptParameters,
   bitcoinClient: BitcoinClient,
-  bridge: Bridge
-): Promise<void> {
+  bridge: Bridge,
+  vault?: Identifier,
+): Promise<ContractTransaction> {
   const depositTx = decomposeRawTransaction(
     await bitcoinClient.getRawTransaction(utxo.transactionHash)
   )
 
-  await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit)
+  return await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit, vault)
 }
 
 /**
