@@ -7,7 +7,7 @@ import {
 import {
   abi as WalletRegistryABI,
   address as WalletRegistryAddress,
-} from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
+} from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { Deposit, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
