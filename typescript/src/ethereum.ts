@@ -3,10 +3,12 @@ import { BigNumber, constants, Contract, Signer, utils } from "ethers"
 import {
   abi as BridgeABI,
   address as BridgeAddress,
+  receipt as BridgeReceipt,
 } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import {
   abi as WalletRegistryABI,
   address as WalletRegistryAddress,
+  receipt as WalletRegistryReceipt,
 } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { Deposit, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
@@ -50,6 +52,10 @@ export interface ContractConfig {
    * Signer that will sign all contract transactions.
    */
   signer: Signer
+  /**
+   * Number of a block in which the contract was deployed.
+   */
+  deployedAtBlockNumber?: number
 }
 
 /**
@@ -58,6 +64,7 @@ export interface ContractConfig {
  */
 export class Bridge implements ChainBridge {
   private _bridge: Contract
+  private _deployedAtBlockNumber: number
 
   constructor(config: ContractConfig) {
     this._bridge = new Contract(
@@ -65,6 +72,9 @@ export class Bridge implements ChainBridge {
       `${JSON.stringify(BridgeABI)}`,
       config.signer
     )
+
+    this._deployedAtBlockNumber =
+      config.deployedAtBlockNumber || BridgeReceipt.blockNumber
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -418,6 +428,7 @@ export class Bridge implements ChainBridge {
  */
 class WalletRegistry {
   private _walletRegistry: Contract
+  private _deployedAtBlockNumber: number
 
   constructor(config: ContractConfig) {
     this._walletRegistry = new Contract(
@@ -425,6 +436,9 @@ class WalletRegistry {
       `${JSON.stringify(WalletRegistryABI)}`,
       config.signer
     )
+
+    this._deployedAtBlockNumber =
+      config.deployedAtBlockNumber || WalletRegistryReceipt.blockNumber
   }
 
   /**
