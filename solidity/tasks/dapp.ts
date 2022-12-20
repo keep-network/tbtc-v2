@@ -115,7 +115,12 @@ async function registerWallet(hre: HardhatRuntimeEnvironment, utxo: UTXO) {
   const publicKeyX = ethers.utils.randomBytes(32)
   const publicKeyY = ethers.utils.randomBytes(32)
 
-  await walletRegistry.mock__createWallet(ecdsaID, publicKeyX, publicKeyY)
+  const ecdsaTx = await walletRegistry.mock__createWallet(
+    ecdsaID,
+    publicKeyX,
+    publicKeyY
+  )
+  await ecdsaTx.wait()
   const walletPublicKey = await walletRegistry.getWalletPublicKey(ecdsaID)
   console.log(`Created wallet with public key ${walletPublicKey}`)
 
@@ -127,12 +132,13 @@ async function registerWallet(hre: HardhatRuntimeEnvironment, utxo: UTXO) {
       .reverse()
       .toString("hex")}`,
   }
-  await bridge.mock__registerEcdsaWallet(
+  const bridgeTx = await bridge.mock__registerEcdsaWallet(
     ecdsaID,
     publicKeyX,
     publicKeyY,
     finalUtxo
   )
+  await bridgeTx.wait()
   const walletPublicKeyHash = await bridge.activeWalletPubKeyHash()
   console.log(`Created wallet with public key hash ${walletPublicKeyHash}`)
 }
@@ -146,11 +152,12 @@ async function submitDepositSweepProof(
   const { helpers, ethers } = hre
   const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
 
-  await bridge.mock__submitDepositSweepProof(
+  const tx = await bridge.mock__submitDepositSweepProof(
     walletPubKeyHash,
     fundingTxHash,
     fundingOutputIndex
   )
+  await tx.wait()
 
   const depositKey = ethers.utils.solidityKeccak256(
     ["bytes32", "uint32"],
@@ -170,10 +177,11 @@ async function submitRedemptionProof(
   const { helpers } = hre
   const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
 
-  await bridge.mock__submitRedemptionProof(
+  const tx = await bridge.mock__submitRedemptionProof(
     walletPubKeyHash,
     redeemerOutputScript
   )
+  await tx.wait()
 
   console.log("Redemptions completed")
 }
