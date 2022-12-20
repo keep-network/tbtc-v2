@@ -1240,7 +1240,7 @@ contract Bridge is
     ///        deposit refund locktime.
     /// @dev Requirements:
     ///      - Deposit dust threshold must be greater than zero,
-    ///      - Deposit treasury fee divisor must be greater than zero,
+    ///      - Deposit dust threshold must be greater than deposit TX max fee,
     ///      - Deposit transaction max fee must be greater than zero.
     function updateDepositParameters(
         uint64 depositDustThreshold,
@@ -1302,8 +1302,11 @@ contract Bridge is
     /// @dev Requirements:
     ///      - Redemption dust threshold must be greater than moving funds dust
     ///        threshold,
-    ///      - Redemption treasury fee divisor must be greater than zero,
+    ///      - Redemption dust threshold must be greater than the redemption TX
+    ///        max fee,
     ///      - Redemption transaction max fee must be greater than zero,
+    ///      - Redemption transaction max total fee must be greater than or
+    ///        equal to the redemption transaction per-request max fee,
     ///      - Redemption timeout must be greater than zero,
     ///      - Redemption timeout notifier reward multiplier must be in the
     ///        range [0, 100].

@@ -7,13 +7,13 @@ import type {
   Bridge,
   BridgeStub,
   IWalletRegistry,
-  TestRelay,
   ReimbursementPool,
   MaintainerProxy,
   TBTC,
   TBTCVault,
   VendingMachine,
   BridgeGovernance,
+  IRelay,
 } from "../../typechain"
 
 /**
@@ -60,7 +60,7 @@ export default async function bridgeFixture() {
     "MaintainerProxy"
   )
 
-  const relay = await smock.fake<TestRelay>("TestRelay", {
+  const relay = await smock.fake<IRelay>("IRelay", {
     address: await (await bridge.contractReferences()).relay,
   })
 

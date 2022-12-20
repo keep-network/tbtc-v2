@@ -4,7 +4,7 @@ pragma solidity 0.8.17;
 
 import "../relay/LightRelay.sol";
 
-contract RelayStub is LightRelay {
+contract LightRelayStub is LightRelay {
     // Gas-reporting version of validateChain
     function validateChainGasReport(bytes memory headers)
         external
