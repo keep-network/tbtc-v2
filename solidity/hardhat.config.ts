@@ -109,11 +109,14 @@ const config: HardhatUserConfig = {
       tags: ["allowStubs"],
     },
     goerli: {
-      url: process.env.CHAIN_API_URL || "",
+      // TODO: Set correct infura key.
+      url: "https://goerli.infura.io/v3/<YOUR_INFURA_KEY>",
       chainId: 5,
-      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
-        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
-        : undefined,
+      accounts: {
+        // TODO: Set your mnemonic phrase here.
+        mnemonic:
+          "your mnemonic phrase here",
+      },
     },
     mainnet: {
       url: process.env.CHAIN_API_URL || "",
@@ -169,6 +172,7 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/tbtc/artifacts",
         "node_modules/@keep-network/random-beacon/artifacts",
         "node_modules/@keep-network/ecdsa/artifacts",
+        "node_modules/@keep-network/tbtc-v2/artifacts",
       ],
       mainnet: ["./external/mainnet"],
     },
