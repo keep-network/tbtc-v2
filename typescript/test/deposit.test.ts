@@ -314,12 +314,14 @@ describe("Deposit", () => {
       let transaction: RawTransaction
 
       beforeEach(async () => {
+        const depositScriptParameters = getDepositScriptParameters(deposit)
         ;({
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
         } = await assembleDepositTransaction(
-          deposit,
+          depositScriptParameters,
+          deposit.amount,
           [testnetUTXO],
           testnetPrivateKey,
           true
@@ -407,12 +409,14 @@ describe("Deposit", () => {
       let transaction: RawTransaction
 
       beforeEach(async () => {
+        const depositScriptParameters = getDepositScriptParameters(deposit)
         ;({
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
         } = await assembleDepositTransaction(
-          deposit,
+          depositScriptParameters,
+          deposit.amount,
           [testnetUTXO],
           testnetPrivateKey,
           false
@@ -686,9 +690,11 @@ describe("Deposit", () => {
     let bridge: MockBridge
 
     beforeEach(async () => {
+      const depositScriptParameters = getDepositScriptParameters(deposit)
       // Create a deposit transaction.
       const result = await assembleDepositTransaction(
-        deposit,
+        depositScriptParameters,
+        deposit.amount,
         [testnetUTXO],
         testnetPrivateKey,
         true
@@ -729,8 +735,10 @@ describe("Deposit", () => {
 
     beforeEach(async () => {
       // Create a deposit transaction.
+      const depositScriptParameters = getDepositScriptParameters(deposit)
       ;({ depositUtxo } = await assembleDepositTransaction(
-        deposit,
+        depositScriptParameters,
+        deposit.amount,
         [testnetUTXO],
         testnetPrivateKey,
         true

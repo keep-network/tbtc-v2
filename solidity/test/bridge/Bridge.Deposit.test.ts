@@ -65,7 +65,9 @@ describe("Bridge - Deposit", () => {
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
+    // Scaling down deposit TX max fee as well.
     await bridge.setDepositDustThreshold(10000)
+    await bridge.setDepositTxMaxFee(2000)
     // Disable the reveal ahead period since refund locktimes are fixed
     // within transactions used in this test suite.
     await bridge.setDepositRevealAheadPeriod(0)
@@ -246,6 +248,67 @@ describe("Bridge - Deposit", () => {
                         "0x28e081f285138ccbe389c1eb8985716230129f89",
                         "0x60bcea61",
                         ZERO_ADDRESS
+                      )
+                  })
+                })
+
+                context("when deposit treasury fee is zero", () => {
+                  let tx: ContractTransaction
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    await bridgeGovernance
+                      .connect(governance)
+                      .beginDepositTreasuryFeeDivisorUpdate(0)
+                    await helpers.time.increaseTime(constants.governanceDelay)
+                    await bridgeGovernance
+                      .connect(governance)
+                      .finalizeDepositTreasuryFeeDivisorUpdate()
+
+                    tx = await bridge.revealDeposit(P2SHFundingTx, reveal)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should store proper deposit data", async () => {
+                    // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                    const depositKey = ethers.utils.solidityKeccak256(
+                      ["bytes32", "uint32"],
+                      [
+                        "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                        reveal.fundingOutputIndex,
+                      ]
+                    )
+
+                    const deposit = await bridge.deposits(depositKey)
+
+                    // Deposit amount in satoshi. In this case it's 10000 satoshi
+                    // because the P2SH deposit transaction set this value for the
+                    // funding output.
+                    expect(deposit.amount).to.be.equal(10000)
+
+                    // Treasury fee should be computed according to the current
+                    // value of the `depositTreasuryFeeDivisor`.
+                    // The divisor is 0 so the treasury fee is 0 as well.
+                    expect(deposit.treasuryFee).to.be.equal(0)
+                  })
+
+                  it("should accept the deposit", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "DepositRevealed")
+                      .withArgs(
+                        "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                        reveal.fundingOutputIndex,
+                        "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                        10000,
+                        "0xf9f0c90d00039523",
+                        "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                        "0x28e081f285138ccbe389c1eb8985716230129f89",
+                        "0x60bcea61",
+                        reveal.vault
                       )
                   })
                 })
@@ -977,6 +1040,66 @@ describe("Bridge - Deposit", () => {
                             await expect(tx)
                               .to.emit(bridge, "DepositsSwept")
                               .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          })
+                        }
+                      )
+
+                      // This test cares only about the fact sweeping works
+                      // correctly when no deposit treasury fee is collected.
+                      // It uses the test data from P2SH deposit test.
+                      context(
+                        "when the deposit treasury fee is zero",
+                        async () => {
+                          const data: DepositSweepTestData = SingleP2SHDeposit
+                          // Take wallet public key hash from first deposit. All
+                          // deposits in same sweep batch should have the same value
+                          // of that field.
+                          const { walletPubKeyHash } = data.deposits[0].reveal
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Simulate the wallet is a Live one and is known in
+                            // the system.
+                            await bridge.setWallet(walletPubKeyHash, {
+                              ...walletDraft,
+                              state: walletState.Live,
+                            })
+
+                            await bridgeGovernance
+                              .connect(governance)
+                              .beginDepositTreasuryFeeDivisorUpdate(0)
+                            await helpers.time.increaseTime(
+                              constants.governanceDelay
+                            )
+                            await bridgeGovernance
+                              .connect(governance)
+                              .finalizeDepositTreasuryFeeDivisorUpdate()
+
+                            await runDepositSweepScenario(data)
+                          })
+
+                          after(async () => {
+                            await restoreSnapshot()
+                          })
+
+                          it("should update the depositor's balance", async () => {
+                            // The sum of sweep tx inputs is 20000 satoshi. The output
+                            // value is 18500 so the transaction fee is 1500. There is
+                            // only one deposit so it incurs the entire transaction fee.
+                            // There is no deposit treasury fee so the final depositor
+                            // balance is not additionally cut.
+                            expect(
+                              await bank.balanceOf(
+                                data.deposits[0].reveal.depositor
+                              )
+                            ).to.be.equal(18500)
+                          })
+
+                          it("should collect no treasury fee", async () => {
+                            expect(
+                              await bank.balanceOf(treasury.address)
+                            ).to.be.equal(0)
                           })
                         }
                       )
