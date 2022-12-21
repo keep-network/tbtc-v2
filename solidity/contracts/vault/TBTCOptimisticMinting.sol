@@ -24,10 +24,10 @@ import "../GovernanceUtils.sol";
 ///         `TBTCVault` receives the Bank balance. There are two permissioned
 ///         sets in the system: Minters and Guardians, both set up in 1-of-n
 ///         mode. Minters observe the revealed deposits and request minting TBTC.
-///         Any single Minter can perform this action. There is a 3 hours delay
-///         between the time of the request from a Minter to the time TBTC is
-///         minted. During the time of the delay, any Guardian can cancel the
-///         minting.
+///         Any single Minter can perform this action. There is an
+///         `optimisticMintingDelay` between the time of the request from
+///         a Minter to the time TBTC is minted. During the time of the delay,
+///         any Guardian can cancel the minting.
 /// @dev This functionality is a part of `TBTCVault`. It is implemented in
 ///      a separate abstract contract to achieve better separation of concerns
 ///      and easier-to-follow code.
@@ -280,8 +280,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///           been canceled by a Guardian.
     ///         - The optimistic minting is not paused.
     ///         This function mints TBTC and increases `optimisticMintingDebt`
-    ///         for the given depositor. The finalized optimistic minting
-    ///         request is removed from the contract.
+    ///         for the given depositor. The optimistic minting request is
+    ///         marked as finalized.
     function finalizeOptimisticMint(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
