@@ -18,9 +18,9 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IVault.sol";
+import "./TBTCOptimisticMinting.sol";
 import "../bank/Bank.sol";
 import "../token/TBTC.sol";
-import "../GovernanceUtils.sol";
 
 /// @title TBTC application vault
 /// @notice TBTC is a fully Bitcoin-backed ERC-20 token pegged to the price of
@@ -30,18 +30,11 @@ import "../GovernanceUtils.sol";
 ///         Bank.
 /// @dev TBTC Vault is the owner of TBTC token contract and is the only contract
 ///      minting the token.
-contract TBTCVault is IVault, Ownable {
+contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     using SafeERC20 for IERC20;
 
-    /// @notice The time delay that needs to pass between initializing and
-    ///         finalizing upgrade to a new vault. The time delay forces the
-    ///         upgrading party to reflect on the vault address it is upgrading
-    ///         to and lets all TBTC holders notice the planned
-    ///         upgrade.
-    uint256 public constant UPGRADE_GOVERNANCE_DELAY = 24 hours;
-
-    Bank public bank;
-    TBTC public tbtcToken;
+    Bank public immutable bank;
+    TBTC public immutable tbtcToken;
 
     /// @notice The address of a new TBTC vault. Set only when the upgrade
     ///         process is pending. Once the upgrade gets finalized, the new
@@ -62,15 +55,11 @@ contract TBTCVault is IVault, Ownable {
         _;
     }
 
-    modifier onlyAfterUpgradeGovernanceDelay() {
-        GovernanceUtils.onlyAfterGovernanceDelay(
-            upgradeInitiatedTimestamp,
-            UPGRADE_GOVERNANCE_DELAY
-        );
-        _;
-    }
-
-    constructor(Bank _bank, TBTC _tbtcToken) {
+    constructor(
+        Bank _bank,
+        TBTC _tbtcToken,
+        Bridge _bridge
+    ) TBTCOptimisticMinting(_bridge) {
         require(
             address(_bank) != address(0),
             "Bank can not be the zero address"
@@ -129,7 +118,9 @@ contract TBTCVault is IVault, Ownable {
     ) external override onlyBank {
         require(depositors.length != 0, "No depositors specified");
         for (uint256 i = 0; i < depositors.length; i++) {
-            _mint(depositors[i], depositedAmounts[i]);
+            address depositor = depositors[i];
+            uint256 amount = depositedAmounts[i];
+            _mint(depositor, repayOptimisticMintingDebt(depositor, amount));
         }
     }
 
@@ -205,14 +196,14 @@ contract TBTCVault is IVault, Ownable {
 
     /// @notice Allows the governance to finalize vault upgrade process. The
     ///         upgrade process needs to be first initiated with a call to
-    ///         `initiateUpgrade` and the `UPGRADE_GOVERNANCE_DELAY` needs to
-    ///         pass. Once the upgrade is finalized, the new vault becomes the
-    ///         owner of the TBTC token and receives the whole Bank balance of
-    ///         this vault.
+    ///         `initiateUpgrade` and the `GOVERNANCE_DELAY` needs to pass.
+    ///         Once the upgrade is finalized, the new vault becomes the owner
+    ///         of the TBTC token and receives the whole Bank balance of this
+    ///         vault.
     function finalizeUpgrade()
         external
         onlyOwner
-        onlyAfterUpgradeGovernanceDelay
+        onlyAfterGovernanceDelay(upgradeInitiatedTimestamp)
     {
         emit UpgradeFinalized(newVault);
         // slither-disable-next-line reentrancy-no-eth
@@ -281,7 +272,7 @@ contract TBTCVault is IVault, Ownable {
     }
 
     // slither-disable-next-line calls-loop
-    function _mint(address minter, uint256 amount) internal {
+    function _mint(address minter, uint256 amount) internal override {
         emit Minted(minter, amount);
         tbtcToken.mint(minter, amount);
     }
@@ -299,6 +290,6 @@ contract TBTCVault is IVault, Ownable {
     ) internal {
         emit Unminted(redeemer, amount);
         tbtcToken.burnFrom(redeemer, amount);
-        bank.approveBalanceAndCall(bank.bridge(), amount, redemptionData);
+        bank.approveBalanceAndCall(address(bridge), amount, redemptionData);
     }
 }
