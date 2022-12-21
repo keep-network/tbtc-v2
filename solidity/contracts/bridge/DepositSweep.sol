@@ -254,7 +254,9 @@ library DepositSweep {
         }
 
         // Pass the treasury fee to the treasury address.
-        self.bank.increaseBalance(self.treasury, totalTreasuryFee);
+        if (totalTreasuryFee > 0) {
+            self.bank.increaseBalance(self.treasury, totalTreasuryFee);
+        }
     }
 
     /// @notice Resolves sweeping wallet based on the provided wallet public key

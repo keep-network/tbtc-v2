@@ -48,10 +48,22 @@ git config --global url."https://".insteadOf git://
 === Test contracts
 
 There are multiple test scenarios living in the `test` directory.
-You can run them by doing:
+
+You can run unit tests with:
 ```
 yarn test
 ```
+
+The tests marked as "pending" during `yarn test` are integration tests.
+
+You can run integration tests with:
+
+```
+yarn test:integration
+```
+
+System tests are implemented separately, in the
+link:../system-tests/[`system-tests`] directory of the `tbtc-v2` repository.
 
 === Deploy contracts
 
