@@ -8,13 +8,27 @@ on:
       - main
     paths:
       - "solidity/**"
+      - ".github/workflows/contracts.yml"
   pull_request:
+  # We intend to use `workflow dispatch` in two different situations/paths:
+  # 1. If a workflow will be manually dispatched from branch named
+  #    `dapp-development`, workflow will deploy the contracts on the selected
+  #    testnet and publish them to NPM registry with `dapp-dev-<environment>`
+  #    suffix and `dapp-development-<environment>` tag. Such packages are meant
+  #    to be used locally by the team developing Threshold Token dApp and may
+  #    contain contracts that have different values from the ones used on
+  #    mainnet.
+  # 2. If a workflow will be manually dispatched from a branch which name is not
+  #    `dapp-development`, the workflow will deploy the contracts on the
+  #    selected testnet and publish them to NPM registry with `<environment>`
+  #    suffix and tag. Such packages will be used later to deploy public
+  #    Threshold Token dApp on a testnet, with contracts resembling those used
+  #    on mainnet.
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment for workflow execution"
+        description: "Environment (network) for workflow execution, e.g. `goerli`"
         required: false
-        default: "dev"
       upstream_builds:
         description: "Upstream builds"
         required: false
@@ -29,7 +43,7 @@ jobs:
     outputs:
       path-filter: ${{ steps.filter.outputs.path-filter }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         if: github.event_name == 'pull_request'
 
       - uses: dorny/paths-filter@v2
@@ -39,6 +53,7 @@ jobs:
           filters: |
             path-filter:
               - './solidity/**'
+              - './.github/workflows/contracts.yml'
 
   contracts-build-and-test:
     needs: contracts-detect-changes
@@ -50,9 +65,9 @@ jobs:
       run:
         working-directory: ./solidity
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: "14.x"
           cache: "yarn"
@@ -72,10 +87,14 @@ jobs:
       - name: Build contracts
         run: yarn build
 
+      # We don't want to execute the tests for dapp-friendly contracts (either
+      # when deploying from `dapp-development` or during PR checks on that branch).
       - name: Run tests
+        if: github.ref != 'refs/heads/dapp-development' && github.head_ref != 'dapp-development'
         run: yarn test
 
       - name: Run integration tests
+        if: github.ref != 'refs/heads/dapp-development' && github.head_ref != 'dapp-development'
         run: yarn test:integration
 
   contracts-deployment-dry-run:
@@ -88,9 +107,9 @@ jobs:
       run:
         working-directory: ./solidity
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: "14.x"
           cache: "yarn"
@@ -112,16 +131,18 @@ jobs:
         run: yarn deploy:test
 
   contracts-deployment-testnet:
-    needs: [contracts-detect-changes, contracts-build-and-test]
-    if: github.event_name == 'workflow_dispatch'
+    needs: [contracts-build-and-test]
+    if: |
+      github.event_name == 'workflow_dispatch'
+        && github.ref != 'refs/heads/dapp-development'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./solidity
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: "14.x"
           cache: "yarn"
@@ -142,25 +163,30 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Get upstream packages versions
-        uses: keep-network/ci/actions/upstream-builds-query@v1
+        uses: keep-network/ci/actions/upstream-builds-query@v2
         id: upstream-builds-query
         with:
           upstream-builds: ${{ github.event.inputs.upstream_builds }}
-          query: tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
+          query: |
+            random-beacon-contracts-version = github.com/keep-network/keep-core/random-beacon#version
+            ecdsa-contracts-version = github.com/keep-network/keep-core/ecdsa#version
 
       - name: Resolve latest contracts
-        run: yarn upgrade @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+        run: |
+          yarn upgrade \
+            @keep-network/random-beacon@${{ steps.upstream-builds-query.outputs.random-beacon-contracts-version }} \
+            @keep-network/ecdsa@${{ steps.upstream-builds-query.outputs.ecdsa-contracts-version }} \
+            @keep-network/tbtc@${{ github.event.inputs.environment }}
 
       - name: Configure tenderly
-        if: github.event.inputs.environment == 'ropsten'
         env:
           TENDERLY_TOKEN: ${{ secrets.TENDERLY_TOKEN }}
         run: ./config_tenderly.sh
 
       - name: Deploy contracts
         env:
-          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
-          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.KEEP_TEST_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
+          CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
+          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOERLI_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
         run: yarn deploy --network ${{ github.event.inputs.environment }}
 
       - name: Bump up package version
@@ -178,11 +204,11 @@ jobs:
         run: npm publish --access=public --tag ${{ github.event.inputs.environment }} --network=${{ github.event.inputs.environment }}
 
       - name: Notify CI about completion of the workflow
-        uses: keep-network/ci/actions/notify-workflow-completed@v1
+        uses: keep-network/ci/actions/notify-workflow-completed@v2
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         with:
-          module: "github.com/keep-network/tbtc-v2/solidity"
+          module: "github.com/keep-network/tbtc-v2"
           url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           environment: ${{ github.event.inputs.environment }}
           upstream_builds: ${{ github.event.inputs.upstream_builds }}
@@ -190,7 +216,7 @@ jobs:
           version: ${{ steps.npm-version-bump.outputs.version }}
 
       - name: Upload files needed for etherscan verification
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Artifacts for etherscan verification
           path: |
@@ -205,15 +231,15 @@ jobs:
       run:
         working-directory: ./solidity
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Download files needed for etherscan verification
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: Artifacts for etherscan verification
           path: ./solidity
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: "14.x"
           cache: "yarn"
@@ -231,19 +257,92 @@ jobs:
       - name: Install needed dependencies
         run: yarn install --frozen-lockfile
 
-      # If we don't remove the `ecdsa` and `tbtc` contracts from `node-modules`,
-      # the `etherscan-verify` plugins tries to verify them, which is not
-      # desired.
+      # If we don't remove the contracts from `node-modules`, the
+      # `etherscan-verify` plugins tries to verify them, which is not desired.
       - name: Prepare for verification on Etherscan
         run: |
-          rm -rf ./node_modules/@keep-network/ecdsa
-          rm -rf ./node_modules/@keep-network/tbtc
+          rm -rf ./node_modules/@keep-network/random-beacon/artifacts
+          rm -rf ./node_modules/@keep-network/ecdsa/artifacts
+          rm -rf ./node_modules/@keep-network/tbtc/artifacts
 
       - name: Verify contracts on Etherscan
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
-          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
-        run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify --license MIT
+          CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
+        run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify
+
+  # This job is responsible for publishing packackes with slightly modified
+  # contracts. The modifications are there to help with the process of testing
+  # some features on the T Token Dashboard. The job starts only if workflow
+  # gets triggered by the `workflow_dispatch` event on the branch called
+  # `dapp-development`.
+  contracts-dapp-development-deployment-testnet:
+    needs: [contracts-build-and-test]
+    if: |
+      github.event_name == 'workflow_dispatch'
+        && github.ref == 'refs/heads/dapp-development'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./solidity
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: solidity/yarn.lock
+          registry-url: "https://registry.npmjs.org"
+
+      # We need this step because the `@keep-network/tbtc` which we update in
+      # next steps has a dependency to `@summa-tx/relay-sol@2.0.2` package, which
+      # downloads one of its sub-dependencies via unathenticated `git://`
+      # protocol. That protocol is no longer supported. Thanks to this step
+      # `https://` is used instead of `git://`. This step also prevents the
+      # error during `yarn install --frozen-lockfile` step in case `git://` gets
+      # introduced to tbtc-v2's `yarn.lock`.
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Get upstream packages versions
+        uses: keep-network/ci/actions/upstream-builds-query@v2
+        id: upstream-builds-query
+        with:
+          upstream-builds: ${{ github.event.inputs.upstream_builds }}
+          query: |
+            random-beacon-contracts-version = github.com/keep-network/keep-core/random-beacon#version
+            ecdsa-contracts-version = github.com/keep-network/keep-core/ecdsa#version
+
+      - name: Resolve latest contracts
+        run: |
+          yarn upgrade \
+            @keep-network/random-beacon@${{ steps.upstream-builds-query.outputs.random-beacon-contracts-version }} \
+            @keep-network/ecdsa@${{ steps.upstream-builds-query.outputs.ecdsa-contracts-version }} \
+            @keep-network/tbtc@${{ github.event.inputs.environment }}
+
+      - name: Deploy contracts
+        env:
+          CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
+          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.DAPP_DEV_GOERLI_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
+        run: yarn deploy --network ${{ github.event.inputs.environment }}
+
+      - name: Bump up package version
+        id: npm-version-bump
+        uses: keep-network/npm-version-bump@v2
+        with:
+          work-dir: solidity
+          environment: dapp-dev-${{ github.event.inputs.environment }}
+          branch: ${{ github.ref }}
+          commit: ${{ github.sha }}
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access=public --tag dapp-development-${{ github.event.inputs.environment }} --network=${{ github.event.inputs.environment }}
 
   contracts-format:
     needs: contracts-detect-changes
@@ -255,9 +354,9 @@ jobs:
       run:
         working-directory: ./solidity
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: "14.x"
           cache: "yarn"
@@ -298,17 +397,17 @@ jobs:
       run:
         working-directory: ./solidity
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: "14.x"
           cache: "yarn"
           cache-dependency-path: solidity/yarn.lock
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
-          python-version: 3.8.5
+          python-version: 3.10.8
 
       - name: Install Solidity
         env:

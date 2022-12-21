@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 // ██████████████     ▐████▌     ██████████████
 // ██████████████     ▐████▌     ██████████████
@@ -13,9 +13,10 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
+import "@keep-network/random-beacon/contracts/ReimbursementPool.sol";
 
 import "./IRelay.sol";
 import "./Deposit.sol";
@@ -37,6 +38,8 @@ library BridgeState {
         uint96 txProofDifficultyFactor;
         // ECDSA Wallet Registry contract handle.
         EcdsaWalletRegistry ecdsaWalletRegistry;
+        // Reimbursement Pool contract handle.
+        ReimbursementPool reimbursementPool;
         // Address where the deposit and redemption treasury fees will be sent
         // to. Treasury takes part in the operators rewarding process.
         address treasury;
@@ -112,6 +115,9 @@ library BridgeState {
         // the notifier of a moving funds timeout receives. The value is in the
         // range [0, 100].
         uint32 movingFundsTimeoutNotifierRewardMultiplier;
+        // The gas offset used for the target wallet commitment transaction cost
+        // reimbursement.
+        uint16 movingFundsCommitmentGasOffset;
         // Move movedFundsSweepTxMaxTotalFee to the next storage slot for a more
         // efficient variable layout in the storage.
         // slither-disable-next-line unused-state
@@ -285,12 +291,14 @@ library BridgeState {
         // (computed using Bitcoin HASH160 over the compressed ECDSA
         // public key) and `redeemerOutputScript` is the Bitcoin script
         // (P2PKH, P2WPKH, P2SH or P2WSH) that is involved in the timed
-        // out request. Timed out requests are stored in this mapping to
-        // avoid slashing the wallets multiple times for the same timeout.
+        // out request.
         // Only one method can add to this mapping:
         // - `notifyRedemptionTimeout` which puts the redemption key to this
-        //    mapping basing on a timed out request stored previously in
+        //    mapping based on a timed out request stored previously in
         //    `pendingRedemptions` mapping.
+        // Only one method can remove entries from this mapping:
+        // - `submitRedemptionProof` in case the timed out redemption request
+        //    was a part of the proven transaction.
         mapping(uint256 => Redemption.RedemptionRequest) timedOutRedemptions;
         // Collection of all submitted fraud challenges indexed by challenge
         // key built as `keccak256(walletPublicKey|sighash)`.
@@ -340,6 +348,7 @@ library BridgeState {
         uint32 movingFundsTimeout,
         uint96 movingFundsTimeoutSlashingAmount,
         uint32 movingFundsTimeoutNotifierRewardMultiplier,
+        uint16 movingFundsCommitmentGasOffset,
         uint64 movedFundsSweepTxMaxTotalFee,
         uint32 movedFundsSweepTimeout,
         uint96 movedFundsSweepTimeoutSlashingAmount,
@@ -390,7 +399,6 @@ library BridgeState {
     /// @dev Requirements:
     ///      - Deposit dust threshold must be greater than zero,
     ///      - Deposit dust threshold must be greater than deposit TX max fee,
-    ///      - Deposit treasury fee divisor must be greater than zero,
     ///      - Deposit transaction max fee must be greater than zero.
     function updateDepositParameters(
         Storage storage self,
@@ -407,11 +415,6 @@ library BridgeState {
         require(
             _depositDustThreshold > _depositTxMaxFee,
             "Deposit dust threshold must be greater than deposit TX max fee"
-        );
-
-        require(
-            _depositTreasuryFeeDivisor > 0,
-            "Deposit treasury fee divisor must be greater than zero"
         );
 
         require(
@@ -480,8 +483,9 @@ library BridgeState {
     ///        threshold,
     ///      - Redemption dust threshold must be greater than the redemption TX
     ///        max fee,
-    ///      - Redemption treasury fee divisor must be greater than zero,
     ///      - Redemption transaction max fee must be greater than zero,
+    ///      - Redemption transaction max total fee must be greater than or
+    ///        equal to the redemption transaction per-request max fee,
     ///      - Redemption timeout must be greater than zero,
     ///      - Redemption timeout notifier reward multiplier must be in the
     ///        range [0, 100].
@@ -503,11 +507,6 @@ library BridgeState {
         require(
             _redemptionDustThreshold > _redemptionTxMaxFee,
             "Redemption dust threshold must be greater than redemption TX max fee"
-        );
-
-        require(
-            _redemptionTreasuryFeeDivisor > 0,
-            "Redemption treasury fee divisor must be greater than zero"
         );
 
         require(
@@ -582,6 +581,9 @@ library BridgeState {
     ///        it determines the percentage of the notifier reward from the
     ///        staking contact the notifier of a moving funds timeout receives.
     ///        The value must be in the range [0, 100].
+    /// @param _movingFundsCommitmentGasOffset New value of the gas offset for
+    ///        moving funds target wallet commitment transaction gas costs
+    ///        reimbursement.
     /// @param _movedFundsSweepTxMaxTotalFee New value of the moved funds sweep
     ///        transaction max total fee in satoshis. It is the maximum amount
     ///        of the total BTC transaction fee that is acceptable in a single
@@ -621,6 +623,7 @@ library BridgeState {
         uint32 _movingFundsTimeout,
         uint96 _movingFundsTimeoutSlashingAmount,
         uint32 _movingFundsTimeoutNotifierRewardMultiplier,
+        uint16 _movingFundsCommitmentGasOffset,
         uint64 _movedFundsSweepTxMaxTotalFee,
         uint32 _movedFundsSweepTimeout,
         uint96 _movedFundsSweepTimeoutSlashingAmount,
@@ -675,6 +678,7 @@ library BridgeState {
             .movingFundsTimeoutSlashingAmount = _movingFundsTimeoutSlashingAmount;
         self
             .movingFundsTimeoutNotifierRewardMultiplier = _movingFundsTimeoutNotifierRewardMultiplier;
+        self.movingFundsCommitmentGasOffset = _movingFundsCommitmentGasOffset;
         self.movedFundsSweepTxMaxTotalFee = _movedFundsSweepTxMaxTotalFee;
         self.movedFundsSweepTimeout = _movedFundsSweepTimeout;
         self
@@ -689,6 +693,7 @@ library BridgeState {
             _movingFundsTimeout,
             _movingFundsTimeoutSlashingAmount,
             _movingFundsTimeoutNotifierRewardMultiplier,
+            _movingFundsCommitmentGasOffset,
             _movedFundsSweepTxMaxTotalFee,
             _movedFundsSweepTimeout,
             _movedFundsSweepTimeoutSlashingAmount,

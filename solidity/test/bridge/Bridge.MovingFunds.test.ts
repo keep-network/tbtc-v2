@@ -5,11 +5,14 @@ import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { BigNumber, Contract, ContractTransaction } from "ethers"
+import { Deployment } from "hardhat-deploy/types"
 import type {
   Bridge,
   BridgeStub,
   IRelay,
   IWalletRegistry,
+  BridgeGovernance,
+  ReimbursementPool,
 } from "../../typechain"
 import bridgeFixture from "../fixtures/bridge"
 import {
@@ -36,7 +39,6 @@ import {
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
-import { BridgeGovernance } from "../../typechain"
 
 chai.use(smock.matchers)
 
@@ -44,6 +46,7 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 
 describe("Bridge - Moving funds", () => {
+  let deployer: SignerWithAddress
   let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
   let spvMaintainer: SignerWithAddress
@@ -52,7 +55,10 @@ describe("Bridge - Moving funds", () => {
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
   let bridgeGovernance: BridgeGovernance
-  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
+  let reimbursementPool: ReimbursementPool
+  let deployBridge: (
+    txProofDifficultyFactor: number
+  ) => Promise<[Contract, Deployment]>
 
   let movingFundsTimeoutResetDelay: number
   let movingFundsTimeout: number
@@ -65,6 +71,7 @@ describe("Bridge - Moving funds", () => {
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
+      deployer,
       governance,
       thirdParty,
       spvMaintainer,
@@ -72,6 +79,7 @@ describe("Bridge - Moving funds", () => {
       walletRegistry,
       bridge,
       bridgeGovernance,
+      reimbursementPool,
       deployBridge,
     } = await waffle.loadFixture(bridgeFixture))
     ;({
@@ -239,8 +247,23 @@ describe("Bridge - Moving funds", () => {
                                               expectedTargetWalletsCount
                                             )
 
+                                          const { provider } = waffle
+
+                                          let initialCallerBalance: BigNumber
+
                                           before(async () => {
                                             await createSnapshot()
+
+                                            await deployer.sendTransaction({
+                                              to: reimbursementPool.address,
+                                              value:
+                                                ethers.utils.parseEther("100"),
+                                            })
+
+                                            initialCallerBalance =
+                                              await provider.getBalance(
+                                                caller.address
+                                              )
 
                                             tx = await bridge
                                               .connect(caller)
@@ -284,6 +307,25 @@ describe("Bridge - Moving funds", () => {
                                                 targetWallets,
                                                 caller.address
                                               )
+                                          })
+
+                                          it("should refund ETH", async () => {
+                                            const postCallerBalance =
+                                              await provider.getBalance(
+                                                caller.address
+                                              )
+                                            const diff =
+                                              postCallerBalance.sub(
+                                                initialCallerBalance
+                                              )
+
+                                            expect(diff).to.be.gt(0)
+                                            expect(diff).to.be.lt(
+                                              ethers.utils.parseUnits(
+                                                "1000000",
+                                                "gwei"
+                                              ) // 0,001 ETH
+                                            )
                                           })
                                         }
                                       )
@@ -1938,7 +1980,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = (await deployBridge(12)) as BridgeStub
+            otherBridge = (await deployBridge(12))[0] as BridgeStub
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true
@@ -3482,7 +3524,7 @@ describe("Bridge - Moving funds", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = (await deployBridge(12)) as BridgeStub
+            otherBridge = (await deployBridge(12))[0] as BridgeStub
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true

@@ -13,7 +13,7 @@ import "@typechain/hardhat"
 import "hardhat-dependency-compiler"
 
 const ecdsaSolidityCompilerConfig = {
-  version: "0.8.9",
+  version: "0.8.17",
   settings: {
     optimizer: {
       enabled: true,
@@ -25,7 +25,7 @@ const ecdsaSolidityCompilerConfig = {
 // Reduce the number of optimizer runs to 100 to keep the contract size sane.
 // BridgeGovernance contract does not need to be super gas-efficient.
 const bridgeGovernanceCompilerConfig = {
-  version: "0.8.9",
+  version: "0.8.17",
   settings: {
     optimizer: {
       enabled: true,
@@ -53,7 +53,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.9", // TODO: Revisit solidity version before deploying on mainnet!
+        version: "0.8.17",
         settings: {
           optimizer: {
             enabled: true,
@@ -104,9 +104,9 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["allowStubs"],
     },
-    ropsten: {
+    goerli: {
       url: process.env.CHAIN_API_URL || "",
-      chainId: 3,
+      chainId: 5,
       accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
@@ -154,7 +154,11 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/random-beacon/deployments/development",
         "node_modules/@keep-network/ecdsa/deployments/development",
       ],
-      ropsten: ["node_modules/@keep-network/tbtc/artifacts"],
+      goerli: [
+        "node_modules/@keep-network/tbtc/artifacts",
+        "node_modules/@keep-network/random-beacon/artifacts",
+        "node_modules/@keep-network/ecdsa/artifacts",
+      ],
       mainnet: ["./external/mainnet"],
     },
   },
@@ -162,29 +166,41 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 1,
+      goerli: 0,
     },
     // TODO: Governance should be the Threshold Council.
     //       Inspect usages and rename.
     governance: {
       default: 2,
+      goerli: 0,
+    },
+    chaosnetOwner: {
+      default: 3,
+      goerli: 0,
+      // mainnet: ""
     },
     esdm: {
-      default: 3,
+      default: 4,
+      goerli: 0,
       // mainnet: ""
     },
     keepTechnicalWalletTeam: {
-      default: 4,
+      default: 5,
+      goerli: 0,
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
-      default: 5,
+      default: 6,
+      goerli: 0,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
     treasury: {
-      default: 6,
+      default: 7,
+      goerli: 0,
     },
     spvMaintainer: {
-      default: 7,
+      default: 8,
+      goerli: 0,
     },
   },
   dependencyCompiler: {

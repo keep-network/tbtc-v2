@@ -197,24 +197,6 @@ describe("Bridge - Parameters", () => {
         }
       )
 
-      context("when new deposit treasury fee divisor is zero", () => {
-        it("should revert", async () => {
-          await bridgeGovernance
-            .connect(governance)
-            .beginDepositTreasuryFeeDivisorUpdate(0)
-
-          await helpers.time.increaseTime(constants.governanceDelay)
-
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeDepositTreasuryFeeDivisorUpdate()
-          ).to.be.revertedWith(
-            "Deposit treasury fee divisor must be greater than zero"
-          )
-        })
-      })
-
       context("when new deposit transaction max fee is zero", () => {
         it("should revert", async () => {
           await bridgeGovernance
@@ -597,24 +579,6 @@ describe("Bridge - Parameters", () => {
         }
       )
 
-      context("when new redemption treasury fee divisor is zero", () => {
-        it("should revert", async () => {
-          await bridgeGovernance
-            .connect(governance)
-            .beginRedemptionTreasuryFeeDivisorUpdate(0)
-
-          await helpers.time.increaseTime(constants.governanceDelay)
-
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeRedemptionTreasuryFeeDivisorUpdate()
-          ).to.be.revertedWith(
-            "Redemption treasury fee divisor must be greater than zero"
-          )
-        })
-      })
-
       context("when new redemption transaction max fee is zero", () => {
         it("should revert", async () => {
           await bridgeGovernance
@@ -777,6 +741,8 @@ describe("Bridge - Parameters", () => {
           constants.movingFundsTimeoutSlashingAmount.mul(3)
         const newMovingFundsTimeoutNotifierRewardMultiplier =
           constants.movingFundsTimeoutNotifierRewardMultiplier / 2
+        const newMovingFundsCommitmentGasOffset =
+          constants.movingFundsCommitmentGasOffset / 2
         const newMovedFundsSweepTxMaxTotalFee =
           constants.movedFundsSweepTxMaxTotalFee * 2
         const newMovedFundsSweepTimeout = constants.movedFundsSweepTimeout * 4
@@ -795,6 +761,7 @@ describe("Bridge - Parameters", () => {
         let tx8: ContractTransaction
         let tx9: ContractTransaction
         let tx10: ContractTransaction
+        let tx11: ContractTransaction
 
         before(async () => {
           await createSnapshot()
@@ -827,6 +794,12 @@ describe("Bridge - Parameters", () => {
             .connect(governance)
             .beginMovingFundsTimeoutNotifierRewardMultiplierUpdate(
               newMovingFundsTimeoutNotifierRewardMultiplier
+            )
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginMovingFundsCommitmentGasOffsetUpdate(
+              newMovingFundsCommitmentGasOffset
             )
 
           await bridgeGovernance
@@ -864,6 +837,7 @@ describe("Bridge - Parameters", () => {
           tx3 = await bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTimeoutUpdate()
+
           tx4 = await bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTimeoutResetDelayUpdate()
@@ -878,17 +852,21 @@ describe("Bridge - Parameters", () => {
 
           tx7 = await bridgeGovernance
             .connect(governance)
-            .finalizeMovedFundsSweepTxMaxTotalFeeUpdate()
+            .finalizeMovingFundsCommitmentGasOffsetUpdate()
 
           tx8 = await bridgeGovernance
             .connect(governance)
-            .finalizeMovedFundsSweepTimeoutUpdate()
+            .finalizeMovedFundsSweepTxMaxTotalFeeUpdate()
 
           tx9 = await bridgeGovernance
             .connect(governance)
-            .finalizeMovedFundsSweepTimeoutSlashingAmountUpdate()
+            .finalizeMovedFundsSweepTimeoutUpdate()
 
           tx10 = await bridgeGovernance
+            .connect(governance)
+            .finalizeMovedFundsSweepTimeoutSlashingAmountUpdate()
+
+          tx11 = await bridgeGovernance
             .connect(governance)
             .finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate()
         })
@@ -916,6 +894,9 @@ describe("Bridge - Parameters", () => {
           expect(params.movingFundsTimeoutNotifierRewardMultiplier).to.be.equal(
             newMovingFundsTimeoutNotifierRewardMultiplier
           )
+          expect(params.movingFundsCommitmentGasOffset).to.be.equal(
+            newMovingFundsCommitmentGasOffset
+          )
           expect(params.movedFundsSweepTxMaxTotalFee).to.be.equal(
             newMovedFundsSweepTxMaxTotalFee
           )
@@ -941,6 +922,7 @@ describe("Bridge - Parameters", () => {
               constants.movingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
               constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movingFundsCommitmentGasOffset,
               constants.movedFundsSweepTxMaxTotalFee,
               constants.movedFundsSweepTimeout,
               constants.movedFundsSweepTimeoutSlashingAmount,
@@ -958,6 +940,7 @@ describe("Bridge - Parameters", () => {
               constants.movingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
               constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movingFundsCommitmentGasOffset,
               constants.movedFundsSweepTxMaxTotalFee,
               constants.movedFundsSweepTimeout,
               constants.movedFundsSweepTimeoutSlashingAmount,
@@ -975,6 +958,7 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
               constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movingFundsCommitmentGasOffset,
               constants.movedFundsSweepTxMaxTotalFee,
               constants.movedFundsSweepTimeout,
               constants.movedFundsSweepTimeoutSlashingAmount,
@@ -992,6 +976,7 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
               constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movingFundsCommitmentGasOffset,
               constants.movedFundsSweepTxMaxTotalFee,
               constants.movedFundsSweepTimeout,
               constants.movedFundsSweepTimeoutSlashingAmount,
@@ -1009,6 +994,7 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movingFundsCommitmentGasOffset,
               constants.movedFundsSweepTxMaxTotalFee,
               constants.movedFundsSweepTimeout,
               constants.movedFundsSweepTimeoutSlashingAmount,
@@ -1026,6 +1012,7 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
+              constants.movingFundsCommitmentGasOffset,
               constants.movedFundsSweepTxMaxTotalFee,
               constants.movedFundsSweepTimeout,
               constants.movedFundsSweepTimeoutSlashingAmount,
@@ -1043,7 +1030,8 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
-              newMovedFundsSweepTxMaxTotalFee,
+              newMovingFundsCommitmentGasOffset,
+              constants.movedFundsSweepTxMaxTotalFee,
               constants.movedFundsSweepTimeout,
               constants.movedFundsSweepTimeoutSlashingAmount,
               constants.movedFundsSweepTimeoutNotifierRewardMultiplier
@@ -1060,8 +1048,9 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovingFundsCommitmentGasOffset,
               newMovedFundsSweepTxMaxTotalFee,
-              newMovedFundsSweepTimeout,
+              constants.movedFundsSweepTimeout,
               constants.movedFundsSweepTimeoutSlashingAmount,
               constants.movedFundsSweepTimeoutNotifierRewardMultiplier
             )
@@ -1077,9 +1066,10 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovingFundsCommitmentGasOffset,
               newMovedFundsSweepTxMaxTotalFee,
               newMovedFundsSweepTimeout,
-              newMovedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutSlashingAmount,
               constants.movedFundsSweepTimeoutNotifierRewardMultiplier
             )
         })
@@ -1094,6 +1084,25 @@ describe("Bridge - Parameters", () => {
               newMovingFundsTimeout,
               newMovingFundsTimeoutSlashingAmount,
               newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovingFundsCommitmentGasOffset,
+              newMovedFundsSweepTxMaxTotalFee,
+              newMovedFundsSweepTimeout,
+              newMovedFundsSweepTimeoutSlashingAmount,
+              constants.movedFundsSweepTimeoutNotifierRewardMultiplier
+            )
+        })
+
+        it("should emit MovingFundsParametersUpdated event", async () => {
+          await expect(tx11)
+            .to.emit(bridge, "MovingFundsParametersUpdated")
+            .withArgs(
+              newMovingFundsTxMaxTotalFee,
+              newMovingFundsDustThreshold,
+              newMovingFundsTimeoutResetDelay,
+              newMovingFundsTimeout,
+              newMovingFundsTimeoutSlashingAmount,
+              newMovingFundsTimeoutNotifierRewardMultiplier,
+              newMovingFundsCommitmentGasOffset,
               newMovedFundsSweepTxMaxTotalFee,
               newMovedFundsSweepTimeout,
               newMovedFundsSweepTimeoutSlashingAmount,
@@ -1258,6 +1267,7 @@ describe("Bridge - Parameters", () => {
               constants.movingFundsTimeout,
               constants.movingFundsTimeoutSlashingAmount,
               constants.movingFundsTimeoutNotifierRewardMultiplier,
+              constants.movingFundsCommitmentGasOffset,
               constants.movedFundsSweepTxMaxTotalFee,
               constants.movedFundsSweepTimeout,
               constants.movedFundsSweepTimeoutSlashingAmount,

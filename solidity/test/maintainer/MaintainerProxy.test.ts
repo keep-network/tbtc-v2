@@ -6,7 +6,6 @@ import { assert, expect } from "chai"
 import { ContractTransaction, BigNumber, BigNumberish } from "ethers"
 import type { FakeContract } from "@defi-wonderland/smock"
 import { smock } from "@defi-wonderland/smock"
-import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import type {
@@ -1115,9 +1114,13 @@ describe("MaintainerProxy", () => {
                 initialSpvMaintainerBalance
               )
 
-              expect(diff).to.be.gt(ethers.utils.parseUnits("-1000000", "gwei")) // // -0,001 ETH
+              expect(diff).to.be.gt(0)
+              // The submitter deletes from `timedOutRedemptions` mapping
+              // multiple times in this scenario. They will end up being more
+              // net-positive than in all other scenarios.
+              // Such a situation is quite unlikely to happen in practice.
               expect(diff).to.be.lt(
-                ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
+                ethers.utils.parseUnits("10000000", "gwei") // 0,01 ETH
               )
             })
           }
@@ -1173,9 +1176,13 @@ describe("MaintainerProxy", () => {
                 initialSpvMaintainerBalance
               )
 
-              expect(diff).to.be.gt(ethers.utils.parseUnits("-2000000", "gwei")) // -0,002 ETH
+              expect(diff).to.be.gt(0)
+              // The submitter deletes from `timedOutRedemptions` mapping
+              // multiple times in this scenario. They will end up being more
+              // net-positive than in all other scenarios.
+              // Such a situation is quite unlikely to happen in practice.
               expect(diff).to.be.lt(
-                ethers.utils.parseUnits("2000000", "gwei") // 0,002 ETH
+                ethers.utils.parseUnits("10000000", "gwei") // 0,01 ETH
               )
             })
           }
@@ -1241,7 +1248,7 @@ describe("MaintainerProxy", () => {
 
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
-                ethers.utils.parseUnits("6000000", "gwei") // 0,006 ETH
+                ethers.utils.parseUnits("7000000", "gwei") // 0,007 ETH
               )
             })
           }
@@ -1301,7 +1308,7 @@ describe("MaintainerProxy", () => {
 
               expect(diff).to.be.gt(0)
               expect(diff).to.be.lt(
-                ethers.utils.parseUnits("5500000", "gwei") // 0,0055 ETH
+                ethers.utils.parseUnits("7000000", "gwei") // 0,007 ETH
               )
             })
           }
@@ -2053,124 +2060,6 @@ describe("MaintainerProxy", () => {
             )
           })
         })
-      })
-    })
-  })
-
-  describe("submitMovingFundsCommitment", () => {
-    const walletDraft = {
-      ecdsaWalletID: ecdsaWalletTestData.walletID,
-      mainUtxoHash: ethers.constants.HashZero,
-      pendingRedemptionsValue: 0,
-      createdAt: 0,
-      movingFundsRequestedAt: 0,
-      closingStartedAt: 0,
-      pendingMovedFundsSweepRequestsCount: 0,
-      state: walletState.Unknown,
-      movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
-    }
-
-    // Just an arbitrary main UTXO with value of 26 BTC.
-    const mainUtxo = {
-      txHash:
-        "0xc9e58780c6c289c25ae1fe293f85a4db4d0af4f305172f2a1868ddd917458bdf",
-      txOutputIndex: 0,
-      txOutputValue: to1ePrecision(26, 8),
-    }
-
-    // Just some arbitrary 20-byte hashes to simulate live
-    // wallets PKHs. They are ordered in the expected way, i.e.
-    // the hashes represented as numbers form a strictly
-    // increasing sequence.
-    const liveWallets = [
-      "0x4b440cb29c80c3f256212d8fdd4f2125366f3c91",
-      "0x888f01315e0268bfa05d5e522f8d63f6824d9a96",
-      "0xb2a89e53a4227dbe530a52a1c419040735fa636c",
-      "0xbf198e8fff0f90af01024153701da99b9bc08dc5",
-      "0xffb9e05013f5cd126915bc03d340cc5c1be81862",
-    ]
-
-    const expectedTargetWalletsCount = 3
-
-    before(async () => {
-      await createSnapshot()
-
-      await bridge.setWallet(ecdsaWalletTestData.pubKeyHash160, {
-        ...walletDraft,
-        state: walletState.MovingFunds,
-      })
-
-      await bridge.setWalletMainUtxo(
-        ecdsaWalletTestData.pubKeyHash160,
-        mainUtxo
-      )
-
-      for (let i = 0; i < liveWallets.length; i++) {
-        // eslint-disable-next-line no-await-in-loop
-        await bridge.setWallet(liveWallets[i], {
-          ...walletDraft,
-          state: walletState.Live,
-        })
-      }
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when the caller is a member of the source wallet", () => {
-      const walletMembersIDs = [1, 2, 3, 4, 5]
-      const walletMemberIndex = 2
-
-      let initialThirdPartyBalance: BigNumber
-      let tx: ContractTransaction
-
-      before(async () => {
-        await createSnapshot()
-
-        walletRegistry.isWalletMember
-          .whenCalledWith(
-            ecdsaWalletTestData.walletID,
-            walletMembersIDs,
-            maintainerProxy.address,
-            walletMemberIndex
-          )
-          .returns(true)
-
-        initialThirdPartyBalance = await provider.getBalance(thirdParty.address)
-
-        const targetWallets = liveWallets.slice(0, expectedTargetWalletsCount)
-        tx = await maintainerProxy
-          .connect(thirdParty)
-          .submitMovingFundsCommitment(
-            ecdsaWalletTestData.pubKeyHash160,
-            mainUtxo,
-            walletMembersIDs,
-            walletMemberIndex,
-            targetWallets
-          )
-      })
-
-      after(async () => {
-        walletRegistry.isWalletMember.reset()
-
-        await restoreSnapshot()
-      })
-
-      it("should emit MovingFundsCommitmentSubmitted event", async () => {
-        await expect(tx).to.emit(bridge, "MovingFundsCommitmentSubmitted")
-      })
-
-      it("should refund ETH", async () => {
-        const postThirdPartyBalance = await provider.getBalance(
-          thirdParty.address
-        )
-        const diff = postThirdPartyBalance.sub(initialThirdPartyBalance)
-
-        expect(diff).to.be.gt(0)
-        expect(diff).to.be.lt(
-          ethers.utils.parseUnits("1000000", "gwei") // 0,001 ETH
-        )
       })
     })
   })
@@ -3545,8 +3434,7 @@ describe("MaintainerProxy", () => {
               47,
               48,
               49,
-              50,
-              51
+              50
             )
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
@@ -3559,20 +3447,7 @@ describe("MaintainerProxy", () => {
         await createSnapshot()
         tx = await maintainerProxy
           .connect(governance)
-          .updateGasOffsetParameters(
-            40,
-            41,
-            42,
-            43,
-            44,
-            45,
-            46,
-            47,
-            48,
-            49,
-            50,
-            51
-          )
+          .updateGasOffsetParameters(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50)
       })
 
       after(async () => {
@@ -3582,7 +3457,7 @@ describe("MaintainerProxy", () => {
       it("should emit the GasOffsetParametersUpdated event", async () => {
         await expect(tx)
           .to.emit(maintainerProxy, "GasOffsetParametersUpdated")
-          .withArgs(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51)
+          .withArgs(40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50)
       })
 
       it("should update submitRedemptionProofGasOffset", async () => {
@@ -3591,63 +3466,57 @@ describe("MaintainerProxy", () => {
         expect(updatedOffset).to.be.equal(41)
       })
 
-      it("should update submitMovingFundsCommitmentGasOffset", async () => {
-        const updatedOffset =
-          await maintainerProxy.submitMovingFundsCommitmentGasOffset()
-        expect(updatedOffset).to.be.equal(42)
-      })
-
       it("should update resetMovingFundsTimeoutGasOffset", async () => {
         const updatedOffset =
           await maintainerProxy.resetMovingFundsTimeoutGasOffset()
-        expect(updatedOffset).to.be.equal(43)
+        expect(updatedOffset).to.be.equal(42)
       })
 
       it("should update submitMovingFundsProofGasOffset", async () => {
         const updatedOffset =
           await maintainerProxy.submitMovingFundsProofGasOffset()
-        expect(updatedOffset).to.be.equal(44)
+        expect(updatedOffset).to.be.equal(43)
       })
 
       it("should update notifyMovingFundsBelowDustGasOffset", async () => {
         const updatedOffset =
           await maintainerProxy.notifyMovingFundsBelowDustGasOffset()
-        expect(updatedOffset).to.be.equal(45)
+        expect(updatedOffset).to.be.equal(44)
       })
 
       it("should update submitMovedFundsSweepProofGasOffset", async () => {
         const updatedOffset =
           await maintainerProxy.submitMovedFundsSweepProofGasOffset()
-        expect(updatedOffset).to.be.equal(46)
+        expect(updatedOffset).to.be.equal(45)
       })
 
       it("should update requestNewWalletGasOffset", async () => {
         const updatedOffset = await maintainerProxy.requestNewWalletGasOffset()
-        expect(updatedOffset).to.be.equal(47)
+        expect(updatedOffset).to.be.equal(46)
       })
 
       it("should update notifyWalletCloseableGasOffset", async () => {
         const updatedOffset =
           await maintainerProxy.notifyWalletCloseableGasOffset()
-        expect(updatedOffset).to.be.equal(48)
+        expect(updatedOffset).to.be.equal(47)
       })
 
       it("should update notifyWalletClosingPeriodElapsedGasOffset", async () => {
         const updatedOffset =
           await maintainerProxy.notifyWalletClosingPeriodElapsedGasOffset()
-        expect(updatedOffset).to.be.equal(49)
+        expect(updatedOffset).to.be.equal(48)
       })
 
       it("should update defeatFraudChallengeGasOffset", async () => {
         const updatedOffset =
           await maintainerProxy.defeatFraudChallengeGasOffset()
-        expect(updatedOffset).to.be.equal(50)
+        expect(updatedOffset).to.be.equal(49)
       })
 
       it("should update defeatFraudChallengeWithHeartbeatGasOffset", async () => {
         const updatedOffset =
           await maintainerProxy.defeatFraudChallengeWithHeartbeatGasOffset()
-        expect(updatedOffset).to.be.equal(51)
+        expect(updatedOffset).to.be.equal(50)
       })
     })
   })

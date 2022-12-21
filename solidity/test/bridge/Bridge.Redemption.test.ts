@@ -8,6 +8,7 @@ import { BigNumber, BigNumberish, Contract, ContractTransaction } from "ethers"
 import { BytesLike } from "@ethersproject/bytes"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
+import { Deployment } from "hardhat-deploy/types"
 import type {
   Bank,
   BankStub,
@@ -37,7 +38,7 @@ import {
   MultiplePendingRequestedRedemptionsWithProvablyUnspendable,
   MultiplePendingRequestedRedemptionsWithMultipleInputs,
 } from "../data/redemption"
-import { walletState } from "../fixtures"
+import { constants, walletState } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
 
 chai.use(smock.matchers)
@@ -45,6 +46,8 @@ chai.use(smock.matchers)
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 const { impersonateAccount } = helpers.account
+
+const ZERO_ADDRESS = ethers.constants.AddressZero
 
 describe("Bridge - Redemption", () => {
   let governance: SignerWithAddress
@@ -58,7 +61,9 @@ describe("Bridge - Redemption", () => {
   let bridgeGovernance: BridgeGovernance
   let walletRegistry: FakeContract<IWalletRegistry>
 
-  let deployBridge: (txProofDifficultyFactor: number) => Promise<Contract>
+  let deployBridge: (
+    txProofDifficultyFactor: number
+  ) => Promise<[Contract, Deployment]>
 
   let redemptionTimeout: number
   let redemptionTimeoutSlashingAmount: BigNumber
@@ -86,7 +91,9 @@ describe("Bridge - Redemption", () => {
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
+    // Scaling down deposit TX max fee as well.
     await bridge.setDepositDustThreshold(10000)
+    await bridge.setDepositTxMaxFee(2000)
     // Set the redemption dust threshold to 0.001 BTC, i.e. 10x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
     await bridge.setRedemptionDustThreshold(100000)
@@ -342,7 +349,7 @@ describe("Bridge - Redemption", () => {
                                   await restoreSnapshot()
                                 })
 
-                                // Do not repeat all check made in the
+                                // Do not repeat all checks made in the
                                 // "when redeemer output script is P2WPKH"
                                 // scenario but just assert the call succeeds
                                 // for an P2WSH output script.
@@ -372,7 +379,7 @@ describe("Bridge - Redemption", () => {
                                   await restoreSnapshot()
                                 })
 
-                                // Do not repeat all check made in the
+                                // Do not repeat all checks made in the
                                 // "when redeemer output script is P2WPKH"
                                 // scenario but just assert the call succeeds
                                 // for an P2PKH output script.
@@ -402,7 +409,7 @@ describe("Bridge - Redemption", () => {
                                   await restoreSnapshot()
                                 })
 
-                                // Do not repeat all check made in the
+                                // Do not repeat all checks made in the
                                 // "when redeemer output script is P2WPKH"
                                 // scenario but just assert the call succeeds
                                 // for an P2SH output script.
@@ -417,6 +424,64 @@ describe("Bridge - Redemption", () => {
                                         requestedAmount
                                       )
                                   ).to.not.be.reverted
+                                })
+                              }
+                            )
+
+                            context(
+                              "when redemption treasury fee is zero",
+                              () => {
+                                const redeemerOutputScript =
+                                  redeemerOutputScriptP2WPKH
+
+                                before(async () => {
+                                  await createSnapshot()
+
+                                  await bridgeGovernance
+                                    .connect(governance)
+                                    .beginRedemptionTreasuryFeeDivisorUpdate(0)
+                                  await helpers.time.increaseTime(
+                                    constants.governanceDelay
+                                  )
+                                  await bridgeGovernance
+                                    .connect(governance)
+                                    .finalizeRedemptionTreasuryFeeDivisorUpdate()
+
+                                  await bridge
+                                    .connect(redeemer)
+                                    .requestRedemption(
+                                      walletPubKeyHash,
+                                      mainUtxo,
+                                      redeemerOutputScript,
+                                      requestedAmount
+                                    )
+                                })
+
+                                after(async () => {
+                                  await restoreSnapshot()
+                                })
+
+                                // Do not repeat all checks made in the
+                                // "when redeemer output script is P2WPKH"
+                                // scenario but just assert the requested
+                                // amount and treasury fee
+                                it("should store the redemption request with zero fee", async () => {
+                                  const redemptionKey = buildRedemptionKey(
+                                    walletPubKeyHash,
+                                    redeemerOutputScript
+                                  )
+
+                                  const redemptionRequest =
+                                    await bridge.pendingRedemptions(
+                                      redemptionKey
+                                    )
+
+                                  expect(
+                                    redemptionRequest.requestedAmount
+                                  ).to.be.equal(requestedAmount)
+                                  expect(
+                                    redemptionRequest.treasuryFee
+                                  ).to.be.equal(0)
                                 })
                               }
                             )
@@ -1301,7 +1366,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out request in the contract state", async () => {
+                            it("should remove the timed out request from the contract state", async () => {
                               const redemptionRequest =
                                 await bridge.timedOutRedemptions(
                                   buildRedemptionKey(
@@ -1311,12 +1376,15 @@ describe("Bridge - Redemption", () => {
                                   )
                                 )
 
-                              expect(
-                                redemptionRequest.requestedAt
-                              ).to.be.greaterThan(
-                                0,
-                                "Timed out request was removed from the contract state"
+                              expect(redemptionRequest.redeemer).to.equal(
+                                ZERO_ADDRESS
                               )
+                              expect(
+                                redemptionRequest.requestedAmount
+                              ).to.equal(0)
+                              expect(redemptionRequest.treasuryFee).to.equal(0)
+                              expect(redemptionRequest.txMaxFee).to.equal(0)
+                              expect(redemptionRequest.requestedAt).to.equal(0)
                             })
 
                             it("should delete the wallet's main UTXO", async () => {
@@ -2035,7 +2103,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out requests in the contract state", async () => {
+                            it("should remove the timed out requests from the contract state", async () => {
                               for (
                                 let i = 0;
                                 i < data.redemptionRequests.length;
@@ -2051,11 +2119,18 @@ describe("Bridge - Redemption", () => {
                                     )
                                   )
 
+                                expect(redemptionRequest.redeemer).to.equal(
+                                  ZERO_ADDRESS
+                                )
                                 expect(
-                                  redemptionRequest.requestedAt
-                                ).to.be.greaterThan(
-                                  0,
-                                  `Timed out request with index ${i} was removed from the contract state`
+                                  redemptionRequest.requestedAmount
+                                ).to.equal(0)
+                                expect(redemptionRequest.treasuryFee).to.equal(
+                                  0
+                                )
+                                expect(redemptionRequest.txMaxFee).to.equal(0)
+                                expect(redemptionRequest.requestedAt).to.equal(
+                                  0
                                 )
                               }
                             })
@@ -2203,7 +2278,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out requests in the contract state", async () => {
+                            it("should remove the timed out requests from the contract state", async () => {
                               for (
                                 let i = 0;
                                 i < data.redemptionRequests.length;
@@ -2219,11 +2294,18 @@ describe("Bridge - Redemption", () => {
                                     )
                                   )
 
+                                expect(redemptionRequest.redeemer).to.equal(
+                                  ZERO_ADDRESS
+                                )
                                 expect(
-                                  redemptionRequest.requestedAt
-                                ).to.be.greaterThan(
-                                  0,
-                                  `Timed out request with index ${i} was removed from the contract state`
+                                  redemptionRequest.requestedAmount
+                                ).to.equal(0)
+                                expect(redemptionRequest.treasuryFee).to.equal(
+                                  0
+                                )
+                                expect(redemptionRequest.txMaxFee).to.equal(0)
+                                expect(redemptionRequest.requestedAt).to.equal(
+                                  0
                                 )
                               }
                             })
@@ -2380,7 +2462,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out requests in the contract state", async () => {
+                            it("should remove the timed out requests from the contract state", async () => {
                               // Check the two first requests reported as timed out
                               // are actually held in the contract state after
                               // proof submission.
@@ -2395,11 +2477,18 @@ describe("Bridge - Redemption", () => {
                                     )
                                   )
 
+                                expect(redemptionRequest.redeemer).to.equal(
+                                  ZERO_ADDRESS
+                                )
                                 expect(
-                                  redemptionRequest.requestedAt
-                                ).to.be.greaterThan(
-                                  0,
-                                  `Timed out request with index ${i} was removed from the contract state`
+                                  redemptionRequest.requestedAmount
+                                ).to.equal(0)
+                                expect(redemptionRequest.treasuryFee).to.equal(
+                                  0
+                                )
+                                expect(redemptionRequest.txMaxFee).to.equal(0)
+                                expect(redemptionRequest.requestedAt).to.equal(
+                                  0
                                 )
                               }
                             })
@@ -2583,7 +2672,7 @@ describe("Bridge - Redemption", () => {
                               await restoreSnapshot()
                             })
 
-                            it("should hold the timed out requests in the contract state", async () => {
+                            it("should remove the timed out requests from the contract state", async () => {
                               // Check the two first requests reported as timed out
                               // are actually held in the contract state after
                               // proof submission.
@@ -2598,11 +2687,18 @@ describe("Bridge - Redemption", () => {
                                     )
                                   )
 
+                                expect(redemptionRequest.redeemer).to.equal(
+                                  ZERO_ADDRESS
+                                )
                                 expect(
-                                  redemptionRequest.requestedAt
-                                ).to.be.greaterThan(
-                                  0,
-                                  `Timed out request with index ${i} was removed from the contract state`
+                                  redemptionRequest.requestedAmount
+                                ).to.equal(0)
+                                expect(redemptionRequest.treasuryFee).to.equal(
+                                  0
+                                )
+                                expect(redemptionRequest.txMaxFee).to.equal(0)
+                                expect(redemptionRequest.requestedAt).to.equal(
+                                  0
                                 )
                               }
                             })
@@ -3521,7 +3617,7 @@ describe("Bridge - Redemption", () => {
             // to deem transaction proof validity. This scenario uses test
             // data which has only 6 confirmations. That should force the
             // failure we expect within this scenario.
-            otherBridge = (await deployBridge(12)) as BridgeStub
+            otherBridge = (await deployBridge(12))[0] as BridgeStub
             await otherBridge.setSpvMaintainerStatus(
               spvMaintainer.address,
               true

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 // ██████████████     ▐████▌     ██████████████
 // ██████████████     ▐████▌     ██████████████
@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -43,7 +43,7 @@ contract Bank is Ownable {
     ///         provided balance owner to protect against replay attacks. Used
     ///         to construct an EIP2612 signature provided to the `permit`
     ///         function.
-    mapping(address => uint256) public nonce;
+    mapping(address => uint256) public nonces;
 
     uint256 public immutable cachedChainId;
     bytes32 public immutable cachedDomainSeparator;
@@ -109,17 +109,21 @@ contract Bank is Ownable {
     }
 
     /// @notice Sets `amount` as the allowance of `spender` over the caller's
-    ///         balance.
+    ///         balance. Does not allow updating an existing allowance to
+    ///         a value that is non-zero to avoid someone using both the old and
+    ///         the new allowance by unfortunate transaction ordering. To update
+    ///         an allowance to a non-zero value please set it to zero first or
+    ///         use `increaseBalanceAllowance` or `decreaseBalanceAllowance` for
+    ///         an atomic update.
     /// @dev If the `amount` is set to `type(uint256).max`,
     ///      `transferBalanceFrom` will not reduce an allowance.
-    ///      Beware that changing an allowance with this function brings the
-    ///      risk that someone may use both the old and the new allowance by
-    ///      unfortunate transaction ordering. Please use
-    ///      `increaseBalanceAllowance` and `decreaseBalanceAllowance` to
-    ///      eliminate the risk.
     /// @param spender The address that will be allowed to spend the balance.
     /// @param amount The amount the spender is allowed to spend.
     function approveBalance(address spender, uint256 amount) external {
+        require(
+            amount == 0 || allowance[msg.sender][spender] == 0,
+            "Non-atomic allowance change not allowed"
+        );
         _approveBalance(msg.sender, spender, amount);
     }
 
@@ -273,7 +277,7 @@ contract Bank is Ownable {
                         owner,
                         spender,
                         amount,
-                        nonce[owner]++,
+                        nonces[owner]++,
                         deadline
                     )
                 )

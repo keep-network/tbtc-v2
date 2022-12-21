@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 // ██████████████     ▐████▌     ██████████████
 // ██████████████     ▐████▌     ██████████████
@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 import "./IVault.sol";
 import "../bank/Bank.sol";
@@ -56,16 +56,14 @@ contract DonationVault is IVault {
     ///      - Donation Vault must have an allowance for caller's balance in
     ///        the Bank for at least `amount`.
     function donate(uint256 amount) external {
-        address donor = msg.sender;
-
         require(
-            bank.balanceOf(donor) >= amount,
+            bank.balanceOf(msg.sender) >= amount,
             "Amount exceeds balance in the bank"
         );
 
-        emit DonationReceived(donor, amount);
+        emit DonationReceived(msg.sender, amount);
 
-        bank.transferBalanceFrom(donor, address(this), amount);
+        bank.transferBalanceFrom(msg.sender, address(this), amount);
         bank.decreaseBalance(amount);
     }
 

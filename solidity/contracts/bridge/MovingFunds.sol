@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 // ██████████████     ▐████▌     ██████████████
 // ██████████████     ▐████▌     ██████████████
@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
@@ -84,6 +84,7 @@ library MovingFunds {
         // Value of the received funds.
         uint64 value;
         // UNIX timestamp the request was created at.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 createdAt;
         // The current state of the request.
         MovedFundsSweepRequestState state;

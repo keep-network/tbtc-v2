@@ -2,6 +2,8 @@
 
 = tBTC v2 contracts
 
+https://github.com/keep-network/tbtc-v2/actions/workflows/contracts.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/contracts.yml?branch=main&event=push&label=TBTC%20contracts%20build[TBTC contracts build status]]
+
 This package contains tBTC v2 contracts.
 
 toc::[]

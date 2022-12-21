@@ -12,6 +12,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
       from: deployer,
       args: [dao, esdm],
       log: true,
+      waitConfirmations: 1,
     }
   )
 

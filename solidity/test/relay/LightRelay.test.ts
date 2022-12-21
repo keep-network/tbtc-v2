@@ -6,7 +6,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 
-import type { RelayStub } from "../../typechain"
+import type { LightRelayStub } from "../../typechain"
 
 import { concatenateHexStrings } from "../helpers/contract-test-helpers"
 
@@ -34,7 +34,7 @@ const proofLength = 4
 const fixture = async () => {
   const [deployer, governance, thirdParty] = await ethers.getSigners()
 
-  const Relay = await ethers.getContractFactory("RelayStub")
+  const Relay = await ethers.getContractFactory("LightRelayStub")
   const relay = await Relay.deploy()
   await relay.deployed()
 
@@ -53,7 +53,7 @@ describe("LightRelay", () => {
 
   let thirdParty: SignerWithAddress
 
-  let relay: RelayStub
+  let relay: LightRelayStub
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
