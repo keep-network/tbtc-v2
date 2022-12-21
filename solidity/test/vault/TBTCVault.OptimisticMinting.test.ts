@@ -226,6 +226,7 @@ describe("TBTCVault - OptimisticMinting", () => {
 
             await bridge.revealDeposit(fundingTx, depositRevealInfo)
 
+            // Setting mocks to make the sweeping SPV proof validation pass.
             relay.getPrevEpochDifficulty.returns(chainDifficulty)
             relay.getCurrentEpochDifficulty.returns(chainDifficulty)
             await bridge
@@ -443,6 +444,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             .requestOptimisticMint(fundingTxHash, fundingOutputIndex)
           await increaseTime(await tbtcVault.optimisticMintingDelay())
 
+          // Setting mocks to make the sweeping SPV proof validation pass.
           relay.getPrevEpochDifficulty.returns(chainDifficulty)
           relay.getCurrentEpochDifficulty.returns(chainDifficulty)
           await bridge
@@ -1616,6 +1618,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             .connect(minter)
             .finalizeOptimisticMint(fundingTxHash, fundingOutputIndex)
 
+          // Setting mocks to make the sweeping SPV proof validation pass.
           relay.getPrevEpochDifficulty.returns(chainDifficulty)
           relay.getCurrentEpochDifficulty.returns(chainDifficulty)
           tx = await bridge
