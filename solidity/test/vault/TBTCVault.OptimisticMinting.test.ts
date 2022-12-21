@@ -1599,7 +1599,7 @@ describe("TBTCVault - OptimisticMinting", () => {
 
   describe("receiveBalanceIncrease", () => {
     context(
-      "when the deposit for which optimistic minting was requested gets swept",
+      "when the deposit for which optimistic minting was requested gets swept after finalization",
       () => {
         let tx: ContractTransaction
 
@@ -1658,7 +1658,7 @@ describe("TBTCVault - OptimisticMinting", () => {
       }
     )
 
-    context("when multiple deposits gets swept", () => {
+    context("when multiple deposits gets swept after finalization", () => {
       interface Fixture {
         mockBank: FakeContract<Bank>
         mockBridge: FakeContract<Bridge>
