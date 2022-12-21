@@ -90,12 +90,18 @@ async function registerOperators(
   const ecdsaSortitionPool = await helpers.contracts.getContract<SortitionPool>(
     "EcdsaSortitionPool"
   )
-  await ecdsaSortitionPool.connect(chaosnetOwner).deactivateChaosnet()
+
+  if (await ecdsaSortitionPool.isChaosnetActive()) {
+    await ecdsaSortitionPool.connect(chaosnetOwner).deactivateChaosnet()
+  }
 
   const randomBeacon = await helpers.contracts.getContract("RandomBeacon")
   const beaconSortitionPool =
     await helpers.contracts.getContract<SortitionPool>("BeaconSortitionPool")
-  await beaconSortitionPool.connect(chaosnetOwner).deactivateChaosnet()
+
+  if (await beaconSortitionPool.isChaosnetActive()) {
+    await beaconSortitionPool.connect(chaosnetOwner).deactivateChaosnet()
+  }
 
   const t = await helpers.contracts.getContract("T")
   const staking = await helpers.contracts.getContract("TokenStaking")
