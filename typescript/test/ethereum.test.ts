@@ -138,16 +138,14 @@ describe("Ethereum", () => {
             depositor: {
               identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
             },
-            walletPubKeyHash:
-              "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
-            refundPubKeyHash:
-              "0x28e081f285138ccbe389c1eb8985716230129f89",
+            walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+            refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
             blindingFactor: "f9f0c90d00039523",
             refundLocktime: "60bcea61",
           },
           {
             identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-          },
+          }
         )
       })
 

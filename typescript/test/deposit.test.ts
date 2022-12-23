@@ -37,11 +37,9 @@ describe("Deposit", () => {
     depositor: { identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637" },
     amount: BigNumber.from(10000), // 0.0001 BTC
     // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-    walletPubKeyHash:
-      "8db50eb52063ea9d98b3eac91489a90f738986f6",
+    walletPubKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
     // HASH160 of 0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9.
-    refundPubKeyHash:
-      "28e081f285138ccbe389c1eb8985716230129f89",
+    refundPubKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
     blindingFactor: "f9f0c90d00039523",
     refundLocktime: calculateDepositRefundLocktime(1640181600),
   }
@@ -51,7 +49,7 @@ describe("Deposit", () => {
     walletPubKeyHash: deposit.walletPubKeyHash,
     refundPubKeyHash: deposit.refundPubKeyHash,
     blindingFactor: deposit.blindingFactor,
-    refundLocktime: deposit.refundLocktime
+    refundLocktime: deposit.refundLocktime,
   }
 
   // All test scenarios using the deposit script within `Deposit` group

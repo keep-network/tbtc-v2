@@ -101,7 +101,9 @@ export class MockBridge implements Bridge {
     this._revealDepositLog.push({ depositTx, depositOutputIndex, deposit })
     return new Promise<string>((resolve, _) => {
       // random transaction hash
-      resolve("2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883")
+      resolve(
+        "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+      )
     })
   }
 

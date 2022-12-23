@@ -1,5 +1,16 @@
-import { Bridge as ChainBridge, Identifier as ChainIdentifier, Identifier } from "./chain"
-import { BigNumber, constants, Contract, providers, Signer, utils } from "ethers"
+import {
+  Bridge as ChainBridge,
+  Identifier as ChainIdentifier,
+  Identifier,
+} from "./chain"
+import {
+  BigNumber,
+  constants,
+  Contract,
+  providers,
+  Signer,
+  utils,
+} from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
 import { DepositScriptParameters, RevealedDeposit } from "./deposit"
@@ -42,7 +53,7 @@ export interface ContractConfig {
   address: string
   /**
    * Signer - will return a Contract which will act on behalf of that signer. The signer will sign all contract transactions.
-   * Provider - will return a downgraded Contract which only has read-only access (i.e. constant calls) 
+   * Provider - will return a downgraded Contract which only has read-only access (i.e. constant calls)
    */
   signerOrProvider: Signer | providers.Provider
 }
@@ -176,9 +187,7 @@ export class Bridge implements ChainBridge {
       walletPubKeyHash: `0x${deposit.walletPubKeyHash}`,
       refundPubKeyHash: `0x${deposit.refundPubKeyHash}`,
       refundLocktime: `0x${deposit.refundLocktime}`,
-      vault: vault
-        ? `0x${vault.identifierHex}`
-        : constants.AddressZero,
+      vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
 
     const tx = await this._bridge.revealDeposit(depositTxParam, revealParam)

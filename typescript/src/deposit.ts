@@ -43,7 +43,7 @@ export interface Deposit {
   /**
    * Public key hash of the wallet that is meant to receive the deposit. Must
    * be an unprefixed hex string (without 0x prefix).
-   * 
+   *
    * You can use `computeHash160` function to get the hash from a plain text public key.
    */
   walletPubKeyHash: string
@@ -51,7 +51,7 @@ export interface Deposit {
   /**
    * Public key hash that is meant to be used during deposit refund after the
    * locktime passes. Must be an unprefixed hex string (without 0x prefix).
-   * 
+   *
    * You can use `computeHash160` function to get the hash from a plain text public key.
    */
   refundPubKeyHash: string
@@ -73,8 +73,12 @@ export interface Deposit {
  */
 export type DepositScriptParameters = Pick<
   Deposit,
-  "depositor" | "blindingFactor" | "refundLocktime" | "walletPubKeyHash" | "refundPubKeyHash"
-> & { }
+  | "depositor"
+  | "blindingFactor"
+  | "refundLocktime"
+  | "walletPubKeyHash"
+  | "refundPubKeyHash"
+> & {}
 
 /**
  * Represents a deposit revealed to the on-chain bridge. This type emphasizes
@@ -376,7 +380,7 @@ export async function revealDeposit(
   deposit: DepositScriptParameters,
   bitcoinClient: BitcoinClient,
   bridge: Bridge,
-  vault?: Identifier,
+  vault?: Identifier
 ): Promise<string> {
   const depositTx = decomposeRawTransaction(
     await bitcoinClient.getRawTransaction(utxo.transactionHash)

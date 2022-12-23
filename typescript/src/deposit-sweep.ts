@@ -10,10 +10,7 @@ import {
   TransactionHash,
   computeHash160,
 } from "./bitcoin"
-import {
-  assembleDepositScript,
-  Deposit,
-} from "./deposit"
+import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge } from "./chain"
 import { assembleTransactionProof } from "./proof"
 
@@ -361,7 +358,10 @@ async function prepareInputSignData(
   }
 
   const walletPublicKey = walletKeyRing.getPublicKey("hex")
-  if (computeHash160(walletKeyRing.getPublicKey("hex")) != deposit.walletPubKeyHash) {
+  if (
+    computeHash160(walletKeyRing.getPublicKey("hex")) !=
+    deposit.walletPubKeyHash
+  ) {
     throw new Error(
       "Wallet public key does not correspond to wallet private key"
     )
@@ -372,7 +372,7 @@ async function prepareInputSignData(
   }
 
   // eslint-disable-next-line no-unused-vars
-  const {amount, vault, ...depositScriptParameters} = deposit
+  const { amount, vault, ...depositScriptParameters } = deposit
 
   const depositScript = bcoin.Script.fromRaw(
     Buffer.from(await assembleDepositScript(depositScriptParameters), "hex")
