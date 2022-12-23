@@ -1411,7 +1411,7 @@ describe("Bank", () => {
       await tbtc.deployed()
 
       const Vault = await ethers.getContractFactory("TBTCVault")
-      vault = await Vault.deploy(bank.address, tbtc.address)
+      vault = await Vault.deploy(bank.address, tbtc.address, bridge.address)
       await vault.deployed()
 
       await tbtc.connect(deployer).transferOwnership(vault.address)
