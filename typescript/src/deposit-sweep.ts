@@ -8,11 +8,11 @@ import {
   isCompressedPublicKey,
   createKeyRing,
   TransactionHash,
+  computeHash160,
 } from "./bitcoin"
 import {
   assembleDepositScript,
   Deposit,
-  getDepositScriptParameters,
 } from "./deposit"
 import { Bridge } from "./chain"
 import { assembleTransactionProof } from "./proof"
@@ -360,25 +360,26 @@ async function prepareInputSignData(
     throw new Error("Mismatch between amount in deposit and deposit tx")
   }
 
-  const walletPublicKey = deposit.walletPublicKey
-  if (!isCompressedPublicKey(walletPublicKey)) {
-    throw new Error("Wallet public key must be compressed")
-  }
-
-  if (walletKeyRing.getPublicKey("hex") != walletPublicKey) {
+  const walletPublicKey = walletKeyRing.getPublicKey("hex")
+  if (computeHash160(walletKeyRing.getPublicKey("hex")) != deposit.walletPubKeyHash) {
     throw new Error(
       "Wallet public key does not correspond to wallet private key"
     )
   }
 
-  const depositScriptParameters = getDepositScriptParameters(deposit)
+  if (!isCompressedPublicKey(walletPublicKey)) {
+    throw new Error("Wallet public key must be compressed")
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  const {amount, vault, ...depositScriptParameters} = deposit
 
   const depositScript = bcoin.Script.fromRaw(
     Buffer.from(await assembleDepositScript(depositScriptParameters), "hex")
   )
 
   return {
-    walletPublicKey: walletPublicKey,
+    walletPublicKey,
     depositScript: depositScript,
     previousOutputValue: previousOutput.value,
   }

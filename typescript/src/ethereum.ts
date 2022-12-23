@@ -1,5 +1,5 @@
 import { Bridge as ChainBridge, Identifier as ChainIdentifier, Identifier } from "./chain"
-import { BigNumber, constants, Contract, ContractTransaction, Signer, utils } from "ethers"
+import { BigNumber, constants, Contract, ContractTransaction, providers, Signer, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
 import { DepositScriptParameters, RevealedDeposit } from "./deposit"
@@ -41,9 +41,10 @@ export interface ContractConfig {
    */
   address: string
   /**
-   * Signer that will sign all contract transactions.
+   * Signer - will return a Contract which will act on behalf of that signer. The signer will sign all contract transactions.
+   * Provider - will return a downgraded Contract which only has read-only access (i.e. constant calls) 
    */
-  signer: Signer
+  signerOrProvider: Signer | providers.Provider
 }
 
 /**
@@ -57,7 +58,7 @@ export class Bridge implements ChainBridge {
     this._bridge = new Contract(
       config.address,
       `${JSON.stringify(BridgeABI)}`,
-      config.signer
+      config.signerOrProvider
     )
   }
 
@@ -160,7 +161,7 @@ export class Bridge implements ChainBridge {
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
     vault?: Identifier
-  ): Promise<ContractTransaction> {
+  ): Promise<void> {
     const depositTxParam = {
       version: `0x${depositTx.version}`,
       inputVector: `0x${depositTx.inputs}`,
@@ -172,19 +173,15 @@ export class Bridge implements ChainBridge {
       fundingOutputIndex: depositOutputIndex,
       depositor: `0x${deposit.depositor.identifierHex}`,
       blindingFactor: `0x${deposit.blindingFactor}`,
-      walletPubKeyHash: `0x${deposit.walletPublicKeyHash}`,
-      refundPubKeyHash: `0x${deposit.refundPublicKeyHash}`,
+      walletPubKeyHash: `0x${deposit.walletPubKeyHash}`,
+      refundPubKeyHash: `0x${deposit.refundPubKeyHash}`,
       refundLocktime: `0x${deposit.refundLocktime}`,
       vault: vault
         ? `0x${vault.identifierHex}`
         : constants.AddressZero,
     }
 
-    console.log('depositTxParam', depositTxParam)
-    console.log('revealParams', revealParam)
-    console.log('bridge address', this._bridge.address)
-
-    return await this._bridge.revealDeposit(depositTxParam, revealParam)
+    await this._bridge.revealDeposit(depositTxParam, revealParam)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -407,7 +404,7 @@ export class Bridge implements ChainBridge {
 
     return new WalletRegistry({
       address: ecdsaWalletRegistry,
-      signer: this._bridge.signer,
+      signerOrProvider: this._bridge.signer,
     })
   }
 }
@@ -422,7 +419,7 @@ class WalletRegistry {
     this._walletRegistry = new Contract(
       config.address,
       `${JSON.stringify(WalletRegistryABI)}`,
-      config.signer
+      config.signerOrProvider
     )
   }
 

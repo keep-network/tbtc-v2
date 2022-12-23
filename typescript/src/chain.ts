@@ -1,4 +1,4 @@
-import { BigNumber, ContractTransaction } from "ethers"
+import { BigNumber } from "ethers"
 import {
   Proof,
   UnspentTransactionOutput,
@@ -49,7 +49,7 @@ export interface Bridge {
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
     vault?: Identifier
-  ): Promise<ContractTransaction>
+  ): Promise<void>
 
   /**
    * Gets a revealed deposit from the on-chain contract.
