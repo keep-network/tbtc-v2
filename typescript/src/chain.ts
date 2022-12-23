@@ -43,13 +43,14 @@ export interface Bridge {
    * @param depositOutputIndex - Index of the deposit transaction output that
    *        funds the revealed deposit
    * @param deposit - Data of the revealed deposit
+   * @returns Transaction hash of the reveal deposit transaction as string
    */
   revealDeposit(
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
     vault?: Identifier
-  ): Promise<void>
+  ): Promise<string>
 
   /**
    * Gets a revealed deposit from the on-chain contract.

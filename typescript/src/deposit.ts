@@ -366,7 +366,7 @@ export async function calculateDepositAddress(
  * @param bitcoinClient - Bitcoin client used to interact with the network
  * @param bridge - Handle to the Bridge on-chain contract
  * @param vault - vault
- * @returns Empty promise
+ * @returns Transaction hash of the reveal deposit transaction as string
  * @dev The caller must ensure that the given deposit data are valid and
  *      the given deposit UTXO actually originates from a deposit transaction
  *      that matches the given deposit data.
@@ -377,12 +377,12 @@ export async function revealDeposit(
   bitcoinClient: BitcoinClient,
   bridge: Bridge,
   vault?: Identifier,
-): Promise<void> {
+): Promise<string> {
   const depositTx = decomposeRawTransaction(
     await bitcoinClient.getRawTransaction(utxo.transactionHash)
   )
 
-  await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit, vault)
+  return await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit, vault)
 }
 
 /**

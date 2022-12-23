@@ -1,5 +1,5 @@
 import { Bridge as ChainBridge, Identifier as ChainIdentifier, Identifier } from "./chain"
-import { BigNumber, constants, Contract, ContractTransaction, providers, Signer, utils } from "ethers"
+import { BigNumber, constants, Contract, providers, Signer, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
 import { DepositScriptParameters, RevealedDeposit } from "./deposit"
@@ -161,7 +161,7 @@ export class Bridge implements ChainBridge {
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
     vault?: Identifier
-  ): Promise<void> {
+  ): Promise<string> {
     const depositTxParam = {
       version: `0x${depositTx.version}`,
       inputVector: `0x${depositTx.inputs}`,
@@ -181,7 +181,9 @@ export class Bridge implements ChainBridge {
         : constants.AddressZero,
     }
 
-    await this._bridge.revealDeposit(depositTxParam, revealParam)
+    const tx = await this._bridge.revealDeposit(depositTxParam, revealParam)
+
+    return tx.hash
   }
 
   // eslint-disable-next-line valid-jsdoc
