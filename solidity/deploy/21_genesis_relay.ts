@@ -6,9 +6,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { execute } = deployments
   const { deployer } = await getNamedAccounts()
 
-  // TODO: Fill with proper values
-  const genesisHeader = "0x000000000000000000000000000000000000000000000000"
-  const genesisHeight = 1234567
+  // The genesis header comes form the Bitcoin mainnet block at height 766080
+  // which is the first block of Bitcoin difficulty epoch 380.
+  const genesisHeader =
+    "0x0000402089138e40cd8b4832beb8013bc80b1425c8bcbe10fc28040000000000000000" +
+    "0058a06ab0edc5653a6ab78490675a954f8d8b4d4f131728dcf965cd0022a02cdde59f8e" +
+    "63303808176bbe3919"
+  const genesisHeight = 766080
   const genesisProofLength = 20
 
   await execute(
