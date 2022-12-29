@@ -208,9 +208,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -252,9 +250,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -301,9 +297,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -344,9 +338,9 @@ export class Bridge implements ChainBridge {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): string {
-    const prefixedReversedDepositTxHash = `0x${Buffer.from(depositTxHash, "hex")
+    const prefixedReversedDepositTxHash = depositTxHash
       .reverse()
-      .toString("hex")}`
+      .toPrefixedString()
 
     return utils.solidityKeccak256(
       ["bytes32", "uint32"],

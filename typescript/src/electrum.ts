@@ -126,7 +126,7 @@ export class Client implements BitcoinClient {
           )
 
         return unspentTransactions.reverse().map((tx: any) => ({
-          transactionHash: tx.tx_hash,
+          transactionHash: TransactionHash.from(tx.tx_hash),
           outputIndex: tx.tx_pos,
           value: BigNumber.from(tx.value),
         }))
@@ -141,13 +141,13 @@ export class Client implements BitcoinClient {
   getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
     return this.withElectrum<Transaction>(async (electrum: any) => {
       const transaction = await electrum.blockchain_transaction_get(
-        transactionHash,
+        transactionHash.toString(),
         true
       )
 
       const inputs = transaction.vin.map(
         (input: any): TransactionInput => ({
-          transactionHash: input.txid,
+          transactionHash: TransactionHash.from(input.txid),
           outputIndex: input.vout,
           scriptSig: input.scriptSig,
         })
@@ -163,7 +163,7 @@ export class Client implements BitcoinClient {
       )
 
       return {
-        transactionHash: transaction.txid,
+        transactionHash: TransactionHash.from(transaction.txid),
         inputs: inputs,
         outputs: outputs,
       }
@@ -177,7 +177,7 @@ export class Client implements BitcoinClient {
   getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction> {
     return this.withElectrum<RawTransaction>(async (electrum: any) => {
       const transaction = await electrum.blockchain_transaction_get(
-        transactionHash,
+        transactionHash.toString(),
         true
       )
 
@@ -196,7 +196,7 @@ export class Client implements BitcoinClient {
   ): Promise<number> {
     return this.withElectrum<number>(async (electrum: any) => {
       const transaction = await electrum.blockchain_transaction_get(
-        transactionHash,
+        transactionHash.toString(),
         true
       )
 
@@ -241,7 +241,7 @@ export class Client implements BitcoinClient {
   ): Promise<TransactionMerkleBranch> {
     return this.withElectrum<TransactionMerkleBranch>(async (electrum: any) => {
       const merkle = await electrum.blockchain_transaction_getMerkle(
-        transactionHash,
+        transactionHash.toString(),
         blockHeight
       )
 
