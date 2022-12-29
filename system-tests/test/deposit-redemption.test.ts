@@ -53,6 +53,7 @@ describe("System Test - Deposit and redemption", () => {
   let depositorBridgeHandle: EthereumBridge
   let bank: Contract
   let tbtcVault: Contract
+  let relay: Contract
 
   const depositAmount = BigNumber.from(2000000)
   const depositSweepTxFee = BigNumber.from(10000)
@@ -92,6 +93,13 @@ describe("System Test - Deposit and redemption", () => {
     tbtcVault = new Contract(
       tbtcVaultDeploymentInfo.address,
       tbtcVaultDeploymentInfo.abi,
+      maintainer
+    )
+
+    const relayDeploymentInfo = systemTestsContext.deployedContracts.Relay
+    relay = new Contract(
+      relayDeploymentInfo.address,
+      relayDeploymentInfo.abi,
       maintainer
     )
   })
@@ -175,7 +183,7 @@ describe("System Test - Deposit and redemption", () => {
       await waitTransactionConfirmed(electrumClient, sweepUtxo.transactionHash)
 
       await fakeRelayDifficulty(
-        systemTestsContext,
+        relay,
         electrumClient,
         sweepUtxo.transactionHash
       )
@@ -305,7 +313,7 @@ describe("System Test - Deposit and redemption", () => {
       await waitTransactionConfirmed(electrumClient, redemptionTxHash)
 
       await fakeRelayDifficulty(
-        systemTestsContext,
+        relay,
         electrumClient,
         redemptionTxHash
       )
