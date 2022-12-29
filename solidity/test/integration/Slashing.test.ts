@@ -43,6 +43,7 @@ import { UTXOStruct } from "../../typechain/Bridge"
 
 const { increaseTime } = helpers.time
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
+const { impersonateAccount } = helpers.account
 
 const describeFn =
   process.env.NODE_ENV === "integration-test" ? describe : describe.skip
@@ -237,7 +238,7 @@ describeFn("Integration Test - Slashing", async () => {
           requestNewWalletTx.blockNumber
         ))
 
-        const { fundingTx, reveal } = SingleP2SHDeposit.deposits[0]
+        const { fundingTx, depositor, reveal } = SingleP2SHDeposit.deposits[0]
         reveal.vault = tbtcVault.address
 
         // We use a deposit funding bitcoin transaction with a very low amount,
@@ -251,9 +252,14 @@ describeFn("Integration Test - Slashing", async () => {
           100
         ) // 0.00002 BTC, 0.000002 BTC
 
+        const depositorSigner = await impersonateAccount(depositor, {
+          from: governance,
+          value: 10,
+        })
+
         // Reveal and sweep the deposit to set up a positive Bank balance for
         // the redeemer, to be able to request a redemption.
-        await bridge.revealDeposit(fundingTx, reveal)
+        await bridge.connect(depositorSigner).revealDeposit(fundingTx, reveal)
 
         relay.getCurrentEpochDifficulty.returns(
           SingleP2SHDeposit.chainDifficulty
@@ -277,7 +283,7 @@ describeFn("Integration Test - Slashing", async () => {
 
         // Request redemption
         const redeemer = await helpers.account.impersonateAccount(
-          deposit.reveal.depositor,
+          deposit.depositor,
           { from: deployer, value: 10 }
         )
         const redemptionAmount = 3_000
@@ -396,7 +402,7 @@ describeFn("Integration Test - Slashing", async () => {
           requestNewWalletTx.blockNumber
         ))
 
-        const { fundingTx, reveal } = SingleP2SHDeposit.deposits[0]
+        const { fundingTx, depositor, reveal } = SingleP2SHDeposit.deposits[0]
         reveal.vault = tbtcVault.address
 
         // We use a deposit funding bitcoin transaction with a very low amount,
@@ -405,10 +411,15 @@ describeFn("Integration Test - Slashing", async () => {
         // than the dust threshold.
         await updateDepositDustThresholdAndTxMaxFee(10_000, 2_000) // 0.0001 BTC, 0.00002 BTC
 
+        const depositorSigner = await impersonateAccount(depositor, {
+          from: governance,
+          value: 10,
+        })
+
         // Reveal and sweep the deposit to set up a main UTXO for the wallet,
         // so when operator inactivity is reported the wallet is transferred to
         // the MovingFunds instead of the Closing state.
-        await bridge.revealDeposit(fundingTx, reveal)
+        await bridge.connect(depositorSigner).revealDeposit(fundingTx, reveal)
 
         relay.getCurrentEpochDifficulty.returns(
           SingleP2SHDeposit.chainDifficulty
