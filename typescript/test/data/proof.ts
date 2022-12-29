@@ -2,6 +2,7 @@ import {
   Proof,
   RawTransaction,
   Transaction,
+  TransactionHash,
   TransactionMerkleBranch,
 } from "../../src/bitcoin"
 import { BigNumber } from "ethers"
@@ -30,12 +31,14 @@ export const singleInputProofTestData: ProofTestData = {
   requiredConfirmations: 6,
   bitcoinChainData: {
     transaction: {
-      transactionHash:
-        "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473",
+      transactionHash: TransactionHash.from(
+        "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
+      ),
       inputs: [
         {
-          transactionHash:
-            "8ee67b585eeb682bf6907ea311282540ee53edf605e0f09757226a4dc3e72a67",
+          transactionHash: TransactionHash.from(
+            "8ee67b585eeb682bf6907ea311282540ee53edf605e0f09757226a4dc3e72a67"
+          ),
           outputIndex: 0,
           scriptSig: {
             asm: "",
@@ -105,12 +108,14 @@ export const singleInputProofTestData: ProofTestData = {
     },
   },
   expectedProof: {
-    transactionHash:
-      "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473",
+    transactionHash: TransactionHash.from(
+      "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
+    ),
     inputs: [
       {
-        transactionHash:
-          "8ee67b585eeb682bf6907ea311282540ee53edf605e0f09757226a4dc3e72a67",
+        transactionHash: TransactionHash.from(
+          "8ee67b585eeb682bf6907ea311282540ee53edf605e0f09757226a4dc3e72a67"
+        ),
         outputIndex: 0,
         scriptSig: {
           asm: "",
@@ -170,30 +175,35 @@ export const multipleInputsProofTestData: ProofTestData = {
 
   bitcoinChainData: {
     transaction: {
-      transactionHash:
-        "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753",
+      transactionHash: TransactionHash.from(
+        "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753"
+      ),
       inputs: [
         {
-          transactionHash:
-            "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f",
+          transactionHash: TransactionHash.from(
+            "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
+          ),
           outputIndex: 0,
           scriptSig: { asm: "", hex: "" },
         },
         {
-          transactionHash:
-            "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd",
+          transactionHash: TransactionHash.from(
+            "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
+          ),
           outputIndex: 0,
           scriptSig: { asm: "", hex: "" },
         },
         {
-          transactionHash:
-            "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473",
+          transactionHash: TransactionHash.from(
+            "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
+          ),
           outputIndex: 0,
           scriptSig: { asm: "", hex: "" },
         },
         {
-          transactionHash:
-            "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378",
+          transactionHash: TransactionHash.from(
+            "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
+          ),
           outputIndex: 0,
           scriptSig: { asm: "", hex: "" },
         },
@@ -278,30 +288,35 @@ export const multipleInputsProofTestData: ProofTestData = {
     },
   },
   expectedProof: {
-    transactionHash:
-      "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753",
+    transactionHash: TransactionHash.from(
+      "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753"
+    ),
     inputs: [
       {
-        transactionHash:
-          "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f",
+        transactionHash: TransactionHash.from(
+          "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
+        ),
         outputIndex: 0,
         scriptSig: { asm: "", hex: "" },
       },
       {
-        transactionHash:
-          "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd",
+        transactionHash: TransactionHash.from(
+          "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
+        ),
         outputIndex: 0,
         scriptSig: { asm: "", hex: "" },
       },
       {
-        transactionHash:
-          "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473",
+        transactionHash: TransactionHash.from(
+          "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
+        ),
         outputIndex: 0,
         scriptSig: { asm: "", hex: "" },
       },
       {
-        transactionHash:
-          "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378",
+        transactionHash: TransactionHash.from(
+          "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
+        ),
         outputIndex: 0,
         scriptSig: { asm: "", hex: "" },
       },
