@@ -52,6 +52,7 @@ describe("System Test - Deposit and redemption", () => {
   let maintainerBridgeHandle: EthereumBridge
   let depositorBridgeHandle: EthereumBridge
   let bank: Contract
+  let tbtcVault: Contract
 
   const depositAmount = BigNumber.from(2000000)
   const depositSweepTxFee = BigNumber.from(10000)
@@ -86,6 +87,13 @@ describe("System Test - Deposit and redemption", () => {
       bankDeploymentInfo.abi,
       maintainer
     )
+
+    const tbtcVaultDeploymentInfo = deployedContracts.TBTCVault
+    tbtcVault = new Contract(
+      tbtcVaultDeploymentInfo.address,
+      tbtcVaultDeploymentInfo.abi,
+      maintainer
+    )
   })
 
   context("when deposit is made and revealed", () => {
@@ -93,7 +101,8 @@ describe("System Test - Deposit and redemption", () => {
       deposit = generateDeposit(
         systemTestsContext.depositor.address,
         depositAmount,
-        systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
+        systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
+        tbtcVault.address
       )
 
       console.log(`
