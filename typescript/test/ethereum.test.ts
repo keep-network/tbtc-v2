@@ -34,7 +34,8 @@ describe("Ethereum", () => {
       await bridgeContract.mock.contractReferences.returns(
         constants.AddressZero,
         constants.AddressZero,
-        walletRegistry.address
+        walletRegistry.address,
+        constants.AddressZero
       )
 
       bridgeHandle = new Bridge({
