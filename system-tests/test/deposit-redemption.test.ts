@@ -106,7 +106,8 @@ describe("System Test - Deposit and redemption", () => {
       )
 
       console.log(`
-        Generated deposit data
+        Generated deposit data:
+        ${JSON.stringify(deposit)}
       `)
       ;({ depositUtxo } = await submitDepositTransaction(
         deposit,
