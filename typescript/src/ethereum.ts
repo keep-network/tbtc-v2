@@ -46,6 +46,8 @@ export class Address implements ChainIdentifier {
 export interface ContractConfig {
   /**
    * Address of the Ethereum contract as a 0x-prefixed hex string.
+   * Optional parameter, if not provided the value will be resolved from the
+   * contract artifact.
    */
   address?: string
   /**
@@ -54,6 +56,8 @@ export interface ContractConfig {
   signer: Signer
   /**
    * Number of a block in which the contract was deployed.
+   * Optional parameter, if not provided the value will be resolved from the
+   * contract artifact.
    */
   deployedAtBlockNumber?: number
 }
