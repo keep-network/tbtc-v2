@@ -8,11 +8,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const Bank = await deployments.get("Bank")
   const TBTC = await deployments.get("TBTC")
+  const Bridge = await deployments.get("Bridge")
 
   const TBTCVault = await deploy("TBTCVault", {
     contract: "TBTCVault",
     from: deployer,
-    args: [Bank.address, TBTC.address],
+    args: [Bank.address, TBTC.address, Bridge.address],
     log: true,
     waitConfirmations: 1,
   })

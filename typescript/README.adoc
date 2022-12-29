@@ -2,7 +2,7 @@
 
 = tBTC v2 TypeScript bindings
 
-https://github.com/keep-network/tbtc-v2/actions/workflows/typescript.yml[image:https://img.shields.io/github/workflow/status/keep-network/tbtc-v2/TypeScript%20bindings/main?event=push&label=TypeScript%20bindings%20build[TypeScript bindings build status]]
+https://github.com/keep-network/tbtc-v2/actions/workflows/typescript.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/typescript.yml?branch=main&event=push&label=TypeScript%20bindings%20build[TypeScript bindings build status]]
 
 This package provides TypeScript bindings to the tBTC v2 system.
 
