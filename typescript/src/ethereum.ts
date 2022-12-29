@@ -72,13 +72,13 @@ export class Bridge implements ChainBridge {
 
   constructor(config: ContractConfig) {
     this._bridge = new Contract(
-      config.address || utils.getAddress(BridgeAddress),
+      config.address ?? utils.getAddress(BridgeAddress),
       `${JSON.stringify(BridgeABI)}`,
       config.signer
     )
 
     this._deployedAtBlockNumber =
-      config.deployedAtBlockNumber || BridgeReceipt.blockNumber
+      config.deployedAtBlockNumber ?? BridgeReceipt.blockNumber
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -436,13 +436,13 @@ class WalletRegistry {
 
   constructor(config: ContractConfig) {
     this._walletRegistry = new Contract(
-      config.address || utils.getAddress(WalletRegistryAddress),
+      config.address ?? utils.getAddress(WalletRegistryAddress),
       `${JSON.stringify(WalletRegistryABI)}`,
       config.signer
     )
 
     this._deployedAtBlockNumber =
-      config.deployedAtBlockNumber || WalletRegistryReceipt.blockNumber
+      config.deployedAtBlockNumber ?? WalletRegistryReceipt.blockNumber
   }
 
   /**
