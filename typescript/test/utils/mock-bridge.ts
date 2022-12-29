@@ -7,7 +7,7 @@ import {
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
 import { Deposit, RevealedDeposit } from "../../src/deposit"
-import { computeHash160, TransactionHash } from "../../dist/bitcoin"
+import { computeHash160, TransactionHash } from "../../src/bitcoin"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
