@@ -75,13 +75,15 @@ export class MockBitcoinClient implements Client {
 
   getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
     return new Promise<Transaction>((resolve, _) => {
-      resolve(this._transactions.get(transactionHash) as Transaction)
+      resolve(this._transactions.get(transactionHash.toString()) as Transaction)
     })
   }
 
   getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction> {
     return new Promise<RawTransaction>((resolve, _) => {
-      resolve(this._rawTransactions.get(transactionHash) as RawTransaction)
+      resolve(
+        this._rawTransactions.get(transactionHash.toString()) as RawTransaction
+      )
     })
   }
 
@@ -89,7 +91,7 @@ export class MockBitcoinClient implements Client {
     transactionHash: TransactionHash
   ): Promise<number> {
     return new Promise<number>((resolve, _) => {
-      resolve(this._confirmations.get(transactionHash) as number)
+      resolve(this._confirmations.get(transactionHash.toString()) as number)
     })
   }
 
