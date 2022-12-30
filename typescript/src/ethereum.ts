@@ -168,6 +168,7 @@ export class Bridge extends EthereumContract implements ChainBridge {
    * @returns Found DepositRevealed events.
    * @see EthereumContract.queryEvents
    */
+  // TODO: Consider exposing in deposit.ts and in chain.ts
   async queryDepositRevealedEvents(
     fromBlock?: EthersBlockTag,
     toBlock?: EthersBlockTag,
