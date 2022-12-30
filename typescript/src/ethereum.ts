@@ -10,6 +10,7 @@ import {
   address as WalletRegistryAddress,
   receipt as WalletRegistryReceipt,
 } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
+import { Deposit, DepositRevealedEvent, RevealedDeposit } from "./deposit"
 import { Event as EthersEvent } from "ethers"
 import { BlockTag as EthersBlockTag } from "@ethersproject/abstract-provider"
 import { RedemptionRequest } from "./redemption"
@@ -98,6 +99,52 @@ export class Bridge implements ChainBridge {
 
     this._deployedAtBlockNumber =
       config.deployedAtBlockNumber ?? BridgeReceipt.blockNumber
+  }
+
+  /**
+   * Query emitted DepositRevealed events.
+   * @param fromBlock Block number from which events should be queried.
+   *        {@link queryEvents.fromBlock}
+   * @param toBlock Block number to which events should be queried.
+   *        {@link queryEvents.toBlock}
+   * @param filterArgs Arguments for events filtering. {@link queryEvents.filterArgs}
+   * @returns Found DepositRevealed events.
+   * @see queryEvents
+   */
+  async queryDepositRevealedEvents(
+    fromBlock?: EthersBlockTag,
+    toBlock?: EthersBlockTag,
+    ...filterArgs: Array<any>
+  ): Promise<DepositRevealedEvent[]> {
+    const events: EthersEvent[] = await queryEvents(
+      this._bridge,
+      "DepositRevealed",
+      fromBlock,
+      toBlock,
+      filterArgs
+    )
+
+    return events.map<DepositRevealedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: event.blockHash,
+        transactionHash: event.transactionHash,
+        fundingTxHash: TransactionHash.from(event.args!.fundingTxHash),
+        fundingOutputIndex: BigNumber.from(
+          event.args!.fundingOutputIndex
+        ).toNumber(),
+        depositor: new Address(event.args!.depositor),
+        amount: BigNumber.from(event.args!.amount),
+        blindingFactor: event.args!.blindingFactor,
+        walletPubKeyHash: event.args!.walletPubKeyHash,
+        refundPubKeyHash: event.args!.refundPubKeyHash,
+        refundLocktime: event.args!.refundLocktime,
+        vault:
+          event.args!.vault === constants.AddressZero
+            ? undefined
+            : new Address(event.args!.vault),
+      }
+    })
   }
 
   // eslint-disable-next-line valid-jsdoc
