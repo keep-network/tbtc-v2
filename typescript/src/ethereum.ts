@@ -11,6 +11,7 @@ import {
 import { BlockTag as EthersBlockTag } from "@ethersproject/abstract-provider"
 import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
+import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
 import {
   DepositScriptParameters,
   RevealedDeposit,
@@ -560,5 +561,14 @@ class WalletRegistry extends EthereumContract {
   async getWalletPublicKey(walletID: string): Promise<string> {
     const publicKey = await this._instance.getWalletPublicKey(walletID)
     return publicKey.substring(2)
+  }
+}
+
+/**
+ * Implementation of the Ethereum TBTCVault handle.
+ */
+export class TBTCVault extends EthereumContract {
+  constructor(config: ContractConfig) {
+    super(config, TBTCVaultDeployment)
   }
 }
