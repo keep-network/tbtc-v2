@@ -10,8 +10,7 @@ import {
   TransactionHash,
   isPublicKeyHashLength,
 } from "./bitcoin"
-import { Bridge, Identifier } from "./chain"
-import { Event } from "./ethereum"
+import { Bridge, Identifier, Event } from "./chain"
 
 const { opcodes } = bcoin.script.common
 
