@@ -11,7 +11,11 @@ import {
 import { BlockTag as EthersBlockTag } from "@ethersproject/abstract-provider"
 import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
-import { DepositScriptParameters, RevealedDeposit } from "./deposit"
+import {
+  DepositScriptParameters,
+  RevealedDeposit,
+  DepositRevealedEvent,
+} from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -151,6 +155,49 @@ class EthereumContract {
 export class Bridge extends EthereumContract implements ChainBridge {
   constructor(config: ContractConfig) {
     super(config, BridgeDeployment)
+  }
+
+  /**
+   * Query emitted DepositRevealed events.
+   * @param fromBlock Block number from which events should be queried.
+   * @param toBlock Block number to which events should be queried.
+   * @param filterArgs Arguments for events filtering.
+   * @returns Found DepositRevealed events.
+   * @see queryEvents
+   */
+  async queryDepositRevealedEvents(
+    fromBlock?: EthersBlockTag,
+    toBlock?: EthersBlockTag,
+    ...filterArgs: Array<any>
+  ): Promise<DepositRevealedEvent[]> {
+    const events: EthersEvent[] = await this.queryEvents(
+      "DepositRevealed",
+      fromBlock,
+      toBlock,
+      filterArgs
+    )
+
+    return events.map<DepositRevealedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: event.blockHash,
+        transactionHash: event.transactionHash,
+        fundingTxHash: TransactionHash.from(event.args!.fundingTxHash),
+        fundingOutputIndex: BigNumber.from(
+          event.args!.fundingOutputIndex
+        ).toNumber(),
+        depositor: new Address(event.args!.depositor),
+        amount: BigNumber.from(event.args!.amount),
+        blindingFactor: event.args!.blindingFactor,
+        walletPubKeyHash: event.args!.walletPubKeyHash,
+        refundPubKeyHash: event.args!.refundPubKeyHash,
+        refundLocktime: event.args!.refundLocktime,
+        vault:
+          event.args!.vault === constants.AddressZero
+            ? undefined
+            : new Address(event.args!.vault),
+      }
+    })
   }
 
   // eslint-disable-next-line valid-jsdoc

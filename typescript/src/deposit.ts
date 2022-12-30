@@ -9,7 +9,7 @@ import {
   TransactionHash,
   isPublicKeyHashLength,
 } from "./bitcoin"
-import { Bridge, Identifier } from "./chain"
+import { Bridge, Event, Identifier } from "./chain"
 
 const { opcodes } = bcoin.script.common
 
@@ -97,6 +97,19 @@ export type RevealedDeposit = Pick<
    */
   treasuryFee: BigNumber
 }
+
+/**
+ * Represents an event emitted on deposit reveal to the on-chain bridge.fp
+ */
+export type DepositRevealedEvent = Pick<
+  Deposit,
+  "depositor" | "amount" | "blindingFactor" | "refundLocktime" | "vault"
+> & {
+  fundingTxHash: TransactionHash
+  fundingOutputIndex: number
+  walletPubKeyHash: string
+  refundPubKeyHash: string
+} & Event
 
 /**
  * Submits a deposit by creating and broadcasting a Bitcoin P2(W)SH
