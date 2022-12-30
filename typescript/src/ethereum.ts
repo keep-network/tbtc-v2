@@ -63,6 +63,24 @@ export interface ContractConfig {
 }
 
 /**
+ * Represents an Ethereum event.
+ */
+export interface Event {
+  /**
+   * Ethereum block number of the event emission.
+   */
+  blockNumber: number
+  /**
+   * Ethereum block hahs of the event emission.
+   */
+  blockHash: string
+  /**
+   * Ethereum transaction hash within which the event was emitted.
+   */
+  transactionHash: string
+}
+
+/**
  * Implementation of the Ethereum Bridge handle.
  * @see {ChainBridge} for reference.
  */
