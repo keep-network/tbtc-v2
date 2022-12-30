@@ -1,4 +1,8 @@
-import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
+import {
+  Bridge as ChainBridge,
+  TBTCVault as ChainTBTCVault,
+  Identifier as ChainIdentifier,
+} from "./chain"
 import {
   BigNumber,
   constants,
@@ -567,8 +571,22 @@ class WalletRegistry extends EthereumContract {
 /**
  * Implementation of the Ethereum TBTCVault handle.
  */
-export class TBTCVault extends EthereumContract {
+export class TBTCVault extends EthereumContract implements ChainTBTCVault {
   constructor(config: ContractConfig) {
     super(config, TBTCVaultDeployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#requestOptimisticMint}
+   */
+  async requestOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<void> {
+    await this._instance.requestOptimisticMint(
+      depositTxHash,
+      depositOutputIndex
+    )
   }
 }

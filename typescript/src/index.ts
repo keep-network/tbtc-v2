@@ -13,6 +13,7 @@ import {
 import { Client as ElectrumClient } from "./electrum"
 import { Bridge as EthereumBridge } from "./ethereum"
 import { TBTCVault as EthereumTBTCVault } from "./ethereum"
+import { requestOptimisticMint } from "./optimistic-minting"
 
 const TBTC = {
   calculateDepositAddress,
@@ -21,6 +22,7 @@ const TBTC = {
   getRevealedDeposit,
   requestRedemption,
   getRedemptionRequest,
+  requestOptimisticMint,
 }
 
 const SpvMaintainer = {
