@@ -36,4 +36,4 @@ func.tags = ["DisableFraudChallenges"]
 func.dependencies = ["Bridge"]
 
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
-  hre.network.name === "mainnet"
+  hre.network.name !== "mainnet"
