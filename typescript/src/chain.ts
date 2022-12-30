@@ -6,6 +6,7 @@ import {
   TransactionHash,
 } from "./bitcoin"
 import { DepositScriptParameters, RevealedDeposit } from "./deposit"
+import { OptimisticMintingRequest } from "./optimistic-minting"
 import { RedemptionRequest } from "./redemption"
 
 /**
@@ -177,4 +178,17 @@ export interface TBTCVault {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<void>
+
+  /**
+   * Gets optimistic minting request for a deposit.
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @param tbtcVault Handle to the TBTCVault on-chain contract
+   * @returns Optimistic minting request.
+   */
+  optimisticMintingRequests(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<OptimisticMintingRequest>
 }

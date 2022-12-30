@@ -30,6 +30,7 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
+import type { OptimisticMintingRequest } from "./optimistic-minting"
 
 /**
  * Contract deployment artifact.
@@ -588,5 +589,34 @@ export class TBTCVault extends EthereumContract implements ChainTBTCVault {
       depositTxHash,
       depositOutputIndex
     )
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#optimisticMintingRequests}
+   */
+  async optimisticMintingRequests(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<OptimisticMintingRequest> {
+    const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
+
+    const request = await this._instance.optimisticMintingRequests(depositKey)
+
+    return this.parseOptimisticMintingRequest(request)
+  }
+
+  /**
+   * Parses a optimistic minting request using data fetched from the on-chain contract.
+   * @param request Data of the optimistic minting request.
+   * @returns Parsed optimistic minting request.
+   */
+  private parseOptimisticMintingRequest(
+    request: any
+  ): OptimisticMintingRequest {
+    return {
+      requestedAt: BigNumber.from(request.requestedAt).toNumber(),
+      finalizedAt: BigNumber.from(request.finalizedAt).toNumber(),
+    }
   }
 }
