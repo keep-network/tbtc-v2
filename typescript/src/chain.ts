@@ -19,6 +19,24 @@ export interface Identifier {
 }
 
 /**
+ * Represents a generic chain event.
+ */
+export interface Event {
+  /**
+   * Ethereum block number of the event emission.
+   */
+  blockNumber: number
+  /**
+   * Ethereum block hahs of the event emission.
+   */
+  blockHash: string
+  /**
+   * Ethereum transaction hash within which the event was emitted.
+   */
+  transactionHash: string
+}
+
+/**
  * Interface for communication with the Bridge on-chain contract.
  */
 export interface Bridge {
