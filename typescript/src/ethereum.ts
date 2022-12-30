@@ -1,15 +1,13 @@
 import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
-import { BigNumber, constants, Contract, Signer, utils } from "ethers"
 import {
-  abi as BridgeABI,
-  address as BridgeAddress,
-  receipt as BridgeReceipt,
-} from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import {
-  abi as WalletRegistryABI,
-  address as WalletRegistryAddress,
-  receipt as WalletRegistryReceipt,
-} from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
+  BigNumber,
+  constants,
+  Contract as EthersContract,
+  Signer,
+  utils,
+} from "ethers"
+import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
+import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { Deposit, DepositRevealedEvent, RevealedDeposit } from "./deposit"
 import { Event as EthersEvent } from "ethers"
 import { BlockTag as EthersBlockTag } from "@ethersproject/abstract-provider"
@@ -22,6 +20,30 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
+
+/**
+ * Contract deployment artifact.
+ * @see [hardhat-deploy#Deployment](https://github.com/wighawag/hardhat-deploy/blob/0c969e9a27b4eeff9f5ccac7e19721ef2329eed2/types.ts#L358)}
+ */
+export interface Deployment {
+  /**
+   * Address of the deployed contract.
+   */
+  address: string
+  /**
+   * Contract's ABI.
+   */
+  abi: any[]
+  /**
+   * Deployment transaction receipt.
+   */
+  receipt: {
+    /**
+     * Number of block in which the contract was deployed.
+     */
+    blockNumber: number
+  }
+}
 
 /**
  * Represents an Ethereum address.
@@ -83,22 +105,68 @@ export interface Event {
 }
 
 /**
- * Implementation of the Ethereum Bridge handle.
- * @see {ChainBridge} for reference.
+ * Deployed Ethereum contract
  */
-export class Bridge implements ChainBridge {
-  private _bridge: Contract
-  private _deployedAtBlockNumber: number
+class EthereumContract {
+  /**
+   * Ethers instance of the deployed contract.
+   */
+  protected readonly _instance: EthersContract
+  /**
+   * Number of a block within which the contract was deployed. Value is read from
+   * the contract deployment artifact. It can be overwritten by setting a
+   * {@link ContractConfig.deployedAtBlockNumber} property.
+   */
+  protected readonly _deployedAtBlockNumber: number
 
-  constructor(config: ContractConfig) {
-    this._bridge = new Contract(
-      config.address ?? utils.getAddress(BridgeAddress),
-      `${JSON.stringify(BridgeABI)}`,
+  /**
+   * @param config Configuration for contract instance initialization.
+   * @param deployment Contract Deployment artifact.
+   */
+  constructor(config: ContractConfig, deployment: Deployment) {
+    this._instance = new EthersContract(
+      config.address ?? utils.getAddress(deployment.address),
+      `${JSON.stringify(deployment.abi)}`,
       config.signer
     )
 
     this._deployedAtBlockNumber =
-      config.deployedAtBlockNumber ?? BridgeReceipt.blockNumber
+      config.deployedAtBlockNumber ?? deployment.receipt.blockNumber
+  }
+
+  /**
+   * Query events emitted by the Ethereum contract.
+   * @param eventName Name of the event.
+   * @param fromBlock Block number from which events should be queried. Optional
+   *        parameter, by default block number of the contract deployment is used.
+   * @param toBlock Block number to which events should be queried. Optional
+   *        parameter, by efault the latest block is used.
+   * @param filterArgs Arguments for events filtering.
+   * @returns Array of found events.
+   */
+  async queryEvents(
+    eventName: string,
+    fromBlock?: EthersBlockTag,
+    toBlock?: EthersBlockTag,
+    ...filterArgs: Array<any>
+  ): Promise<EthersEvent[]> {
+    // TODO: Test if we need a workaround for querying events from big range in chunks,
+    // see: https://github.com/keep-network/tbtc-monitoring/blob/e169357d7b8c638d4eaf73d52aa8f53ee4aebc1d/src/lib/ethereum-helper.js#L44-L73
+    return await this._instance.queryFilter(
+      this._instance.filters[eventName](...filterArgs),
+      fromBlock ?? this._deployedAtBlockNumber,
+      toBlock ?? "latest"
+    )
+  }
+}
+
+/**
+ * Implementation of the Ethereum Bridge handle.
+ * @see {ChainBridge} for reference.
+ */
+export class Bridge extends EthereumContract implements ChainBridge {
+  constructor(config: ContractConfig) {
+    super(config, BridgeDeployment)
   }
 
   /**
@@ -109,15 +177,14 @@ export class Bridge implements ChainBridge {
    *        {@link queryEvents.toBlock}
    * @param filterArgs Arguments for events filtering. {@link queryEvents.filterArgs}
    * @returns Found DepositRevealed events.
-   * @see queryEvents
+   * @see EthereumContract.queryEvents
    */
   async queryDepositRevealedEvents(
     fromBlock?: EthersBlockTag,
     toBlock?: EthersBlockTag,
     ...filterArgs: Array<any>
   ): Promise<DepositRevealedEvent[]> {
-    const events: EthersEvent[] = await queryEvents(
-      this._bridge,
+    const events: EthersEvent[] = await this.queryEvents(
       "DepositRevealed",
       fromBlock,
       toBlock,
@@ -160,7 +227,7 @@ export class Bridge implements ChainBridge {
       redeemerOutputScript
     )
 
-    const request = await this._bridge.pendingRedemptions(redemptionKey)
+    const request = await this._instance.pendingRedemptions(redemptionKey)
 
     return this.parseRedemptionRequest(request, redeemerOutputScript)
   }
@@ -178,7 +245,7 @@ export class Bridge implements ChainBridge {
       redeemerOutputScript
     )
 
-    const request = await this._bridge.timedOutRedemptions(redemptionKey)
+    const request = await this._instance.timedOutRedemptions(redemptionKey)
 
     return this.parseRedemptionRequest(request, redeemerOutputScript)
   }
@@ -265,7 +332,7 @@ export class Bridge implements ChainBridge {
         : constants.AddressZero,
     }
 
-    await this._bridge.revealDeposit(depositTxParam, revealParam)
+    await this._instance.revealDeposit(depositTxParam, revealParam)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -303,7 +370,7 @@ export class Bridge implements ChainBridge {
       ? `0x${vault.identifierHex}`
       : constants.AddressZero
 
-    await this._bridge.submitDepositSweepProof(
+    await this._instance.submitDepositSweepProof(
       sweepTxParam,
       sweepProofParam,
       mainUtxoParam,
@@ -317,7 +384,7 @@ export class Bridge implements ChainBridge {
    */
   async txProofDifficultyFactor(): Promise<number> {
     const txProofDifficultyFactor: BigNumber =
-      await this._bridge.txProofDifficultyFactor()
+      await this._instance.txProofDifficultyFactor()
     return txProofDifficultyFactor.toNumber()
   }
 
@@ -349,7 +416,7 @@ export class Bridge implements ChainBridge {
       rawRedeemerOutputScript,
     ]).toString("hex")}`
 
-    await this._bridge.requestRedemption(
+    await this._instance.requestRedemption(
       walletPublicKeyHash,
       mainUtxoParam,
       prefixedRawRedeemerOutputScript,
@@ -390,7 +457,7 @@ export class Bridge implements ChainBridge {
 
     const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
 
-    await this._bridge.submitRedemptionProof(
+    await this._instance.submitRedemptionProof(
       redemptionTxParam,
       redemptionProofParam,
       mainUtxoParam,
@@ -408,7 +475,7 @@ export class Bridge implements ChainBridge {
   ): Promise<RevealedDeposit> {
     const depositKey = this.buildDepositKey(depositTxHash, depositOutputIndex)
 
-    const deposit = await this._bridge.deposits(depositKey)
+    const deposit = await this._instance.deposits(depositKey)
 
     return this.parseRevealedDeposit(deposit)
   }
@@ -458,7 +525,7 @@ export class Bridge implements ChainBridge {
    * @see {ChainBridge#activeWalletPublicKey}
    */
   async activeWalletPublicKey(): Promise<string | undefined> {
-    const activeWalletPubKeyHash = await this._bridge.activeWalletPubKeyHash()
+    const activeWalletPubKeyHash = await this._instance.activeWalletPubKeyHash()
 
     if (
       activeWalletPubKeyHash === "0x0000000000000000000000000000000000000000"
@@ -467,7 +534,9 @@ export class Bridge implements ChainBridge {
       return undefined
     }
 
-    const { ecdsaWalletID } = await this._bridge.wallets(activeWalletPubKeyHash)
+    const { ecdsaWalletID } = await this._instance.wallets(
+      activeWalletPubKeyHash
+    )
 
     const walletRegistry = await this.walletRegistry()
     const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
@@ -478,11 +547,11 @@ export class Bridge implements ChainBridge {
   }
 
   private async walletRegistry(): Promise<WalletRegistry> {
-    const { ecdsaWalletRegistry } = await this._bridge.contractReferences()
+    const { ecdsaWalletRegistry } = await this._instance.contractReferences()
 
     return new WalletRegistry({
       address: ecdsaWalletRegistry,
-      signer: this._bridge.signer,
+      signer: this._instance.signer,
     })
   }
 }
@@ -490,19 +559,9 @@ export class Bridge implements ChainBridge {
 /**
  * Implementation of the Ethereum WalletRegistry handle.
  */
-class WalletRegistry {
-  private _walletRegistry: Contract
-  private _deployedAtBlockNumber: number
-
+class WalletRegistry extends EthereumContract {
   constructor(config: ContractConfig) {
-    this._walletRegistry = new Contract(
-      config.address ?? utils.getAddress(WalletRegistryAddress),
-      `${JSON.stringify(WalletRegistryABI)}`,
-      config.signer
-    )
-
-    this._deployedAtBlockNumber =
-      config.deployedAtBlockNumber ?? WalletRegistryReceipt.blockNumber
+    super(config, WalletRegistryDeployment)
   }
 
   /**
@@ -512,35 +571,7 @@ class WalletRegistry {
    *          hex string.
    */
   async getWalletPublicKey(walletID: string): Promise<string> {
-    const publicKey = await this._walletRegistry.getWalletPublicKey(walletID)
+    const publicKey = await this._instance.getWalletPublicKey(walletID)
     return publicKey.substring(2)
   }
-}
-
-/**
- * Query events emitted by the Ethereum contract.
- *
- * @param contract Ethereum contract instance.
- * @param eventName Name of the event.
- * @param fromBlock Block number from which events should be queried. Optional
- *        parameter, by default block number of the contract deployment is used.
- * @param toBlock Block number to which events should be queried. Optional
- *        parameter, by efault the latest block is used.
- * @param filterArgs Arguments for events filtering.
- * @returns Array of found events.
- */
-async function queryEvents(
-  contract: Contract,
-  eventName: string,
-  fromBlock?: EthersBlockTag,
-  toBlock?: EthersBlockTag,
-  ...filterArgs: Array<any>
-): Promise<EthersEvent[]> {
-  // TODO: Test if we need a workaround for querying events from big range in chunks,
-  // see: https://github.com/keep-network/tbtc-monitoring/blob/e169357d7b8c638d4eaf73d52aa8f53ee4aebc1d/src/lib/ethereum-helper.js#L44-L73
-  return await contract.queryFilter(
-    contract.filters[eventName](...filterArgs),
-    fromBlock ?? contract._deployedAtBlockNumber,
-    toBlock ?? "latest"
-  )
 }
