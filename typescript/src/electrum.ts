@@ -200,7 +200,9 @@ export class Client implements BitcoinClient {
         true
       )
 
-      return transaction.confirmations
+      // For unconfirmed transactions `confirmations` property may be undefined, so
+      // we will return 0 instead.
+      return transaction.confirmations ?? 0
     })
   }
 
