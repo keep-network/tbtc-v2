@@ -4,7 +4,7 @@
 export class Hex {
   protected readonly _hex: Buffer
 
-  constructor(value: Buffer | string) {
+  protected constructor(value: Buffer | string) {
     if (typeof value === "string") {
       if (!value.match(/^(0x|0X)?[0-9A-Fa-f]*$/)) {
         throw new Error(`invalid format of hex string`)
