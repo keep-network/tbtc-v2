@@ -12,6 +12,7 @@ import {
 } from "./redemption"
 import { Client as ElectrumClient } from "./electrum"
 import { Bridge as EthereumBridge } from "./ethereum"
+import { TBTCVault as EthereumTBTCVault } from "./ethereum"
 
 const TBTC = {
   calculateDepositAddress,
@@ -27,4 +28,10 @@ const SpvMaintainer = {
   submitRedemptionProof,
 }
 
-export { TBTC, SpvMaintainer, ElectrumClient, EthereumBridge }
+export {
+  TBTC,
+  SpvMaintainer,
+  ElectrumClient,
+  EthereumBridge,
+  EthereumTBTCVault,
+}
