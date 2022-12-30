@@ -30,7 +30,10 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
-import type { OptimisticMintingRequest } from "./optimistic-minting"
+import type {
+  OptimisticMintingRequest,
+  OptimisticMintingRequestedEvent,
+} from "./optimistic-minting"
 
 /**
  * Contract deployment artifact.
@@ -618,5 +621,36 @@ export class TBTCVault extends EthereumContract implements ChainTBTCVault {
       requestedAt: BigNumber.from(request.requestedAt).toNumber(),
       finalizedAt: BigNumber.from(request.finalizedAt).toNumber(),
     }
+  }
+
+  // TODO: Add docs
+  // TODO: Consider exposing in optimistic-minting.ts and in chain.ts
+  async queryOptimisticMintingRequestedEvents(
+    fromBlock?: string,
+    toBlock?: string,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingRequestedEvent[]> {
+    const events = await this.queryEvents(
+      "OptimisticMintingRequested",
+      fromBlock,
+      toBlock,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingRequestedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: event.blockHash,
+        transactionHash: event.transactionHash,
+        minter: new Address(event.args!.minter),
+        depositKey: BigNumber.from(event.args!.depositKey),
+        depositor: new Address(event.args!.depositor),
+        amount: BigNumber.from(event.args!.amount),
+        fundingTxHash: TransactionHash.from(event.args!.fundingTxHash),
+        fundingOutputIndex: BigNumber.from(
+          event.args!.fundingOutputIndex
+        ).toNumber(),
+      }
+    })
   }
 }
