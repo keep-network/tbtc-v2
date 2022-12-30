@@ -4,7 +4,7 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
   Transaction,
-} from "./bitcoin"
+} from "../src/bitcoin"
 import {
   testnetDepositScripthashAddress,
   testnetDepositWitnessScripthashAddress,

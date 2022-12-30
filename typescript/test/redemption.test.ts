@@ -3,7 +3,7 @@ import {
   RawTransaction,
   TransactionHash,
   UnspentTransactionOutput,
-} from "./bitcoin"
+} from "../src/bitcoin"
 import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
