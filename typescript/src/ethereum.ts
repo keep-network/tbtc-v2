@@ -10,7 +10,8 @@ import {
   address as WalletRegistryAddress,
   receipt as WalletRegistryReceipt,
 } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
-import { Deposit, RevealedDeposit } from "./deposit"
+import { Event as EthersEvent } from "ethers"
+import { BlockTag as EthersBlockTag } from "@ethersproject/abstract-provider"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -467,4 +468,32 @@ class WalletRegistry {
     const publicKey = await this._walletRegistry.getWalletPublicKey(walletID)
     return publicKey.substring(2)
   }
+}
+
+/**
+ * Query events emitted by the Ethereum contract.
+ *
+ * @param contract Ethereum contract instance.
+ * @param eventName Name of the event.
+ * @param fromBlock Block number from which events should be queried. Optional
+ *        parameter, by default block number of the contract deployment is used.
+ * @param toBlock Block number to which events should be queried. Optional
+ *        parameter, by efault the latest block is used.
+ * @param filterArgs Arguments for events filtering.
+ * @returns Array of found events.
+ */
+async function queryEvents(
+  contract: Contract,
+  eventName: string,
+  fromBlock?: EthersBlockTag,
+  toBlock?: EthersBlockTag,
+  ...filterArgs: Array<any>
+): Promise<EthersEvent[]> {
+  // TODO: Test if we need a workaround for querying events from big range in chunks,
+  // see: https://github.com/keep-network/tbtc-monitoring/blob/e169357d7b8c638d4eaf73d52aa8f53ee4aebc1d/src/lib/ethereum-helper.js#L44-L73
+  return await contract.queryFilter(
+    contract.filters[eventName](...filterArgs),
+    fromBlock ?? contract._deployedAtBlockNumber,
+    toBlock ?? "latest"
+  )
 }
