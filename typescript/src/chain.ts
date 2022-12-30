@@ -141,3 +141,20 @@ export interface Bridge {
    */
   activeWalletPublicKey(): Promise<string | undefined>
 }
+
+/**
+ * Interface for communication with the TBTCVault on-chain contract.
+ */
+export interface TBTCVault {
+  /**
+   * Requests optimistic minting for a deposit in an on-chain contract.
+   *
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   */
+  requestOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<void>
+}
