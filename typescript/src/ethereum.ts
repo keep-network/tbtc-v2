@@ -348,7 +348,7 @@ export class Bridge implements ChainBridge {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<RevealedDeposit> {
-    const depositKey = this.buildDepositKey(depositTxHash, depositOutputIndex)
+    const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
 
     const deposit = await this._bridge.deposits(depositKey)
 
@@ -362,7 +362,7 @@ export class Bridge implements ChainBridge {
    *        funds the revealed deposit.
    * @returns Revealed deposit data.
    */
-  private buildDepositKey(
+  static buildDepositKey(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): string {
