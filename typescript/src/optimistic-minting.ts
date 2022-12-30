@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers"
 import { TransactionHash } from "./bitcoin"
-import { Identifier, Event } from "./chain"
+import { Identifier, Event, TBTCVault } from "./chain"
 
 export type OptimisticMintingRequestedEvent = {
   minter: Identifier
@@ -14,4 +14,39 @@ export type OptimisticMintingRequestedEvent = {
 export type OptimisticMintingRequest = {
   requestedAt: number
   finalizedAt: number
+}
+
+/**
+ * Requests optimistic minting for a deposit on chain.
+ * @param depositTxHash The revealed deposit transaction's hash.
+ * @param depositOutputIndex Index of the deposit transaction output that
+ *        funds the revealed deposit.
+ * @param tbtcVault Handle to the TBTCVault on-chain contract
+ * @returns Empty promise
+ */
+export async function requestOptimisticMint(
+  depositTxHash: TransactionHash,
+  depositOutputIndex: number,
+  tbtcVault: TBTCVault
+): Promise<void> {
+  await tbtcVault.requestOptimisticMint(depositTxHash, depositOutputIndex)
+}
+
+/**
+ * Gets optimistic minting request for a deposit from chain.
+ * @param depositTxHash The revealed deposit transaction's hash.
+ * @param depositOutputIndex Index of the deposit transaction output that
+ *        funds the revealed deposit.
+ * @param tbtcVault Handle to the TBTCVault on-chain contract
+ * @returns Optimistic minting request.
+ */
+export async function getOptimisticMintingRequest(
+  depositTxHash: TransactionHash,
+  depositOutputIndex: number,
+  tbtcVault: TBTCVault
+): Promise<OptimisticMintingRequest> {
+  return await tbtcVault.optimisticMintingRequests(
+    depositTxHash,
+    depositOutputIndex
+  )
 }
