@@ -177,10 +177,8 @@ export class Bridge extends EthereumContract implements ChainBridge {
   /**
    * Query emitted DepositRevealed events.
    * @param fromBlock Block number from which events should be queried.
-   *        {@link queryEvents.fromBlock}
    * @param toBlock Block number to which events should be queried.
-   *        {@link queryEvents.toBlock}
-   * @param filterArgs Arguments for events filtering. {@link queryEvents.filterArgs}
+   * @param filterArgs Arguments for events filtering.
    * @returns Found DepositRevealed events.
    * @see EthereumContract.queryEvents
    */
