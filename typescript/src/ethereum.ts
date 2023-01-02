@@ -111,7 +111,7 @@ export class Bridge implements ChainBridge {
 
   /**
    * Builds a redemption key required to refer a redemption request.
-   * @param walletPubKeyHash The wallet public key hash that identifies the
+   * @param walletPublicKeyHash The wallet public key hash that identifies the
    *        pending redemption (along with the redeemer output script). Must be
    *        unprefixed.
    * @param redeemerOutputScript The redeemer output script that identifies the
@@ -120,7 +120,7 @@ export class Bridge implements ChainBridge {
    * @returns The redemption key.
    */
   private buildRedemptionKey(
-    walletPubKeyHash: string,
+    walletPublicKeyHash: string,
     redeemerOutputScript: string
   ): string {
     // Convert the output script to raw bytes buffer.
@@ -136,7 +136,7 @@ export class Bridge implements ChainBridge {
       ["bytes32", "bytes20"],
       [
         utils.solidityKeccak256(["bytes"], [prefixedRawRedeemerOutputScript]),
-        `0x${walletPubKeyHash}`,
+        `0x${walletPublicKeyHash}`,
       ]
     )
   }
@@ -184,8 +184,8 @@ export class Bridge implements ChainBridge {
       fundingOutputIndex: depositOutputIndex,
       depositor: `0x${deposit.depositor.identifierHex}`,
       blindingFactor: `0x${deposit.blindingFactor}`,
-      walletPubKeyHash: `0x${deposit.walletPubKeyHash}`,
-      refundPubKeyHash: `0x${deposit.refundPubKeyHash}`,
+      walletPubKeyHash: `0x${deposit.walletPublicKeyHash}`,
+      refundPubKeyHash: `0x${deposit.refundPublicKeyHash}`,
       refundLocktime: `0x${deposit.refundLocktime}`,
       vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
@@ -391,16 +391,19 @@ export class Bridge implements ChainBridge {
    * @see {ChainBridge#activeWalletPublicKey}
    */
   async activeWalletPublicKey(): Promise<string | undefined> {
-    const activeWalletPubKeyHash = await this._bridge.activeWalletPubKeyHash()
+    const activeWalletPublicKeyHash =
+      await this._bridge.activeWalletPubKeyHash()
 
     if (
-      activeWalletPubKeyHash === "0x0000000000000000000000000000000000000000"
+      activeWalletPublicKeyHash === "0x0000000000000000000000000000000000000000"
     ) {
       // If there is no active wallet currently, return undefined.
       return undefined
     }
 
-    const { ecdsaWalletID } = await this._bridge.wallets(activeWalletPubKeyHash)
+    const { ecdsaWalletID } = await this._bridge.wallets(
+      activeWalletPublicKeyHash
+    )
 
     const walletRegistry = await this.walletRegistry()
     const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(

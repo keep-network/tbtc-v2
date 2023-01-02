@@ -241,10 +241,10 @@ export class MockBridge implements Bridge {
   }
 
   static buildRedemptionKey(
-    walletPubKeyHash: string,
+    walletPublicKeyHash: string,
     redeemerOutputScript: string
   ): string {
-    const prefixedWalletPubKeyHash = `0x${walletPubKeyHash}`
+    const prefixedWalletPublicKeyHash = `0x${walletPublicKeyHash}`
 
     const rawOutputScript = Buffer.from(redeemerOutputScript, "hex")
 
@@ -257,7 +257,7 @@ export class MockBridge implements Bridge {
       ["bytes32", "bytes20"],
       [
         utils.solidityKeccak256(["bytes"], [prefixedOutputScript]),
-        prefixedWalletPubKeyHash,
+        prefixedWalletPublicKeyHash,
       ]
     )
   }

@@ -360,7 +360,7 @@ async function prepareInputSignData(
   const walletPublicKey = walletKeyRing.getPublicKey("hex")
   if (
     computeHash160(walletKeyRing.getPublicKey("hex")) !=
-    deposit.walletPubKeyHash
+    deposit.walletPublicKeyHash
   ) {
     throw new Error(
       "Wallet public key does not correspond to wallet private key"

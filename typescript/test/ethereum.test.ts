@@ -46,7 +46,7 @@ describe("Ethereum", () => {
     describe("pendingRedemptions", () => {
       beforeEach(async () => {
         // Set the mock to return a specific redemption data when called
-        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash))
+        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPublicKeyHash))
         // that matches the wallet PKH and redeemer output script used during
         // the test call.
         await bridgeContract.mock.pendingRedemptions
@@ -85,7 +85,7 @@ describe("Ethereum", () => {
     describe("timedOutRedemptions", () => {
       beforeEach(async () => {
         // Set the mock to return a specific redemption data when called
-        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash))
+        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPublicKeyHash))
         // that matches the wallet PKH and redeemer output script used during
         // the test call.
         await bridgeContract.mock.timedOutRedemptions
@@ -138,8 +138,8 @@ describe("Ethereum", () => {
             depositor: {
               identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
             },
-            walletPubKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
-            refundPubKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
+            walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+            refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
             blindingFactor: "f9f0c90d00039523",
             refundLocktime: "60bcea61",
           },
@@ -161,8 +161,8 @@ describe("Ethereum", () => {
             fundingOutputIndex: 2,
             depositor: "0x934b98637ca318a4d6e7ca6ffd1690b8e77df637",
             blindingFactor: "0xf9f0c90d00039523",
-            walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
-            refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
+            walletPublicKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+            refundPublicKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
             refundLocktime: "0x60bcea61",
             vault: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
           },

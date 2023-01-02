@@ -46,7 +46,7 @@ export interface Deposit {
    *
    * You can use `computeHash160` function to get the hash from a plain text public key.
    */
-  walletPubKeyHash: string
+  walletPublicKeyHash: string
 
   /**
    * Public key hash that is meant to be used during deposit refund after the
@@ -54,7 +54,7 @@ export interface Deposit {
    *
    * You can use `computeHash160` function to get the hash from a plain text public key.
    */
-  refundPubKeyHash: string
+  refundPublicKeyHash: string
 
   /**
    * A 4-byte little-endian refund locktime as an un-prefixed hex string.
@@ -76,8 +76,8 @@ export type DepositScriptParameters = Pick<
   | "depositor"
   | "blindingFactor"
   | "refundLocktime"
-  | "walletPubKeyHash"
-  | "refundPubKeyHash"
+  | "walletPublicKeyHash"
+  | "refundPublicKeyHash"
 > & {}
 
 /**
@@ -247,14 +247,14 @@ export async function assembleDepositScript(
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(deposit.walletPubKeyHash, "hex"))
+  script.pushData(Buffer.from(deposit.walletPublicKeyHash, "hex"))
   script.pushOp(opcodes.OP_EQUAL)
   script.pushOp(opcodes.OP_IF)
   script.pushOp(opcodes.OP_CHECKSIG)
   script.pushOp(opcodes.OP_ELSE)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(deposit.refundPubKeyHash, "hex"))
+  script.pushData(Buffer.from(deposit.refundPublicKeyHash, "hex"))
   script.pushOp(opcodes.OP_EQUALVERIFY)
   script.pushData(Buffer.from(deposit.refundLocktime, "hex"))
   script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
@@ -282,11 +282,11 @@ export function validateDepositScriptParameters(
     throw new Error("Blinding factor must be an 8-byte number")
   }
 
-  if (!isPublicKeyHashLength(deposit.walletPubKeyHash)) {
+  if (!isPublicKeyHashLength(deposit.walletPublicKeyHash)) {
     throw new Error("Invalid wallet public key hash")
   }
 
-  if (!isPublicKeyHashLength(deposit.refundPubKeyHash)) {
+  if (!isPublicKeyHashLength(deposit.refundPublicKeyHash)) {
     throw new Error("Invalid refund public key hash")
   }
 

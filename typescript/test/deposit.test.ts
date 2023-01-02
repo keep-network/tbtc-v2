@@ -37,17 +37,17 @@ describe("Deposit", () => {
     depositor: { identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637" },
     amount: BigNumber.from(10000), // 0.0001 BTC
     // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-    walletPubKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+    walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
     // HASH160 of 0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9.
-    refundPubKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
+    refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
     blindingFactor: "f9f0c90d00039523",
     refundLocktime: calculateDepositRefundLocktime(1640181600),
   }
 
   const depositScriptParameters: DepositScriptParameters = {
     depositor: deposit.depositor,
-    walletPubKeyHash: deposit.walletPubKeyHash,
-    refundPubKeyHash: deposit.refundPubKeyHash,
+    walletPublicKeyHash: deposit.walletPublicKeyHash,
+    refundPublicKeyHash: deposit.refundPublicKeyHash,
     blindingFactor: deposit.blindingFactor,
     refundLocktime: deposit.refundLocktime,
   }
@@ -154,7 +154,7 @@ describe("Deposit", () => {
     // The first byte (0x14) before the public key is this byte length.
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(68, 70)).to.be.equal("14")
-    expect(script.substring(70, 110)).to.be.equal(deposit.walletPubKeyHash)
+    expect(script.substring(70, 110)).to.be.equal(deposit.walletPublicKeyHash)
 
     // OP_EQUAL opcode is 0x87.
     expect(script.substring(110, 112)).to.be.equal("87")
@@ -178,7 +178,7 @@ describe("Deposit", () => {
     // The first byte (0x14) before the public key is this byte length.
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(122, 124)).to.be.equal("14")
-    expect(script.substring(124, 164)).to.be.equal(deposit.refundPubKeyHash)
+    expect(script.substring(124, 164)).to.be.equal(deposit.refundPublicKeyHash)
 
     // OP_EQUALVERIFY opcode is 0x88.
     expect(script.substring(164, 166)).to.be.equal("88")
