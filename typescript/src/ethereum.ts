@@ -189,7 +189,6 @@ export class Bridge implements ChainBridge {
 
     const revealParam = {
       fundingOutputIndex: depositOutputIndex,
-      depositor: `0x${deposit.depositor.identifierHex}`,
       blindingFactor: `0x${deposit.blindingFactor}`,
       walletPubKeyHash: `0x${computeHash160(deposit.walletPublicKey)}`,
       refundPubKeyHash: `0x${computeHash160(deposit.refundPublicKey)}`,
