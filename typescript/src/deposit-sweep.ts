@@ -200,7 +200,7 @@ export async function assembleDepositSweepTransaction(
 
     const utxoWithDeposit = utxosWithDeposits.find(
       (u) =>
-        u.transactionHash === previousOutpoint.txid() &&
+        u.transactionHash.toString() === previousOutpoint.txid() &&
         u.outputIndex == previousOutpoint.index
     )
     if (!utxoWithDeposit) {
@@ -223,7 +223,7 @@ export async function assembleDepositSweepTransaction(
     }
   }
 
-  const transactionHash = transaction.txid()
+  const transactionHash = TransactionHash.from(transaction.txid())
 
   return {
     transactionHash,

@@ -28,7 +28,9 @@ describe("Proof", () => {
 
       it("should return the correct value of the proof", async () => {
         const expectedProof = singleInputProofTestData.expectedProof
-        expect(proof.transactionHash).to.equal(expectedProof.transactionHash)
+        expect(proof.transactionHash).to.be.deep.equal(
+          expectedProof.transactionHash
+        )
         expect(proof.inputs).to.deep.equal(expectedProof.inputs)
         expect(proof.outputs).to.deep.equal(expectedProof.outputs)
         expect(proof.merkleProof).to.equal(expectedProof.merkleProof)
@@ -46,7 +48,9 @@ describe("Proof", () => {
 
       it("should return the correct value of the proof", async () => {
         const expectedProof = multipleInputsProofTestData.expectedProof
-        expect(proof.transactionHash).to.equal(expectedProof.transactionHash)
+        expect(proof.transactionHash).to.deep.equal(
+          expectedProof.transactionHash
+        )
         expect(proof.inputs).to.deep.equal(expectedProof.inputs)
         expect(proof.outputs).to.deep.equal(expectedProof.outputs)
         expect(proof.merkleProof).to.equal(expectedProof.merkleProof)
@@ -77,7 +81,10 @@ describe("Proof", () => {
     ): Promise<Transaction & Proof> {
       const transactions = new Map<string, Transaction>()
       const transactionHash = data.bitcoinChainData.transaction.transactionHash
-      transactions.set(transactionHash, data.bitcoinChainData.transaction)
+      transactions.set(
+        transactionHash.toString(),
+        data.bitcoinChainData.transaction
+      )
       bitcoinClient.transactions = transactions
       bitcoinClient.latestHeight = data.bitcoinChainData.latestBlockHeight
       bitcoinClient.headersChain = data.bitcoinChainData.headersChain
@@ -85,7 +92,7 @@ describe("Proof", () => {
         data.bitcoinChainData.transactionMerkleBranch
       const confirmations = new Map<string, number>()
       confirmations.set(
-        transactionHash,
+        transactionHash.toString(),
         data.bitcoinChainData.accumulatedTxConfirmations
       )
       bitcoinClient.confirmations = confirmations

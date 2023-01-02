@@ -55,8 +55,9 @@ describe("Deposit", () => {
 
   // Expected data of created deposit in P2WSH scenarios.
   const expectedP2WSHDeposit = {
-    transactionHash:
-      "9eb901fc68f0d9bcaf575f23783b7d30ac5dd8d95f3c83dceaa13dce17de816a",
+    transactionHash: TransactionHash.from(
+      "9eb901fc68f0d9bcaf575f23783b7d30ac5dd8d95f3c83dceaa13dce17de816a"
+    ),
 
     // HEX of the expected P2WSH deposit transaction. It can be decoded with:
     // https://live.blockcypher.com/btc-testnet/decodetx.
@@ -84,8 +85,9 @@ describe("Deposit", () => {
 
   // Expected data of created deposit in P2SH scenarios.
   const expectedP2SHDeposit = {
-    transactionHash:
-      "f21a9922c0c136c6d288cf1258b732d0f84a7d50d14a01d7d81cb6cd810f3517",
+    transactionHash: TransactionHash.from(
+      "f21a9922c0c136c6d288cf1258b732d0f84a7d50d14a01d7d81cb6cd810f3517"
+    ),
 
     // HEX of the expected P2SH deposit transaction. It can be decoded with:
     // https://live.blockcypher.com/btc-testnet/decodetx.
@@ -230,7 +232,7 @@ describe("Deposit", () => {
       // Tie testnetTransaction to testnetUTXO. This is needed since
       // submitDepositTransaction attach transaction data to each UTXO.
       const rawTransactions = new Map<string, RawTransaction>()
-      rawTransactions.set(testnetTransactionHash, testnetTransaction)
+      rawTransactions.set(testnetTransactionHash.toString(), testnetTransaction)
       bitcoinClient.rawTransactions = rawTransactions
     })
 
@@ -255,7 +257,7 @@ describe("Deposit", () => {
       })
 
       it("should return the proper transaction hash", async () => {
-        expect(transactionHash).to.be.equal(
+        expect(transactionHash).to.be.deep.equal(
           expectedP2WSHDeposit.transactionHash
         )
       })
@@ -292,7 +294,9 @@ describe("Deposit", () => {
       })
 
       it("should return the proper transaction hash", async () => {
-        expect(transactionHash).to.be.equal(expectedP2SHDeposit.transactionHash)
+        expect(transactionHash).to.be.deep.equal(
+          expectedP2SHDeposit.transactionHash
+        )
       })
 
       it("should return the proper deposit UTXO", () => {
@@ -336,7 +340,9 @@ describe("Deposit", () => {
         const buffer = Buffer.from(transaction.transactionHex, "hex")
         const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
-        expect(txJSON.hash).to.be.equal(expectedP2WSHDeposit.transactionHash)
+        expect(txJSON.hash).to.be.equal(
+          expectedP2WSHDeposit.transactionHash.toString()
+        )
         expect(txJSON.version).to.be.equal(1)
 
         // Validate inputs.
@@ -344,7 +350,9 @@ describe("Deposit", () => {
 
         const input = txJSON.inputs[0]
 
-        expect(input.prevout.hash).to.be.equal(testnetUTXO.transactionHash)
+        expect(input.prevout.hash).to.be.equal(
+          testnetUTXO.transactionHash.toString()
+        )
         expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
         // Transaction should be signed but this is SegWit input so the `script`
         // field should be empty and the `witness` field should be filled instead.
@@ -387,7 +395,7 @@ describe("Deposit", () => {
       })
 
       it("should return the proper transaction hash", async () => {
-        expect(transactionHash).to.be.equal(
+        expect(transactionHash).to.be.deep.equal(
           expectedP2WSHDeposit.transactionHash
         )
       })
@@ -431,7 +439,9 @@ describe("Deposit", () => {
         const buffer = Buffer.from(transaction.transactionHex, "hex")
         const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
-        expect(txJSON.hash).to.be.equal(expectedP2SHDeposit.transactionHash)
+        expect(txJSON.hash).to.be.equal(
+          expectedP2SHDeposit.transactionHash.toString()
+        )
         expect(txJSON.version).to.be.equal(1)
 
         // Validate inputs.
@@ -439,7 +449,9 @@ describe("Deposit", () => {
 
         const input = txJSON.inputs[0]
 
-        expect(input.prevout.hash).to.be.equal(testnetUTXO.transactionHash)
+        expect(input.prevout.hash).to.be.equal(
+          testnetUTXO.transactionHash.toString()
+        )
         expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
         // Transaction should be signed but this is SegWit input so the `script`
         // field should be empty and the `witness` field should be filled instead.
@@ -482,7 +494,9 @@ describe("Deposit", () => {
       })
 
       it("should return the proper transaction hash", async () => {
-        expect(transactionHash).to.be.equal(expectedP2SHDeposit.transactionHash)
+        expect(transactionHash).to.be.deep.equal(
+          expectedP2SHDeposit.transactionHash
+        )
       })
 
       it("should return the proper deposit UTXO", () => {
@@ -492,7 +506,7 @@ describe("Deposit", () => {
           value: deposit.amount,
         }
 
-        expect(depositUtxo).to.be.eql(expectedDepositUtxo)
+        expect(depositUtxo).to.be.deep.equal(expectedDepositUtxo)
       })
     })
   })
@@ -707,7 +721,7 @@ describe("Deposit", () => {
       // data for the given deposit UTXO.
       bitcoinClient = new MockBitcoinClient()
       const rawTransactions = new Map<string, RawTransaction>()
-      rawTransactions.set(depositUtxo.transactionHash, transaction)
+      rawTransactions.set(depositUtxo.transactionHash.toString(), transaction)
       bitcoinClient.rawTransactions = rawTransactions
 
       // Initialize the mock Bridge.

@@ -9,6 +9,7 @@ import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
+import { TransactionHash } from "../src/bitcoin"
 
 chai.use(waffleChai)
 
@@ -34,7 +35,8 @@ describe("Ethereum", () => {
       await bridgeContract.mock.contractReferences.returns(
         constants.AddressZero,
         constants.AddressZero,
-        walletRegistry.address
+        walletRegistry.address,
+        constants.AddressZero
       )
 
       bridgeHandle = new Bridge({
@@ -162,7 +164,6 @@ describe("Ethereum", () => {
           },
           {
             fundingOutputIndex: 2,
-            depositor: "0x934b98637ca318a4d6e7ca6ffd1690b8e77df637",
             blindingFactor: "0xf9f0c90d00039523",
             walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
             refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
@@ -190,8 +191,9 @@ describe("Ethereum", () => {
             bitcoinHeaders: "66666666",
           },
           {
-            transactionHash:
-              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            transactionHash: TransactionHash.from(
+              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+            ),
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
@@ -244,8 +246,9 @@ describe("Ethereum", () => {
         await bridgeHandle.requestRedemption(
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
           {
-            transactionHash:
-              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            transactionHash: TransactionHash.from(
+              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+            ),
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
@@ -286,8 +289,9 @@ describe("Ethereum", () => {
             bitcoinHeaders: "66666666",
           },
           {
-            transactionHash:
-              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            transactionHash: TransactionHash.from(
+              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+            ),
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
@@ -343,7 +347,9 @@ describe("Ethereum", () => {
         it("should return the revealed deposit", async () => {
           expect(
             await bridgeHandle.deposits(
-              "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83",
+              TransactionHash.from(
+                "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83"
+              ),
               0
             )
           ).to.be.eql({
@@ -384,7 +390,9 @@ describe("Ethereum", () => {
         it("should return the revealed deposit", async () => {
           expect(
             await bridgeHandle.deposits(
-              "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83",
+              TransactionHash.from(
+                "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83"
+              ),
               0
             )
           ).to.be.eql({
