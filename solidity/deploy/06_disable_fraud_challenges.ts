@@ -16,6 +16,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     "79228162514264337593543950335"
   )
 
+  // Set the slashing amount to zero to fully reflect the fact that frauds are disabled.
+  const fraudSlashingAmount = ethers.BigNumber.from("0")
+
   // Fetch the current values of other fraud parameters to keep them unchanged.
   const fraudParameters = await read("Bridge", "fraudParameters")
 
@@ -25,7 +28,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     "updateFraudParameters",
     fraudChallengeDepositAmount,
     fraudParameters.fraudChallengeDefeatTimeout,
-    fraudParameters.fraudSlashingAmount,
+    fraudSlashingAmount,
     fraudParameters.fraudNotifierRewardMultiplier
   )
 }
