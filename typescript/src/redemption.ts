@@ -316,7 +316,7 @@ export async function assembleRedemptionTransaction(
 
   transaction.sign(walletKeyRing)
 
-  const transactionHash = transaction.txid()
+  const transactionHash = TransactionHash.from(transaction.txid())
   // If there is a change output, it will be the new wallet's main UTXO.
   const newMainUtxo = changeOutputValue.gt(0)
     ? {

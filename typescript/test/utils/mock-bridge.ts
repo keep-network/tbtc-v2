@@ -7,7 +7,7 @@ import {
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
 import { Deposit, RevealedDeposit } from "../../src/deposit"
-import { computeHash160, TransactionHash } from "../../dist/bitcoin"
+import { computeHash160, TransactionHash } from "../../src/bitcoin"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -136,9 +136,9 @@ export class MockBridge implements Bridge {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): string {
-    const prefixedReversedDepositTxHash = `0x${Buffer.from(depositTxHash, "hex")
+    const prefixedReversedDepositTxHash = depositTxHash
       .reverse()
-      .toString("hex")}`
+      .toPrefixedString()
 
     return utils.solidityKeccak256(
       ["bytes32", "uint32"],

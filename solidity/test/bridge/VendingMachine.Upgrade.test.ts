@@ -20,6 +20,8 @@ import type {
   BridgeGovernance,
 } from "../../typechain"
 
+const { impersonateAccount } = helpers.account
+
 const { to1e18 } = helpers.number
 const { increaseTime, lastBlockTime } = helpers.time
 
@@ -149,7 +151,7 @@ describe("VendingMachine - Upgrade", () => {
         const data: DepositSweepTestData = JSON.parse(
           JSON.stringify(SingleP2SHDeposit)
         )
-        const { fundingTx, reveal } = data.deposits[0] // it's a single deposit
+        const { fundingTx, depositor, reveal } = data.deposits[0] // it's a single deposit
         reveal.vault = tbtcVault.address
 
         // Simulate the wallet is a Live one and is known in the system.
@@ -165,7 +167,11 @@ describe("VendingMachine - Upgrade", () => {
           movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
         })
 
-        await bridge.revealDeposit(fundingTx, reveal)
+        const depositorSigner = await impersonateAccount(depositor, {
+          from: governance,
+          value: 10,
+        })
+        await bridge.connect(depositorSigner).revealDeposit(fundingTx, reveal)
 
         relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
         relay.getPrevEpochDifficulty.returns(data.chainDifficulty)

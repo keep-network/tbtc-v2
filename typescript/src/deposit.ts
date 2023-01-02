@@ -213,7 +213,7 @@ export async function assembleDepositTransaction(
 
   transaction.sign(depositorKeyRing)
 
-  const transactionHash = transaction.txid()
+  const transactionHash = TransactionHash.from(transaction.txid())
 
   return {
     transactionHash,

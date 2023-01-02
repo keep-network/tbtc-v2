@@ -34,6 +34,7 @@ import { constants } from "../fixtures"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { increaseTime } = helpers.time
+const { impersonateAccount } = helpers.account
 
 const describeFn =
   process.env.NODE_ENV === "integration-test" ? describe : describe.skip
@@ -130,10 +131,20 @@ describeFn("Integration Test - Full flow", async () => {
           // 0.0005 BTC, 0.0001 BTC
           await updateRedemptionParameters(50_000, 10_000, 5_000)
 
-          await bridge.revealDeposit(
-            revealDepositData.fundingTx,
-            revealDepositData.reveal
+          const depositor = await impersonateAccount(
+            revealDepositData.depositor,
+            {
+              from: governance,
+              value: 10,
+            }
           )
+
+          await bridge
+            .connect(depositor)
+            .revealDeposit(
+              revealDepositData.fundingTx,
+              revealDepositData.reveal
+            )
         })
 
         it("should create a deposit", async () => {
@@ -150,9 +161,7 @@ describeFn("Integration Test - Full flow", async () => {
           const deposit = await bridge.deposits(depositKey)
 
           expect(deposit.revealedAt).to.be.greaterThan(0)
-          expect(deposit.depositor).to.be.equal(
-            revealDepositData.reveal.depositor
-          )
+          expect(deposit.depositor).to.be.equal(revealDepositData.depositor)
           expect(deposit.amount).to.be.equal(100000)
         })
       })
@@ -175,10 +184,11 @@ describeFn("Integration Test - Full flow", async () => {
         })
 
         it("should mint TBTC tokens for the depositor", async () => {
-          const { depositor } = revealDepositData.reveal
           // Expect the depositor TBTC balance to be:
           // deposited amount - tx fee - treasury fee = 100000 - 1600 - 50
-          expect(await tbtc.balanceOf(depositor)).to.be.equal(98350)
+          expect(await tbtc.balanceOf(revealDepositData.depositor)).to.be.equal(
+            98350
+          )
         })
 
         it("should increase the balance of vault in the bank", async () => {
@@ -205,7 +215,7 @@ describeFn("Integration Test - Full flow", async () => {
         before(async () => {
           // Request redemption
           const redeemer = await helpers.account.impersonateAccount(
-            revealDepositData.reveal.depositor,
+            revealDepositData.depositor,
             { from: deployer, value: 10 }
           )
 
@@ -249,7 +259,7 @@ describeFn("Integration Test - Full flow", async () => {
 
           expect(pendingRedemption.requestedAt).to.be.greaterThan(0)
           expect(pendingRedemption.redeemer).to.be.equal(
-            revealDepositData.reveal.depositor
+            revealDepositData.depositor
           )
           expect(pendingRedemption.requestedAmount).to.be.equal(
             redemptionAmount

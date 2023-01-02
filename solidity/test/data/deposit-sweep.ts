@@ -22,9 +22,9 @@ export interface DepositSweepTestData {
       outputVector: BytesLike
       locktime: BytesLike
     }
+    depositor: string
     reveal: {
       fundingOutputIndex: BigNumberish
-      depositor: string
       blindingFactor: BytesLike
       walletPubKeyHash: BytesLike
       refundPubKeyHash: BytesLike
@@ -116,9 +116,9 @@ export const SingleP2SHDeposit: DepositSweepTestData = {
           "ed",
         locktime: "0x00000000",
       },
+      depositor: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
         blindingFactor: "0xf9f0c90d00039523",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -217,9 +217,9 @@ export const SingleP2WSHDeposit: DepositSweepTestData = {
           "89dfb8095ca95ed2140d2726",
         locktime: "0x00000000",
       },
+      depositor: "0xf4292022F75ADD9b079b0573d0FD63C376a85F41",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0xf4292022F75ADD9b079b0573d0FD63C376a85F41",
         blindingFactor: "0xb0bb0e4d6083951d",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -366,9 +366,10 @@ export const MultipleDepositsNoMainUtxo: DepositSweepTestData = {
           "89dfb8095ca95ed2140d2726",
         locktime: "0x00000000",
       },
+      depositor: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+
         blindingFactor: "0x4a6f267c3bfaba7c",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -392,9 +393,9 @@ export const MultipleDepositsNoMainUtxo: DepositSweepTestData = {
           "26",
         locktime: "0x00000000",
       },
+      depositor: "0x6749bc3837b23da76ccAF0051aa64202f5dDEed3",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0x6749bc3837b23da76ccAF0051aa64202f5dDEed3",
         blindingFactor: "0x2c8b4d267ff1d505",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -418,9 +419,9 @@ export const MultipleDepositsNoMainUtxo: DepositSweepTestData = {
           "89dfb8095ca95ed2140d2726",
         locktime: "0x00000000",
       },
+      depositor: "0x640EdB9b80ED9FEAc6D20cc80156D71e3eEDc11b",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0x640EdB9b80ED9FEAc6D20cc80156D71e3eEDc11b",
         blindingFactor: "0x8448912a89f4bf26",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -444,9 +445,9 @@ export const MultipleDepositsNoMainUtxo: DepositSweepTestData = {
           "26",
         locktime: "0x00000000",
       },
+      depositor: "0xC92FC70710558103BD90B6BC9041137c43F86ed7",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0xC92FC70710558103BD90B6BC9041137c43F86ed7",
         blindingFactor: "0x90fb21f8f58d235a",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -470,9 +471,9 @@ export const MultipleDepositsNoMainUtxo: DepositSweepTestData = {
           "89dfb8095ca95ed2140d2726",
         locktime: "0x00000000",
       },
+      depositor: "0xEe080E869F094e251E135294539a05b267041122",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0xEe080E869F094e251E135294539a05b267041122",
         blindingFactor: "0xdd66710eefa37a42",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -569,9 +570,9 @@ export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
           "89dfb8095ca95ed2140d2726",
         locktime: "0x00000000",
       },
+      depositor: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0x7F62CddE8A86328d63B9517BC70B255017f25EEa",
         blindingFactor: "0x1d5c0a1bc9528ea2",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -595,9 +596,9 @@ export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
           "26",
         locktime: "0x00000000",
       },
+      depositor: "0x2219eAC966FbC0454C4A2e122717e4429Dd7608F",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0x2219eAC966FbC0454C4A2e122717e4429Dd7608F",
         blindingFactor: "0x251c7239917eae29",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -623,9 +624,9 @@ export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
           "89dfb8095ca95ed2140d2726",
         locktime: "0x00000000",
       },
+      depositor: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0x208fF63189DF8749780917Cb5901183075Dbabc1",
         blindingFactor: "0x8bdbb150483eb2f2",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -649,9 +650,9 @@ export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
           "26",
         locktime: "0x00000000",
       },
+      depositor: "0x35D54bC29e0a5170c3Ac73E64c7fA539A867f0FE",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0x35D54bC29e0a5170c3Ac73E64c7fA539A867f0FE",
         blindingFactor: "0xdfe75a3a6ed52db6",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -675,9 +676,9 @@ export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
           "89dfb8095ca95ed2140d2726",
         locktime: "0x00000000",
       },
+      depositor: "0x462418b7495561bF2872A0786109A11f5d494aA2",
       reveal: {
         fundingOutputIndex: 0,
-        depositor: "0x462418b7495561bF2872A0786109A11f5d494aA2",
         blindingFactor: "0xeca429ef209bf500",
         // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
         walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",

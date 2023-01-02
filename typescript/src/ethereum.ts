@@ -1,8 +1,4 @@
-import {
-  Bridge as ChainBridge,
-  Identifier as ChainIdentifier,
-  Identifier,
-} from "./chain"
+import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
 import {
   BigNumber,
   constants,
@@ -11,8 +7,16 @@ import {
   Signer,
   utils,
 } from "ethers"
-import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
+import {
+  abi as BridgeABI,
+  address as BridgeAddress,
+  receipt as BridgeReceipt,
+} from "@keep-network/tbtc-v2/artifacts/Bridge.json"
+import {
+  abi as WalletRegistryABI,
+  address as WalletRegistryAddress,
+  receipt as WalletRegistryReceipt,
+} from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { DepositScriptParameters, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
@@ -49,13 +53,21 @@ export class Address implements ChainIdentifier {
 export interface ContractConfig {
   /**
    * Address of the Ethereum contract as a 0x-prefixed hex string.
+   * Optional parameter, if not provided the value will be resolved from the
+   * contract artifact.
    */
-  address: string
+  address?: string
   /**
    * Signer - will return a Contract which will act on behalf of that signer. The signer will sign all contract transactions.
    * Provider - will return a downgraded Contract which only has read-only access (i.e. constant calls)
    */
   signerOrProvider: Signer | providers.Provider
+  /**
+   * Number of a block in which the contract was deployed.
+   * Optional parameter, if not provided the value will be resolved from the
+   * contract artifact.
+   */
+  deployedAtBlockNumber?: number
 }
 
 /**
@@ -64,13 +76,17 @@ export interface ContractConfig {
  */
 export class Bridge implements ChainBridge {
   private _bridge: Contract
+  private _deployedAtBlockNumber: number
 
   constructor(config: ContractConfig) {
     this._bridge = new Contract(
-      config.address,
+      config.address ?? utils.getAddress(BridgeAddress),
       `${JSON.stringify(BridgeABI)}`,
       config.signerOrProvider
     )
+
+    this._deployedAtBlockNumber =
+      config.deployedAtBlockNumber ?? BridgeReceipt.blockNumber
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -171,7 +187,7 @@ export class Bridge implements ChainBridge {
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
-    vault?: Identifier
+    vault?: ChainIdentifier
   ): Promise<string> {
     const depositTxParam = {
       version: `0x${depositTx.version}`,
@@ -182,7 +198,6 @@ export class Bridge implements ChainBridge {
 
     const revealParam = {
       fundingOutputIndex: depositOutputIndex,
-      depositor: `0x${deposit.depositor.identifierHex}`,
       blindingFactor: `0x${deposit.blindingFactor}`,
       walletPubKeyHash: `0x${deposit.walletPublicKeyHash}`,
       refundPubKeyHash: `0x${deposit.refundPublicKeyHash}`,
@@ -221,9 +236,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -265,9 +278,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -314,9 +325,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -357,9 +366,9 @@ export class Bridge implements ChainBridge {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): string {
-    const prefixedReversedDepositTxHash = `0x${Buffer.from(depositTxHash, "hex")
+    const prefixedReversedDepositTxHash = depositTxHash
       .reverse()
-      .toString("hex")}`
+      .toPrefixedString()
 
     return utils.solidityKeccak256(
       ["bytes32", "uint32"],
@@ -428,13 +437,17 @@ export class Bridge implements ChainBridge {
  */
 class WalletRegistry {
   private _walletRegistry: Contract
+  private _deployedAtBlockNumber: number
 
   constructor(config: ContractConfig) {
     this._walletRegistry = new Contract(
-      config.address,
+      config.address ?? utils.getAddress(WalletRegistryAddress),
       `${JSON.stringify(WalletRegistryABI)}`,
       config.signerOrProvider
     )
+
+    this._deployedAtBlockNumber =
+      config.deployedAtBlockNumber ?? WalletRegistryReceipt.blockNumber
   }
 
   /**
