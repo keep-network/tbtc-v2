@@ -162,8 +162,8 @@ describe("Ethereum", () => {
           {
             fundingOutputIndex: 2,
             blindingFactor: "0xf9f0c90d00039523",
-            walletPublicKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
-            refundPublicKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
+            walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+            refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
             refundLocktime: "0x60bcea61",
             vault: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
           },
