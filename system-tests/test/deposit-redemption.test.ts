@@ -19,7 +19,7 @@ import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
 import type { SystemTestsContext } from "./utils/context"
 import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/redemption"
 import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import type {
+import {
   TransactionHash,
   UnspentTransactionOutput,
 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
@@ -197,7 +197,7 @@ describe("System Test - Deposit and redemption", () => {
           // This is the first sweep of the given wallet so there is no main UTXO.
           {
             // The function expects an unprefixed hash.
-            transactionHash: constants.HashZero.substring(2),
+            transactionHash: TransactionHash.from(constants.HashZero),
             outputIndex: 0,
             value: BigNumber.from(0),
           },
