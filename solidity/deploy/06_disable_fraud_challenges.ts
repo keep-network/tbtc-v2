@@ -16,6 +16,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     "79228162514264337593543950335"
   )
 
+  // To emphasize the fact that frauds are disabled, we set the
+  // fraudChallengeDefeatTimeout to uint32 max value (2^32-1 = 4294967295) and
+  // fraudSlashingAmount to zero.
+  const fraudChallengeDefeatTimeout = ethers.BigNumber.from("4294967295")
+  const fraudSlashingAmount = ethers.BigNumber.from("0")
+
   // Fetch the current values of other fraud parameters to keep them unchanged.
   const fraudParameters = await read("Bridge", "fraudParameters")
 
@@ -24,8 +30,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     { from: deployer, log: true, waitConfirmations: 1 },
     "updateFraudParameters",
     fraudChallengeDepositAmount,
-    fraudParameters.fraudChallengeDefeatTimeout,
-    fraudParameters.fraudSlashingAmount,
+    fraudChallengeDefeatTimeout,
+    fraudSlashingAmount,
     fraudParameters.fraudNotifierRewardMultiplier
   )
 }

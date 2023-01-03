@@ -62,10 +62,10 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(25000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1641650400),
         },
@@ -91,10 +91,10 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(12000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1641650400),
         },
@@ -151,10 +151,10 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(15000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1653302600),
         },
@@ -204,10 +204,10 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(17000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1641650400),
         },
@@ -234,10 +234,10 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(10000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1641650400),
         },
@@ -330,10 +330,10 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(19000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1653302600),
         },
