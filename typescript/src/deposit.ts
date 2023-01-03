@@ -14,11 +14,11 @@ import { Bridge, Identifier } from "./chain"
 const { opcodes } = bcoin.script.common
 
 /**
- * Duration of the deposit refund locktime in seconds. After that time, the
- * depositor can make a refund of an unswept deposit using the refund public
+ * Default duration of the deposit refund locktime in seconds. After that time,
+ * the depositor can make a refund of an unswept deposit using the refund public
  * key.
  */
-export const DepositRefundLocktimeDuration = 2592000 // 30 days
+export const DefaultDepositRefundLocktimeDuration = 2592000 // 30 days
 
 /**
  * Represents a deposit.
@@ -299,18 +299,23 @@ export function validateDepositScriptParameters(
  * Calculates a refund locktime parameter for the given deposit creation timestamp.
  * Throws if the resulting locktime is not a 4-byte number.
  * @param depositCreatedAt - Unix timestamp in seconds determining the moment
- *                           of deposit creation.
+ *        of deposit creation.
+ * @param depositRefundLocktimeDuration - Optional parameter determining
+ *        the deposit refund locktime duration in seconds. If not passed, the
+ *        DefaultDepositRefundLocktimeDuration constant is used.
  * @returns A 4-byte little-endian deposit refund locktime as an un-prefixed
  *          hex string.
  */
 export function calculateDepositRefundLocktime(
-  depositCreatedAt: number
+  depositCreatedAt: number,
+  depositRefundLocktimeDuration?: number
 ): string {
+  const locktimeDuration =
+    depositRefundLocktimeDuration || DefaultDepositRefundLocktimeDuration
+
   // Locktime is a Unix timestamp in seconds, computed as deposit creation
   // timestamp plus locktime duration.
-  const locktime = BigNumber.from(
-    depositCreatedAt + DepositRefundLocktimeDuration
-  )
+  const locktime = BigNumber.from(depositCreatedAt + locktimeDuration)
 
   if (locktime.toHexString().substring(2).length != 8) {
     throw new Error("Refund locktime must be a 4 bytes number")

@@ -22,7 +22,7 @@ import {
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
   Deposit,
-  DepositRefundLocktimeDuration,
+  DefaultDepositRefundLocktimeDuration,
   DepositScriptParameters,
   getRevealedDeposit,
   revealDeposit,
@@ -191,7 +191,7 @@ describe("Deposit", () => {
     expect(script.substring(166, 168)).to.be.equal("04")
     expect(script.substring(168, 176)).to.be.equal(
       Buffer.from(
-        BigNumber.from(1640181600 + DepositRefundLocktimeDuration)
+        BigNumber.from(1640181600 + DefaultDepositRefundLocktimeDuration)
           .toHexString()
           .substring(2),
         "hex"
