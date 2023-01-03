@@ -97,10 +97,13 @@ export class MockBridge implements Bridge {
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
     deposit: Deposit
-  ): Promise<void> {
+  ): Promise<string> {
     this._revealDepositLog.push({ depositTx, depositOutputIndex, deposit })
-    return new Promise<void>((resolve, _) => {
-      resolve()
+    return new Promise<string>((resolve, _) => {
+      // random transaction hash
+      resolve(
+        "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+      )
     })
   }
 
@@ -238,10 +241,10 @@ export class MockBridge implements Bridge {
   }
 
   static buildRedemptionKey(
-    walletPubKeyHash: string,
+    walletPublicKeyHash: string,
     redeemerOutputScript: string
   ): string {
-    const prefixedWalletPubKeyHash = `0x${walletPubKeyHash}`
+    const prefixedWalletPublicKeyHash = `0x${walletPublicKeyHash}`
 
     const rawOutputScript = Buffer.from(redeemerOutputScript, "hex")
 
@@ -254,7 +257,7 @@ export class MockBridge implements Bridge {
       ["bytes32", "bytes20"],
       [
         utils.solidityKeccak256(["bytes"], [prefixedOutputScript]),
-        prefixedWalletPubKeyHash,
+        prefixedWalletPublicKeyHash,
       ]
     )
   }

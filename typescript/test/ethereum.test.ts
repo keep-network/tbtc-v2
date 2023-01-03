@@ -41,14 +41,14 @@ describe("Ethereum", () => {
 
       bridgeHandle = new Bridge({
         address: bridgeContract.address,
-        signer,
+        signerOrProvider: signer,
       })
     })
 
     describe("pendingRedemptions", () => {
       beforeEach(async () => {
         // Set the mock to return a specific redemption data when called
-        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash))
+        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPublicKeyHash))
         // that matches the wallet PKH and redeemer output script used during
         // the test call.
         await bridgeContract.mock.pendingRedemptions
@@ -87,7 +87,7 @@ describe("Ethereum", () => {
     describe("timedOutRedemptions", () => {
       beforeEach(async () => {
         // Set the mock to return a specific redemption data when called
-        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash))
+        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPublicKeyHash))
         // that matches the wallet PKH and redeemer output script used during
         // the test call.
         await bridgeContract.mock.timedOutRedemptions
@@ -140,16 +140,13 @@ describe("Ethereum", () => {
             depositor: {
               identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
             },
-            amount: BigNumber.from(10000),
-            walletPublicKey:
-              "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-            refundPublicKey:
-              "0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
+            walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+            refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
             blindingFactor: "f9f0c90d00039523",
             refundLocktime: "60bcea61",
-            vault: {
-              identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-            },
+          },
+          {
+            identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
           }
         )
       })
