@@ -33,7 +33,8 @@ jobs:
         run: |
           yarn install
           yarn clean
-          USE_EXTERNAL_DEPLOY=true npx hardhat node --export export.json &
+          npx hardhat node --no-deploy &
+          USE_EXTERNAL_DEPLOY=true npx hardhat deploy --network $ETH_NETWORK --export export.json
           HH_NODE_PID=$!
           while ! lsof -n -Fn -p $HH_NODE_PID | grep -q '^n.*:8545$'; do sleep 10; done
           npx hardhat test-utils:register-operators --network $ETH_NETWORK
