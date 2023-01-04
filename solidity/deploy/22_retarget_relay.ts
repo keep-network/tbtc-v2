@@ -112,4 +112,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["RetargetLightRelay"]
-func.dependencies = ["LightRelay"]
+func.dependencies = ["GenesisLightRelay"]
