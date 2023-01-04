@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 // ██████████████     ▐████▌     ██████████████
 // ██████████████     ▐████▌     ██████████████
@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 import "@keep-network/random-beacon/contracts/Governable.sol";
 import "@keep-network/random-beacon/contracts/ReimbursementPool.sol";
@@ -347,12 +347,12 @@ contract Bridge is
     /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`.
     /// @param reveal Deposit reveal data, see `RevealInfo struct.
     /// @dev Requirements:
+    ///      - This function must be called by the same Ethereum address as the
+    ///        one used in the P2(W)SH BTC deposit transaction as a depositor,
     ///      - `reveal.walletPubKeyHash` must identify a `Live` wallet,
     ///      - `reveal.vault` must be 0x0 or point to a trusted vault,
     ///      - `reveal.fundingOutputIndex` must point to the actual P2(W)SH
     ///        output of the BTC deposit transaction,
-    ///      - `reveal.depositor` must be the Ethereum address used in the
-    ///        P2(W)SH BTC deposit transaction,
     ///      - `reveal.blindingFactor` must be the blinding factor used in the
     ///        P2(W)SH BTC deposit transaction,
     ///      - `reveal.walletPubKeyHash` must be the wallet pub key hash used in
@@ -1276,7 +1276,7 @@ contract Bridge is
     ///        deposit refund locktime.
     /// @dev Requirements:
     ///      - Deposit dust threshold must be greater than zero,
-    ///      - Deposit treasury fee divisor must be greater than zero,
+    ///      - Deposit dust threshold must be greater than deposit TX max fee,
     ///      - Deposit transaction max fee must be greater than zero.
     function updateDepositParameters(
         uint64 depositDustThreshold,
@@ -1338,8 +1338,11 @@ contract Bridge is
     /// @dev Requirements:
     ///      - Redemption dust threshold must be greater than moving funds dust
     ///        threshold,
-    ///      - Redemption treasury fee divisor must be greater than zero,
+    ///      - Redemption dust threshold must be greater than the redemption TX
+    ///        max fee,
     ///      - Redemption transaction max fee must be greater than zero,
+    ///      - Redemption transaction max total fee must be greater than or
+    ///        equal to the redemption transaction per-request max fee,
     ///      - Redemption timeout must be greater than zero,
     ///      - Redemption timeout notifier reward multiplier must be in the
     ///        range [0, 100].

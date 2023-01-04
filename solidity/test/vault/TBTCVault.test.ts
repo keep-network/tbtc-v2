@@ -1,10 +1,12 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { expect } from "chai"
-
 import { ContractTransaction } from "ethers"
+import { FakeContract, smock } from "@defi-wonderland/smock"
+
 import type {
   Bank,
+  Bridge,
   TBTC,
   TBTCVault,
   TestERC20,
@@ -18,7 +20,15 @@ const { increaseTime, lastBlockTime } = helpers.time
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
 const fixture = async () => {
-  const [deployer, bridge, governance] = await ethers.getSigners()
+  const [deployer, governance] = await ethers.getSigners()
+
+  const bridge = await smock.fake<Bridge>("Bridge")
+  // Fund the `bridge` account so it's possible to mock sending requests
+  // from it.
+  await deployer.sendTransaction({
+    to: bridge.address,
+    value: ethers.utils.parseEther("100"),
+  })
 
   const Bank = await ethers.getContractFactory("Bank")
   const bank = await Bank.deploy()
@@ -31,7 +41,11 @@ const fixture = async () => {
   await tbtc.deployed()
 
   const TBTCVault = await ethers.getContractFactory("TBTCVault")
-  const vault = await TBTCVault.deploy(bank.address, tbtc.address)
+  const vault = await TBTCVault.deploy(
+    bank.address,
+    tbtc.address,
+    bridge.address
+  )
   await vault.deployed()
 
   await tbtc.connect(deployer).transferOwnership(vault.address)
@@ -47,7 +61,7 @@ const fixture = async () => {
 }
 
 describe("TBTCVault", () => {
-  let bridge: SignerWithAddress
+  let bridge: FakeContract<Bridge>
   let governance: SignerWithAddress
   let bank: Bank
   let vault: TBTCVault
@@ -68,8 +82,12 @@ describe("TBTCVault", () => {
     account1 = await ethers.getSigner(accounts[0])
     account2 = await ethers.getSigner(accounts[1])
 
-    await bank.connect(bridge).increaseBalance(account1.address, initialBalance)
-    await bank.connect(bridge).increaseBalance(account2.address, initialBalance)
+    await bank
+      .connect(bridge.wallet)
+      .increaseBalance(account1.address, initialBalance)
+    await bank
+      .connect(bridge.wallet)
+      .increaseBalance(account2.address, initialBalance)
 
     await bank.connect(account1).approveBalance(vault.address, initialBalance)
     await bank.connect(account2).approveBalance(vault.address, initialBalance)
@@ -80,7 +98,7 @@ describe("TBTCVault", () => {
       it("should revert", async () => {
         const TBTCVault = await ethers.getContractFactory("TBTCVault")
         await expect(
-          TBTCVault.deploy(ZERO_ADDRESS, tbtc.address)
+          TBTCVault.deploy(ZERO_ADDRESS, tbtc.address, bridge.address)
         ).to.be.revertedWith("Bank can not be the zero address")
       })
     })
@@ -89,8 +107,17 @@ describe("TBTCVault", () => {
       it("should revert", async () => {
         const TBTCVault = await ethers.getContractFactory("TBTCVault")
         await expect(
-          TBTCVault.deploy(bank.address, ZERO_ADDRESS)
+          TBTCVault.deploy(bank.address, ZERO_ADDRESS, bridge.address)
         ).to.be.revertedWith("TBTC token can not be the zero address")
+      })
+    })
+
+    context("when called with a 0-address bridge", () => {
+      it("should revert", async () => {
+        const TBTCVault = await ethers.getContractFactory("TBTCVault")
+        await expect(
+          TBTCVault.deploy(bank.address, tbtc.address, ZERO_ADDRESS)
+        ).to.be.revertedWith("Bridge can not be the zero address")
       })
     })
 
@@ -676,7 +703,7 @@ describe("TBTCVault", () => {
       it("should revert", async () => {
         await expect(
           vault
-            .connect(bridge)
+            .connect(bridge.wallet)
             .receiveBalanceApproval(account1.address, amount, [])
         ).to.be.revertedWith("Caller is not the Bank")
         await expect(
@@ -854,7 +881,7 @@ describe("TBTCVault", () => {
       it("should revert", async () => {
         await expect(
           vault
-            .connect(bridge)
+            .connect(bridge.wallet)
             .receiveBalanceIncrease([depositor1], [depositedAmount1])
         ).to.be.revertedWith("Caller is not the Bank")
       })
@@ -863,7 +890,9 @@ describe("TBTCVault", () => {
     context("when called with no depositors", () => {
       it("should revert", async () => {
         await expect(
-          bank.connect(bridge).increaseBalanceAndCall(vault.address, [], [])
+          bank
+            .connect(bridge.wallet)
+            .increaseBalanceAndCall(vault.address, [], [])
         ).to.be.revertedWith("No depositors specified")
       })
     })
@@ -875,7 +904,7 @@ describe("TBTCVault", () => {
         await createSnapshot()
 
         tx = await bank
-          .connect(bridge)
+          .connect(bridge.wallet)
           .increaseBalanceAndCall(
             vault.address,
             [depositor1],
@@ -906,7 +935,7 @@ describe("TBTCVault", () => {
         await createSnapshot()
 
         tx = await bank
-          .connect(bridge)
+          .connect(bridge.wallet)
           .increaseBalanceAndCall(
             vault.address,
             [depositor1, depositor2, depositor3],

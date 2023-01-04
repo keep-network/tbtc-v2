@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - "solidity/**"
+      - ".github/workflows/contracts.yml"
   pull_request:
   # We intend to use `workflow dispatch` in two different situations/paths:
   # 1. If a workflow will be manually dispatched from branch named
@@ -52,6 +53,7 @@ jobs:
           filters: |
             path-filter:
               - './solidity/**'
+              - './.github/workflows/contracts.yml'
 
   contracts-build-and-test:
     needs: contracts-detect-changes
@@ -85,12 +87,14 @@ jobs:
       - name: Build contracts
         run: yarn build
 
+      # We don't want to execute the tests for dapp-friendly contracts (either
+      # when deploying from `dapp-development` or during PR checks on that branch).
       - name: Run tests
-        if: github.ref != 'refs/heads/dapp-development'
+        if: github.ref != 'refs/heads/dapp-development' && github.head_ref != 'dapp-development'
         run: yarn test
 
       - name: Run integration tests
-        if: github.ref != 'refs/heads/dapp-development'
+        if: github.ref != 'refs/heads/dapp-development' && github.head_ref != 'dapp-development'
         run: yarn test:integration
 
   contracts-deployment-dry-run:
@@ -403,7 +407,7 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8.5
+          python-version: 3.10.8
 
       - name: Install Solidity
         env:

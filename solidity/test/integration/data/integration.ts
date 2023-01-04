@@ -38,9 +38,9 @@ export const revealDepositData = {
       "120fb077fbed",
     locktime: "0x00000000",
   },
+  depositor: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
   reveal: {
     fundingOutputIndex: 0,
-    depositor: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
     blindingFactor: "0xf9f0c90d00039523",
     // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
     walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",

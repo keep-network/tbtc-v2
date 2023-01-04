@@ -3,6 +3,7 @@ import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
+import { Hex } from "./hex"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -11,7 +12,7 @@ import { BigNumber } from "ethers"
  * by the Bitcoin protocol internally. That means the hash must be reversed in
  * the use cases that expect the Bitcoin internal byte order.
  */
-export type TransactionHash = string
+export class TransactionHash extends Hex {}
 
 /**
  * Represents a raw transaction.
@@ -358,4 +359,45 @@ export function createKeyRing(
  */
 export function computeHash160(text: string): string {
   return hash160.digest(Buffer.from(text, "hex")).toString("hex")
+}
+
+/**
+ * Encodes a public key hash into a P2PKH/P2WPKH address.
+ * @param publicKeyHash - public key hash that will be encoded. Must be an
+ *        unprefixed hex string (without 0x prefix).
+ * @param witness - If true, a witness public key hash will be encoded and
+ *        P2WPKH address will be returned. Returns P2PKH address otherwise
+ * @param network - Network that the address should be encoded for.
+ *        For example, `main` or `testnet`.
+ * @returns P2PKH or P2WPKH address encoded from the given public key hash
+ */
+export function encodeToBitcoinAddress(
+  publicKeyHash: string,
+  witness: boolean,
+  network: string
+): string {
+  const buffer = Buffer.from(publicKeyHash, "hex")
+  return witness
+    ? bcoin.Address.fromWitnessPubkeyhash(buffer).toString(network)
+    : bcoin.Address.fromPubkeyhash(buffer).toString(network)
+}
+
+/**
+ * Decodes P2PKH or P2WPKH address into a public key hash.
+ * @param address - P2PKH or P2WPKH address that will be decoded.
+ * @returns Public key hash decoded from the address. This will be an unprefixed
+ *        hex string (without 0x prefix).
+ */
+export function decodeBitcoinAddress(address: string): string {
+  const addressObject = new bcoin.Address(address)
+  return addressObject.getHash("hex")
+}
+
+/**
+ * Checks if given public key hash has proper length (20-byte)
+ * @param publicKeyHash - text that will be checked for the correct length
+ * @returns true if the given string is 20-byte long, false otherwise
+ */
+export function isPublicKeyHashLength(publicKeyHash: string): boolean {
+  return publicKeyHash.length === 40
 }

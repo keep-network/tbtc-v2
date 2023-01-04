@@ -1,4 +1,8 @@
-import { RawTransaction, UnspentTransactionOutput } from "../../src/bitcoin"
+import {
+  RawTransaction,
+  TransactionHash,
+  UnspentTransactionOutput,
+} from "../../src/bitcoin"
 import { BigNumber } from "ethers"
 
 /**
@@ -16,8 +20,9 @@ export const testnetPrivateKey =
 /**
  * Hash of one of the transactions originating from testnetAddress.
  */
-export const testnetTransactionHash =
+export const testnetTransactionHash = TransactionHash.from(
   "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+)
 
 /**
  * Transaction corresponding to testnetTransactionHash and originating

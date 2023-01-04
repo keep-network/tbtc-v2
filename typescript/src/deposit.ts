@@ -2,13 +2,12 @@ import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
   Client as BitcoinClient,
-  computeHash160,
   decomposeRawTransaction,
-  isCompressedPublicKey,
   createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
   TransactionHash,
+  isPublicKeyHashLength,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 
@@ -42,16 +41,20 @@ export interface Deposit {
   blindingFactor: string
 
   /**
-   * Compressed (33 bytes long with 02 or 03 prefix) Bitcoin public key of
-   * the wallet that is meant to receive the deposit.
+   * Public key hash of the wallet that is meant to receive the deposit. Must
+   * be an unprefixed hex string (without 0x prefix).
+   *
+   * You can use `computeHash160` function to get the hash from a plain text public key.
    */
-  walletPublicKey: string
+  walletPublicKeyHash: string
 
   /**
-   * Compressed (33 bytes long with 02 or 03 prefix) Bitcoin public key that
-   * is meant to be used during deposit refund after the locktime passes.
+   * Public key hash that is meant to be used during deposit refund after the
+   * locktime passes. Must be an unprefixed hex string (without 0x prefix).
+   *
+   * You can use `computeHash160` function to get the hash from a plain text public key.
    */
-  refundPublicKey: string
+  refundPublicKeyHash: string
 
   /**
    * A 4-byte little-endian refund locktime as an un-prefixed hex string.
@@ -65,16 +68,17 @@ export interface Deposit {
 }
 
 /**
- * Helper type that groups deposit's fields required to assemble a deposit script.
+ * Helper type that groups deposit's fields required to assemble a deposit
+ * script.
  */
 export type DepositScriptParameters = Pick<
   Deposit,
   | "depositor"
   | "blindingFactor"
-  | "walletPublicKey"
-  | "refundPublicKey"
   | "refundLocktime"
->
+  | "walletPublicKeyHash"
+  | "refundPublicKeyHash"
+> & {}
 
 /**
  * Represents a deposit revealed to the on-chain bridge. This type emphasizes
@@ -193,13 +197,12 @@ export async function assembleDepositTransaction(
   const transaction = new bcoin.MTX()
 
   const scriptHash = await calculateDepositScriptHash(deposit, witness)
-  const outputValue = deposit.amount
 
   transaction.addOutput({
     script: witness
       ? bcoin.Script.fromProgram(0, scriptHash)
       : bcoin.Script.fromScripthash(scriptHash),
-    value: outputValue.toNumber(),
+    value: deposit.amount.toNumber(),
   })
 
   await transaction.fund(inputCoins, {
@@ -210,14 +213,14 @@ export async function assembleDepositTransaction(
 
   transaction.sign(depositorKeyRing)
 
-  const transactionHash = transaction.txid()
+  const transactionHash = TransactionHash.from(transaction.txid())
 
   return {
     transactionHash,
     depositUtxo: {
       transactionHash,
       outputIndex: 0, // The deposit is always the first output.
-      value: outputValue,
+      value: deposit.amount,
     },
     rawTransaction: {
       transactionHex: transaction.toRaw().toString("hex"),
@@ -244,14 +247,14 @@ export async function assembleDepositScript(
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(computeHash160(deposit.walletPublicKey), "hex"))
+  script.pushData(Buffer.from(deposit.walletPublicKeyHash, "hex"))
   script.pushOp(opcodes.OP_EQUAL)
   script.pushOp(opcodes.OP_IF)
   script.pushOp(opcodes.OP_CHECKSIG)
   script.pushOp(opcodes.OP_ELSE)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(computeHash160(deposit.refundPublicKey), "hex"))
+  script.pushData(Buffer.from(deposit.refundPublicKeyHash, "hex"))
   script.pushOp(opcodes.OP_EQUALVERIFY)
   script.pushData(Buffer.from(deposit.refundLocktime, "hex"))
   script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
@@ -279,12 +282,12 @@ export function validateDepositScriptParameters(
     throw new Error("Blinding factor must be an 8-byte number")
   }
 
-  if (!isCompressedPublicKey(deposit.walletPublicKey)) {
-    throw new Error("Wallet public key must be compressed")
+  if (!isPublicKeyHashLength(deposit.walletPublicKeyHash)) {
+    throw new Error("Invalid wallet public key hash")
   }
 
-  if (!isCompressedPublicKey(deposit.refundPublicKey)) {
-    throw new Error("Refund public key must be compressed")
+  if (!isPublicKeyHashLength(deposit.refundPublicKeyHash)) {
+    throw new Error("Invalid refund public key hash")
   }
 
   if (deposit.refundLocktime.length != 8) {
@@ -366,22 +369,24 @@ export async function calculateDepositAddress(
  * @param deposit - Data of the revealed deposit
  * @param bitcoinClient - Bitcoin client used to interact with the network
  * @param bridge - Handle to the Bridge on-chain contract
- * @returns Empty promise
+ * @param vault - vault
+ * @returns Transaction hash of the reveal deposit transaction as string
  * @dev The caller must ensure that the given deposit data are valid and
  *      the given deposit UTXO actually originates from a deposit transaction
  *      that matches the given deposit data.
  */
 export async function revealDeposit(
   utxo: UnspentTransactionOutput,
-  deposit: Deposit,
+  deposit: DepositScriptParameters,
   bitcoinClient: BitcoinClient,
-  bridge: Bridge
-): Promise<void> {
+  bridge: Bridge,
+  vault?: Identifier
+): Promise<string> {
   const depositTx = decomposeRawTransaction(
     await bitcoinClient.getRawTransaction(utxo.transactionHash)
   )
 
-  await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit)
+  return await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit, vault)
 }
 
 /**

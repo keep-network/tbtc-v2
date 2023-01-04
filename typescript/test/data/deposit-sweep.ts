@@ -11,7 +11,7 @@ import { calculateDepositRefundLocktime, Deposit } from "../../src/deposit"
 import { BigNumber } from "ethers"
 
 export const NO_MAIN_UTXO = {
-  transactionHash: "",
+  transactionHash: TransactionHash.from(""),
   outputIndex: 0,
   value: BigNumber.from(0),
   transactionHex: "",
@@ -43,8 +43,9 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
     deposits: [
       {
         utxo: {
-          transactionHash:
-            "74d0e353cdba99a6c17ce2cfeab62a26c09b5eb756eccdcfb83dbc12e67b18bc",
+          transactionHash: TransactionHash.from(
+            "74d0e353cdba99a6c17ce2cfeab62a26c09b5eb756eccdcfb83dbc12e67b18bc"
+          ),
           outputIndex: 0,
           value: BigNumber.from(25000),
           transactionHex:
@@ -61,18 +62,19 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(25000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1641650400),
         },
       },
       {
         utxo: {
-          transactionHash:
-            "5c54ecdf946382fab2236f78423ddc22a757776fb8492671c588667b737e55dc",
+          transactionHash: TransactionHash.from(
+            "5c54ecdf946382fab2236f78423ddc22a757776fb8492671c588667b737e55dc"
+          ),
           outputIndex: 0,
           value: BigNumber.from(12000),
           transactionHex:
@@ -89,10 +91,10 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(12000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1641650400),
         },
@@ -101,8 +103,9 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
     mainUtxo: NO_MAIN_UTXO,
     witness: true,
     expectedSweep: {
-      transactionHash:
-        "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+      transactionHash: TransactionHash.from(
+        "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+      ),
       transaction: {
         transactionHex:
           "01000000000102bc187be612bc3db8cfcdec56b75e9bc0262ab6eacfe27cc1a699" +
@@ -135,8 +138,9 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
     deposits: [
       {
         utxo: {
-          transactionHash:
-            "4cdd899d7133cd681bdc4e80b3af09d34da1f7450c5b19167aa8a8223c7a8426",
+          transactionHash: TransactionHash.from(
+            "4cdd899d7133cd681bdc4e80b3af09d34da1f7450c5b19167aa8a8223c7a8426"
+          ),
           outputIndex: 0,
           value: BigNumber.from(15000),
           transactionHex:
@@ -147,10 +151,10 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(15000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1653302600),
         },
@@ -159,8 +163,9 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
     mainUtxo: NO_MAIN_UTXO,
     witness: false,
     expectedSweep: {
-      transactionHash:
-        "1c42b0568d88bb4d21ae138769fd06199dd3ec689911972792e678be8516d58d",
+      transactionHash: TransactionHash.from(
+        "1c42b0568d88bb4d21ae138769fd06199dd3ec689911972792e678be8516d58d"
+      ),
       transaction: {
         transactionHex:
           "010000000126847a3c22a8a87a16195b0c45f7a14dd309afb3804edc1b68cd33719d89dd4c00000000c9483045022100d0e9c2e38db714c29c6b48eaf6369adb4b33fbc73fe63fbc03d28bebf3a41122022051bdfd31829571b69b788f84defcb256a7de7db3b7bdb2356100ccfd1c16378f012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d94c5c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed880448f2b262b175ac68ffffffff0158340000000000001976a9148db50eb52063ea9d98b3eac91489a90f738986f688ac00000000",
@@ -180,8 +185,9 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
       {
         // P2SH deposit
         utxo: {
-          transactionHash:
-            "d4fe2ef9068d039eae2210e893db518280d4757696fe9db8f3c696a94de90aed",
+          transactionHash: TransactionHash.from(
+            "d4fe2ef9068d039eae2210e893db518280d4757696fe9db8f3c696a94de90aed"
+          ),
           outputIndex: 0,
           value: BigNumber.from(17000),
           transactionHex:
@@ -198,10 +204,10 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(17000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1641650400),
         },
@@ -209,8 +215,9 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
       {
         // P2WSH deposit
         utxo: {
-          transactionHash:
-            "b86ef64f8aff19778535e7c6e45ff82bc2f5f5eec800fd2b03a03fc22f557fe3",
+          transactionHash: TransactionHash.from(
+            "b86ef64f8aff19778535e7c6e45ff82bc2f5f5eec800fd2b03a03fc22f557fe3"
+          ),
           outputIndex: 0,
           value: BigNumber.from(10000),
           transactionHex:
@@ -227,10 +234,10 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(10000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1641650400),
         },
@@ -238,8 +245,9 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
     ],
     mainUtxo: {
       // P2WPKH
-      transactionHash:
-        "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+      transactionHash: TransactionHash.from(
+        "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+      ),
       outputIndex: 0,
       value: BigNumber.from(35400),
       transactionHex:
@@ -262,8 +270,9 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
     },
     witness: true,
     expectedSweep: {
-      transactionHash:
-        "435d4aff6d4bc34134877bd3213c17970142fdd04d4113d534120033b9eecb2e",
+      transactionHash: TransactionHash.from(
+        "435d4aff6d4bc34134877bd3213c17970142fdd04d4113d534120033b9eecb2e"
+      ),
       transaction: {
         transactionHex:
           "010000000001036896f9abcac13ce6bd2b80d125bedf997ff6330e999f2f605ea1" +
@@ -301,8 +310,9 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
     deposits: [
       {
         utxo: {
-          transactionHash:
-            "fda2323b4075a0311767ae8db07f4387bb53663a304278cd8c2c7a591f203a17",
+          transactionHash: TransactionHash.from(
+            "fda2323b4075a0311767ae8db07f4387bb53663a304278cd8c2c7a591f203a17"
+          ),
           outputIndex: 0,
           value: BigNumber.from(19000),
           transactionHex:
@@ -320,18 +330,19 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
             identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
           },
           amount: BigNumber.from(19000),
-          walletPublicKey:
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-          refundPublicKey:
-            "039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa",
+          // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
+          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
           refundLocktime: calculateDepositRefundLocktime(1653302600),
         },
       },
     ],
     mainUtxo: {
-      transactionHash:
-        "c8a2c407309b9434cb73d4788ce4ac895084240eec7bb440e7f76b75be1296e1",
+      transactionHash: TransactionHash.from(
+        "c8a2c407309b9434cb73d4788ce4ac895084240eec7bb440e7f76b75be1296e1"
+      ),
       outputIndex: 0,
       value: BigNumber.from(16400),
       transactionHex:
@@ -347,8 +358,9 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
     },
     witness: true,
     expectedSweep: {
-      transactionHash:
-        "7831d0dfde7e160f3b9bb66c433710f0d3110d73ea78b9db65e81c091a6718a0",
+      transactionHash: TransactionHash.from(
+        "7831d0dfde7e160f3b9bb66c433710f0d3110d73ea78b9db65e81c091a6718a0"
+      ),
       transaction: {
         transactionHex:
           "01000000000102173a201f597a2c8ccd7842303a6653bb87437fb08dae671731a0" +
@@ -395,30 +407,35 @@ export interface DepositSweepProofTestData {
 export const depositSweepProof: DepositSweepProofTestData = {
   bitcoinChainData: {
     transaction: {
-      transactionHash:
-        "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753",
+      transactionHash: TransactionHash.from(
+        "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753"
+      ),
       inputs: [
         {
-          transactionHash:
-            "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f",
+          transactionHash: TransactionHash.from(
+            "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
+          ),
           outputIndex: 0,
           scriptSig: { asm: "", hex: "" },
         },
         {
-          transactionHash:
-            "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd",
+          transactionHash: TransactionHash.from(
+            "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
+          ),
           outputIndex: 0,
           scriptSig: { asm: "", hex: "" },
         },
         {
-          transactionHash:
-            "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473",
+          transactionHash: TransactionHash.from(
+            "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
+          ),
           outputIndex: 0,
           scriptSig: { asm: "", hex: "" },
         },
         {
-          transactionHash:
-            "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378",
+          transactionHash: TransactionHash.from(
+            "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
+          ),
           outputIndex: 0,
           scriptSig: { asm: "", hex: "" },
         },

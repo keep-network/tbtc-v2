@@ -2,6 +2,8 @@
 
 = tBTC v2 System tests
 
+https://github.com/keep-network/tbtc-v2/actions/workflows/system-tests.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/system-tests.yml?branch=main&event=schedule&label=System%20tests[System tests status]]
+
 This module contains the system test scenarios stressing the tBTC v2 system.
 
 toc::[]
