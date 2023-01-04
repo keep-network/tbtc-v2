@@ -22,7 +22,6 @@ import {
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
   Deposit,
-  DefaultDepositRefundLocktimeDuration,
   DepositScriptParameters,
   getRevealedDeposit,
   revealDeposit,
@@ -41,7 +40,7 @@ describe("Deposit", () => {
     // HASH160 of 0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9.
     refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
     blindingFactor: "f9f0c90d00039523",
-    refundLocktime: calculateDepositRefundLocktime(1640181600),
+    refundLocktime: calculateDepositRefundLocktime(1640181600, 2592000),
   }
 
   const depositScriptParameters: DepositScriptParameters = {
@@ -191,7 +190,7 @@ describe("Deposit", () => {
     expect(script.substring(166, 168)).to.be.equal("04")
     expect(script.substring(168, 176)).to.be.equal(
       Buffer.from(
-        BigNumber.from(1640181600 + DefaultDepositRefundLocktimeDuration)
+        BigNumber.from(1640181600 + 2592000)
           .toHexString()
           .substring(2),
         "hex"
@@ -521,7 +520,7 @@ describe("Deposit", () => {
     context("when the resulting locktime is lesser than 4 bytes", () => {
       it("should throw", () => {
         // This will result with 2592001 as the locktime which is a 3-byte number.
-        expect(() => calculateDepositRefundLocktime(1)).to.throw(
+        expect(() => calculateDepositRefundLocktime(1, 2592000)).to.throw(
           "Refund locktime must be a 4 bytes number"
         )
       })
@@ -530,9 +529,9 @@ describe("Deposit", () => {
     context("when the resulting locktime is greater than 4 bytes", () => {
       it("should throw", () => {
         // This will result with 259200144444 as the locktime which is a 5-byte number.
-        expect(() => calculateDepositRefundLocktime(259197552444)).to.throw(
-          "Refund locktime must be a 4 bytes number"
-        )
+        expect(() =>
+          calculateDepositRefundLocktime(259197552444, 2592000)
+        ).to.throw("Refund locktime must be a 4 bytes number")
       })
     })
 
@@ -540,7 +539,10 @@ describe("Deposit", () => {
       it("should compute a proper 4-byte little-endian locktime as un-prefixed hex string", () => {
         const depositCreatedAt = 1652776752
 
-        const refundLocktime = calculateDepositRefundLocktime(depositCreatedAt)
+        const refundLocktime = calculateDepositRefundLocktime(
+          depositCreatedAt,
+          2592000
+        )
 
         // The creation timestamp is 1652776752 and locktime duration 2592000 (30 days).
         // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
