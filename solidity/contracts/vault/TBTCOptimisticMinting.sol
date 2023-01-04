@@ -334,13 +334,12 @@ abstract contract TBTCOptimisticMinting is Ownable {
         uint256 optimisticMintFee = optimisticMintingFeeDivisor > 0
             ? amountToMint / optimisticMintingFeeDivisor
             : 0;
-        amountToMint -= optimisticMintFee;
 
         uint256 newDebt = optimisticMintingDebt[deposit.depositor] +
             amountToMint;
         optimisticMintingDebt[deposit.depositor] = newDebt;
 
-        _mint(deposit.depositor, amountToMint);
+        _mint(deposit.depositor, amountToMint - optimisticMintFee);
         if (optimisticMintFee > 0) {
             _mint(bridge.treasury(), optimisticMintFee);
         }
