@@ -95,7 +95,7 @@ describe("System Test - Deposit and redemption", () => {
       maintainer
     )
 
-    const relayDeploymentInfo = systemTestsContext.deployedContracts.LightRelay
+    const relayDeploymentInfo = deployedContracts.LightRelay
     relay = new Contract(
       relayDeploymentInfo.address,
       relayDeploymentInfo.abi,
