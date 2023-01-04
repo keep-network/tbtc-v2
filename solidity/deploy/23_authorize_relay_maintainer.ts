@@ -12,13 +12,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     "setAuthorizationStatus",
     true
   )
-
-  await execute(
-    "LightRelay",
-    { from: deployer, log: true, waitConfirmations: 1 },
-    "authorize",
-    deployer
-  )
 }
 
 export default func
