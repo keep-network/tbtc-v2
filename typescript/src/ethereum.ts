@@ -183,7 +183,7 @@ export class Bridge extends EthereumContract implements ChainBridge {
       "DepositRevealed",
       fromBlock,
       toBlock,
-      filterArgs
+      ...filterArgs
     )
 
     return events.map<DepositRevealedEvent>((event) => {
