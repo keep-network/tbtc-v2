@@ -12,30 +12,34 @@ const config: HardhatUserConfig = {
     },
   },
 
+  // Indices for named accounts should match the ones defined in `@keep-network/tbtc-v2`.
   namedAccounts: {
     deployer: {
       default: 1,
     },
-    treasury: {
+    governance: {
       default: 2,
     },
-    governance: {
+    chaosnetOwner: {
       default: 3,
     },
-    keepTechnicalWalletTeam: {
+    esdm: {
       default: 4,
     },
-    keepCommunityMultiSig: {
+    keepTechnicalWalletTeam: {
       default: 5,
     },
-    esdm: {
+    keepCommunityMultiSig: {
       default: 6,
     },
-    maintainer: {
+    treasury: {
       default: 7,
     },
-    depositor: {
+    maintainer: {
       default: 8,
+    },
+    depositor: {
+      default: 9,
     },
   },
 
