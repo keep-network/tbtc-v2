@@ -1,8 +1,23 @@
 import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
-import { BigNumber, constants, Contract, Signer, utils } from "ethers"
-import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
-import { Deposit, RevealedDeposit } from "./deposit"
+import {
+  BigNumber,
+  constants,
+  Contract,
+  providers,
+  Signer,
+  utils,
+} from "ethers"
+import {
+  abi as BridgeABI,
+  address as BridgeAddress,
+  receipt as BridgeReceipt,
+} from "@keep-network/tbtc-v2/artifacts/Bridge.json"
+import {
+  abi as WalletRegistryABI,
+  address as WalletRegistryAddress,
+  receipt as WalletRegistryReceipt,
+} from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
+import { DepositScriptParameters, RevealedDeposit } from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -38,12 +53,21 @@ export class Address implements ChainIdentifier {
 export interface ContractConfig {
   /**
    * Address of the Ethereum contract as a 0x-prefixed hex string.
+   * Optional parameter, if not provided the value will be resolved from the
+   * contract artifact.
    */
-  address: string
+  address?: string
   /**
-   * Signer that will sign all contract transactions.
+   * Signer - will return a Contract which will act on behalf of that signer. The signer will sign all contract transactions.
+   * Provider - will return a downgraded Contract which only has read-only access (i.e. constant calls)
    */
-  signer: Signer
+  signerOrProvider: Signer | providers.Provider
+  /**
+   * Number of a block in which the contract was deployed.
+   * Optional parameter, if not provided the value will be resolved from the
+   * contract artifact.
+   */
+  deployedAtBlockNumber?: number
 }
 
 /**
@@ -52,13 +76,17 @@ export interface ContractConfig {
  */
 export class Bridge implements ChainBridge {
   private _bridge: Contract
+  private _deployedAtBlockNumber: number
 
   constructor(config: ContractConfig) {
     this._bridge = new Contract(
-      config.address,
+      config.address ?? utils.getAddress(BridgeAddress),
       `${JSON.stringify(BridgeABI)}`,
-      config.signer
+      config.signerOrProvider
     )
+
+    this._deployedAtBlockNumber =
+      config.deployedAtBlockNumber ?? BridgeReceipt.blockNumber
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -99,7 +127,7 @@ export class Bridge implements ChainBridge {
 
   /**
    * Builds a redemption key required to refer a redemption request.
-   * @param walletPubKeyHash The wallet public key hash that identifies the
+   * @param walletPublicKeyHash The wallet public key hash that identifies the
    *        pending redemption (along with the redeemer output script). Must be
    *        unprefixed.
    * @param redeemerOutputScript The redeemer output script that identifies the
@@ -108,7 +136,7 @@ export class Bridge implements ChainBridge {
    * @returns The redemption key.
    */
   private buildRedemptionKey(
-    walletPubKeyHash: string,
+    walletPublicKeyHash: string,
     redeemerOutputScript: string
   ): string {
     // Convert the output script to raw bytes buffer.
@@ -124,7 +152,7 @@ export class Bridge implements ChainBridge {
       ["bytes32", "bytes20"],
       [
         utils.solidityKeccak256(["bytes"], [prefixedRawRedeemerOutputScript]),
-        `0x${walletPubKeyHash}`,
+        `0x${walletPublicKeyHash}`,
       ]
     )
   }
@@ -158,8 +186,9 @@ export class Bridge implements ChainBridge {
   async revealDeposit(
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
-    deposit: Deposit
-  ): Promise<void> {
+    deposit: DepositScriptParameters,
+    vault?: ChainIdentifier
+  ): Promise<string> {
     const depositTxParam = {
       version: `0x${depositTx.version}`,
       inputVector: `0x${depositTx.inputs}`,
@@ -169,17 +198,16 @@ export class Bridge implements ChainBridge {
 
     const revealParam = {
       fundingOutputIndex: depositOutputIndex,
-      depositor: `0x${deposit.depositor.identifierHex}`,
       blindingFactor: `0x${deposit.blindingFactor}`,
-      walletPubKeyHash: `0x${computeHash160(deposit.walletPublicKey)}`,
-      refundPubKeyHash: `0x${computeHash160(deposit.refundPublicKey)}`,
+      walletPubKeyHash: `0x${deposit.walletPublicKeyHash}`,
+      refundPubKeyHash: `0x${deposit.refundPublicKeyHash}`,
       refundLocktime: `0x${deposit.refundLocktime}`,
-      vault: deposit.vault
-        ? `0x${deposit.vault.identifierHex}`
-        : constants.AddressZero,
+      vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
 
-    await this._bridge.revealDeposit(depositTxParam, revealParam)
+    const tx = await this._bridge.revealDeposit(depositTxParam, revealParam)
+
+    return tx.hash
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -208,9 +236,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -252,9 +278,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -301,9 +325,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -344,9 +366,9 @@ export class Bridge implements ChainBridge {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): string {
-    const prefixedReversedDepositTxHash = `0x${Buffer.from(depositTxHash, "hex")
+    const prefixedReversedDepositTxHash = depositTxHash
       .reverse()
-      .toString("hex")}`
+      .toPrefixedString()
 
     return utils.solidityKeccak256(
       ["bytes32", "uint32"],
@@ -378,16 +400,19 @@ export class Bridge implements ChainBridge {
    * @see {ChainBridge#activeWalletPublicKey}
    */
   async activeWalletPublicKey(): Promise<string | undefined> {
-    const activeWalletPubKeyHash = await this._bridge.activeWalletPubKeyHash()
+    const activeWalletPublicKeyHash =
+      await this._bridge.activeWalletPubKeyHash()
 
     if (
-      activeWalletPubKeyHash === "0x0000000000000000000000000000000000000000"
+      activeWalletPublicKeyHash === "0x0000000000000000000000000000000000000000"
     ) {
       // If there is no active wallet currently, return undefined.
       return undefined
     }
 
-    const { ecdsaWalletID } = await this._bridge.wallets(activeWalletPubKeyHash)
+    const { ecdsaWalletID } = await this._bridge.wallets(
+      activeWalletPublicKeyHash
+    )
 
     const walletRegistry = await this.walletRegistry()
     const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
@@ -402,7 +427,7 @@ export class Bridge implements ChainBridge {
 
     return new WalletRegistry({
       address: ecdsaWalletRegistry,
-      signer: this._bridge.signer,
+      signerOrProvider: this._bridge.signer,
     })
   }
 }
@@ -412,13 +437,17 @@ export class Bridge implements ChainBridge {
  */
 class WalletRegistry {
   private _walletRegistry: Contract
+  private _deployedAtBlockNumber: number
 
   constructor(config: ContractConfig) {
     this._walletRegistry = new Contract(
-      config.address,
+      config.address ?? utils.getAddress(WalletRegistryAddress),
       `${JSON.stringify(WalletRegistryABI)}`,
-      config.signer
+      config.signerOrProvider
     )
+
+    this._deployedAtBlockNumber =
+      config.deployedAtBlockNumber ?? WalletRegistryReceipt.blockNumber
   }
 
   /**

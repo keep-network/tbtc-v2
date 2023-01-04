@@ -65,7 +65,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         fee cut by the Bridge. The optimistic fee is a percentage AFTER
     ///         the treasury fee is cut:
     ///         `optimisticMintingFee = (depositAmount - treasuryFee) / optimisticMintingFeeDivisor`
-    uint32 public optimisticMintingFeeDivisor;
+    uint32 public optimisticMintingFeeDivisor = 500; // 1/500 = 0.002 = 0.2%
 
     /// @notice The time that needs to pass between the moment the optimistic
     ///         minting is requested and the moment optimistic minting is
