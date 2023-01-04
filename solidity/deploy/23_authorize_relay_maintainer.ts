@@ -18,3 +18,6 @@ export default func
 
 func.tags = ["AuthorizeLightRelayMaintainer"]
 func.dependencies = ["RetargetLightRelay"]
+
+func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
+  hre.network.name === "goerli"
