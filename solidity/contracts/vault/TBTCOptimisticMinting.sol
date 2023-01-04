@@ -334,13 +334,17 @@ abstract contract TBTCOptimisticMinting is Ownable {
         uint256 optimisticMintFee = optimisticMintingFeeDivisor > 0
             ? amountToMint / optimisticMintingFeeDivisor
             : 0;
-        amountToMint -= optimisticMintFee;
 
+        // Both the optimistic minting fee and the share that goes to the
+        // depositor are optimistically minted. All TBTC that is optimistically
+        // minted should be added to the optimistic minting debt. When the
+        // deposit is swept, it is paying off both the depositor's share and the
+        // treasury's share (optimistic minting fee).
         uint256 newDebt = optimisticMintingDebt[deposit.depositor] +
             amountToMint;
         optimisticMintingDebt[deposit.depositor] = newDebt;
 
-        _mint(deposit.depositor, amountToMint);
+        _mint(deposit.depositor, amountToMint - optimisticMintFee);
         if (optimisticMintFee > 0) {
             _mint(bridge.treasury(), optimisticMintFee);
         }
