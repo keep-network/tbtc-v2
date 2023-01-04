@@ -15,7 +15,6 @@ import {
 } from "../src/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import bcoin from "bcoin"
-import hash160 from "bcrypto/lib/hash160"
 import {
   assembleDepositScript,
   assembleDepositTransaction,
@@ -23,9 +22,7 @@ import {
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
   Deposit,
-  DepositRefundLocktimeDuration,
   DepositScriptParameters,
-  getDepositScriptParameters,
   getRevealedDeposit,
   revealDeposit,
   RevealedDeposit,
@@ -38,12 +35,20 @@ describe("Deposit", () => {
   const deposit: Deposit = {
     depositor: { identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637" },
     amount: BigNumber.from(10000), // 0.0001 BTC
-    walletPublicKey:
-      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-    refundPublicKey:
-      "0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
+    // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
+    walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+    // HASH160 of 0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9.
+    refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
     blindingFactor: "f9f0c90d00039523",
-    refundLocktime: calculateDepositRefundLocktime(1640181600),
+    refundLocktime: calculateDepositRefundLocktime(1640181600, 2592000),
+  }
+
+  const depositScriptParameters: DepositScriptParameters = {
+    depositor: deposit.depositor,
+    walletPublicKeyHash: deposit.walletPublicKeyHash,
+    refundPublicKeyHash: deposit.refundPublicKeyHash,
+    blindingFactor: deposit.blindingFactor,
+    refundLocktime: deposit.refundLocktime,
   }
 
   // All test scenarios using the deposit script within `Deposit` group
@@ -150,11 +155,7 @@ describe("Deposit", () => {
     // The first byte (0x14) before the public key is this byte length.
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(68, 70)).to.be.equal("14")
-    expect(script.substring(70, 110)).to.be.equal(
-      hash160
-        .digest(Buffer.from(deposit.walletPublicKey, "hex"))
-        .toString("hex")
-    )
+    expect(script.substring(70, 110)).to.be.equal(deposit.walletPublicKeyHash)
 
     // OP_EQUAL opcode is 0x87.
     expect(script.substring(110, 112)).to.be.equal("87")
@@ -178,11 +179,7 @@ describe("Deposit", () => {
     // The first byte (0x14) before the public key is this byte length.
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(122, 124)).to.be.equal("14")
-    expect(script.substring(124, 164)).to.be.equal(
-      hash160
-        .digest(Buffer.from(deposit.refundPublicKey, "hex"))
-        .toString("hex")
-    )
+    expect(script.substring(124, 164)).to.be.equal(deposit.refundPublicKeyHash)
 
     // OP_EQUALVERIFY opcode is 0x88.
     expect(script.substring(164, 166)).to.be.equal("88")
@@ -193,7 +190,7 @@ describe("Deposit", () => {
     expect(script.substring(166, 168)).to.be.equal("04")
     expect(script.substring(168, 176)).to.be.equal(
       Buffer.from(
-        BigNumber.from(1640181600 + DepositRefundLocktimeDuration)
+        BigNumber.from(1640181600 + 2592000)
           .toHexString()
           .substring(2),
         "hex"
@@ -318,14 +315,12 @@ describe("Deposit", () => {
       let transaction: RawTransaction
 
       beforeEach(async () => {
-        const depositScriptParameters = getDepositScriptParameters(deposit)
         ;({
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
         } = await assembleDepositTransaction(
-          depositScriptParameters,
-          deposit.amount,
+          deposit,
           [testnetUTXO],
           testnetPrivateKey,
           true
@@ -417,14 +412,12 @@ describe("Deposit", () => {
       let transaction: RawTransaction
 
       beforeEach(async () => {
-        const depositScriptParameters = getDepositScriptParameters(deposit)
         ;({
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
         } = await assembleDepositTransaction(
-          depositScriptParameters,
-          deposit.amount,
+          deposit,
           [testnetUTXO],
           testnetPrivateKey,
           false
@@ -513,10 +506,8 @@ describe("Deposit", () => {
 
   describe("assembleDepositScript", () => {
     let script: string
-    let depositScriptParameters: DepositScriptParameters
 
     beforeEach(async () => {
-      depositScriptParameters = getDepositScriptParameters(deposit)
       script = await assembleDepositScript(depositScriptParameters)
     })
 
@@ -529,7 +520,7 @@ describe("Deposit", () => {
     context("when the resulting locktime is lesser than 4 bytes", () => {
       it("should throw", () => {
         // This will result with 2592001 as the locktime which is a 3-byte number.
-        expect(() => calculateDepositRefundLocktime(1)).to.throw(
+        expect(() => calculateDepositRefundLocktime(1, 2592000)).to.throw(
           "Refund locktime must be a 4 bytes number"
         )
       })
@@ -538,9 +529,9 @@ describe("Deposit", () => {
     context("when the resulting locktime is greater than 4 bytes", () => {
       it("should throw", () => {
         // This will result with 259200144444 as the locktime which is a 5-byte number.
-        expect(() => calculateDepositRefundLocktime(259197552444)).to.throw(
-          "Refund locktime must be a 4 bytes number"
-        )
+        expect(() =>
+          calculateDepositRefundLocktime(259197552444, 2592000)
+        ).to.throw("Refund locktime must be a 4 bytes number")
       })
     })
 
@@ -548,7 +539,10 @@ describe("Deposit", () => {
       it("should compute a proper 4-byte little-endian locktime as un-prefixed hex string", () => {
         const depositCreatedAt = 1652776752
 
-        const refundLocktime = calculateDepositRefundLocktime(depositCreatedAt)
+        const refundLocktime = calculateDepositRefundLocktime(
+          depositCreatedAt,
+          2592000
+        )
 
         // The creation timestamp is 1652776752 and locktime duration 2592000 (30 days).
         // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
@@ -561,10 +555,8 @@ describe("Deposit", () => {
   describe("calculateDepositScriptHash", () => {
     context("when witness option is true", () => {
       let scriptHash: Buffer
-      let depositScriptParameters: DepositScriptParameters
 
       beforeEach(async () => {
-        depositScriptParameters = getDepositScriptParameters(deposit)
         scriptHash = await calculateDepositScriptHash(
           depositScriptParameters,
           true
@@ -587,10 +579,8 @@ describe("Deposit", () => {
 
     context("when witness option is false", () => {
       let scriptHash: Buffer
-      let depositScriptParameters: DepositScriptParameters
 
       beforeEach(async () => {
-        depositScriptParameters = getDepositScriptParameters(deposit)
         scriptHash = await calculateDepositScriptHash(
           depositScriptParameters,
           false
@@ -614,12 +604,10 @@ describe("Deposit", () => {
 
   describe("calculateDepositAddress", () => {
     let address: string
-    let depositScriptParameters: DepositScriptParameters
 
     context("when network is main", () => {
       context("when witness option is true", () => {
         beforeEach(async () => {
-          depositScriptParameters = getDepositScriptParameters(deposit)
           address = await calculateDepositAddress(
             depositScriptParameters,
             "main",
@@ -638,7 +626,6 @@ describe("Deposit", () => {
 
       context("when witness option is false", () => {
         beforeEach(async () => {
-          depositScriptParameters = getDepositScriptParameters(deposit)
           address = await calculateDepositAddress(
             depositScriptParameters,
             "main",
@@ -659,7 +646,6 @@ describe("Deposit", () => {
     context("when network is testnet", () => {
       context("when witness option is true", () => {
         beforeEach(async () => {
-          depositScriptParameters = getDepositScriptParameters(deposit)
           address = await calculateDepositAddress(
             depositScriptParameters,
             "testnet",
@@ -678,7 +664,6 @@ describe("Deposit", () => {
 
       context("when witness option is false", () => {
         beforeEach(async () => {
-          depositScriptParameters = getDepositScriptParameters(deposit)
           address = await calculateDepositAddress(
             depositScriptParameters,
             "testnet",
@@ -704,11 +689,9 @@ describe("Deposit", () => {
     let bridge: MockBridge
 
     beforeEach(async () => {
-      const depositScriptParameters = getDepositScriptParameters(deposit)
       // Create a deposit transaction.
       const result = await assembleDepositTransaction(
-        depositScriptParameters,
-        deposit.amount,
+        deposit,
         [testnetUTXO],
         testnetPrivateKey,
         true
@@ -749,10 +732,8 @@ describe("Deposit", () => {
 
     beforeEach(async () => {
       // Create a deposit transaction.
-      const depositScriptParameters = getDepositScriptParameters(deposit)
       ;({ depositUtxo } = await assembleDepositTransaction(
-        depositScriptParameters,
-        deposit.amount,
+        deposit,
         [testnetUTXO],
         testnetPrivateKey,
         true
