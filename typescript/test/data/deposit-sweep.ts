@@ -67,7 +67,7 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
           refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1641650400),
+          refundLocktime: calculateDepositRefundLocktime(1641650400, 2592000),
         },
       },
       {
@@ -96,7 +96,7 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
           refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1641650400),
+          refundLocktime: calculateDepositRefundLocktime(1641650400, 2592000),
         },
       },
     ],
@@ -156,7 +156,7 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
           refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1653302600),
+          refundLocktime: calculateDepositRefundLocktime(1653302600, 2592000),
         },
       },
     ],
@@ -209,7 +209,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
           refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1641650400),
+          refundLocktime: calculateDepositRefundLocktime(1641650400, 2592000),
         },
       },
       {
@@ -239,7 +239,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
           refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1641650400),
+          refundLocktime: calculateDepositRefundLocktime(1641650400, 2592000),
         },
       },
     ],
@@ -335,7 +335,7 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
           refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
           blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1653302600),
+          refundLocktime: calculateDepositRefundLocktime(1653302600, 2592000),
         },
       },
     ],
