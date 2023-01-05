@@ -1,7 +1,7 @@
 {
   "name": "@keep-network/tbtc-v2",
   "version": "1.0.0-dev",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "files": [
     "artifacts/",
     "build/contracts/",
