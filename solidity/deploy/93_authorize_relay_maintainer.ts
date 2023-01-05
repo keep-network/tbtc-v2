@@ -19,6 +19,6 @@ export default func
 func.tags = ["AuthorizeLightRelayMaintainer"]
 func.dependencies = ["RetargetLightRelay"]
 
-// Only deploy for mainnet.
+// Only execute for mainnet.
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
   hre.network.name !== "mainnet"

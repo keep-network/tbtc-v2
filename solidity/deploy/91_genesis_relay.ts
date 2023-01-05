@@ -30,6 +30,6 @@ export default func
 func.tags = ["GenesisLightRelay"]
 func.dependencies = ["LightRelay"]
 
-// Only deploy for mainnet.
+// Only execute for mainnet.
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
   hre.network.name !== "mainnet"
