@@ -1851,15 +1851,15 @@
   integrity sha512-KlpY9BbasyLvYXSS7dsJktgRChu/yjdFLOX8ldGA/pltLicCm/l0F4oqxL8wSws9XD12vq9x0B5qzPygVLB2TQ==
 
 "@keep-network/ecdsa@dapp-development-goerli":
-  version "2.0.0-dapp-dev-goerli.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0-dapp-dev-goerli.0.tgz#80ec2cec522206d6dbd3fcd44630abeb9a3eb077"
-  integrity sha512-bcOQPvvQ8cYwAn1guBYks3e+NiJ0HJSHtgjSAayLsHv2TDRTSfXJT8hbHgz1a6J7WoV51geR2k7PmEZMv6GMsA==
+  version "2.1.0-dapp-dev-goerli.0"
+  resolved "https://registry.npmjs.org/@keep-network/ecdsa/-/ecdsa-2.1.0-dapp-dev-goerli.0.tgz#933981ebdb5a3023f83384a00066ba42017a3785"
+  integrity sha512-gfxhCfyrbQGUdSiPson/zQYR863gShIQy2zgJ1BaJ/xOqtEoGqVFuUH44FqO24hS+snVczU+vH9VyAUAXUSiPg==
   dependencies:
-    "@keep-network/random-beacon" "2.0.0-dapp-dev-goerli.0"
-    "@keep-network/sortition-pools" "^2.0.0-pre.13"
+    "@keep-network/random-beacon" "2.1.0-dapp-dev-goerli.0"
+    "@keep-network/sortition-pools" "^2.0.0-pre.16"
     "@openzeppelin/contracts" "^4.6.0"
     "@openzeppelin/contracts-upgradeable" "^4.6.0"
-    "@threshold-network/solidity-contracts" "1.2.0-dapp-dev-goerli.0"
+    "@threshold-network/solidity-contracts" "1.2.2-dapp-dev-goerli.0"
 
 "@keep-network/hardhat-helpers@^0.6.0-pre.15":
   version "0.6.0-pre.17"
@@ -1884,7 +1884,7 @@
 
 "@keep-network/keep-core@^1.8.1-goerli.0":
   version "1.8.1-goerli.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.1-goerli.0.tgz#238485aab51902021d42357bf59695225002f0ab"
+  resolved "https://registry.npmjs.org/@keep-network/keep-core/-/keep-core-1.8.1-goerli.0.tgz#238485aab51902021d42357bf59695225002f0ab"
   integrity sha512-h3La/RqbyEZjBBPg8V+pcRFo3UpWZUF4CxWfXHZnUR4PnkZKnIDrTNFQPhpV2uYFZwrbJxTR9mzOq/DOAiXPwA==
   dependencies:
     "@openzeppelin/upgrades" "^2.7.2"
@@ -1900,15 +1900,15 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
 
-"@keep-network/random-beacon@2.0.0-dapp-dev-goerli.0", "@keep-network/random-beacon@dapp-development-goerli":
-  version "2.0.0-dapp-dev-goerli.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.0.0-dapp-dev-goerli.0.tgz#ff7d71bf41dbe097ada2a5bbd322d0a57c569301"
-  integrity sha512-XpfASiBBJBp+EhxgWiyzYRmFDkryt/D+cJDqVO9/O01DZ10OW1Hqat2ORyNQKQeKrQ1TWauTqUMSw/NSxqaDFQ==
+"@keep-network/random-beacon@2.1.0-dapp-dev-goerli.0", "@keep-network/random-beacon@dapp-development-goerli":
+  version "2.1.0-dapp-dev-goerli.0"
+  resolved "https://registry.npmjs.org/@keep-network/random-beacon/-/random-beacon-2.1.0-dapp-dev-goerli.0.tgz#04c20f4eab3933619f7dd19ec3d87d6a35ecd24c"
+  integrity sha512-BPRBCrZUKLbnclsmmXvpl4+LT0VngPCRnhQoRW4euVjemGcnf8DC95K0I5AndjSPdx8QIl+kShYsUscAOIMGzA==
   dependencies:
-    "@keep-network/sortition-pools" "^2.0.0-pre.13"
+    "@keep-network/sortition-pools" "^2.0.0-pre.16"
     "@openzeppelin/contracts" "^4.6.0"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
-    "@threshold-network/solidity-contracts" "1.2.0-dapp-dev-goerli.0"
+    "@threshold-network/solidity-contracts" "1.2.2-dapp-dev-goerli.0"
 
 "@keep-network/sortition-pools@1.2.0-dev.1":
   version "1.2.0-dev.1"
@@ -1917,10 +1917,10 @@
   dependencies:
     "@openzeppelin/contracts" "^2.4.0"
 
-"@keep-network/sortition-pools@^2.0.0-pre.13":
-  version "2.0.0-pre.13"
-  resolved "https://registry.yarnpkg.com/@keep-network/sortition-pools/-/sortition-pools-2.0.0-pre.13.tgz#80dbe8066ce378ae4242c3aef6864224477a9e41"
-  integrity sha512-+6VXCJyYT3+HApDExeySHjOgezg+umvdpm5lZXIUlhSx7xmbXSK/YwLXkdeWkGyVdyfwRO4ZXo1CbscbC0XGnA==
+"@keep-network/sortition-pools@^2.0.0-pre.16":
+  version "2.0.0"
+  resolved "https://registry.npmjs.org/@keep-network/sortition-pools/-/sortition-pools-2.0.0.tgz#04e29ec756d74e00d13505a3e2a7763b06d7a08d"
+  integrity sha512-82pDOKcDBvHBFblCt0ALVr6qC6mxk339ZqnCfYx1zIPaPhzkw1RKOv28AqPoqzhzcdqLIoPh8g9RS/M2Lplh1A==
   dependencies:
     "@openzeppelin/contracts" "^4.3.2"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
@@ -2088,7 +2088,7 @@
 
 "@openzeppelin/contracts-upgradeable@~4.5.2":
   version "4.5.2"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.5.2.tgz#90d9e47bacfd8693bfad0ac8a394645575528d05"
+  resolved "https://registry.npmjs.org/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.5.2.tgz#90d9e47bacfd8693bfad0ac8a394645575528d05"
   integrity sha512-xgWZYaPlrEOQo3cBj97Ufiuv79SPd8Brh4GcFYhPgb6WvAq4ppz8dWKL6h+jLAK01rUqMRp/TS9AdXgAeNvCLA==
 
 "@openzeppelin/contracts@^2.4.0":
@@ -2101,14 +2101,19 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.2.0.tgz#260d921d99356e48013d9d760caaa6cea35dc642"
   integrity sha512-LD4NnkKpHHSMo5z9MvFsG4g1xxZUDqV3A3Futu3nvyfs4wPwXxqOgMaxOoa2PeyGL2VNeSlbxT54enbQzGcgJQ==
 
-"@openzeppelin/contracts@^4.3.2", "@openzeppelin/contracts@^4.6.0":
+"@openzeppelin/contracts@^4.3.2":
+  version "4.8.0"
+  resolved "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.8.0.tgz#6854c37df205dd2c056bdfa1b853f5d732109109"
+  integrity sha512-AGuwhRRL+NaKx73WKRNzeCxOCOCxpaqF+kp8TJ89QzAipSwZy/NoflkWaL9bywXFRhIzXt8j38sfF7KBKCPWLw==
+
+"@openzeppelin/contracts@^4.6.0":
   version "4.6.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.6.0.tgz#c91cf64bc27f573836dba4122758b4743418c1b3"
   integrity sha512-8vi4d50NNya/bQqCmaVzvHNmwHvS0OBKb7HNtuNwEE3scXWrP31fKQoGxNMT+KbzmrNZzatE3QK5p2gFONI/hg==
 
 "@openzeppelin/contracts@~4.5.0":
   version "4.5.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.5.0.tgz#3fd75d57de172b3743cdfc1206883f56430409cc"
+  resolved "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.5.0.tgz#3fd75d57de172b3743cdfc1206883f56430409cc"
   integrity sha512-fdkzKPYMjrRiPK6K4y64e6GzULR7R7RwxSigHS8DDp7aWDeoReqsQI+cxHV1UuhAqX69L1lAaWDxenfP+xiqzA==
 
 "@openzeppelin/hardhat-upgrades@^1.20.0":
@@ -2451,10 +2456,10 @@
   dependencies:
     "@openzeppelin/contracts" "^4.1.0"
 
-"@threshold-network/solidity-contracts@1.2.0-dapp-dev-goerli.0":
-  version "1.2.0-dapp-dev-goerli.0"
-  resolved "https://registry.yarnpkg.com/@threshold-network/solidity-contracts/-/solidity-contracts-1.2.0-dapp-dev-goerli.0.tgz#93d2e6c1c2dc9c076d21cd40166159c551b91791"
-  integrity sha512-L2hcprPQQwkp/3hq+aN+huxhrY6KDtUtI8EWyv8WASGC5rybvbnnVg2YMGydSPvcCNBDJ08zSHQ5gYBHJZ6RCg==
+"@threshold-network/solidity-contracts@1.2.2-dapp-dev-goerli.0":
+  version "1.2.2-dapp-dev-goerli.0"
+  resolved "https://registry.npmjs.org/@threshold-network/solidity-contracts/-/solidity-contracts-1.2.2-dapp-dev-goerli.0.tgz#0a975e59a951af6d98964d48a639af8c5bccccf6"
+  integrity sha512-70/oGQX9z185Jw2zZnZMs9HoIUxSksXnx7HFgaWjBg4VkvOyP8QcH+dZWDBNZ+l9Qp+1VO5EROa+p+40g9TZrw==
   dependencies:
     "@keep-network/keep-core" "^1.8.1-goerli.0"
     "@openzeppelin/contracts" "~4.5.0"
