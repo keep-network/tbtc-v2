@@ -1851,17 +1851,17 @@
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
 "@keep-network/tbtc-v2@dapp-development-goerli":
-  version "0.1.1-dapp-dev-goerli.0"
-  resolved "https://registry.npmjs.org/@keep-network/tbtc-v2/-/tbtc-v2-0.1.1-dapp-dev-goerli.0.tgz#75117991d57d46ec02b30e6fed9252fcc3305aea"
-  integrity sha512-S80jU3lESXeReCQ9UviSAXgJ63xHYFEq8rHoXPKsVBrlNqqSs7xzMBNFfF9TOF2iS6Qu8VtpWVmo0/HjHe4xJg==
+  version "0.1.1-dapp-dev-goerli.1"
+  resolved "https://registry.npmjs.org/@keep-network/tbtc-v2/-/tbtc-v2-0.1.1-dapp-dev-goerli.1.tgz#198bde9e6fa4dd1bee44510fad707a1c2e0a8f1e"
+  integrity sha512-6w/5wKZ/FixsFnLRe+Kp+wR/B4PepBOZdt2eB4++rvj/cYrxSzrg2h0b6B3aslZWh6/13qXHAi9sfCJBIizZOA==
   dependencies:
     "@keep-network/bitcoin-spv-sol" "3.4.0-solc-0.8"
-    "@keep-network/ecdsa" "2.0.0-dapp-dev-goerli.2"
-    "@keep-network/random-beacon" "2.0.0-dapp-dev-goerli.1"
+    "@keep-network/ecdsa" "2.1.0-dapp-dev-goerli.0"
+    "@keep-network/random-beacon" "2.1.0-dapp-dev-goerli.0"
     "@keep-network/tbtc" "^1.1.2-goerli.0"
     "@openzeppelin/contracts" "^4.6.0"
     "@openzeppelin/contracts-upgradeable" "^4.6.0"
-    "@tenderly/hardhat-tenderly" "^1.0.12"
+    "@tenderly/hardhat-tenderly" ">=1.0.12 <1.2.0"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
 "@keep-network/tbtc@^1.1.2-goerli.0":
@@ -2542,6 +2542,15 @@
   integrity sha512-XIB2XbzHTN6ieIjfIMV9hlVcfPU26s2vafYWQcZHWXHOxiaRZYEDKEwdl129Zyg50+foYV2jCgtrqSA6qNuNSA==
   dependencies:
     defer-to-connect "^1.0.1"
+
+"@tenderly/hardhat-tenderly@>=1.0.12 <1.1.0":
+  version "1.0.15"
+  resolved "https://registry.npmjs.org/@tenderly/hardhat-tenderly/-/hardhat-tenderly-1.0.15.tgz#6982e4d17641b235c0aea3746253d468c7d98454"
+  integrity sha512-zkv+VC/6jx/qCJQ0/IhvP7giumi/gE9gftLUJwaLLbvmWImnM2FS4yGkmVy/NAR1nRA5ucMNQ9laZIXr82pVLQ==
+  dependencies:
+    axios "^0.21.1"
+    fs-extra "^9.0.1"
+    js-yaml "^3.14.0"
 
 "@tenderly/hardhat-tenderly@>=1.0.12 <1.2.0":
   version "1.1.6"
