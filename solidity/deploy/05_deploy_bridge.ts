@@ -8,12 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const Bank = await deployments.get("Bank")
   const LightRelay = await deployments.get("LightRelay")
-
-  // TODO: Test for mainnet deployment that when `WalletRegistry` is provided
-  // in `external/mainnet/` directory it gets resolved correctly, and the deployment
-  // script from `@keep-network/ecdsa` is not invoked once again.
   const WalletRegistry = await deployments.get("WalletRegistry")
-
   const ReimbursementPool = await deployments.get("ReimbursementPool")
 
   // For local tests use `1`.
@@ -39,39 +34,50 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const Fraud = await deploy("Fraud", deployOptions)
   const MovingFunds = await deploy("MovingFunds", deployOptions)
 
-  const [bridge] = await helpers.upgrades.deployProxy("Bridge", {
-    contractName:
-      process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
-    initializerArgs: [
-      Bank.address,
-      LightRelay.address,
-      treasury,
-      WalletRegistry.address,
-      ReimbursementPool.address,
-      txProofDifficultyFactor,
-    ],
-    factoryOpts: {
-      signer: await ethers.getSigner(deployer),
-      libraries: {
-        Deposit: Deposit.address,
-        DepositSweep: DepositSweep.address,
-        Redemption: Redemption.address,
-        Wallets: Wallets.address,
-        Fraud: Fraud.address,
-        MovingFunds: MovingFunds.address,
+  const [bridge, proxyDeployment] = await helpers.upgrades.deployProxy(
+    "Bridge",
+    {
+      contractName:
+        process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
+      initializerArgs: [
+        Bank.address,
+        LightRelay.address,
+        treasury,
+        WalletRegistry.address,
+        ReimbursementPool.address,
+        txProofDifficultyFactor,
+      ],
+      factoryOpts: {
+        signer: await ethers.getSigner(deployer),
+        libraries: {
+          Deposit: Deposit.address,
+          DepositSweep: DepositSweep.address,
+          Redemption: Redemption.address,
+          Wallets: Wallets.address,
+          Fraud: Fraud.address,
+          MovingFunds: MovingFunds.address,
+        },
       },
-    },
-    proxyOpts: {
-      kind: "transparent",
-      // Allow external libraries linking. We need to ensure manually that the
-      // external  libraries we link are upgrade safe, as the OpenZeppelin plugin
-      // doesn't perform such a validation yet.
-      // See: https://docs.openzeppelin.com/upgrades-plugins/1.x/faq#why-cant-i-use-external-libraries
-      unsafeAllow: ["external-library-linking"],
-    },
-  })
+      proxyOpts: {
+        kind: "transparent",
+        // Allow external libraries linking. We need to ensure manually that the
+        // external  libraries we link are upgrade safe, as the OpenZeppelin plugin
+        // doesn't perform such a validation yet.
+        // See: https://docs.openzeppelin.com/upgrades-plugins/1.x/faq#why-cant-i-use-external-libraries
+        unsafeAllow: ["external-library-linking"],
+      },
+    }
+  )
 
-  // TODO: Take proxyDeployment and use it for Etherscan verification.
+  if (hre.network.tags.etherscan) {
+    // We use `verify` instead of `verify:verify` as the `verify` task is defined
+    // in "@openzeppelin/hardhat-upgrades" to perform Etherscan verification
+    // of Proxy and Implementation contracts.
+    await hre.run("verify", {
+      address: proxyDeployment.address,
+      constructorArgsParams: proxyDeployment.args,
+    })
+  }
 
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
