@@ -30,5 +30,6 @@ export default func
 func.tags = ["GenesisLightRelay"]
 func.dependencies = ["LightRelay"]
 
+// Skip for Goerli.
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
   hre.network.name === "goerli"
