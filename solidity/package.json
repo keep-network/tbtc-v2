@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2",
-  "version": "0.1.1-dev",
+  "version": "1.0.0-dev",
   "license": "MIT",
   "files": [
     "artifacts/",
