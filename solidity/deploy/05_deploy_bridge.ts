@@ -90,4 +90,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["Bridge"]
-func.dependencies = ["Bank", "LightRelay", "Treasury", "WalletRegistry"]
+func.dependencies = [
+  "Bank",
+  "LightRelay",
+  "Treasury",
+  "WalletRegistry",
+  "ReimbursementPool",
+]
