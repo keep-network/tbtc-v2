@@ -182,11 +182,12 @@ export interface TBTCVault {
    * @param depositTxHash The revealed deposit transaction's hash.
    * @param depositOutputIndex Index of the deposit transaction output that
    *        funds the revealed deposit.
+   * @returns Transaction hash of the optimistic mint request transaction as string.
    */
   requestOptimisticMint(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
-  ): Promise<void>
+  ): Promise<string>
 
   /**
    * Gets optimistic minting request for a deposit.

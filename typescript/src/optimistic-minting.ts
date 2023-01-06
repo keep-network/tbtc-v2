@@ -22,14 +22,18 @@ export type OptimisticMintingRequest = {
  * @param depositOutputIndex Index of the deposit transaction output that
  *        funds the revealed deposit.
  * @param tbtcVault Handle to the TBTCVault on-chain contract
- * @returns Empty promise
+ * @returns Transaction hash of the optimistic mint request transaction as string.
  */
 export async function requestOptimisticMint(
   depositTxHash: TransactionHash,
   depositOutputIndex: number,
   tbtcVault: TBTCVault
-): Promise<void> {
-  await tbtcVault.requestOptimisticMint(depositTxHash, depositOutputIndex)
+): Promise<string> {
+  return await tbtcVault.requestOptimisticMint(
+    depositTxHash,
+    depositOutputIndex
+  )
+}
 }
 
 /**

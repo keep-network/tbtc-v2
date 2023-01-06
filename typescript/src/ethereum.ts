@@ -597,9 +597,14 @@ export class TBTCVault extends EthereumContract implements ChainTBTCVault {
   async requestOptimisticMint(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
-  ): Promise<void> {
-    await this._instance.requestOptimisticMint(
-      depositTxHash,
+  ): Promise<string> {
+    const tx = await this._instance.requestOptimisticMint(
+      depositTxHash.toPrefixedString(),
+      depositOutputIndex
+    )
+
+    return tx.hash
+  }
       depositOutputIndex
     )
   }
