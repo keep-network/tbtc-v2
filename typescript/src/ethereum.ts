@@ -92,7 +92,7 @@ export interface ContractConfig {
 /**
  * Deployed Ethereum contract
  */
-class EthereumContract<T> {
+class EthereumContract<T extends EthersContract> {
   /**
    * Ethers instance of the deployed contract.
    */
