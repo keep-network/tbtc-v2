@@ -189,8 +189,8 @@ export class Bridge extends EthereumContract implements ChainBridge {
         depositor: new Address(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
         blindingFactor: event.args!.blindingFactor,
-        walletPubKeyHash: event.args!.walletPubKeyHash,
-        refundPubKeyHash: event.args!.refundPubKeyHash,
+        walletPublicKeyHash: event.args!.walletPubKeyHash,
+        refundPublicKeyHash: event.args!.refundPubKeyHash,
         refundLocktime: event.args!.refundLocktime,
         vault:
           event.args!.vault === constants.AddressZero
