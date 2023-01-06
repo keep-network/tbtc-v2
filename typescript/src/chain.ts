@@ -168,6 +168,15 @@ export interface Bridge {
  */
 export interface TBTCVault {
   /**
+   * Gets optimistic minting delay.
+   *
+   * The time that needs to pass between the moment the optimistic minting is
+   * requested and the moment optimistic minting is finalized with minting TBTC.
+   * @returns Optimistic Minting Delay in seconds.
+   */
+  optimisticMintingDelay(): Promise<number>
+
+  /**
    * Requests optimistic minting for a deposit in an on-chain contract.
    *
    * @param depositTxHash The revealed deposit transaction's hash.

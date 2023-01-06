@@ -582,6 +582,16 @@ export class TBTCVault extends EthereumContract implements ChainTBTCVault {
 
   // eslint-disable-next-line valid-jsdoc
   /**
+   * @see {ChainTBTCVault#optimisticMintingDelay}
+   */
+  async optimisticMintingDelay(): Promise<number> {
+    const delaySeconds = await this._instance.optimisticMintingDelay()
+
+    return BigNumber.from(delaySeconds).toNumber()
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
    * @see {ChainTBTCVault#requestOptimisticMint}
    */
   async requestOptimisticMint(
