@@ -385,7 +385,7 @@ export class Bridge extends EthereumContract implements ChainBridge {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<RevealedDeposit> {
-    const depositKey = this.buildDepositKey(depositTxHash, depositOutputIndex)
+    const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
 
     const deposit = await this._instance.deposits(depositKey)
 
@@ -399,7 +399,7 @@ export class Bridge extends EthereumContract implements ChainBridge {
    *        funds the revealed deposit.
    * @returns Revealed deposit data.
    */
-  private buildDepositKey(
+  static buildDepositKey(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): string {
