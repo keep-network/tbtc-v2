@@ -23,15 +23,15 @@ export interface Identifier {
  */
 export interface Event {
   /**
-   * Ethereum block number of the event emission.
+   * Block number of the event emission.
    */
   blockNumber: number
   /**
-   * Ethereum block hahs of the event emission.
+   * Block hash of the event emission.
    */
   blockHash: string
   /**
-   * Ethereum transaction hash within which the event was emitted.
+   * Transaction hash within which the event was emitted.
    */
   transactionHash: string
 }
