@@ -190,6 +190,32 @@ export interface TBTCVault {
   ): Promise<string>
 
   /**
+   * Cancels optimistic minting for a deposit in an on-chain contract.
+   *
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @returns Transaction hash of the optimistic mint cancel transaction as string.
+   */
+  cancelOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<string>
+
+  /**
+   * Finalizes optimistic minting for a deposit in an on-chain contract.
+   *
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @returns Transaction hash of the optimistic mint finalize transaction as string.
+   */
+  finalizeOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<string>
+
+  /**
    * Gets optimistic minting request for a deposit.
    * @param depositTxHash The revealed deposit transaction's hash.
    * @param depositOutputIndex Index of the deposit transaction output that

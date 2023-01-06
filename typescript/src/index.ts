@@ -15,6 +15,8 @@ import { Bridge as EthereumBridge } from "./ethereum"
 import { TBTCVault as EthereumTBTCVault } from "./ethereum"
 import {
   requestOptimisticMint,
+  cancelOptimisticMint,
+  finalizeOptimisticMint,
   getOptimisticMintingRequest,
 } from "./optimistic-minting"
 
@@ -26,6 +28,8 @@ const TBTC = {
   requestRedemption,
   getRedemptionRequest,
   requestOptimisticMint,
+  cancelOptimisticMint,
+  finalizeOptimisticMint,
   getOptimisticMintingRequest,
 }
 

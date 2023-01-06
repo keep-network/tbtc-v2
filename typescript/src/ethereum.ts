@@ -605,8 +605,37 @@ export class TBTCVault extends EthereumContract implements ChainTBTCVault {
 
     return tx.hash
   }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#cancelOptimisticMint}
+   */
+  async cancelOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<string> {
+    const tx = await this._instance.cancelOptimisticMint(
+      depositTxHash.toPrefixedString(),
       depositOutputIndex
     )
+
+    return tx.hash
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#finalizeOptimisticMint}
+   */
+  async finalizeOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<string> {
+    const tx = await this._instance.finalizeOptimisticMint(
+      depositTxHash.toPrefixedString(),
+      depositOutputIndex
+    )
+
+    return tx.hash
   }
 
   // eslint-disable-next-line valid-jsdoc
