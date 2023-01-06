@@ -1,23 +1,7 @@
 node_modules/
 *.DS_Store
 
-artifacts/
-build/
-cache/
-deployments/
-export/
-export.json
-
-typechain/
 dist/
-external/
+
 .vscode/
 .envrc
-
-*/.hardhat/*
-!*/.hardhat/networks_TEMPLATE.ts
-
-solidity/contracts/hardhat-dependency-compiler/
-
-# OpenZeppelin
-solidity/.openzeppelin/unknown-*.json
