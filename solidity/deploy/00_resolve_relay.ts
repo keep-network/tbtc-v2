@@ -21,10 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Temporarily for system tests, that run on `localhost` network we deploy
     // a `TestRelay` contract, until the relay maintainer is ready.
     await deployments.deploy("LightRelay", {
-      contract:
-        hre.network.name === "goerli" || hre.network.name === "localhost"
-          ? "TestRelay"
-          : "LightRelay",
+      contract: hre.network.name !== "mainnet" ? "TestRelay" : "LightRelay",
       from: deployer,
       log: true,
       waitConfirmations: 1,
