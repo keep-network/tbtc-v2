@@ -52,7 +52,6 @@ describe("System Test - Deposit and redemption", () => {
   let maintainerBridgeHandle: EthereumBridge
   let depositorBridgeHandle: EthereumBridge
   let bank: Contract
-  let tbtcVault: Contract
   let relay: Contract
 
   const depositAmount = BigNumber.from(2000000)
@@ -88,13 +87,6 @@ describe("System Test - Deposit and redemption", () => {
       maintainer
     )
 
-    const tbtcVaultDeploymentInfo = deployedContracts.TBTCVault
-    tbtcVault = new Contract(
-      tbtcVaultDeploymentInfo.address,
-      tbtcVaultDeploymentInfo.abi,
-      maintainer
-    )
-
     const relayDeploymentInfo = deployedContracts.LightRelay
     relay = new Contract(
       relayDeploymentInfo.address,
@@ -108,8 +100,7 @@ describe("System Test - Deposit and redemption", () => {
       deposit = generateDeposit(
         systemTestsContext.depositor.address,
         depositAmount,
-        systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
-        tbtcVault.address
+        systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
       )
 
       console.log(`
