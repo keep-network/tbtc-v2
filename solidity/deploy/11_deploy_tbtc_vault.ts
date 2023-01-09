@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
+  const { deployments, getNamedAccounts, helpers } = hre
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const TBTC = await deployments.get("TBTC")
   const Bridge = await deployments.get("Bridge")
 
-  const TBTCVault = await deploy("TBTCVault", {
+  const tbtcVault = await deploy("TBTCVault", {
     contract: "TBTCVault",
     from: deployer,
     args: [Bank.address, TBTC.address, Bridge.address],
@@ -18,10 +18,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     waitConfirmations: 1,
   })
 
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(tbtcVault)
+  }
+
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
       name: "TBTCVault",
-      address: TBTCVault.address,
+      address: tbtcVault.address,
     })
   }
 }
