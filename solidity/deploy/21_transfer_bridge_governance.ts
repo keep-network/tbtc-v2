@@ -18,5 +18,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["TransferBridgeGovernance"]
-func.dependencies = ["Bridge"]
+func.dependencies = [
+  "Bridge",
+  "AuthorizeTBTCVault",
+  "AuthorizeMaintainerProxyInBridge",
+  "SetDepositParameters",
+  "SetWalletParameters",
+  "DisableFraudChallenges",
+  "DisableRedemptions",
+  "DisableMovingFunds",
+  "AuthorizeSpvMaintainer",
+]
 func.runAtTheEnd = true
