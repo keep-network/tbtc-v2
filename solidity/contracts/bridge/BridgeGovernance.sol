@@ -31,12 +31,14 @@ contract BridgeGovernance is Ownable {
     using BridgeGovernanceParameters for BridgeGovernanceParameters.MovingFundsData;
     using BridgeGovernanceParameters for BridgeGovernanceParameters.WalletData;
     using BridgeGovernanceParameters for BridgeGovernanceParameters.FraudData;
+    using BridgeGovernanceParameters for BridgeGovernanceParameters.TreasuryData;
 
     BridgeGovernanceParameters.DepositData internal depositData;
     BridgeGovernanceParameters.RedemptionData internal redemptionData;
     BridgeGovernanceParameters.MovingFundsData internal movingFundsData;
     BridgeGovernanceParameters.WalletData internal walletData;
     BridgeGovernanceParameters.FraudData internal fraudData;
+    BridgeGovernanceParameters.TreasuryData internal treasuryData;
 
     Bridge internal bridge;
 
@@ -282,6 +284,9 @@ contract BridgeGovernance is Ownable {
     event FraudNotifierRewardMultiplierUpdated(
         uint32 fraudNotifierRewardMultiplier
     );
+
+    event TreasuryUpdateStarted(address newTreasury, uint256 timestamp);
+    event TreasuryUpdated(address treasury);
 
     constructor(Bridge _bridge, uint256 _governanceDelay) {
         bridge = _bridge;
@@ -1717,6 +1722,23 @@ contract BridgeGovernance is Ownable {
         fraudData.finalizeFraudNotifierRewardMultiplierUpdate(
             governanceDelay()
         );
+    }
+
+    /// @notice Begins the treasury address update process.
+    /// @dev Can be called only by the contract owner. It does not perform
+    ///      any parameter validation.
+    /// @param _newTreasury New treasury address.
+    function beginTreasuryUpdate(address _newTreasury) external onlyOwner {
+        treasuryData.beginTreasuryUpdate(_newTreasury);
+    }
+
+    /// @notice Finalizes the treasury address update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeTreasuryUpdate() external onlyOwner {
+        address newTreasury = treasuryData.newTreasury;
+        treasuryData.finalizeTreasuryUpdate(governanceDelay());
+        bridge.updateTreasury(newTreasury);
     }
 
     /// @notice Gets the governance delay parameter.
