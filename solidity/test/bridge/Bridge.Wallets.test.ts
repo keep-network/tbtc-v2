@@ -4,8 +4,13 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import chai, { expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
-import { ContractTransaction } from "ethers"
-import type { Bridge, BridgeStub, IWalletRegistry } from "../../typechain"
+import { ContractTransaction, Signer } from "ethers"
+import type {
+  Bridge,
+  BridgeGovernance,
+  BridgeStub,
+  IWalletRegistry,
+} from "../../typechain"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 import { ecdsaWalletTestData } from "../data/ecdsa"
 import { constants, ecdsaDkgState, walletState } from "../fixtures"
@@ -17,16 +22,17 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { lastBlockTime, increaseTime } = helpers.time
 
 describe("Bridge - Wallets", () => {
+  let governance: SignerWithAddress
   let thirdParty: SignerWithAddress
 
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: Bridge & BridgeStub
+  let bridgeGovernance: BridgeGovernance
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ thirdParty, walletRegistry, bridge } = await waffle.loadFixture(
-      bridgeFixture
-    ))
+    ;({ governance, thirdParty, walletRegistry, bridge, bridgeGovernance } =
+      await waffle.loadFixture(bridgeFixture))
   })
 
   describe("requestNewWallet", () => {
@@ -315,22 +321,83 @@ describe("Bridge - Wallets", () => {
           })
 
           context("when active wallet has no main UTXO set", () => {
-            before(async () => {
-              await createSnapshot()
-            })
+            context(
+              "when the minimum BTC balance threshold is non-zero",
+              () => {
+                before(async () => {
+                  await createSnapshot()
+                })
 
-            after(async () => {
-              await restoreSnapshot()
-            })
+                after(async () => {
+                  await restoreSnapshot()
+                })
 
-            // If the wallet has 0 BTC, the function must revert.
-            // This is because the active wallet's balance must be above the
-            // minimum BTC balance threshold and that threshold is guaranteed
-            // to be always greater than zero.
-            it("should revert", async () => {
-              await expect(
-                bridge.requestNewWallet(NO_MAIN_UTXO)
-              ).to.be.revertedWith("Wallet creation conditions are not met")
+                it("should revert", async () => {
+                  await expect(
+                    bridge.requestNewWallet(NO_MAIN_UTXO)
+                  ).to.be.revertedWith("Wallet creation conditions are not met")
+                })
+              }
+            )
+
+            context(
+              "when the minimum BTC balance threshold is non-zero",
+              () => {
+                before(async () => {
+                  await createSnapshot()
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  await expect(
+                    bridge.requestNewWallet(NO_MAIN_UTXO)
+                  ).to.be.revertedWith("Wallet creation conditions are not met")
+                })
+              }
+            )
+
+            context("when the minimum BTC balance threshold is zero", () => {
+              context("when wallet creation conditions are met", () => {
+                let tx: ContractTransaction
+
+                before(async () => {
+                  await createSnapshot()
+
+                  // Set the minimum BTC balance to zero.
+                  await bridgeGovernance
+                    .connect(governance)
+                    .beginWalletCreationMinBtcBalanceUpdate(0)
+                  await helpers.time.increaseTime(constants.governanceDelay)
+                  await bridgeGovernance
+                    .connect(governance)
+                    .finalizeWalletCreationMinBtcBalanceUpdate()
+
+                  // Make the wallet old enough. Be absolutely sure - it is
+                  // possible that after the governance delay passed, the wallet
+                  // is already old enough.
+                  await increaseTime(constants.walletCreationPeriod)
+
+                  tx = await bridge.requestNewWallet(NO_MAIN_UTXO)
+                })
+
+                after(async () => {
+                  walletRegistry.requestNewWallet.reset()
+
+                  await restoreSnapshot()
+                })
+
+                it("should emit NewWalletRequested event", async () => {
+                  await expect(tx).to.emit(bridge, "NewWalletRequested")
+                })
+
+                it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
+                  await expect(walletRegistry.requestNewWallet).to.have.been
+                    .calledOnce
+                })
+              })
             })
           })
         })
