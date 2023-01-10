@@ -168,21 +168,22 @@ const config: HardhatUserConfig = {
       default: 1,
       goerli: 0,
     },
-    // TODO: Governance should be the Threshold Council.
-    //       Inspect usages and rename.
     governance: {
       default: 2,
       goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
+      mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f", // Threshold Council
     },
     chaosnetOwner: {
       default: 3,
       goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
-      // mainnet: ""
+      // Not used for mainnet deployment scripts of `@keepn-network/tbtc-v2`.
+      // Used by `@keep-network/random-beacon` and `@keep-network/ecdsa`
+      // when deploying `SortitionPool`s.
     },
     esdm: {
       default: 4,
       goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
-      // mainnet: ""
+      mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f", // Threshold Council
     },
     keepTechnicalWalletTeam: {
       default: 5,
@@ -197,10 +198,12 @@ const config: HardhatUserConfig = {
     treasury: {
       default: 7,
       goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
+      mainnet: "0x87F005317692D05BAA4193AB0c961c69e175f45f", // Token Holder DAO
     },
     spvMaintainer: {
       default: 8,
       goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
+      // We are not setting SPV maintainer for mainnet in deployment scripts.
     },
   },
   dependencyCompiler: {
