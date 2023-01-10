@@ -8,7 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const bank = await deploy("Bank", {
     contract:
-      process.env.TEST_USE_STUBS_TBTC === "true" ? "BankStub" : undefined,
+      process.env.TEST_USE_STUBS_TBTC === "true" ? "BankStub" : "Bank",
     from: deployer,
     args: [],
     log: true,
