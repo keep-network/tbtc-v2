@@ -4329,7 +4329,7 @@ describe("Bridge - Governance", () => {
     )
   })
 
-  describe("beingTreasuryUpdate", () => {
+  describe("beginTreasuryUpdate", () => {
     const newTreasury = "0x8A71228c19A3531384FC203F56290D3aF01B16bD"
 
     context("when the caller is not the owner", () => {
