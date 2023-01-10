@@ -1,0 +1,16 @@
+# Hardhat
+/build/
+/cache/
+/export/
+/external/npm/
+/contracts/hardhat-dependency-compiler/
+/typechain/
+/export.json
+
+# Contract artifacts
+/artifacts/
+/deployments/*
+!/deployments/mainnet/
+
+# OpenZeppelin
+/.openzeppelin/unknown-*.json

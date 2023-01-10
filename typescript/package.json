@@ -11,11 +11,15 @@
     "lint:fix": "eslint . --ext .js,.ts --fix",
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
     "build": "tsc --project tsconfig.build.json",
-    "postinstall": "npm rebuild"
+    "postinstall": "npm rebuild && npm run typechain",
+    "typechain": "rm -rf ./typechain && for i in $npm_package_config_contracts; do typechain --target ethers-v5 --out-dir ./typechain $i; done && rm ./typechain/index.ts"
   },
   "files": [
     "dist/**/*"
   ],
+  "config": {
+    "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault}.json"
+  },
   "dependencies": {
     "@keep-network/ecdsa": "development",
     "@keep-network/tbtc-v2": "development",
@@ -27,7 +31,9 @@
     "wif": "2.0.6"
   },
   "devDependencies": {
+    "@ethersproject/providers": "^5.7.2",
     "@keep-network/prettier-config-keep": "github:keep-network/prettier-config-keep",
+    "@typechain/ethers-v5": "^10.2.0",
     "@types/chai": "^4.2.21",
     "@types/chai-as-promised": "^7.1.4",
     "@types/mocha": "^8.2.3",
@@ -42,6 +48,7 @@
     "mocha": "^9.0.2",
     "prettier": "^2.3.2",
     "ts-node": "^10.1.0",
+    "typechain": "^8.1.1",
     "typescript": "^4.3.5"
   },
   "engines": {

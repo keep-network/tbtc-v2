@@ -35,6 +35,9 @@ import type {
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
 
+import type { Bridge as ContractBridge } from "../typechain/Bridge"
+import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
+
 /**
  * Contract deployment artifact.
  * @see [hardhat-deploy#Deployment](https://github.com/wighawag/hardhat-deploy/blob/0c969e9a27b4eeff9f5ccac7e19721ef2329eed2/types.ts#L358)}
@@ -104,11 +107,11 @@ export interface ContractConfig {
 /**
  * Deployed Ethereum contract
  */
-class EthereumContract {
+class EthereumContract<T extends EthersContract> {
   /**
    * Ethers instance of the deployed contract.
    */
-  protected readonly _instance: EthersContract
+  protected readonly _instance: T
   /**
    * Number of a block within which the contract was deployed. Value is read from
    * the contract deployment artifact. It can be overwritten by setting a
@@ -125,7 +128,7 @@ class EthereumContract {
       config.address ?? utils.getAddress(deployment.address),
       `${JSON.stringify(deployment.abi)}`,
       config.signerOrProvider
-    )
+    ) as T
 
     this._deployedAtBlockNumber =
       config.deployedAtBlockNumber ?? deployment.receipt.blockNumber
@@ -161,7 +164,10 @@ class EthereumContract {
  * Implementation of the Ethereum Bridge handle.
  * @see {ChainBridge} for reference.
  */
-export class Bridge extends EthereumContract implements ChainBridge {
+export class Bridge
+  extends EthereumContract<ContractBridge>
+  implements ChainBridge
+{
   constructor(config: ContractConfig) {
     super(config, BridgeDeployment)
   }
@@ -555,7 +561,7 @@ export class Bridge extends EthereumContract implements ChainBridge {
 /**
  * Implementation of the Ethereum WalletRegistry handle.
  */
-class WalletRegistry extends EthereumContract {
+class WalletRegistry extends EthereumContract<ContractWalletRegistry> {
   constructor(config: ContractConfig) {
     super(config, WalletRegistryDeployment)
   }

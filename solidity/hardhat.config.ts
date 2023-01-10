@@ -172,35 +172,35 @@ const config: HardhatUserConfig = {
     //       Inspect usages and rename.
     governance: {
       default: 2,
-      goerli: 0,
+      goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
     },
     chaosnetOwner: {
       default: 3,
-      goerli: 0,
+      goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
       // mainnet: ""
     },
     esdm: {
       default: 4,
-      goerli: 0,
+      goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
       // mainnet: ""
     },
     keepTechnicalWalletTeam: {
       default: 5,
-      goerli: 0,
+      goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
       default: 6,
-      goerli: 0,
+      goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
     treasury: {
       default: 7,
-      goerli: 0,
+      goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
     },
     spvMaintainer: {
       default: 8,
-      goerli: 0,
+      goerli: "0xCac19049825F370dB0836cB0d8E4D024F78eb2eB", // Dev team
     },
   },
   dependencyCompiler: {
