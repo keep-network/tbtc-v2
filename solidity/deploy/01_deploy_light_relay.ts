@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // deployed for goerli.
   // TestRelay is a stub version with mutable difficulties and is deployed for
   // hardhat.
-  function resolveRelayName() {
+  function resolveRelayContract() {
     if (hre.network.name === "mainnet") {
       return "LightRelay"
     }
@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   const lightRelay = await deployments.deploy("LightRelay", {
-    contract: resolveRelayName(),
+    contract: resolveRelayContract(),
     from: deployer,
     log: true,
     waitConfirmations: 1,
