@@ -12,5 +12,5 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "test", "typings.d.ts"]
+  "include": ["src", "test", "typechain", "typings.d.ts"]
 }

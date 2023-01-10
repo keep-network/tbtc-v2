@@ -178,11 +178,11 @@ export class Client implements BitcoinClient {
     return this.withElectrum<RawTransaction>(async (electrum: any) => {
       const transaction = await electrum.blockchain_transaction_get(
         transactionHash.toString(),
-        true
+        false
       )
 
       return {
-        transactionHex: transaction.hex,
+        transactionHex: transaction,
       }
     })
   }
@@ -200,7 +200,9 @@ export class Client implements BitcoinClient {
         true
       )
 
-      return transaction.confirmations
+      // For unconfirmed transactions `confirmations` property may be undefined, so
+      // we will return 0 instead.
+      return transaction.confirmations ?? 0
     })
   }
 

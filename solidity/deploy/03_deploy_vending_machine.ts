@@ -11,7 +11,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const unmintFee = 0
 
-  const VendingMachine = await deploy("VendingMachine", {
+  const vendingMachine = await deploy("VendingMachine", {
     from: deployer,
     args: [TBTCToken.address, TBTC.address, unmintFee],
     log: true,
@@ -20,14 +20,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await helpers.ownable.transferOwnership(
     "TBTC",
-    VendingMachine.address,
+    vendingMachine.address,
     deployer
   )
+
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(vendingMachine)
+  }
 
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
       name: "VendingMachine",
-      address: VendingMachine.address,
+      address: vendingMachine.address,
     })
   }
 }
