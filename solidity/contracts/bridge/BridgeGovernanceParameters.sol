@@ -17,6 +17,11 @@ pragma solidity 0.8.17;
 
 /// @title Bridge Governance library for storing updatable parameters.
 library BridgeGovernanceParameters {
+    struct TreasuryData {
+        address newTreasury;
+        uint256 treasuryChangeInitiated;
+    }
+
     struct DepositData {
         uint64 newDepositDustThreshold;
         uint256 depositDustThresholdChangeInitiated;
@@ -322,6 +327,9 @@ library BridgeGovernanceParameters {
     event FraudNotifierRewardMultiplierUpdated(
         uint32 fraudNotifierRewardMultiplier
     );
+
+    event TreasuryUpdateStarted(address newTreasury, uint256 timestamp);
+    event TreasuryUpdated(address treasury);
 
     /// @notice Reverts if called before the governance delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
@@ -1844,6 +1852,35 @@ library BridgeGovernanceParameters {
 
         self.newFraudNotifierRewardMultiplier = 0;
         self.fraudNotifierRewardMultiplierChangeInitiated = 0;
+    }
+
+    /// @notice Begins the treasury address update process.
+    /// @dev It does not perform any parameter validation.
+    /// @param _newTreasury New treasury address.
+    function beginTreasuryUpdate(
+        TreasuryData storage self,
+        address _newTreasury
+    ) external {
+        /* solhint-disable not-rely-on-time */
+        self.newTreasury = _newTreasury;
+        self.treasuryChangeInitiated = block.timestamp;
+        emit TreasuryUpdateStarted(_newTreasury, block.timestamp);
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Finalizes the treasury address update process.
+    /// @dev Can be called after the governance delay elapses.
+    function finalizeTreasuryUpdate(
+        TreasuryData storage self,
+        uint256 governanceDelay
+    )
+        external
+        onlyAfterGovernanceDelay(self.treasuryChangeInitiated, governanceDelay)
+    {
+        emit TreasuryUpdated(self.newTreasury);
+
+        self.newTreasury = address(0);
+        self.treasuryChangeInitiated = 0;
     }
 
     // https://github.com/crytic/slither/issues/1265
