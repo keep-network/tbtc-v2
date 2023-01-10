@@ -2,6 +2,6 @@
 /build/
 /cache/
 /export/
-/external/npm/
+/external/
 /typechain/
 /export.json
