@@ -384,16 +384,6 @@ library BridgeGovernanceParameters {
         self.depositDustThresholdChangeInitiated = 0;
     }
 
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewDepositDustThreshold(DepositData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newDepositDustThreshold;
-    }
-
     /// @notice Begins the deposit treasury fee divisor amount update process.
     /// @param _newDepositTreasuryFeeDivisor New deposit treasury fee divisor amount.
     function beginDepositTreasuryFeeDivisorUpdate(
@@ -470,16 +460,6 @@ library BridgeGovernanceParameters {
 
         self.newDepositTxMaxFee = 0;
         self.depositTxMaxFeeChangeInitiated = 0;
-    }
-
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewDepositTxMaxFee(DepositData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newDepositTxMaxFee;
     }
 
     /// @notice Begins the deposit reveal ahead period update process.
@@ -560,16 +540,6 @@ library BridgeGovernanceParameters {
 
         self.newRedemptionDustThreshold = 0;
         self.redemptionDustThresholdChangeInitiated = 0;
-    }
-
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewRedemptionDustThreshold(RedemptionData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newRedemptionDustThreshold;
     }
 
     /// @notice Begins the redemption treasury fee divisor amount update process.
@@ -697,16 +667,6 @@ library BridgeGovernanceParameters {
         self.redemptionTxMaxTotalFeeChangeInitiated = 0;
     }
 
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewRedemptionTxMaxTotalFee(RedemptionData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newRedemptionTxMaxTotalFee;
-    }
-
     /// @notice Begins the redemption timeout amount update process.
     /// @param _newRedemptionTimeout New redemption timeout amount.
     function beginRedemptionTimeoutUpdate(
@@ -740,16 +700,6 @@ library BridgeGovernanceParameters {
 
         self.newRedemptionTimeout = 0;
         self.redemptionTimeoutChangeInitiated = 0;
-    }
-
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewRedemptionTimeout(RedemptionData storage self)
-        internal
-        view
-        returns (uint32)
-    {
-        return self.newRedemptionTimeout;
     }
 
     /// @notice Begins the redemption timeout slashing amount update process.
@@ -884,16 +834,6 @@ library BridgeGovernanceParameters {
         self.movingFundsTxMaxTotalFeeChangeInitiated = 0;
     }
 
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewMovingFundsTxMaxTotalFee(MovingFundsData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newMovingFundsTxMaxTotalFee;
-    }
-
     /// @notice Begins the moving funds dust threshold amount update process.
     /// @param _newMovingFundsDustThreshold New moving funds dust threshold amount.
     function beginMovingFundsDustThresholdUpdate(
@@ -926,16 +866,6 @@ library BridgeGovernanceParameters {
 
         self.newMovingFundsDustThreshold = 0;
         self.movingFundsDustThresholdChangeInitiated = 0;
-    }
-
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewMovingFundsDustThreshold(MovingFundsData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newMovingFundsDustThreshold;
     }
 
     /// @notice Begins the moving funds timeout reset delay amount update process.
@@ -975,16 +905,6 @@ library BridgeGovernanceParameters {
         self.movingFundsTimeoutResetDelayChangeInitiated = 0;
     }
 
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewMovingFundsTimeoutResetDelay(MovingFundsData storage self)
-        internal
-        view
-        returns (uint32)
-    {
-        return self.newMovingFundsTimeoutResetDelay;
-    }
-
     /// @notice Begins the moving funds timeout amount update process.
     /// @param _newMovingFundsTimeout New moving funds timeout amount.
     function beginMovingFundsTimeoutUpdate(
@@ -1017,16 +937,6 @@ library BridgeGovernanceParameters {
 
         self.newMovingFundsTimeout = 0;
         self.movingFundsTimeoutChangeInitiated = 0;
-    }
-
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewMovingFundsTimeout(MovingFundsData storage self)
-        internal
-        view
-        returns (uint32)
-    {
-        return self.newMovingFundsTimeout;
     }
 
     /// @notice Begins the moving funds timeout slashing amount update process.
@@ -1209,16 +1119,6 @@ library BridgeGovernanceParameters {
         self.movedFundsSweepTxMaxTotalFeeChangeInitiated = 0;
     }
 
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewMovedFundsSweepTxMaxTotalFee(MovingFundsData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newMovedFundsSweepTxMaxTotalFee;
-    }
-
     /// @notice Begins the moved funds sweep timeout amount update process.
     /// @param _newMovedFundsSweepTimeout New moved funds sweep timeout amount.
     function beginMovedFundsSweepTimeoutUpdate(
@@ -1251,16 +1151,6 @@ library BridgeGovernanceParameters {
 
         self.newMovedFundsSweepTimeout = 0;
         self.movedFundsSweepTimeoutChangeInitiated = 0;
-    }
-
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewMovedFundsSweepTimeout(MovingFundsData storage self)
-        internal
-        view
-        returns (uint32)
-    {
-        return self.newMovedFundsSweepTimeout;
     }
 
     /// @notice Begins the moved funds sweep timeout slashing amount update
@@ -1492,16 +1382,6 @@ library BridgeGovernanceParameters {
         self.walletCreationMaxBtcBalanceChangeInitiated = 0;
     }
 
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewWalletCreationMaxBtcBalance(WalletData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newWalletCreationMaxBtcBalance;
-    }
-
     /// @notice Begins the wallet closure min btc balance amount update process.
     /// @param _newWalletClosureMinBtcBalance New wallet closure min btc balance amount.
     function beginWalletClosureMinBtcBalanceUpdate(
@@ -1536,16 +1416,6 @@ library BridgeGovernanceParameters {
 
         self.newWalletClosureMinBtcBalance = 0;
         self.walletClosureMinBtcBalanceChangeInitiated = 0;
-    }
-
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewWalletClosureMinBtcBalance(WalletData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newWalletClosureMinBtcBalance;
     }
 
     /// @notice Begins the wallet max age amount update process.
@@ -1623,16 +1493,6 @@ library BridgeGovernanceParameters {
         self.walletMaxBtcTransferChangeInitiated = 0;
     }
 
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewWalletMaxBtcTransfer(WalletData storage self)
-        internal
-        view
-        returns (uint64)
-    {
-        return self.newWalletMaxBtcTransfer;
-    }
-
     /// @notice Begins the wallet closing period amount update process.
     /// @param _newWalletClosingPeriod New wallet closing period amount.
     function beginWalletClosingPeriodUpdate(
@@ -1665,16 +1525,6 @@ library BridgeGovernanceParameters {
 
         self.newWalletClosingPeriod = 0;
         self.walletClosingPeriodChangeInitiated = 0;
-    }
-
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewWalletClosingPeriod(WalletData storage self)
-        internal
-        view
-        returns (uint32)
-    {
-        return self.newWalletClosingPeriod;
     }
 
     // --- Fraud
@@ -1760,16 +1610,6 @@ library BridgeGovernanceParameters {
 
         self.newFraudChallengeDefeatTimeout = 0;
         self.fraudChallengeDefeatTimeoutChangeInitiated = 0;
-    }
-
-    // https://github.com/crytic/slither/issues/1265
-    // slither-disable-next-line dead-code
-    function getNewFraudChallengeDefeatTimeout(FraudData storage self)
-        internal
-        view
-        returns (uint32)
-    {
-        return self.newFraudChallengeDefeatTimeout;
     }
 
     /// @notice Begins the fraud slashing amount update process.

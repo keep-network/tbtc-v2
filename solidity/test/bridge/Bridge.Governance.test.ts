@@ -298,15 +298,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeDepositDustThresholdUpdate()
-        ).to.be.revertedWith("Deposit dust threshold must be greater than zero")
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -544,15 +542,11 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance.connect(governance).finalizeDepositTxMaxFeeUpdate()
-        ).to.be.revertedWith(
-          "Deposit transaction max fee must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -792,17 +786,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeRedemptionDustThresholdUpdate()
-        ).to.be.revertedWith(
-          "Redemption dust threshold must be greater than moving funds dust threshold"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1056,8 +1046,6 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         // If the update was not initialized, the transaction will fail because
@@ -1068,9 +1056,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeRedemptionTxMaxTotalFeeUpdate()
-        ).to.be.revertedWith(
-          "Redemption transaction max total fee must be greater than or equal to the redemption transaction per-request max fee"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1189,13 +1175,11 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance.connect(governance).finalizeRedemptionTimeoutUpdate()
-        ).to.be.revertedWith("Redemption timeout must be greater than zero")
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1573,17 +1557,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTxMaxTotalFeeUpdate()
-        ).to.be.revertedWith(
-          "Moving funds transaction max total fee must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1703,17 +1683,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsDustThresholdUpdate()
-        ).to.be.revertedWith(
-          "Moving funds dust threshold must be greater than zero and lower than redemption dust threshold"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1836,17 +1812,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTimeoutResetDelayUpdate()
-        ).to.be.revertedWith(
-          "Moving funds timeout reset delay must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1961,17 +1933,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTimeoutUpdate()
-        ).to.be.revertedWith(
-          "Moving funds timeout must be greater than its reset delay"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1995,9 +1963,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTimeoutUpdate()
-        ).to.be.revertedWith(
-          "Moving funds timeout must be greater than its reset delay"
-        )
+        ).to.be.revertedWith("Governance delay has not elapsed")
       })
     })
 
@@ -2490,17 +2456,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeMovedFundsSweepTxMaxTotalFeeUpdate()
-        ).to.be.revertedWith(
-          "Moved funds sweep transaction max total fee must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -2619,17 +2581,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeMovedFundsSweepTimeoutUpdate()
-        ).to.be.revertedWith(
-          "Moved funds sweep timeout must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -3259,17 +3217,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeWalletCreationMaxBtcBalanceUpdate()
-        ).to.be.revertedWith(
-          "Wallet creation maximum BTC balance must be greater than the creation minimum BTC balance"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -3394,17 +3348,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeWalletClosureMinBtcBalanceUpdate()
-        ).to.be.revertedWith(
-          "Wallet closure minimum BTC balance must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -3632,17 +3582,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeWalletMaxBtcTransferUpdate()
-        ).to.be.revertedWith(
-          "Wallet maximum BTC transfer must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -3756,15 +3702,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeWalletClosingPeriodUpdate()
-        ).to.be.revertedWith("Wallet closing period must be greater than zero")
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -4006,17 +3950,13 @@ describe("Bridge - Governance", () => {
       })
     })
 
-    // FIXME: This test is not covering the behavior described!
-    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance
             .connect(governance)
             .finalizeFraudChallengeDefeatTimeoutUpdate()
-        ).to.be.revertedWith(
-          "Fraud challenge defeat timeout must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
