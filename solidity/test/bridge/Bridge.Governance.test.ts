@@ -298,6 +298,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -542,6 +544,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -788,6 +792,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -1050,6 +1056,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         // If the update was not initialized, the transaction will fail because
@@ -1181,6 +1189,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -1563,6 +1573,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -1691,6 +1703,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -1822,6 +1836,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -1945,6 +1961,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -2472,6 +2490,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -2599,6 +2619,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -3237,6 +3259,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -3370,6 +3394,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -3606,6 +3632,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -3728,6 +3756,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -3976,6 +4006,8 @@ describe("Bridge - Governance", () => {
       })
     })
 
+    // FIXME: This test is not covering the behavior described!
+    // The expected revert message should be "Change not initiated".
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -4292,6 +4324,125 @@ describe("Bridge - Governance", () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "FraudNotifierRewardMultiplierUpdated")
             .withArgs(42)
+        })
+      }
+    )
+  })
+
+  describe("beginTreasuryUpdate", () => {
+    const newTreasury = "0x8A71228c19A3531384FC203F56290D3aF01B16bD"
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(thirdParty).beginTreasuryUpdate(newTreasury)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      let oldTreasury: string
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        oldTreasury = await bridge.treasury()
+
+        tx = await bridgeGovernance
+          .connect(governance)
+          .beginTreasuryUpdate(newTreasury)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not update the treasury address", async () => {
+        expect(await bridge.treasury()).to.be.equal(oldTreasury)
+      })
+
+      it("should emit TreasuryUpdateStarted event", async () => {
+        const blockTimestamp = await helpers.time.lastBlockTime()
+        await expect(tx)
+          .to.emit(bridgeGovernance, "TreasuryUpdateStarted")
+          .withArgs(newTreasury, blockTimestamp)
+      })
+    })
+  })
+
+  describe("finalizeTreasuryUpdate", () => {
+    const newTreasury = "0x8A71228c19A3531384FC203F56290D3aF01B16bD"
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(thirdParty).finalizeTreasuryUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(governance).finalizeTreasuryUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridgeGovernance
+          .connect(governance)
+          .beginTreasuryUpdate(newTreasury)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(governance).finalizeTreasuryUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context(
+      "when the update process is initialized and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginTreasuryUpdate(newTreasury)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx = await bridgeGovernance
+            .connect(governance)
+            .finalizeTreasuryUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the treasury address", async () => {
+          expect(await bridge.treasury()).to.be.equal(newTreasury)
+        })
+
+        it("should emit TreasuryUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridgeGovernance, "TreasuryUpdated")
+            .withArgs(newTreasury)
         })
       }
     )

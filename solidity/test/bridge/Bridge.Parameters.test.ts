@@ -1,4 +1,4 @@
-import { helpers, waffle } from "hardhat"
+import { ethers, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
@@ -7,6 +7,8 @@ import { constants } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
+
+const ZERO_ADDRESS = ethers.constants.AddressZero
 
 describe("Bridge - Parameters", () => {
   let governance: SignerWithAddress
@@ -1765,6 +1767,67 @@ describe("Bridge - Parameters", () => {
               constants.fraudSlashingAmount,
               constants.fraudNotifierRewardMultiplier
             )
+        ).to.be.revertedWith("Caller is not the governance")
+      })
+    })
+  })
+
+  describe("updateTreasury", () => {
+    const newTreasury = "0x4EDCe37af1c6e2CDfe086D7940C5a8AAde9c72e3"
+
+    context("when caller is the contract guvnor", () => {
+      before(async () => {
+        // TODO: We transfer the ownership of the Bridge governance from the
+        // BridgeGovernance contract to a simple address. This allows testing
+        // the Bridge contract directly, without going through the
+        // BridgeGovernance contract. This should be the preferred approach for
+        // all other tests in this file.
+        await bridgeGovernance
+          .connect(governance)
+          .beginBridgeGovernanceTransfer(governance.address)
+        await helpers.time.increaseTime(constants.governanceDelay)
+        await bridgeGovernance
+          .connect(governance)
+          .finalizeBridgeGovernanceTransfer()
+      })
+
+      context("when the new treasury address is non-zero", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          tx = await bridge.connect(governance).updateTreasury(newTreasury)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should set the new treasury address", async () => {
+          expect(await bridge.treasury()).to.equal(newTreasury)
+        })
+
+        it("should emit TreasuryUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridge, "TreasuryUpdated")
+            .withArgs(newTreasury)
+        })
+      })
+
+      context("when the new treasury address is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge.connect(governance).updateTreasury(ZERO_ADDRESS)
+          ).to.be.revertedWith("Treasury address must not be 0x0")
+        })
+      })
+    })
+
+    context("when caller is not the contract guvnor", () => {
+      it("should revert", async () => {
+        await expect(
+          bridge.connect(thirdParty).updateTreasury(newTreasury)
         ).to.be.revertedWith("Caller is not the governance")
       })
     })

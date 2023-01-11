@@ -5,11 +5,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, helpers } = hre
   const { deployer } = await getNamedAccounts()
 
-  // LightRelay is deployed only for mainnet. For all other networks (Hardhat,
-  // Goerli) we use TestRelay contract. LightRelay will work properly only with
-  // Bitcoin Mainnet headers.
+  function resolveRelayContract() {
+    if (hre.network.name === "goerli") {
+      return "GoerliLightRelay"
+    }
+    if (hre.network.name === "system_tests") {
+      return "SystemTestRelay"
+    }
+
+    return "LightRelay"
+  }
+
   const lightRelay = await deployments.deploy("LightRelay", {
-    contract: hre.network.name === "mainnet" ? "LightRelay" : "TestRelay",
+    contract: resolveRelayContract(),
     from: deployer,
     log: true,
     waitConfirmations: 1,
