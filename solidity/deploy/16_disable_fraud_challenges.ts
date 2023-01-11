@@ -17,7 +17,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   )
 
   // To emphasize the fact that frauds are disabled, we set:
-  // - fraudChallengeDefeatTimeout to uint32 max value (2^32-1 = 4294967295) 
+  // - fraudChallengeDefeatTimeout to uint32 max value (2^32-1 = 4294967295)
   // - fraudSlashingAmount to zero,
   // - fraudNotifierRewardMultiplier to zero.
   const fraudChallengeDefeatTimeout = ethers.BigNumber.from("4294967295")

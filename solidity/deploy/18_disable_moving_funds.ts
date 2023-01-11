@@ -63,7 +63,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   const movingFundsTimeoutSlashingAmount = ethers.BigNumber.from("0")
   const movedFundsSweepTimeoutSlashingAmount = ethers.BigNumber.from("0")
   const movingFundsTimeoutNotifierRewardMultiplier = ethers.BigNumber.from("0")
-  const movedFundsSweepTimeoutNotifierRewardMultiplier = ethers.BigNumber.from("0")
+  const movedFundsSweepTimeoutNotifierRewardMultiplier =
+    ethers.BigNumber.from("0")
 
   // Fetch the current values of other moving funds parameters to keep them unchanged.
   const movingFundsParameters = await read("Bridge", "movingFundsParameters")
