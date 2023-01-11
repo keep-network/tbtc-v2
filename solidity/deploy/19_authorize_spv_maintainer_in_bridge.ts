@@ -24,5 +24,8 @@ func.dependencies = ["Bridge"]
 // account for Hardhat network (unit tests) and Goerli (testnet) but we DO NOT
 // want to authorize it for Mainnet deployment. SPV maintainer will be authorized
 // separately by the Governance when sweeping will be activated.
+//
+// Note that at this point MaintainerProxy contract is already authorized in the
+// Bridge (see AuthorizeMaintainerProxyInBridge tag).
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
   hre.network.name === "mainnet"
