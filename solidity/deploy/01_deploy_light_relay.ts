@@ -5,19 +5,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, helpers } = hre
   const { deployer } = await getNamedAccounts()
 
-  // LightRelay is the real-world relay and is deployed for mainnet.
-  // GoerliLightRelay is a stub version with immutable difficulties and is
-  // deployed for goerli.
-  // TestRelay is a stub version with mutable difficulties and is deployed for
-  // hardhat.
   function resolveRelayContract() {
-    if (hre.network.name === "mainnet") {
-      return "LightRelay"
-    }
     if (hre.network.name === "goerli") {
       return "GoerliLightRelay"
     }
-    return "TestRelay"
+    if (hre.network.name === "system_tests") {
+      return "SystemTestRelay"
+    }
+
+    return "LightRelay"
   }
 
   const lightRelay = await deployments.deploy("LightRelay", {
