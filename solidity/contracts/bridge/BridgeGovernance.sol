@@ -448,10 +448,9 @@ contract BridgeGovernance is Ownable {
             uint64 depositTxMaxFee,
             uint32 depositRevealAheadPeriod
         ) = bridge.depositParameters();
-        // slither-disable-next-line reentrancy-no-eth
         bridge.updateDepositParameters(
             depositDustThreshold,
-            depositData.getNewDepositTreasuryFeeDivisor(),
+            depositData.newDepositTreasuryFeeDivisor,
             depositTxMaxFee,
             depositRevealAheadPeriod
         );
@@ -509,12 +508,11 @@ contract BridgeGovernance is Ownable {
             uint64 depositTxMaxFee,
 
         ) = bridge.depositParameters();
-        // slither-disable-next-line reentrancy-no-eth
         bridge.updateDepositParameters(
             depositDustThreshold,
             depositTreasuryFeeDivisor,
             depositTxMaxFee,
-            depositData.getNewDepositRevealAheadPeriod()
+            depositData.newDepositRevealAheadPeriod
         );
         depositData.finalizeDepositRevealAheadPeriodUpdate(governanceDelay());
     }
@@ -586,7 +584,7 @@ contract BridgeGovernance is Ownable {
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateRedemptionParameters(
             redemptionDustThreshold,
-            redemptionData.getNewRedemptionTreasuryFeeDivisor(),
+            redemptionData.newRedemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
             redemptionTxMaxTotalFee,
             redemptionTimeout,
@@ -622,17 +620,15 @@ contract BridgeGovernance is Ownable {
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
-        // slither-disable-next-line reentrancy-no-eth
         bridge.updateRedemptionParameters(
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
-            redemptionData.getNewRedemptionTxMaxFee(),
+            redemptionData.newRedemptionTxMaxFee,
             redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
         );
-
         redemptionData.finalizeRedemptionTxMaxFeeUpdate(governanceDelay());
     }
 
@@ -745,7 +741,7 @@ contract BridgeGovernance is Ownable {
             redemptionTxMaxFee,
             redemptionTxMaxTotalFee,
             redemptionTimeout,
-            redemptionData.getNewRedemptionTimeoutSlashingAmount(),
+            redemptionData.newRedemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
         );
 
@@ -792,7 +788,7 @@ contract BridgeGovernance is Ownable {
             redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
-            redemptionData.getNewRedemptionTimeoutNotifierRewardMultiplier()
+            redemptionData.newRedemptionTimeoutNotifierRewardMultiplier
         );
 
         redemptionData.finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate(
@@ -1029,7 +1025,7 @@ contract BridgeGovernance is Ownable {
             movingFundsDustThreshold,
             movingFundsTimeoutResetDelay,
             movingFundsTimeout,
-            movingFundsData.getNewMovingFundsTimeoutSlashingAmount(),
+            movingFundsData.newMovingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
             movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
@@ -1083,7 +1079,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeoutResetDelay,
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
-            movingFundsData.getNewMovingFundsTimeoutNotifierRewardMultiplier(),
+            movingFundsData.newMovingFundsTimeoutNotifierRewardMultiplier,
             movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
@@ -1133,7 +1129,7 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
-            movingFundsData.getNewMovingFundsCommitmentGasOffset(),
+            movingFundsData.newMovingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
@@ -1283,7 +1279,7 @@ contract BridgeGovernance is Ownable {
             movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
-            movingFundsData.getNewMovedFundsSweepTimeoutSlashingAmount(),
+            movingFundsData.newMovedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
         movingFundsData.finalizeMovedFundsSweepTimeoutSlashingAmountUpdate(
@@ -1337,8 +1333,7 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
-            movingFundsData
-                .getNewMovedFundsSweepTimeoutNotifierRewardMultiplier()
+            movingFundsData.newMovedFundsSweepTimeoutNotifierRewardMultiplier
         );
         movingFundsData
             .finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
@@ -1373,7 +1368,7 @@ contract BridgeGovernance is Ownable {
         ) = bridge.walletParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateWalletParameters(
-            walletData.getNewWalletCreationPeriod(),
+            walletData.newWalletCreationPeriod,
             walletCreationMinBtcBalance,
             walletCreationMaxBtcBalance,
             walletClosureMinBtcBalance,
@@ -1411,7 +1406,7 @@ contract BridgeGovernance is Ownable {
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateWalletParameters(
             walletCreationPeriod,
-            walletData.getNewWalletCreationMinBtcBalance(),
+            walletData.newWalletCreationMinBtcBalance,
             walletCreationMaxBtcBalance,
             walletClosureMinBtcBalance,
             walletMaxAge,
@@ -1527,7 +1522,7 @@ contract BridgeGovernance is Ownable {
             walletCreationMinBtcBalance,
             walletCreationMaxBtcBalance,
             walletClosureMinBtcBalance,
-            walletData.getNewWalletMaxAge(),
+            walletData.newWalletMaxAge,
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
@@ -1631,7 +1626,7 @@ contract BridgeGovernance is Ownable {
         ) = bridge.fraudParameters();
         // slither-disable-next-line reentrancy-no-eth
         bridge.updateFraudParameters(
-            fraudData.getNewFraudChallengeDepositAmount(),
+            fraudData.newFraudChallengeDepositAmount,
             fraudChallengeDefeatTimeout,
             fraudSlashingAmount,
             fraudNotifierRewardMultiplier
@@ -1694,7 +1689,7 @@ contract BridgeGovernance is Ownable {
         bridge.updateFraudParameters(
             fraudChallengeDepositAmount,
             fraudChallengeDefeatTimeout,
-            fraudData.getNewFraudSlashingAmount(),
+            fraudData.newFraudSlashingAmount,
             fraudNotifierRewardMultiplier
         );
         fraudData.finalizeFraudSlashingAmountUpdate(governanceDelay());
@@ -1726,7 +1721,7 @@ contract BridgeGovernance is Ownable {
             fraudChallengeDepositAmount,
             fraudChallengeDefeatTimeout,
             fraudSlashingAmount,
-            fraudData.getNewFraudNotifierRewardMultiplier()
+            fraudData.newFraudNotifierRewardMultiplier
         );
         fraudData.finalizeFraudNotifierRewardMultiplierUpdate(
             governanceDelay()
