@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
-      name: "LightRelay",
+      name: resolveRelayContract(),
       address: lightRelay.address,
     })
   }
