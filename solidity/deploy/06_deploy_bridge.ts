@@ -15,7 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const txProofDifficultyFactor =
     deployments.getNetworkName() === "hardhat" ||
     deployments.getNetworkName() === "development" ||
-    deployments.getNetworkName() === "localhost"
+    deployments.getNetworkName() === "system_tests"
       ? 1
       : 6
 

@@ -29,7 +29,7 @@ jobs:
         working-directory: ./solidity
         env:
           WALLET_PUBLIC_KEY: ${{ secrets.SYSTEM_TESTS_WALLET_PUBLIC_KEY }}
-          ETH_NETWORK: localhost
+          ETH_NETWORK: system_tests
         run: |
           yarn install
           yarn clean
@@ -43,7 +43,7 @@ jobs:
       - name: Run scenario
         working-directory: ./system-tests
         env:
-          ETH_NETWORK: localhost
+          ETH_NETWORK: system_tests
           ELECTRUM_URL: ${{ secrets.SYSTEM_TESTS_ELECTRUM_URL }}
           CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH: ../solidity/export.json
           WALLET_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_WALLET_PRIVATE_KEY_WIF }}

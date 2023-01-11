@@ -10,6 +10,9 @@ const config: HardhatUserConfig = {
     development: {
       url: "http://localhost:8545",
     },
+    system_tests: {
+      url: "http://localhost:8545",
+    },
   },
 
   // Indices for named accounts should match the ones defined in `@keep-network/tbtc-v2`.
