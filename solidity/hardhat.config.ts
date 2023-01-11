@@ -99,6 +99,10 @@ const config: HardhatUserConfig = {
       // deploy stub contracts in tests.
       allowUnlimitedContractSize: process.env.TEST_USE_STUBS_TBTC === "true",
     },
+    system_tests: {
+      url: "http://localhost:8545",
+      tags: ["allowStubs"],
+    },
     development: {
       url: "http://localhost:8545",
       chainId: 1101,

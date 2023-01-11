@@ -6,7 +6,8 @@ import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 
 import "../bridge/Bridge.sol";
 
-contract TestRelay is IRelay {
+/// @notice Used only for system tests.
+contract SystemTestRelay is IRelay {
     using BTCUtils for bytes;
     using BTCUtils for uint256;
 

@@ -372,6 +372,8 @@ library BridgeState {
         uint32 fraudNotifierRewardMultiplier
     );
 
+    event TreasuryUpdated(address treasury);
+
     /// @notice Updates parameters of deposits.
     /// @param _depositDustThreshold New value of the deposit dust threshold in
     ///        satoshis. It is the minimal amount that can be requested to
@@ -818,5 +820,15 @@ library BridgeState {
             _fraudSlashingAmount,
             _fraudNotifierRewardMultiplier
         );
+    }
+
+    /// @notice Updates treasury address. The treasury receives the system fees.
+    /// @param _treasury New value of the treasury address.
+    /// @dev The treasury address must not be 0x0.
+    function updateTreasury(Storage storage self, address _treasury) internal {
+        require(_treasury != address(0), "Treasury address must not be 0x0");
+
+        self.treasury = _treasury;
+        emit TreasuryUpdated(_treasury);
     }
 }
