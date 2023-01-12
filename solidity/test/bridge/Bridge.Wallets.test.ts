@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import chai, { expect } from "chai"
 import { smock } from "@defi-wonderland/smock"
 import type { FakeContract } from "@defi-wonderland/smock"
-import { ContractTransaction, Signer } from "ethers"
+import { ContractTransaction } from "ethers"
 import type {
   Bridge,
   BridgeGovernance,
@@ -151,7 +151,8 @@ describe("Bridge - Wallets", () => {
                     })
 
                     it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
-                      await expect(walletRegistry.requestNewWallet).to.have.been
+                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                      expect(walletRegistry.requestNewWallet).to.have.been
                         .calledOnce
                     })
                   }
@@ -196,7 +197,8 @@ describe("Bridge - Wallets", () => {
                     })
 
                     it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
-                      await expect(walletRegistry.requestNewWallet).to.have.been
+                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                      expect(walletRegistry.requestNewWallet).to.have.been
                         .calledOnce
                     })
                   }
@@ -394,7 +396,8 @@ describe("Bridge - Wallets", () => {
                 })
 
                 it("should call ECDSA Wallet Registry's requestNewWallet function", async () => {
-                  await expect(walletRegistry.requestNewWallet).to.have.been
+                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                  expect(walletRegistry.requestNewWallet).to.have.been
                     .calledOnce
                 })
               })
