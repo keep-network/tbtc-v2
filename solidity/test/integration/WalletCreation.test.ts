@@ -12,7 +12,7 @@ import {
   updateWalletRegistryDkgResultChallengePeriodLength,
 } from "./utils/ecdsa-wallet-registry"
 import { ecdsaWalletTestData } from "../data/ecdsa"
-import { produceRelayEntry } from "./utils/random-beacon"
+import { produceRelayEntry } from "./utils/fake-random-beacon"
 
 import { assertGasUsed } from "./utils/gas"
 import { fixture } from "./utils/fixture"
