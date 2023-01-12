@@ -21,7 +21,7 @@ export default func
 func.tags = ["AuthorizeMaintainerProxyInReimbursementPool"]
 func.dependencies = ["ReimbursementPool", "MaintainerProxy"]
 
-// On mainnet, the ReimbursementPool ownership is passed to the  Treshold
+// On mainnet, the ReimbursementPool ownership is passed to the Threshold
 // Council / DAO and that address is not controlled by the dev team.
 // Hence, this step can be executed only for non-mainnet networks such as
 // Hardhat (unit tests) and Goerli (testnet).
