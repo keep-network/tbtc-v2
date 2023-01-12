@@ -4,16 +4,32 @@
 import { task, types } from "hardhat/config"
 import type { HardhatRuntimeEnvironment } from "hardhat/types"
 import { BigNumberish, BytesLike } from "ethers"
+import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { authorizeApplication, stake } from "../test/integration/utils/staking"
 import {
   performEcdsaDkg,
   registerOperator,
 } from "../test/integration/utils/ecdsa-wallet-registry"
 import type { Bridge, SortitionPool, WalletRegistry } from "../typechain"
+import {
+  offchainDkgTime,
+  dkgResultChallengePeriodLength,
+} from "../test/integration/data/integration"
+import blsData from "../test/integration/data/bls"
+import {
+  updateDkgResultChallengePeriodLength,
+  getGenesisSeed,
+  selectGroup,
+  signDkgResult,
+  hashDKGMembers,
+} from "../test/integration/utils/random-beacon"
+
+export type OperatorID = number
+export type Operator = { id: OperatorID; signer: SignerWithAddress }
 
 task(
   "test-utils:register-operators",
-  "Registers operators in the sortition pool"
+  "Registers operators in the sortition pools"
 )
   .addOptionalParam(
     "numberOfOperators",
@@ -66,14 +82,28 @@ async function registerOperators(
 ): Promise<void> {
   const { helpers } = hre
 
+  const { chaosnetOwner } = await helpers.signers.getNamedSigners()
+
   const walletRegistry = await helpers.contracts.getContract<WalletRegistry>(
     "WalletRegistry"
   )
-  const sortitionPool = await helpers.contracts.getContract<SortitionPool>(
+  const ecdsaSortitionPool = await helpers.contracts.getContract<SortitionPool>(
     "EcdsaSortitionPool"
   )
   const t = await helpers.contracts.getContract("T")
   const staking = await helpers.contracts.getContract("TokenStaking")
+
+  if (await ecdsaSortitionPool.isChaosnetActive()) {
+    await ecdsaSortitionPool.connect(chaosnetOwner).deactivateChaosnet()
+  }
+
+  const randomBeacon = await helpers.contracts.getContract("RandomBeacon")
+  const beaconSortitionPool =
+    await helpers.contracts.getContract<SortitionPool>("BeaconSortitionPool")
+
+  if (await beaconSortitionPool.isChaosnetActive()) {
+    await beaconSortitionPool.connect(chaosnetOwner).deactivateChaosnet()
+  }
 
   const signers = (await helpers.signers.getUnnamedSigners()).slice(
     unnamedSignersOffset
@@ -114,12 +144,24 @@ async function registerOperators(
       stakingProvider.address,
       stakeAmount
     )
+    await authorizeApplication(
+      staking,
+      randomBeacon.address,
+      authorizer,
+      stakingProvider.address,
+      stakeAmount
+    )
     await registerOperator(
       walletRegistry,
-      sortitionPool,
+      ecdsaSortitionPool,
       stakingProvider,
       operator
     )
+    await randomBeacon
+      .connect(stakingProvider)
+      .registerOperator(await operator.getAddress())
+
+    await randomBeacon.connect(operator).joinSortitionPool()
   }
 
   console.log(`Registered ${numberOfOperators} sortition pool operators`)
@@ -128,7 +170,7 @@ async function registerOperators(
 async function createWallet(
   hre: HardhatRuntimeEnvironment,
   walletPublicKey: BytesLike
-) {
+): Promise<void> {
   const { ethers, helpers } = hre
   const { governance } = await helpers.signers.getNamedSigners()
 
@@ -139,6 +181,48 @@ async function createWallet(
   const walletRegistryGovernance = await helpers.contracts.getContract(
     "WalletRegistryGovernance"
   )
+  const randomBeacon = await helpers.contracts.getContract("RandomBeacon")
+  const randomBeaconGovernance = await helpers.contracts.getContract(
+    "RandomBeaconGovernance"
+  )
+
+  await updateDkgResultChallengePeriodLength(
+    hre,
+    governance,
+    randomBeaconGovernance
+  )
+
+  const genesisTx = await randomBeacon.genesis()
+  const genesisBlock = genesisTx.blockNumber
+  const genesisSeed = await getGenesisSeed(hre, genesisBlock)
+
+  await helpers.time.mineBlocksTo(genesisBlock + offchainDkgTime + 1)
+
+  const sortitionPool = await helpers.contracts.getContract<SortitionPool>(
+    "BeaconSortitionPool"
+  )
+
+  const signers = await selectGroup(hre, sortitionPool, genesisSeed)
+  const { members, signingMembersIndices, signaturesBytes } =
+    await signDkgResult(hre, signers, blsData.groupPubKey, [], genesisBlock, 33)
+  const membersHash = hashDKGMembers(hre, members, [])
+
+  const dkgResult = {
+    submitterMemberIndex: 1,
+    groupPubKey: blsData.groupPubKey,
+    misbehavedMembersIndices: [],
+    signatures: signaturesBytes,
+    signingMembersIndices,
+    members,
+    membersHash,
+  }
+
+  const submitter = signers[0].signer
+  await randomBeacon.connect(submitter).submitDkgResult(dkgResult)
+
+  await helpers.time.mineBlocks(dkgResultChallengePeriodLength + 1)
+
+  await randomBeacon.connect(submitter).approveDkgResult(dkgResult)
 
   const requestNewWalletTx = await bridge.requestNewWallet({
     txHash: ethers.constants.HashZero,

@@ -16,7 +16,7 @@ import {
 } from "../../../typechain"
 import { Bank } from "../../../typechain/Bank"
 import { registerOperator } from "./ecdsa-wallet-registry"
-import { fakeRandomBeacon } from "./random-beacon"
+import { fakeRandomBeacon } from "./fake-random-beacon"
 import { authorizeApplication, stake } from "./staking"
 
 const { to1e18 } = helpers.number

@@ -20,7 +20,7 @@ import {
   performEcdsaDkg,
   updateWalletRegistryDkgResultChallengePeriodLength,
 } from "./utils/ecdsa-wallet-registry"
-import { produceRelayEntry } from "./utils/random-beacon"
+import { produceRelayEntry } from "./utils/fake-random-beacon"
 import { UTXOStruct } from "../../typechain/Bridge"
 import {
   walletPublicKey,
