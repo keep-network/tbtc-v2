@@ -3,13 +3,12 @@
 import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
 import { assembleTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
-import { Contract } from "ethers"
 
+import type { Contract } from "ethers"
 import type {
   Client as BitcoinClient,
   TransactionHash,
 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
-import type { SystemTestsContext } from "./context"
 
 /**
  * Elliptic curve used by Bitcoin.

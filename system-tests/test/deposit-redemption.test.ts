@@ -4,7 +4,10 @@ import {
   ElectrumClient,
   EthereumBridge,
 } from "@keep-network/tbtc-v2.ts"
-import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import {
+  computeHash160,
+  TransactionHash,
+} from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 import { BigNumber, constants, Contract } from "ethers"
 import chai, { expect } from "chai"
 import { submitDepositTransaction } from "@keep-network/tbtc-v2.ts/dist/deposit"
@@ -16,13 +19,10 @@ import { setupSystemTestsContext } from "./utils/context"
 import { generateDeposit } from "./utils/deposit"
 import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
 
+import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 import type { SystemTestsContext } from "./utils/context"
 import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/redemption"
 import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import {
-  TransactionHash,
-  UnspentTransactionOutput,
-} from "@keep-network/tbtc-v2.ts/dist/bitcoin"
 
 chai.use(chaiAsPromised)
 
@@ -321,7 +321,7 @@ describe("System Test - Deposit and redemption", () => {
                   electrumClient
                 )
 
-                console.log(`Redemption proved on the bridge`)
+                console.log("Redemption proved on the bridge")
               }
             )
 

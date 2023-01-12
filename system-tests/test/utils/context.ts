@@ -79,14 +79,14 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
   let depositorBitcoinKeyPair
   try {
     depositorBitcoinKeyPair = readBitcoinWif("DEPOSITOR_BITCOIN_WIF")
-  } catch(e) {
+  } catch (e) {
     throw new Error(`Invalid DEPOSITOR_BITCOIN_WIF: ${e}`)
   }
 
   let walletBitcoinKeyPair
   try {
     walletBitcoinKeyPair = readBitcoinWif("WALLET_BITCOIN_WIF")
-  } catch(e) {
+  } catch (e) {
     throw new Error(`Invalid WALLET_BITCOIN_WIF: ${e}`)
   }
 
