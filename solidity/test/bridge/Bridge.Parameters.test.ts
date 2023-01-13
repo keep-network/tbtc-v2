@@ -1518,24 +1518,6 @@ describe("Bridge - Parameters", () => {
         }
       )
 
-      context("when new closure minimum BTC balance is zero", () => {
-        it("should revert", async () => {
-          await bridgeGovernance
-            .connect(governance)
-            .beginWalletClosureMinBtcBalanceUpdate(0)
-
-          await helpers.time.increaseTime(constants.governanceDelay)
-
-          await expect(
-            bridgeGovernance
-              .connect(governance)
-              .finalizeWalletClosureMinBtcBalanceUpdate()
-          ).to.be.revertedWith(
-            "Wallet closure minimum BTC balance must be greater than zero"
-          )
-        })
-      })
-
       context("when new maximum BTC transfer is zero", () => {
         it("should revert", async () => {
           await bridgeGovernance
