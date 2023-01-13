@@ -28,12 +28,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   // become "closeable" if both of the following is true:
   // - walletMaxAge is set to the maximum value allowed for uint32 type (2^32-1 = 4294967295)
   // - walletClosureMinBtcBalance is zero
-  //
-  // In practice, walletClosureMinBtcBalance's minimum value enforced by the
-  // contract is 1. That should do the trick because only non-active wallets
-  // with 0 BTC (no funds to move) can become "closeable" in that case.
   const walletMaxAge = ethers.BigNumber.from("4294967295")
-  const walletClosureMinBtcBalance = ethers.BigNumber.from("1")
+  const walletClosureMinBtcBalance = ethers.BigNumber.from("0")
 
   // Fetch the current values of other wallet parameters to keep them unchanged.
   const walletParameters = await read("Bridge", "walletParameters")
