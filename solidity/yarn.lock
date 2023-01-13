@@ -1605,7 +1605,12 @@
     "@openzeppelin/contracts-upgradeable" "^4.6.0"
     "@threshold-network/solidity-contracts" "1.3.0-dev.0"
 
-"@keep-network/hardhat-helpers@^0.6.0-pre.15", "@keep-network/hardhat-helpers@^0.6.0-pre.17":
+"@keep-network/hardhat-helpers@0.6.0-pre.18":
+  version "0.6.0-pre.18"
+  resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.18.tgz#1c962af23714920c8eeae9b13a8e0e8681e5440b"
+  integrity sha512-9jF3ypoW8qqVl+hZmGgVVfLYNAjgUZrM+jOGYs69QHKPU2RFgx4v+wIvm02GnEtZbX4FGj5itb84QQY7EOssUA==
+
+"@keep-network/hardhat-helpers@^0.6.0-pre.15":
   version "0.6.0-pre.17"
   resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.17.tgz#de085c8f5d684cc7e4ae793fdc6c104a09fd03ce"
   integrity sha512-G3Jp+I77po8e4moOrUY/wQCRYGt/g1aBoDjL2cbxMkAWFFrb9OBu1a5Vi5eOwO4ttWthN5c9vZKWJicR6kwOLg==
@@ -2043,7 +2048,7 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.5.0.tgz#3fd75d57de172b3743cdfc1206883f56430409cc"
   integrity sha512-fdkzKPYMjrRiPK6K4y64e6GzULR7R7RwxSigHS8DDp7aWDeoReqsQI+cxHV1UuhAqX69L1lAaWDxenfP+xiqzA==
 
-"@openzeppelin/hardhat-upgrades@^1.22.0":
+"@openzeppelin/hardhat-upgrades@1.22.0":
   version "1.22.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.22.0.tgz#2a432c72a428a9f277201646bc1a248021538f06"
   integrity sha512-1qyZnDaxl0C8tne7ykNRa/fxw3FrNCY2M3fGuCiQW5DDkJoXhLgm3JVsXwl6X7q9mQSrik4vgBbI3ErmxmZTYg==
