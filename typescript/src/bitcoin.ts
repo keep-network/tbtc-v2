@@ -3,6 +3,7 @@ import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
+import { Hex } from "./hex"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -11,7 +12,7 @@ import { BigNumber } from "ethers"
  * by the Bitcoin protocol internally. That means the hash must be reversed in
  * the use cases that expect the Bitcoin internal byte order.
  */
-export type TransactionHash = string
+export class TransactionHash extends Hex {}
 
 /**
  * Represents a raw transaction.

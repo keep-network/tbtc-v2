@@ -30,18 +30,23 @@ jobs:
         working-directory: ./solidity
         run: yarn install
 
-      - name: Run ethereum node and deploy contracts
+      - name: Run ethereum node
         working-directory: ./solidity
         run: |
-          USE_EXTERNAL_DEPLOY=true npx hardhat node --export export.json &
+          npx hardhat node --no-deploy &
           HH_NODE_PID=$!
           while ! lsof -n -Fn -p $HH_NODE_PID | grep -q '^n.*:8545$'; do sleep 10; done
+
+      - name: Deploy contracts
+        working-directory: ./solidity
+        run: |
+          USE_EXTERNAL_DEPLOY=true npx hardhat deploy --network $ETH_NETWORK --export export.json
 
       - name: Setup scenario prerequisites
         working-directory: ./solidity
         env:
           WALLET_PUBLIC_KEY: ${{ secrets.SYSTEM_TESTS_WALLET_PUBLIC_KEY }}
-          ETH_NETWORK: localhost
+          ETH_NETWORK: system_tests
         run: |
           npx hardhat test-utils:register-operators --network $ETH_NETWORK
           npx hardhat test-utils:create-wallet --wallet-public-key $WALLET_PUBLIC_KEY --network $ETH_NETWORK
@@ -53,7 +58,7 @@ jobs:
       - name: Run scenario
         working-directory: ./system-tests
         env:
-          ETH_NETWORK: localhost
+          ETH_NETWORK: system_tests
           ELECTRUM_URL: ${{ secrets.SYSTEM_TESTS_ELECTRUM_URL }}
           CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH: ../solidity/export.json
           WALLET_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_WALLET_PRIVATE_KEY_WIF }}

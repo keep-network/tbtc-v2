@@ -3,7 +3,7 @@ import {
   RawTransaction,
   TransactionHash,
   UnspentTransactionOutput,
-} from "./bitcoin"
+} from "../src/bitcoin"
 import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
@@ -114,7 +114,7 @@ describe("Redemption", () => {
                     })
 
                     it("should return the proper transaction hash", async () => {
-                      expect(transactionHash).to.be.equal(
+                      expect(transactionHash).to.be.deep.equal(
                         data.expectedRedemption.transactionHash
                       )
                     })
@@ -159,7 +159,7 @@ describe("Redemption", () => {
                     })
 
                     it("should return the proper transaction hash", async () => {
-                      expect(transactionHash).to.be.equal(
+                      expect(transactionHash).to.be.deep.equal(
                         data.expectedRedemption.transactionHash
                       )
                     })
@@ -204,7 +204,7 @@ describe("Redemption", () => {
                     })
 
                     it("should return the proper transaction hash", async () => {
-                      expect(transactionHash).to.be.equal(
+                      expect(transactionHash).to.be.deep.equal(
                         data.expectedRedemption.transactionHash
                       )
                     })
@@ -249,7 +249,7 @@ describe("Redemption", () => {
                     })
 
                     it("should return the proper transaction hash", async () => {
-                      expect(transactionHash).to.be.equal(
+                      expect(transactionHash).to.be.deep.equal(
                         data.expectedRedemption.transactionHash
                       )
                     })
@@ -293,7 +293,7 @@ describe("Redemption", () => {
                 })
 
                 it("should return the proper transaction hash", async () => {
-                  expect(transactionHash).to.be.equal(
+                  expect(transactionHash).to.be.deep.equal(
                     data.expectedRedemption.transactionHash
                   )
                 })
@@ -338,7 +338,7 @@ describe("Redemption", () => {
               })
 
               it("should return the proper transaction hash", async () => {
-                expect(transactionHash).to.be.equal(
+                expect(transactionHash).to.be.deep.equal(
                   data.expectedRedemption.transactionHash
                 )
               })
@@ -381,7 +381,7 @@ describe("Redemption", () => {
             })
 
             it("should return the proper transaction hash", async () => {
-              expect(transactionHash).to.be.equal(
+              expect(transactionHash).to.be.deep.equal(
                 data.expectedRedemption.transactionHash
               )
             })
@@ -400,7 +400,7 @@ describe("Redemption", () => {
 
           beforeEach(async () => {
             const rawTransactions = new Map<string, RawTransaction>()
-            rawTransactions.set(data.mainUtxo.transactionHash, {
+            rawTransactions.set(data.mainUtxo.transactionHash.toString(), {
               transactionHex: data.mainUtxo.transactionHex,
             })
             bitcoinClient.rawTransactions = rawTransactions
@@ -445,7 +445,7 @@ describe("Redemption", () => {
 
       beforeEach(async () => {
         const rawTransactions = new Map<string, RawTransaction>()
-        rawTransactions.set(data.mainUtxo.transactionHash, {
+        rawTransactions.set(data.mainUtxo.transactionHash.toString(), {
           transactionHex: data.mainUtxo.transactionHex,
         })
         bitcoinClient.rawTransactions = rawTransactions
@@ -509,7 +509,7 @@ describe("Redemption", () => {
                   const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
                   expect(txJSON.hash).to.be.equal(
-                    data.expectedRedemption.transactionHash
+                    data.expectedRedemption.transactionHash.toString()
                   )
                   expect(txJSON.version).to.be.equal(1)
 
@@ -519,7 +519,7 @@ describe("Redemption", () => {
                   const input = txJSON.inputs[0]
 
                   expect(input.prevout.hash).to.be.equal(
-                    data.mainUtxo.transactionHash
+                    data.mainUtxo.transactionHash.toString()
                   )
                   expect(input.prevout.index).to.be.equal(
                     data.mainUtxo.outputIndex
@@ -567,7 +567,7 @@ describe("Redemption", () => {
                 })
 
                 it("should return the proper transaction hash", async () => {
-                  expect(transactionHash).to.be.equal(
+                  expect(transactionHash).to.be.deep.equal(
                     data.expectedRedemption.transactionHash
                   )
                 })
@@ -622,7 +622,7 @@ describe("Redemption", () => {
                   const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
                   expect(txJSON.hash).to.be.equal(
-                    data.expectedRedemption.transactionHash
+                    data.expectedRedemption.transactionHash.toString()
                   )
                   expect(txJSON.version).to.be.equal(1)
 
@@ -632,7 +632,7 @@ describe("Redemption", () => {
                   const input = txJSON.inputs[0]
 
                   expect(input.prevout.hash).to.be.equal(
-                    data.mainUtxo.transactionHash
+                    data.mainUtxo.transactionHash.toString()
                   )
                   expect(input.prevout.index).to.be.equal(
                     data.mainUtxo.outputIndex
@@ -679,7 +679,7 @@ describe("Redemption", () => {
                 })
 
                 it("should return the proper transaction hash", async () => {
-                  expect(transactionHash).to.be.equal(
+                  expect(transactionHash).to.be.deep.equal(
                     data.expectedRedemption.transactionHash
                   )
                 })
@@ -734,7 +734,7 @@ describe("Redemption", () => {
                   const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
                   expect(txJSON.hash).to.be.equal(
-                    data.expectedRedemption.transactionHash
+                    data.expectedRedemption.transactionHash.toString()
                   )
                   expect(txJSON.version).to.be.equal(1)
 
@@ -744,7 +744,7 @@ describe("Redemption", () => {
                   const input = txJSON.inputs[0]
 
                   expect(input.prevout.hash).to.be.equal(
-                    data.mainUtxo.transactionHash
+                    data.mainUtxo.transactionHash.toString()
                   )
                   expect(input.prevout.index).to.be.equal(
                     data.mainUtxo.outputIndex
@@ -791,7 +791,7 @@ describe("Redemption", () => {
                 })
 
                 it("should return the proper transaction hash", async () => {
-                  expect(transactionHash).to.be.equal(
+                  expect(transactionHash).to.be.deep.equal(
                     data.expectedRedemption.transactionHash
                   )
                 })
@@ -846,7 +846,7 @@ describe("Redemption", () => {
                   const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
                   expect(txJSON.hash).to.be.equal(
-                    data.expectedRedemption.transactionHash
+                    data.expectedRedemption.transactionHash.toString()
                   )
                   expect(txJSON.version).to.be.equal(1)
 
@@ -856,7 +856,7 @@ describe("Redemption", () => {
                   const input = txJSON.inputs[0]
 
                   expect(input.prevout.hash).to.be.equal(
-                    data.mainUtxo.transactionHash
+                    data.mainUtxo.transactionHash.toString()
                   )
                   expect(input.prevout.index).to.be.equal(
                     data.mainUtxo.outputIndex
@@ -903,7 +903,7 @@ describe("Redemption", () => {
                 })
 
                 it("should return the proper transaction hash", async () => {
-                  expect(transactionHash).to.be.equal(
+                  expect(transactionHash).to.be.deep.equal(
                     data.expectedRedemption.transactionHash
                   )
                 })
@@ -955,7 +955,7 @@ describe("Redemption", () => {
               const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
               expect(txJSON.hash).to.be.equal(
-                data.expectedRedemption.transactionHash
+                data.expectedRedemption.transactionHash.toString()
               )
               expect(txJSON.version).to.be.equal(1)
 
@@ -965,7 +965,7 @@ describe("Redemption", () => {
               const input = txJSON.inputs[0]
 
               expect(input.prevout.hash).to.be.equal(
-                data.mainUtxo.transactionHash
+                data.mainUtxo.transactionHash.toString()
               )
               expect(input.prevout.index).to.be.equal(data.mainUtxo.outputIndex)
               // Transaction should be signed but this is SegWit input so the `script`
@@ -1056,7 +1056,7 @@ describe("Redemption", () => {
             })
 
             it("should return the proper transaction hash", async () => {
-              expect(transactionHash).to.be.equal(
+              expect(transactionHash).to.be.deep.equal(
                 data.expectedRedemption.transactionHash
               )
             })
@@ -1068,7 +1068,7 @@ describe("Redemption", () => {
                 value: BigNumber.from(1375180),
               }
 
-              expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
+              expect(newMainUtxo).to.be.deep.equal(expectedNewMainUtxo)
             })
           })
         })
@@ -1112,7 +1112,7 @@ describe("Redemption", () => {
             const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
             expect(txJSON.hash).to.be.equal(
-              data.expectedRedemption.transactionHash
+              data.expectedRedemption.transactionHash.toString()
             )
             expect(txJSON.version).to.be.equal(1)
 
@@ -1122,7 +1122,7 @@ describe("Redemption", () => {
             const input = txJSON.inputs[0]
 
             expect(input.prevout.hash).to.be.equal(
-              data.mainUtxo.transactionHash
+              data.mainUtxo.transactionHash.toString()
             )
             expect(input.prevout.index).to.be.equal(data.mainUtxo.outputIndex)
             // Transaction should be signed but this is SegWit input so the `script`
@@ -1168,7 +1168,7 @@ describe("Redemption", () => {
           })
 
           it("should return the proper transaction hash", async () => {
-            expect(transactionHash).to.be.equal(
+            expect(transactionHash).to.be.deep.equal(
               data.expectedRedemption.transactionHash
             )
           })
@@ -1180,7 +1180,7 @@ describe("Redemption", () => {
               value: BigNumber.from(1364180),
             }
 
-            expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
+            expect(newMainUtxo).to.be.deep.equal(expectedNewMainUtxo)
           })
         })
       })
@@ -1218,7 +1218,7 @@ describe("Redemption", () => {
           const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
           expect(txJSON.hash).to.be.equal(
-            data.expectedRedemption.transactionHash
+            data.expectedRedemption.transactionHash.toString()
           )
           expect(txJSON.version).to.be.equal(1)
 
@@ -1227,7 +1227,9 @@ describe("Redemption", () => {
 
           const input = txJSON.inputs[0]
 
-          expect(input.prevout.hash).to.be.equal(data.mainUtxo.transactionHash)
+          expect(input.prevout.hash).to.be.equal(
+            data.mainUtxo.transactionHash.toString()
+          )
           expect(input.prevout.index).to.be.equal(data.mainUtxo.outputIndex)
           // Transaction should be signed but this is SegWit input so the `script`
           // field should be empty and the `witness` field should be filled instead.
@@ -1272,7 +1274,7 @@ describe("Redemption", () => {
         })
 
         it("should return the proper transaction hash", async () => {
-          expect(transactionHash).to.be.equal(
+          expect(transactionHash).to.be.deep.equal(
             data.expectedRedemption.transactionHash
           )
         })
@@ -1301,8 +1303,9 @@ describe("Redemption", () => {
 
   describe("submitRedemptionProof", () => {
     const mainUtxo = {
-      transactionHash:
-        "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
+      transactionHash: TransactionHash.from(
+        "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
+      ),
       outputIndex: 1,
       value: BigNumber.from(1429580),
     }
@@ -1321,14 +1324,14 @@ describe("Redemption", () => {
 
       const transactions = new Map<string, Transaction>()
       transactions.set(
-        transactionHash,
+        transactionHash.toString(),
         redemptionProof.bitcoinChainData.transaction
       )
       bitcoinClient.transactions = transactions
 
       const rawTransactions = new Map<string, RawTransaction>()
       rawTransactions.set(
-        transactionHash,
+        transactionHash.toString(),
         redemptionProof.bitcoinChainData.rawTransaction
       )
       bitcoinClient.rawTransactions = rawTransactions
@@ -1340,7 +1343,7 @@ describe("Redemption", () => {
         redemptionProof.bitcoinChainData.transactionMerkleBranch
       const confirmations = new Map<string, number>()
       confirmations.set(
-        transactionHash,
+        transactionHash.toString(),
         redemptionProof.bitcoinChainData.accumulatedTxConfirmations
       )
       bitcoinClient.confirmations = confirmations
@@ -1441,7 +1444,7 @@ async function runRedemptionScenario(
   newMainUtxo?: UnspentTransactionOutput
 }> {
   const rawTransactions = new Map<string, RawTransaction>()
-  rawTransactions.set(data.mainUtxo.transactionHash, {
+  rawTransactions.set(data.mainUtxo.transactionHash.toString(), {
     transactionHex: data.mainUtxo.transactionHex,
   })
   bitcoinClient.rawTransactions = rawTransactions
