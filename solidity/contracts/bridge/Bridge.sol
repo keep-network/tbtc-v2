@@ -1449,7 +1449,6 @@ contract Bridge is
     /// @dev Requirements:
     ///      - Wallet maximum BTC balance must be greater than the wallet
     ///        minimum BTC balance,
-    ///      - Wallet closure BTC balance must be greater than zero,
     ///      - Wallet maximum BTC transfer must be greater than zero,
     ///      - Wallet closing period must be greater than zero.
     function updateWalletParameters(
