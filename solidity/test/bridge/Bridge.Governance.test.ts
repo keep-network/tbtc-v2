@@ -304,7 +304,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeDepositDustThresholdUpdate()
-        ).to.be.revertedWith("Deposit dust threshold must be greater than zero")
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -546,9 +546,7 @@ describe("Bridge - Governance", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance.connect(governance).finalizeDepositTxMaxFeeUpdate()
-        ).to.be.revertedWith(
-          "Deposit transaction max fee must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -794,9 +792,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeRedemptionDustThresholdUpdate()
-        ).to.be.revertedWith(
-          "Redemption dust threshold must be greater than moving funds dust threshold"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1060,9 +1056,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeRedemptionTxMaxTotalFeeUpdate()
-        ).to.be.revertedWith(
-          "Redemption transaction max total fee must be greater than or equal to the redemption transaction per-request max fee"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1185,7 +1179,7 @@ describe("Bridge - Governance", () => {
       it("should revert", async () => {
         await expect(
           bridgeGovernance.connect(governance).finalizeRedemptionTimeoutUpdate()
-        ).to.be.revertedWith("Redemption timeout must be greater than zero")
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1569,9 +1563,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTxMaxTotalFeeUpdate()
-        ).to.be.revertedWith(
-          "Moving funds transaction max total fee must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1697,9 +1689,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsDustThresholdUpdate()
-        ).to.be.revertedWith(
-          "Moving funds dust threshold must be greater than zero and lower than redemption dust threshold"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1828,9 +1818,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTimeoutResetDelayUpdate()
-        ).to.be.revertedWith(
-          "Moving funds timeout reset delay must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1951,9 +1939,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTimeoutUpdate()
-        ).to.be.revertedWith(
-          "Moving funds timeout must be greater than its reset delay"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -1977,9 +1963,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeMovingFundsTimeoutUpdate()
-        ).to.be.revertedWith(
-          "Moving funds timeout must be greater than its reset delay"
-        )
+        ).to.be.revertedWith("Governance delay has not elapsed")
       })
     })
 
@@ -2478,9 +2462,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeMovedFundsSweepTxMaxTotalFeeUpdate()
-        ).to.be.revertedWith(
-          "Moved funds sweep transaction max total fee must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -2605,9 +2587,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeMovedFundsSweepTimeoutUpdate()
-        ).to.be.revertedWith(
-          "Moved funds sweep timeout must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -3243,9 +3223,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeWalletCreationMaxBtcBalanceUpdate()
-        ).to.be.revertedWith(
-          "Wallet creation maximum BTC balance must be greater than the creation minimum BTC balance"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -3376,9 +3354,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeWalletClosureMinBtcBalanceUpdate()
-        ).to.be.revertedWith(
-          "Wallet closure minimum BTC balance must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -3612,9 +3588,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeWalletMaxBtcTransferUpdate()
-        ).to.be.revertedWith(
-          "Wallet maximum BTC transfer must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -3734,7 +3708,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeWalletClosingPeriodUpdate()
-        ).to.be.revertedWith("Wallet closing period must be greater than zero")
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -3982,9 +3956,7 @@ describe("Bridge - Governance", () => {
           bridgeGovernance
             .connect(governance)
             .finalizeFraudChallengeDefeatTimeoutUpdate()
-        ).to.be.revertedWith(
-          "Fraud challenge defeat timeout must be greater than zero"
-        )
+        ).to.be.revertedWith("Change not initiated")
       })
     })
 
@@ -4292,6 +4264,125 @@ describe("Bridge - Governance", () => {
           await expect(tx)
             .to.emit(bridgeGovernance, "FraudNotifierRewardMultiplierUpdated")
             .withArgs(42)
+        })
+      }
+    )
+  })
+
+  describe("beginTreasuryUpdate", () => {
+    const newTreasury = "0x8A71228c19A3531384FC203F56290D3aF01B16bD"
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(thirdParty).beginTreasuryUpdate(newTreasury)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      let oldTreasury: string
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        oldTreasury = await bridge.treasury()
+
+        tx = await bridgeGovernance
+          .connect(governance)
+          .beginTreasuryUpdate(newTreasury)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should not update the treasury address", async () => {
+        expect(await bridge.treasury()).to.be.equal(oldTreasury)
+      })
+
+      it("should emit TreasuryUpdateStarted event", async () => {
+        const blockTimestamp = await helpers.time.lastBlockTime()
+        await expect(tx)
+          .to.emit(bridgeGovernance, "TreasuryUpdateStarted")
+          .withArgs(newTreasury, blockTimestamp)
+      })
+    })
+  })
+
+  describe("finalizeTreasuryUpdate", () => {
+    const newTreasury = "0x8A71228c19A3531384FC203F56290D3aF01B16bD"
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(thirdParty).finalizeTreasuryUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(governance).finalizeTreasuryUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+
+    context("when the governance delay has not passed", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await bridgeGovernance
+          .connect(governance)
+          .beginTreasuryUpdate(newTreasury)
+
+        await helpers.time.increaseTime(constants.governanceDelay - 60) // -1min
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance.connect(governance).finalizeTreasuryUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context(
+      "when the update process is initialized and governance delay passed",
+      () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridgeGovernance
+            .connect(governance)
+            .beginTreasuryUpdate(newTreasury)
+
+          await helpers.time.increaseTime(constants.governanceDelay)
+
+          tx = await bridgeGovernance
+            .connect(governance)
+            .finalizeTreasuryUpdate()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the treasury address", async () => {
+          expect(await bridge.treasury()).to.be.equal(newTreasury)
+        })
+
+        it("should emit TreasuryUpdated event", async () => {
+          await expect(tx)
+            .to.emit(bridgeGovernance, "TreasuryUpdated")
+            .withArgs(newTreasury)
         })
       }
     )

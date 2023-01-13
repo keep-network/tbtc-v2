@@ -3,6 +3,7 @@ import {
   RawTransaction,
   UnspentTransactionOutput,
   TransactionMerkleBranch,
+  TransactionHash,
 } from "../../src/bitcoin"
 import { BigNumber } from "ethers"
 
@@ -16,13 +17,15 @@ export const testnetAddress: string =
  * A testnet transaction originating from {@link testnetAddress}
  */
 export const testnetTransaction: Transaction = {
-  transactionHash:
-    "72e7fd57c2adb1ed2305c4247486ff79aec363296f02ec65be141904f80d214e",
+  transactionHash: TransactionHash.from(
+    "72e7fd57c2adb1ed2305c4247486ff79aec363296f02ec65be141904f80d214e"
+  ),
 
   inputs: [
     {
-      transactionHash:
-        "c6ffe9e0f8cca057acad211023ff6b9d46604fbbcb76c6dd669c20b22985f802",
+      transactionHash: TransactionHash.from(
+        "c6ffe9e0f8cca057acad211023ff6b9d46604fbbcb76c6dd669c20b22985f802"
+      ),
       outputIndex: 1,
       scriptSig: {
         asm: "",

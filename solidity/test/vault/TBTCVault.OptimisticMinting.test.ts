@@ -88,12 +88,6 @@ describe("TBTCVault - OptimisticMinting", () => {
       .connect(keepCommunityMultiSig)
       .finalizeVendingMachineUpgrade()
 
-    // Deployment scripts to not set the vault's status as trusted. We need to
-    // do it manually in tests covering `TBTCVault`'s behavior.
-    await bridgeGovernance
-      .connect(governance)
-      .setVaultStatus(tbtcVault.address, true)
-
     // Set up test data needed to reveal a deposit via
     // bridge.connect(depositor).revealDeposit(fundingTx, depositRevealInfo)
     const bitcoinTestData: DepositSweepTestData = JSON.parse(
@@ -502,14 +496,6 @@ describe("TBTCVault - OptimisticMinting", () => {
           before(async () => {
             await createSnapshot()
 
-            await tbtcVault
-              .connect(governance)
-              .beginOptimisticMintingFeeUpdate(50) // 2%
-            await increaseTime(86400) // 24h
-            await tbtcVault
-              .connect(governance)
-              .finalizeOptimisticMintingFeeUpdate()
-
             await bridge
               .connect(depositor)
               .revealDeposit(fundingTx, depositRevealInfo)
@@ -529,30 +515,31 @@ describe("TBTCVault - OptimisticMinting", () => {
 
           // Output value is 20000.
           // Bridge deposit treasury fee is 0.05% (1/2000).
-          // Optimistic minting fee is 2% (1/50).
+          // Optimistic minting fee is 0.2% (1/500).
           //
           // 20000 / 2000 = 10
-          // (20000 - 10) / 50 = 399
-          // 20000 - 10 - 399 = 19591
-
+          // (20000 - 10) / 500 = 39
+          //
           // Bridge deposit treasury fee is allocated during the sweep.
 
           it("should send optimistic mint fee to treasury", async () => {
             expect(
               expect(await tbtc.balanceOf(await bridge.treasury())).to.be.equal(
-                399
+                39
               )
             )
           })
 
           it("should mint TBTC to depositor", async () => {
-            expect(await tbtc.balanceOf(depositor.address)).to.be.equal(19591)
+            // 20000 - 10 - 39 = 19951
+            expect(await tbtc.balanceOf(depositor.address)).to.be.equal(19951)
           })
 
           it("should incur optimistic mint debt", async () => {
+            // 20000 - 10 = 19990
             expect(
               await tbtcVault.optimisticMintingDebt(depositor.address)
-            ).to.be.equal(19591)
+            ).to.be.equal(19990)
           })
 
           it("should mark the request as finalized", async () => {
@@ -566,7 +553,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(minter.address, depositKey, depositor.address, 19591)
+              .withArgs(minter.address, depositKey, depositor.address, 19990)
           })
         })
 
@@ -607,12 +594,18 @@ describe("TBTCVault - OptimisticMinting", () => {
           //
           // 20000 / 2000 = 10
           // 20000 - 10 = 19990
-
+          //
           // Bridge deposit treasury fee is allocated during the sweep.
 
+          it("should send no optimistic mint fee to treasury", async () => {
+            expect(
+              expect(await tbtc.balanceOf(await bridge.treasury())).to.be.equal(
+                0
+              )
+            )
+          })
+
           it("should mint TBTC", async () => {
-            // Deposit treasury fee is 0.05%. The output value is 0.0002 BTC.
-            // Treasury fee is deducted so we should mint 19990 sat.
             expect(await tbtc.balanceOf(depositor.address)).to.be.equal(19990)
           })
 
@@ -646,13 +639,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             await bridgeGovernance
               .connect(governance)
               .beginDepositTreasuryFeeDivisorUpdate(0)
-            await tbtcVault
-              .connect(governance)
-              .beginOptimisticMintingFeeUpdate(50) // 2%
             await increaseTime(constants.governanceDelay)
-            await tbtcVault
-              .connect(governance)
-              .finalizeOptimisticMintingFeeUpdate()
             await bridgeGovernance
               .connect(governance)
               .finalizeDepositTreasuryFeeDivisorUpdate()
@@ -677,27 +664,27 @@ describe("TBTCVault - OptimisticMinting", () => {
 
           // Output value is 20000.
           // Bridge deposit treasury fee is 0.
-          // Optimistic minting fee is 2% (1/50).
+          // Optimistic minting fee is 0.2% (1/500).
           //
-          // 20000 / 50 = 400
-          // 20000 - 400 = 19600
+          // 20000 / 500 = 40
+          // 20000 - 40 = 19960
 
           it("should send optimistic mint fee to treasury", async () => {
             expect(
               expect(await tbtc.balanceOf(await bridge.treasury())).to.be.equal(
-                400
+                40
               )
             )
           })
 
           it("should mint TBTC to depositor", async () => {
-            expect(await tbtc.balanceOf(depositor.address)).to.be.equal(19600)
+            expect(await tbtc.balanceOf(depositor.address)).to.be.equal(19960)
           })
 
           it("should incur optimistic mint debt", async () => {
             expect(
               await tbtcVault.optimisticMintingDebt(depositor.address)
-            ).to.be.equal(19600)
+            ).to.be.equal(20000)
           })
 
           it("should mark the request as finalized", async () => {
@@ -711,7 +698,7 @@ describe("TBTCVault - OptimisticMinting", () => {
           it("should emit an event", async () => {
             await expect(tx)
               .to.emit(tbtcVault, "OptimisticMintingFinalized")
-              .withArgs(minter.address, depositKey, depositor.address, 19600)
+              .withArgs(minter.address, depositKey, depositor.address, 20000)
           })
         })
 
@@ -1364,7 +1351,7 @@ describe("TBTCVault - OptimisticMinting", () => {
       })
 
       it("should not update the optimistic minting fee", async () => {
-        expect(await tbtcVault.optimisticMintingFeeDivisor()).to.equal(0)
+        expect(await tbtcVault.optimisticMintingFeeDivisor()).to.equal(500)
       })
 
       it("should start the governance delay timer", async () => {
@@ -1647,10 +1634,24 @@ describe("TBTCVault - OptimisticMinting", () => {
         })
 
         it("should repay optimistic minting debt", async () => {
-          // The sum of sweep tx inputs is 20000 satoshi. The output value is
-          // 18500 so the transaction fee is 1500. There is only one deposit so
-          // it incurs the entire transaction fee.
-          // Treasury fee is cut when optimistically minting TBTC but given the
+          // Deposit output value is 20000.
+          // Bridge deposit treasury fee is 0.05% (1/2000).
+          // Optimistic minting fee is 0.2% (1/500).
+          //
+          // 20000 / 2000 = 10
+          // (20000 - 10) / 500 = 39
+          //
+          // Before the sweep, the debt was equal to the optimistically minted
+          // amount: 20000 - 10 = 19990.
+          //
+          // The sum of sweep tx inputs is 20000 satoshi. The output value of
+          // the sweep transaction is 18500 so the Bitcoin transaction fee is
+          // 1500. There is only one deposit so it incurs the entire Bitcoin
+          // transaction fee. Bridge deposit treasury fee is 10. That means
+          // 18500 - 10 = 18490 is used to repay the optimistic minting debt:
+          // 19990 - 18490 = 1500.
+          //
+          // The remaining debt is the Bitcoin transaction fee.
           // Bitcoin transaction fee is unknown at the moment of optimistic
           // minting, we can not deduct it when optimistically minting TBTC so
           // the optimistic minting debt stay equal to the transaction fee.
@@ -1675,8 +1676,9 @@ describe("TBTCVault - OptimisticMinting", () => {
         tbtcVault: TBTCVault
       }
 
-      // Calls are mocked so we can use just a simple string address.
+      // Calls are mocked, so we can use just simple string addresses.
       const depositorAddress = "0xb2Ea9bb14A901fD71A7cf6e7b5bdC62aA2b9F012"
+      const treasuryAddress = "0xCb18A2137762706C6b5cCe47A25bE02F699Dfe5e"
 
       // Setting up two real testnet deposits being swept one after another
       // requires a ton of boilerplate code that is hard to follow and update.
@@ -1686,6 +1688,8 @@ describe("TBTCVault - OptimisticMinting", () => {
       const prepareFixture = async function (): Promise<Fixture> {
         const mockBank = await smock.fake<Bank>("Bank")
         const mockBridge = await smock.fake<Bridge>("Bridge")
+
+        mockBridge.treasury.returns(treasuryAddress)
 
         const TBTCFactory = await ethers.getContractFactory("TBTC")
         // eslint-disable-next-line @typescript-eslint/no-shadow
@@ -1769,7 +1773,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             .connect(f.mockBank.wallet)
             .receiveBalanceIncrease(
               [depositorAddress, depositorAddress],
-              [800, 1900]
+              [985, 1980]
             )
         })
 
@@ -1778,32 +1782,42 @@ describe("TBTCVault - OptimisticMinting", () => {
         })
 
         it("should pay off part of the optimistic minting debt", async () => {
-          // The first deposit has value of 1000 and a treasury fee of 10.
-          // The second deposit has value of 2000 and a treasury fee of 15.
-          // Both were optimistically minted so the debt is 2975.
+          // The first deposit has value of 1000, a deposit treasury fee of 10,
+          // and an optimistic minting fee of 1. The second deposit has value of
+          // 2000, a deposit treasury fee of 15, and an optimistic minting fee
+          // of 3.
+          //
+          // Both were optimistically minted so the debt is 990 + 1985 = 2975.
+          //
           // Then, the deposits were swept.
-          // With miner fee and treasury fee deducted the amounts from the
-          // deposits were 800 and 1900.
-          // The debt is reduced to 2975 - 800 - 1900 = 275.
+          //
+          // We assume a Bitcoin miner fee of 5.
+          //
+          // With miner fee and deposit treasury fee deducted, the amounts from
+          // the deposits were:
+          // 1000 - 10 - 5 = 985
+          // 2000 - 15 - 5 = 1980
+          //
+          // The debt is reduced to 2975 - 985 - 1980 = 10.
           expect(
             await f.tbtcVault.optimisticMintingDebt(depositorAddress)
-          ).to.equal(275)
+          ).to.equal(10)
         })
 
         it("should mint the right amount of TBTC", async () => {
-          expect(await f.tbtc.balanceOf(depositorAddress)).to.equal(2975)
+          expect(await f.tbtc.balanceOf(depositorAddress)).to.equal(2971)
         })
 
         it("should emit an event", async () => {
-          // 2975 - 800 = 2175
+          // 2975 - 985 = 1990
           await expect(tx)
             .to.emit(f.tbtcVault, "OptimisticMintingDebtRepaid")
-            .withArgs(depositorAddress, 2175)
+            .withArgs(depositorAddress, 1990)
 
-          // 2175 - 1900 = 275
+          // 1990 - 1980 = 10
           await expect(tx)
             .to.emit(f.tbtcVault, "OptimisticMintingDebtRepaid")
-            .withArgs(depositorAddress, 275)
+            .withArgs(depositorAddress, 10)
         })
       })
 
@@ -1840,7 +1854,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             .connect(f.mockBank.wallet)
             .receiveBalanceIncrease(
               [depositorAddress, depositorAddress],
-              [800, 1900]
+              [985, 1980]
             )
         })
 
@@ -1849,13 +1863,22 @@ describe("TBTCVault - OptimisticMinting", () => {
         })
 
         it("should pay off part of the optimistic minting debt", async () => {
-          // The first deposit has value of 1000 and a treasury fee of 10.
-          // The second deposit has value of 2000 and a treasury fee of 15.
+          // The first deposit has value of 1000, a deposit treasury fee of 10,
+          // and an optimistic minting fee of 1. The second deposit has value of
+          // 2000 and a deposit treasury fee of 15.
+          //
           // Only the first one got optimistically minted so the debt is 990.
+          //
           // Then, the deposits were swept.
-          // With miner fee and treasury fee deducted the amounts from the
-          // deposits were 800 and 1900.
-          // When the first deposit is swept, the debt is reduced to 190.
+          //
+          // We assume a Bitcoin miner fee of 5.
+          //
+          // With miner fee and deposit treasury fee deducted, the amounts from
+          // the deposits were:
+          // 1000 - 10 - 5 = 985
+          // 2000 - 15 - 5 = 1980
+          //
+          // When the first deposit is swept, the debt is reduced to 5.
           // When the second deposit is swept, the debt is reduced to 0.
           expect(
             await f.tbtcVault.optimisticMintingDebt(depositorAddress)
@@ -1863,21 +1886,28 @@ describe("TBTCVault - OptimisticMinting", () => {
         })
 
         it("should mint the right amount of TBTC", async () => {
-          // When the second deposit was being swept, the debt was 190.
-          // With miner fee and treasury fee deducted the amount from the
-          // second deposit was 1900. Thus 1900 - 190 = 1710 TBTC is minted for
-          // the second deposit and 990 was minted for the first deposit.
-          // 1710 + 990 = 2700 is minted in total.
-          expect(await f.tbtc.balanceOf(depositorAddress)).to.equal(2700)
+          // When the second deposit was being swept, the debt was 5.
+          //
+          // During the optimistic minting, 1000 - 10 - 1 = 989 was minted for
+          // the depositor.
+          //
+          // During the first sweep, nothing was minted and the debt was reduced
+          // to 5 (985 - 900 = -5)
+          //
+          // During the second sweep, 1980 - 5 = 1975 was minted for the
+          // depositor.
+          //
+          // 989 + 1975 = 2964 is minted in total.
+          expect(await f.tbtc.balanceOf(depositorAddress)).to.equal(2964)
         })
 
         it("should emit an event", async () => {
-          // 990 - 800 = 190
+          // 985 - 990 = -5
           await expect(tx)
             .to.emit(f.tbtcVault, "OptimisticMintingDebtRepaid")
-            .withArgs(depositorAddress, 190)
+            .withArgs(depositorAddress, 5)
 
-          // 190 - 1900 = -1000 (so 1000 to mint, debt is 0)
+          // 1980 - 5 = 1975 (debt is reduced to 0)
           await expect(tx)
             .to.emit(f.tbtcVault, "OptimisticMintingDebtRepaid")
             .withArgs(depositorAddress, 0)
