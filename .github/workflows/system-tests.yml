@@ -20,12 +20,6 @@ jobs:
       - name: Configure git to not use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
 
-      - name: Cleanup for fresh installation
-        working-directory: ./solidity
-        run: |
-          rm -rf node_modules
-          yarn clean
-
       - name: Install solidity dependencies
         working-directory: ./solidity
         run: yarn install
