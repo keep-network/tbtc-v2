@@ -3,7 +3,7 @@ import type { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   const { deployments, ethers, getNamedAccounts } = hre
-  const { execute, read } = deployments
+  const { execute } = deployments
   const { deployer } = await getNamedAccounts()
 
   deployments.log("disabling fraud challenges in the Bridge")
@@ -16,14 +16,13 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     "79228162514264337593543950335"
   )
 
-  // To emphasize the fact that frauds are disabled, we set the
-  // fraudChallengeDefeatTimeout to uint32 max value (2^32-1 = 4294967295) and
-  // fraudSlashingAmount to zero.
+  // To emphasize the fact that frauds are disabled, we set:
+  // - fraudChallengeDefeatTimeout to uint32 max value (2^32-1 = 4294967295)
+  // - fraudSlashingAmount to zero,
+  // - fraudNotifierRewardMultiplier to zero.
   const fraudChallengeDefeatTimeout = ethers.BigNumber.from("4294967295")
   const fraudSlashingAmount = ethers.BigNumber.from("0")
-
-  // Fetch the current values of other fraud parameters to keep them unchanged.
-  const fraudParameters = await read("Bridge", "fraudParameters")
+  const fraudNotifierRewardMultiplier = ethers.BigNumber.from("0")
 
   await execute(
     "Bridge",
@@ -32,7 +31,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     fraudChallengeDepositAmount,
     fraudChallengeDefeatTimeout,
     fraudSlashingAmount,
-    fraudParameters.fraudNotifierRewardMultiplier
+    fraudNotifierRewardMultiplier
   )
 }
 

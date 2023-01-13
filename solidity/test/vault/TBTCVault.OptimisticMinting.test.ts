@@ -88,12 +88,6 @@ describe("TBTCVault - OptimisticMinting", () => {
       .connect(keepCommunityMultiSig)
       .finalizeVendingMachineUpgrade()
 
-    // Deployment scripts to not set the vault's status as trusted. We need to
-    // do it manually in tests covering `TBTCVault`'s behavior.
-    await bridgeGovernance
-      .connect(governance)
-      .setVaultStatus(tbtcVault.address, true)
-
     // Set up test data needed to reveal a deposit via
     // bridge.connect(depositor).revealDeposit(fundingTx, depositRevealInfo)
     const bitcoinTestData: DepositSweepTestData = JSON.parse(

@@ -51,11 +51,20 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     walletParameters.walletClosingPeriod
   )
 
-  // To emphasize the fact that moving funds is disabled, we set the
-  // movingFundsTimeout to uint32 max value (2^32-1 = 4294967295) and
-  // movingFundsTimeoutSlashingAmount to zero.
+  // To emphasize the fact that moving funds is disabled, we set:
+  // - movingFundsTimeout to uint32 max value (2^32-1 = 4294967295),
+  // - movedFundsSweepTimeout to uint32 max value,
+  // - movingFundsTimeoutSlashingAmount to 0,
+  // - movedFundsSweepTimeoutSlashingAmount to 0,
+  // - movingFundsTimeoutNotifierRewardMultiplier to 0,
+  // - movedFundsSweepTimeoutNotifierRewardMultiplier to 0.
   const movingFundsTimeout = ethers.BigNumber.from("4294967295")
+  const movedFundsSweepTimeout = ethers.BigNumber.from("4294967295")
   const movingFundsTimeoutSlashingAmount = ethers.BigNumber.from("0")
+  const movedFundsSweepTimeoutSlashingAmount = ethers.BigNumber.from("0")
+  const movingFundsTimeoutNotifierRewardMultiplier = ethers.BigNumber.from("0")
+  const movedFundsSweepTimeoutNotifierRewardMultiplier =
+    ethers.BigNumber.from("0")
 
   // Fetch the current values of other moving funds parameters to keep them unchanged.
   const movingFundsParameters = await read("Bridge", "movingFundsParameters")
@@ -69,12 +78,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     movingFundsParameters.movingFundsTimeoutResetDelay,
     movingFundsTimeout,
     movingFundsTimeoutSlashingAmount,
-    movingFundsParameters.movingFundsTimeoutNotifierRewardMultiplier,
+    movingFundsTimeoutNotifierRewardMultiplier,
     movingFundsParameters.movingFundsCommitmentGasOffset,
     movingFundsParameters.movedFundsSweepTxMaxTotalFee,
-    movingFundsParameters.movedFundsSweepTimeout,
-    movingFundsParameters.movedFundsSweepTimeoutSlashingAmount,
-    movingFundsParameters.movedFundsSweepTimeoutNotifierRewardMultiplier
+    movedFundsSweepTimeout,
+    movedFundsSweepTimeoutSlashingAmount,
+    movedFundsSweepTimeoutNotifierRewardMultiplier
   )
 }
 

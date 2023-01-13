@@ -39,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     "Bridge",
     {
       contractName:
-        process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : undefined,
+        process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : "Bridge",
       initializerArgs: [
         Bank.address,
         LightRelay.address,

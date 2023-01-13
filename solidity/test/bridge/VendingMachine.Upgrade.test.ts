@@ -90,10 +90,6 @@ describe("VendingMachine - Upgrade", () => {
     // within transactions used in this test suite.
     await bridge.setDepositRevealAheadPeriod(0)
 
-    await bridgeGovernance
-      .connect(governance)
-      .setVaultStatus(tbtcVault.address, true)
-
     tbtcV1 = await helpers.contracts.getContract("TBTCToken")
     // Two accounts with 10 TBTC v1 each wrap their holdings to TBTC v2.
     const initialTbtcBalance = to1e18(10)

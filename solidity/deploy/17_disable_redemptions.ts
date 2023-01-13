@@ -14,11 +14,13 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   // The maximum value for the uint64 is 2^64-1 = 18446744073709551615.
   const redemptionDustThreshold = ethers.BigNumber.from("18446744073709551615")
 
-  // To emphasize the fact that redemptions are disabled, we set the
-  // redemptionTimeout to uint32 max value (2^32-1 = 4294967295) and
-  // redemptionTimeoutSlashingAmount to zero.
+  // To emphasize the fact that redemptions are disabled, we set:
+  // - redemptionTimeout to uint32 max value (2^32-1 = 4294967295),
+  // - redemptionTimeoutSlashingAmount to zero,
+  // - redemptionTimeoutNotifierRewardMultiplier to zero.
   const redemptionTimeout = ethers.BigNumber.from("4294967295")
   const redemptionTimeoutSlashingAmount = ethers.BigNumber.from("0")
+  const redemptionTimeoutNotifierRewardMultiplier = ethers.BigNumber.from("0")
 
   // Fetch the current values of other redemption parameters to keep them unchanged.
   const redemptionParameters = await read("Bridge", "redemptionParameters")
@@ -33,7 +35,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     redemptionParameters.redemptionTxMaxTotalFee,
     redemptionTimeout,
     redemptionTimeoutSlashingAmount,
-    redemptionParameters.redemptionTimeoutNotifierRewardMultiplier
+    redemptionTimeoutNotifierRewardMultiplier
   )
 }
 

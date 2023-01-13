@@ -724,9 +724,9 @@ library BridgeState {
     //         i.e. the period when the wallet remains in the Closing state
     //         and can be subject of deposit fraud challenges.
     /// @dev Requirements:
-    ///      - Wallet minimum BTC balance must be greater than zero,
     ///      - Wallet maximum BTC balance must be greater than the wallet
     ///        minimum BTC balance,
+    ///      - Wallet closure BTC balance must be greater than zero,
     ///      - Wallet maximum BTC transfer must be greater than zero,
     ///      - Wallet closing period must be greater than zero.
     function updateWalletParameters(

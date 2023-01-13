@@ -6,26 +6,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const bank = await deploy("Bank", {
-    contract: process.env.TEST_USE_STUBS_TBTC === "true" ? "BankStub" : "Bank",
+  const Bank = await deployments.get("Bank")
+
+  const donationVault = await deploy("DonationVault", {
+    contract: "DonationVault",
     from: deployer,
-    args: [],
+    args: [Bank.address],
     log: true,
     waitConfirmations: 1,
   })
 
   if (hre.network.tags.etherscan) {
-    await helpers.etherscan.verify(bank)
+    await helpers.etherscan.verify(donationVault)
   }
 
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
-      name: "Bank",
-      address: bank.address,
+      name: "DonationVault",
+      address: donationVault.address,
     })
   }
 }
 
 export default func
 
-func.tags = ["Bank"]
+func.tags = ["DonationVault"]
+func.dependencies = ["Bank"]
