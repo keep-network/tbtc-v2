@@ -35,11 +35,6 @@ jobs:
       - name: Resolve latest contracts
         run: yarn upgrade @keep-network/tbtc-v2 --exact
 
-      # The `typescript` postinstall scripts do not get executed during `yarn
-      # upgrade ...`, so we need to invoke them as a separate step.
-      - name: Run typescript post-install script
-        run: yarn run postinstall
-
       - name: Compile
         run: yarn build
 
