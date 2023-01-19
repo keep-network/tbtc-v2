@@ -30,6 +30,10 @@ export interface Credentials {
    * Protocol used by the Electrum server.
    */
   protocol: "tcp" | "tls" | "ssl" | "ws" | "wss"
+  /**
+   * Additional options used by the Electrum server.
+   */
+  options?: any
 }
 
 /**
@@ -89,7 +93,8 @@ export class Client implements BitcoinClient {
     const electrum = new Electrum(
       this.credentials.host,
       this.credentials.port,
-      this.credentials.protocol
+      this.credentials.protocol,
+      this.credentials.options
     )
 
     try {
