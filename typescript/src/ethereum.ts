@@ -581,7 +581,10 @@ class WalletRegistry extends EthereumContract<ContractWalletRegistry> {
 /**
  * Implementation of the Ethereum TBTCVault handle.
  */
-export class TBTCVault extends EthereumContract implements ChainTBTCVault {
+export class TBTCVault
+  extends EthereumContract<ContractTBTCVault>
+  implements ChainTBTCVault
+{
   constructor(config: ContractConfig) {
     super(config, TBTCVaultDeployment)
   }
