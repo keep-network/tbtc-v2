@@ -309,7 +309,13 @@ export function isCompressedPublicKey(publicKey: string): boolean {
  * @param publicKey Uncompressed 64-byte public key as an unprefixed hex string.
  * @returns Compressed 33-byte public key prefixed with 02 or 03.
  */
-export function compressPublicKey(publicKey: string): string {
+export function compressPublicKey(publicKey: string | Hex): string {
+  if (typeof publicKey === "string") {
+    publicKey = Hex.from(publicKey)
+  }
+
+  publicKey = publicKey.toString()
+
   // Must have 64 bytes and no prefix.
   if (publicKey.length != 128) {
     throw new Error(
