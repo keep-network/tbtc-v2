@@ -11,12 +11,27 @@ import {
 } from "./bitcoin"
 import { assembleDepositScript, Deposit } from "./deposit"
 
+/**
+ * Submits a deposit refund by creating and broadcasting a Bitcoin P2(W)PKH
+ * deposit refund transaction.
+ * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * @param fee - the value that will be subtracted from the deposit UTXO being
+ *        refunded and used as the transaction fee.
+ * @param utxo - UTXO that was created during depositing that needs be refunded.
+ * @param deposit - Details of the deposit being refunded. It should contain
+ *        the same data that was used during depositing.
+ * @param refunderPrivateKey - Bitcoin private key of the refunder. It must
+ *        correspond to the `refundPublicKeyHash` of the deposit script.
+ * @param witness - If true, a witness (P2WPKH) transaction will be created.
+ *        Otherwise, a legacy P2PKH transaction will be made.
+ * @returns The outcome is the deposit refund transaction hash.
+ */
 export async function submitDepositRefundTransaction(
   bitcoinClient: BitcoinClient,
   fee: BigNumber,
   utxo: UnspentTransactionOutput,
   deposit: Deposit,
-  depositorPrivateKey: string,
+  refunderPrivateKey: string,
   witness: boolean
 ): Promise<{ transactionHash: TransactionHash }> {
   const utxoRawTransaction = await bitcoinClient.getRawTransaction(
@@ -33,7 +48,7 @@ export async function submitDepositRefundTransaction(
       fee,
       utxoWithRaw,
       deposit,
-      depositorPrivateKey,
+      refunderPrivateKey,
       witness
     )
 
@@ -45,26 +60,40 @@ export async function submitDepositRefundTransaction(
   return { transactionHash }
 }
 
+/**
+ * Assembles a Bitcoin P2(W)PKH deposit refund transaction.
+ * @param fee - the value that will be subtracted from the deposit UTXO being
+ *        refunded and used as the transaction fee.
+ * @param utxo - UTXO that was created during depositing that needs be refunded.
+ * @param deposit - Details of the deposit being refunded. It should contain
+ *        the same data that was used during depositing.
+ * @param refunderPrivateKey - Bitcoin private key of the refunder. It must
+ *        correspond to the `refundPublicKeyHash` of the deposit script.
+ * @param witness - If true, a witness (P2WPKH) transaction will be created.
+ *        Otherwise, a legacy P2PKH transaction will be made.
+ * @returns The outcome consisting of:
+ *          - the deposit refund transaction hash,
+ *          - the refund transaction in the raw format.
+ */
 export async function assembleDepositRefundTransaction(
   fee: BigNumber,
   utxo: UnspentTransactionOutput & RawTransaction,
   deposit: Deposit,
-  depositorPrivateKey: string,
+  refunderPrivateKey: string,
   witness: boolean
 ): Promise<{
   transactionHash: TransactionHash
   rawTransaction: RawTransaction
 }> {
-  const depositorKeyRing = createKeyRing(depositorPrivateKey, witness)
-  // TODO: Should we allow the depositor to send the refunded Bitcoins to
-  //       arbitrary address? For now, the depositor just sends the Bitcoins to
-  //       themselves.
-  const depositorAddress = depositorKeyRing.getAddress("string")
+  const refunderKeyRing = createKeyRing(refunderPrivateKey, witness)
+
+  // Send the refunded Bitcoins to the refunder's address.
+  const refunderAddress = refunderKeyRing.getAddress("string")
 
   const transaction = new bcoin.MTX()
 
   transaction.addOutput({
-    script: bcoin.Script.fromAddress(depositorAddress),
+    script: bcoin.Script.fromAddress(refunderAddress),
     value: utxo.value.toNumber(),
   })
 
@@ -75,7 +104,7 @@ export async function assembleDepositRefundTransaction(
   )
 
   await transaction.fund([inputCoin], {
-    changeAddress: depositorAddress,
+    changeAddress: refunderAddress,
     hardFee: fee.toNumber(),
     subtractFee: true,
   })
@@ -83,7 +112,13 @@ export async function assembleDepositRefundTransaction(
   if (transaction.outputs.length != 1) {
     throw new Error("Deposit refund transaction must have only one output")
   }
+
+  // In order to be able to spend the UTXO being refunded the transaction's
+  // locktime must be set to a value equal to or higher than the refund locktime.
   transaction.locktime = locktimeToUnixTimestamp(deposit.refundLocktime)
+
+  // Additionally, the input's sequence must be set to a value different than
+  // `0xffffffff`.
   transaction.inputs[0].sequence = 0xfffffffe
 
   // Sign the input
@@ -92,11 +127,11 @@ export async function assembleDepositRefundTransaction(
   const previousScript = previousOutput.script
 
   if (previousScript.isScripthash()) {
-    // P2SH UTXO input
-    await signP2SHDepositInput(transaction, 0, deposit, depositorKeyRing)
+    // P2SH UTXO deposit input
+    await signP2SHDepositInput(transaction, 0, deposit, refunderKeyRing)
   } else if (previousScript.isWitnessScripthash()) {
-    // P2WSH UTXO input
-    await signP2WSHDepositInput(transaction, 0, deposit, depositorKeyRing)
+    // P2WSH UTXO deposit input
+    await signP2WSHDepositInput(transaction, 0, deposit, refunderKeyRing)
   } else {
     throw new Error("Unsupported UTXO script type")
   }
@@ -118,20 +153,20 @@ export async function assembleDepositRefundTransaction(
 }
 
 /**
- * Creates data needed to sign a deposit input.
- * @param transaction - Mutable transaction containing the input.
+ * Creates data needed to sign a deposit input to be refunded.
+ * @param transaction - Mutable transaction containing the input to be refunded.
  * @param inputIndex - Index that points to the input.
- * @param deposit - Data of the deposit.
- * @param depositorKeyRing - Key ring created using the depositor's private key.
+ * @param deposit - Data of the deposit to be refunded.
+ * @param refunderKeyRing - Key ring created using the refunder's private key.
  * @returns Data needed to sign the input.
  */
 async function prepareInputSignData(
   transaction: any,
   inputIndex: number,
   deposit: Deposit,
-  depositorKeyRing: any
+  refunderKeyRing: any
 ): Promise<{
-  depositorPublicKey: string
+  refunderPublicKey: string
   depositScript: any
   previousOutputValue: number
 }> {
@@ -139,24 +174,21 @@ async function prepareInputSignData(
   const previousOutput = transaction.view.getOutput(previousOutpoint)
 
   if (previousOutput.value != deposit.amount.toNumber()) {
-    throw new Error("Mismatch between amount in deposit and deposit tx")
+    throw new Error("Mismatch between amount in deposit and deposit refund tx")
   }
 
-  // TODO: Only keep this check if we decide to always send refunded Bitcoins
-  //       to the depositor's address. If we allow the depositor to provide
-  //       arbitrary receiver address then this check needs to be removed.
-  const depositorPublicKey = depositorKeyRing.getPublicKey("hex")
+  const refunderPublicKey = refunderKeyRing.getPublicKey("hex")
   if (
-    computeHash160(depositorKeyRing.getPublicKey("hex")) !=
+    computeHash160(refunderKeyRing.getPublicKey("hex")) !=
     deposit.refundPublicKeyHash
   ) {
     throw new Error(
-      "Refund public key does not correspond to depositor private key"
+      "Refund public key does not correspond to the refunder private key"
     )
   }
 
-  if (!isCompressedPublicKey(depositorPublicKey)) {
-    throw new Error("Depositor public key must be compressed")
+  if (!isCompressedPublicKey(refunderPublicKey)) {
+    throw new Error("Refunder public key must be compressed")
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -167,7 +199,7 @@ async function prepareInputSignData(
   )
 
   return {
-    depositorPublicKey: depositorPublicKey,
+    refunderPublicKey: refunderPublicKey,
     depositScript: depositScript,
     previousOutputValue: previousOutput.value,
   }
@@ -175,39 +207,39 @@ async function prepareInputSignData(
 
 /**
  * Creates and sets `scriptSig` for the transaction input at the given index by
- * combining signature, depositor's public key and deposit script.
+ * combining signature, refunder's public key and deposit script.
  * @param transaction - Mutable transaction containing the input to be signed.
  * @param inputIndex - Index that points to the input to be signed.
  * @param deposit - Data of the deposit.
- * @param depositorKeyRing - Key ring created using the depositor's private key.
+ * @param refunderKeyRing - Key ring created using the refunder's private key.
  * @returns Empty promise.
  */
 async function signP2SHDepositInput(
   transaction: any,
   inputIndex: number,
   deposit: Deposit,
-  depositorKeyRing: any
+  refunderKeyRing: any
 ): Promise<void> {
-  const { depositorPublicKey, depositScript, previousOutputValue } =
+  const { refunderPublicKey, depositScript, previousOutputValue } =
     await prepareInputSignData(
       transaction,
       inputIndex,
       deposit,
-      depositorKeyRing
+      refunderKeyRing
     )
 
   const signature: Buffer = transaction.signature(
     inputIndex,
     depositScript,
     previousOutputValue,
-    depositorKeyRing.privateKey,
+    refunderKeyRing.privateKey,
     bcoin.Script.hashType.ALL,
     0 // legacy sighash version
   )
   const scriptSig = new bcoin.Script()
   scriptSig.clear()
   scriptSig.pushData(signature)
-  scriptSig.pushData(Buffer.from(depositorPublicKey, "hex"))
+  scriptSig.pushData(Buffer.from(refunderPublicKey, "hex"))
   scriptSig.pushData(depositScript.toRaw())
   scriptSig.compile()
 
@@ -229,7 +261,7 @@ async function signP2WSHDepositInput(
   deposit: Deposit,
   depositorKeyRing: any
 ): Promise<void> {
-  const { depositorPublicKey, depositScript, previousOutputValue } =
+  const { refunderPublicKey, depositScript, previousOutputValue } =
     await prepareInputSignData(
       transaction,
       inputIndex,
@@ -249,13 +281,19 @@ async function signP2WSHDepositInput(
   const witness = new bcoin.Witness()
   witness.clear()
   witness.pushData(signature)
-  witness.pushData(Buffer.from(depositorPublicKey, "hex"))
+  witness.pushData(Buffer.from(refunderPublicKey, "hex"))
   witness.pushData(depositScript.toRaw())
   witness.compile()
 
   transaction.inputs[inputIndex].witness = witness
 }
 
+/**
+ * Converts locktime from the little endian hexstring format to the Unix
+ * timestamp.
+ * @param locktime - Locktime as a little endian hexstring.
+ * @returns Locktime as a Unix timestamp.
+ */
 function locktimeToUnixTimestamp(locktime: string): number {
   const bigEndianLocktime = Buffer.from(locktime, "hex")
     .reverse()
