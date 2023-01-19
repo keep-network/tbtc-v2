@@ -99,6 +99,10 @@ const config: HardhatUserConfig = {
       // deploy stub contracts in tests.
       allowUnlimitedContractSize: process.env.TEST_USE_STUBS_TBTC === "true",
     },
+    system_tests: {
+      url: "http://localhost:8545",
+      tags: ["allowStubs"],
+    },
     development: {
       url: "http://localhost:8545",
       chainId: 1101,
@@ -107,9 +111,18 @@ const config: HardhatUserConfig = {
     goerli: {
       url: process.env.CHAIN_API_URL || "",
       chainId: 5,
+      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+        : undefined,
+      tags: ["tenderly"],
+    },
+    mainnet: {
+      url: process.env.CHAIN_API_URL || "",
+      chainId: 1,
       accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
+      tags: ["etherscan", "tenderly"],
     },
   },
 
@@ -167,21 +180,22 @@ const config: HardhatUserConfig = {
       default: 1,
       goerli: 0,
     },
-    // TODO: Governance should be the Threshold Council.
-    //       Inspect usages and rename.
     governance: {
       default: 2,
       goerli: 0,
+      mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f", // Threshold Council
     },
     chaosnetOwner: {
       default: 3,
       goerli: 0,
-      // mainnet: ""
+      // Not used for mainnet deployment scripts of `@keepn-network/tbtc-v2`.
+      // Used by `@keep-network/random-beacon` and `@keep-network/ecdsa`
+      // when deploying `SortitionPool`s.
     },
     esdm: {
       default: 4,
       goerli: 0,
-      // mainnet: ""
+      mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f", // Threshold Council
     },
     keepTechnicalWalletTeam: {
       default: 5,
@@ -196,10 +210,12 @@ const config: HardhatUserConfig = {
     treasury: {
       default: 7,
       goerli: 0,
+      mainnet: "0x87F005317692D05BAA4193AB0c961c69e175f45f", // Token Holder DAO
     },
     spvMaintainer: {
       default: 8,
       goerli: 0,
+      // We are not setting SPV maintainer for mainnet in deployment scripts.
     },
   },
   dependencyCompiler: {

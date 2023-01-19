@@ -11,5 +11,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["TransferBankOwnership"]
-func.dependencies = ["Bank"]
+func.dependencies = ["Bank", "BankUpdateBridge"]
 func.runAtTheEnd = true

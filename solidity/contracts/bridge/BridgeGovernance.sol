@@ -31,12 +31,14 @@ contract BridgeGovernance is Ownable {
     using BridgeGovernanceParameters for BridgeGovernanceParameters.MovingFundsData;
     using BridgeGovernanceParameters for BridgeGovernanceParameters.WalletData;
     using BridgeGovernanceParameters for BridgeGovernanceParameters.FraudData;
+    using BridgeGovernanceParameters for BridgeGovernanceParameters.TreasuryData;
 
     BridgeGovernanceParameters.DepositData internal depositData;
     BridgeGovernanceParameters.RedemptionData internal redemptionData;
     BridgeGovernanceParameters.MovingFundsData internal movingFundsData;
     BridgeGovernanceParameters.WalletData internal walletData;
     BridgeGovernanceParameters.FraudData internal fraudData;
+    BridgeGovernanceParameters.TreasuryData internal treasuryData;
 
     Bridge internal bridge;
 
@@ -283,6 +285,9 @@ contract BridgeGovernance is Ownable {
         uint32 fraudNotifierRewardMultiplier
     );
 
+    event TreasuryUpdateStarted(address newTreasury, uint256 timestamp);
+    event TreasuryUpdated(address treasury);
+
     constructor(Bridge _bridge, uint256 _governanceDelay) {
         bridge = _bridge;
         governanceDelays[0] = _governanceDelay;
@@ -412,13 +417,14 @@ contract BridgeGovernance is Ownable {
             uint64 depositTxMaxFee,
             uint32 depositRevealAheadPeriod
         ) = bridge.depositParameters();
+        uint64 newDepositDustThreshold = depositData.newDepositDustThreshold;
+        depositData.finalizeDepositDustThresholdUpdate(governanceDelay());
         bridge.updateDepositParameters(
-            depositData.getNewDepositDustThreshold(),
+            newDepositDustThreshold,
             depositTreasuryFeeDivisor,
             depositTxMaxFee,
             depositRevealAheadPeriod
         );
-        depositData.finalizeDepositDustThresholdUpdate(governanceDelay());
     }
 
     /// @notice Begins the deposit treasury fee divisor amount update process.
@@ -442,14 +448,15 @@ contract BridgeGovernance is Ownable {
             uint64 depositTxMaxFee,
             uint32 depositRevealAheadPeriod
         ) = bridge.depositParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newDepositTreasuryFeeDivisor = depositData
+            .newDepositTreasuryFeeDivisor;
+        depositData.finalizeDepositTreasuryFeeDivisorUpdate(governanceDelay());
         bridge.updateDepositParameters(
             depositDustThreshold,
-            depositData.getNewDepositTreasuryFeeDivisor(),
+            newDepositTreasuryFeeDivisor,
             depositTxMaxFee,
             depositRevealAheadPeriod
         );
-        depositData.finalizeDepositTreasuryFeeDivisorUpdate(governanceDelay());
     }
 
     /// @notice Begins the deposit tx max fee amount update process.
@@ -472,14 +479,14 @@ contract BridgeGovernance is Ownable {
             ,
             uint32 depositRevealAheadPeriod
         ) = bridge.depositParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newDepositTxMaxFee = depositData.newDepositTxMaxFee;
+        depositData.finalizeDepositTxMaxFeeUpdate(governanceDelay());
         bridge.updateDepositParameters(
             depositDustThreshold,
             depositTreasuryFeeDivisor,
-            depositData.getNewDepositTxMaxFee(),
+            newDepositTxMaxFee,
             depositRevealAheadPeriod
         );
-        depositData.finalizeDepositTxMaxFeeUpdate(governanceDelay());
     }
 
     /// @notice Begins the deposit reveal ahead period update process.
@@ -503,14 +510,15 @@ contract BridgeGovernance is Ownable {
             uint64 depositTxMaxFee,
 
         ) = bridge.depositParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newDepositRevealAheadPeriod = depositData
+            .newDepositRevealAheadPeriod;
+        depositData.finalizeDepositRevealAheadPeriodUpdate(governanceDelay());
         bridge.updateDepositParameters(
             depositDustThreshold,
             depositTreasuryFeeDivisor,
             depositTxMaxFee,
-            depositData.getNewDepositRevealAheadPeriod()
+            newDepositRevealAheadPeriod
         );
-        depositData.finalizeDepositRevealAheadPeriodUpdate(governanceDelay());
     }
 
     // --- Redemption
@@ -539,9 +547,11 @@ contract BridgeGovernance is Ownable {
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newRedemptionDustThreshold = redemptionData
+            .newRedemptionDustThreshold;
+        redemptionData.finalizeRedemptionDustThresholdUpdate(governanceDelay());
         bridge.updateRedemptionParameters(
-            redemptionData.getNewRedemptionDustThreshold(),
+            newRedemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
             redemptionTxMaxTotalFee,
@@ -549,8 +559,6 @@ contract BridgeGovernance is Ownable {
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
         );
-
-        redemptionData.finalizeRedemptionDustThresholdUpdate(governanceDelay());
     }
 
     /// @notice Begins the redemption treasury fee divisor amount update process.
@@ -578,18 +586,19 @@ contract BridgeGovernance is Ownable {
             uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
         // slither-disable-next-line reentrancy-no-eth
+        uint64 newRedemptionTreasuryFeeDivisor = redemptionData
+            .newRedemptionTreasuryFeeDivisor;
+        redemptionData.finalizeRedemptionTreasuryFeeDivisorUpdate(
+            governanceDelay()
+        );
         bridge.updateRedemptionParameters(
             redemptionDustThreshold,
-            redemptionData.getNewRedemptionTreasuryFeeDivisor(),
+            newRedemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
             redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
-        );
-
-        redemptionData.finalizeRedemptionTreasuryFeeDivisorUpdate(
-            governanceDelay()
         );
     }
 
@@ -616,18 +625,17 @@ contract BridgeGovernance is Ownable {
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newRedemptionTxMaxFee = redemptionData.newRedemptionTxMaxFee;
+        redemptionData.finalizeRedemptionTxMaxFeeUpdate(governanceDelay());
         bridge.updateRedemptionParameters(
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
-            redemptionData.getNewRedemptionTxMaxFee(),
+            newRedemptionTxMaxFee,
             redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
         );
-
-        redemptionData.finalizeRedemptionTxMaxFeeUpdate(governanceDelay());
     }
 
     /// @notice Begins the redemption tx max total fee amount update process.
@@ -654,18 +662,18 @@ contract BridgeGovernance is Ownable {
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newRedemptionTxMaxTotalFee = redemptionData
+            .newRedemptionTxMaxTotalFee;
+        redemptionData.finalizeRedemptionTxMaxTotalFeeUpdate(governanceDelay());
         bridge.updateRedemptionParameters(
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
-            redemptionData.getNewRedemptionTxMaxTotalFee(),
+            newRedemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
         );
-
-        redemptionData.finalizeRedemptionTxMaxTotalFeeUpdate(governanceDelay());
     }
 
     /// @notice Begins the redemption timeout amount update process.
@@ -691,18 +699,17 @@ contract BridgeGovernance is Ownable {
             uint96 redemptionTimeoutSlashingAmount,
             uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newRedemptionTimeout = redemptionData.newRedemptionTimeout;
+        redemptionData.finalizeRedemptionTimeoutUpdate(governanceDelay());
         bridge.updateRedemptionParameters(
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
             redemptionTxMaxTotalFee,
-            redemptionData.getNewRedemptionTimeout(),
+            newRedemptionTimeout,
             redemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
         );
-
-        redemptionData.finalizeRedemptionTimeoutUpdate(governanceDelay());
     }
 
     /// @notice Begins the redemption timeout slashing amount update process.
@@ -733,19 +740,19 @@ contract BridgeGovernance is Ownable {
             ,
             uint32 redemptionTimeoutNotifierRewardMultiplier
         ) = bridge.redemptionParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint96 newRedemptionTimeoutSlashingAmount = redemptionData
+            .newRedemptionTimeoutSlashingAmount;
+        redemptionData.finalizeRedemptionTimeoutSlashingAmountUpdate(
+            governanceDelay()
+        );
         bridge.updateRedemptionParameters(
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
             redemptionTxMaxFee,
             redemptionTxMaxTotalFee,
             redemptionTimeout,
-            redemptionData.getNewRedemptionTimeoutSlashingAmount(),
+            newRedemptionTimeoutSlashingAmount,
             redemptionTimeoutNotifierRewardMultiplier
-        );
-
-        redemptionData.finalizeRedemptionTimeoutSlashingAmountUpdate(
-            governanceDelay()
         );
     }
 
@@ -779,7 +786,11 @@ contract BridgeGovernance is Ownable {
             uint96 redemptionTimeoutSlashingAmount,
 
         ) = bridge.redemptionParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newRedemptionTimeoutNotifierRewardMultiplier = redemptionData
+            .newRedemptionTimeoutNotifierRewardMultiplier;
+        redemptionData.finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate(
+            governanceDelay()
+        );
         bridge.updateRedemptionParameters(
             redemptionDustThreshold,
             redemptionTreasuryFeeDivisor,
@@ -787,11 +798,7 @@ contract BridgeGovernance is Ownable {
             redemptionTxMaxTotalFee,
             redemptionTimeout,
             redemptionTimeoutSlashingAmount,
-            redemptionData.getNewRedemptionTimeoutNotifierRewardMultiplier()
-        );
-
-        redemptionData.finalizeRedemptionTimeoutNotifierRewardMultiplierUpdate(
-            governanceDelay()
+            newRedemptionTimeoutNotifierRewardMultiplier
         );
     }
 
@@ -825,9 +832,13 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newMovingFundsTxMaxTotalFee = movingFundsData
+            .newMovingFundsTxMaxTotalFee;
+        movingFundsData.finalizeMovingFundsTxMaxTotalFeeUpdate(
+            governanceDelay()
+        );
         bridge.updateMovingFundsParameters(
-            movingFundsData.getNewMovingFundsTxMaxTotalFee(),
+            newMovingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
             movingFundsTimeoutResetDelay,
             movingFundsTimeout,
@@ -838,9 +849,6 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
-        );
-        movingFundsData.finalizeMovingFundsTxMaxTotalFeeUpdate(
-            governanceDelay()
         );
     }
 
@@ -872,10 +880,14 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newMovingFundsDustThreshold = movingFundsData
+            .newMovingFundsDustThreshold;
+        movingFundsData.finalizeMovingFundsDustThresholdUpdate(
+            governanceDelay()
+        );
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
-            movingFundsData.getNewMovingFundsDustThreshold(),
+            newMovingFundsDustThreshold,
             movingFundsTimeoutResetDelay,
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
@@ -885,9 +897,6 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
-        );
-        movingFundsData.finalizeMovingFundsDustThresholdUpdate(
-            governanceDelay()
         );
     }
 
@@ -920,11 +929,15 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newMovingFundsTimeoutResetDelay = movingFundsData
+            .newMovingFundsTimeoutResetDelay;
+        movingFundsData.finalizeMovingFundsTimeoutResetDelayUpdate(
+            governanceDelay()
+        );
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
-            movingFundsData.getNewMovingFundsTimeoutResetDelay(),
+            newMovingFundsTimeoutResetDelay,
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
@@ -933,9 +946,6 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
-        );
-        movingFundsData.finalizeMovingFundsTimeoutResetDelayUpdate(
-            governanceDelay()
         );
     }
 
@@ -966,12 +976,13 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newMovingFundsTimeout = movingFundsData.newMovingFundsTimeout;
+        movingFundsData.finalizeMovingFundsTimeoutUpdate(governanceDelay());
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
             movingFundsTimeoutResetDelay,
-            movingFundsData.getNewMovingFundsTimeout(),
+            newMovingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
             movingFundsCommitmentGasOffset,
@@ -980,7 +991,6 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
-        movingFundsData.finalizeMovingFundsTimeoutUpdate(governanceDelay());
     }
 
     /// @notice Begins the moving funds timeout slashing amount update process.
@@ -1015,22 +1025,23 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint96 newMovingFundsTimeoutSlashingAmount = movingFundsData
+            .newMovingFundsTimeoutSlashingAmount;
+        movingFundsData.finalizeMovingFundsTimeoutSlashingAmountUpdate(
+            governanceDelay()
+        );
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
             movingFundsTimeoutResetDelay,
             movingFundsTimeout,
-            movingFundsData.getNewMovingFundsTimeoutSlashingAmount(),
+            newMovingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
             movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
-        );
-        movingFundsData.finalizeMovingFundsTimeoutSlashingAmountUpdate(
-            governanceDelay()
         );
     }
 
@@ -1068,24 +1079,25 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newMovingFundsTimeoutNotifierRewardMultiplier = movingFundsData
+            .newMovingFundsTimeoutNotifierRewardMultiplier;
+        movingFundsData
+            .finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate(
+                governanceDelay()
+            );
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
             movingFundsTimeoutResetDelay,
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
-            movingFundsData.getNewMovingFundsTimeoutNotifierRewardMultiplier(),
+            newMovingFundsTimeoutNotifierRewardMultiplier,
             movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
-        movingFundsData
-            .finalizeMovingFundsTimeoutNotifierRewardMultiplierUpdate(
-                governanceDelay()
-            );
     }
 
     /// @notice Begins the moving funds commitment gas offset update process.
@@ -1117,7 +1129,11 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint16 newMovingFundsCommitmentGasOffset = movingFundsData
+            .newMovingFundsCommitmentGasOffset;
+        movingFundsData.finalizeMovingFundsCommitmentGasOffsetUpdate(
+            governanceDelay()
+        );
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
@@ -1125,14 +1141,11 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeout,
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
-            movingFundsData.getNewMovingFundsCommitmentGasOffset(),
+            newMovingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
-        );
-        movingFundsData.finalizeMovingFundsCommitmentGasOffsetUpdate(
-            governanceDelay()
         );
     }
 
@@ -1165,7 +1178,11 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newMovedFundsSweepTxMaxTotalFee = movingFundsData
+            .newMovedFundsSweepTxMaxTotalFee;
+        movingFundsData.finalizeMovedFundsSweepTxMaxTotalFeeUpdate(
+            governanceDelay()
+        );
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
@@ -1174,13 +1191,10 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeoutSlashingAmount,
             movingFundsTimeoutNotifierRewardMultiplier,
             movingFundsCommitmentGasOffset,
-            movingFundsData.getNewMovedFundsSweepTxMaxTotalFee(),
+            newMovedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
-        );
-        movingFundsData.finalizeMovedFundsSweepTxMaxTotalFeeUpdate(
-            governanceDelay()
         );
     }
 
@@ -1212,7 +1226,9 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newMovedFundsSweepTimeout = movingFundsData
+            .newMovedFundsSweepTimeout;
+        movingFundsData.finalizeMovedFundsSweepTimeoutUpdate(governanceDelay());
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
@@ -1222,11 +1238,10 @@ contract BridgeGovernance is Ownable {
             movingFundsTimeoutNotifierRewardMultiplier,
             movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
-            movingFundsData.getNewMovedFundsSweepTimeout(),
+            newMovedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
         );
-        movingFundsData.finalizeMovedFundsSweepTimeoutUpdate(governanceDelay());
     }
 
     /// @notice Begins the moved funds sweep timeout slashing amount update process.
@@ -1262,7 +1277,11 @@ contract BridgeGovernance is Ownable {
             ,
             uint32 movedFundsSweepTimeoutNotifierRewardMultiplier
         ) = bridge.movingFundsParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint96 newMovedFundsSweepTimeoutSlashingAmount = movingFundsData
+            .newMovedFundsSweepTimeoutSlashingAmount;
+        movingFundsData.finalizeMovedFundsSweepTimeoutSlashingAmountUpdate(
+            governanceDelay()
+        );
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
@@ -1273,11 +1292,8 @@ contract BridgeGovernance is Ownable {
             movingFundsCommitmentGasOffset,
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
-            movingFundsData.getNewMovedFundsSweepTimeoutSlashingAmount(),
+            newMovedFundsSweepTimeoutSlashingAmount,
             movedFundsSweepTimeoutNotifierRewardMultiplier
-        );
-        movingFundsData.finalizeMovedFundsSweepTimeoutSlashingAmountUpdate(
-            governanceDelay()
         );
     }
 
@@ -1316,6 +1332,12 @@ contract BridgeGovernance is Ownable {
             uint96 movedFundsSweepTimeoutSlashingAmount,
 
         ) = bridge.movingFundsParameters();
+        uint32 newMovedFundsSweepTimeoutNotifierRewardMultiplier = movingFundsData
+                .newMovedFundsSweepTimeoutNotifierRewardMultiplier;
+        movingFundsData
+            .finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
+                governanceDelay()
+            );
         bridge.updateMovingFundsParameters(
             movingFundsTxMaxTotalFee,
             movingFundsDustThreshold,
@@ -1327,13 +1349,8 @@ contract BridgeGovernance is Ownable {
             movedFundsSweepTxMaxTotalFee,
             movedFundsSweepTimeout,
             movedFundsSweepTimeoutSlashingAmount,
-            movingFundsData
-                .getNewMovedFundsSweepTimeoutNotifierRewardMultiplier()
+            newMovedFundsSweepTimeoutNotifierRewardMultiplier
         );
-        movingFundsData
-            .finalizeMovedFundsSweepTimeoutNotifierRewardMultiplierUpdate(
-                governanceDelay()
-            );
     }
 
     // --- Wallet creation
@@ -1361,9 +1378,10 @@ contract BridgeGovernance is Ownable {
             uint64 walletMaxBtcTransfer,
             uint32 walletClosingPeriod
         ) = bridge.walletParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newWalletCreationPeriod = walletData.newWalletCreationPeriod;
+        walletData.finalizeWalletCreationPeriodUpdate(governanceDelay());
         bridge.updateWalletParameters(
-            walletData.getNewWalletCreationPeriod(),
+            newWalletCreationPeriod,
             walletCreationMinBtcBalance,
             walletCreationMaxBtcBalance,
             walletClosureMinBtcBalance,
@@ -1371,7 +1389,6 @@ contract BridgeGovernance is Ownable {
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletCreationPeriodUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet creation min btc balance update process.
@@ -1398,17 +1415,18 @@ contract BridgeGovernance is Ownable {
             uint64 walletMaxBtcTransfer,
             uint32 walletClosingPeriod
         ) = bridge.walletParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newWalletCreationMinBtcBalance = walletData
+            .newWalletCreationMinBtcBalance;
+        walletData.finalizeWalletCreationMinBtcBalanceUpdate(governanceDelay());
         bridge.updateWalletParameters(
             walletCreationPeriod,
-            walletData.getNewWalletCreationMinBtcBalance(),
+            newWalletCreationMinBtcBalance,
             walletCreationMaxBtcBalance,
             walletClosureMinBtcBalance,
             walletMaxAge,
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletCreationMinBtcBalanceUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet creation max btc balance update process.
@@ -1436,17 +1454,18 @@ contract BridgeGovernance is Ownable {
             uint64 walletMaxBtcTransfer,
             uint32 walletClosingPeriod
         ) = bridge.walletParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newWalletCreationMaxBtcBalance = walletData
+            .newWalletCreationMaxBtcBalance;
+        walletData.finalizeWalletCreationMaxBtcBalanceUpdate(governanceDelay());
         bridge.updateWalletParameters(
             walletCreationPeriod,
             walletCreationMinBtcBalance,
-            walletData.getNewWalletCreationMaxBtcBalance(),
+            newWalletCreationMaxBtcBalance,
             walletClosureMinBtcBalance,
             walletMaxAge,
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletCreationMaxBtcBalanceUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet closure min btc balance update process.
@@ -1473,17 +1492,18 @@ contract BridgeGovernance is Ownable {
             uint64 walletMaxBtcTransfer,
             uint32 walletClosingPeriod
         ) = bridge.walletParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newWalletClosureMinBtcBalance = walletData
+            .newWalletClosureMinBtcBalance;
+        walletData.finalizeWalletClosureMinBtcBalanceUpdate(governanceDelay());
         bridge.updateWalletParameters(
             walletCreationPeriod,
             walletCreationMinBtcBalance,
             walletCreationMaxBtcBalance,
-            walletData.getNewWalletClosureMinBtcBalance(),
+            newWalletClosureMinBtcBalance,
             walletMaxAge,
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletClosureMinBtcBalanceUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet max age update process.
@@ -1509,17 +1529,17 @@ contract BridgeGovernance is Ownable {
             uint64 walletMaxBtcTransfer,
             uint32 walletClosingPeriod
         ) = bridge.walletParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newWalletMaxAge = walletData.newWalletMaxAge;
+        walletData.finalizeWalletMaxAgeUpdate(governanceDelay());
         bridge.updateWalletParameters(
             walletCreationPeriod,
             walletCreationMinBtcBalance,
             walletCreationMaxBtcBalance,
             walletClosureMinBtcBalance,
-            walletData.getNewWalletMaxAge(),
+            newWalletMaxAge,
             walletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletMaxAgeUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet max btc transfer amount update process.
@@ -1545,17 +1565,17 @@ contract BridgeGovernance is Ownable {
             ,
             uint32 walletClosingPeriod
         ) = bridge.walletParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint64 newWalletMaxBtcTransfer = walletData.newWalletMaxBtcTransfer;
+        walletData.finalizeWalletMaxBtcTransferUpdate(governanceDelay());
         bridge.updateWalletParameters(
             walletCreationPeriod,
             walletCreationMinBtcBalance,
             walletCreationMaxBtcBalance,
             walletClosureMinBtcBalance,
             walletMaxAge,
-            walletData.getNewWalletMaxBtcTransfer(),
+            newWalletMaxBtcTransfer,
             walletClosingPeriod
         );
-        walletData.finalizeWalletMaxBtcTransferUpdate(governanceDelay());
     }
 
     /// @notice Begins the wallet closing period update process.
@@ -1581,7 +1601,8 @@ contract BridgeGovernance is Ownable {
             uint64 walletMaxBtcTransfer,
 
         ) = bridge.walletParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint32 newWalletClosingPeriod = walletData.newWalletClosingPeriod;
+        walletData.finalizeWalletClosingPeriodUpdate(governanceDelay());
         bridge.updateWalletParameters(
             walletCreationPeriod,
             walletCreationMinBtcBalance,
@@ -1589,9 +1610,8 @@ contract BridgeGovernance is Ownable {
             walletClosureMinBtcBalance,
             walletMaxAge,
             walletMaxBtcTransfer,
-            walletData.getNewWalletClosingPeriod()
+            newWalletClosingPeriod
         );
-        walletData.finalizeWalletClosingPeriodUpdate(governanceDelay());
     }
 
     // --- Fraud
@@ -1617,14 +1637,15 @@ contract BridgeGovernance is Ownable {
             uint96 fraudSlashingAmount,
             uint32 fraudNotifierRewardMultiplier
         ) = bridge.fraudParameters();
-        // slither-disable-next-line reentrancy-no-eth
+        uint96 newFraudChallengeDepositAmount = fraudData
+            .newFraudChallengeDepositAmount;
+        fraudData.finalizeFraudChallengeDepositAmountUpdate(governanceDelay());
         bridge.updateFraudParameters(
-            fraudData.getNewFraudChallengeDepositAmount(),
+            newFraudChallengeDepositAmount,
             fraudChallengeDefeatTimeout,
             fraudSlashingAmount,
             fraudNotifierRewardMultiplier
         );
-        fraudData.finalizeFraudChallengeDepositAmountUpdate(governanceDelay());
     }
 
     /// @notice Begins the fraud challenge defeat timeout update process.
@@ -1648,13 +1669,15 @@ contract BridgeGovernance is Ownable {
             uint96 fraudSlashingAmount,
             uint32 fraudNotifierRewardMultiplier
         ) = bridge.fraudParameters();
+        uint32 newFraudChallengeDefeatTimeout = fraudData
+            .newFraudChallengeDefeatTimeout;
+        fraudData.finalizeFraudChallengeDefeatTimeoutUpdate(governanceDelay());
         bridge.updateFraudParameters(
             fraudChallengeDepositAmount,
-            fraudData.getNewFraudChallengeDefeatTimeout(),
+            newFraudChallengeDefeatTimeout,
             fraudSlashingAmount,
             fraudNotifierRewardMultiplier
         );
-        fraudData.finalizeFraudChallengeDefeatTimeoutUpdate(governanceDelay());
     }
 
     /// @notice Begins the fraud slashing amount update process.
@@ -1677,13 +1700,14 @@ contract BridgeGovernance is Ownable {
             ,
             uint32 fraudNotifierRewardMultiplier
         ) = bridge.fraudParameters();
+        uint96 newFraudSlashingAmount = fraudData.newFraudSlashingAmount;
+        fraudData.finalizeFraudSlashingAmountUpdate(governanceDelay());
         bridge.updateFraudParameters(
             fraudChallengeDepositAmount,
             fraudChallengeDefeatTimeout,
-            fraudData.getNewFraudSlashingAmount(),
+            newFraudSlashingAmount,
             fraudNotifierRewardMultiplier
         );
-        fraudData.finalizeFraudSlashingAmountUpdate(governanceDelay());
     }
 
     /// @notice Begins the fraud notifier reward multiplier update process.
@@ -1708,15 +1732,34 @@ contract BridgeGovernance is Ownable {
             uint96 fraudSlashingAmount,
 
         ) = bridge.fraudParameters();
+        uint32 newFraudNotifierRewardMultiplier = fraudData
+            .newFraudNotifierRewardMultiplier;
+        fraudData.finalizeFraudNotifierRewardMultiplierUpdate(
+            governanceDelay()
+        );
         bridge.updateFraudParameters(
             fraudChallengeDepositAmount,
             fraudChallengeDefeatTimeout,
             fraudSlashingAmount,
-            fraudData.getNewFraudNotifierRewardMultiplier()
+            newFraudNotifierRewardMultiplier
         );
-        fraudData.finalizeFraudNotifierRewardMultiplierUpdate(
-            governanceDelay()
-        );
+    }
+
+    /// @notice Begins the treasury address update process.
+    /// @dev Can be called only by the contract owner. It does not perform
+    ///      any parameter validation.
+    /// @param _newTreasury New treasury address.
+    function beginTreasuryUpdate(address _newTreasury) external onlyOwner {
+        treasuryData.beginTreasuryUpdate(_newTreasury);
+    }
+
+    /// @notice Finalizes the treasury address update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeTreasuryUpdate() external onlyOwner {
+        address newTreasury = treasuryData.newTreasury;
+        treasuryData.finalizeTreasuryUpdate(governanceDelay());
+        bridge.updateTreasury(newTreasury);
     }
 
     /// @notice Gets the governance delay parameter.
