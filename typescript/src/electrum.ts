@@ -35,7 +35,7 @@ export interface Credentials {
 /**
  * Additional options used by the Electrum server.
  */
-type Options = object
+export type ClientOptions = object
 
 /**
  * Represents an action that makes use of the Electrum connection. An action
