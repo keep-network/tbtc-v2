@@ -49,9 +49,9 @@ type Action<T> = (electrum: any) => Promise<T>
  */
 export class Client implements BitcoinClient {
   private credentials: Credentials
-  private options?: Options
+  private options?: ClientOptions
 
-  constructor(credentials: Credentials, options?: Options) {
+  constructor(credentials: Credentials, options?: ClientOptions) {
     this.credentials = credentials
     this.options = options
   }
@@ -62,7 +62,7 @@ export class Client implements BitcoinClient {
    * @param options - Additional options used by the Electrum server.
    * @returns Electrum client instance.
    */
-  static fromUrl(url: string, options?: Options): Client {
+  static fromUrl(url: string, options?: ClientOptions): Client {
     const credentials = this.parseElectrumCredentials(url)
     return new Client(credentials, options)
   }
