@@ -44,7 +44,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
 
     /// @notice The time delay that needs to pass between initializing and
     ///         finalizing the upgrade of governable parameters.
-    uint256 public constant GOVERNANCE_DELAY = 24 hours;
+    uint256 public constant GOVERNANCE_DELAY = 120;
 
     Bridge public immutable bridge;
 
@@ -70,7 +70,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     /// @notice The time that needs to pass between the moment the optimistic
     ///         minting is requested and the moment optimistic minting is
     ///         finalized with minting TBTC.
-    uint32 public optimisticMintingDelay = 3 hours;
+    uint32 public optimisticMintingDelay = 120;
 
     /// @notice Indicates if the given address is a Minter. Only Minters can
     ///         request optimistic minting.
