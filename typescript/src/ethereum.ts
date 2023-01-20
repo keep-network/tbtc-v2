@@ -80,6 +80,7 @@ export interface Deployment {
 /**
  * Represents an Ethereum address.
  */
+// TODO: Make Address extends Hex
 export class Address implements ChainIdentifier {
   readonly identifierHex: string
 
@@ -100,6 +101,10 @@ export class Address implements ChainIdentifier {
     return new Address(address)
   }
 
+  // TODO: Remove once extends Hex
+  equals(otherValue: Address): boolean {
+    return this.identifierHex === otherValue.identifierHex
+  }
 }
 
 /**
