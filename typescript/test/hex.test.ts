@@ -137,4 +137,36 @@ describe("Hex", () => {
       assert.equal(hex.toString(), stringUnprefixed)
     })
   })
+
+  describe("equals", () => {
+    const hexLowerCased = Hex.from(stringPrefixed.toLowerCase())
+    const hexUpperCased = Hex.from(stringPrefixed.toUpperCase())
+
+    context("for the same values with matching cases", () => {
+      it("should return true", () => {
+        assert.isTrue(hexUpperCased.equals(hexUpperCased))
+      })
+    })
+
+    context("for the same values but not matching cases", () => {
+      it("should return true", () => {
+        assert.isTrue(hexLowerCased.equals(hexUpperCased))
+      })
+    })
+
+    context("for the same value but prefixed and unprefixed", () => {
+      it("should return true", () => {
+        assert.isTrue(
+          Hex.from(stringPrefixed).equals(Hex.from(stringUnprefixed))
+        )
+      })
+    })
+
+    context("for different values", () => {
+      it("should return false", () => {
+        const otherValue: Hex = Hex.from(stringPrefixed.slice(-2))
+        assert.isFalse(hexLowerCased.equals(otherValue))
+      })
+    })
+  })
 })
