@@ -6,7 +6,7 @@ import {
 import chai, { assert, expect } from "chai"
 import { BigNumber, constants } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
+import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
 import { TransactionHash } from "../src/bitcoin"
