@@ -3,6 +3,7 @@ import {
   getRevealedDeposit,
   revealDeposit,
   suggestDepositWallet,
+  bitcoinLocktimeToNumber,
 } from "./deposit"
 import { submitDepositSweepProof } from "./deposit-sweep"
 import {
@@ -23,6 +24,7 @@ const TBTC = {
   getRevealedDeposit,
   requestRedemption,
   getRedemptionRequest,
+  bitcoinLocktimeToNumber,
 }
 
 const SpvMaintainer = {
