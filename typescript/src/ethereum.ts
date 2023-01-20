@@ -35,8 +35,23 @@ import type {
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
 
-import type { Bridge as ContractBridge } from "../typechain/Bridge"
+import type {
+  Bridge as ContractBridge,
+  Deposit as ContractDeposit,
+  Redemption as ContractRedemption,
+} from "../typechain/Bridge"
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
+import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
+
+type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
+
+type ContractRedemptionRequest =
+  ContractRedemption.RedemptionRequestStructOutput
+
+type ContractOptimisticMintingRequest = {
+  requestedAt: BigNumber
+  finalizedAt: BigNumber
+}
 
 /**
  * Contract deployment artifact.
@@ -228,7 +243,8 @@ export class Bridge
       redeemerOutputScript
     )
 
-    const request = await this._instance.pendingRedemptions(redemptionKey)
+    const request: ContractRedemptionRequest =
+      await this._instance.pendingRedemptions(redemptionKey)
 
     return this.parseRedemptionRequest(request, redeemerOutputScript)
   }
@@ -292,7 +308,7 @@ export class Bridge
    * @returns Parsed redemption request.
    */
   private parseRedemptionRequest(
-    request: any,
+    request: ContractRedemptionRequest,
     redeemerOutputScript: string
   ): RedemptionRequest {
     return {
@@ -476,7 +492,9 @@ export class Bridge
   ): Promise<RevealedDeposit> {
     const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
 
-    const deposit = await this._instance.deposits(depositKey)
+    const deposit: ContractDepositRequest = await this._instance.deposits(
+      depositKey
+    )
 
     return this.parseRevealedDeposit(deposit)
   }
@@ -507,7 +525,9 @@ export class Bridge
    * @param deposit Data of the revealed deposit.
    * @returns Parsed revealed deposit.
    */
-  private parseRevealedDeposit(deposit: any): RevealedDeposit {
+  private parseRevealedDeposit(
+    deposit: ContractDepositRequest
+  ): RevealedDeposit {
     return {
       depositor: new Address(deposit.depositor),
       amount: BigNumber.from(deposit.amount),
@@ -657,7 +677,8 @@ export class TBTCVault
   ): Promise<OptimisticMintingRequest> {
     const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
 
-    const request = await this._instance.optimisticMintingRequests(depositKey)
+    const request: ContractOptimisticMintingRequest =
+      await this._instance.optimisticMintingRequests(depositKey)
 
     return this.parseOptimisticMintingRequest(request)
   }
@@ -668,7 +689,7 @@ export class TBTCVault
    * @returns Parsed optimistic minting request.
    */
   private parseOptimisticMintingRequest(
-    request: any
+    request: ContractOptimisticMintingRequest
   ): OptimisticMintingRequest {
     return {
       requestedAt: BigNumber.from(request.requestedAt).toNumber(),
