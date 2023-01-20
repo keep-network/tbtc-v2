@@ -177,6 +177,13 @@ export interface TBTCVault {
   optimisticMintingDelay(): Promise<number>
 
   /**
+   * Gets currently registered minters.
+   *
+   * @returns Array containing identifiers of all currently registered minters.
+   */
+  getMinters(): Promise<Identifier[]>
+
+  /**
    * Requests optimistic minting for a deposit in an on-chain contract.
    *
    * @param depositTxHash The revealed deposit transaction's hash.

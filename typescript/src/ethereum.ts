@@ -621,6 +621,16 @@ export class TBTCVault
 
   // eslint-disable-next-line valid-jsdoc
   /**
+   * @see {ChainTBTCVault#getMinters}
+   */
+  async getMinters(): Promise<Address[]> {
+    const minters: string[] = await this._instance.getMinters()
+
+    return minters.map(Address.from)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
    * @see {ChainTBTCVault#requestOptimisticMint}
    */
   async requestOptimisticMint(
