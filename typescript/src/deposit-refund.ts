@@ -20,6 +20,7 @@ import { assembleDepositScript, Deposit } from "./deposit"
  * @param utxo - UTXO that was created during depositing that needs be refunded.
  * @param deposit - Details of the deposit being refunded. It should contain
  *        the same data that was used during depositing.
+ * @param recipientAddress - Address the recipient of the refunded deposit.
  * @param refunderPrivateKey - Bitcoin private key of the refunder. It must
  *        correspond to the `refundPublicKeyHash` of the deposit script.
  * @param witness - If true, a witness (P2WPKH) transaction will be created.
@@ -31,6 +32,7 @@ export async function submitDepositRefundTransaction(
   fee: BigNumber,
   utxo: UnspentTransactionOutput,
   deposit: Deposit,
+  recipientAddress: string,
   refunderPrivateKey: string,
   witness: boolean
 ): Promise<{ transactionHash: TransactionHash }> {
@@ -48,6 +50,7 @@ export async function submitDepositRefundTransaction(
       fee,
       utxoWithRaw,
       deposit,
+      recipientAddress,
       refunderPrivateKey,
       witness
     )
@@ -67,6 +70,7 @@ export async function submitDepositRefundTransaction(
  * @param utxo - UTXO that was created during depositing that needs be refunded.
  * @param deposit - Details of the deposit being refunded. It should contain
  *        the same data that was used during depositing.
+ * @param recipientAddress - Address the recipient of the refunded deposit.
  * @param refunderPrivateKey - Bitcoin private key of the refunder. It must
  *        correspond to the `refundPublicKeyHash` of the deposit script.
  * @param witness - If true, a witness (P2WPKH) transaction will be created.
@@ -79,6 +83,7 @@ export async function assembleDepositRefundTransaction(
   fee: BigNumber,
   utxo: UnspentTransactionOutput & RawTransaction,
   deposit: Deposit,
+  recipientAddress: string,
   refunderPrivateKey: string,
   witness: boolean
 ): Promise<{
@@ -87,13 +92,10 @@ export async function assembleDepositRefundTransaction(
 }> {
   const refunderKeyRing = createKeyRing(refunderPrivateKey, witness)
 
-  // Send the refunded Bitcoins to the refunder's address.
-  const refunderAddress = refunderKeyRing.getAddress("string")
-
   const transaction = new bcoin.MTX()
 
   transaction.addOutput({
-    script: bcoin.Script.fromAddress(refunderAddress),
+    script: bcoin.Script.fromAddress(recipientAddress),
     value: utxo.value.toNumber(),
   })
 
@@ -104,7 +106,7 @@ export async function assembleDepositRefundTransaction(
   )
 
   await transaction.fund([inputCoin], {
-    changeAddress: refunderAddress,
+    changeAddress: recipientAddress,
     hardFee: fee.toNumber(),
     subtractFee: true,
   })
