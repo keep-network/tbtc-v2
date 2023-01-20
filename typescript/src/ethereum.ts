@@ -83,6 +83,7 @@ export interface Deployment {
 export class Address implements ChainIdentifier {
   readonly identifierHex: string
 
+  // TODO: Make constructor private
   constructor(address: string) {
     let validAddress: string
 
@@ -94,6 +95,11 @@ export class Address implements ChainIdentifier {
 
     this.identifierHex = validAddress.substring(2).toLowerCase()
   }
+
+  static from(address: string): Address {
+    return new Address(address)
+  }
+
 }
 
 /**
