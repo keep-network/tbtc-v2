@@ -8,6 +8,7 @@ import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
 import { Deposit, RevealedDeposit } from "../../src/deposit"
 import { computeHash160, TransactionHash } from "../../src/bitcoin"
+import { Address } from "../../src/ethereum"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -121,9 +122,9 @@ export class MockBridge implements Bridge {
         this._deposits.has(depositKey)
           ? (this._deposits.get(depositKey) as RevealedDeposit)
           : {
-              depositor: { identifierHex: constants.AddressZero },
+              depositor: Address.from(constants.AddressZero),
               amount: BigNumber.from(0),
-              vault: { identifierHex: constants.AddressZero },
+              vault: Address.from(constants.AddressZero),
               revealedAt: 0,
               sweptAt: 0,
               treasuryFee: BigNumber.from(0),
@@ -231,7 +232,7 @@ export class MockBridge implements Bridge {
     return redemptionsMap.has(redemptionKey)
       ? (redemptionsMap.get(redemptionKey) as RedemptionRequest)
       : {
-          redeemer: { identifierHex: constants.AddressZero },
+          redeemer: Address.from(constants.AddressZero),
           redeemerOutputScript: "",
           requestedAmount: BigNumber.from(0),
           treasuryFee: BigNumber.from(0),
