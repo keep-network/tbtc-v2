@@ -13,13 +13,8 @@ import {
 import * as OptimisticMinting from "./optimistic-minting"
 import { Client as ElectrumClient } from "./electrum"
 import { Bridge as EthereumBridge } from "./ethereum"
+import * as Ethereum from "./ethereum"
 import { TBTCVault as EthereumTBTCVault } from "./ethereum"
-import {
-  requestOptimisticMint,
-  cancelOptimisticMint,
-  finalizeOptimisticMint,
-  getOptimisticMintingRequest,
-} from "./optimistic-minting"
 
 const TBTC = {
   calculateDepositAddress,
@@ -40,6 +35,7 @@ export {
   SpvMaintainer,
   OptimisticMinting,
   ElectrumClient,
+  Ethereum,
   EthereumBridge,
   EthereumTBTCVault,
 }
