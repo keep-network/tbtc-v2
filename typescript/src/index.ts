@@ -10,6 +10,7 @@ import {
   submitRedemptionProof,
   getRedemptionRequest,
 } from "./redemption"
+import * as OptimisticMinting from "./optimistic-minting"
 import { Client as ElectrumClient } from "./electrum"
 import { Bridge as EthereumBridge } from "./ethereum"
 import { TBTCVault as EthereumTBTCVault } from "./ethereum"
@@ -27,10 +28,6 @@ const TBTC = {
   getRevealedDeposit,
   requestRedemption,
   getRedemptionRequest,
-  requestOptimisticMint,
-  cancelOptimisticMint,
-  finalizeOptimisticMint,
-  getOptimisticMintingRequest,
 }
 
 const SpvMaintainer = {
@@ -41,6 +38,7 @@ const SpvMaintainer = {
 export {
   TBTC,
   SpvMaintainer,
+  OptimisticMinting,
   ElectrumClient,
   EthereumBridge,
   EthereumTBTCVault,
