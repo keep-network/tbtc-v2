@@ -18,6 +18,7 @@ import bcoin from "bcoin"
 import {
   assembleDepositScript,
   assembleDepositTransaction,
+  bitcoinLocktimeToNumber,
   calculateDepositAddress,
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
@@ -32,6 +33,9 @@ import {
 import { MockBridge } from "./utils/mock-bridge"
 
 describe("Deposit", () => {
+  const depositCreatedAt: number = 1640181600
+  const depositRefundLocktimeDuration: number = 2592000
+
   const deposit: Deposit = {
     depositor: { identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637" },
     amount: BigNumber.from(10000), // 0.0001 BTC
@@ -40,7 +44,10 @@ describe("Deposit", () => {
     // HASH160 of 0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9.
     refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
     blindingFactor: "f9f0c90d00039523",
-    refundLocktime: calculateDepositRefundLocktime(1640181600, 2592000),
+    refundLocktime: calculateDepositRefundLocktime(
+      depositCreatedAt,
+      depositRefundLocktimeDuration
+    ),
   }
 
   const depositScriptParameters: DepositScriptParameters = {
@@ -784,6 +791,55 @@ describe("Deposit", () => {
 
     it("should return the deposit wallet's public key", async () => {
       expect(await suggestDepositWallet(bridge)).to.be.equal(publicKey)
+    })
+  })
+
+  describe("bitcoinLocktimeToUnixTimestamp", () => {
+    const testData = [
+      {
+        contextName: "when locktime is a block height",
+        unprefixedHex: "ede80600",
+        expectedDepositLocktime: 452845,
+      },
+      {
+        contextName: "when locktime is a timestamp",
+        unprefixedHex: "06241559",
+        expectedDepositLocktime: 1494557702,
+      },
+      {
+        contextName: "for deposit refund locktime",
+        unprefixedHex: deposit.refundLocktime,
+        expectedDepositLocktime:
+          depositCreatedAt + depositRefundLocktimeDuration,
+      },
+    ]
+
+    testData.forEach((test) => {
+      context(test.contextName, () => {
+        context("when input is non-prefixed hex string", () => {
+          it("should return the locktime in seconds", async () => {
+            expect(bitcoinLocktimeToNumber(test.unprefixedHex)).to.be.equal(
+              test.expectedDepositLocktime
+            )
+          })
+        })
+
+        context("when input is 0x prefixed hex string", () => {
+          it("should return the locktime in seconds", async () => {
+            expect(
+              bitcoinLocktimeToNumber("0x" + test.unprefixedHex)
+            ).to.be.equal(test.expectedDepositLocktime)
+          })
+        })
+
+        context("when input is Buffer object", () => {
+          it("should return the locktime in seconds", async () => {
+            expect(
+              bitcoinLocktimeToNumber(Buffer.from(test.unprefixedHex, "hex"))
+            ).to.be.equal(test.expectedDepositLocktime)
+          })
+        })
+      })
     })
   })
 })
