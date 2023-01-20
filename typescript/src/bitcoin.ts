@@ -421,7 +421,7 @@ export function isPublicKeyHashLength(publicKeyHash: string): boolean {
  *                   hex string {@link: Deposit#refundLocktime}.
  * @returns UNIX timestamp in seconds.
  */
-export function bitcoinLocktimeToNumber(locktimeLE: Buffer | string): number {
+export function locktimeToNumber(locktimeLE: Buffer | string): number {
   const locktimeBE: Buffer = Hex.from(locktimeLE).reverse().toBuffer()
   return BigNumber.from(locktimeBE).toNumber()
 }

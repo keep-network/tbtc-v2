@@ -4,7 +4,7 @@ import {
   encodeToBitcoinAddress,
   decodeBitcoinAddress,
   isPublicKeyHashLength,
-  bitcoinLocktimeToNumber,
+  locktimeToNumber,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 
@@ -176,7 +176,7 @@ describe("Bitcoin", () => {
     })
   })
 
-  describe("bitcoinLocktimeToNumber", () => {
+  describe("locktimeToNumber", () => {
     const depositCreatedAt: number = 1640181600
     const depositRefundLocktimeDuration: number = 2592000
     const depositRefundLocktime = calculateDepositRefundLocktime(
@@ -207,7 +207,7 @@ describe("Bitcoin", () => {
       context(test.contextName, () => {
         context("when input is non-prefixed hex string", () => {
           it("should return the locktime in seconds", async () => {
-            expect(bitcoinLocktimeToNumber(test.unprefixedHex)).to.be.equal(
+            expect(locktimeToNumber(test.unprefixedHex)).to.be.equal(
               test.expectedDepositLocktime
             )
           })
@@ -215,16 +215,16 @@ describe("Bitcoin", () => {
 
         context("when input is 0x prefixed hex string", () => {
           it("should return the locktime in seconds", async () => {
-            expect(
-              bitcoinLocktimeToNumber("0x" + test.unprefixedHex)
-            ).to.be.equal(test.expectedDepositLocktime)
+            expect(locktimeToNumber("0x" + test.unprefixedHex)).to.be.equal(
+              test.expectedDepositLocktime
+            )
           })
         })
 
         context("when input is Buffer object", () => {
           it("should return the locktime in seconds", async () => {
             expect(
-              bitcoinLocktimeToNumber(Buffer.from(test.unprefixedHex, "hex"))
+              locktimeToNumber(Buffer.from(test.unprefixedHex, "hex"))
             ).to.be.equal(test.expectedDepositLocktime)
           })
         })
