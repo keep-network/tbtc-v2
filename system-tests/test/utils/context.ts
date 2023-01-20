@@ -76,9 +76,19 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
   const { governance, maintainer, depositor } =
     await helpers.signers.getNamedSigners()
 
-  const depositorBitcoinKeyPair = readBitcoinWif("DEPOSITOR_BITCOIN_WIF")
+  let depositorBitcoinKeyPair
+  try {
+    depositorBitcoinKeyPair = readBitcoinWif("DEPOSITOR_BITCOIN_WIF")
+  } catch (e) {
+    throw new Error(`Invalid DEPOSITOR_BITCOIN_WIF: ${e}`)
+  }
 
-  const walletBitcoinKeyPair = readBitcoinWif("WALLET_BITCOIN_WIF")
+  let walletBitcoinKeyPair
+  try {
+    walletBitcoinKeyPair = readBitcoinWif("WALLET_BITCOIN_WIF")
+  } catch (e) {
+    throw new Error(`Invalid WALLET_BITCOIN_WIF: ${e}`)
+  }
 
   console.log(`
     System tests context:

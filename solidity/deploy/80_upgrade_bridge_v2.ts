@@ -1,9 +1,9 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types"
-import { DeployFunction, DeployOptions } from "hardhat-deploy/types"
+import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers, helpers, deployments, getNamedAccounts } = hre
-  const { deploy } = deployments
+  const { get } = deployments
   const { deployer, treasury } = await getNamedAccounts()
 
   const Bank = await deployments.get("Bank")
@@ -11,35 +11,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const WalletRegistry = await deployments.get("WalletRegistry")
   const ReimbursementPool = await deployments.get("ReimbursementPool")
 
-  // For local tests use `1`.
-  const txProofDifficultyFactor =
-    deployments.getNetworkName() === "hardhat" ||
-    deployments.getNetworkName() === "development" ||
-    deployments.getNetworkName() === "system_tests"
-      ? 1
-      : 6
+  const txProofDifficultyFactor = 6
 
-  const deployOptions: DeployOptions = {
-    from: deployer,
-    log: true,
-    waitConfirmations: 1,
-  }
+  // WARNING: This script expects no changes in the external libraries and uses
+  // `get` function to load the ones that were already published before.
+  // If there are any changes in the external libraries make sure to deploy fresh
+  // versions of the libraries and link them to the implementation.
+  const Deposit = await get("Deposit")
+  const DepositSweep = await get("DepositSweep")
+  const Redemption = await get("Redemption")
+  const Wallets = await get("Wallets")
+  const Fraud = await get("Fraud")
+  const MovingFunds = await get("MovingFunds")
 
-  const Deposit = await deploy("Deposit", deployOptions)
-  const DepositSweep = await deploy("DepositSweep", deployOptions)
-  const Redemption = await deploy("Redemption", deployOptions)
-  const Wallets = await deploy("Wallets", {
-    contract: "contracts/bridge/Wallets.sol:Wallets",
-    ...deployOptions,
-  })
-  const Fraud = await deploy("Fraud", deployOptions)
-  const MovingFunds = await deploy("MovingFunds", deployOptions)
-
-  const [bridge, proxyDeployment] = await helpers.upgrades.deployProxy(
+  const [bridge, proxyDeployment] = await helpers.upgrades.upgradeProxy(
+    "Bridge",
     "Bridge",
     {
-      contractName:
-        process.env.TEST_USE_STUBS_TBTC === "true" ? "BridgeStub" : "Bridge",
+      contractName: "Bridge",
       initializerArgs: [
         Bank.address,
         LightRelay.address,
@@ -90,11 +79,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["Bridge"]
-func.dependencies = [
-  "Bank",
-  "LightRelay",
-  "Treasury",
-  "WalletRegistry",
-  "ReimbursementPool",
-]
+func.tags = ["UpgradeBridge"]
+// When running an upgrade uncomment the skip below and run the command:
+// yarn deploy --tags UpgradeBridge --network <NETWORK>
+func.skip = async () => true

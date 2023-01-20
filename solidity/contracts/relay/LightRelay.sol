@@ -537,14 +537,19 @@ contract LightRelay is Ownable, ILightRelay {
     /// @notice Returns the difficulty of the current epoch.
     /// @dev returns 0 if the relay is not ready.
     /// @return The difficulty of the current epoch.
-    function getCurrentEpochDifficulty() external view returns (uint256) {
+    function getCurrentEpochDifficulty()
+        external
+        view
+        virtual
+        returns (uint256)
+    {
         return currentEpochDifficulty;
     }
 
     /// @notice Returns the difficulty of the previous epoch.
     /// @dev Returns 0 if the relay is not ready or has not had a retarget.
     /// @return The difficulty of the previous epoch.
-    function getPrevEpochDifficulty() external view returns (uint256) {
+    function getPrevEpochDifficulty() external view virtual returns (uint256) {
         return prevEpochDifficulty;
     }
 

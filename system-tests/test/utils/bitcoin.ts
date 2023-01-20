@@ -3,13 +3,12 @@
 import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
 import { assembleTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
-import { Contract } from "ethers"
 
+import type { Contract } from "ethers"
 import type {
   Client as BitcoinClient,
   TransactionHash,
 } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
-import type { SystemTestsContext } from "./context"
 
 /**
  * Elliptic curve used by Bitcoin.
@@ -118,7 +117,7 @@ export async function waitTransactionConfirmed(
  * The header chain length (`headerChainLength` parameter) should be
  * the same as the header chain length required by SPV proof function exposed
  * by the bridge.
- * @param systemTestsContext System tests context.
+ * @param relay Relay contract instance.
  * @param bitcoinClient Bitcoin client used to perform the difficulty evaluation.
  * @param transactionHash Hash of the transaction the difficulty should be
  *        set for.
@@ -127,19 +126,11 @@ export async function waitTransactionConfirmed(
  * @returns Empty promise.
  */
 export async function fakeRelayDifficulty(
-  systemTestsContext: SystemTestsContext,
+  relay: Contract,
   bitcoinClient: BitcoinClient,
   transactionHash: TransactionHash,
   headerChainLength: number = defaultTxProofDifficultyFactor
 ): Promise<void> {
-  const relayDeploymentInfo = systemTestsContext.deployedContracts.Relay
-
-  const relay = new Contract(
-    relayDeploymentInfo.address,
-    relayDeploymentInfo.abi,
-    systemTestsContext.maintainer
-  )
-
   const proof = await assembleTransactionProof(
     transactionHash,
     headerChainLength,
