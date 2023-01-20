@@ -18,7 +18,6 @@ import bcoin from "bcoin"
 import {
   assembleDepositScript,
   assembleDepositTransaction,
-  bitcoinLocktimeToNumber,
   calculateDepositAddress,
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
@@ -792,55 +791,6 @@ describe("Deposit", () => {
 
     it("should return the deposit wallet's public key", async () => {
       expect(await suggestDepositWallet(bridge)).to.be.equal(publicKey)
-    })
-  })
-
-  describe("bitcoinLocktimeToUnixTimestamp", () => {
-    const testData = [
-      {
-        contextName: "when locktime is a block height",
-        unprefixedHex: "ede80600",
-        expectedDepositLocktime: 452845,
-      },
-      {
-        contextName: "when locktime is a timestamp",
-        unprefixedHex: "06241559",
-        expectedDepositLocktime: 1494557702,
-      },
-      {
-        contextName: "for deposit refund locktime",
-        unprefixedHex: deposit.refundLocktime,
-        expectedDepositLocktime:
-          depositCreatedAt + depositRefundLocktimeDuration,
-      },
-    ]
-
-    testData.forEach((test) => {
-      context(test.contextName, () => {
-        context("when input is non-prefixed hex string", () => {
-          it("should return the locktime in seconds", async () => {
-            expect(bitcoinLocktimeToNumber(test.unprefixedHex)).to.be.equal(
-              test.expectedDepositLocktime
-            )
-          })
-        })
-
-        context("when input is 0x prefixed hex string", () => {
-          it("should return the locktime in seconds", async () => {
-            expect(
-              bitcoinLocktimeToNumber("0x" + test.unprefixedHex)
-            ).to.be.equal(test.expectedDepositLocktime)
-          })
-        })
-
-        context("when input is Buffer object", () => {
-          it("should return the locktime in seconds", async () => {
-            expect(
-              bitcoinLocktimeToNumber(Buffer.from(test.unprefixedHex, "hex"))
-            ).to.be.equal(test.expectedDepositLocktime)
-          })
-        })
-      })
     })
   })
 })

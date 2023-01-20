@@ -407,3 +407,21 @@ export function decodeBitcoinAddress(address: string): string {
 export function isPublicKeyHashLength(publicKeyHash: string): boolean {
   return publicKeyHash.length === 40
 }
+
+/**
+ * Converts Bitcoin specific locktime value to a number. The number represents
+ * either a block height or an Unix timestamp depending on the value.
+ *
+ * If the number is less than 500 000 000 it is a block height.
+ * If the number is greater or equal 500 000 000 it is a Unix timestamp.
+ *
+ * @see {@link https://developer.bitcoin.org/devguide/transactions.html#locktime-and-sequence-number Documentation}
+ *
+ * @param locktimeLE A 4-byte little-endian locktime as an un-prefixed
+ *                   hex string {@link: Deposit#refundLocktime}.
+ * @returns UNIX timestamp in seconds.
+ */
+export function bitcoinLocktimeToNumber(locktimeLE: Buffer | string): number {
+  const locktimeBE: Buffer = Hex.from(locktimeLE).reverse().toBuffer()
+  return BigNumber.from(locktimeBE).toNumber()
+}

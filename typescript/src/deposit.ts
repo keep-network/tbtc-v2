@@ -333,24 +333,6 @@ export function calculateDepositRefundLocktime(
 }
 
 /**
- * Converts Bitcoin specific locktime value to a number. The number represents
- * either a block height or an Unix timestamp depending on the value.
- *
- * If the number is less than 500 000 000 it is a block height.
- * If the number is greater or equal 500 000 000 it is a Unix timestamp.
- *
- * @see {@link https://developer.bitcoin.org/devguide/transactions.html#locktime-and-sequence-number Documentation}
- *
- * @param locktimeLE A 4-byte little-endian locktime as an un-prefixed
- *                   hex string {@link: Deposit#refundLocktime}.
- * @returns UNIX timestamp in seconds.
- */
-export function bitcoinLocktimeToNumber(locktimeLE: Buffer | string): number {
-  const locktimeBE: Buffer = Hex.from(locktimeLE).reverse().toBuffer()
-  return BigNumber.from(locktimeBE).toNumber()
-}
-
-/**
  * Calculates a Bitcoin locking script hash for P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
  * @param witness - If true, a witness script hash will be created.
