@@ -100,7 +100,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         optimistic minting of TBTC. When `TBTCVault` sweeps a deposit,
     ///         the debt is fully or partially paid off, no matter if that
     ///         particular swept deposit was used for the optimistic minting or
-    ///         not.
+    ///         not. The values are in 1e18 Ethereum precision.
     mapping(address => uint256) public optimisticMintingDebt;
 
     /// @notice New optimistic minting fee divisor value. Set only when the
@@ -123,7 +123,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         address indexed minter,
         uint256 indexed depositKey,
         address indexed depositor,
-        uint256 amount,
+        uint256 amount, // amount in 1e18 Ethereum precision
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
     );
@@ -264,7 +264,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
             msg.sender,
             depositKey,
             deposit.depositor,
-            deposit.amount,
+            deposit.amount * SATOSHI_MULTIPLIER,
             fundingTxHash,
             fundingOutputIndex
         );

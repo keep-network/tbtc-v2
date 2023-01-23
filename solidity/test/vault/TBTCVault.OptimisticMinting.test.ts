@@ -327,7 +327,7 @@ describe("TBTCVault - OptimisticMinting", () => {
                 minter.address,
                 depositKey,
                 depositor.address,
-                20000,
+                20000 * constants.satoshiMultiplier,
                 fundingTxHash,
                 fundingOutputIndex
               )
