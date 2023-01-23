@@ -8771,7 +8771,7 @@
       ]
     },
     "TBTCVault": {
-      "address": "0x52818E501612d3c5B37B5f9b83B024342c277Fd4",
+      "address": "0x9C070027cdC9dc8F82416B2e5314E11DFb4FE3CD",
       "abi": [
         {
           "inputs": [
@@ -9125,6 +9125,19 @@
           "type": "function"
         },
         {
+          "inputs": [],
+          "name": "SATOSHI_MULTIPLIER",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -9148,6 +9161,35 @@
           "name": "addMinter",
           "outputs": [],
           "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "amountToSatoshis",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "convertibleAmount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "remainder",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "satoshis",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -9583,7 +9625,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "amount",
+              "name": "satoshis",
               "type": "uint256"
             },
             {
@@ -9606,7 +9648,7 @@
             },
             {
               "internalType": "uint256[]",
-              "name": "depositedAmounts",
+              "name": "depositedSatoshiAmounts",
               "type": "uint256[]"
             }
           ],
