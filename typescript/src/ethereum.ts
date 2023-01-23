@@ -717,11 +717,13 @@ export class TBTCVault
     }
   }
 
-  // TODO: Add docs
-  // TODO: Consider exposing in optimistic-minting.ts and in chain.ts
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingRequestedEvents}
+   */
   async getOptimisticMintingRequestedEvents(
-    fromBlock?: string,
-    toBlock?: string,
+    fromBlock?: number,
+    toBlock?: number,
     ...filterArgs: Array<any>
   ): Promise<OptimisticMintingRequestedEvent[]> {
     const events = await this.getEvents(

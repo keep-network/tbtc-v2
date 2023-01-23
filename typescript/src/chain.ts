@@ -10,7 +10,10 @@ import {
   DepositScriptParameters,
   RevealedDeposit,
 } from "./deposit"
-import { OptimisticMintingRequest } from "./optimistic-minting"
+import {
+  OptimisticMintingRequest,
+  OptimisticMintingRequestedEvent,
+} from "./optimistic-minting"
 import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
 
@@ -269,4 +272,10 @@ export interface TBTCVault {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<OptimisticMintingRequest>
+
+  /**
+   * Get emitted OptimisticMintingRequested events.
+   * @see GetEventsFunction
+   */
+  getOptimisticMintingRequestedEvents: GetEventsFunction<OptimisticMintingRequestedEvent>
 }
