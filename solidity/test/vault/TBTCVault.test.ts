@@ -1247,7 +1247,7 @@ describe("TBTCVault", () => {
   })
 
   describe("amountToSatoshis", () => {
-    context("when the amount is convertible without a remainder", () => {
+    context("when the amount is convertible with a remainder", () => {
       // 0.000000001 BTC = 0.1 satoshi
       // 1000000000 in 1e18 precision
       //
@@ -1272,7 +1272,7 @@ describe("TBTCVault", () => {
       })
     })
 
-    context("when the amount is not convertible without a remainder", () => {
+    context("when the amount is convertible without a remainder", () => {
       // Amount is 1.1 Bitcoin in 1e18 precision
       const amount = ethers.BigNumber.from("1100000000000000000")
 
