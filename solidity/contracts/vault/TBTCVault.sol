@@ -83,9 +83,11 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ///      Bank for at least `amount / SATOSHI_MULTIPLIER`.
     /// @param amount Amount of TBTC to mint.
     function mint(uint256 amount) external {
-        (uint256 strippedAmount, , uint256 balanceToTransfer) = strip1e18Amount(
-            amount
-        );
+        (
+            uint256 strippedAmount,
+            ,
+            uint256 balanceToTransfer
+        ) = amountToSatoshis(amount);
 
         require(
             bank.balanceOf(msg.sender) >= balanceToTransfer,
@@ -148,7 +150,7 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ///       TBTC Vault.
     /// @param amount Amount of TBTC to unmint.
     function unmint(uint256 amount) external {
-        (uint256 strippedAmount, , ) = strip1e18Amount(amount);
+        (uint256 strippedAmount, , ) = amountToSatoshis(amount);
 
         _unmint(msg.sender, strippedAmount);
     }
@@ -167,7 +169,7 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     function unmintAndRedeem(uint256 amount, bytes calldata redemptionData)
         external
     {
-        (uint256 strippedAmount, , ) = strip1e18Amount(amount);
+        (uint256 strippedAmount, , ) = amountToSatoshis(amount);
 
         _unmintAndRedeem(msg.sender, strippedAmount, redemptionData);
     }
@@ -200,7 +202,7 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ) external {
         require(token == address(tbtcToken), "Token is not TBTC");
         require(msg.sender == token, "Only TBTC caller allowed");
-        (uint256 strippedAmount, , ) = strip1e18Amount(amount);
+        (uint256 strippedAmount, , ) = amountToSatoshis(amount);
         if (extraData.length == 0) {
             _unmint(from, strippedAmount);
         } else {
@@ -304,20 +306,23 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ///         Note that if the `amount` is not divisible by SATOSHI_MULTIPLIER,
     ///         the remainder is left on the caller's account when minting or
     ///         unminting.
-    function strip1e18Amount(
-        uint256 amount // TODO: add unit tests
-    )
+    /// @return convertibleAmount Amount of TBTC to be minted/unminted.
+    /// @return remainder Not convertible remainder if amount is not divisible
+    ///         by SATOSHI_MULTIPLIER.
+    /// @return satoshis Amount in satoshis - the Bank balance to be transferred
+    ///         for the given mint/unmint
+    function amountToSatoshis(uint256 amount)
         public
         view
         returns (
-            uint256 strippedAmount,
+            uint256 convertibleAmount,
             uint256 remainder,
-            uint256 balanceToTransfer
+            uint256 satoshis
         )
     {
         remainder = amount % SATOSHI_MULTIPLIER;
-        strippedAmount = amount - remainder;
-        balanceToTransfer = strippedAmount / SATOSHI_MULTIPLIER;
+        convertibleAmount = amount - remainder;
+        satoshis = convertibleAmount / SATOSHI_MULTIPLIER;
     }
 
     // slither-disable-next-line calls-loop
