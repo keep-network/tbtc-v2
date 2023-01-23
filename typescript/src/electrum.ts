@@ -33,6 +33,11 @@ export interface Credentials {
 }
 
 /**
+ * Additional options used by the Electrum server.
+ */
+export type ClientOptions = object
+
+/**
  * Represents an action that makes use of the Electrum connection. An action
  * is supposed to take a proper Electrum connection, do the work, and return
  * a promise holding the outcome of given type.
@@ -44,19 +49,22 @@ type Action<T> = (electrum: any) => Promise<T>
  */
 export class Client implements BitcoinClient {
   private credentials: Credentials
+  private options?: ClientOptions
 
-  constructor(credentials: Credentials) {
+  constructor(credentials: Credentials, options?: ClientOptions) {
     this.credentials = credentials
+    this.options = options
   }
 
   /**
    * Creates an Electrum client instance from a URL.
    * @param url - Connection URL.
+   * @param options - Additional options used by the Electrum server.
    * @returns Electrum client instance.
    */
-  static fromUrl(url: string): Client {
+  static fromUrl(url: string, options?: ClientOptions): Client {
     const credentials = this.parseElectrumCredentials(url)
-    return new Client(credentials)
+    return new Client(credentials, options)
   }
 
   /**
@@ -89,7 +97,8 @@ export class Client implements BitcoinClient {
     const electrum = new Electrum(
       this.credentials.host,
       this.credentials.port,
-      this.credentials.protocol
+      this.credentials.protocol,
+      this.options
     )
 
     try {
