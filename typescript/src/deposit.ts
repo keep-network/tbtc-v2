@@ -103,7 +103,7 @@ export type RevealedDeposit = Pick<
 }
 
 /**
- * Represents an event emitted on deposit reveal to the on-chain bridge.fp
+ * Represents an event emitted on deposit reveal to the on-chain bridge.
  */
 export type DepositRevealedEvent = Deposit & {
   fundingTxHash: TransactionHash
