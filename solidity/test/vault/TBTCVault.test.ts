@@ -1121,4 +1121,51 @@ describe("TBTCVault", () => {
       })
     })
   })
+
+  describe("amountToSatoshis", () => {
+    context("when the amount is convertible without a remainder", () => {
+      // 0.000000001 BTC = 0.1 satoshi
+      // 1000000000 in 1e18 precision
+      //
+      // Amount is 1 Bitcoin in 1e18 precision plus 0.1 satoshi in 1e18 precision
+      const amount = ethers.BigNumber.from("1000000001000000000")
+
+      it("should calculate correct convertible amount", async () => {
+        const { convertibleAmount } = await vault.amountToSatoshis(amount)
+        expect(convertibleAmount).to.equal(
+          ethers.BigNumber.from("1000000000000000000")
+        )
+      })
+
+      it("should calculate correct remainder", async () => {
+        const { remainder } = await vault.amountToSatoshis(amount)
+        expect(remainder).to.equal(ethers.BigNumber.from("1000000000"))
+      })
+
+      it("should calculate correct satoshi amount", async () => {
+        const { satoshis } = await await vault.amountToSatoshis(amount)
+        expect(satoshis).to.equal(ethers.BigNumber.from("100000000")) // 1 BTC in satoshi
+      })
+    })
+
+    context("when the amount is not convertible without a remainder", () => {
+      // Amount is 1.1 Bitcoin in 1e18 precision
+      const amount = ethers.BigNumber.from("1100000000000000000")
+
+      it("should calculate correct convertible amount", async () => {
+        const { convertibleAmount } = await vault.amountToSatoshis(amount)
+        expect(convertibleAmount).to.equal(amount)
+      })
+
+      it("should calculate correct remainder", async () => {
+        const { remainder } = await vault.amountToSatoshis(amount)
+        expect(remainder).to.equal(0)
+      })
+
+      it("should calculate correct satoshi amount", async () => {
+        const { satoshis } = await await vault.amountToSatoshis(amount)
+        expect(satoshis).to.equal(ethers.BigNumber.from("110000000")) // 1.1 BTC in satoshi
+      })
+    })
+  })
 })

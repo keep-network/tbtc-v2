@@ -83,18 +83,16 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ///      Bank for at least `amount / SATOSHI_MULTIPLIER`.
     /// @param amount Amount of TBTC to mint.
     function mint(uint256 amount) external {
-        (
-            uint256 strippedAmount,
-            ,
-            uint256 balanceToTransfer
-        ) = amountToSatoshis(amount);
+        (uint256 convertibleAmount, , uint256 satothis) = amountToSatoshis(
+            amount
+        );
 
         require(
-            bank.balanceOf(msg.sender) >= balanceToTransfer,
+            bank.balanceOf(msg.sender) >= satothis,
             "Amount exceeds balance in the bank"
         );
-        _mint(msg.sender, strippedAmount);
-        bank.transferBalanceFrom(msg.sender, address(this), balanceToTransfer);
+        _mint(msg.sender, convertibleAmount);
+        bank.transferBalanceFrom(msg.sender, address(this), satothis);
     }
 
     // TODO: add unit tests covering the scenario when some amount is left
@@ -150,9 +148,9 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ///       TBTC Vault.
     /// @param amount Amount of TBTC to unmint.
     function unmint(uint256 amount) external {
-        (uint256 strippedAmount, , ) = amountToSatoshis(amount);
+        (uint256 convertibleAmount, , ) = amountToSatoshis(amount);
 
-        _unmint(msg.sender, strippedAmount);
+        _unmint(msg.sender, convertibleAmount);
     }
 
     /// @notice Burns `amount` of TBTC from the caller's balance and transfers
@@ -169,9 +167,9 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     function unmintAndRedeem(uint256 amount, bytes calldata redemptionData)
         external
     {
-        (uint256 strippedAmount, , ) = amountToSatoshis(amount);
+        (uint256 convertibleAmount, , ) = amountToSatoshis(amount);
 
-        _unmintAndRedeem(msg.sender, strippedAmount, redemptionData);
+        _unmintAndRedeem(msg.sender, convertibleAmount, redemptionData);
     }
 
     /// @notice Burns `amount` of TBTC from the caller's balance. If `extraData`
@@ -202,11 +200,11 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ) external {
         require(token == address(tbtcToken), "Token is not TBTC");
         require(msg.sender == token, "Only TBTC caller allowed");
-        (uint256 strippedAmount, , ) = amountToSatoshis(amount);
+        (uint256 convertibleAmount, , ) = amountToSatoshis(amount);
         if (extraData.length == 0) {
-            _unmint(from, strippedAmount);
+            _unmint(from, convertibleAmount);
         } else {
-            _unmintAndRedeem(from, strippedAmount, extraData);
+            _unmintAndRedeem(from, convertibleAmount, extraData);
         }
     }
 
