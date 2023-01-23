@@ -6,8 +6,14 @@ import {
 } from "../../src/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
-import { Deposit, RevealedDeposit } from "../../src/deposit"
+import {
+  Deposit,
+  DepositRevealedEvent,
+  RevealedDeposit,
+} from "../../src/deposit"
 import { computeHash160, TransactionHash } from "../../src/bitcoin"
+import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
+import { Address } from "../../src/ethereum"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -79,6 +85,35 @@ export class MockBridge implements Bridge {
 
   setActiveWalletPublicKey(activeWalletPublicKey: string) {
     this._activeWalletPublicKey = activeWalletPublicKey
+  }
+
+  getDepositRevealedEvents(
+    fromBlock?: number,
+    toBlock?: number,
+    ...filterArgs: Array<any>
+  ): Promise<DepositRevealedEvent[]> {
+    const deposit = depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0]
+
+    return new Promise<DepositRevealedEvent[]>((resolve, _) => {
+      resolve([
+        {
+          blockNumber: 32142,
+          blockHash:
+            "0xe43552af34efab0828278b91e0f984e4b9769abf85beaed41eee4c25c822a619",
+          transactionHash:
+            "0xdc6c041baaf1cc5bebca5aab02d0488e885a3687541ef012d9beb53141f73419",
+          fundingTxHash: deposit.utxo.transactionHash,
+          fundingOutputIndex: deposit.utxo.outputIndex,
+          depositor: deposit.data.depositor,
+          amount: deposit.utxo.value,
+          blindingFactor: deposit.data.blindingFactor,
+          walletPublicKeyHash: deposit.data.walletPublicKeyHash,
+          refundPublicKeyHash: deposit.data.refundPublicKeyHash,
+          refundLocktime: deposit.data.refundLocktime,
+          vault: new Address(constants.AddressZero),
+        },
+      ])
+    })
   }
 
   submitDepositSweepProof(
