@@ -641,6 +641,22 @@ export class TBTCVault
 
   // eslint-disable-next-line valid-jsdoc
   /**
+   * @see {ChainTBTCVault#isMinter}
+   */
+  async isMinter(address: Address): Promise<boolean> {
+    return await this._instance.isMinter(`0x${address.identifierHex}`)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#isGuardian}
+   */
+  async isGuardian(address: Address): Promise<boolean> {
+    return await this._instance.isGuardian(`0x${address.identifierHex}`)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
    * @see {ChainTBTCVault#requestOptimisticMint}
    */
   async requestOptimisticMint(

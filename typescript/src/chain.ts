@@ -222,6 +222,20 @@ export interface TBTCVault {
   getMinters(): Promise<Identifier[]>
 
   /**
+   * Checks if given identifier is registered as minter.
+   *
+   * @param identifier Chain identifier to check.
+   */
+  isMinter(identifier: Identifier): Promise<boolean>
+
+  /**
+   * Checks if given identifier is registered as guardian.
+   *
+   * @param identifier Chain identifier to check.
+   */
+  isGuardian(identifier: Identifier): Promise<boolean>
+
+  /**
    * Requests optimistic minting for a deposit in an on-chain contract.
    *
    * @param depositTxHash The revealed deposit transaction's hash.
