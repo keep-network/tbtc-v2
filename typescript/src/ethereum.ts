@@ -719,12 +719,12 @@ export class TBTCVault
 
   // TODO: Add docs
   // TODO: Consider exposing in optimistic-minting.ts and in chain.ts
-  async queryOptimisticMintingRequestedEvents(
+  async getOptimisticMintingRequestedEvents(
     fromBlock?: string,
     toBlock?: string,
     ...filterArgs: Array<any>
   ): Promise<OptimisticMintingRequestedEvent[]> {
-    const events = await this.queryEvents(
+    const events = await this.getEvents(
       "OptimisticMintingRequested",
       fromBlock,
       toBlock,
@@ -734,8 +734,8 @@ export class TBTCVault
     return events.map<OptimisticMintingRequestedEvent>((event) => {
       return {
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
-        blockHash: event.blockHash,
-        transactionHash: event.transactionHash,
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
         minter: new Address(event.args!.minter),
         depositKey: BigNumber.from(event.args!.depositKey),
         depositor: new Address(event.args!.depositor),
