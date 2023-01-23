@@ -6,6 +6,7 @@ import { BytesLike } from "@ethersproject/bytes"
 
 import { constants, walletState } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
+import { toSatoshis } from "../helpers/contract-test-helpers"
 
 import type {
   Bank,
@@ -275,6 +276,65 @@ describe("TBTCVault - Redemption", () => {
         await expect(transactions[3])
           .to.emit(tbtcVault, "Unminted")
           .withArgs(account1.address, redeemedAmount4)
+      })
+    })
+
+    context("when amount is not fully convertible to satoshis", () => {
+      const redeemerOutputScriptP2WPKH =
+        "0x160014f4eedc8f40d4b8e30771f792b065ebec0abaddef"
+
+      const mintedAmount = to1e18(20)
+      // Amount is 3 Bitcoin in 1e18 precision plus 0.1 satoshi in 1e18 precision
+      const redeemedAmount = ethers.BigNumber.from("3000000001000000000")
+      const notRedeemedAmount = to1e18(17) // 20 - 3; remainder should be ignored
+
+      let transaction: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        await tbtcVault.connect(account1).mint(mintedAmount)
+        await tbtc.connect(account1).approve(tbtcVault.address, mintedAmount)
+
+        transaction = await requestRedemption(
+          account1,
+          redeemerOutputScriptP2WPKH,
+          redeemedAmount
+        )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      // redeeming 3 BTC, the remainder is ignored
+
+      it("should transfer balances to Bridge", async () => {
+        expect(await bank.balanceOf(tbtcVault.address)).to.equal(
+          notRedeemedAmount.div(constants.satoshiMultiplier)
+        )
+        expect(await bank.balanceOf(bridge.address)).to.equal(toSatoshis(3))
+      })
+
+      it("should request redemptions in Bridge", async () => {
+        const redemptionRequest1 = await bridge.pendingRedemptions(
+          buildRedemptionKey(walletPubKeyHash, redeemerOutputScriptP2WPKH)
+        )
+        expect(redemptionRequest1.redeemer).to.be.equal(account1.address)
+        expect(redemptionRequest1.requestedAmount).to.be.equal(toSatoshis(3))
+      })
+
+      it("should burn TBTC", async () => {
+        expect(await tbtc.balanceOf(account1.address)).to.equal(
+          notRedeemedAmount
+        )
+        expect(await tbtc.totalSupply()).to.be.equal(notRedeemedAmount)
+      })
+
+      it("should emit Unminted events", async () => {
+        await expect(transaction)
+          .to.emit(tbtcVault, "Unminted")
+          .withArgs(account1.address, to1e18(3))
       })
     })
 

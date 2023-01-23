@@ -412,6 +412,43 @@ describe("TBTCVault", () => {
       })
     })
 
+    context("when amount is not fully convertible to satoshis", () => {
+      // Amount is 2 Bitcoin in 1e18 precision plus 0.1 satoshi in 1e18 precision
+      const amount = ethers.BigNumber.from("2000000001000000000")
+
+      let transaction: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        transaction = await vault.connect(account1).mint(amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      // minting 2 BTC, the remainder is ignored
+
+      it("should transfer balance to the vault", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(toSatoshis(2))
+        expect(await bank.balanceOf(account1.address)).to.equal(
+          toSatoshis(98) // 100 - 2
+        )
+      })
+
+      it("should mint TBTC", async () => {
+        expect(await tbtc.balanceOf(account1.address)).to.equal(to1e18(2))
+        expect(await tbtc.totalSupply()).to.equal(to1e18(2))
+      })
+
+      it("should emit Minted event", async () => {
+        await expect(transaction)
+          .to.emit(vault, "Minted")
+          .withArgs(account1.address, to1e18(2))
+      })
+    })
+
     context("when there are multiple minters", () => {
       const amount1 = to1e18(13) // 3 + 1 + 9
       const amount2 = to1e18(3) // 1 + 2
@@ -560,6 +597,49 @@ describe("TBTCVault", () => {
       })
     })
 
+    context("when amount is not fully convertible to satoshis", () => {
+      const mintedAmount = to1e18(20)
+      // Amount is 2 Bitcoin in 1e18 precision plus 0.1 satoshi in 1e18 precision
+      const unmintedAmount = ethers.BigNumber.from("2000000001000000000")
+      const notUnmintedAmount = to1e18(18) // 20 - 2; remainder should be ignored
+
+      let transaction: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        await vault.connect(account1).mint(mintedAmount)
+        await tbtc.connect(account1).approve(vault.address, unmintedAmount)
+        transaction = await vault.connect(account1).unmint(unmintedAmount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      // unminting 2 BTC, the remainder is ignored
+
+      it("should transfer balance to the unminter", async () => {
+        expect(await bank.balanceOf(vault.address)).to.equal(toSatoshis(18)) // 20 - 2
+        expect(await bank.balanceOf(account1.address)).to.equal(
+          toSatoshis(82) // 100 - 18
+        )
+      })
+
+      it("should burn TBTC", async () => {
+        expect(await tbtc.balanceOf(account1.address)).to.equal(
+          notUnmintedAmount
+        )
+        expect(await tbtc.totalSupply()).to.be.equal(notUnmintedAmount)
+      })
+
+      it("should emit Unminted events", async () => {
+        await expect(transaction)
+          .to.emit(vault, "Unminted")
+          .withArgs(account1.address, to1e18(2))
+      })
+    })
+
     context("when there are multiple unminters", () => {
       const mintedAmount1 = to1e18(20)
       const unmintedAmount1 = to1e18(12) // 1 + 3 + 8 = 12
@@ -693,6 +773,50 @@ describe("TBTCVault", () => {
           await expect(tx)
             .to.emit(vault, "Unminted")
             .withArgs(account1.address, unmintedAmount)
+        })
+      })
+
+      context("when amount is not fully convertible to satoshis", () => {
+        const mintedAmount = to1e18(20)
+        // Amount is 3 Bitcoin in 1e18 precision plus 0.1 satoshi in 1e18 precision
+        const unmintedAmount = ethers.BigNumber.from("3000000001000000000")
+        const notUnmintedAmount = to1e18(17) // 20 - 3; remainder should be ignored
+
+        let transaction: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await vault.connect(account1).mint(mintedAmount)
+          transaction = await tbtc
+            .connect(account1)
+            .approveAndCall(vault.address, unmintedAmount, [])
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        // unminting 3 BTC, the remainder is ignored
+
+        it("should transfer balance to the unminter", async () => {
+          expect(await bank.balanceOf(vault.address)).to.equal(toSatoshis(17)) // 20 - 3
+          expect(await bank.balanceOf(account1.address)).to.equal(
+            toSatoshis(83) // 100 - 17
+          )
+        })
+
+        it("should burn TBTC", async () => {
+          expect(await tbtc.balanceOf(account1.address)).to.equal(
+            notUnmintedAmount
+          )
+          expect(await tbtc.totalSupply()).to.be.equal(notUnmintedAmount)
+        })
+
+        it("should emit Unminted events", async () => {
+          await expect(transaction)
+            .to.emit(vault, "Unminted")
+            .withArgs(account1.address, to1e18(3))
         })
       })
     })
