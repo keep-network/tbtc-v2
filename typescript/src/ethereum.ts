@@ -123,7 +123,7 @@ class EthereumContract {
   }
 
   /**
-   * Query events emitted by the Ethereum contract.
+   * Get events emitted by the Ethereum contract.
    * @param eventName Name of the event.
    * @param fromBlock Block number from which events should be queried. Optional
    *        parameter, by default block number of the contract deployment is used.
@@ -132,7 +132,7 @@ class EthereumContract {
    * @param filterArgs Arguments for events filtering.
    * @returns Array of found events.
    */
-  async queryEvents(
+  async getEvents(
     eventName: string,
     fromBlock?: EthersBlockTag,
     toBlock?: EthersBlockTag,
@@ -157,20 +157,16 @@ export class Bridge extends EthereumContract implements ChainBridge {
     super(config, BridgeDeployment)
   }
 
+  // eslint-disable-next-line valid-jsdoc
   /**
-   * Query emitted DepositRevealed events.
-   * @param fromBlock Block number from which events should be queried.
-   * @param toBlock Block number to which events should be queried.
-   * @param filterArgs Arguments for events filtering.
-   * @returns Found DepositRevealed events.
-   * @see queryEvents
+   * @see {ChainBridge#getDepositRevealedEvents}
    */
-  async queryDepositRevealedEvents(
-    fromBlock?: EthersBlockTag,
-    toBlock?: EthersBlockTag,
+  async getDepositRevealedEvents(
+    fromBlock?: number,
+    toBlock?: number,
     ...filterArgs: Array<any>
   ): Promise<DepositRevealedEvent[]> {
-    const events: EthersEvent[] = await this.queryEvents(
+    const events: EthersEvent[] = await this.getEvents(
       "DepositRevealed",
       fromBlock,
       toBlock,
