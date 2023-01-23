@@ -2,31 +2,30 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
+  const { deployments, getNamedAccounts, helpers } = hre
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const Bank = await deployments.get("Bank")
-  const TBTC = await deployments.get("TBTC")
-  const Bridge = await deployments.get("Bridge")
-
-  const TBTCVault = await deploy("TBTCVault", {
-    contract: "TBTCVault",
+  const bank = await deploy("Bank", {
+    contract: process.env.TEST_USE_STUBS_TBTC === "true" ? "BankStub" : "Bank",
     from: deployer,
-    args: [Bank.address, TBTC.address, Bridge.address],
+    args: [],
     log: true,
     waitConfirmations: 1,
   })
 
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(bank)
+  }
+
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
-      name: "TBTCVault",
-      address: TBTCVault.address,
+      name: "Bank",
+      address: bank.address,
     })
   }
 }
 
 export default func
 
-func.tags = ["TBTCVault"]
-func.dependencies = ["Bank", "TBTC"]
+func.tags = ["Bank"]

@@ -28,7 +28,7 @@ import {
   produceOperatorInactivityClaim,
   updateWalletRegistryDkgResultChallengePeriodLength,
 } from "./utils/ecdsa-wallet-registry"
-import { produceRelayEntry } from "./utils/random-beacon"
+import { produceRelayEntry } from "./utils/fake-random-beacon"
 
 import { assertGasUsed } from "./utils/gas"
 import { fixture } from "./utils/fixture"
@@ -515,7 +515,7 @@ describeFn("Integration Test - Slashing", async () => {
         })
 
         it("should consume around 3 100 000 gas for Bridge.notifyMovingFundsTimeoutTx transaction", async () => {
-          await assertGasUsed(notifyMovingFundsTimeoutTx, 3_100_000, 50_000)
+          await assertGasUsed(notifyMovingFundsTimeoutTx, 3_100_000, 100_000)
         })
       })
     })

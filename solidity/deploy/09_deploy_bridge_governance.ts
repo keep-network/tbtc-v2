@@ -2,13 +2,13 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
+  const { deployments, getNamedAccounts, helpers } = hre
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
   const Bridge = await deployments.get("Bridge")
 
-  const BridgeGovernanceParameters = await deployments.deploy(
+  const bridgeGovernanceParameters = await deployments.deploy(
     "BridgeGovernanceParameters",
     {
       from: deployer,
@@ -17,23 +17,28 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   )
 
-  // 60 seconds for Goerli. 1 week otherwise.
-  const GOVERNANCE_DELAY = hre.network.name === "goerli" ? 60 : 604800
+  // 60 seconds for Goerli. 48 hours otherwise.
+  const GOVERNANCE_DELAY = hre.network.name === "goerli" ? 60 : 172800
 
-  const BridgeGovernance = await deploy("BridgeGovernance", {
+  const bridgeGovernance = await deploy("BridgeGovernance", {
+    contract: "BridgeGovernance",
     from: deployer,
     args: [Bridge.address, GOVERNANCE_DELAY],
     log: true,
     libraries: {
-      BridgeGovernanceParameters: BridgeGovernanceParameters.address,
+      BridgeGovernanceParameters: bridgeGovernanceParameters.address,
     },
     waitConfirmations: 1,
   })
 
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(bridgeGovernance)
+  }
+
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
       name: "BridgeGovernance",
-      address: BridgeGovernance.address,
+      address: bridgeGovernance.address,
     })
   }
 }

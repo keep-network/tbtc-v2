@@ -2,30 +2,35 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
+  const { deployments, getNamedAccounts, helpers } = hre
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
+  const Bank = await deployments.get("Bank")
+  const TBTC = await deployments.get("TBTC")
   const Bridge = await deployments.get("Bridge")
-  const ReimbursementPool = await deployments.get("ReimbursementPool")
 
-  const MaintainerProxy = await deploy("MaintainerProxy", {
-    contract: "MaintainerProxy",
+  const tbtcVault = await deploy("TBTCVault", {
+    contract: "TBTCVault",
     from: deployer,
-    args: [Bridge.address, ReimbursementPool.address],
+    args: [Bank.address, TBTC.address, Bridge.address],
     log: true,
     waitConfirmations: 1,
   })
 
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(tbtcVault)
+  }
+
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
-      name: "MaintainerProxy",
-      address: MaintainerProxy.address,
+      name: "TBTCVault",
+      address: tbtcVault.address,
     })
   }
 }
 
 export default func
 
-func.tags = ["MaintainerProxy"]
-func.dependencies = ["Bridge", "ReimbursementPool"]
+func.tags = ["TBTCVault"]
+func.dependencies = ["Bank", "TBTC"]

@@ -31,7 +31,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
 export default func
 
-func.tags = ["SetDepositParams"]
+func.tags = ["SetDepositParameters"]
 func.dependencies = ["Bridge"]
 
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
