@@ -10,6 +10,7 @@ import {
   DepositScriptParameters,
   RevealedDeposit,
 } from "./deposit"
+import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
 
 /**
@@ -33,11 +34,11 @@ export interface Event {
   /**
    * Block hash of the event emission.
    */
-  blockHash: string
+  blockHash: Hex
   /**
    * Transaction hash within which the event was emitted.
    */
-  transactionHash: string
+  transactionHash: Hex
 }
 
 /**

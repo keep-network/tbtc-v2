@@ -28,6 +28,7 @@ import {
 
 import type { Bridge as ContractBridge } from "../typechain/Bridge"
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
+import { Hex } from "./hex"
 
 /**
  * Contract deployment artifact.
@@ -182,8 +183,8 @@ export class Bridge
     return events.map<DepositRevealedEvent>((event) => {
       return {
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
-        blockHash: event.blockHash,
-        transactionHash: event.transactionHash,
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
         fundingTxHash: TransactionHash.from(
           event.args!.fundingTxHash
         ).reverse(),
@@ -192,10 +193,10 @@ export class Bridge
         ).toNumber(),
         depositor: new Address(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
-        blindingFactor: event.args!.blindingFactor,
-        walletPublicKeyHash: event.args!.walletPubKeyHash,
-        refundPublicKeyHash: event.args!.refundPubKeyHash,
-        refundLocktime: event.args!.refundLocktime,
+        blindingFactor: Hex.from(event.args!.blindingFactor).toString(),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
+        refundPublicKeyHash: Hex.from(event.args!.refundPubKeyHash).toString(),
+        refundLocktime: Hex.from(event.args!.refundLocktime).toString(),
         vault:
           event.args!.vault === constants.AddressZero
             ? undefined

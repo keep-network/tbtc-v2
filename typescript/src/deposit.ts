@@ -13,6 +13,9 @@ import { Bridge, Event, Identifier } from "./chain"
 
 const { opcodes } = bcoin.script.common
 
+// TODO: Replace all properties that are expected to be un-prefixed hexadecimal
+// strings with a Hex type.
+
 /**
  * Represents a deposit.
  */
