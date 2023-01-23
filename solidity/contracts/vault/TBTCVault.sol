@@ -74,68 +74,90 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
         tbtcToken = _tbtcToken;
     }
 
-    /// @notice Transfers the given `amount` of the Bank balance from caller
-    ///         to TBTC Vault, and mints `amount` of TBTC to the caller.
-    /// @dev TBTC Vault must have an allowance for caller's balance in the Bank
-    ///      for at least `amount`.
+    /// @notice Mints the given `amount` of TBTC to the caller previously
+    ///         transferring `amount / SATOSHI_MULTIPLIER` of the Bank balance
+    ///         from caller to TBTC Vault. If `amount` is not divisible by
+    ///         SATOSHI_MULTIPLIER, the remainder is left on the caller's
+    ///         Bank balance.
+    /// @dev TBTC Vault must have an allowance for caller's balance in the
+    ///      Bank for at least `amount / SATOSHI_MULTIPLIER`.
     /// @param amount Amount of TBTC to mint.
     function mint(uint256 amount) external {
+        (uint256 strippedAmount, , uint256 balanceToTransfer) = strip1e18Amount(
+            amount
+        );
+
         require(
-            bank.balanceOf(msg.sender) >= amount,
+            bank.balanceOf(msg.sender) >= balanceToTransfer,
             "Amount exceeds balance in the bank"
         );
-        _mint(msg.sender, amount);
-        bank.transferBalanceFrom(msg.sender, address(this), amount);
+        _mint(msg.sender, strippedAmount);
+        bank.transferBalanceFrom(msg.sender, address(this), balanceToTransfer);
     }
 
-    /// @notice Transfers the given `amount` of the Bank balance from the caller
-    ///         to TBTC Vault and mints `amount` of TBTC to the caller.
+    // TODO: add unit tests covering the scenario when some amount is left
+
+    /// @notice Transfers `satoshis` of the Bank balance from the caller
+    ///         to TBTC Vault and mints `satoshis * SATOSHI_MULTIPLIER` of TBTC
+    ///         to the caller.
     /// @dev Can only be called by the Bank via `approveBalanceAndCall`.
     /// @param owner The owner who approved their Bank balance.
-    /// @param amount Amount of TBTC to mint.
+    /// @param satoshis Amount of satoshis used to mint TBTC.
     function receiveBalanceApproval(
         address owner,
-        uint256 amount,
+        uint256 satoshis,
         bytes calldata
     ) external override onlyBank {
         require(
-            bank.balanceOf(owner) >= amount,
+            bank.balanceOf(owner) >= satoshis,
             "Amount exceeds balance in the bank"
         );
-        _mint(owner, amount);
-        bank.transferBalanceFrom(owner, address(this), amount);
+        _mint(owner, satoshis * SATOSHI_MULTIPLIER);
+        bank.transferBalanceFrom(owner, address(this), satoshis);
     }
 
-    /// @notice Mints the same amount of TBTC as the deposited amount for each
-    ///         depositor in the array. Can only be called by the Bank after the
-    ///         Bridge swept deposits and Bank increased balance for the
-    ///         vault.
+    /// @notice Mints the same amount of TBTC as the deposited satoshis amount
+    ///         multiplied by SATOSHI_MULTIPLIER for each depositor in the array.
+    ///         Can only be called by the Bank after the Bridge swept deposits
+    ///         and Bank increased balance for the vault.
     /// @dev Fails if `depositors` array is empty. Expects the length of
-    ///      `depositors` and `depositedAmounts` is the same.
+    ///      `depositors` and `depositedSatoshiAmounts` is the same.
     function receiveBalanceIncrease(
         address[] calldata depositors,
-        uint256[] calldata depositedAmounts
+        uint256[] calldata depositedSatoshiAmounts
     ) external override onlyBank {
         require(depositors.length != 0, "No depositors specified");
         for (uint256 i = 0; i < depositors.length; i++) {
             address depositor = depositors[i];
-            uint256 amount = depositedAmounts[i];
-            _mint(depositor, repayOptimisticMintingDebt(depositor, amount));
+            uint256 satoshis = depositedSatoshiAmounts[i];
+            _mint(
+                depositor,
+                repayOptimisticMintingDebt(
+                    depositor,
+                    satoshis * SATOSHI_MULTIPLIER
+                )
+            );
         }
     }
 
     /// @notice Burns `amount` of TBTC from the caller's balance and transfers
-    ///         `amount` back to the caller's balance in the Bank.
+    ///         `amount / SATOSHI_MULTIPLIER` back to the caller's balance in
+    ///         the Bank. If `amount` is not divisible by SATOSHI_MULTIPLIER,
+    ///         the remainder is left on the caller's account.
     /// @dev Caller must have at least `amount` of TBTC approved to
     ///       TBTC Vault.
     /// @param amount Amount of TBTC to unmint.
     function unmint(uint256 amount) external {
-        _unmint(msg.sender, amount);
+        (uint256 strippedAmount, , ) = strip1e18Amount(amount);
+
+        _unmint(msg.sender, strippedAmount);
     }
 
     /// @notice Burns `amount` of TBTC from the caller's balance and transfers
-    ///         `amount` of Bank balance to the Bridge requesting redemption
-    ///         based on the provided `redemptionData`.
+    ///        `amount / SATOSHI_MULTIPLIER` of Bank balance to the Bridge
+    ///         requesting redemption based on the provided `redemptionData`.
+    ///         If `amount` is not divisible by SATOSHI_MULTIPLIER, the
+    ///         remainder is left on the caller's account.
     /// @dev Caller must have at least `amount` of TBTC approved to
     ///       TBTC Vault.
     /// @param amount Amount of TBTC to unmint and request to redeem in Bridge.
@@ -145,7 +167,9 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     function unmintAndRedeem(uint256 amount, bytes calldata redemptionData)
         external
     {
-        _unmintAndRedeem(msg.sender, amount, redemptionData);
+        (uint256 strippedAmount, , ) = strip1e18Amount(amount);
+
+        _unmintAndRedeem(msg.sender, strippedAmount, redemptionData);
     }
 
     /// @notice Burns `amount` of TBTC from the caller's balance. If `extraData`
@@ -153,6 +177,9 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ///         Bank. If `extraData` is not empty, requests redemption in the
     ///         Bridge using the `extraData` as a `redemptionData` parameter to
     ///         Bridge's `receiveBalanceApproval` function.
+    ///         If `amount` is not divisible by SATOSHI_MULTIPLIER, the
+    ///         remainder is left on the caller's account. Note that it may
+    ///         left a token approval equal to the remainder.
     /// @dev This function is doing the same as `unmint` or `unmintAndRedeem`
     ///      (depending on `extraData` parameter) but it allows to execute
     ///      unminting without a separate approval transaction. The function can
@@ -173,10 +200,11 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ) external {
         require(token == address(tbtcToken), "Token is not TBTC");
         require(msg.sender == token, "Only TBTC caller allowed");
+        (uint256 strippedAmount, , ) = strip1e18Amount(amount);
         if (extraData.length == 0) {
-            _unmint(from, amount);
+            _unmint(from, strippedAmount);
         } else {
-            _unmintAndRedeem(from, amount, extraData);
+            _unmintAndRedeem(from, strippedAmount, extraData);
         }
     }
 
@@ -271,18 +299,41 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
         token.safeTransferFrom(address(this), recipient, tokenId, data);
     }
 
+    /// @notice Returns the amount of TBTC to be minted/unminted, the remainder,
+    ///         and the Bank balance to be transferred for the given mint/unmint.
+    ///         Note that if the `amount` is not divisible by SATOSHI_MULTIPLIER,
+    ///         the remainder is left on the caller's account when minting or
+    ///         unminting.
+    function strip1e18Amount(
+        uint256 amount // TODO: add unit tests
+    )
+        public
+        view
+        returns (
+            uint256 strippedAmount,
+            uint256 remainder,
+            uint256 balanceToTransfer
+        )
+    {
+        remainder = amount % SATOSHI_MULTIPLIER;
+        strippedAmount = amount - remainder;
+        balanceToTransfer = strippedAmount / SATOSHI_MULTIPLIER;
+    }
+
     // slither-disable-next-line calls-loop
     function _mint(address minter, uint256 amount) internal override {
         emit Minted(minter, amount);
         tbtcToken.mint(minter, amount);
     }
 
+    /// @dev `amount` MUST be divisible by SATOSHI_MULTIPLIER with no change.
     function _unmint(address unminter, uint256 amount) internal {
         emit Unminted(unminter, amount);
         tbtcToken.burnFrom(unminter, amount);
-        bank.transferBalance(unminter, amount);
+        bank.transferBalance(unminter, amount / SATOSHI_MULTIPLIER);
     }
 
+    /// @dev `amount` MUST be divisible by SATOSHI_MULTIPLIER with no change.
     function _unmintAndRedeem(
         address redeemer,
         uint256 amount,
@@ -290,6 +341,10 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ) internal {
         emit Unminted(redeemer, amount);
         tbtcToken.burnFrom(redeemer, amount);
-        bank.approveBalanceAndCall(address(bridge), amount, redemptionData);
+        bank.approveBalanceAndCall(
+            address(bridge),
+            amount / SATOSHI_MULTIPLIER,
+            redemptionData
+        );
     }
 }

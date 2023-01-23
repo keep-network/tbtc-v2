@@ -46,6 +46,9 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         finalizing the upgrade of governable parameters.
     uint256 public constant GOVERNANCE_DELAY = 24 hours;
 
+    /// @notice Multiplier to convert satoshi to TBTC token units.
+    uint256 public constant SATOSHI_MULTIPLIER = 10**10;
+
     Bridge public immutable bridge;
 
     /// @notice Indicates if the optimistic minting has been paused. Only the
@@ -323,7 +326,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
         // deposit is swept.
         //
         // This imbalance is supposed to be solved by a donation to the Bridge.
-        uint256 amountToMint = deposit.amount - deposit.treasuryFee;
+        uint256 amountToMint = (deposit.amount - deposit.treasuryFee) *
+            SATOSHI_MULTIPLIER;
 
         // The Optimistic Minting mechanism may additionally cut a fee from the
         // amount that is left after deducting the Bridge deposit treasury fee.
@@ -332,7 +336,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         // and they may wait for the Bridge to sweep their deposit if they do
         // not want to pay the Optimistic Minting fee.
         uint256 optimisticMintFee = optimisticMintingFeeDivisor > 0
-            ? amountToMint / optimisticMintingFeeDivisor
+            ? (amountToMint / optimisticMintingFeeDivisor)
             : 0;
 
         // Both the optimistic minting fee and the share that goes to the

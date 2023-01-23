@@ -187,7 +187,7 @@ describeFn("Integration Test - Full flow", async () => {
           // Expect the depositor TBTC balance to be:
           // deposited amount - tx fee - treasury fee = 100000 - 1600 - 50
           expect(await tbtc.balanceOf(revealDepositData.depositor)).to.be.equal(
-            98350
+            98350 * constants.satoshiMultiplier
           )
         })
 
@@ -210,7 +210,9 @@ describeFn("Integration Test - Full flow", async () => {
       describe("when a redemption is requested", async () => {
         const redeemerOutputScript =
           "0x17a91486884e6be1525dab5ae0b451bd2c72cee67dcf4187"
-        const redemptionAmount = 50000
+
+        const redemptionBalance = 50000 // [sat] as represented in the Bank
+        const redemptionAmount = redemptionBalance * constants.satoshiMultiplier // [1e18]
 
         before(async () => {
           // Request redemption
@@ -262,7 +264,7 @@ describeFn("Integration Test - Full flow", async () => {
             revealDepositData.depositor
           )
           expect(pendingRedemption.requestedAmount).to.be.equal(
-            redemptionAmount
+            redemptionBalance
           )
         })
 
