@@ -5,8 +5,13 @@ import {
   DecomposedRawTransaction,
   TransactionHash,
 } from "./bitcoin"
-import { DepositScriptParameters, RevealedDeposit } from "./deposit"
+import {
+  DepositRevealedEvent,
+  DepositScriptParameters,
+  RevealedDeposit,
+} from "./deposit"
 import { OptimisticMintingRequest } from "./optimistic-minting"
+import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
 
 /**
@@ -30,23 +35,47 @@ export interface Identifier {
  */
 export interface Event {
   /**
-   * Ethereum block number of the event emission.
+   * Block number of the event emission.
    */
   blockNumber: number
   /**
-   * Ethereum block hahs of the event emission.
+   * Block hash of the event emission.
    */
-  blockHash: string
+  blockHash: Hex
   /**
-   * Ethereum transaction hash within which the event was emitted.
+   * Transaction hash within which the event was emitted.
    */
-  transactionHash: string
+  transactionHash: Hex
+}
+
+/**
+ * Represents a generic function to get events emitted on the chain.
+ */
+export interface GetEventsFunction<T extends Event> {
+  /**
+   * Get emitted events.
+   * @param fromBlock Block number from which events should be queried.
+   *        If not defined a block number of a contract deployment is used.
+   * @param toBlock Block number to which events should be queried.
+   *        If not defined the latest block number will be used.
+   * @param filterArgs Arguments for events filtering.
+   * @returns Array of found events.
+   */
+  (fromBlock?: number, toBlock?: number, ...filterArgs: Array<any>): Promise<
+    T[]
+  >
 }
 
 /**
  * Interface for communication with the Bridge on-chain contract.
  */
 export interface Bridge {
+  /**
+   * Get emitted DepositRevealed events.
+   * @see GetEventsFunction
+   */
+  getDepositRevealedEvents: GetEventsFunction<DepositRevealedEvent>
+
   /**
    * Submits a deposit sweep transaction proof to the on-chain contract.
    * @param sweepTx - Sweep transaction data.

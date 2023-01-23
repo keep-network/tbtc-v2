@@ -14,6 +14,9 @@ import { Hex } from "./hex"
 
 const { opcodes } = bcoin.script.common
 
+// TODO: Replace all properties that are expected to be un-prefixed hexadecimal
+// strings with a Hex type.
+
 /**
  * Represents a deposit.
  */
@@ -102,14 +105,9 @@ export type RevealedDeposit = Pick<
 /**
  * Represents an event emitted on deposit reveal to the on-chain bridge.fp
  */
-export type DepositRevealedEvent = Pick<
-  Deposit,
-  "depositor" | "amount" | "blindingFactor" | "refundLocktime" | "vault"
-> & {
+export type DepositRevealedEvent = Deposit & {
   fundingTxHash: TransactionHash
   fundingOutputIndex: number
-  walletPubKeyHash: string
-  refundPubKeyHash: string
 } & Event
 
 /**

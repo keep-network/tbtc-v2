@@ -42,6 +42,7 @@ import type {
 } from "../typechain/Bridge"
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
 import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
+import { Hex } from "./hex"
 
 type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
 
@@ -161,7 +162,7 @@ class EthereumContract<T extends EthersContract> {
   }
 
   /**
-   * Query events emitted by the Ethereum contract.
+   * Get events emitted by the Ethereum contract.
    * @param eventName Name of the event.
    * @param fromBlock Block number from which events should be queried. Optional
    *        parameter, by default block number of the contract deployment is used.
@@ -170,7 +171,7 @@ class EthereumContract<T extends EthersContract> {
    * @param filterArgs Arguments for events filtering.
    * @returns Array of found events.
    */
-  async queryEvents(
+  async getEvents(
     eventName: string,
     fromBlock?: EthersBlockTag,
     toBlock?: EthersBlockTag,
@@ -198,20 +199,16 @@ export class Bridge
     super(config, BridgeDeployment)
   }
 
+  // eslint-disable-next-line valid-jsdoc
   /**
-   * Query emitted DepositRevealed events.
-   * @param fromBlock Block number from which events should be queried.
-   * @param toBlock Block number to which events should be queried.
-   * @param filterArgs Arguments for events filtering.
-   * @returns Found DepositRevealed events.
-   * @see queryEvents
+   * @see {ChainBridge#getDepositRevealedEvents}
    */
-  async queryDepositRevealedEvents(
-    fromBlock?: EthersBlockTag,
-    toBlock?: EthersBlockTag,
+  async getDepositRevealedEvents(
+    fromBlock?: number,
+    toBlock?: number,
     ...filterArgs: Array<any>
   ): Promise<DepositRevealedEvent[]> {
-    const events: EthersEvent[] = await this.queryEvents(
+    const events: EthersEvent[] = await this.getEvents(
       "DepositRevealed",
       fromBlock,
       toBlock,
@@ -221,18 +218,20 @@ export class Bridge
     return events.map<DepositRevealedEvent>((event) => {
       return {
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
-        blockHash: event.blockHash,
-        transactionHash: event.transactionHash,
-        fundingTxHash: TransactionHash.from(event.args!.fundingTxHash),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        fundingTxHash: TransactionHash.from(
+          event.args!.fundingTxHash
+        ).reverse(),
         fundingOutputIndex: BigNumber.from(
           event.args!.fundingOutputIndex
         ).toNumber(),
         depositor: new Address(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
-        blindingFactor: event.args!.blindingFactor,
-        walletPubKeyHash: event.args!.walletPubKeyHash,
-        refundPubKeyHash: event.args!.refundPubKeyHash,
-        refundLocktime: event.args!.refundLocktime,
+        blindingFactor: Hex.from(event.args!.blindingFactor).toString(),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
+        refundPublicKeyHash: Hex.from(event.args!.refundPubKeyHash).toString(),
+        refundLocktime: Hex.from(event.args!.refundLocktime).toString(),
         vault:
           event.args!.vault === constants.AddressZero
             ? undefined
