@@ -286,7 +286,7 @@ describeFn("Integration Test - Slashing", async () => {
           deposit.depositor,
           { from: deployer, value: 10 }
         )
-        const redemptionAmount = 3_000
+        const redemptionAmount = 3_000 * constants.satoshiMultiplier
         redeemerOutputScript =
           "0x17a91486884e6be1525dab5ae0b451bd2c72cee67dcf4187"
         // Request redemption via TBTC Vault.

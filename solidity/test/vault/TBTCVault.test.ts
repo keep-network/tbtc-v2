@@ -3,6 +3,8 @@ import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 import { ContractTransaction } from "ethers"
 import { FakeContract, smock } from "@defi-wonderland/smock"
+import { constants } from "../fixtures"
+import { toSatoshis } from "../helpers/contract-test-helpers"
 
 import type {
   Bank,
@@ -67,7 +69,9 @@ describe("TBTCVault", () => {
   let vault: TBTCVault
   let tbtc: TBTC
 
-  const initialBalance = to1e18(100)
+  // 100 BTC initial balance in the Bank.
+  // Bank balance is denominated in satoshi.
+  const initialBalance = toSatoshis(100)
 
   let account1: SignerWithAddress
   let account2: SignerWithAddress
@@ -345,7 +349,7 @@ describe("TBTCVault", () => {
 
   describe("mint", () => {
     context("when minter has not enough balance in the bank", () => {
-      const amount = initialBalance.add(1)
+      const amount = to1e18(101) // The initial Bank balance is 100 BTC.
 
       before(async () => {
         await createSnapshot()
@@ -367,7 +371,7 @@ describe("TBTCVault", () => {
     })
 
     context("when there is a single minter", () => {
-      const amount = to1e18(13) // 3 + 1 + 9 = 13
+      const amount = to1e18(13) // 3 + 1 + 9
 
       const transactions: ContractTransaction[] = []
 
@@ -384,9 +388,9 @@ describe("TBTCVault", () => {
       })
 
       it("should transfer balance to the vault", async () => {
-        expect(await bank.balanceOf(vault.address)).to.equal(amount)
+        expect(await bank.balanceOf(vault.address)).to.equal(toSatoshis(13))
         expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(amount)
+          toSatoshis(87) // 100 - 13
         )
       })
 
@@ -409,8 +413,8 @@ describe("TBTCVault", () => {
     })
 
     context("when there are multiple minters", () => {
-      const amount1 = to1e18(13) // 3 + 1 + 9 = 13
-      const amount2 = to1e18(3) // 1 + 2 = 3
+      const amount1 = to1e18(13) // 3 + 1 + 9
+      const amount2 = to1e18(3) // 1 + 2
 
       const transactions: ContractTransaction[] = []
 
@@ -430,13 +434,13 @@ describe("TBTCVault", () => {
 
       it("should transfer balances to the vault", async () => {
         expect(await bank.balanceOf(vault.address)).to.equal(
-          amount1.add(amount2)
+          toSatoshis(16) // 3 + 1 + 1 + 9 + 2
         )
         expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(amount1)
+          toSatoshis(87) // 100 - 3 - 1 - 9
         )
         expect(await bank.balanceOf(account2.address)).to.equal(
-          initialBalance.sub(amount2)
+          toSatoshis(97) // 100 - 1 - 2
         )
       })
 
@@ -488,7 +492,7 @@ describe("TBTCVault", () => {
 
     context("when the unminter has not enough TBTC", () => {
       const mintedAmount = to1e18(1)
-      const unmintedAmount = mintedAmount.add(1)
+      const unmintedAmount = mintedAmount.add(constants.satoshiMultiplier)
 
       before(async () => {
         await createSnapshot()
@@ -510,8 +514,8 @@ describe("TBTCVault", () => {
 
     context("when there is a single unminter", () => {
       const mintedAmount = to1e18(20)
-      const unmintedAmount = to1e18(12) // 1 + 3 + 8 = 12
-      const notUnmintedAmount = mintedAmount.sub(unmintedAmount)
+      const unmintedAmount = to1e18(12) // 1 + 3 + 8
+      const notUnmintedAmount = mintedAmount.sub(unmintedAmount) // 20 - 12
 
       const transactions: ContractTransaction[] = []
 
@@ -530,9 +534,9 @@ describe("TBTCVault", () => {
       })
 
       it("should transfer balance to the unminter", async () => {
-        expect(await bank.balanceOf(vault.address)).to.equal(notUnmintedAmount)
+        expect(await bank.balanceOf(vault.address)).to.equal(toSatoshis(8)) // 20 - 12
         expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(notUnmintedAmount)
+          toSatoshis(92) // 100 - 8
         )
       })
 
@@ -559,11 +563,11 @@ describe("TBTCVault", () => {
     context("when there are multiple unminters", () => {
       const mintedAmount1 = to1e18(20)
       const unmintedAmount1 = to1e18(12) // 1 + 3 + 8 = 12
-      const notUnmintedAmount1 = mintedAmount1.sub(unmintedAmount1)
+      const notUnmintedAmount1 = mintedAmount1.sub(unmintedAmount1) // 20 - 12
 
       const mintedAmount2 = to1e18(41)
       const unmintedAmount2 = to1e18(30) // 20 + 10 = 30
-      const notUnmintedAmount2 = mintedAmount2.sub(unmintedAmount2)
+      const notUnmintedAmount2 = mintedAmount2.sub(unmintedAmount2) // 41 - 30
 
       const transactions: ContractTransaction[] = []
 
@@ -587,13 +591,13 @@ describe("TBTCVault", () => {
 
       it("should transfer balances to unminters", async () => {
         expect(await bank.balanceOf(vault.address)).to.equal(
-          notUnmintedAmount1.add(notUnmintedAmount2)
+          toSatoshis(19) // 8 + 11
         )
         expect(await bank.balanceOf(account1.address)).to.equal(
-          initialBalance.sub(notUnmintedAmount1)
+          toSatoshis(92) // 100 - 8
         )
         expect(await bank.balanceOf(account2.address)).to.equal(
-          initialBalance.sub(notUnmintedAmount2)
+          toSatoshis(89) // 100 - 11
         )
       })
 
@@ -654,7 +658,7 @@ describe("TBTCVault", () => {
       context("when called with an empty extraData", () => {
         const mintedAmount = to1e18(10)
         const unmintedAmount = to1e18(4)
-        const notUnmintedAmount = mintedAmount.sub(unmintedAmount)
+        const notUnmintedAmount = mintedAmount.sub(unmintedAmount) // 10 - 4 = 6
 
         let tx: ContractTransaction
 
@@ -672,11 +676,9 @@ describe("TBTCVault", () => {
         })
 
         it("should transfer balance to the unminter", async () => {
-          expect(await bank.balanceOf(vault.address)).to.equal(
-            notUnmintedAmount
-          )
+          expect(await bank.balanceOf(vault.address)).to.equal(toSatoshis(6))
           expect(await bank.balanceOf(account1.address)).to.equal(
-            initialBalance.sub(notUnmintedAmount)
+            toSatoshis(94) // 100 - 6
           )
         })
 
@@ -727,7 +729,7 @@ describe("TBTCVault", () => {
     })
 
     context("when there is a single caller", () => {
-      const amount = to1e18(19) // 4 + 10 + 5
+      const amount = toSatoshis(19) // 4 + 10 + 5
 
       const transactions: ContractTransaction[] = []
 
@@ -737,17 +739,17 @@ describe("TBTCVault", () => {
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(4), [])
+            .approveBalanceAndCall(vault.address, toSatoshis(4), [])
         )
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(10), [])
+            .approveBalanceAndCall(vault.address, toSatoshis(10), [])
         )
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(5), [])
+            .approveBalanceAndCall(vault.address, toSatoshis(5), [])
         )
       })
 
@@ -763,8 +765,8 @@ describe("TBTCVault", () => {
       })
 
       it("should mint TBTC", async () => {
-        expect(await tbtc.balanceOf(account1.address)).to.equal(amount)
-        expect(await tbtc.totalSupply()).to.equal(amount)
+        expect(await tbtc.balanceOf(account1.address)).to.equal(to1e18(19))
+        expect(await tbtc.totalSupply()).to.equal(to1e18(19))
       })
 
       it("should emit Minted event", async () => {
@@ -781,8 +783,8 @@ describe("TBTCVault", () => {
     })
 
     context("when there are multiple callers", () => {
-      const amount1 = to1e18(4) // 2 + 1 + 1 = 4
-      const amount2 = to1e18(5) // 4 + 1 = 5
+      const amount1 = toSatoshis(4) // 2 + 1 + 1
+      const amount2 = toSatoshis(5) // 4 + 1
 
       const transactions: ContractTransaction[] = []
 
@@ -792,27 +794,27 @@ describe("TBTCVault", () => {
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(2), [])
+            .approveBalanceAndCall(vault.address, toSatoshis(2), [])
         )
         transactions.push(
           await bank
             .connect(account2)
-            .approveBalanceAndCall(vault.address, to1e18(4), [])
+            .approveBalanceAndCall(vault.address, toSatoshis(4), [])
         )
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(1), [])
+            .approveBalanceAndCall(vault.address, toSatoshis(1), [])
         )
         transactions.push(
           await bank
             .connect(account1)
-            .approveBalanceAndCall(vault.address, to1e18(1), [])
+            .approveBalanceAndCall(vault.address, toSatoshis(1), [])
         )
         transactions.push(
           await bank
             .connect(account2)
-            .approveBalanceAndCall(vault.address, to1e18(1), [])
+            .approveBalanceAndCall(vault.address, toSatoshis(1), [])
         )
       })
 
@@ -833,9 +835,9 @@ describe("TBTCVault", () => {
       })
 
       it("should mint TBTC", async () => {
-        expect(await tbtc.balanceOf(account1.address)).to.equal(amount1)
-        expect(await tbtc.balanceOf(account2.address)).to.equal(amount2)
-        expect(await tbtc.totalSupply()).to.equal(amount1.add(amount2))
+        expect(await tbtc.balanceOf(account1.address)).to.equal(to1e18(4))
+        expect(await tbtc.balanceOf(account2.address)).to.equal(to1e18(5))
+        expect(await tbtc.totalSupply()).to.equal(to1e18(9)) // 4 + 5
       })
 
       it("should emit Minted event", async () => {
@@ -863,11 +865,9 @@ describe("TBTCVault", () => {
     const depositor2 = "0xb3464806d680722dBc678996F1670D19A42eA3e9"
     const depositor3 = "0x6B9925e04bc46569d1F7362eD7f11539234f0aEc"
 
-    const depositedAmount1 = to1e18(19)
-    const depositedAmount2 = to1e18(11)
-    const depositedAmount3 = to1e18(301)
-
-    const totalDepositedAmount = to1e18(331) // 19 + 11 + 301
+    const depositedAmount1 = toSatoshis(19)
+    const depositedAmount2 = toSatoshis(11)
+    const depositedAmount3 = toSatoshis(301)
 
     before(async () => {
       await createSnapshot()
@@ -917,14 +917,14 @@ describe("TBTCVault", () => {
       })
 
       it("should mint TBTC", async () => {
-        expect(await tbtc.balanceOf(depositor1)).to.equal(depositedAmount1)
-        expect(await tbtc.totalSupply()).to.equal(depositedAmount1)
+        expect(await tbtc.balanceOf(depositor1)).to.equal(to1e18(19))
+        expect(await tbtc.totalSupply()).to.equal(to1e18(19))
       })
 
       it("should emit Minted event", async () => {
         await expect(tx)
           .to.emit(vault, "Minted")
-          .withArgs(depositor1, depositedAmount1)
+          .withArgs(depositor1, to1e18(19))
       })
     })
 
@@ -948,22 +948,22 @@ describe("TBTCVault", () => {
       })
 
       it("should mint TBTC", async () => {
-        expect(await tbtc.balanceOf(depositor1)).to.equal(depositedAmount1)
-        expect(await tbtc.balanceOf(depositor2)).to.equal(depositedAmount2)
-        expect(await tbtc.balanceOf(depositor3)).to.equal(depositedAmount3)
-        expect(await tbtc.totalSupply()).to.equal(totalDepositedAmount)
+        expect(await tbtc.balanceOf(depositor1)).to.equal(to1e18(19))
+        expect(await tbtc.balanceOf(depositor2)).to.equal(to1e18(11))
+        expect(await tbtc.balanceOf(depositor3)).to.equal(to1e18(301))
+        expect(await tbtc.totalSupply()).to.equal(to1e18(331)) // 19 + 11 + 301
       })
 
       it("should emit Minted events", async () => {
         await expect(tx)
           .to.emit(vault, "Minted")
-          .withArgs(depositor1, depositedAmount1)
+          .withArgs(depositor1, to1e18(19))
         await expect(tx)
           .to.emit(vault, "Minted")
-          .withArgs(depositor2, depositedAmount2)
+          .withArgs(depositor2, to1e18(11))
         await expect(tx)
           .to.emit(vault, "Minted")
-          .withArgs(depositor3, depositedAmount3)
+          .withArgs(depositor3, to1e18(301))
       })
     })
   })
