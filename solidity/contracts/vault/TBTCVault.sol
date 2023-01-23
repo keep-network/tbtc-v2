@@ -83,19 +83,17 @@ contract TBTCVault is IVault, Ownable, TBTCOptimisticMinting {
     ///      Bank for at least `amount / SATOSHI_MULTIPLIER`.
     /// @param amount Amount of TBTC to mint.
     function mint(uint256 amount) external {
-        (uint256 convertibleAmount, , uint256 satothis) = amountToSatoshis(
+        (uint256 convertibleAmount, , uint256 satoshis) = amountToSatoshis(
             amount
         );
 
         require(
-            bank.balanceOf(msg.sender) >= satothis,
+            bank.balanceOf(msg.sender) >= satoshis,
             "Amount exceeds balance in the bank"
         );
         _mint(msg.sender, convertibleAmount);
-        bank.transferBalanceFrom(msg.sender, address(this), satothis);
+        bank.transferBalanceFrom(msg.sender, address(this), satoshis);
     }
-
-    // TODO: add unit tests covering the scenario when some amount is left
 
     /// @notice Transfers `satoshis` of the Bank balance from the caller
     ///         to TBTC Vault and mints `satoshis * SATOSHI_MULTIPLIER` of TBTC
