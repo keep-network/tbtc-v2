@@ -2,17 +2,51 @@ import { BigNumber } from "ethers"
 import { TransactionHash } from "./bitcoin"
 import { Identifier, Event, TBTCVault } from "./chain"
 
+/**
+ * Represents an event that is emitted when a new optimistic minting is requested
+ * on chain.
+ */
 export type OptimisticMintingRequestedEvent = {
+  /**
+   * Minter's chain identifier.
+   */
   minter: Identifier
+  /**
+   * Unique deposit identifier.
+   * @see Bridge.buildDepositKey
+   */
   depositKey: BigNumber
+  /**
+   * Depositor's chain identifier.
+   */
   depositor: Identifier
+  /**
+   * Amount of tokens requested to mint.
+   */
   amount: BigNumber
+  /**
+   * Hash of a Bitcoin transaction made to fund the deposit.
+   */
   fundingTxHash: TransactionHash
+  /**
+   * Index of an output in the funding transaction made to fund the deposit.
+   */
   fundingOutputIndex: number
 } & Event
 
+/**
+ * Represents optimistic minting request for the given deposit revealed to the
+ * Bridge.
+ */
 export type OptimisticMintingRequest = {
+  /**
+   * UNIX timestamp at which the optimistic minting was requested.
+   */
   requestedAt: number
+  /**
+   * UNIX timestamp at which the optimistic minting was finalized.
+   * 0 if not yet finalized.
+   */
   finalizedAt: number
 }
 
