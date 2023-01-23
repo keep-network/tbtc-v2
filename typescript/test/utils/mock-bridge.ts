@@ -14,7 +14,7 @@ import {
 import { computeHash160, TransactionHash } from "../../src/bitcoin"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
 import { Address } from "../../src/ethereum"
-import { Hex } from "../hex"
+import { Hex } from "../../src/hex"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
