@@ -9,9 +9,12 @@ import {
   TransactionHash,
   isPublicKeyHashLength,
 } from "./bitcoin"
-import { Bridge, Identifier } from "./chain"
+import { Bridge, Event, Identifier } from "./chain"
 
 const { opcodes } = bcoin.script.common
+
+// TODO: Replace all properties that are expected to be un-prefixed hexadecimal
+// strings with a Hex type.
 
 /**
  * Represents a deposit.
@@ -97,6 +100,14 @@ export type RevealedDeposit = Pick<
    */
   treasuryFee: BigNumber
 }
+
+/**
+ * Represents an event emitted on deposit reveal to the on-chain bridge.fp
+ */
+export type DepositRevealedEvent = Deposit & {
+  fundingTxHash: TransactionHash
+  fundingOutputIndex: number
+} & Event
 
 /**
  * Submits a deposit by creating and broadcasting a Bitcoin P2(W)SH
