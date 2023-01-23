@@ -178,7 +178,9 @@ export class Bridge extends EthereumContract implements ChainBridge {
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
         blockHash: event.blockHash,
         transactionHash: event.transactionHash,
-        fundingTxHash: TransactionHash.from(event.args!.fundingTxHash),
+        fundingTxHash: TransactionHash.from(
+          event.args!.fundingTxHash
+        ).reverse(),
         fundingOutputIndex: BigNumber.from(
           event.args!.fundingOutputIndex
         ).toNumber(),
