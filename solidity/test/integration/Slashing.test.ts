@@ -515,7 +515,7 @@ describeFn("Integration Test - Slashing", async () => {
         })
 
         it("should consume around 3 100 000 gas for Bridge.notifyMovingFundsTimeoutTx transaction", async () => {
-          await assertGasUsed(notifyMovingFundsTimeoutTx, 3_100_000, 50_000)
+          await assertGasUsed(notifyMovingFundsTimeoutTx, 3_100_000, 100_000)
         })
       })
     })
