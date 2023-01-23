@@ -14,6 +14,10 @@ export function to1e18(n: number): BigNumber {
   return ethers.BigNumber.from(n).mul(decimalMultiplier)
 }
 
+export function toSatoshis(amountInBtc: number): BigNumber {
+  return to1ePrecision(amountInBtc, 8)
+}
+
 export async function getBlockTime(blockNumber: number): Promise<number> {
   return (await ethers.provider.getBlock(blockNumber)).timestamp
 }

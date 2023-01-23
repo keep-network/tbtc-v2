@@ -3,7 +3,7 @@ import { ethers, helpers, waffle } from "hardhat"
 import { expect } from "chai"
 import { FakeContract } from "@defi-wonderland/smock"
 
-import { walletState } from "../fixtures"
+import { constants, walletState } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
 
 import { DepositSweepTestData, SingleP2SHDeposit } from "../data/deposit-sweep"
@@ -198,14 +198,24 @@ describe("VendingMachine - Upgrade", () => {
         expect(await bank.balanceOf(tbtcVault.address)).to.equal(
           totalWalletBtcBalance
         )
+
+        // Governance should burn the minted TBTC v2 so not checking the
+        // amount.
       })
     })
 
     describe("step#4 - functioning system", () => {
       it("should let TBTC v2 holders unmint their tokens", async () => {
-        const initialWalletBtcBalance = 18490
-        const unmintedAmount1 = 7000
-        const unmintedAmount2 = 1000
+        const initialWalletBtcBalance = 18490 // [sat]
+        // Bank balances are denominated in satoshi
+        const unmintedBankBalance1 = 7000 // [sat]
+        const unmintedBankBalance2 = 1000 // [sat]
+        // Values in satoshi need to be multiplied by 1e10 (satoshi multiplier)
+        // to be represented in 1e18 (Ethereum) precision.
+        const unmintedAmount1 =
+          unmintedBankBalance1 * constants.satoshiMultiplier
+        const unmintedAmount2 =
+          unmintedBankBalance2 * constants.satoshiMultiplier
 
         await tbtc.connect(account1).approve(tbtcVault.address, unmintedAmount1)
         await tbtcVault.connect(account1).unmint(unmintedAmount1)
@@ -213,17 +223,26 @@ describe("VendingMachine - Upgrade", () => {
         await tbtc.connect(account2).approve(tbtcVault.address, unmintedAmount2)
         await tbtcVault.connect(account2).unmint(unmintedAmount2)
 
-        expect(await bank.balanceOf(account1.address)).to.equal(unmintedAmount1)
-        expect(await bank.balanceOf(account2.address)).to.equal(unmintedAmount2)
+        expect(await bank.balanceOf(account1.address)).to.equal(
+          unmintedBankBalance1
+        )
+        expect(await bank.balanceOf(account2.address)).to.equal(
+          unmintedBankBalance2
+        )
         expect(await bank.balanceOf(tbtcVault.address)).to.equal(
-          initialWalletBtcBalance - unmintedAmount1 - unmintedAmount2
+          initialWalletBtcBalance - unmintedBankBalance1 - unmintedBankBalance2
         )
       })
 
       it("should let Bank balance holders mint TBTC v2", async () => {
-        const initialWalletBtcBalance = 10490 // 18490 - 7000 - 1000
-        const mintedAmount1 = 600
-        const mintedAmount2 = 100
+        const initialWalletBtcBalance = 10490 // 18490 - 7000 - 1000 [sat]
+        // Bank balances are denominated in satoshi
+        const mintedBankBalance1 = 600 // [sat]
+        const mintedBankBalance2 = 100 // [sat]
+        // Values in satoshi need to be multiplied by 1e10 (satoshi multiplier)
+        // to be represented in 1e18 (Ethereum) precision.
+        const mintedAmount1 = mintedBankBalance1 * constants.satoshiMultiplier
+        const mintedAmount2 = mintedBankBalance2 * constants.satoshiMultiplier
 
         const initialTbtcBalance1 = await tbtc.balanceOf(account1.address)
         const initialTbtcBalance2 = await tbtc.balanceOf(account2.address)
@@ -245,7 +264,7 @@ describe("VendingMachine - Upgrade", () => {
           initialTbtcBalance2.add(mintedAmount2)
         )
         expect(await bank.balanceOf(tbtcVault.address)).to.equal(
-          initialWalletBtcBalance + mintedAmount1 + mintedAmount2
+          initialWalletBtcBalance + mintedBankBalance1 + mintedBankBalance2
         )
       })
     })
@@ -369,25 +388,31 @@ describe("VendingMachine - Upgrade", () => {
       // The deposit should also incur the treasury fee whose
       // initial value is 0.05% of the deposited amount so the
       // final depositor balance should be cut by 10 satoshi.
-      const mintedAmount = 18490
+      const totalWalletBtcBalance = 18490
+      const totalTbtcMinted =
+        totalWalletBtcBalance * constants.satoshiMultiplier
 
       it("should let to deposit BTC into v2 Bridge", async () => {
-        expect(await bank.balanceOf(tbtcVault.address)).to.equal(mintedAmount)
-        expect(await tbtc.balanceOf(redeemer.address)).to.equal(mintedAmount)
+        expect(await bank.balanceOf(tbtcVault.address)).to.equal(
+          totalWalletBtcBalance
+        )
+        expect(await tbtc.balanceOf(redeemer.address)).to.equal(totalTbtcMinted)
       })
 
       describe("step #4 - TBTC v2 -> v2 unminting", () => {
         it("should let the redeemer to unmint TBTC v2 back to TBTC v1", async () => {
           expect(await tbtcV1.balanceOf(redeemer.address)).to.equal(0)
-          expect(await tbtc.balanceOf(redeemer.address)).to.equal(mintedAmount)
+          expect(await tbtc.balanceOf(redeemer.address)).to.equal(
+            totalTbtcMinted
+          )
 
           await tbtc
             .connect(redeemer)
-            .approve(vendingMachine.address, mintedAmount)
-          await vendingMachine.connect(redeemer).unmint(mintedAmount)
+            .approve(vendingMachine.address, totalTbtcMinted)
+          await vendingMachine.connect(redeemer).unmint(totalTbtcMinted)
 
           expect(await tbtcV1.balanceOf(redeemer.address)).to.equal(
-            mintedAmount
+            totalTbtcMinted
           )
           expect(await tbtc.balanceOf(redeemer.address)).to.equal(0)
         })
