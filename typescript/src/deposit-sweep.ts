@@ -11,7 +11,7 @@ import {
   computeHash160,
 } from "./bitcoin"
 import { assembleDepositScript, Deposit } from "./deposit"
-import { Bridge } from "./chain"
+import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
 
 /**
@@ -392,13 +392,15 @@ async function prepareInputSignData(
  * @param mainUtxo - Recent main UTXO of the wallet as currently known on-chain.
  * @param bridge - Handle to the Bridge on-chain contract.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
+ * @param vault - (Optional) The vault pointed by swept deposits.
  * @returns Empty promise.
  */
 export async function submitDepositSweepProof(
   transactionHash: TransactionHash,
   mainUtxo: UnspentTransactionOutput,
   bridge: Bridge,
-  bitcoinClient: BitcoinClient
+  bitcoinClient: BitcoinClient,
+  vault?: Identifier
 ): Promise<void> {
   const confirmations = await bridge.txProofDifficultyFactor()
   const proof = await assembleTransactionProof(
@@ -414,6 +416,7 @@ export async function submitDepositSweepProof(
   await bridge.submitDepositSweepProof(
     decomposedRawTransaction,
     proof,
-    mainUtxo
+    mainUtxo,
+    vault
   )
 }
