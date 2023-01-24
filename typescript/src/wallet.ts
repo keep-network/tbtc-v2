@@ -90,7 +90,7 @@ export interface Wallet {
   /**
    * Current state of the wallet.
    */
-  state: number
+  state: WalletState
   /**
    * Moving funds target wallet commitment submitted by the wallet.
    */
