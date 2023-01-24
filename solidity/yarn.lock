@@ -1758,25 +1758,20 @@
   integrity sha512-KlpY9BbasyLvYXSS7dsJktgRChu/yjdFLOX8ldGA/pltLicCm/l0F4oqxL8wSws9XD12vq9x0B5qzPygVLB2TQ==
 
 "@keep-network/ecdsa@dapp-development-goerli":
-  version "2.1.0-dapp-dev-goerli.0"
-  resolved "https://registry.npmjs.org/@keep-network/ecdsa/-/ecdsa-2.1.0-dapp-dev-goerli.0.tgz#933981ebdb5a3023f83384a00066ba42017a3785"
-  integrity sha512-gfxhCfyrbQGUdSiPson/zQYR863gShIQy2zgJ1BaJ/xOqtEoGqVFuUH44FqO24hS+snVczU+vH9VyAUAXUSiPg==
+  version "2.1.0-dapp-dev-goerli.3"
+  resolved "https://registry.npmjs.org/@keep-network/ecdsa/-/ecdsa-2.1.0-dapp-dev-goerli.3.tgz#2428215e38c7fad04ac4b216c19da4d4b97cff59"
+  integrity sha512-Fq8rdFDbvhN/ipuZRx7pUaSyOCYqAg/Kw75ZmMkCYOFhbMgn9HdBBb9QQ4GHoT20s2jj37et27tV+FgFhvj88g==
   dependencies:
-    "@keep-network/random-beacon" "2.1.0-dapp-dev-goerli.0"
+    "@keep-network/random-beacon" "2.1.0-dapp-dev-goerli.4"
     "@keep-network/sortition-pools" "^2.0.0-pre.16"
     "@openzeppelin/contracts" "^4.6.0"
     "@openzeppelin/contracts-upgradeable" "^4.6.0"
-    "@threshold-network/solidity-contracts" "1.3.0-dev.0"
+    "@threshold-network/solidity-contracts" "1.2.2-dapp-dev-goerli.0"
 
 "@keep-network/hardhat-helpers@0.6.0-pre.18":
   version "0.6.0-pre.18"
   resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.18.tgz#1c962af23714920c8eeae9b13a8e0e8681e5440b"
   integrity sha512-9jF3ypoW8qqVl+hZmGgVVfLYNAjgUZrM+jOGYs69QHKPU2RFgx4v+wIvm02GnEtZbX4FGj5itb84QQY7EOssUA==
-
-"@keep-network/hardhat-helpers@^0.6.0-pre.15":
-  version "0.6.0-pre.17"
-  resolved "https://registry.npmjs.org/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.17.tgz#de085c8f5d684cc7e4ae793fdc6c104a09fd03ce"
-  integrity sha512-G3Jp+I77po8e4moOrUY/wQCRYGt/g1aBoDjL2cbxMkAWFFrb9OBu1a5Vi5eOwO4ttWthN5c9vZKWJicR6kwOLg==
 
 "@keep-network/hardhat-local-networks-config@^0.1.0-pre.4":
   version "0.1.0-pre.4"
@@ -1812,10 +1807,10 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
 
-"@keep-network/random-beacon@2.1.0-dapp-dev-goerli.0", "@keep-network/random-beacon@dapp-development-goerli":
-  version "2.1.0-dapp-dev-goerli.0"
-  resolved "https://registry.npmjs.org/@keep-network/random-beacon/-/random-beacon-2.1.0-dapp-dev-goerli.0.tgz#04c20f4eab3933619f7dd19ec3d87d6a35ecd24c"
-  integrity sha512-BPRBCrZUKLbnclsmmXvpl4+LT0VngPCRnhQoRW4euVjemGcnf8DC95K0I5AndjSPdx8QIl+kShYsUscAOIMGzA==
+"@keep-network/random-beacon@2.1.0-dapp-dev-goerli.4", "@keep-network/random-beacon@dapp-development-goerli":
+  version "2.1.0-dapp-dev-goerli.4"
+  resolved "https://registry.npmjs.org/@keep-network/random-beacon/-/random-beacon-2.1.0-dapp-dev-goerli.4.tgz#7ffa9dd89c8f2d85120f7fc49adf55ca88fc8013"
+  integrity sha512-GRp+MHe0We6hcjNkbwgntpXyQ3kgdEi3URy5UrMdZus40q9AddgMnW9oQ6n3i96JmiwpPgVM1qZVAyukkrynoQ==
   dependencies:
     "@keep-network/sortition-pools" "^2.0.0-pre.16"
     "@openzeppelin/contracts" "^4.6.0"
@@ -2191,9 +2186,9 @@
   integrity sha512-LD4NnkKpHHSMo5z9MvFsG4g1xxZUDqV3A3Futu3nvyfs4wPwXxqOgMaxOoa2PeyGL2VNeSlbxT54enbQzGcgJQ==
 
 "@openzeppelin/contracts@^4.3.2":
-  version "4.8.0"
-  resolved "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.8.0.tgz#6854c37df205dd2c056bdfa1b853f5d732109109"
-  integrity sha512-AGuwhRRL+NaKx73WKRNzeCxOCOCxpaqF+kp8TJ89QzAipSwZy/NoflkWaL9bywXFRhIzXt8j38sfF7KBKCPWLw==
+  version "4.8.1"
+  resolved "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.8.1.tgz#709cfc4bbb3ca9f4460d60101f15dac6b7a2d5e4"
+  integrity sha512-xQ6eUZl+RDyb/FiZe1h+U7qr/f4p/SrTSQcTPH2bjur3C5DbuW/zFgCU/b1P/xcIaEqJep+9ju4xDRi3rmChdQ==
 
 "@openzeppelin/contracts@^4.6.0":
   version "4.6.0"
@@ -4023,7 +4018,7 @@ bigint-mod-arith@^3.1.0:
   resolved "https://registry.yarnpkg.com/bigint-mod-arith/-/bigint-mod-arith-3.1.2.tgz#658e416bc593a463d97b59766226d0a3021a76b1"
   integrity sha512-nx8J8bBeiRR+NlsROFH9jHswW5HO8mgfOSqW0AmjicMMvaONDa8AO+5ViKDUUNytBPWiwfvZP4/Bj4Y3lUfvgQ==
 
-bignumber.js@*, bignumber.js@^9.0.0:
+bignumber.js@*:
   version "9.1.0"
   resolved "https://registry.yarnpkg.com/bignumber.js/-/bignumber.js-9.1.0.tgz#8d340146107fe3a6cb8d40699643c302e8773b62"
   integrity sha512-4LwHK4nfDOraBCtst+wOWIHbu1vhvAPJK8g8nROd4iuc3PSEjWif/qwbkh8jwCJz6yDBvtU4KPynETgrfh7y3A==
@@ -4037,6 +4032,11 @@ bignumber.js@^9.0.0:
   version "9.0.2"
   resolved "https://registry.yarnpkg.com/bignumber.js/-/bignumber.js-9.0.2.tgz#71c6c6bed38de64e24a65ebe16cfcf23ae693673"
   integrity sha512-GAcQvbpsM0pUb0zw1EI0KhQEZ+lRwR5fYaAp3vPOYuP7aDvGy6cVN6XHLauvF8SOga2y0dcLcjt3iQDTSEliyw==
+
+bignumber.js@^9.0.1:
+  version "9.1.1"
+  resolved "https://registry.npmjs.org/bignumber.js/-/bignumber.js-9.1.1.tgz#c4df7dc496bd849d4c9464344c1aa74228b4dac6"
+  integrity sha512-pHm4LsMJ6lzgNGVfZHjMoO8sdoRhOzOH4MLmY65Jg70bpxCKu5iOHNJyfF6OyvYw7t8Fpf35RuzUyqnQsj8Vig==
 
 binary-extensions@^2.0.0:
   version "2.2.0"
@@ -4371,6 +4371,14 @@ buffer@^5.0.5, buffer@^5.2.1, buffer@^5.5.0, buffer@^5.6.0:
   dependencies:
     base64-js "^1.3.1"
     ieee754 "^1.1.13"
+
+buffer@^6.0.3:
+  version "6.0.3"
+  resolved "https://registry.npmjs.org/buffer/-/buffer-6.0.3.tgz#2ace578459cc8fbe2a70aaa8f52ee63b6a74c6c6"
+  integrity sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==
+  dependencies:
+    base64-js "^1.3.1"
+    ieee754 "^1.2.1"
 
 bufferutil@^4.0.1:
   version "4.0.3"
@@ -7887,7 +7895,7 @@ idna-uts46-hx@^2.3.1:
   dependencies:
     punycode "2.1.0"
 
-ieee754@^1.1.13:
+ieee754@^1.1.13, ieee754@^1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/ieee754/-/ieee754-1.2.1.tgz#8eb7a10a63fff25d15a57b001586d177d1b0d352"
   integrity sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==
@@ -8629,6 +8637,15 @@ keccak@^3.0.0:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/keccak/-/keccak-3.0.2.tgz#4c2c6e8c54e04f2670ee49fa734eb9da152206e0"
   integrity sha512-PyKKjkH53wDMLGrvmRGSNWgmSxZOUqbnXwKL9tmgbFYA1iAYqW21kfR7mZXV0MlESiefxQQE9X9fTa3X+2MPDQ==
+  dependencies:
+    node-addon-api "^2.0.0"
+    node-gyp-build "^4.2.0"
+    readable-stream "^3.6.0"
+
+keccak@^3.0.2:
+  version "3.0.3"
+  resolved "https://registry.npmjs.org/keccak/-/keccak-3.0.3.tgz#4bc35ad917be1ef54ff246f904c2bbbf9ac61276"
+  integrity sha512-JZrLIAJWuZxKbCilMpNz5Vj7Vtb4scDG3dMXLOsbzBmQGyjwE61BbW7bJkfKKCShXiQZt3T6sBgALRtmd+nZaQ==
   dependencies:
     node-addon-api "^2.0.0"
     node-gyp-build "^4.2.0"
@@ -9445,6 +9462,11 @@ module-error@^1.0.1, module-error@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/module-error/-/module-error-1.0.2.tgz#8d1a48897ca883f47a45816d4fb3e3c6ba404d86"
   integrity sha512-0yuvsqSCv8LbaOKhnsQ/T5JhyFlCYLPXK3U2sgV10zoKQwzs/MyfuQUOZQ1V/6OCOJsK/TRgNVrPuPDqtdMFtA==
+
+moment@^2.29.0:
+  version "2.29.4"
+  resolved "https://registry.npmjs.org/moment/-/moment-2.29.4.tgz#3dbe052889fe7c1b2ed966fcb3a77328964ef108"
+  integrity sha512-5LC9SOxjSc2HF6vO2CyuTDNivEdoz2IvyJJGj6X8DJ0eFyfszE0QiEd+iXmBvUP3WHxSjFH/vIsA0EN00cgr8w==
 
 ms@2.0.0:
   version "2.0.0"
