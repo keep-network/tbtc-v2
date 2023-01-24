@@ -760,7 +760,9 @@ export class TBTCVault
         depositKey: BigNumber.from(event.args!.depositKey),
         depositor: new Address(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
-        fundingTxHash: TransactionHash.from(event.args!.fundingTxHash),
+        fundingTxHash: TransactionHash.from(
+          event.args!.fundingTxHash
+        ).reverse(),
         fundingOutputIndex: BigNumber.from(
           event.args!.fundingOutputIndex
         ).toNumber(),
