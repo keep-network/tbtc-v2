@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2",
-  "version": "1.0.1-dapp-dev-goerli",
+  "version": "1.0.3-dapp-dev-goerli",
   "license": "GPL-3.0-only",
   "files": [
     "artifacts/",

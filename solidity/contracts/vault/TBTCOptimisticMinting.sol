@@ -46,6 +46,9 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         finalizing the upgrade of governable parameters.
     uint256 public constant GOVERNANCE_DELAY = 120;
 
+    /// @notice Multiplier to convert satoshi to TBTC token units.
+    uint256 public constant SATOSHI_MULTIPLIER = 10**10;
+
     Bridge public immutable bridge;
 
     /// @notice Indicates if the optimistic minting has been paused. Only the
@@ -97,7 +100,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
     ///         optimistic minting of TBTC. When `TBTCVault` sweeps a deposit,
     ///         the debt is fully or partially paid off, no matter if that
     ///         particular swept deposit was used for the optimistic minting or
-    ///         not.
+    ///         not. The values are in 1e18 Ethereum precision.
     mapping(address => uint256) public optimisticMintingDebt;
 
     /// @notice New optimistic minting fee divisor value. Set only when the
@@ -120,7 +123,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         address indexed minter,
         uint256 indexed depositKey,
         address indexed depositor,
-        uint256 amount,
+        uint256 amount, // amount in 1e18 Ethereum precision
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
     );
@@ -261,7 +264,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
             msg.sender,
             depositKey,
             deposit.depositor,
-            deposit.amount,
+            deposit.amount * SATOSHI_MULTIPLIER,
             fundingTxHash,
             fundingOutputIndex
         );
@@ -323,7 +326,8 @@ abstract contract TBTCOptimisticMinting is Ownable {
         // deposit is swept.
         //
         // This imbalance is supposed to be solved by a donation to the Bridge.
-        uint256 amountToMint = deposit.amount - deposit.treasuryFee;
+        uint256 amountToMint = (deposit.amount - deposit.treasuryFee) *
+            SATOSHI_MULTIPLIER;
 
         // The Optimistic Minting mechanism may additionally cut a fee from the
         // amount that is left after deducting the Bridge deposit treasury fee.
@@ -332,7 +336,7 @@ abstract contract TBTCOptimisticMinting is Ownable {
         // and they may wait for the Bridge to sweep their deposit if they do
         // not want to pay the Optimistic Minting fee.
         uint256 optimisticMintFee = optimisticMintingFeeDivisor > 0
-            ? amountToMint / optimisticMintingFeeDivisor
+            ? (amountToMint / optimisticMintingFeeDivisor)
             : 0;
 
         // Both the optimistic minting fee and the share that goes to the

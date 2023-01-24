@@ -3,13 +3,19 @@ import {
   BigNumber,
   constants,
   Contract as EthersContract,
+  Event as EthersEvent,
   providers,
   Signer,
   utils,
 } from "ethers"
+import { BlockTag as EthersBlockTag } from "@ethersproject/abstract-provider"
 import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
-import { DepositScriptParameters, RevealedDeposit } from "./deposit"
+import {
+  DepositScriptParameters,
+  RevealedDeposit,
+  DepositRevealedEvent,
+} from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -22,6 +28,7 @@ import {
 
 import type { Bridge as ContractBridge } from "../typechain/Bridge"
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
+import { Hex } from "./hex"
 
 /**
  * Contract deployment artifact.
@@ -118,6 +125,31 @@ class EthereumContract<T extends EthersContract> {
     this._deployedAtBlockNumber =
       config.deployedAtBlockNumber ?? deployment.receipt.blockNumber
   }
+
+  /**
+   * Get events emitted by the Ethereum contract.
+   * @param eventName Name of the event.
+   * @param fromBlock Block number from which events should be queried. Optional
+   *        parameter, by default block number of the contract deployment is used.
+   * @param toBlock Block number to which events should be queried. Optional
+   *        parameter, by efault the latest block is used.
+   * @param filterArgs Arguments for events filtering.
+   * @returns Array of found events.
+   */
+  async getEvents(
+    eventName: string,
+    fromBlock?: EthersBlockTag,
+    toBlock?: EthersBlockTag,
+    ...filterArgs: Array<any>
+  ): Promise<EthersEvent[]> {
+    // TODO: Test if we need a workaround for querying events from big range in chunks,
+    // see: https://github.com/keep-network/tbtc-monitoring/blob/e169357d7b8c638d4eaf73d52aa8f53ee4aebc1d/src/lib/ethereum-helper.js#L44-L73
+    return await this._instance.queryFilter(
+      this._instance.filters[eventName](...filterArgs),
+      fromBlock ?? this._deployedAtBlockNumber,
+      toBlock ?? "latest"
+    )
+  }
 }
 
 /**
@@ -130,6 +162,47 @@ export class Bridge
 {
   constructor(config: ContractConfig) {
     super(config, BridgeDeployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getDepositRevealedEvents}
+   */
+  async getDepositRevealedEvents(
+    fromBlock?: number,
+    toBlock?: number,
+    ...filterArgs: Array<any>
+  ): Promise<DepositRevealedEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "DepositRevealed",
+      fromBlock,
+      toBlock,
+      ...filterArgs
+    )
+
+    return events.map<DepositRevealedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        fundingTxHash: TransactionHash.from(
+          event.args!.fundingTxHash
+        ).reverse(),
+        fundingOutputIndex: BigNumber.from(
+          event.args!.fundingOutputIndex
+        ).toNumber(),
+        depositor: new Address(event.args!.depositor),
+        amount: BigNumber.from(event.args!.amount),
+        blindingFactor: Hex.from(event.args!.blindingFactor).toString(),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
+        refundPublicKeyHash: Hex.from(event.args!.refundPubKeyHash).toString(),
+        refundLocktime: Hex.from(event.args!.refundLocktime).toString(),
+        vault:
+          event.args!.vault === constants.AddressZero
+            ? undefined
+            : new Address(event.args!.vault),
+      }
+    })
   }
 
   // eslint-disable-next-line valid-jsdoc
