@@ -23,7 +23,11 @@ export type OptimisticMintingRequestedEvent = {
   depositor: Identifier
   /**
    * Amount of tokens requested to mint.
+   * This value is in ERC 1e18 precision, it has to be converted before using
+   * as Bitcoin value with 1e8 precision in satoshi.
    */
+  // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
+  // precision to Bitcoin in 1e8 precision (satoshi).
   amount: BigNumber
   /**
    * Hash of a Bitcoin transaction made to fund the deposit.
