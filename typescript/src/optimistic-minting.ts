@@ -1,6 +1,7 @@
 import { BigNumber } from "ethers"
 import { TransactionHash } from "./bitcoin"
 import { Identifier, Event, TBTCVault } from "./chain"
+import { Hex } from "./hex"
 
 /**
  * Represents an event that is emitted when a new optimistic minting is requested
@@ -56,13 +57,13 @@ export type OptimisticMintingRequest = {
  * @param depositOutputIndex Index of the deposit transaction output that
  *        funds the revealed deposit.
  * @param tbtcVault Handle to the TBTCVault on-chain contract
- * @returns Transaction hash of the optimistic mint request transaction as string.
+ * @returns Transaction hash of the optimistic mint request transaction.
  */
 export async function requestOptimisticMint(
   depositTxHash: TransactionHash,
   depositOutputIndex: number,
   tbtcVault: TBTCVault
-): Promise<string> {
+): Promise<Hex> {
   return await tbtcVault.requestOptimisticMint(
     depositTxHash,
     depositOutputIndex
@@ -75,13 +76,13 @@ export async function requestOptimisticMint(
  * @param depositOutputIndex Index of the deposit transaction output that
  *        funds the revealed deposit.
  * @param tbtcVault Handle to the TBTCVault on-chain contract
- * @returns Transaction hash of the optimistic mint cancel transaction as string.
+ * @returns Transaction hash of the optimistic mint cancel transaction.
  */
 export async function cancelOptimisticMint(
   depositTxHash: TransactionHash,
   depositOutputIndex: number,
   tbtcVault: TBTCVault
-): Promise<string> {
+): Promise<Hex> {
   return await tbtcVault.cancelOptimisticMint(depositTxHash, depositOutputIndex)
 }
 
@@ -91,13 +92,13 @@ export async function cancelOptimisticMint(
  * @param depositOutputIndex Index of the deposit transaction output that
  *        funds the revealed deposit.
  * @param tbtcVault Handle to the TBTCVault on-chain contract
- * @returns Transaction hash of the optimistic mint finalize transaction as string.
+ * @returns Transaction hash of the optimistic mint finalize transaction.
  */
 export async function finalizeOptimisticMint(
   depositTxHash: TransactionHash,
   depositOutputIndex: number,
   tbtcVault: TBTCVault
-): Promise<string> {
+): Promise<Hex> {
   return await tbtcVault.finalizeOptimisticMint(
     depositTxHash,
     depositOutputIndex

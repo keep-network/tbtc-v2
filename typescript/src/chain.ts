@@ -107,7 +107,7 @@ export interface Bridge {
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
     vault?: Identifier
-  ): Promise<string>
+  ): Promise<string> // TODO: Update to Hex
 
   /**
    * Gets a revealed deposit from the on-chain contract.
@@ -241,12 +241,12 @@ export interface TBTCVault {
    * @param depositTxHash The revealed deposit transaction's hash.
    * @param depositOutputIndex Index of the deposit transaction output that
    *        funds the revealed deposit.
-   * @returns Transaction hash of the optimistic mint request transaction as string.
+   * @returns Transaction hash of the optimistic mint request transaction.
    */
   requestOptimisticMint(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
-  ): Promise<string>
+  ): Promise<Hex>
 
   /**
    * Cancels optimistic minting for a deposit in an on-chain contract.
@@ -254,12 +254,12 @@ export interface TBTCVault {
    * @param depositTxHash The revealed deposit transaction's hash.
    * @param depositOutputIndex Index of the deposit transaction output that
    *        funds the revealed deposit.
-   * @returns Transaction hash of the optimistic mint cancel transaction as string.
+   * @returns Transaction hash of the optimistic mint cancel transaction.
    */
   cancelOptimisticMint(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
-  ): Promise<string>
+  ): Promise<Hex>
 
   /**
    * Finalizes optimistic minting for a deposit in an on-chain contract.
@@ -267,12 +267,12 @@ export interface TBTCVault {
    * @param depositTxHash The revealed deposit transaction's hash.
    * @param depositOutputIndex Index of the deposit transaction output that
    *        funds the revealed deposit.
-   * @returns Transaction hash of the optimistic mint finalize transaction as string.
+   * @returns Transaction hash of the optimistic mint finalize transaction.
    */
   finalizeOptimisticMint(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
-  ): Promise<string>
+  ): Promise<Hex>
 
   /**
    * Gets optimistic minting request for a deposit.

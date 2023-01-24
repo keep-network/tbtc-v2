@@ -664,13 +664,13 @@ export class TBTCVault
   async requestOptimisticMint(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
-  ): Promise<string> {
+  ): Promise<Hex> {
     const tx = await this._instance.requestOptimisticMint(
       depositTxHash.toPrefixedString(),
       depositOutputIndex
     )
 
-    return tx.hash
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -680,13 +680,13 @@ export class TBTCVault
   async cancelOptimisticMint(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
-  ): Promise<string> {
+  ): Promise<Hex> {
     const tx = await this._instance.cancelOptimisticMint(
       depositTxHash.toPrefixedString(),
       depositOutputIndex
     )
 
-    return tx.hash
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -696,13 +696,13 @@ export class TBTCVault
   async finalizeOptimisticMint(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
-  ): Promise<string> {
+  ): Promise<Hex> {
     const tx = await this._instance.finalizeOptimisticMint(
       depositTxHash.toPrefixedString(),
       depositOutputIndex
     )
 
-    return tx.hash
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
