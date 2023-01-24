@@ -187,6 +187,8 @@ class EthereumContract<T extends EthersContract> {
   }
 }
 
+// TODO: Refactor code structure as discussed in https://github.com/keep-network/tbtc-v2/pull/460#discussion_r1063383624.
+
 /**
  * Implementation of the Ethereum Bridge handle.
  * @see {ChainBridge} for reference.
