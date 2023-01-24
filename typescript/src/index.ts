@@ -1,3 +1,5 @@
+// TODO: Consider exports refactoring as per discussion https://github.com/keep-network/tbtc-v2/pull/460#discussion_r1084530007
+
 import {
   calculateDepositAddress,
   getRevealedDeposit,
