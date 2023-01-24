@@ -159,9 +159,9 @@ export class MockBridge implements Bridge {
         this._deposits.has(depositKey)
           ? (this._deposits.get(depositKey) as RevealedDeposit)
           : {
-              depositor: { identifierHex: constants.AddressZero },
+              depositor: Address.from(constants.AddressZero),
               amount: BigNumber.from(0),
-              vault: { identifierHex: constants.AddressZero },
+              vault: Address.from(constants.AddressZero),
               revealedAt: 0,
               sweptAt: 0,
               treasuryFee: BigNumber.from(0),
@@ -269,7 +269,7 @@ export class MockBridge implements Bridge {
     return redemptionsMap.has(redemptionKey)
       ? (redemptionsMap.get(redemptionKey) as RedemptionRequest)
       : {
-          redeemer: { identifierHex: constants.AddressZero },
+          redeemer: Address.from(constants.AddressZero),
           redeemerOutputScript: "",
           requestedAmount: BigNumber.from(0),
           treasuryFee: BigNumber.from(0),

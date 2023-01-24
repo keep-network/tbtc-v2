@@ -1,4 +1,4 @@
-import { Bridge } from "../src/ethereum"
+import { Address, Bridge } from "../src/ethereum"
 import {
   deployMockContract,
   MockContract,
@@ -6,7 +6,7 @@ import {
 import chai, { assert, expect } from "chai"
 import { BigNumber, constants } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
+import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
 import { TransactionHash } from "../src/bitcoin"
@@ -71,9 +71,7 @@ describe("Ethereum", () => {
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
           )
         ).to.be.eql({
-          redeemer: {
-            identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-          },
+          redeemer: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
           redeemerOutputScript:
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
           requestedAmount: BigNumber.from(10000),
@@ -110,9 +108,7 @@ describe("Ethereum", () => {
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
           )
         ).to.be.eql({
-          redeemer: {
-            identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-          },
+          redeemer: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
           redeemerOutputScript:
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
           requestedAmount: BigNumber.from(10000),
@@ -137,17 +133,13 @@ describe("Ethereum", () => {
           },
           2,
           {
-            depositor: {
-              identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-            },
+            depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
             walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
             refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
             blindingFactor: "f9f0c90d00039523",
             refundLocktime: "60bcea61",
           },
-          {
-            identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-          }
+          Address.from("82883a4c7a8dd73ef165deb402d432613615ced4")
         )
       })
 
@@ -194,9 +186,7 @@ describe("Ethereum", () => {
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
-          {
-            identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-          }
+          Address.from("82883a4c7a8dd73ef165deb402d432613615ced4")
         )
       })
 
@@ -350,13 +340,9 @@ describe("Ethereum", () => {
               0
             )
           ).to.be.eql({
-            depositor: {
-              identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-            },
+            depositor: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
             amount: BigNumber.from(10000),
-            vault: {
-              identifierHex: "014e1bfbe0f85f129749a8ae0fcb20175433741b",
-            },
+            vault: Address.from("014e1bfbe0f85f129749a8ae0fcb20175433741b"),
             revealedAt: 1654774330,
             sweptAt: 1655033516,
             treasuryFee: BigNumber.from(200),
@@ -393,9 +379,7 @@ describe("Ethereum", () => {
               0
             )
           ).to.be.eql({
-            depositor: {
-              identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-            },
+            depositor: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
             amount: BigNumber.from(10000),
             vault: undefined,
             revealedAt: 1654774330,
