@@ -1,6 +1,7 @@
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
 
+/* eslint-disable no-unused-vars */
 export enum WalletState {
   /**
    * The wallet is unknown to the Bridge.
@@ -36,6 +37,7 @@ export enum WalletState {
    */
   Terminated = 5,
 }
+/* eslint-enable no-unused-vars */
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace WalletState {
