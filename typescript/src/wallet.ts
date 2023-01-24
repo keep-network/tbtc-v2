@@ -57,7 +57,7 @@ export interface Wallet {
   /**
    * Identifier of a ECDSA Wallet registered in the ECDSA Wallet Registry.
    */
-  ecdsaWalletID: string
+  ecdsaWalletID: Hex
   /**
    * Compressed public key of the ECDSA Wallet.
    */
@@ -65,7 +65,7 @@ export interface Wallet {
   /**
    * Latest wallet's main UTXO hash.
    */
-  mainUtxoHash: string
+  mainUtxoHash: Hex
   /**
    * The total redeemable value of pending redemption requests targeting that wallet.
    */
@@ -94,5 +94,5 @@ export interface Wallet {
   /**
    * Moving funds target wallet commitment submitted by the wallet.
    */
-  movingFundsTargetWalletsCommitmentHash: string
+  movingFundsTargetWalletsCommitmentHash: Hex
 }
