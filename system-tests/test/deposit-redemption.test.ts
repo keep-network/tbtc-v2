@@ -272,6 +272,16 @@ describe("System Test - Deposit and redemption", () => {
           )
         })
 
+        it("should transfer depositor's bank balance to the Bridge", async () => {
+          expect(
+            await bank.balanceOf(systemTestsContext.depositor.address)
+          ).to.be.equal(0)
+
+          expect(await bank.balanceOf(bridgeAddress)).to.be.equal(
+            requestedAmount
+          )
+        })
+
         it("should register the redemption request on the bridge", async () => {
           expect(redemptionRequest.requestedAt).to.be.greaterThan(0)
           expect(redemptionRequest.requestedAmount).to.be.equal(requestedAmount)
@@ -343,10 +353,8 @@ describe("System Test - Deposit and redemption", () => {
               )
             })
 
-            it("should decrease depositor's balance in the bank", async () => {
-              const actualBalance = await bank.balanceOf(
-                systemTestsContext.depositor.address
-              )
+            it("should decrease Bridge's balance in the bank", async () => {
+              const actualBalance = await bank.balanceOf(bridgeAddress)
 
               expect(actualBalance).to.be.equal(0)
             })
