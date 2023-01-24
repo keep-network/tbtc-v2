@@ -666,7 +666,7 @@ export class TBTCVault
     depositOutputIndex: number
   ): Promise<Hex> {
     const tx = await this._instance.requestOptimisticMint(
-      depositTxHash.toPrefixedString(),
+      depositTxHash.reverse().toPrefixedString(),
       depositOutputIndex
     )
 
@@ -682,7 +682,7 @@ export class TBTCVault
     depositOutputIndex: number
   ): Promise<Hex> {
     const tx = await this._instance.cancelOptimisticMint(
-      depositTxHash.toPrefixedString(),
+      depositTxHash.reverse().toPrefixedString(),
       depositOutputIndex
     )
 
@@ -698,7 +698,7 @@ export class TBTCVault
     depositOutputIndex: number
   ): Promise<Hex> {
     const tx = await this._instance.finalizeOptimisticMint(
-      depositTxHash.toPrefixedString(),
+      depositTxHash.reverse().toPrefixedString(),
       depositOutputIndex
     )
 
