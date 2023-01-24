@@ -43,7 +43,12 @@ export const OptimisticMinting = {
   getOptimisticMintingRequest,
 }
 
-export { locktimeToNumber as BitcoinLocktimeToNumber } from "./bitcoin"
+export {
+  TransactionHash as BitcoinTransactionHash,
+  Transaction as BitcoinTransaction,
+  TransactionOutput as BitcoinTransactionOutput,
+  locktimeToNumber as BitcoinLocktimeToNumber,
+} from "./bitcoin"
 
 export { Client as ElectrumClient } from "./electrum"
 
@@ -55,13 +60,7 @@ export {
 
 export { Hex } from "./hex"
 
-export type {
+export {
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
-
-export type {
-  TransactionHash as BitcoinTransactionHash,
-  Transaction as BitcoinTransaction,
-  TransactionOutput as BitcoinTransactionOutput,
-} from "./bitcoin"
