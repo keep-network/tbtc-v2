@@ -3,26 +3,24 @@ import {
   SpvMaintainer,
   ElectrumClient,
   EthereumBridge,
-} from "@keep-network/tbtc-v2.ts"
-import {
-  computeHash160,
-  TransactionHash,
-} from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+  BitcoinTransactionHash,
+} from "@keep-network/tbtc-v2.ts/dist/src"
+import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 import { BigNumber, constants, Contract } from "ethers"
 import chai, { expect } from "chai"
-import { submitDepositTransaction } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import { submitDepositSweepTransaction } from "@keep-network/tbtc-v2.ts/dist/deposit-sweep"
-import { submitRedemptionTransaction } from "@keep-network/tbtc-v2.ts/dist/redemption"
+import { submitDepositTransaction } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
+import { submitDepositSweepTransaction } from "@keep-network/tbtc-v2.ts/dist/src/deposit-sweep"
+import { submitRedemptionTransaction } from "@keep-network/tbtc-v2.ts/dist/src/redemption"
 import chaiAsPromised from "chai-as-promised"
 
 import { setupSystemTestsContext } from "./utils/context"
 import { generateDeposit } from "./utils/deposit"
 import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
 
-import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 import type { SystemTestsContext } from "./utils/context"
-import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/redemption"
-import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
+import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/src/redemption"
+import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
 
 chai.use(chaiAsPromised)
 
@@ -72,12 +70,12 @@ describe("System Test - Deposit and redemption", () => {
 
     maintainerBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
-      signer: maintainer,
+      signerOrProvider: maintainer,
     })
 
     depositorBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
-      signer: depositor,
+      signerOrProvider: depositor,
     })
 
     const bankDeploymentInfo = deployedContracts.Bank
@@ -188,7 +186,7 @@ describe("System Test - Deposit and redemption", () => {
           // This is the first sweep of the given wallet so there is no main UTXO.
           {
             // The function expects an unprefixed hash.
-            transactionHash: TransactionHash.from(constants.HashZero),
+            transactionHash: BitcoinTransactionHash.from(constants.HashZero),
             outputIndex: 0,
             value: BigNumber.from(0),
           },
@@ -285,7 +283,7 @@ describe("System Test - Deposit and redemption", () => {
         context(
           "when redemption is made and redemption proof submitted",
           () => {
-            let redemptionTxHash: TransactionHash
+            let redemptionTxHash: BitcoinTransactionHash
 
             before(
               "make the redemption and submit redemption proof",
