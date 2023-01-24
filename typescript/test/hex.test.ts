@@ -78,6 +78,13 @@ describe("Hex", () => {
       context(`with input as ${name}`, () => {
         const hex = Hex.from(input)
 
+        describe("`${hex}`", () => {
+          it("should output expected string", () => {
+            const actual = `${hex}`
+            assert.equal(actual, expectedString)
+          })
+        })
+
         describe("toString", () => {
           it("should output expected string", () => {
             const actual = hex.toString()
@@ -85,7 +92,7 @@ describe("Hex", () => {
           })
         })
 
-        describe("toString", () => {
+        describe("toPrefixedString", () => {
           it("should output expected string", () => {
             const actual = hex.toPrefixedString()
             assert.equal(actual, expectedPrefixedString)
