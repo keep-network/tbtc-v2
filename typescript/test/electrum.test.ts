@@ -50,7 +50,7 @@ const testnetCredentials: ElectrumCredentials[] = [
  * out of scope of this suite. The `broadcast` function was tested manually
  * though.
  */
-describe.skip("Electrum", () => {
+describe("Electrum", () => {
   testnetCredentials.forEach((credentials) => {
     describe(`${credentials.protocol}://${credentials.host}:${credentials.port}`, async () => {
       let electrumClient: ElectrumClient
