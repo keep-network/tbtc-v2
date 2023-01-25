@@ -11,6 +11,81 @@ import {
 } from "./bitcoin"
 import { assembleDepositScript, Deposit } from "./deposit"
 
+export async function prepareUnsignedDepositRefundTransaction(
+  bitcoinClient: BitcoinClient,
+  fee: BigNumber,
+  utxo: UnspentTransactionOutput,
+  deposit: Deposit,
+  recipientAddress: string
+): Promise<{
+  rawUnsignedTransaction: string
+  inputSighash: string
+}> {
+  const rawTransaction = await bitcoinClient.getRawTransaction(
+    utxo.transactionHash
+  )
+
+  const transaction = new bcoin.MTX()
+
+  transaction.addOutput({
+    script: bcoin.Script.fromAddress(recipientAddress),
+    value: utxo.value.toNumber(),
+  })
+
+  const inputCoin = bcoin.Coin.fromTX(
+    bcoin.MTX.fromRaw(rawTransaction.transactionHex, "hex"),
+    utxo.outputIndex,
+    -1
+  )
+
+  await transaction.fund([inputCoin], {
+    changeAddress: recipientAddress,
+    hardFee: fee.toNumber(),
+    subtractFee: true,
+  })
+
+  if (transaction.outputs.length != 1) {
+    throw new Error("Deposit refund transaction must have only one output")
+  }
+
+  // In order to be able to spend the UTXO being refunded the transaction's
+  // locktime must be set to a value equal to or higher than the refund locktime.
+  transaction.locktime = locktimeToUnixTimestamp(deposit.refundLocktime)
+
+  // Additionally, the input's sequence must be set to a value different than
+  // `0xffffffff`.
+  transaction.inputs[0].sequence = 0xfffffffe
+
+  const rawUnsignedTransaction = transaction.toRaw().toString("hex")
+
+  const previousOutpoint = transaction.inputs[0].prevout
+  const previousOutput = transaction.view.getOutput(previousOutpoint)
+  const previousScript = previousOutput.script
+
+  // eslint-disable-next-line no-unused-vars
+  const { amount, vault, ...depositScriptParameters } = deposit
+
+  const depositScript = bcoin.Script.fromRaw(
+    Buffer.from(await assembleDepositScript(depositScriptParameters), "hex")
+  )
+
+  // Legacy sighash version (0) for P2SH UTXO or segwit sighash version (1)
+  // for P2WSH UTXO.
+  const sighashVersion = previousScript.isScripthash() ? 0 : 1
+
+  const inputSighash = transaction
+    .signatureHash(
+      0,
+      depositScript,
+      previousOutput.value,
+      bcoin.Script.hashType.ALL,
+      sighashVersion
+    )
+    .toString("hex")
+
+  return { rawUnsignedTransaction, inputSighash }
+}
+
 /**
  * Submits a deposit refund by creating and broadcasting a Bitcoin P2(W)PKH
  * deposit refund transaction.
