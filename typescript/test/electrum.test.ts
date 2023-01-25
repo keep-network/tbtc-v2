@@ -11,6 +11,9 @@ import {
   testnetUTXO,
 } from "./data/electrum"
 import { expect } from "chai"
+import https from "https"
+
+const BLOCKSTREAM_TESTNET_API_URL = "https://blockstream.info/testnet/api"
 
 const testnetCredentials: ElectrumCredentials = {
   host: "electrumx-server.test.tbtc.network",
@@ -65,22 +68,51 @@ describe.skip("Electrum", () => {
   })
 
   describe("getTransactionConfirmations", () => {
-    it("should return proper confirmations number for the given hash", async () => {
-      const result = await electrumClient.getTransactionConfirmations(
+    let result: number
+
+    before(async () => {
+      result = await electrumClient.getTransactionConfirmations(
         testnetTransaction.transactionHash
       )
+    })
+
+    it("should return value greater than 6", async () => {
       // Strict comparison is not possible as the number of confirmations
       // constantly grows. We just make sure it's 6+.
       expect(result).to.be.greaterThan(6)
     })
+
+    // This test depends on `latestBlockHeight` function.
+    it("should return proper confirmations number for the given hash", async () => {
+      const latestBlockHeight = await electrumClient.latestBlockHeight()
+
+      const expectedResult =
+        latestBlockHeight - testnetTransactionMerkleBranch.blockHeight
+
+      expect(result).to.be.closeTo(expectedResult, 3)
+    })
   })
 
   describe("latestBlockHeight", () => {
-    it("should return proper latest block height", async () => {
-      const result = await electrumClient.latestBlockHeight()
+    let result: number
+
+    before(async () => {
+      result = await electrumClient.latestBlockHeight()
+    })
+
+    it("should return value greater than 6", async () => {
       // Strict comparison is not possible as the latest block height
       // constantly grows. We just make sure it's bigger than 0.
       expect(result).to.be.greaterThan(0)
+    })
+
+    // This test depends on fetching the expected latest block height from Blockstream API.
+    // It can fail if Blockstream API is down or if Blockstream API or if
+    // Electrum Server used in tests is out-of-sync with the Blockstream API.
+    it("should return proper latest block height", async () => {
+      const expectedResult = await getExpectedLatestBlockHeight()
+
+      expect(result).to.be.closeTo(expectedResult, 3)
     })
   })
 
@@ -104,3 +136,29 @@ describe.skip("Electrum", () => {
     })
   })
 })
+
+/**
+ * Gets the height of the last block fetched from the Blockstream API.
+ * @returns Height of the last block.
+ */
+function getExpectedLatestBlockHeight(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    https
+      .get(`${BLOCKSTREAM_TESTNET_API_URL}/blocks/tip/height`, (resp) => {
+        let data = ""
+
+        // A chunk of data has been received.
+        resp.on("data", (chunk) => {
+          data += chunk
+        })
+
+        // The whole response has been received. Print out the result.
+        resp.on("end", () => {
+          resolve(JSON.parse(data))
+        })
+      })
+      .on("error", (err) => {
+        reject(err)
+      })
+  })
+}
