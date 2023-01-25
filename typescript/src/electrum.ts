@@ -13,6 +13,7 @@ import Electrum from "electrum-client-js"
 import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
 import { URL } from "url"
+import { Hex } from "./hex"
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.
@@ -169,11 +170,7 @@ export class Client implements BitcoinClient {
         (input: any): TransactionInput => ({
           transactionHash: TransactionHash.from(input.prevout.hash).reverse(),
           outputIndex: input.prevout.index,
-          scriptSig: {
-            asm: input.script.toASM(true),
-            hex: input.script.toRaw().toString("hex"),
-            type: input.script.getType(),
-          },
+          scriptSig: Hex.from(input.script.toRaw()),
         })
       )
 
@@ -181,11 +178,7 @@ export class Client implements BitcoinClient {
         (output: any, i: number): TransactionOutput => ({
           outputIndex: i,
           value: BigNumber.from(output.value),
-          scriptPubKey: {
-            asm: output.script.toASM(true),
-            hex: output.script.toRaw().toString("hex"),
-            type: output.getType().toUpperCase(),
-          },
+          scriptPubKey: Hex.from(output.script.toRaw()),
         })
       )
 

@@ -6,6 +6,7 @@ import {
   TransactionMerkleBranch,
 } from "../../src/bitcoin"
 import { BigNumber } from "ethers"
+import { Hex } from "../../src"
 
 /**
  * Represents a set of data used for given proof scenario.
@@ -40,23 +41,16 @@ export const singleInputProofTestData: ProofTestData = {
             "8ee67b585eeb682bf6907ea311282540ee53edf605e0f09757226a4dc3e72a67"
           ),
           outputIndex: 0,
-          scriptSig: {
-            asm: "",
-            hex: "",
-          },
+          scriptSig: Hex.from(""),
         },
       ],
       outputs: [
         {
           outputIndex: 0,
           value: BigNumber.from(8400),
-          scriptPubKey: {
-            asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
-            hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-            type: "WITNESSPUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"],
-          },
+          scriptPubKey: Hex.from(
+            "00148db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
         },
       ],
     },
@@ -117,23 +111,14 @@ export const singleInputProofTestData: ProofTestData = {
           "8ee67b585eeb682bf6907ea311282540ee53edf605e0f09757226a4dc3e72a67"
         ),
         outputIndex: 0,
-        scriptSig: {
-          asm: "",
-          hex: "",
-        },
+        scriptSig: Hex.from(""),
       },
     ],
     outputs: [
       {
         outputIndex: 0,
         value: BigNumber.from(8400),
-        scriptPubKey: {
-          asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
-          hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-          type: "WITNESSPUBKEYHASH",
-          reqSigs: 1,
-          addresses: ["tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"],
-        },
+        scriptPubKey: Hex.from("00148db50eb52063ea9d98b3eac91489a90f738986f6"),
       },
     ],
     merkleProof:
@@ -184,41 +169,37 @@ export const multipleInputsProofTestData: ProofTestData = {
             "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
           ),
           outputIndex: 0,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
         {
           transactionHash: TransactionHash.from(
             "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
           ),
           outputIndex: 0,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
         {
           transactionHash: TransactionHash.from(
             "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
           ),
           outputIndex: 0,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
         {
           transactionHash: TransactionHash.from(
             "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
           ),
           outputIndex: 0,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
       ],
       outputs: [
         {
           outputIndex: 0,
           value: BigNumber.from(39800),
-          scriptPubKey: {
-            asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
-            hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-            type: "WITNESSPUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"],
-          },
+          scriptPubKey: Hex.from(
+            "00148db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
         },
       ],
     },
@@ -297,41 +278,35 @@ export const multipleInputsProofTestData: ProofTestData = {
           "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
         ),
         outputIndex: 0,
-        scriptSig: { asm: "", hex: "" },
+        scriptSig: Hex.from(""),
       },
       {
         transactionHash: TransactionHash.from(
           "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
         ),
         outputIndex: 0,
-        scriptSig: { asm: "", hex: "" },
+        scriptSig: Hex.from(""),
       },
       {
         transactionHash: TransactionHash.from(
           "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
         ),
         outputIndex: 0,
-        scriptSig: { asm: "", hex: "" },
+        scriptSig: Hex.from(""),
       },
       {
         transactionHash: TransactionHash.from(
           "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
         ),
         outputIndex: 0,
-        scriptSig: { asm: "", hex: "" },
+        scriptSig: Hex.from(""),
       },
     ],
     outputs: [
       {
         outputIndex: 0,
         value: BigNumber.from(39800),
-        scriptPubKey: {
-          asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
-          hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-          type: "WITNESSPUBKEYHASH",
-          reqSigs: 1,
-          addresses: ["tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"],
-        },
+        scriptPubKey: Hex.from("00148db50eb52063ea9d98b3eac91489a90f738986f6"),
       },
     ],
     merkleProof:
