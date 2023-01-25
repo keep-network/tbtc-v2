@@ -15,11 +15,28 @@ import https from "https"
 
 const BLOCKSTREAM_TESTNET_API_URL = "https://blockstream.info/testnet/api"
 
-const testnetCredentials: ElectrumCredentials = {
-  host: "electrumx-server.test.tbtc.network",
-  port: 8443,
-  protocol: "wss",
-}
+const testnetCredentials: ElectrumCredentials[] = [
+  // electrumx wss
+  {
+    host: "electrumx-server.test.tbtc.network",
+    port: 8443,
+    protocol: "wss",
+  },
+  // TODO: Enable after retries are implemented
+  // See: https://github.com/keep-network/tbtc-v2/issues/485
+  // // electrs-esplora ssl
+  // {
+  //   host: "electrum.blockstream.info",
+  //   port: 60002,
+  //   protocol: "ssl",
+  // },
+  // fulcrum tcp
+  {
+    host: "testnet.aranguren.org",
+    port: 51001,
+    protocol: "tcp",
+  },
+]
 
 /**
  * This test suite is meant to check the behavior of the Electrum-based
@@ -34,105 +51,110 @@ const testnetCredentials: ElectrumCredentials = {
  * though.
  */
 describe.skip("Electrum", () => {
-  let electrumClient: ElectrumClient
+  testnetCredentials.forEach((credentials) => {
+    describe(`${credentials.protocol}://${credentials.host}:${credentials.port}`, async () => {
+      let electrumClient: ElectrumClient
 
-  before(async () => {
-    electrumClient = new ElectrumClient(testnetCredentials)
-  })
+      before(async () => {
+        electrumClient = new ElectrumClient(credentials)
+      })
 
-  describe("findAllUnspentTransactionOutputs", () => {
-    it("should return proper UTXOs for the given address", async () => {
-      const result = await electrumClient.findAllUnspentTransactionOutputs(
-        testnetAddress
-      )
-      expect(result).to.be.eql([testnetUTXO])
-    })
-  })
+      describe("findAllUnspentTransactionOutputs", () => {
+        it("should return proper UTXOs for the given address", async () => {
+          const result = await electrumClient.findAllUnspentTransactionOutputs(
+            testnetAddress
+          )
+          expect(result).to.be.eql([testnetUTXO])
+        })
+      })
 
-  describe("getTransaction", () => {
-    it("should return proper transaction for the given hash", async () => {
-      const result = await electrumClient.getTransaction(
-        testnetTransaction.transactionHash
-      )
-      expect(result).to.be.eql(testnetTransaction)
-    })
-  })
+      describe("getTransaction", () => {
+        it("should return proper transaction for the given hash", async () => {
+          const result = await electrumClient.getTransaction(
+            testnetTransaction.transactionHash
+          )
+          expect(result).to.be.eql(testnetTransaction)
+        })
+        // TODO: Add case when transaction doesn't exist
+      })
 
-  describe("getRawTransaction", () => {
-    it("should return proper raw transaction for the given hash", async () => {
-      const result = await electrumClient.getRawTransaction(
-        testnetTransaction.transactionHash
-      )
-      expect(result).to.be.eql(testnetRawTransaction)
-    })
-  })
+      describe("getRawTransaction", () => {
+        it("should return proper raw transaction for the given hash", async () => {
+          const result = await electrumClient.getRawTransaction(
+            testnetTransaction.transactionHash
+          )
+          expect(result).to.be.eql(testnetRawTransaction)
+        })
+      })
 
-  describe("getTransactionConfirmations", () => {
-    let result: number
+      describe("getTransactionConfirmations", () => {
+        let result: number
 
-    before(async () => {
-      result = await electrumClient.getTransactionConfirmations(
-        testnetTransaction.transactionHash
-      )
-    })
+        before(async () => {
+          result = await electrumClient.getTransactionConfirmations(
+            testnetTransaction.transactionHash
+          )
+        })
 
-    it("should return value greater than 6", async () => {
-      // Strict comparison is not possible as the number of confirmations
-      // constantly grows. We just make sure it's 6+.
-      expect(result).to.be.greaterThan(6)
-    })
+        it("should return value greater than 6", async () => {
+          // Strict comparison is not possible as the number of confirmations
+          // constantly grows. We just make sure it's 6+.
+          expect(result).to.be.greaterThan(6)
+        })
 
-    // This test depends on `latestBlockHeight` function.
-    it("should return proper confirmations number for the given hash", async () => {
-      const latestBlockHeight = await electrumClient.latestBlockHeight()
+        // This test depends on `latestBlockHeight` function.
+        it("should return proper confirmations number for the given hash", async () => {
+          const latestBlockHeight = await electrumClient.latestBlockHeight()
 
-      const expectedResult =
-        latestBlockHeight - testnetTransactionMerkleBranch.blockHeight
+          const expectedResult =
+            latestBlockHeight - testnetTransactionMerkleBranch.blockHeight
 
-      expect(result).to.be.closeTo(expectedResult, 3)
-    })
-  })
+          expect(result).to.be.closeTo(expectedResult, 3)
+        })
+      })
 
-  describe("latestBlockHeight", () => {
-    let result: number
+      describe("latestBlockHeight", () => {
+        let result: number
 
-    before(async () => {
-      result = await electrumClient.latestBlockHeight()
-    })
+        before(async () => {
+          result = await electrumClient.latestBlockHeight()
+        })
 
-    it("should return value greater than 6", async () => {
-      // Strict comparison is not possible as the latest block height
-      // constantly grows. We just make sure it's bigger than 0.
-      expect(result).to.be.greaterThan(0)
-    })
+        it("should return value greater than 6", async () => {
+          // Strict comparison is not possible as the latest block height
+          // constantly grows. We just make sure it's bigger than 0.
+          expect(result).to.be.greaterThan(0)
+        })
 
-    // This test depends on fetching the expected latest block height from Blockstream API.
-    // It can fail if Blockstream API is down or if Blockstream API or if
-    // Electrum Server used in tests is out-of-sync with the Blockstream API.
-    it("should return proper latest block height", async () => {
-      const expectedResult = await getExpectedLatestBlockHeight()
+        // This test depends on fetching the expected latest block height from Blockstream API.
+        // It can fail if Blockstream API is down or if Blockstream API or if
+        // Electrum Server used in tests is out-of-sync with the Blockstream API.
+        it("should return proper latest block height", async () => {
+          const expectedResult = await getExpectedLatestBlockHeight()
 
-      expect(result).to.be.closeTo(expectedResult, 3)
-    })
-  })
+          expect(result).to.be.closeTo(expectedResult, 3)
+        })
+      })
 
-  describe("getHeadersChain", () => {
-    it("should return proper headers chain", async () => {
-      const result = await electrumClient.getHeadersChain(
-        testnetHeadersChain.blockHeight,
-        testnetHeadersChain.headersChainLength
-      )
-      expect(result).to.be.eql(testnetHeadersChain.headersChain)
-    })
-  })
+      describe("getHeadersChain", () => {
+        it("should return proper headers chain", async () => {
+          const result = await electrumClient.getHeadersChain(
+            testnetHeadersChain.blockHeight,
+            testnetHeadersChain.headersChainLength
+          )
+          expect(result).to.be.eql(testnetHeadersChain.headersChain)
+        })
+      })
 
-  describe("getTransactionMerkle", () => {
-    it("should return proper transaction merkle", async () => {
-      const result = await electrumClient.getTransactionMerkle(
-        testnetTransaction.transactionHash,
-        testnetTransactionMerkleBranch.blockHeight
-      )
-      expect(result).to.be.eql(testnetTransactionMerkleBranch)
+      describe("getTransactionMerkle", () => {
+        it("should return proper transaction merkle", async () => {
+          const result = await electrumClient.getTransactionMerkle(
+            testnetTransaction.transactionHash,
+            testnetTransactionMerkleBranch.blockHeight
+          )
+          expect(result).to.be.eql(testnetTransactionMerkleBranch)
+        })
+      })
     })
   })
 })
