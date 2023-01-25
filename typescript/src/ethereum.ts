@@ -162,6 +162,14 @@ class EthereumContract<T extends EthersContract> {
   }
 
   /**
+   * Get address of the contract instance.
+   * @returns Address of this contract instance.
+   */
+  getAddress(): Address {
+    return Address.from(this._instance.address)
+  }
+
+  /**
    * Get events emitted by the Ethereum contract.
    * @param eventName Name of the event.
    * @param fromBlock Block number from which events should be queried. Optional
