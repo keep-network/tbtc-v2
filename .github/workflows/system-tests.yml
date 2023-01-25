@@ -116,4 +116,4 @@ jobs:
           WALLET_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_WALLET_PRIVATE_KEY_WIF }}
           DEPOSITOR_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_DEPOSITOR_PRIVATE_KEY_WIF }}
         run: |
-          yarn test ./test/minting-unminting.test.ts --network $ETH_NETWORK          
+          yarn test ./test/minting-unminting.test.ts --network $ETH_NETWORK
