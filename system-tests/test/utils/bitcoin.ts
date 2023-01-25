@@ -2,13 +2,11 @@
 // @ts-ignore
 import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
-import { assembleTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
+import { assembleTransactionProof } from "@keep-network/tbtc-v2.ts/dist/src/proof"
 
 import type { Contract } from "ethers"
-import type {
-  Client as BitcoinClient,
-  TransactionHash,
-} from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
+import type { BitcoinTransactionHash } from "@keep-network/tbtc-v2.ts/dist/src"
 
 /**
  * Elliptic curve used by Bitcoin.
@@ -77,7 +75,7 @@ export function keyPairFromWif(wif: string): KeyPair {
  */
 export async function waitTransactionConfirmed(
   bitcoinClient: BitcoinClient,
-  transactionHash: TransactionHash,
+  transactionHash: BitcoinTransactionHash,
   requiredConfirmations: number = defaultTxProofDifficultyFactor,
   sleep = 60000
 ): Promise<void> {
@@ -128,7 +126,7 @@ export async function waitTransactionConfirmed(
 export async function fakeRelayDifficulty(
   relay: Contract,
   bitcoinClient: BitcoinClient,
-  transactionHash: TransactionHash,
+  transactionHash: BitcoinTransactionHash,
   headerChainLength: number = defaultTxProofDifficultyFactor
 ): Promise<void> {
   const proof = await assembleTransactionProof(
