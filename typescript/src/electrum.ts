@@ -203,15 +203,81 @@ export class Client implements BitcoinClient {
   getTransactionConfirmations(
     transactionHash: TransactionHash
   ): Promise<number> {
+    // We cannot use `blockchain_transaction_get` with `verbose = true` argument
+    // to get the the transaction details as Esplora/Electrs doesn't support verbose
+    // transactions.
+    // See: https://github.com/Blockstream/electrs/pull/36
+
     return this.withElectrum<number>(async (electrum: any) => {
-      const transaction = await electrum.blockchain_transaction_get(
+      const rawTransaction: string = await electrum.blockchain_transaction_get(
         transactionHash.toString(),
-        true
+        false
       )
 
-      // For unconfirmed transactions `confirmations` property may be undefined, so
-      // we will return 0 instead.
-      return transaction.confirmations ?? 0
+      // Decode the raw transaction.
+      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
+
+      // As a workaround for the problem described in https://github.com/Blockstream/electrs/pull/36
+      // we need to calculate the number of confirmations based on the latest
+      // block height and block height of the transaction.
+      // Electrum protocol doesn't expose a function to get the transaction's block
+      // height (other that the `GetTransaction` that is unsupported by Esplora/Electrs).
+      // To get the block height of the transaction we query the history of transactions
+      // for the output script hash, as the history contains the transaction's block
+      // height.
+
+      // Initialize txBlockHeigh with minimum int32 value to identify a problem when
+      // a block height was not found in a history of any of the script hashes.
+      //
+      // The history is expected to return a block height for confirmed transaction.
+      // If a transaction is unconfirmed (is still in the mempool) the height will
+      // have a value of `0` or `-1`.
+      let txBlockHeight: number = Math.min()
+      for (const output of transaction.outputs) {
+        const scriptHash: Buffer = output.script.sha256()
+
+        type HistoryEntry = {
+          // eslint-disable-next-line camelcase
+          tx_hash: string
+          height: number
+        }
+
+        const scriptHashHistory: HistoryEntry[] =
+          await electrum.blockchain_scripthash_getHistory(
+            scriptHash.reverse().toString("hex")
+          )
+
+        const tx = scriptHashHistory.find(
+          (t) => t.tx_hash === transactionHash.toString()
+        )
+
+        if (tx) {
+          txBlockHeight = tx.height
+          break
+        }
+      }
+
+      // History querying didn't come up with the transaction's block height. Return
+      // an error.
+      if (txBlockHeight === Math.min()) {
+        throw new Error(
+          "failed to find the transaction block height in script hashes' histories"
+        )
+      }
+
+      // If the block height is greater than `0` the transaction is confirmed.
+      if (txBlockHeight > 0) {
+        const latestBlockHeight: number = await this.latestBlockHeight()
+
+        if (latestBlockHeight >= txBlockHeight) {
+          // Add `1` to the calculated difference as if the transaction block
+          // height equals the latest block height the transaction is already
+          // confirmed, so it has one confirmation.
+          return latestBlockHeight - txBlockHeight + 1
+        }
+      }
+
+      return 0
     })
   }
 
