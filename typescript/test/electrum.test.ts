@@ -24,6 +24,12 @@ const testnetCredentials: ElectrumCredentials[] = [
   },
   // TODO: Enable after retries are implemented
   // See: https://github.com/keep-network/tbtc-v2/issues/485
+  // // electrs-esplora tcp
+  // {
+  //   host: "electrum.blockstream.info",
+  //   port: 60001,
+  //   protocol: "tcp",
+  // },
   // // electrs-esplora ssl
   // {
   //   host: "electrum.blockstream.info",
