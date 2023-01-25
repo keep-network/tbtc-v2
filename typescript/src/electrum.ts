@@ -149,30 +149,48 @@ export class Client implements BitcoinClient {
    */
   getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
     return this.withElectrum<Transaction>(async (electrum: any) => {
-      const transaction = await electrum.blockchain_transaction_get(
+      // We cannot use `blockchain_transaction_get` with `verbose = true` argument
+      // to get the the transaction details as Esplora/Electrs doesn't support verbose
+      // transactions.
+      // See: https://github.com/Blockstream/electrs/pull/36
+      const rawTransaction = await electrum.blockchain_transaction_get(
         transactionHash.toString(),
-        true
+        false
       )
 
-      const inputs = transaction.vin.map(
+      if (!rawTransaction) {
+        throw new Error(`Transaction not found`)
+      }
+
+      // Decode the raw transaction.
+      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
+
+      const inputs = transaction.inputs.map(
         (input: any): TransactionInput => ({
-          transactionHash: TransactionHash.from(input.txid),
-          outputIndex: input.vout,
-          scriptSig: input.scriptSig,
+          transactionHash: TransactionHash.from(input.prevout.hash).reverse(),
+          outputIndex: input.prevout.index,
+          scriptSig: {
+            asm: input.script.toASM(true),
+            hex: input.script.toRaw().toString("hex"),
+            type: input.script.getType(),
+          },
         })
       )
 
-      const outputs = transaction.vout.map(
-        (output: any): TransactionOutput => ({
-          outputIndex: output.n,
-          // The `output.value` is in BTC so it must be converted to satoshis.
-          value: BigNumber.from((parseFloat(output.value) * 1e8).toFixed(0)),
-          scriptPubKey: output.scriptPubKey,
+      const outputs = transaction.outputs.map(
+        (output: any, i: number): TransactionOutput => ({
+          outputIndex: i,
+          value: BigNumber.from(output.value),
+          scriptPubKey: {
+            asm: output.script.toASM(true),
+            hex: output.script.toRaw().toString("hex"),
+            type: output.getType().toUpperCase(),
+          },
         })
       )
 
       return {
-        transactionHash: TransactionHash.from(transaction.txid),
+        transactionHash: TransactionHash.from(transaction.hash()).reverse(),
         inputs: inputs,
         outputs: outputs,
       }
