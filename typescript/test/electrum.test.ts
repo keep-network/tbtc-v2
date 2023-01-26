@@ -22,14 +22,12 @@ const testnetCredentials: ElectrumCredentials[] = [
     port: 8443,
     protocol: "wss",
   },
-  // TODO: Enable after retries are implemented
-  // See: https://github.com/keep-network/tbtc-v2/issues/485
-  // // electrs-esplora tcp
-  // {
-  //   host: "electrum.blockstream.info",
-  //   port: 60001,
-  //   protocol: "tcp",
-  // },
+  // electrs-esplora tcp
+  {
+    host: "electrum.blockstream.info",
+    port: 60001,
+    protocol: "tcp",
+  },
   // // electrs-esplora ssl
   // {
   //   host: "electrum.blockstream.info",
