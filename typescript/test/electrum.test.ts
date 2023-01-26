@@ -16,6 +16,26 @@ import https from "https"
 const BLOCKSTREAM_TESTNET_API_URL = "https://blockstream.info/testnet/api"
 
 const testnetCredentials: ElectrumCredentials[] = [
+  // TODO: Enable all protocols test for test.tbtc.network servers once they are
+  // publicly exposed.
+  // // electrumx tcp
+  // {
+  //   host: "electrumx-server.test.tbtc.network",
+  //   port: 80,
+  //   protocol: "tcp",
+  // },
+  // electrumx ssl
+  // {
+  //   host: "electrumx-server.test.tbtc.network",
+  //   port: 443,
+  //   protocol: "ssl",
+  // },
+  // electrumx ws
+  // {
+  //   host: "electrumx-server.test.tbtc.network",
+  //   port: 8080,
+  //   protocol: "ws",
+  // },
   // electrumx wss
   {
     host: "electrumx-server.test.tbtc.network",
