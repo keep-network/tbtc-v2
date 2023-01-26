@@ -7,6 +7,7 @@ import {
   locktimeToNumber,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
+import { BitcoinNetwork } from "../src/bitcoin/network"
 
 describe("Bitcoin", () => {
   describe("compressPublicKey", () => {
@@ -61,23 +62,31 @@ describe("Bitcoin", () => {
     const P2PKHAddressTestnet = "mkpoZkRvtd3SDGWgUDuXK1aEXZfHRM2gKw"
 
     describe("encodeToBitcoinAddress", () => {
-      context("when network is main", () => {
+      context("when network is mainnet", () => {
         context("when witness option is true", () => {
           context("when proper public key hash is provided", () => {
             it("should encode public key hash into bitcoin address properly", () => {
               expect(
-                encodeToBitcoinAddress(publicKeyHash, true, "main")
+                encodeToBitcoinAddress(
+                  publicKeyHash,
+                  true,
+                  BitcoinNetwork.Mainnet
+                )
               ).to.be.equal(P2WPKHAddress)
             })
           })
 
           context("when wrong public key hash is provided", () => {
             it("should throw", () => {
-              const wrontPublicKeyHash = "02" + publicKeyHash
+              const wrongPublicKeyHash = "02" + publicKeyHash
 
               expect(() =>
-                encodeToBitcoinAddress(wrontPublicKeyHash, true, "main")
-              ).to.throw()
+                encodeToBitcoinAddress(
+                  wrongPublicKeyHash,
+                  true,
+                  BitcoinNetwork.Mainnet
+                )
+              ).to.throw("P2WPKH must be 20 bytes")
             })
           })
         })
@@ -86,7 +95,11 @@ describe("Bitcoin", () => {
           context("when proper public key hash is provided", () => {
             it("should encode public key hash into bitcoin address properly", () => {
               expect(
-                encodeToBitcoinAddress(publicKeyHash, false, "main")
+                encodeToBitcoinAddress(
+                  publicKeyHash,
+                  false,
+                  BitcoinNetwork.Mainnet
+                )
               ).to.be.equal(P2PKHAddress)
             })
           })
@@ -96,16 +109,86 @@ describe("Bitcoin", () => {
               const wrongPublicKeyHash = "02" + publicKeyHash
 
               expect(() =>
-                encodeToBitcoinAddress(wrongPublicKeyHash, false, "main")
-              ).to.throw()
+                encodeToBitcoinAddress(
+                  wrongPublicKeyHash,
+                  false,
+                  BitcoinNetwork.Mainnet
+                )
+              ).to.throw("P2PKH must be 20 bytes")
             })
           })
+        })
+      })
+
+      context("when network is testnet", () => {
+        context("when witness option is true", () => {
+          context("when proper public key hash is provided", () => {
+            it("should encode public key hash into bitcoin address properly", () => {
+              expect(
+                encodeToBitcoinAddress(
+                  publicKeyHash,
+                  true,
+                  BitcoinNetwork.Testnet
+                )
+              ).to.be.equal(P2WPKHAddressTestnet)
+            })
+          })
+
+          context("when wrong public key hash is provided", () => {
+            it("should throw", () => {
+              const wrongPublicKeyHash = "02" + publicKeyHash
+
+              expect(() =>
+                encodeToBitcoinAddress(
+                  wrongPublicKeyHash,
+                  true,
+                  BitcoinNetwork.Testnet
+                )
+              ).to.throw("P2WPKH must be 20 bytes")
+            })
+          })
+        })
+
+        context("when witness option is false", () => {
+          context("when proper public key hash is provided", () => {
+            it("should encode public key hash into bitcoin address properly", () => {
+              expect(
+                encodeToBitcoinAddress(
+                  publicKeyHash,
+                  false,
+                  BitcoinNetwork.Testnet
+                )
+              ).to.be.equal(P2PKHAddressTestnet)
+            })
+          })
+
+          context("when wrong public key hash is provided", () => {
+            it("should throw", () => {
+              const wrongPublicKeyHash = "02" + publicKeyHash
+
+              expect(() =>
+                encodeToBitcoinAddress(
+                  wrongPublicKeyHash,
+                  false,
+                  BitcoinNetwork.Testnet
+                )
+              ).to.throw("P2PKH must be 20 bytes")
+            })
+          })
+        })
+      })
+
+      context("when network is unknown", () => {
+        it("should throw", () => {
+          expect(() =>
+            encodeToBitcoinAddress(publicKeyHash, true, BitcoinNetwork.Unknown)
+          ).to.throw("network not supported")
         })
       })
     })
 
     describe("decodeAddress", () => {
-      context("when network is main", () => {
+      context("when network is mainnet", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
             expect(decodeBitcoinAddress(P2WPKHAddress)).to.be.equal(
@@ -126,7 +209,9 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddress
 
-            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw()
+            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw(
+              "Address is too long"
+            )
           })
         })
       })
@@ -152,7 +237,9 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddressTestnet
 
-            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw()
+            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw(
+              "Address is too long"
+            )
           })
         })
       })
