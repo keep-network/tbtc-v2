@@ -10,6 +10,7 @@ import {
   isPublicKeyHashLength,
 } from "./bitcoin"
 import { Bridge, Event, Identifier } from "./chain"
+import { Hex } from "./hex"
 
 const { opcodes } = bcoin.script.common
 
@@ -102,7 +103,7 @@ export type RevealedDeposit = Pick<
 }
 
 /**
- * Represents an event emitted on deposit reveal to the on-chain bridge.fp
+ * Represents an event emitted on deposit reveal to the on-chain bridge.
  */
 export type DepositRevealedEvent = Deposit & {
   fundingTxHash: TransactionHash
@@ -318,15 +319,15 @@ export function calculateDepositRefundLocktime(
     depositCreatedAt + depositRefundLocktimeDuration
   )
 
-  if (locktime.toHexString().substring(2).length != 8) {
+  const locktimeHex: Hex = Hex.from(locktime.toHexString())
+
+  if (locktimeHex.toString().length != 8) {
     throw new Error("Refund locktime must be a 4 bytes number")
   }
 
   // Bitcoin locktime is interpreted as little-endian integer so we must
   // adhere to that convention by converting the locktime accordingly.
-  return Buffer.from(locktime.toHexString().substring(2), "hex")
-    .reverse()
-    .toString("hex")
+  return locktimeHex.reverse().toString()
 }
 
 /**

@@ -66,7 +66,7 @@ export type TransactionInput = TransactionOutpoint & {
   /**
    * The scriptSig that unlocks the specified outpoint for spending.
    */
-  scriptSig: any
+  scriptSig: Hex
 }
 
 /**
@@ -86,7 +86,7 @@ export interface TransactionOutput {
   /**
    * The receiving scriptPubKey.
    */
-  scriptPubKey: any
+  scriptPubKey: Hex
 }
 
 /**
@@ -309,7 +309,13 @@ export function isCompressedPublicKey(publicKey: string): boolean {
  * @param publicKey Uncompressed 64-byte public key as an unprefixed hex string.
  * @returns Compressed 33-byte public key prefixed with 02 or 03.
  */
-export function compressPublicKey(publicKey: string): string {
+export function compressPublicKey(publicKey: string | Hex): string {
+  if (typeof publicKey === "string") {
+    publicKey = Hex.from(publicKey)
+  }
+
+  publicKey = publicKey.toString()
+
   // Must have 64 bytes and no prefix.
   if (publicKey.length != 128) {
     throw new Error(
@@ -400,4 +406,22 @@ export function decodeBitcoinAddress(address: string): string {
  */
 export function isPublicKeyHashLength(publicKeyHash: string): boolean {
   return publicKeyHash.length === 40
+}
+
+/**
+ * Converts Bitcoin specific locktime value to a number. The number represents
+ * either a block height or an Unix timestamp depending on the value.
+ *
+ * If the number is less than 500 000 000 it is a block height.
+ * If the number is greater or equal 500 000 000 it is a Unix timestamp.
+ *
+ * @see {@link https://developer.bitcoin.org/devguide/transactions.html#locktime-and-sequence-number Documentation}
+ *
+ * @param locktimeLE A 4-byte little-endian locktime as an un-prefixed
+ *                   hex string {@link: Deposit#refundLocktime}.
+ * @returns UNIX timestamp in seconds.
+ */
+export function locktimeToNumber(locktimeLE: Buffer | string): number {
+  const locktimeBE: Buffer = Hex.from(locktimeLE).reverse().toBuffer()
+  return BigNumber.from(locktimeBE).toNumber()
 }

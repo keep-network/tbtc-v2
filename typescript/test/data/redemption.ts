@@ -9,6 +9,8 @@ import {
   TransactionHash,
 } from "../../src/bitcoin"
 import { RedemptionRequest } from "../../src/redemption"
+import { Address } from "../../src/ethereum"
+import { Hex } from "../../src"
 
 /**
  * Private key (testnet) of the wallet.
@@ -75,9 +77,7 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -132,9 +132,7 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
         redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
         requestedAmount: BigNumber.from(15000),
@@ -188,9 +186,7 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(13000),
@@ -244,9 +240,7 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
         redeemerOutputScript:
           "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
@@ -301,9 +295,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -317,9 +309,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
         redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
         requestedAmount: BigNumber.from(13000),
@@ -332,9 +322,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(12000),
@@ -347,9 +335,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
         redeemerOutputScript:
           "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
@@ -407,9 +393,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -423,9 +407,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xa690d9da3e64c337eb11344b94cf948ec2da333f0a985e09f1c120a326f6de87",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WPKH address tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx
         redeemerOutputScript: "00144bf9ffb7ae0f8b0f5a622b154aca829126f6e769",
         requestedAmount: BigNumber.from(4000),
@@ -482,9 +464,7 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(12000),
@@ -548,66 +528,44 @@ export const redemptionProof: RedemptionProofTestData = {
             "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
           ),
           outputIndex: 1,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
       ],
       outputs: [
         {
           outputIndex: 0,
           value: BigNumber.from(15900),
-          scriptPubKey: {
-            asm: "OP_DUP OP_HASH160 4130879211c54df460e484ddf9aac009cb38ee74 OP_EQUALVERIFY OP_CHECKSIG",
-            hex: "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
-            type: "PUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5"],
-          },
+          scriptPubKey: Hex.from(
+            "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac"
+          ),
         },
         {
           outputIndex: 1,
           value: BigNumber.from(11300),
-          scriptPubKey: {
-            asm: "OP_0 4130879211c54df460e484ddf9aac009cb38ee74",
-            hex: "00144130879211c54df460e484ddf9aac009cb38ee74",
-            type: "WITNESSPUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l"],
-          },
+          scriptPubKey: Hex.from(
+            "00144130879211c54df460e484ddf9aac009cb38ee74"
+          ),
         },
         {
           outputIndex: 2,
           value: BigNumber.from(9900),
-          scriptPubKey: {
-            asm: "OP_HASH160 3ec459d0f3c29286ae5df5fcc421e2786024277e OP_EQUAL",
-            hex: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
-            type: "SCRIPTHASH",
-            reqSigs: 1,
-            addresses: ["2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C"],
-          },
+          scriptPubKey: Hex.from(
+            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+          ),
         },
         {
           outputIndex: 3,
           value: BigNumber.from(12900),
-          scriptPubKey: {
-            asm: "OP_0 86a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
-            hex: "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
-            type: "WITNESSSCRIPTHASH",
-            reqSigs: 1,
-            addresses: [
-              "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y",
-            ],
-          },
+          scriptPubKey: Hex.from(
+            "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96"
+          ),
         },
         {
           outputIndex: 4,
           value: BigNumber.from(1375180),
-          scriptPubKey: {
-            asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
-            hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-            type: "WITNESSPUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"],
-          },
+          scriptPubKey: Hex.from(
+            "00148db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
         },
       ],
     },

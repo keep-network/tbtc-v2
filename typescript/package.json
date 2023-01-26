@@ -2,8 +2,8 @@
   "name": "@keep-network/tbtc-v2.ts",
   "version": "1.0.0-dev",
   "license": "MIT",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "scripts": {
     "format": "yarn run lint && prettier --check .",
     "format:fix": "yarn run lint:fix && prettier --write .",
@@ -12,10 +12,12 @@
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
     "typechain": "rm -rf ./typechain && for i in $npm_package_config_contracts; do typechain --target ethers-v5 --out-dir ./typechain $i; done && rm ./typechain/index.ts",
     "build": "npm run typechain && tsc --project tsconfig.build.json",
+    "dev": "tsc --project tsconfig.build.json --watch",
     "postinstall": "npm rebuild"
   },
   "files": [
-    "dist/**/*"
+    "dist/",
+    "typechain/"
   ],
   "config": {
     "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault}.json"
