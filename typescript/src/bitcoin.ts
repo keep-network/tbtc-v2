@@ -177,6 +177,12 @@ export interface TransactionMerkleBranch {
  */
 export interface Client {
   /**
+   * Gets the network supported by the server the client connected to.
+   * @returns Bitcoin network.
+   */
+  getNetwork(): Promise<BitcoinNetwork>
+
+  /**
    * Finds all unspent transaction outputs (UTXOs) for given Bitcoin address.
    * @param address - Bitcoin address UTXOs should be determined for.
    * @returns List of UTXOs.

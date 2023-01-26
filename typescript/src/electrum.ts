@@ -9,6 +9,7 @@ import {
   TransactionOutput,
   UnspentTransactionOutput,
 } from "./bitcoin"
+import { BitcoinNetwork } from "./bitcoin/network"
 import Electrum from "electrum-client-js"
 import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
@@ -117,6 +118,23 @@ export class Client implements BitcoinClient {
       console.log("Closing connection to Electrum server...")
       electrum.close()
     }
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {BitcoinClient#getNetwork}
+   */
+  getNetwork(): Promise<BitcoinNetwork> {
+    return this.withElectrum<BitcoinNetwork>(async (electrum: any) => {
+      const { genesis_hash: genesisHash } = await electrum.server_features()
+      if (!genesisHash) {
+        throw new Error(
+          "server didn't return the 'genesis_hash' property from `server.features` request"
+        )
+      }
+
+      return BitcoinNetwork.fromGenesisHash(genesisHash)
+    })
   }
 
   // eslint-disable-next-line valid-jsdoc
