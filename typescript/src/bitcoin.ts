@@ -376,6 +376,7 @@ export function computeHash160(text: string): string {
  *        P2WPKH address will be returned. Returns P2PKH address otherwise
  * @param network - Network the address should be encoded for.
  * @returns P2PKH or P2WPKH address encoded from the given public key hash
+ * @throws Throws an error if network is not supported.
  */
 export function encodeToBitcoinAddress(
   publicKeyHash: string,
