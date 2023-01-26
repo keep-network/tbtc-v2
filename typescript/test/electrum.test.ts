@@ -28,6 +28,7 @@ const testnetCredentials: ElectrumCredentials[] = [
     port: 60001,
     protocol: "tcp",
   },
+  // FIXME: https://github.com/keep-network/tbtc-v2/issues/502
   // // electrs-esplora ssl
   // {
   //   host: "electrum.blockstream.info",
@@ -40,6 +41,13 @@ const testnetCredentials: ElectrumCredentials[] = [
     port: 51001,
     protocol: "tcp",
   },
+  // FIXME: https://github.com/keep-network/tbtc-v2/issues/502
+  // fulcrum ssl
+  // {
+  //   host: "testnet.aranguren.org",
+  //   port: 51002,
+  //   protocol: "ssl",
+  // },
 ]
 
 /**
