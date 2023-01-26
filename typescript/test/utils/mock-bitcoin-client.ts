@@ -1,3 +1,4 @@
+import { BitcoinNetwork } from "../../src/bitcoin/network"
 import {
   Client,
   UnspentTransactionOutput,
@@ -59,6 +60,12 @@ export class MockBitcoinClient implements Client {
 
   get broadcastLog(): RawTransaction[] {
     return this._broadcastLog
+  }
+
+  getNetwork(): Promise<BitcoinNetwork> {
+    return new Promise<BitcoinNetwork>((resolve, _) => {
+      resolve(BitcoinNetwork.Testnet)
+    })
   }
 
   findAllUnspentTransactionOutputs(
