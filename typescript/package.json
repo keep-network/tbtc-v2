@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "refund": "ts-node ./scripts/refund.ts",
+    "refund": "ts-node --files ./scripts/refund.ts",
     "format": "yarn run lint && prettier --check .",
     "format:fix": "yarn run lint:fix && prettier --write .",
     "lint": "eslint . --ext .js,.ts",

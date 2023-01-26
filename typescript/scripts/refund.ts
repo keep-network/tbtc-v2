@@ -1,4 +1,3 @@
-// @ts-ignore
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import { Deposit } from "../src/deposit"
@@ -13,7 +12,7 @@ import {
 } from "../src/bitcoin"
 
 class TestBitcoinClient implements BitcoinClient {
-  private client: bcoin.NodeClient
+  private client: any
 
   constructor(host: string, port: number, username: string, password: string) {
     this.client = new bcoin.NodeClient({
