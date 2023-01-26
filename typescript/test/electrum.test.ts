@@ -16,20 +16,39 @@ import https from "https"
 const BLOCKSTREAM_TESTNET_API_URL = "https://blockstream.info/testnet/api"
 
 const testnetCredentials: ElectrumCredentials[] = [
+  // TODO: Enable all protocols test for test.tbtc.network servers once they are
+  // publicly exposed.
+  // // electrumx tcp
+  // {
+  //   host: "electrumx-server.test.tbtc.network",
+  //   port: 80,
+  //   protocol: "tcp",
+  // },
+  // electrumx ssl
+  // {
+  //   host: "electrumx-server.test.tbtc.network",
+  //   port: 443,
+  //   protocol: "ssl",
+  // },
+  // electrumx ws
+  // {
+  //   host: "electrumx-server.test.tbtc.network",
+  //   port: 8080,
+  //   protocol: "ws",
+  // },
   // electrumx wss
   {
     host: "electrumx-server.test.tbtc.network",
     port: 8443,
     protocol: "wss",
   },
-  // TODO: Enable after retries are implemented
-  // See: https://github.com/keep-network/tbtc-v2/issues/485
-  // // electrs-esplora tcp
-  // {
-  //   host: "electrum.blockstream.info",
-  //   port: 60001,
-  //   protocol: "tcp",
-  // },
+  // electrs-esplora tcp
+  {
+    host: "electrum.blockstream.info",
+    port: 60001,
+    protocol: "tcp",
+  },
+  // FIXME: https://github.com/keep-network/tbtc-v2/issues/502
   // // electrs-esplora ssl
   // {
   //   host: "electrum.blockstream.info",
@@ -42,6 +61,13 @@ const testnetCredentials: ElectrumCredentials[] = [
     port: 51001,
     protocol: "tcp",
   },
+  // FIXME: https://github.com/keep-network/tbtc-v2/issues/502
+  // fulcrum ssl
+  // {
+  //   host: "testnet.aranguren.org",
+  //   port: 51002,
+  //   protocol: "ssl",
+  // },
 ]
 
 /**
