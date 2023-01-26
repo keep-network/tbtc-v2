@@ -66,7 +66,7 @@ export type TransactionInput = TransactionOutpoint & {
   /**
    * The scriptSig that unlocks the specified outpoint for spending.
    */
-  scriptSig: any
+  scriptSig: Hex
 }
 
 /**
@@ -86,7 +86,7 @@ export interface TransactionOutput {
   /**
    * The receiving scriptPubKey.
    */
-  scriptPubKey: any
+  scriptPubKey: Hex
 }
 
 /**
