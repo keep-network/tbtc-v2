@@ -1,6 +1,10 @@
+// @ts-ignore
 import bcoin, { TX } from "bcoin"
+// @ts-ignore
 import wif from "wif"
+// @ts-ignore
 import bufio from "bufio"
+// @ts-ignore
 import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"

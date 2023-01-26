@@ -1,3 +1,4 @@
+// @ts-ignore
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
@@ -152,7 +153,6 @@ export async function prepareSignedDepositRefundTransaction(
   if (!tx.verify(transaction.view)) {
     throw new Error("Transaction verification failure")
   }
-
 
   return { rawSignedTransaction: transaction.toRaw().toString("hex") }
 }
