@@ -235,6 +235,9 @@ export async function assembleDepositRefundTransaction(
   transactionHash: TransactionHash
   rawTransaction: RawTransaction
 }> {
+  // TODO: Check that the `recipientAddress` is associated with the provided
+  //       private key.
+  // TODO: Check that the `amount` in deposit is the same as amount in `utxo`.
   const refunderKeyRing = createKeyRing(refunderPrivateKey, witness)
 
   const transaction = new bcoin.MTX()
