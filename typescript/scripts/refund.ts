@@ -1,132 +1,110 @@
-import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import { Deposit } from "../src/deposit"
 import { submitDepositRefundTransaction } from "../src/deposit-refund"
 import {
-  RawTransaction,
   TransactionHash,
-  Client as BitcoinClient,
   UnspentTransactionOutput,
-  Transaction,
-  TransactionMerkleBranch,
 } from "../src/bitcoin"
+import {
+  Client as ElectrumClient,
+} from "../src/electrum"
+import { program } from "commander"
+import fs from 'fs'
 
-class TestBitcoinClient implements BitcoinClient {
-  private client: any
 
-  constructor(host: string, port: number, username: string, password: string) {
-    this.client = new bcoin.NodeClient({
-      host: host,
-      port: port,
-      username: username,
-      password: password,
-    })
-  }
+program
+  .version("0.0.1")
+  .requiredOption(
+    "-d, --deposit-json-path <deposit-json-path>",
+    "deposit JSON file path"
+  )
+  .requiredOption(
+    "-a, --amount <amount-to-refund>",
+    "amount of BTC to refund"
+  )
+  .requiredOption(
+    "-t, --transaction-id <transaction-id>",
+    "transaction id of the original deposit"
+  )
+  .requiredOption(
+    "-k, --private-key <private-key>",
+    "private key of the BTC wallet"
+  )
+  .requiredOption(
+    "-k, --recovery-address <recovery-BTC-address>",
+    "recovery address of the BTC wallet"
+  )
+  .requiredOption(
+    "-o, --host <host>", 
+    "network name"
+  )
+  .requiredOption(
+    "-p, --port <port>", 
+    "network name"
+  )
+  .requiredOption(
+    "-r, --protocol <protocol>", 
+    "network name"
+  )
+  .parse(process.argv)
 
-  getTransactionConfirmations(
-    transactionHash: TransactionHash
-  ): Promise<number> {
-    // Not implemented.
-    return new Promise<number>((resolve, _) => {
-      resolve(0)
-    })
-  }
-
-  getTransactionMerkle(
-    transactionHash: TransactionHash,
-    blockHeight: number
-  ): Promise<TransactionMerkleBranch> {
-    // Not implemented.
-    return new Promise<TransactionMerkleBranch>((resolve, _) => {})
-  }
-
-  async getRawTransaction(
-    transactionHash: TransactionHash
-  ): Promise<RawTransaction> {
-    const rawTx = await this.client.execute("getrawtransaction", [
-      transactionHash.toString(),
-    ])
-    return new Promise<RawTransaction>((resolve, _) => {
-      resolve({ transactionHex: rawTx })
-    })
-  }
-
-  async getRawMempool(): Promise<void> {
-    // Not implemented.
-    return new Promise<void>((resolve, _) => {
-      resolve()
-    })
-  }
-
-  findAllUnspentTransactionOutputs(
-    address: string
-  ): Promise<UnspentTransactionOutput[]> {
-    // Not implemented.
-    return new Promise<UnspentTransactionOutput[]>((resolve, _) => {
-      return new Promise<number>((resolve, _) => {})
-    })
-  }
-
-  getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
-    // Not implemented.
-    return new Promise<Transaction>((resolve, _) => {})
-  }
-
-  latestBlockHeight(): Promise<number> {
-    // Not implemented.
-    return new Promise<number>((resolve, _) => {})
-  }
-
-  getHeadersChain(blockHeight: number, confirmations: number): Promise<string> {
-    // Not implemented.
-    return new Promise<string>((resolve, _) => {})
-  }
-
-  async broadcast(transaction: RawTransaction): Promise<void> {
-    await this.client.broadcast(transaction.transactionHex)
-    return new Promise<void>((resolve, _) => {
-      resolve()
-    })
-  }
+// Parse the program options
+const options = program.opts()
+const depositJsonPath = options.depositJsonPath
+const refundAmount = options.amount // in satoshi
+const transactionId = options.transactionId
+const refunderPrivateKey = options.privateKey
+const recoveryAddress = options.recoveryAddress
+const electrumCredentials = {
+  host: options.host,
+  port: options.port,
+  protocol: options.protocol
 }
 
-const refunderPrivKey = ""
+const fee = 1520
+
+const depositJson = JSON.parse(fs.readFileSync(depositJsonPath, 'utf-8'))
 
 const deposit: Deposit = {
-  depositor: { identifierHex: "f93f092b01bd4f49814c4309564090d16c8261fd" },
-  amount: BigNumber.from(1000000),
-  walletPublicKeyHash: "621dee7e4e7a9273fcca01855cda53243b9820e2",
-  refundPublicKeyHash: "366bffb7bf2f141ec94be66105af17817856c1f9",
-  blindingFactor: "95b33739d625fcc2",
-  refundLocktime: "19cdca63",
+  depositor: depositJson.depositor,
+  amount: BigNumber.from(refundAmount),
+  walletPublicKeyHash: depositJson.walletPublicKeyHash,
+  refundPublicKeyHash: depositJson.refundPublicKeyHash,
+  blindingFactor: depositJson.blindingFactor,
+  refundLocktime: depositJson.refundLocktime,
 }
 
+console.log("======= refund provided data ========")
+console.log("depositJson..", deposit)
+console.log("refundAmount..", refundAmount)
+console.log("transactionId..", transactionId)
+console.log("recoveryAddress..", recoveryAddress)
+console.log("electrum credentials..", electrumCredentials)
+console.log("=====================================")
+
 async function run(): Promise<void> {
-  bcoin.set("testnet")
-  const client = new TestBitcoinClient("", 1234, "", "")
+  const client = new ElectrumClient(electrumCredentials)
 
   const depositUtxo: UnspentTransactionOutput = {
     transactionHash: TransactionHash.from(
-      "3ce2800830619d81260072294e7d8dda6d77f20c3bf7676ba29dad3347fdf835"
+      transactionId
     ),
     outputIndex: 0,
-    value: BigNumber.from(1000000),
+    value: BigNumber.from(refundAmount),
   }
-
-  const recipientAddress = "tb1qxe4lldal9u2paj2tuessttchs9u9ds0e5sy3v4"
 
   const refundTxHash = await submitDepositRefundTransaction(
     client,
-    BigNumber.from(1520),
+    BigNumber.from(fee),
     depositUtxo,
     deposit,
-    recipientAddress,
-    refunderPrivKey,
+    recoveryAddress,
+    refunderPrivateKey,
     true
   )
 
   console.log(
-    "Refund transaction hash",
+    "Refund transaction ID",
     refundTxHash.transactionHash.toString()
   )
 }
