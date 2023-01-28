@@ -7,7 +7,7 @@ import {
   locktimeToNumber,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
-import { BitcoinNetwork } from "../src/bitcoin/network"
+import { BitcoinNetwork } from "../src/bitcoin-network"
 
 describe("Bitcoin", () => {
   describe("compressPublicKey", () => {

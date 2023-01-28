@@ -4,7 +4,7 @@ import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
-import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin/network"
+import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
