@@ -31,7 +31,7 @@ program
     "private key of the BTC wallet"
   )
   .requiredOption(
-    "-k, --recovery-address <recovery-BTC-address>",
+    "-f, --transaction-fee <transaction-fee>",
     "recovery address of the BTC wallet"
   )
   .requiredOption(
@@ -54,14 +54,12 @@ const depositJsonPath = options.depositJsonPath
 const refundAmount = options.amount // in satoshi
 const transactionId = options.transactionId
 const refunderPrivateKey = options.privateKey
-const recoveryAddress = options.recoveryAddress
+const fee = options.transactionFee
 const electrumCredentials = {
   host: options.host,
   port: options.port,
   protocol: options.protocol
 }
-
-const fee = 1520
 
 const depositJson = JSON.parse(fs.readFileSync(depositJsonPath, 'utf-8'))
 
@@ -73,6 +71,7 @@ const deposit: Deposit = {
   blindingFactor: depositJson.blindingFactor,
   refundLocktime: depositJson.refundLocktime,
 }
+const recoveryAddress = depositJson.btcRecoveryAddress
 
 console.log("======= refund provided data ========")
 console.log("depositJson..", deposit)
@@ -100,7 +99,6 @@ async function run(): Promise<void> {
     deposit,
     recoveryAddress,
     refunderPrivateKey,
-    true
   )
 
   console.log(

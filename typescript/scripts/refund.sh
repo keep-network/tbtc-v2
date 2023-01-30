@@ -21,18 +21,17 @@ help() {
     "--deposit-json-path <deposit-JSON-file-path>" \
     "--amount <amount>" \
     "--transaction-id <transaction-id>" \
-    "--recovery-address <recovery-address>" \
-    "--private-key <wallet-private-key>" \
-    "--recovery-address <recovery-address>" \
+    "--private-key <btc-wallet-private-key>" \
+    "--transaction-fee <transaction-fee>" \
     "--electrum-host <electrum-host>" \
     "--electrum-port <electrum-port>" \
     "--electrum-protocol <electrum-protocol>"
   echo -e "\nRequired command line arguments:\n"
-  echo -e "\t--deposit-path: Deposit JSON file path"
+  echo -e "\t--deposit-json-path: Deposit JSON file path"
   echo -e "\t--amount: Amount of BTC to refund in satoshi"
   echo -e "\t--transaction-id: Transaction ID/hash of the original deposit"
   echo -e "\t--private-key: Private key of the BTC recovery wallet"
-  echo -e "\t--recovery-address: Recovery BTC address"
+  echo -e "\t--transaction-fee: Refund transaction fee that a user is willing to pay"
   echo -e "\nOptional command line arguments:\n"
   echo -e "\t--host: Electrum host. Default: ${ELECTRUM_HOST_DEFAULT}"
   echo -e "\t--port: Electrum port. Default: ${ELECTRUM_PORT_DEFAULT}"
@@ -49,7 +48,7 @@ for arg in "$@"; do
   "--amount") set -- "$@" "-a" ;;
   "--transaction-id") set -- "$@" "-t" ;;
   "--private-key") set -- "$@" "-k" ;;
-  "--recovery-address") set -- "$@" "-r" ;;
+  "--transaction-fee") set -- "$@" "-f" ;;
   "--host") set -- "$@" "-o" ;;
   "--port") set -- "$@" "-p" ;;
   "--protocol") set -- "$@" "-r" ;;
@@ -60,13 +59,13 @@ done
 
 # Parse short options
 OPTIND=1
-while getopts "d:a:t:k:r:o:p:r:h" opt; do
+while getopts "d:a:t:k:f:o:p:r:h" opt; do
   case "$opt" in
   d) deposit_json_path="$OPTARG" ;;
   a) amount="$OPTARG" ;;
   t) transaction_id="$OPTARG" ;;
   k) private_key="$OPTARG" ;;
-  r) recovery_address="$OPTARG" ;;
+  f) transaction_fee="$OPTARG" ;;
   o) host="$OPTARG" ;;
   p) port="$OPTARG" ;;
   r) protocol="$OPTARG" ;;
@@ -80,7 +79,7 @@ DEPOSIT_PATH=${deposit_json_path:-""}
 AMOUNT=${amount:-""}
 TRANSACTION_ID=${transaction_id:-""}
 PRIVATE_KEY=${private_key:-""}
-RECOVERY_ADDRESS=${recovery_address:-""}
+TRANSACTION_FEE=${transaction_fee:-""}
 HOST=${host:-${ELECTRUM_HOST_DEFAULT}}
 PORT=${port:-${ELECTRUM_PORT_DEFAULT}}
 PROTOCOL=${protocol:-${ELECTRUM_PROTOCOL_DEFAULT}}
@@ -105,8 +104,8 @@ if [ "$PRIVATE_KEY" == "" ]; then
   help
 fi
 
-if [ "$RECOVERY_ADDRESS" == "" ]; then
-  printf "${LOG_WARNING_START}Recovery BTC address must be provided.${LOG_WARNING_END}"
+if [ "$TRANSACTION_FEE" == "" ]; then
+  printf "${LOG_WARNING_START}Transaction fee must be provided.${LOG_WARNING_END}"
   help
 fi
 
@@ -121,7 +120,7 @@ yarn refund \
   --amount ${AMOUNT} \
   --transaction-id ${TRANSACTION_ID} \
   --private-key ${PRIVATE_KEY} \
-  --recovery-address ${RECOVERY_ADDRESS} \
+  --transaction-fee ${TRANSACTION_FEE} \
   --host ${HOST} \
   --port ${PORT} \
   --protocol ${PROTOCOL} \
