@@ -14,7 +14,7 @@ import {
   depositRefundOfWitnessDepositAndNonWitnessRefunderAddress,
 } from "./data/deposit-refund"
 
-describe("Sweep", () => {
+describe("Refund", () => {
   const fee = BigNumber.from(1520)
 
   describe("submitDepositRefundTransaction", () => {
