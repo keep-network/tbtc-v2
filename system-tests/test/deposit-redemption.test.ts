@@ -176,10 +176,7 @@ describe("System Test - Deposit and redemption", () => {
         // Unlike in the deposit transaction case, we must wait for the sweep
         // transaction to have an enough number of confirmations. This is
         // because the bridge performs the SPV proof of that transaction.
-        await waitTransactionConfirmed(
-          bitcoinClient,
-          sweepUtxo.transactionHash
-        )
+        await waitTransactionConfirmed(bitcoinClient, sweepUtxo.transactionHash)
 
         await fakeRelayDifficulty(
           relay,
