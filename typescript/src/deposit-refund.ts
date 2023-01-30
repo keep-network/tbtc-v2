@@ -337,3 +337,148 @@ function validateInputParameters(
     throw new Error("Provided refunder address does not belong to the refunder")
   }
 }
+
+export async function prepareUnsignedDepositRefundTransaction(
+  bitcoinClient: BitcoinClient,
+  fee: BigNumber,
+  utxo: UnspentTransactionOutput,
+  deposit: Deposit,
+  recipientAddress: string
+): Promise<{
+  rawUnsignedTransaction: string
+  inputSighash: string
+}> {
+  const rawTransaction = await bitcoinClient.getRawTransaction(
+    utxo.transactionHash
+  )
+
+  const transaction = new bcoin.MTX()
+
+  transaction.addOutput({
+    script: bcoin.Script.fromAddress(recipientAddress),
+    value: utxo.value.toNumber(),
+  })
+
+  const inputCoin = bcoin.Coin.fromTX(
+    bcoin.MTX.fromRaw(rawTransaction.transactionHex, "hex"),
+    utxo.outputIndex,
+    -1
+  )
+
+  await transaction.fund([inputCoin], {
+    changeAddress: recipientAddress,
+    hardFee: fee.toNumber(),
+    subtractFee: true,
+  })
+
+  if (transaction.outputs.length != 1) {
+    throw new Error("Deposit refund transaction must have only one output")
+  }
+
+  // In order to be able to spend the UTXO being refunded the transaction's
+  // locktime must be set to a value equal to or higher than the refund locktime.
+  transaction.locktime = locktimeToUnixTimestamp(deposit.refundLocktime)
+
+  // Additionally, the input's sequence must be set to a value different than
+  // `0xffffffff`.
+  transaction.inputs[0].sequence = 0xfffffffe
+
+  const rawUnsignedTransaction = transaction.toRaw().toString("hex")
+
+  const previousOutpoint = transaction.inputs[0].prevout
+  const previousOutput = transaction.view.getOutput(previousOutpoint)
+  const previousScript = previousOutput.script
+
+  // eslint-disable-next-line no-unused-vars
+  const { amount, vault, ...depositScriptParameters } = deposit
+
+  const depositScript = bcoin.Script.fromRaw(
+    Buffer.from(await assembleDepositScript(depositScriptParameters), "hex")
+  )
+
+  // Legacy sighash version (0) for P2SH UTXO or segwit sighash version (1)
+  // for P2WSH UTXO.
+  const sighashVersion = previousScript.isScripthash() ? 0 : 1
+
+  const inputSighash = transaction
+    .signatureHash(
+      0,
+      depositScript,
+      previousOutput.value,
+      bcoin.Script.hashType.ALL,
+      sighashVersion
+    )
+    .toString("hex")
+
+  return { rawUnsignedTransaction, inputSighash }
+}
+
+export async function prepareSignedDepositRefundTransaction(
+  bitcoinClient: BitcoinClient,
+  rawUnsignedTransaction: string,
+  inputSignature: string,
+  refunderPublicKey: string,
+  deposit: Deposit
+): Promise<{
+  rawSignedTransaction: string
+}> {
+  const transaction = bcoin.MTX.fromRaw(rawUnsignedTransaction, "hex")
+  if (transaction.inputs.length != 1) {
+    throw new Error("Deposit refund transaction should have one input")
+  }
+
+  // Recreate coin view
+  const previousTxHash = transaction.inputs[0].prevout.hash
+  const previousTxIndex = transaction.inputs[0].prevout.index
+  const depositRawTransaction = await bitcoinClient.getRawTransaction(
+    TransactionHash.from(previousTxHash).reverse()
+  )
+  const inputCoin = bcoin.Coin.fromTX(
+    bcoin.MTX.fromRaw(depositRawTransaction.transactionHex, "hex"),
+    previousTxIndex,
+    -1
+  )
+  transaction.view = new bcoin.CoinView()
+  transaction.view.addCoin(inputCoin)
+
+  // eslint-disable-next-line no-unused-vars
+  const { amount, vault, ...depositScriptParameters } = deposit
+
+  const depositScript = bcoin.Script.fromRaw(
+    Buffer.from(await assembleDepositScript(depositScriptParameters), "hex")
+  )
+
+  const previousOutpoint = transaction.inputs[0].prevout
+  const previousOutput = transaction.view.getOutput(previousOutpoint)
+  const previousScript = previousOutput.script
+
+  if (previousScript.isScripthash()) {
+    const scriptSig = new bcoin.Script()
+    scriptSig.clear()
+    scriptSig.pushData(Buffer.from(inputSignature, "hex"))
+    scriptSig.pushData(Buffer.from(refunderPublicKey, "hex"))
+    scriptSig.pushData(depositScript.toRaw())
+    scriptSig.compile()
+
+    transaction.inputs[0].script = scriptSig
+  } else if (previousScript.isWitnessScripthash()) {
+    const witness = new bcoin.Witness()
+    witness.clear()
+    witness.pushData(Buffer.from(inputSignature, "hex"))
+    witness.pushData(Buffer.from(refunderPublicKey, "hex"))
+    witness.pushData(depositScript.toRaw())
+    witness.compile()
+
+    transaction.inputs[0].witness = witness
+  } else {
+    throw new Error("Unsupported UTXO script type")
+  }
+
+  // Verify the transaction by executing its input scripts.
+  const tx = transaction.toTX()
+  if (!tx.verify(transaction.view)) {
+    throw new Error("Transaction verification failure")
+  }
+
+  return { rawSignedTransaction: transaction.toRaw().toString("hex") }
+}
