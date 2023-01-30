@@ -9,9 +9,9 @@ import { submitDepositRefundTransaction } from "../src/deposit-refund"
 import { TransactionHash, RawTransaction } from "./bitcoin"
 import {
   refunderPrivateKey,
-  depositRefundOfWitnessDepositAndWitnessOutput,
-  depositRefundOfNonWitnessDepositAndWitnessOutput,
-  depositRefundOfWitnessDepositAndNonWitnessOutput,
+  depositRefundOfWitnessDepositAndWitnessRefunderAddress,
+  depositRefundOfNonWitnessDepositAndWitnessRefunderAddress,
+  depositRefundOfWitnessDepositAndNonWitnessRefunderAddress,
 } from "./data/deposit-refund"
 
 describe("Sweep", () => {
@@ -32,11 +32,11 @@ describe("Sweep", () => {
 
         beforeEach(async () => {
           const utxo =
-            depositRefundOfWitnessDepositAndWitnessOutput.deposit.utxo
+            depositRefundOfWitnessDepositAndWitnessRefunderAddress.deposit.utxo
           const deposit =
-            depositRefundOfWitnessDepositAndWitnessOutput.deposit.data
+            depositRefundOfWitnessDepositAndWitnessRefunderAddress.deposit.data
           const refunderAddress =
-            depositRefundOfWitnessDepositAndWitnessOutput.refunderAddress
+            depositRefundOfWitnessDepositAndWitnessRefunderAddress.refunderAddress
           const refunderPrivateKey =
             "cTWhf1nXc7aW8BN2qLtWcPtcgcWYKfzRXkCJNsuQ86HR8uJBYfMc"
 
@@ -58,15 +58,15 @@ describe("Sweep", () => {
         it("should broadcast refund transaction with proper structure", async () => {
           expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
           expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-            depositRefundOfWitnessDepositAndWitnessOutput.expectedRefund
-              .transaction
+            depositRefundOfWitnessDepositAndWitnessRefunderAddress
+              .expectedRefund.transaction
           )
         })
 
         it("should return the proper transaction hash", async () => {
           expect(transactionHash).to.be.deep.equal(
-            depositRefundOfWitnessDepositAndWitnessOutput.expectedRefund
-              .transactionHash
+            depositRefundOfWitnessDepositAndWitnessRefunderAddress
+              .expectedRefund.transactionHash
           )
         })
       })
@@ -76,11 +76,13 @@ describe("Sweep", () => {
 
         beforeEach(async () => {
           const utxo =
-            depositRefundOfNonWitnessDepositAndWitnessOutput.deposit.utxo
+            depositRefundOfNonWitnessDepositAndWitnessRefunderAddress.deposit
+              .utxo
           const deposit =
-            depositRefundOfNonWitnessDepositAndWitnessOutput.deposit.data
+            depositRefundOfNonWitnessDepositAndWitnessRefunderAddress.deposit
+              .data
           const refunderAddress =
-            depositRefundOfNonWitnessDepositAndWitnessOutput.refunderAddress
+            depositRefundOfNonWitnessDepositAndWitnessRefunderAddress.refunderAddress
 
           const rawTransactions = new Map<string, RawTransaction>()
           rawTransactions.set(utxo.transactionHash.toString(), {
@@ -100,15 +102,15 @@ describe("Sweep", () => {
         it("should broadcast refund transaction with proper structure", async () => {
           expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
           expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-            depositRefundOfNonWitnessDepositAndWitnessOutput.expectedRefund
-              .transaction
+            depositRefundOfNonWitnessDepositAndWitnessRefunderAddress
+              .expectedRefund.transaction
           )
         })
 
         it("should return the proper transaction hash", async () => {
           expect(transactionHash).to.be.deep.equal(
-            depositRefundOfNonWitnessDepositAndWitnessOutput.expectedRefund
-              .transactionHash
+            depositRefundOfNonWitnessDepositAndWitnessRefunderAddress
+              .expectedRefund.transactionHash
           )
         })
       })
@@ -121,11 +123,13 @@ describe("Sweep", () => {
 
         beforeEach(async () => {
           const utxo =
-            depositRefundOfWitnessDepositAndNonWitnessOutput.deposit.utxo
+            depositRefundOfWitnessDepositAndNonWitnessRefunderAddress.deposit
+              .utxo
           const deposit =
-            depositRefundOfWitnessDepositAndNonWitnessOutput.deposit.data
+            depositRefundOfWitnessDepositAndNonWitnessRefunderAddress.deposit
+              .data
           const refunderAddress =
-            depositRefundOfWitnessDepositAndNonWitnessOutput.refunderAddress
+            depositRefundOfWitnessDepositAndNonWitnessRefunderAddress.refunderAddress
 
           const rawTransactions = new Map<string, RawTransaction>()
           rawTransactions.set(utxo.transactionHash.toString(), {
@@ -145,15 +149,15 @@ describe("Sweep", () => {
         it("should broadcast refund transaction with proper structure", async () => {
           expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
           expect(bitcoinClient.broadcastLog[0]).to.be.eql(
-            depositRefundOfWitnessDepositAndNonWitnessOutput.expectedRefund
-              .transaction
+            depositRefundOfWitnessDepositAndNonWitnessRefunderAddress
+              .expectedRefund.transaction
           )
         })
 
         it("should return the proper transaction hash", async () => {
           expect(transactionHash).to.be.deep.equal(
-            depositRefundOfWitnessDepositAndNonWitnessOutput.expectedRefund
-              .transactionHash
+            depositRefundOfWitnessDepositAndNonWitnessRefunderAddress
+              .expectedRefund.transactionHash
           )
         })
       }

@@ -5,6 +5,7 @@ import {
   TransactionHash,
 } from "../../src/bitcoin"
 import { Deposit, calculateDepositRefundLocktime } from "../../src/deposit"
+import { Address } from "../../src/ethereum"
 
 /**
  * Testnet private key that can be used to refund the deposits used in tests.
@@ -34,7 +35,7 @@ export interface DepositRefundTestData {
  * (P2WSH) deposit was refunded and the refunder's address was witness:
  * https://live.blockcypher.com/btc-testnet/tx/b49bd6c0219066f0c76d85818b047e4685425844cda42dae9b9508b9bfbb483d/
  */
-export const depositRefundOfWitnessDepositAndWitnessOutput: DepositRefundTestData =
+export const depositRefundOfWitnessDepositAndWitnessRefunderAddress: DepositRefundTestData =
   {
     deposit: {
       utxo: {
@@ -54,9 +55,7 @@ export const depositRefundOfWitnessDepositAndWitnessOutput: DepositRefundTestDat
           "00000000",
       },
       data: {
-        depositor: {
-          identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-        },
+        depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
         amount: BigNumber.from(100000),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
@@ -90,7 +89,7 @@ export const depositRefundOfWitnessDepositAndWitnessOutput: DepositRefundTestDat
  * (P2SH) deposit was refunded and the refunder's address was witness:
  * https://live.blockcypher.com/btc-testnet/tx/7df9ed885525899ccbe144fd129062cec59be43d428b85fb847808b8790ad262/
  */
-export const depositRefundOfNonWitnessDepositAndWitnessOutput: DepositRefundTestData =
+export const depositRefundOfNonWitnessDepositAndWitnessRefunderAddress: DepositRefundTestData =
   {
     deposit: {
       utxo: {
@@ -109,9 +108,7 @@ export const depositRefundOfNonWitnessDepositAndWitnessOutput: DepositRefundTest
           "2eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        depositor: {
-          identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-        },
+        depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
         amount: BigNumber.from(90000),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
@@ -145,7 +142,7 @@ export const depositRefundOfNonWitnessDepositAndWitnessOutput: DepositRefundTest
  * (P2WSH) deposit was refunded and the refunder's address was non-witness:
  * https://live.blockcypher.com/btc-testnet/tx/0400678f7ae0275338cb0418236960c04c016b980cb7d1763c1d957f534ae0eb/
  */
-export const depositRefundOfWitnessDepositAndNonWitnessOutput: DepositRefundTestData =
+export const depositRefundOfWitnessDepositAndNonWitnessRefunderAddress: DepositRefundTestData =
   {
     deposit: {
       utxo: {
@@ -164,9 +161,7 @@ export const depositRefundOfWitnessDepositAndNonWitnessOutput: DepositRefundTest
           "d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        depositor: {
-          identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-        },
+        depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
         amount: BigNumber.from(150000),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
