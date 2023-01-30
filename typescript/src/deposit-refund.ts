@@ -28,6 +28,11 @@ import {
  * @param refunderPrivateKey - Bitcoin private key of the refunder. It must
  *        correspond to the `refundPublicKeyHash` of the deposit script.
  * @returns The outcome is the deposit refund transaction hash.
+ * @dev This function should be called by the refunder after `refundLocktime`
+ *      plus about 1 hour. The additional hour of waiting is the result of
+ *      adopting BIP113 which compares the transaction's locktime against the
+ *      median timestamp of the last 11 blocks. This median time lags
+ *      the current unix time by about 1 hour.
  */
 export async function submitDepositRefundTransaction(
   bitcoinClient: BitcoinClient,
@@ -116,10 +121,9 @@ export async function assembleDepositRefundTransaction(
 
   // In order to be able to spend the UTXO being refunded the transaction's
   // locktime must be set to a value equal to or higher than the refund locktime.
-  transaction.locktime = locktimeToUnixTimestamp(deposit.refundLocktime)
-
   // Additionally, the input's sequence must be set to a value different than
-  // `0xffffffff`.
+  // `0xffffffff`. These requirements are the result of BIP-65.
+  transaction.locktime = locktimeToUnixTimestamp(deposit.refundLocktime)
   transaction.inputs[0].sequence = 0xfffffffe
 
   // Sign the input
