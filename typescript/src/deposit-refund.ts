@@ -30,7 +30,7 @@ import {
  *        It must correspond to the `refundPublicKeyHash` of the deposit script.
  * @returns The outcome is the deposit refund transaction hash.
  * @dev This function should be called by the refunder after `refundLocktime`
- *      plus about 1 hour. The additional hour of waiting is the result of
+ *      passes plus 1 hour. The additional hour of waiting is the result of
  *      adopting BIP113 which compares the transaction's locktime against the
  *      median timestamp of the last 11 blocks. This median time lags
  *      the current unix time by about 1 hour.
