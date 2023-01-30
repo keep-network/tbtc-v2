@@ -4,9 +4,17 @@ import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
 import { assembleTransactionProof } from "@keep-network/tbtc-v2.ts/dist/src/proof"
 
+import type {
+  RawTransaction,
+  TransactionMerkleBranch,
+  UnspentTransactionOutput,
+  Client as BitcoinClient,
+} from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 import type { Contract } from "ethers"
-import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
-import type { BitcoinTransactionHash } from "@keep-network/tbtc-v2.ts/dist/src"
+import type {
+  BitcoinTransactionHash,
+  BitcoinTransaction,
+} from "@keep-network/tbtc-v2.ts/dist/src"
 
 /**
  * Elliptic curve used by Bitcoin.
@@ -139,4 +147,96 @@ export async function fakeRelayDifficulty(
 
   await relay.setCurrentEpochDifficultyFromHeaders(bitcoinHeaders)
   await relay.setPrevEpochDifficultyFromHeaders(bitcoinHeaders)
+}
+
+// TODO: Temporary retry mechanism to prevent client-related failures of
+//       system tests. Should be replaced with a solution developed as
+//       part of the `tbtc-v2.ts` library.
+export class RetryingBitcoinClient implements BitcoinClient {
+  private delegate: BitcoinClient
+
+  private retries = 5
+
+  constructor(delegate: BitcoinClient) {
+    this.delegate = delegate
+  }
+
+  private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; attempt < this.retries; attempt++) {
+      try {
+        console.debug(`making attempt number ${attempt}`)
+
+        // eslint-disable-next-line no-await-in-loop
+        return await fn()
+      } catch (error) {
+        const backoffMillis = 2 ** attempt * 1000
+        const jitterMillis = Math.floor(Math.random() * 100)
+        const waitMillis = backoffMillis + jitterMillis
+
+        console.debug(
+          `attempt ${attempt} failed: ${error}; ` +
+            `retrying after ${waitMillis} milliseconds`
+        )
+
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => setTimeout(resolve, waitMillis))
+      }
+    }
+
+    // Last attempt, unguarded.
+    return fn()
+  }
+
+  broadcast(transaction: RawTransaction): Promise<void> {
+    return this.withRetry(() => this.delegate.broadcast(transaction))
+  }
+
+  findAllUnspentTransactionOutputs(
+    address: string
+  ): Promise<UnspentTransactionOutput[]> {
+    return this.withRetry(() =>
+      this.delegate.findAllUnspentTransactionOutputs(address)
+    )
+  }
+
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<string> {
+    return this.withRetry(() =>
+      this.delegate.getHeadersChain(blockHeight, chainLength)
+    )
+  }
+
+  getRawTransaction(
+    transactionHash: BitcoinTransactionHash
+  ): Promise<RawTransaction> {
+    return this.withRetry(() =>
+      this.delegate.getRawTransaction(transactionHash)
+    )
+  }
+
+  getTransaction(
+    transactionHash: BitcoinTransactionHash
+  ): Promise<BitcoinTransaction> {
+    return this.withRetry(() => this.delegate.getTransaction(transactionHash))
+  }
+
+  getTransactionConfirmations(
+    transactionHash: BitcoinTransactionHash
+  ): Promise<number> {
+    return this.withRetry(() =>
+      this.delegate.getTransactionConfirmations(transactionHash)
+    )
+  }
+
+  getTransactionMerkle(
+    transactionHash: BitcoinTransactionHash,
+    blockHeight: number
+  ): Promise<TransactionMerkleBranch> {
+    return this.withRetry(() =>
+      this.delegate.getTransactionMerkle(transactionHash, blockHeight)
+    )
+  }
+
+  latestBlockHeight(): Promise<number> {
+    return this.withRetry(() => this.delegate.latestBlockHeight())
+  }
 }

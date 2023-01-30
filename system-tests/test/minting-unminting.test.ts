@@ -16,9 +16,16 @@ import chaiAsPromised from "chai-as-promised"
 
 import { setupSystemTestsContext } from "./utils/context"
 import { generateDeposit } from "./utils/deposit"
-import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
+import {
+  fakeRelayDifficulty,
+  RetryingBitcoinClient,
+  waitTransactionConfirmed,
+} from "./utils/bitcoin"
 
-import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
+import type {
+  UnspentTransactionOutput,
+  Client as BitcoinClient,
+} from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 import type { SystemTestsContext } from "./utils/context"
 import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/src/redemption"
 import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
@@ -51,7 +58,7 @@ const satoshiMultiplier = 1e10
  */
 describe("System Test - Minting and unminting", () => {
   let systemTestsContext: SystemTestsContext
-  let electrumClient: ElectrumClient
+  let bitcoinClient: BitcoinClient
   let bridgeAddress: string
   let maintainerBridgeHandle: EthereumBridge
   let depositorBridgeHandle: EthereumBridge
@@ -72,7 +79,9 @@ describe("System Test - Minting and unminting", () => {
     const { electrumUrl, maintainer, depositor, deployedContracts } =
       systemTestsContext
 
-    electrumClient = ElectrumClient.fromUrl(electrumUrl)
+    bitcoinClient = new RetryingBitcoinClient(
+      ElectrumClient.fromUrl(electrumUrl)
+    )
 
     bridgeAddress = deployedContracts.Bridge.address
 
@@ -133,7 +142,7 @@ describe("System Test - Minting and unminting", () => {
         ;({ depositUtxo } = await submitDepositTransaction(
           deposit,
           systemTestsContext.depositorBitcoinKeyPair.wif,
-          electrumClient,
+          bitcoinClient,
           true
         ))
 
@@ -149,7 +158,7 @@ describe("System Test - Minting and unminting", () => {
         await TBTC.revealDeposit(
           depositUtxo,
           deposit,
-          electrumClient,
+          bitcoinClient,
           depositorBridgeHandle,
           deposit.vault
         )
@@ -161,7 +170,7 @@ describe("System Test - Minting and unminting", () => {
 
       it("should broadcast the deposit transaction on the Bitcoin network", async () => {
         expect(
-          (await electrumClient.getRawTransaction(depositUtxo.transactionHash))
+          (await bitcoinClient.getRawTransaction(depositUtxo.transactionHash))
             .transactionHex.length
         ).to.be.greaterThan(0)
       })
@@ -187,7 +196,7 @@ describe("System Test - Minting and unminting", () => {
       context("when deposit is swept and sweep proof submitted", () => {
         before("sweep the deposit and submit sweep proof", async () => {
           ;({ newMainUtxo: sweepUtxo } = await submitDepositSweepTransaction(
-            electrumClient,
+            bitcoinClient,
             depositSweepTxFee,
             systemTestsContext.walletBitcoinKeyPair.wif,
             true,
@@ -204,13 +213,13 @@ describe("System Test - Minting and unminting", () => {
           // transaction to have an enough number of confirmations. This is
           // because the bridge performs the SPV proof of that transaction.
           await waitTransactionConfirmed(
-            electrumClient,
+            bitcoinClient,
             sweepUtxo.transactionHash
           )
 
           await fakeRelayDifficulty(
             relay,
-            electrumClient,
+            bitcoinClient,
             sweepUtxo.transactionHash
           )
 
@@ -227,7 +236,7 @@ describe("System Test - Minting and unminting", () => {
               value: BigNumber.from(0),
             },
             maintainerBridgeHandle,
-            electrumClient,
+            bitcoinClient,
             EthereumAddress.from(tbtcVault.address) // Pass the TBTCVault address for the SPV proof
           )
 
@@ -238,7 +247,7 @@ describe("System Test - Minting and unminting", () => {
 
         it("should broadcast the sweep transaction on the Bitcoin network", async () => {
           expect(
-            (await electrumClient.getRawTransaction(sweepUtxo.transactionHash))
+            (await bitcoinClient.getRawTransaction(sweepUtxo.transactionHash))
               .transactionHex.length
           ).to.be.greaterThan(0)
         })
@@ -372,7 +381,7 @@ describe("System Test - Minting and unminting", () => {
                 async () => {
                   ;({ transactionHash: redemptionTxHash } =
                     await submitRedemptionTransaction(
-                      electrumClient,
+                      bitcoinClient,
                       maintainerBridgeHandle,
                       systemTestsContext.walletBitcoinKeyPair.wif,
                       sweepUtxo,
@@ -386,13 +395,13 @@ describe("System Test - Minting and unminting", () => {
                   )
 
                   await waitTransactionConfirmed(
-                    electrumClient,
+                    bitcoinClient,
                     redemptionTxHash
                   )
 
                   await fakeRelayDifficulty(
                     relay,
-                    electrumClient,
+                    bitcoinClient,
                     redemptionTxHash
                   )
 
@@ -402,7 +411,7 @@ describe("System Test - Minting and unminting", () => {
                     systemTestsContext.walletBitcoinKeyPair.publicKey
                       .compressed,
                     maintainerBridgeHandle,
-                    electrumClient
+                    bitcoinClient
                   )
 
                   console.log("Redemption proved on the bridge")
@@ -411,7 +420,7 @@ describe("System Test - Minting and unminting", () => {
 
               it("should broadcast the redemption transaction on the Bitcoin network", async () => {
                 expect(
-                  (await electrumClient.getRawTransaction(redemptionTxHash))
+                  (await bitcoinClient.getRawTransaction(redemptionTxHash))
                     .transactionHex.length
                 ).to.be.greaterThan(0)
               })
