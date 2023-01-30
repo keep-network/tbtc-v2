@@ -5,10 +5,10 @@ import { FakeContract, smock } from "@defi-wonderland/smock"
 
 import { ContractTransaction, Signature, Wallet } from "ethers"
 import type { Bank, IVault } from "../../typechain"
+import { to1e18, toSatoshis } from "../helpers/contract-test-helpers"
 
 chai.use(smock.matchers)
 
-const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
@@ -116,7 +116,7 @@ describe("Bank", () => {
   })
 
   describe("transferBalance", () => {
-    const initialBalance = to1e18(500)
+    const initialBalance = toSatoshis(500)
 
     let spender: SignerWithAddress
     let recipient: string
@@ -165,7 +165,7 @@ describe("Bank", () => {
     })
 
     context("when the spender transfers part of their balance", () => {
-      const amount = to1e18(21)
+      const amount = toSatoshis(21)
       let tx: ContractTransaction
 
       before(async () => {
@@ -194,8 +194,8 @@ describe("Bank", () => {
     context(
       "when the spender transfers part of their balance in two transactions",
       () => {
-        const amount1 = to1e18(21)
-        const amount2 = to1e18(12)
+        const amount1 = toSatoshis(21)
+        const amount2 = toSatoshis(12)
 
         before(async () => {
           await createSnapshot()
@@ -268,7 +268,7 @@ describe("Bank", () => {
   })
 
   describe("approveBalanceAndCall", () => {
-    const amount = to1e18(11)
+    const amount = toSatoshis(11)
 
     let owner: SignerWithAddress
 
@@ -348,7 +348,7 @@ describe("Bank", () => {
 
         await bank
           .connect(owner)
-          .approveBalance(mockVault.address, to1e18(1337))
+          .approveBalance(mockVault.address, toSatoshis(1337))
         await bank
           .connect(owner)
           .approveBalanceAndCall(mockVault.address, amount, "0x02")
@@ -376,7 +376,7 @@ describe("Bank", () => {
   })
 
   describe("approveBalance", () => {
-    const amount = to1e18(10)
+    const amount = toSatoshis(10)
 
     let owner: SignerWithAddress
     let spender: string
@@ -450,7 +450,7 @@ describe("Bank", () => {
     context("when the spender had an approved balance before", () => {
       before(async () => {
         await createSnapshot()
-        await bank.connect(owner).approveBalance(spender, to1e18(1337))
+        await bank.connect(owner).approveBalance(spender, toSatoshis(1337))
       })
 
       after(async () => {
@@ -483,7 +483,7 @@ describe("Bank", () => {
   })
 
   describe("increaseBalanceAllowance", () => {
-    const amount = to1e18(12)
+    const amount = toSatoshis(12)
 
     let owner: SignerWithAddress
     let spender: string
@@ -535,7 +535,7 @@ describe("Bank", () => {
     context("when the spender had an approved balance before", () => {
       before(async () => {
         await createSnapshot()
-        await bank.connect(owner).approveBalance(spender, to1e18(1337))
+        await bank.connect(owner).approveBalance(spender, toSatoshis(1337))
         await bank.connect(owner).increaseBalanceAllowance(spender, amount)
       })
 
@@ -545,7 +545,7 @@ describe("Bank", () => {
 
       it("should increase the previous allowance", async () => {
         expect(await bank.allowance(owner.address, spender)).to.equal(
-          to1e18(1337).add(amount)
+          toSatoshis(1337).add(amount)
         )
       })
     })
@@ -562,14 +562,14 @@ describe("Bank", () => {
 
       it("should revert", async () => {
         await expect(
-          bank.connect(owner).increaseBalanceAllowance(spender, to1e18(1))
+          bank.connect(owner).increaseBalanceAllowance(spender, toSatoshis(1))
         ).to.be.reverted
       })
     })
   })
 
   describe("decreaseBalanceAllowance", () => {
-    const approvedAmount = to1e18(99)
+    const approvedAmount = toSatoshis(99)
 
     let owner: SignerWithAddress
     let spender: string
@@ -590,7 +590,9 @@ describe("Bank", () => {
     context("when the spender is the zero address", () => {
       it("should revert", async () => {
         await expect(
-          bank.connect(owner).decreaseBalanceAllowance(ZERO_ADDRESS, to1e18(1))
+          bank
+            .connect(owner)
+            .decreaseBalanceAllowance(ZERO_ADDRESS, toSatoshis(1))
         ).to.be.revertedWith("Can not decrease balance allowance below zero")
       })
     })
@@ -598,13 +600,13 @@ describe("Bank", () => {
     context("when the spender had no approved balance before", () => {
       it("should revert", async () => {
         await expect(
-          bank.connect(owner).decreaseBalanceAllowance(spender, to1e18(1))
+          bank.connect(owner).decreaseBalanceAllowance(spender, toSatoshis(1))
         ).to.be.revertedWith("Can not decrease balance allowance below zero")
       })
     })
 
     context("when the spender had an approved balance before", () => {
-      const decreaseBy = to1e18(3)
+      const decreaseBy = toSatoshis(3)
 
       before(async () => {
         await createSnapshot()
@@ -626,8 +628,8 @@ describe("Bank", () => {
   })
 
   describe("transferBalanceFrom", () => {
-    const initialBalance = to1e18(500)
-    const approvedBalance = to1e18(45)
+    const initialBalance = toSatoshis(500)
+    const approvedBalance = toSatoshis(45)
 
     let owner: SignerWithAddress
     let spender: SignerWithAddress
@@ -710,7 +712,7 @@ describe("Bank", () => {
     })
 
     context("when the spender transfers part of the approved balance", () => {
-      const amount = to1e18(2)
+      const amount = toSatoshis(2)
       let tx: ContractTransaction
 
       before(async () => {
@@ -747,8 +749,8 @@ describe("Bank", () => {
     context(
       "when the spender transfers part of the approved balance in two transactions",
       () => {
-        const amount1 = to1e18(1)
-        const amount2 = to1e18(3)
+        const amount1 = toSatoshis(1)
+        const amount2 = toSatoshis(3)
 
         let tx1: ContractTransaction
         let tx2: ContractTransaction
@@ -853,7 +855,7 @@ describe("Bank", () => {
 
     context("when given the maximum allowance", () => {
       const allowance = MAX_UINT256
-      const amount = to1e18(21)
+      const amount = toSatoshis(21)
 
       before(async () => {
         await createSnapshot()
@@ -880,8 +882,8 @@ describe("Bank", () => {
   })
 
   describe("permit", () => {
-    const initialBalance = to1e18(1231)
-    const permittedBalance = to1e18(45)
+    const initialBalance = toSatoshis(1231)
+    const permittedBalance = toSatoshis(45)
 
     let owner: Wallet
     let spender: string
@@ -1146,13 +1148,13 @@ describe("Bank", () => {
         await createSnapshot()
         const deadline = tomorrow
 
-        let signature = await getApproval(to1e18(1337), spender, deadline)
+        let signature = await getApproval(toSatoshis(1337), spender, deadline)
         await bank
           .connect(thirdParty)
           .permit(
             owner.address,
             spender,
-            to1e18(1337),
+            toSatoshis(1337),
             deadline,
             signature.v,
             signature.r,
@@ -1232,7 +1234,7 @@ describe("Bank", () => {
   })
 
   describe("increaseBalance", () => {
-    const amount = to1e18(10)
+    const amount = toSatoshis(10)
     let recipient: string
 
     before(async () => {
@@ -1287,9 +1289,9 @@ describe("Bank", () => {
   })
 
   describe("increaseBalances", () => {
-    const amount1 = to1e18(12)
-    const amount2 = to1e18(15)
-    const amount3 = to1e18(17)
+    const amount1 = toSatoshis(12)
+    const amount2 = toSatoshis(15)
+    const amount3 = toSatoshis(17)
 
     let recipient1: string
     let recipient2: string
@@ -1396,9 +1398,9 @@ describe("Bank", () => {
     const depositor1 = "0x30c371E0651B2Ff6062158ca1D95b07C7531c719"
     const depositor2 = "0xb3464806d680722dBc678996F1670D19A42eA3e9"
 
-    const depositedAmount1 = to1e18(19)
-    const depositedAmount2 = to1e18(11)
-    const totalDepositedAmount = to1e18(30) // 19 + 11
+    const depositedAmount1 = toSatoshis(19)
+    const depositedAmount2 = toSatoshis(11)
+    const totalDepositedAmount = toSatoshis(30) // 19 + 11
 
     let vault
     let tbtc
@@ -1501,16 +1503,16 @@ describe("Bank", () => {
       })
 
       it("should call the vault", async () => {
-        expect(await tbtc.balanceOf(depositor1)).to.equal(depositedAmount1)
-        expect(await tbtc.balanceOf(depositor2)).to.equal(depositedAmount2)
-        expect(await tbtc.totalSupply()).to.equal(totalDepositedAmount)
+        expect(await tbtc.balanceOf(depositor1)).to.equal(to1e18(19))
+        expect(await tbtc.balanceOf(depositor2)).to.equal(to1e18(11))
+        expect(await tbtc.totalSupply()).to.equal(to1e18(30)) // 19 + 11
       })
     })
   })
 
   describe("decreaseBalance", () => {
-    const initialBalance = to1e18(21)
-    const amount = to1e18(10)
+    const initialBalance = toSatoshis(21)
+    const amount = toSatoshis(10)
 
     let tx: ContractTransaction
 

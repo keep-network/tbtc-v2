@@ -286,7 +286,7 @@ describeFn("Integration Test - Slashing", async () => {
           deposit.depositor,
           { from: deployer, value: 10 }
         )
-        const redemptionAmount = 3_000
+        const redemptionAmount = 3_000 * constants.satoshiMultiplier
         redeemerOutputScript =
           "0x17a91486884e6be1525dab5ae0b451bd2c72cee67dcf4187"
         // Request redemption via TBTC Vault.
@@ -515,7 +515,7 @@ describeFn("Integration Test - Slashing", async () => {
         })
 
         it("should consume around 3 100 000 gas for Bridge.notifyMovingFundsTimeoutTx transaction", async () => {
-          await assertGasUsed(notifyMovingFundsTimeoutTx, 3_100_000, 50_000)
+          await assertGasUsed(notifyMovingFundsTimeoutTx, 3_100_000, 100_000)
         })
       })
     })

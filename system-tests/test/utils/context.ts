@@ -95,6 +95,8 @@ export async function setupSystemTestsContext(): Promise<SystemTestsContext> {
     - Electrum URL: ${electrumUrl}
     - Ethereum network: ${network.name}
     - Bridge address ${deployedContracts.Bridge.address}
+    - TBTCVault address ${deployedContracts.TBTCVault.address}
+    - TBTC token address ${deployedContracts.TBTC.address}
     - Governance Ethereum address ${governance.address}
     - Maintainer Ethereum address ${maintainer.address}
     - Depositor Ethereum address ${depositor.address}
