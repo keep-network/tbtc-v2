@@ -18,12 +18,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     waitConfirmations: 1,
   })
 
-  await helpers.ownable.transferOwnership(
-    "TBTC",
-    vendingMachine.address,
-    deployer
-  )
-
   if (hre.network.tags.etherscan) {
     await helpers.etherscan.verify(vendingMachine)
   }

@@ -1,15 +1,26 @@
-import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
+import {
+  Bridge as ChainBridge,
+  TBTCVault as ChainTBTCVault,
+  Identifier as ChainIdentifier,
+} from "./chain"
 import {
   BigNumber,
   constants,
   Contract as EthersContract,
+  Event as EthersEvent,
   providers,
   Signer,
   utils,
 } from "ethers"
+import { BlockTag as EthersBlockTag } from "@ethersproject/abstract-provider"
 import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
-import { DepositScriptParameters, RevealedDeposit } from "./deposit"
+import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
+import {
+  DepositScriptParameters,
+  RevealedDeposit,
+  DepositRevealedEvent,
+} from "./deposit"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -19,9 +30,29 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
+import type {
+  OptimisticMintingRequest,
+  OptimisticMintingRequestedEvent,
+} from "./optimistic-minting"
 
-import type { Bridge as ContractBridge } from "../typechain/Bridge"
+import type {
+  Bridge as ContractBridge,
+  Deposit as ContractDeposit,
+  Redemption as ContractRedemption,
+} from "../typechain/Bridge"
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
+import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
+import { Hex } from "./hex"
+
+type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
+
+type ContractRedemptionRequest =
+  ContractRedemption.RedemptionRequestStructOutput
+
+type ContractOptimisticMintingRequest = {
+  requestedAt: BigNumber
+  finalizedAt: BigNumber
+}
 
 /**
  * Contract deployment artifact.
@@ -50,9 +81,11 @@ export interface Deployment {
 /**
  * Represents an Ethereum address.
  */
+// TODO: Make Address extends Hex
 export class Address implements ChainIdentifier {
   readonly identifierHex: string
 
+  // TODO: Make constructor private
   constructor(address: string) {
     let validAddress: string
 
@@ -63,6 +96,15 @@ export class Address implements ChainIdentifier {
     }
 
     this.identifierHex = validAddress.substring(2).toLowerCase()
+  }
+
+  static from(address: string): Address {
+    return new Address(address)
+  }
+
+  // TODO: Remove once extends Hex
+  equals(otherValue: Address): boolean {
+    return this.identifierHex === otherValue.identifierHex
   }
 }
 
@@ -118,7 +160,42 @@ class EthereumContract<T extends EthersContract> {
     this._deployedAtBlockNumber =
       config.deployedAtBlockNumber ?? deployment.receipt.blockNumber
   }
+
+  /**
+   * Get address of the contract instance.
+   * @returns Address of this contract instance.
+   */
+  getAddress(): Address {
+    return Address.from(this._instance.address)
+  }
+
+  /**
+   * Get events emitted by the Ethereum contract.
+   * @param eventName Name of the event.
+   * @param fromBlock Block number from which events should be queried. Optional
+   *        parameter, by default block number of the contract deployment is used.
+   * @param toBlock Block number to which events should be queried. Optional
+   *        parameter, by efault the latest block is used.
+   * @param filterArgs Arguments for events filtering.
+   * @returns Array of found events.
+   */
+  async getEvents(
+    eventName: string,
+    fromBlock?: EthersBlockTag,
+    toBlock?: EthersBlockTag,
+    ...filterArgs: Array<any>
+  ): Promise<EthersEvent[]> {
+    // TODO: Test if we need a workaround for querying events from big range in chunks,
+    // see: https://github.com/keep-network/tbtc-monitoring/blob/e169357d7b8c638d4eaf73d52aa8f53ee4aebc1d/src/lib/ethereum-helper.js#L44-L73
+    return await this._instance.queryFilter(
+      this._instance.filters[eventName](...filterArgs),
+      fromBlock ?? this._deployedAtBlockNumber,
+      toBlock ?? "latest"
+    )
+  }
 }
+
+// TODO: Refactor code structure as discussed in https://github.com/keep-network/tbtc-v2/pull/460#discussion_r1063383624.
 
 /**
  * Implementation of the Ethereum Bridge handle.
@@ -134,6 +211,47 @@ export class Bridge
 
   // eslint-disable-next-line valid-jsdoc
   /**
+   * @see {ChainBridge#getDepositRevealedEvents}
+   */
+  async getDepositRevealedEvents(
+    fromBlock?: number,
+    toBlock?: number,
+    ...filterArgs: Array<any>
+  ): Promise<DepositRevealedEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "DepositRevealed",
+      fromBlock,
+      toBlock,
+      ...filterArgs
+    )
+
+    return events.map<DepositRevealedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        fundingTxHash: TransactionHash.from(
+          event.args!.fundingTxHash
+        ).reverse(),
+        fundingOutputIndex: BigNumber.from(
+          event.args!.fundingOutputIndex
+        ).toNumber(),
+        depositor: new Address(event.args!.depositor),
+        amount: BigNumber.from(event.args!.amount),
+        blindingFactor: Hex.from(event.args!.blindingFactor).toString(),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
+        refundPublicKeyHash: Hex.from(event.args!.refundPubKeyHash).toString(),
+        refundLocktime: Hex.from(event.args!.refundLocktime).toString(),
+        vault:
+          event.args!.vault === constants.AddressZero
+            ? undefined
+            : new Address(event.args!.vault),
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
    * @see {ChainBridge#pendingRedemptions}
    */
   async pendingRedemptions(
@@ -145,7 +263,8 @@ export class Bridge
       redeemerOutputScript
     )
 
-    const request = await this._instance.pendingRedemptions(redemptionKey)
+    const request: ContractRedemptionRequest =
+      await this._instance.pendingRedemptions(redemptionKey)
 
     return this.parseRedemptionRequest(request, redeemerOutputScript)
   }
@@ -209,7 +328,7 @@ export class Bridge
    * @returns Parsed redemption request.
    */
   private parseRedemptionRequest(
-    request: any,
+    request: ContractRedemptionRequest,
     redeemerOutputScript: string
   ): RedemptionRequest {
     return {
@@ -393,7 +512,9 @@ export class Bridge
   ): Promise<RevealedDeposit> {
     const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
 
-    const deposit = await this._instance.deposits(depositKey)
+    const deposit: ContractDepositRequest = await this._instance.deposits(
+      depositKey
+    )
 
     return this.parseRevealedDeposit(deposit)
   }
@@ -424,7 +545,9 @@ export class Bridge
    * @param deposit Data of the revealed deposit.
    * @returns Parsed revealed deposit.
    */
-  private parseRevealedDeposit(deposit: any): RevealedDeposit {
+  private parseRevealedDeposit(
+    deposit: ContractDepositRequest
+  ): RevealedDeposit {
     return {
       depositor: new Address(deposit.depositor),
       amount: BigNumber.from(deposit.amount),
@@ -492,5 +615,166 @@ class WalletRegistry extends EthereumContract<ContractWalletRegistry> {
   async getWalletPublicKey(walletID: string): Promise<string> {
     const publicKey = await this._instance.getWalletPublicKey(walletID)
     return publicKey.substring(2)
+  }
+}
+
+/**
+ * Implementation of the Ethereum TBTCVault handle.
+ */
+export class TBTCVault
+  extends EthereumContract<ContractTBTCVault>
+  implements ChainTBTCVault
+{
+  constructor(config: ContractConfig) {
+    super(config, TBTCVaultDeployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#optimisticMintingDelay}
+   */
+  async optimisticMintingDelay(): Promise<number> {
+    const delaySeconds = await this._instance.optimisticMintingDelay()
+
+    return BigNumber.from(delaySeconds).toNumber()
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#getMinters}
+   */
+  async getMinters(): Promise<Address[]> {
+    const minters: string[] = await this._instance.getMinters()
+
+    return minters.map(Address.from)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#isMinter}
+   */
+  async isMinter(address: Address): Promise<boolean> {
+    return await this._instance.isMinter(`0x${address.identifierHex}`)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#isGuardian}
+   */
+  async isGuardian(address: Address): Promise<boolean> {
+    return await this._instance.isGuardian(`0x${address.identifierHex}`)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#requestOptimisticMint}
+   */
+  async requestOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<Hex> {
+    const tx = await this._instance.requestOptimisticMint(
+      depositTxHash.reverse().toPrefixedString(),
+      depositOutputIndex
+    )
+
+    return Hex.from(tx.hash)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#cancelOptimisticMint}
+   */
+  async cancelOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<Hex> {
+    const tx = await this._instance.cancelOptimisticMint(
+      depositTxHash.reverse().toPrefixedString(),
+      depositOutputIndex
+    )
+
+    return Hex.from(tx.hash)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#finalizeOptimisticMint}
+   */
+  async finalizeOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<Hex> {
+    const tx = await this._instance.finalizeOptimisticMint(
+      depositTxHash.reverse().toPrefixedString(),
+      depositOutputIndex
+    )
+
+    return Hex.from(tx.hash)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#optimisticMintingRequests}
+   */
+  async optimisticMintingRequests(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<OptimisticMintingRequest> {
+    const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
+
+    const request: ContractOptimisticMintingRequest =
+      await this._instance.optimisticMintingRequests(depositKey)
+
+    return this.parseOptimisticMintingRequest(request)
+  }
+
+  /**
+   * Parses a optimistic minting request using data fetched from the on-chain contract.
+   * @param request Data of the optimistic minting request.
+   * @returns Parsed optimistic minting request.
+   */
+  private parseOptimisticMintingRequest(
+    request: ContractOptimisticMintingRequest
+  ): OptimisticMintingRequest {
+    return {
+      requestedAt: BigNumber.from(request.requestedAt).toNumber(),
+      finalizedAt: BigNumber.from(request.finalizedAt).toNumber(),
+    }
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingRequestedEvents}
+   */
+  async getOptimisticMintingRequestedEvents(
+    fromBlock?: number,
+    toBlock?: number,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingRequestedEvent[]> {
+    const events = await this.getEvents(
+      "OptimisticMintingRequested",
+      fromBlock,
+      toBlock,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingRequestedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        minter: new Address(event.args!.minter),
+        depositKey: BigNumber.from(event.args!.depositKey),
+        depositor: new Address(event.args!.depositor),
+        amount: BigNumber.from(event.args!.amount),
+        fundingTxHash: TransactionHash.from(
+          event.args!.fundingTxHash
+        ).reverse(),
+        fundingOutputIndex: BigNumber.from(
+          event.args!.fundingOutputIndex
+        ).toNumber(),
+      }
+    })
   }
 }

@@ -61,3 +61,59 @@ jobs:
           DEPOSITOR_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_DEPOSITOR_PRIVATE_KEY_WIF }}
         run: |
           yarn test ./test/deposit-redemption.test.ts --network $ETH_NETWORK
+
+  system-tests-minting-unminting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "14.x"
+          cache: "yarn"
+          cache-dependency-path: system-tests/yarn.lock
+
+      - name: Configure git to not use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
+      - name: Install solidity dependencies
+        working-directory: ./solidity
+        run: yarn install
+
+      - name: Run ethereum node
+        working-directory: ./solidity
+        run: |
+          npx hardhat node --no-deploy &
+          HH_NODE_PID=$!
+          while ! lsof -n -Fn -p $HH_NODE_PID | grep -q '^n.*:8545$'; do sleep 10; done
+
+      - name: Deploy contracts
+        working-directory: ./solidity
+        env:
+          ETH_NETWORK: system_tests
+        run: |
+          USE_EXTERNAL_DEPLOY=true npx hardhat deploy --network $ETH_NETWORK --export export.json
+
+      - name: Setup scenario prerequisites
+        working-directory: ./solidity
+        env:
+          WALLET_PUBLIC_KEY: ${{ secrets.SYSTEM_TESTS_WALLET_PUBLIC_KEY }}
+          ETH_NETWORK: system_tests
+        run: |
+          npx hardhat test-utils:register-operators --network $ETH_NETWORK
+          npx hardhat test-utils:create-wallet --wallet-public-key $WALLET_PUBLIC_KEY --network $ETH_NETWORK
+
+      - name: Install system tests dependencies
+        working-directory: ./system-tests
+        run: yarn install
+
+      - name: Run scenario
+        working-directory: ./system-tests
+        env:
+          ETH_NETWORK: system_tests
+          ELECTRUM_URL: ${{ secrets.SYSTEM_TESTS_ELECTRUM_URL }}
+          CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH: ../solidity/export.json
+          WALLET_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_WALLET_PRIVATE_KEY_WIF }}
+          DEPOSITOR_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_DEPOSITOR_PRIVATE_KEY_WIF }}
+        run: |
+          yarn test ./test/minting-unminting.test.ts --network $ETH_NETWORK
