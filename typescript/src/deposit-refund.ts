@@ -75,7 +75,7 @@ export async function submitDepositRefundTransaction(
  * @param utxo - UTXO that was created during depositing that needs be refunded.
  * @param deposit - Details of the deposit being refunded. It should contain
  *        the same data that was used during depositing.
- * @param recipientAddress - Address the recipient of the refunded deposit.
+ * @param refunderAddress - Address the recipient of the refunded deposit.
  * @param refunderPrivateKey - Bitcoin private key of the refunder. It must
  *        correspond to the `refundPublicKeyHash` of the deposit script.
  * @returns The outcome consisting of:
@@ -86,20 +86,20 @@ export async function assembleDepositRefundTransaction(
   fee: BigNumber,
   utxo: UnspentTransactionOutput & RawTransaction,
   deposit: Deposit,
-  recipientAddress: string,
+  refunderAddress: string,
   refunderPrivateKey: string
 ): Promise<{
   transactionHash: TransactionHash
   rawTransaction: RawTransaction
 }> {
-  validateInputParameters(recipientAddress, refunderPrivateKey, deposit, utxo)
+  validateInputParameters(refunderAddress, refunderPrivateKey, deposit, utxo)
 
   const refunderKeyRing = createKeyRing(refunderPrivateKey)
 
   const transaction = new bcoin.MTX()
 
   transaction.addOutput({
-    script: bcoin.Script.fromAddress(recipientAddress),
+    script: bcoin.Script.fromAddress(refunderAddress),
     value: utxo.value.toNumber(),
   })
 
@@ -110,7 +110,7 @@ export async function assembleDepositRefundTransaction(
   )
 
   await transaction.fund([inputCoin], {
-    changeAddress: recipientAddress,
+    changeAddress: refunderAddress,
     hardFee: fee.toNumber(),
     subtractFee: true,
   })
