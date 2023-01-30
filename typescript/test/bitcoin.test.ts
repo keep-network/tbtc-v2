@@ -134,7 +134,7 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             expect(() =>
               decodeBitcoinAddress("3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX")
-            ).to.throw("address must be P2PKH or P2WPKH")
+            ).to.throw("Address must be P2PKH or P2WPKH")
           })
         })
 
@@ -144,7 +144,7 @@ describe("Bitcoin", () => {
               decodeBitcoinAddress(
                 "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m"
               )
-            ).to.throw("address must be P2PKH or P2WPKH")
+            ).to.throw("Address must be P2PKH or P2WPKH")
           })
         })
       })
@@ -178,7 +178,7 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             expect(() =>
               decodeBitcoinAddress("2MyxShnGQ5NifGb8CHYrtmzosRySxZ9pZo5")
-            ).to.throw("address must be P2PKH or P2WPKH")
+            ).to.throw("Address must be P2PKH or P2WPKH")
           })
         })
 
@@ -188,7 +188,7 @@ describe("Bitcoin", () => {
               decodeBitcoinAddress(
                 "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05"
               )
-            ).to.throw("address must be P2PKH or P2WPKH")
+            ).to.throw("Address must be P2PKH or P2WPKH")
           })
         })
       })

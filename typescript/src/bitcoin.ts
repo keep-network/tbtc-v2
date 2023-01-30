@@ -401,7 +401,7 @@ export function decodeBitcoinAddress(address: string): string {
   const isPKH =
     addressObject.isPubkeyhash() || addressObject.isWitnessPubkeyhash()
   if (!isPKH) {
-    throw new Error("address must be P2PKH or P2WPKH")
+    throw new Error("Address must be P2PKH or P2WPKH")
   }
 
   return addressObject.getHash("hex")
