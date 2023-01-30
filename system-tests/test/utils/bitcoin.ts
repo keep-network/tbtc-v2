@@ -169,7 +169,9 @@ export class RetryingBitcoinClient implements BitcoinClient {
         // eslint-disable-next-line no-await-in-loop
         return await fn()
       } catch (error) {
-        const backoffMillis = 2 ** attempt * 1000
+        // Use 10k millis as multiplier to get longer delays that are more
+        // suitable for this use case.
+        const backoffMillis = 2 ** attempt * 10000
         const jitterMillis = Math.floor(Math.random() * 100)
         const waitMillis = backoffMillis + jitterMillis
 
