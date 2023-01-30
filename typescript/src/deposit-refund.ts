@@ -219,14 +219,14 @@ async function prepareInputSignData(
  * @param inputIndex - Index that points to the input to be signed.
  * @param deposit - Data of the deposit.
  * @param refunderKeyRing - Key ring created using the refunder's private key.
- * @returns Empty promise.
+ * @returns Empty return.
  */
 async function signP2SHDepositInput(
   transaction: any,
   inputIndex: number,
   deposit: Deposit,
   refunderKeyRing: any
-): Promise<void> {
+) {
   const { refunderPublicKey, depositScript, previousOutputValue } =
     await prepareInputSignData(
       transaction,
@@ -260,14 +260,14 @@ async function signP2SHDepositInput(
  * @param inputIndex - Index that points to the input to be signed.
  * @param deposit - Data of the deposit.
  * @param refunderKeyRing - Key ring created using the refunder's private key.
- * @returns Empty promise.
+ * @returns Empty return.
  */
 async function signP2WSHDepositInput(
   transaction: any,
   inputIndex: number,
   deposit: Deposit,
   refunderKeyRing: any
-): Promise<void> {
+) {
   const { refunderPublicKey, depositScript, previousOutputValue } =
     await prepareInputSignData(
       transaction,
