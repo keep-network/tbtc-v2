@@ -163,12 +163,4 @@ describe("Sweep", () => {
   describe("assembleDepositRefundTransaction", () => {
     // TODO
   })
-
-  describe("prepareUnsignedDepositRefundTransaction", () => {
-    // TODO
-  })
-
-  describe("prepareSignedDepositRefundTransaction", () => {
-    // TODO
-  })
 })
