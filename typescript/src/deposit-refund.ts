@@ -26,8 +26,8 @@ import {
  *        the same data that was used during depositing.
  * @param refunderAddress - Recipient Bitcoin wallet address of the refunded
  *        deposit.
- * @param refunderPrivateKey - Bitcoin private key of the refunder. It must
- *        correspond to the `refundPublicKeyHash` of the deposit script.
+ * @param refunderPrivateKey - Bitcoin wallet private key of the refunder.
+ *        It must correspond to the `refundPublicKeyHash` of the deposit script.
  * @returns The outcome is the deposit refund transaction hash.
  * @dev This function should be called by the refunder after `refundLocktime`
  *      plus about 1 hour. The additional hour of waiting is the result of
@@ -78,8 +78,8 @@ export async function submitDepositRefundTransaction(
  *        the same data that was used during depositing.
  * @param refunderAddress - Recipient Bitcoin wallet address of the refunded
  *        deposit.
- * @param refunderPrivateKey - Bitcoin private key of the refunder. It must
- *        correspond to the `refundPublicKeyHash` of the deposit script.
+ * @param refunderPrivateKey - Bitcoin wallet private key of the refunder.
+ *        It must correspond to the `refundPublicKeyHash` of the deposit script.
  * @returns The outcome consisting of:
  *          - the deposit refund transaction hash,
  *          - the refund transaction in the raw format.
@@ -313,7 +313,7 @@ function locktimeToUnixTimestamp(locktime: string): number {
  * Validates whether the provided input parameters are correct.
  * @param refunderAddress - Recipient Bitcoin wallet address of the refunded
  *        deposit.
- * @param refunderPrivateKey - Bitcoin private key of the refunder.
+ * @param refunderPrivateKey - Bitcoin wallet private key of the refunder.
  * @param deposit - Data of the deposit to be refunded.
  * @param utxo - UTXO that was created during depositing that needs be refunded.
  * @returns Empty return.
