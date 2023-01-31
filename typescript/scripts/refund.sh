@@ -19,19 +19,21 @@ ELECTRUM_PROTOCOL_DEFAULT="wss"
 help() {
   echo -e "\nUsage: $0" \
     "--deposit-json-path <deposit-JSON-file-path>" \
-    "--amount <amount>" \
-    "--transaction-id <transaction-id>" \
-    "--private-key <btc-wallet-private-key>" \
+    "--deposit-transaction-amount <deposit-transaction-amount>" \
+    "--deposit-transaction-id <deposit-transaction-id>" \
+    "--deposit-transaction-index <deposit-transaction-index>" \
+    "--private-key <recoverer-private-key>" \
     "--transaction-fee <transaction-fee>" \
     "--electrum-host <electrum-host>" \
     "--electrum-port <electrum-port>" \
     "--electrum-protocol <electrum-protocol>"
   echo -e "\nRequired command line arguments:\n"
   echo -e "\t--deposit-json-path: Deposit JSON file path"
-  echo -e "\t--amount: Amount of BTC to refund in satoshi"
-  echo -e "\t--transaction-id: Transaction ID/hash of the original deposit"
+  echo -e "\t--deposit-transaction-amount: Amount of BTC to recover in satoshi. Must match the original deposit amount."
+  echo -e "\t--deposit-transaction-id: Transaction ID/hash of the original deposit"
+  echo -e "\t--deposit-transaction-index: Deposit transaction index"
   echo -e "\t--private-key: Private key of the BTC recovery wallet"
-  echo -e "\t--transaction-fee: Refund transaction fee that a user is willing to pay"
+  echo -e "\t--transaction-fee: Recovery transaction fee that a user is willing to pay"
   echo -e "\nOptional command line arguments:\n"
   echo -e "\t--host: Electrum host. Default: ${ELECTRUM_HOST_DEFAULT}"
   echo -e "\t--port: Electrum port. Default: ${ELECTRUM_PORT_DEFAULT}"
@@ -45,8 +47,9 @@ for arg in "$@"; do
   shift
   case "$arg" in
   "--deposit-json-path") set -- "$@" "-d" ;;
-  "--amount") set -- "$@" "-a" ;;
-  "--transaction-id") set -- "$@" "-t" ;;
+  "--deposit-amount") set -- "$@" "-a" ;;
+  "--deposit-transaction-id") set -- "$@" "-t" ;;
+  "--deposit-transaction-index") set -- "$@" "-i" ;;
   "--private-key") set -- "$@" "-k" ;;
   "--transaction-fee") set -- "$@" "-f" ;;
   "--host") set -- "$@" "-o" ;;
@@ -59,11 +62,12 @@ done
 
 # Parse short options
 OPTIND=1
-while getopts "d:a:t:k:f:o:p:r:h" opt; do
+while getopts "d:a:t:i:k:f:o:p:r:h" opt; do
   case "$opt" in
   d) deposit_json_path="$OPTARG" ;;
-  a) amount="$OPTARG" ;;
-  t) transaction_id="$OPTARG" ;;
+  a) deposit_amount="$OPTARG" ;;
+  t) deposit_transaction_id="$OPTARG" ;;
+  i) deposit_transaction_index="$OPTARG" ;;
   k) private_key="$OPTARG" ;;
   f) transaction_fee="$OPTARG" ;;
   o) host="$OPTARG" ;;
@@ -76,8 +80,9 @@ done
 shift $(expr $OPTIND - 1) # remove options from positional parameters
 
 DEPOSIT_PATH=${deposit_json_path:-""}
-AMOUNT=${amount:-""}
-TRANSACTION_ID=${transaction_id:-""}
+DEPOSIT_AMOUNT=${deposit_amount:-""}
+DEPOSIT_TRANSACTION_ID=${deposit_transaction_id:-""}
+DEPOSIT_TRANSACTION_INDEX=${deposit_transaction_index:-""}
 PRIVATE_KEY=${private_key:-""}
 TRANSACTION_FEE=${transaction_fee:-""}
 HOST=${host:-${ELECTRUM_HOST_DEFAULT}}
@@ -89,18 +94,23 @@ if [ "$DEPOSIT_PATH" == "" ]; then
   help
 fi
 
-if [ "$AMOUNT" == "" ]; then
-  printf "${LOG_WARNING_START}Amount must be provided.${LOG_WARNING_END}"
+if [ "$DEPOSIT_AMOUNT" == "" ]; then
+  printf "${LOG_WARNING_START}Deposit amount must be provided.${LOG_WARNING_END}"
   help
 fi
 
-if [ "$TRANSACTION_ID" == "" ]; then
-  printf "${LOG_WARNING_START}Transaction ID must be provided.${LOG_WARNING_END}"
+if [ "$DEPOSIT_TRANSACTION_ID" == "" ]; then
+  printf "${LOG_WARNING_START}Deposit transaction ID must be provided.${LOG_WARNING_END}"
+  help
+fi
+
+if [ "$DEPOSIT_TRANSACTION_INDEX" == "" ]; then
+  printf "${LOG_WARNING_START}Deposit transaction index must be provided.${LOG_WARNING_END}"
   help
 fi
 
 if [ "$PRIVATE_KEY" == "" ]; then
-  printf "${LOG_WARNING_START}Wallet recovery private key must be provided.${LOG_WARNING_END}"
+  printf "${LOG_WARNING_START}Recoverer private key must be provided.${LOG_WARNING_END}"
   help
 fi
 
@@ -117,8 +127,9 @@ printf "${LOG_START}Recovering BTC...${LOG_END}"
 
 yarn refund \
   --deposit-json-path ${DEPOSIT_PATH} \
-  --amount ${AMOUNT} \
-  --transaction-id ${TRANSACTION_ID} \
+  --deposit-amount ${DEPOSIT_AMOUNT} \
+  --deposit-transaction-id ${DEPOSIT_TRANSACTION_ID} \
+  --deposit-transaction-index ${DEPOSIT_TRANSACTION_INDEX} \
   --private-key ${PRIVATE_KEY} \
   --transaction-fee ${TRANSACTION_FEE} \
   --host ${HOST} \

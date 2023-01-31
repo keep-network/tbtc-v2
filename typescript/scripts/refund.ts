@@ -19,12 +19,16 @@ program
     "deposit JSON file path"
   )
   .requiredOption(
-    "-a, --amount <amount-to-refund>",
+    "-a, --deposit-amount <amount-to-refund>",
     "amount of BTC to refund"
   )
   .requiredOption(
-    "-t, --transaction-id <transaction-id>",
+    "-t, --deposit-transaction-id <transaction-id>",
     "transaction id of the original deposit"
+  )
+  .requiredOption(
+    "-i, --deposit-transaction-index <transaction-index>",
+    "deposit transaction index"
   )
   .requiredOption(
     "-k, --private-key <private-key>",
@@ -35,15 +39,15 @@ program
     "recovery address of the BTC wallet"
   )
   .requiredOption(
-    "-o, --host <host>", 
+    "-o, --host <host>",
     "network name"
   )
   .requiredOption(
-    "-p, --port <port>", 
+    "-p, --port <port>",
     "network name"
   )
   .requiredOption(
-    "-r, --protocol <protocol>", 
+    "-r, --protocol <protocol>",
     "network name"
   )
   .parse(process.argv)
@@ -51,8 +55,9 @@ program
 // Parse the program options
 const options = program.opts()
 const depositJsonPath = options.depositJsonPath
-const refundAmount = options.amount // in satoshi
-const transactionId = options.transactionId
+const refundAmount = options.depositAmount // in satoshi
+const transactionId = options.depositTransactionId
+const transactionIndex = options.depositTransactionIndex
 const refunderPrivateKey = options.privateKey
 const fee = options.transactionFee
 const electrumCredentials = {
@@ -74,11 +79,12 @@ const deposit: Deposit = {
 const recoveryAddress = depositJson.btcRecoveryAddress
 
 console.log("======= refund provided data ========")
-console.log("depositJson..", deposit)
-console.log("refundAmount..", refundAmount)
-console.log("transactionId..", transactionId)
-console.log("recoveryAddress..", recoveryAddress)
-console.log("electrum credentials..", electrumCredentials)
+console.log("deposit JSON: ", deposit)
+console.log("deposit recovery amount: ", refundAmount)
+console.log("deposit transaction ID: ", transactionId)
+console.log("deposit transaction index: ", transactionIndex)
+console.log("recovery address: ", recoveryAddress)
+console.log("electrum credentials:", electrumCredentials)
 console.log("=====================================")
 
 async function run(): Promise<void> {
@@ -88,7 +94,7 @@ async function run(): Promise<void> {
     transactionHash: TransactionHash.from(
       transactionId
     ),
-    outputIndex: 0,
+    outputIndex: Number(transactionIndex),
     value: BigNumber.from(refundAmount),
   }
 
