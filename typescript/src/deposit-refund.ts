@@ -94,7 +94,7 @@ export async function assembleDepositRefundTransaction(
   transactionHash: TransactionHash
   rawTransaction: RawTransaction
 }> {
-  validateInputParameters(refunderAddress, refunderPrivateKey, deposit, utxo)
+  validateInputParameters(deposit, utxo)
 
   const refunderKeyRing = createKeyRing(refunderPrivateKey)
 
@@ -311,16 +311,11 @@ function locktimeToUnixTimestamp(locktime: string): number {
 
 /**
  * Validates whether the provided input parameters are correct.
- * @param refunderAddress - Recipient Bitcoin wallet address of the refunded
- *        deposit.
- * @param refunderPrivateKey - Bitcoin wallet private key of the refunder.
  * @param deposit - Data of the deposit to be refunded.
  * @param utxo - UTXO that was created during depositing that needs be refunded.
  * @returns Empty return.
  */
 function validateInputParameters(
-  refunderAddress: string,
-  refunderPrivateKey: string,
   deposit: Deposit,
   utxo: UnspentTransactionOutput
 ) {
@@ -328,12 +323,5 @@ function validateInputParameters(
 
   if (!deposit.amount.eq(utxo.value)) {
     throw new Error("Mismatch between provided deposit amount and utxo value")
-  }
-
-  if (
-    refunderAddress != createKeyRing(refunderPrivateKey, true).getAddress() &&
-    refunderAddress != createKeyRing(refunderPrivateKey, false).getAddress()
-  ) {
-    throw new Error("Provided refunder address does not belong to the refunder")
   }
 }
