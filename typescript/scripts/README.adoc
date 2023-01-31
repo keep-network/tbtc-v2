@@ -28,7 +28,7 @@ local disc. `git clone https://github.com/keep-network/tbtc-v2`
 
 Step 2. Navigate to a root directory and run the following command with your arguments:
 ```
-./typescript/scripts/refund.sh 
+./typescript/scripts/refund.sh \
     --deposit-json-path <deposit-JSON-file-path> \
     --deposit-amount <deposit-amount> \
     --deposit-transaction-id <deposit-transaction-id> \
