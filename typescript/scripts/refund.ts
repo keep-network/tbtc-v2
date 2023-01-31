@@ -1,16 +1,10 @@
 import { BigNumber } from "ethers"
 import { Deposit } from "../src/deposit"
 import { submitDepositRefundTransaction } from "../src/deposit-refund"
-import {
-  TransactionHash,
-  UnspentTransactionOutput,
-} from "../src/bitcoin"
-import {
-  Client as ElectrumClient,
-} from "../src/electrum"
+import { TransactionHash, UnspentTransactionOutput } from "../src/bitcoin"
+import { Client as ElectrumClient } from "../src/electrum"
 import { program } from "commander"
-import fs from 'fs'
-
+import fs from "fs"
 
 program
   .version("0.0.1")
@@ -38,18 +32,9 @@ program
     "-f, --transaction-fee <transaction-fee>",
     "recovery address of the BTC wallet"
   )
-  .requiredOption(
-    "-o, --host <host>",
-    "network name"
-  )
-  .requiredOption(
-    "-p, --port <port>",
-    "network name"
-  )
-  .requiredOption(
-    "-r, --protocol <protocol>",
-    "network name"
-  )
+  .requiredOption("-o, --host <host>", "network name")
+  .requiredOption("-p, --port <port>", "network name")
+  .requiredOption("-r, --protocol <protocol>", "network name")
   .parse(process.argv)
 
 // Parse the program options
@@ -63,10 +48,10 @@ const fee = options.transactionFee
 const electrumCredentials = {
   host: options.host,
   port: options.port,
-  protocol: options.protocol
+  protocol: options.protocol,
 }
 
-const depositJson = JSON.parse(fs.readFileSync(depositJsonPath, 'utf-8'))
+const depositJson = JSON.parse(fs.readFileSync(depositJsonPath, "utf-8"))
 
 const deposit: Deposit = {
   depositor: depositJson.depositor,
@@ -91,9 +76,7 @@ async function run(): Promise<void> {
   const client = new ElectrumClient(electrumCredentials)
 
   const depositUtxo: UnspentTransactionOutput = {
-    transactionHash: TransactionHash.from(
-      transactionId
-    ),
+    transactionHash: TransactionHash.from(transactionId),
     outputIndex: Number(transactionIndex),
     value: BigNumber.from(refundAmount),
   }
@@ -104,13 +87,10 @@ async function run(): Promise<void> {
     depositUtxo,
     deposit,
     recoveryAddress,
-    refunderPrivateKey,
+    refunderPrivateKey
   )
 
-  console.log(
-    "Refund transaction ID",
-    refundTxHash.transactionHash.toString()
-  )
+  console.log("Refund transaction ID", refundTxHash.transactionHash.toString())
 }
 
 ;(async () => {
