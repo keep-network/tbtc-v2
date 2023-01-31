@@ -9,35 +9,32 @@ LOG_WARNING_START='\n\e\033[33m' # new line + bold + warning color
 LOG_WARNING_END='\n\e\033[0m'    # new line + reset
 
 ROOT_PATH=$PWD
+TYPESCRIPT_DIR="typescript"
 
-NETWORK_DEFAULT="mainnet"
-ELECTRUM_HOST_DEFAULT="electrumx-server.test.tbtc.network"
-ELECTRUM_PORT_DEFAULT="8443"
-ELECTRUM_PROTOCOL_DEFAULT="wss"
-
+# Navigate to typescript dir
+cd $ROOT_PATH/$TYPESCRIPT_DIR
 
 help() {
   echo -e "\nUsage: $0" \
     "--deposit-json-path <deposit-JSON-file-path>" \
-    "--deposit-transaction-amount <deposit-transaction-amount>" \
+    "--deposit-amount <deposit-amount>" \
     "--deposit-transaction-id <deposit-transaction-id>" \
     "--deposit-transaction-index <deposit-transaction-index>" \
     "--private-key <recoverer-private-key>" \
     "--transaction-fee <transaction-fee>" \
-    "--electrum-host <electrum-host>" \
-    "--electrum-port <electrum-port>" \
-    "--electrum-protocol <electrum-protocol>"
+    "--electrum-host <client-host>" \
+    "--electrum-port <client-port>" \
+    "--electrum-protocol <client-protocol>"
   echo -e "\nRequired command line arguments:\n"
   echo -e "\t--deposit-json-path: Deposit JSON file path"
-  echo -e "\t--deposit-transaction-amount: Amount of BTC to recover in satoshi. Must match the original deposit amount."
+  echo -e "\t--deposit-amount: Amount of BTC to recover in satoshi. Must match the original deposit amount."
   echo -e "\t--deposit-transaction-id: Transaction ID/hash of the original deposit"
   echo -e "\t--deposit-transaction-index: Deposit transaction index"
   echo -e "\t--private-key: Private key of the BTC recovery wallet"
   echo -e "\t--transaction-fee: Recovery transaction fee that a user is willing to pay"
-  echo -e "\nOptional command line arguments:\n"
-  echo -e "\t--host: Electrum host. Default: ${ELECTRUM_HOST_DEFAULT}"
-  echo -e "\t--port: Electrum port. Default: ${ELECTRUM_PORT_DEFAULT}"
-  echo -e "\t--protocol: Electrum protocol. Default: ${ELECTRUM_PROTOCOL_DEFAULT}"
+  echo -e "\t--electrum-host: Electrum client host"
+  echo -e "\t--electrum-port: Electrum client port"
+  echo -e "\t--electrum-protocol: Electrum client protocol"
   echo -e ""
   exit 1 # Exit script after printing help
 }
@@ -52,9 +49,9 @@ for arg in "$@"; do
   "--deposit-transaction-index") set -- "$@" "-i" ;;
   "--private-key") set -- "$@" "-k" ;;
   "--transaction-fee") set -- "$@" "-f" ;;
-  "--host") set -- "$@" "-o" ;;
-  "--port") set -- "$@" "-p" ;;
-  "--protocol") set -- "$@" "-r" ;;
+  "--electrum-host") set -- "$@" "-o" ;;
+  "--electrum-port") set -- "$@" "-p" ;;
+  "--electrum-protocol") set -- "$@" "-r" ;;
   "--help") set -- "$@" "-h" ;;
   *) set -- "$@" "$arg" ;;
   esac
@@ -85,9 +82,9 @@ DEPOSIT_TRANSACTION_ID=${deposit_transaction_id:-""}
 DEPOSIT_TRANSACTION_INDEX=${deposit_transaction_index:-""}
 PRIVATE_KEY=${private_key:-""}
 TRANSACTION_FEE=${transaction_fee:-""}
-HOST=${host:-${ELECTRUM_HOST_DEFAULT}}
-PORT=${port:-${ELECTRUM_PORT_DEFAULT}}
-PROTOCOL=${protocol:-${ELECTRUM_PROTOCOL_DEFAULT}}
+HOST=${host:-""}
+PORT=${port:-""}
+PROTOCOL=${protocol:-""}
 
 if [ "$DEPOSIT_PATH" == "" ]; then
   printf "${LOG_WARNING_START}Deposit JSON path must be provided.${LOG_WARNING_END}"
@@ -116,6 +113,21 @@ fi
 
 if [ "$TRANSACTION_FEE" == "" ]; then
   printf "${LOG_WARNING_START}Transaction fee must be provided.${LOG_WARNING_END}"
+  help
+fi
+
+if [ "$HOST" == "" ]; then
+  printf "${LOG_WARNING_START}Electrum client host must be provided.${LOG_WARNING_END}"
+  help
+fi
+
+if [ "$PORT" == "" ]; then
+  printf "${LOG_WARNING_START}Electrum client port must be provided.${LOG_WARNING_END}"
+  help
+fi
+
+if [ "$PROTOCOL" == "" ]; then
+  printf "${LOG_WARNING_START}Electrum client protocol must be provided.${LOG_WARNING_END}"
   help
 fi
 
