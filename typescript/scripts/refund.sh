@@ -120,7 +120,7 @@ if [ "$TRANSACTION_FEE" == "" ]; then
 fi
 
 printf "${LOG_START}Installing yarn dependencies...${LOG_END}"
-# yarn install
+yarn install
 
 # Run script
 printf "${LOG_START}Recovering BTC...${LOG_END}"
