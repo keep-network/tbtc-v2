@@ -8,6 +8,12 @@ DONE_END='\n\n\e[0m'             # new line + reset
 LOG_WARNING_START='\n\e\033[33m' # new line + bold + warning color
 LOG_WARNING_END='\n\e\033[0m'    # new line + reset
 
+ROOT_PATH=$PWD
+TYPESCRIPT_DIR="typescript"
+
+# Navigate to typescript dir
+cd $ROOT_PATH/$TYPESCRIPT_DIR
+
 help() {
   echo -e "\nUsage: $0" \
     "--deposit-json-path <deposit-JSON-file-path>" \
