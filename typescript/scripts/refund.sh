@@ -11,7 +11,7 @@ LOG_WARNING_END='\n\e\033[0m'    # new line + reset
 help() {
   echo -e "\nUsage: $0" \
     "--deposit-json-path <deposit-JSON-file-path>" \
-    "--deposit-transaction-amount <deposit-transaction-amount>" \
+    "--deposit-amount <deposit-amount>" \
     "--deposit-transaction-id <deposit-transaction-id>" \
     "--deposit-transaction-index <deposit-transaction-index>" \
     "--private-key <recoverer-private-key>" \
@@ -21,7 +21,7 @@ help() {
     "--electrum-protocol <client-protocol>"
   echo -e "\nRequired command line arguments:\n"
   echo -e "\t--deposit-json-path: Deposit JSON file path"
-  echo -e "\t--deposit-transaction-amount: Amount of BTC to recover in satoshi. Must match the original deposit amount."
+  echo -e "\t--deposit-amount: Amount of BTC to recover in satoshi. Must match the original deposit amount."
   echo -e "\t--deposit-transaction-id: Transaction ID/hash of the original deposit"
   echo -e "\t--deposit-transaction-index: Deposit transaction index"
   echo -e "\t--private-key: Private key of the BTC recovery wallet"

@@ -30,7 +30,7 @@ Step 2. Navigate to a root directory and run the following command with your arg
 ```
 ./typescript/scripts/refund.sh 
     --deposit-json-path <deposit-JSON-file-path> \
-    --deposit-transaction-amount <deposit-transaction-amount> \
+    --deposit-amount <deposit-amount> \
     --deposit-transaction-id <deposit-transaction-id> \
     --deposit-transaction-index <deposit-transaction-index> \
     --private-key <recoverer-private-key> \
