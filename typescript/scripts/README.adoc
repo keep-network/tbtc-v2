@@ -53,9 +53,8 @@ partial refund.
 be retrieved from a bitcoin blockchain explorer. If it's first on the list then 
 the index is 0, if it's second then the index is 1, etc.
 - `private-key` A private key of the BTC recovery wallet. If you only have a 
-passphrase, one of the options is to extract your private keys by using 
-https://iancoleman.io/bip39/[iancoleman] website (can be extracted offline) or 
-desktop Electrum Wallet.
+passphrase, one of the options is to extract your private keys by using a
+mnemonic code converter website (can be extracted offline) or desktop Electrum Wallet.
 - `transaction-fee` A bitcoin chain transaction fee that you are willing to pay. 
 With a median transaction size at 255 bytes or 141 bytes segwit tx you should 
 expect to set a fee between 1300-2700 satoshis.
