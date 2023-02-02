@@ -14,7 +14,7 @@
     "typechain": "rm -rf ./typechain && for i in $npm_package_config_contracts; do typechain --target ethers-v5 --out-dir ./typechain $i; done && rm ./typechain/index.ts",
     "build": "npm run typechain && tsc --project tsconfig.build.json",
     "dev": "tsc --project tsconfig.build.json --watch",
-    "postinstall": "npm rebuild"
+    "postinstall": "npm rebuild bcrypto"
   },
   "files": [
     "dist/",
@@ -57,7 +57,7 @@
     "commander": "^9.4.0"
   },
   "engines": {
-    "node": ">= 14.0.0"
+    "node": ">=14 <15"
   },
   "browser": {
     "bcoin": "bcoin/lib/bcoin-browser"

@@ -4,6 +4,7 @@ import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
+import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -373,19 +374,20 @@ export function computeHash160(text: string): string {
  *        unprefixed hex string (without 0x prefix).
  * @param witness - If true, a witness public key hash will be encoded and
  *        P2WPKH address will be returned. Returns P2PKH address otherwise
- * @param network - Network that the address should be encoded for.
- *        For example, `main` or `testnet`.
+ * @param network - Network the address should be encoded for.
  * @returns P2PKH or P2WPKH address encoded from the given public key hash
+ * @throws Throws an error if network is not supported.
  */
 export function encodeToBitcoinAddress(
   publicKeyHash: string,
   witness: boolean,
-  network: string
+  network: BitcoinNetwork
 ): string {
   const buffer = Buffer.from(publicKeyHash, "hex")
+  const bcoinNetwork = toBcoinNetwork(network)
   return witness
-    ? bcoin.Address.fromWitnessPubkeyhash(buffer).toString(network)
-    : bcoin.Address.fromPubkeyhash(buffer).toString(network)
+    ? bcoin.Address.fromWitnessPubkeyhash(buffer).toString(bcoinNetwork)
+    : bcoin.Address.fromPubkeyhash(buffer).toString(bcoinNetwork)
 }
 
 /**
