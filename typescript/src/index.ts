@@ -50,7 +50,7 @@ export {
   locktimeToNumber as BitcoinLocktimeToNumber,
 } from "./bitcoin"
 
-export { BitcoinNetwork } from "./bitcoin/network"
+export { BitcoinNetwork } from "./bitcoin-network"
 
 export { Client as ElectrumClient } from "./electrum"
 

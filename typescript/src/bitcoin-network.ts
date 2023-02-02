@@ -1,4 +1,4 @@
-import { TransactionHash } from "../bitcoin"
+import { TransactionHash } from "./bitcoin"
 
 /**
  * Bitcoin networks.

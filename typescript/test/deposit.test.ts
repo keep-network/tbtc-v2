@@ -31,6 +31,7 @@ import {
 } from "../src/deposit"
 import { MockBridge } from "./utils/mock-bridge"
 import { Address } from "../src/ethereum"
+import { BitcoinNetwork } from "../src"
 
 describe("Deposit", () => {
   const depositCreatedAt: number = 1640181600
@@ -617,7 +618,7 @@ describe("Deposit", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
             depositScriptParameters,
-            "main",
+            BitcoinNetwork.Mainnet,
             true
           )
         })
@@ -635,7 +636,7 @@ describe("Deposit", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
             depositScriptParameters,
-            "main",
+            BitcoinNetwork.Mainnet,
             false
           )
         })
@@ -655,7 +656,7 @@ describe("Deposit", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
             depositScriptParameters,
-            "testnet",
+            BitcoinNetwork.Testnet,
             true
           )
         })
@@ -673,7 +674,7 @@ describe("Deposit", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
             depositScriptParameters,
-            "testnet",
+            BitcoinNetwork.Testnet,
             false
           )
         })
