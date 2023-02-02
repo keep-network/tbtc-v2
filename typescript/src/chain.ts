@@ -51,22 +51,39 @@ export interface Event {
   transactionHash: Hex
 }
 
-/**
- * Represents a generic function to get events emitted on the chain.
- */
-export interface GetEventsFunction<T extends Event> {
+export namespace GetEvents {
   /**
-   * Get emitted events.
-   * @param fromBlock Block number from which events should be queried.
-   *        If not defined a block number of a contract deployment is used.
-   * @param toBlock Block number to which events should be queried.
-   *        If not defined the latest block number will be used.
-   * @param filterArgs Arguments for events filtering.
-   * @returns Array of found events.
+   * Represents generic options used for getting events from the chain.
    */
-  (fromBlock?: number, toBlock?: number, ...filterArgs: Array<any>): Promise<
-    T[]
-  >
+  export interface Options {
+    /**
+     * Block number from which events should be queried.
+     * If not defined a block number of a contract deployment is used.
+     */
+    fromBlock?: number
+    /**
+     * Block number to which events should be queried.
+     * If not defined the latest block number will be used.
+     */
+    toBlock?: number
+    /**
+     * Number of retries in case of an error getting the events.
+     */
+    retries?: number
+  }
+
+  /**
+   * Represents a generic function to get events emitted on the chain.
+   */
+  export interface Function<T extends Event> {
+    /**
+     * Get emitted events.
+     * @param options Options for getting events.
+     * @param filterArgs Arguments for events filtering.
+     * @returns Array of found events.
+     */
+    (options?: Options, ...filterArgs: Array<any>): Promise<T[]>
+  }
 }
 
 /**
@@ -77,7 +94,7 @@ export interface Bridge {
    * Get emitted DepositRevealed events.
    * @see GetEventsFunction
    */
-  getDepositRevealedEvents: GetEventsFunction<DepositRevealedEvent>
+  getDepositRevealedEvents: GetEvents.Function<DepositRevealedEvent>
 
   /**
    * Submits a deposit sweep transaction proof to the on-chain contract.
@@ -291,5 +308,5 @@ export interface TBTCVault {
    * Get emitted OptimisticMintingRequested events.
    * @see GetEventsFunction
    */
-  getOptimisticMintingRequestedEvents: GetEventsFunction<OptimisticMintingRequestedEvent>
+  getOptimisticMintingRequestedEvents: GetEvents.Function<OptimisticMintingRequestedEvent>
 }
