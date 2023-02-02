@@ -2,7 +2,7 @@ import {
   Credentials as ElectrumCredentials,
   Client as ElectrumClient,
 } from "../src/electrum"
-import { BitcoinNetwork } from "../src/bitcoin/network"
+import { BitcoinNetwork } from "../src/bitcoin-network"
 import {
   testnetAddress,
   testnetHeadersChain,

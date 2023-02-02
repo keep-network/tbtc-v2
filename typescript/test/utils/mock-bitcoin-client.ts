@@ -1,4 +1,4 @@
-import { BitcoinNetwork } from "../../src/bitcoin/network"
+import { BitcoinNetwork } from "../../src/bitcoin-network"
 import {
   Client,
   UnspentTransactionOutput,

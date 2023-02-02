@@ -9,7 +9,7 @@ import {
   TransactionOutput,
   UnspentTransactionOutput,
 } from "./bitcoin"
-import { BitcoinNetwork } from "./bitcoin/network"
+import { BitcoinNetwork } from "./bitcoin-network"
 import Electrum from "electrum-client-js"
 import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
