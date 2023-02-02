@@ -23,6 +23,7 @@ import {
   RevealedDeposit,
   DepositRevealedEvent,
 } from "./deposit"
+import { sendWithRetry } from "./ethereum-helpers"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -387,11 +388,14 @@ export class Bridge
       vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
 
-    const tx = await backoffRetrier<ContractTransaction>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.revealDeposit(depositTxParam, revealParam)
-    })
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.revealDeposit(depositTxParam, revealParam)
+      },
+      this._totalRetryAttempts,
+      undefined,
+      ["Deposit already revealed"]
+    )
 
     return tx.hash
   }
@@ -431,16 +435,14 @@ export class Bridge
       ? `0x${vault.identifierHex}`
       : constants.AddressZero
 
-    await backoffRetrier<ContractTransaction>(this._totalRetryAttempts)(
-      async () => {
-        return await this._instance.submitDepositSweepProof(
-          sweepTxParam,
-          sweepProofParam,
-          mainUtxoParam,
-          vaultParam
-        )
-      }
-    )
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.submitDepositSweepProof(
+        sweepTxParam,
+        sweepProofParam,
+        mainUtxoParam,
+        vaultParam
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -485,16 +487,14 @@ export class Bridge
       rawRedeemerOutputScript,
     ]).toString("hex")}`
 
-    await backoffRetrier<ContractTransaction>(this._totalRetryAttempts)(
-      async () => {
-        return await this._instance.requestRedemption(
-          walletPublicKeyHash,
-          mainUtxoParam,
-          prefixedRawRedeemerOutputScript,
-          amount
-        )
-      }
-    )
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.requestRedemption(
+        walletPublicKeyHash,
+        mainUtxoParam,
+        prefixedRawRedeemerOutputScript,
+        amount
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -530,16 +530,14 @@ export class Bridge
 
     const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
 
-    await backoffRetrier<ContractTransaction>(this._totalRetryAttempts)(
-      async () => {
-        return await this._instance.submitRedemptionProof(
-          redemptionTxParam,
-          redemptionProofParam,
-          mainUtxoParam,
-          walletPublicKeyHash
-        )
-      }
-    )
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.submitRedemptionProof(
+        redemptionTxParam,
+        redemptionProofParam,
+        mainUtxoParam,
+        walletPublicKeyHash
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -741,14 +739,20 @@ export class TBTCVault
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<Hex> {
-    const tx = await backoffRetrier<ContractTransaction>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.requestOptimisticMint(
-        depositTxHash.reverse().toPrefixedString(),
-        depositOutputIndex
-      )
-    })
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.requestOptimisticMint(
+          depositTxHash.reverse().toPrefixedString(),
+          depositOutputIndex
+        )
+      },
+      this._totalRetryAttempts,
+      undefined,
+      [
+        "Optimistic minting already requested for the deposit",
+        "The deposit is already swept",
+      ]
+    )
 
     return Hex.from(tx.hash)
   }
@@ -761,14 +765,17 @@ export class TBTCVault
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<Hex> {
-    const tx = await backoffRetrier<ContractTransaction>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.cancelOptimisticMint(
-        depositTxHash.reverse().toPrefixedString(),
-        depositOutputIndex
-      )
-    })
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.cancelOptimisticMint(
+          depositTxHash.reverse().toPrefixedString(),
+          depositOutputIndex
+        )
+      },
+      this._totalRetryAttempts,
+      undefined,
+      ["Optimistic minting already finalized for the deposit"]
+    )
 
     return Hex.from(tx.hash)
   }
@@ -781,14 +788,20 @@ export class TBTCVault
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<Hex> {
-    const tx = await backoffRetrier<ContractTransaction>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.finalizeOptimisticMint(
-        depositTxHash.reverse().toPrefixedString(),
-        depositOutputIndex
-      )
-    })
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.finalizeOptimisticMint(
+          depositTxHash.reverse().toPrefixedString(),
+          depositOutputIndex
+        )
+      },
+      this._totalRetryAttempts,
+      undefined,
+      [
+        "Optimistic minting already finalized for the deposit",
+        "The deposit is already swept",
+      ]
+    )
 
     return Hex.from(tx.hash)
   }
