@@ -9,6 +9,7 @@ import {
   TransactionHash,
   isPublicKeyHashLength,
 } from "./bitcoin"
+import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
 import { Bridge, Event, Identifier } from "./chain"
 import { Hex } from "./hex"
 
@@ -353,21 +354,20 @@ export async function calculateDepositScriptHash(
  * Calculates a Bitcoin target address for P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
  * @param network - Network that the address should be created for.
- *        For example, `main` or `testnet`.
  * @param witness - If true, a witness address will be created.
  *        Otherwise, a legacy address will be made.
  * @returns Address as string.
  */
 export async function calculateDepositAddress(
   deposit: DepositScriptParameters,
-  network: string,
+  network: BitcoinNetwork,
   witness: boolean
 ): Promise<string> {
   const scriptHash = await calculateDepositScriptHash(deposit, witness)
   const address = witness
     ? bcoin.Address.fromWitnessScripthash(scriptHash)
     : bcoin.Address.fromScripthash(scriptHash)
-  return address.toString(network)
+  return address.toString(toBcoinNetwork(network))
 }
 
 /**
