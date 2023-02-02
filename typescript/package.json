@@ -1,10 +1,11 @@
 {
   "name": "@keep-network/tbtc-v2.ts",
-  "version": "1.0.0-dev",
+  "version": "1.1.0-dev",
   "license": "MIT",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
+    "refund": "ts-node --files ./scripts/refund.ts",
     "format": "yarn run lint && prettier --check .",
     "format:fix": "yarn run lint:fix && prettier --write .",
     "lint": "eslint . --ext .js,.ts",
@@ -17,6 +18,7 @@
   },
   "files": [
     "dist/",
+    "src/",
     "typechain/"
   ],
   "config": {
@@ -51,7 +53,8 @@
     "prettier": "^2.3.2",
     "ts-node": "^10.1.0",
     "typechain": "^8.1.1",
-    "typescript": "^4.3.5"
+    "typescript": "^4.3.5",
+    "commander": "^9.4.0"
   },
   "engines": {
     "node": ">= 14.0.0"

@@ -391,13 +391,21 @@ export function encodeToBitcoinAddress(
 }
 
 /**
- * Decodes P2PKH or P2WPKH address into a public key hash.
+ * Decodes P2PKH or P2WPKH address into a public key hash. Throws if the
+ * provided address is not PKH-based.
  * @param address - P2PKH or P2WPKH address that will be decoded.
  * @returns Public key hash decoded from the address. This will be an unprefixed
  *        hex string (without 0x prefix).
  */
 export function decodeBitcoinAddress(address: string): string {
   const addressObject = new bcoin.Address(address)
+
+  const isPKH =
+    addressObject.isPubkeyhash() || addressObject.isWitnessPubkeyhash()
+  if (!isPKH) {
+    throw new Error("Address must be P2PKH or P2WPKH")
+  }
+
   return addressObject.getHash("hex")
 }
 
