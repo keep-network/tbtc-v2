@@ -11,13 +11,35 @@ export function retryAll(error: any): true {
 }
 
 /**
+ * A matcher to specify list of error messages that should abort the retry loop
+ * and throw immediately.
+ * @param matchers List of patterns for error matching.
+ * @returns Matcher function that returns false if error matches one of the patterns.
+ *          True is returned if no matches are found and retry loop should continue
+ */
+export function skipRetryWhenMatched(
+  matchers: Array<string | RegExp>
+): ErrorMatcherFn {
+  return (err: unknown): boolean => {
+    if (err instanceof Error) {
+      for (const matcher of matchers) {
+        if (err.message.match(matcher)) {
+          return false
+        }
+      }
+    }
+    return true
+  }
+}
+
+/**
  * @callback ErrorMatcherFn A function that returns true if the passed error
  *           matches and false otherwise. Used to determine if a given error is
  *           eligible for retry in `withBackoffRetries`.
  * @param {Error} error The error to check for eligibility.
  * @return {boolean} True if the error matches, false otherwise.
  */
-type ErrorMatcherFn = (err: unknown) => boolean
+export type ErrorMatcherFn = (err: unknown) => boolean
 
 /**
  * @callback RetrierFn A function that can retry any function passed to it a
@@ -30,7 +52,7 @@ type ErrorMatcherFn = (err: unknown) => boolean
 /**
  * A function that is called with execution status messages.
  */
-type ExecutionLoggerFn = (msg: string) => void
+export type ExecutionLoggerFn = (msg: string) => void
 
 /**
  * Returns a retrier that can be passed a function to be retried `retries`
@@ -92,6 +114,6 @@ export function backoffRetrier<T>(
     }
 
     // Last attempt, unguarded.
-    return await fn()
+    return fn()
   }
 }
