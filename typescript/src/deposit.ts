@@ -1,24 +1,22 @@
 import bcoin from "bcoin"
-import { opcodes } from "bcoin/lib/script/common"
 import { BigNumber } from "ethers"
 import {
   Client as BitcoinClient,
-  computeHash160,
   decomposeRawTransaction,
-  isCompressedPublicKey,
   createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
   TransactionHash,
+  isPublicKeyHashLength,
 } from "./bitcoin"
-import { Bridge, Identifier } from "./chain"
+import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
+import { Bridge, Event, Identifier } from "./chain"
+import { Hex } from "./hex"
 
-/**
- * Duration of the deposit refund locktime in seconds. After that time, the
- * depositor can make a refund of an unswept deposit using the refund public
- * key.
- */
-export const DepositRefundLocktimeDuration = 2592000 // 30 days
+const { opcodes } = bcoin.script.common
+
+// TODO: Replace all properties that are expected to be un-prefixed hexadecimal
+// strings with a Hex type.
 
 /**
  * Represents a deposit.
@@ -41,16 +39,20 @@ export interface Deposit {
   blindingFactor: string
 
   /**
-   * Compressed (33 bytes long with 02 or 03 prefix) Bitcoin public key of
-   * the wallet that is meant to receive the deposit.
+   * Public key hash of the wallet that is meant to receive the deposit. Must
+   * be an unprefixed hex string (without 0x prefix).
+   *
+   * You can use `computeHash160` function to get the hash from a plain text public key.
    */
-  walletPublicKey: string
+  walletPublicKeyHash: string
 
   /**
-   * Compressed (33 bytes long with 02 or 03 prefix) Bitcoin public key that
-   * is meant to be used during deposit refund after the locktime passes.
+   * Public key hash that is meant to be used during deposit refund after the
+   * locktime passes. Must be an unprefixed hex string (without 0x prefix).
+   *
+   * You can use `computeHash160` function to get the hash from a plain text public key.
    */
-  refundPublicKey: string
+  refundPublicKeyHash: string
 
   /**
    * A 4-byte little-endian refund locktime as an un-prefixed hex string.
@@ -64,16 +66,17 @@ export interface Deposit {
 }
 
 /**
- * Helper type that groups deposit's fields required to assemble a deposit script.
+ * Helper type that groups deposit's fields required to assemble a deposit
+ * script.
  */
 export type DepositScriptParameters = Pick<
   Deposit,
   | "depositor"
   | "blindingFactor"
-  | "walletPublicKey"
-  | "refundPublicKey"
   | "refundLocktime"
->
+  | "walletPublicKeyHash"
+  | "refundPublicKeyHash"
+> & {}
 
 /**
  * Represents a deposit revealed to the on-chain bridge. This type emphasizes
@@ -99,6 +102,14 @@ export type RevealedDeposit = Pick<
    */
   treasuryFee: BigNumber
 }
+
+/**
+ * Represents an event emitted on deposit reveal to the on-chain bridge.
+ */
+export type DepositRevealedEvent = Deposit & {
+  fundingTxHash: TransactionHash
+  fundingOutputIndex: number
+} & Event
 
 /**
  * Submits a deposit by creating and broadcasting a Bitcoin P2(W)SH
@@ -192,13 +203,12 @@ export async function assembleDepositTransaction(
   const transaction = new bcoin.MTX()
 
   const scriptHash = await calculateDepositScriptHash(deposit, witness)
-  const outputValue = deposit.amount
 
   transaction.addOutput({
     script: witness
       ? bcoin.Script.fromProgram(0, scriptHash)
       : bcoin.Script.fromScripthash(scriptHash),
-    value: outputValue.toNumber(),
+    value: deposit.amount.toNumber(),
   })
 
   await transaction.fund(inputCoins, {
@@ -209,14 +219,14 @@ export async function assembleDepositTransaction(
 
   transaction.sign(depositorKeyRing)
 
-  const transactionHash = transaction.txid()
+  const transactionHash = TransactionHash.from(transaction.txid())
 
   return {
     transactionHash,
     depositUtxo: {
       transactionHash,
       outputIndex: 0, // The deposit is always the first output.
-      value: outputValue,
+      value: deposit.amount,
     },
     rawTransaction: {
       transactionHex: transaction.toRaw().toString("hex"),
@@ -243,14 +253,14 @@ export async function assembleDepositScript(
   script.pushOp(opcodes.OP_DROP)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(computeHash160(deposit.walletPublicKey), "hex"))
+  script.pushData(Buffer.from(deposit.walletPublicKeyHash, "hex"))
   script.pushOp(opcodes.OP_EQUAL)
   script.pushOp(opcodes.OP_IF)
   script.pushOp(opcodes.OP_CHECKSIG)
   script.pushOp(opcodes.OP_ELSE)
   script.pushOp(opcodes.OP_DUP)
   script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(computeHash160(deposit.refundPublicKey), "hex"))
+  script.pushData(Buffer.from(deposit.refundPublicKeyHash, "hex"))
   script.pushOp(opcodes.OP_EQUALVERIFY)
   script.pushData(Buffer.from(deposit.refundLocktime, "hex"))
   script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
@@ -278,12 +288,12 @@ export function validateDepositScriptParameters(
     throw new Error("Blinding factor must be an 8-byte number")
   }
 
-  if (!isCompressedPublicKey(deposit.walletPublicKey)) {
-    throw new Error("Wallet public key must be compressed")
+  if (!isPublicKeyHashLength(deposit.walletPublicKeyHash)) {
+    throw new Error("Invalid wallet public key hash")
   }
 
-  if (!isCompressedPublicKey(deposit.refundPublicKey)) {
-    throw new Error("Refund public key must be compressed")
+  if (!isPublicKeyHashLength(deposit.refundPublicKeyHash)) {
+    throw new Error("Invalid refund public key hash")
   }
 
   if (deposit.refundLocktime.length != 8) {
@@ -295,28 +305,30 @@ export function validateDepositScriptParameters(
  * Calculates a refund locktime parameter for the given deposit creation timestamp.
  * Throws if the resulting locktime is not a 4-byte number.
  * @param depositCreatedAt - Unix timestamp in seconds determining the moment
- *                           of deposit creation.
+ *        of deposit creation.
+ * @param depositRefundLocktimeDuration - Deposit refund locktime duration in seconds.
  * @returns A 4-byte little-endian deposit refund locktime as an un-prefixed
  *          hex string.
  */
 export function calculateDepositRefundLocktime(
-  depositCreatedAt: number
+  depositCreatedAt: number,
+  depositRefundLocktimeDuration: number
 ): string {
   // Locktime is a Unix timestamp in seconds, computed as deposit creation
   // timestamp plus locktime duration.
   const locktime = BigNumber.from(
-    depositCreatedAt + DepositRefundLocktimeDuration
+    depositCreatedAt + depositRefundLocktimeDuration
   )
 
-  if (locktime.toHexString().substring(2).length != 8) {
+  const locktimeHex: Hex = Hex.from(locktime.toHexString())
+
+  if (locktimeHex.toString().length != 8) {
     throw new Error("Refund locktime must be a 4 bytes number")
   }
 
   // Bitcoin locktime is interpreted as little-endian integer so we must
   // adhere to that convention by converting the locktime accordingly.
-  return Buffer.from(locktime.toHexString().substring(2), "hex")
-    .reverse()
-    .toString("hex")
+  return locktimeHex.reverse().toString()
 }
 
 /**
@@ -342,21 +354,20 @@ export async function calculateDepositScriptHash(
  * Calculates a Bitcoin target address for P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
  * @param network - Network that the address should be created for.
- *        For example, `main` or `testnet`.
  * @param witness - If true, a witness address will be created.
  *        Otherwise, a legacy address will be made.
  * @returns Address as string.
  */
 export async function calculateDepositAddress(
   deposit: DepositScriptParameters,
-  network: string,
+  network: BitcoinNetwork,
   witness: boolean
 ): Promise<string> {
   const scriptHash = await calculateDepositScriptHash(deposit, witness)
   const address = witness
     ? bcoin.Address.fromWitnessScripthash(scriptHash)
     : bcoin.Address.fromScripthash(scriptHash)
-  return address.toString(network)
+  return address.toString(toBcoinNetwork(network))
 }
 
 /**
@@ -365,22 +376,24 @@ export async function calculateDepositAddress(
  * @param deposit - Data of the revealed deposit
  * @param bitcoinClient - Bitcoin client used to interact with the network
  * @param bridge - Handle to the Bridge on-chain contract
- * @returns Empty promise
+ * @param vault - vault
+ * @returns Transaction hash of the reveal deposit transaction as string
  * @dev The caller must ensure that the given deposit data are valid and
  *      the given deposit UTXO actually originates from a deposit transaction
  *      that matches the given deposit data.
  */
 export async function revealDeposit(
   utxo: UnspentTransactionOutput,
-  deposit: Deposit,
+  deposit: DepositScriptParameters,
   bitcoinClient: BitcoinClient,
-  bridge: Bridge
-): Promise<void> {
+  bridge: Bridge,
+  vault?: Identifier
+): Promise<string> {
   const depositTx = decomposeRawTransaction(
     await bitcoinClient.getRawTransaction(utxo.transactionHash)
   )
 
-  await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit)
+  return await bridge.revealDeposit(depositTx, utxo.outputIndex, deposit, vault)
 }
 
 /**

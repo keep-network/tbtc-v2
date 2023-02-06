@@ -9,6 +9,8 @@ import {
   TransactionHash,
 } from "../../src/bitcoin"
 import { RedemptionRequest } from "../../src/redemption"
+import { Address } from "../../src/ethereum"
+import { Hex } from "../../src"
 
 /**
  * Private key (testnet) of the wallet.
@@ -56,8 +58,9 @@ export interface RedemptionTestData {
  */
 export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash:
-      "523e4bfb71804e5ed3b76c8933d733339563e560311c1bf835934ee7aae5db20",
+    transactionHash: TransactionHash.from(
+      "523e4bfb71804e5ed3b76c8933d733339563e560311c1bf835934ee7aae5db20"
+    ),
     outputIndex: 1,
     value: BigNumber.from(1481680),
     transactionHex:
@@ -74,9 +77,7 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -89,8 +90,9 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash:
-      "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20",
+    transactionHash: TransactionHash.from(
+      "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20"
+    ),
     transaction: {
       transactionHex:
         "0100000000010120dbe5aae74e9335f81b1c3160e563953333d733896cb7d35e4e80" +
@@ -111,8 +113,9 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash:
-      "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20",
+    transactionHash: TransactionHash.from(
+      "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20"
+    ),
     outputIndex: 1,
     value: BigNumber.from(1472680),
     transactionHex:
@@ -129,9 +132,7 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
         redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
         requestedAmount: BigNumber.from(15000),
@@ -143,8 +144,9 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash:
-      "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110",
+    transactionHash: TransactionHash.from(
+      "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110"
+    ),
     transaction: {
       transactionHex:
         "01000000000101208c30867f97695bc376096e2fb4aa423ae6fb713ab534236877b9" +
@@ -165,8 +167,9 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash:
-      "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110",
+    transactionHash: TransactionHash.from(
+      "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110"
+    ),
     outputIndex: 1,
     value: BigNumber.from(1458780),
     transactionHex:
@@ -183,9 +186,7 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(13000),
@@ -197,8 +198,9 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash:
-      "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521",
+    transactionHash: TransactionHash.from(
+      "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521"
+    ),
     transaction: {
       transactionHex:
         "0100000000010110a15e879b7e8b07df62772579a64bf2b409409bbcc8bc2c7f6e3" +
@@ -219,8 +221,9 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash:
-      "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521",
+    transactionHash: TransactionHash.from(
+      "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521"
+    ),
     outputIndex: 1,
     value: BigNumber.from(1446580),
     transactionHex:
@@ -237,9 +240,7 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
         redeemerOutputScript:
           "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
@@ -252,8 +253,9 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash:
-      "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
+    transactionHash: TransactionHash.from(
+      "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
+    ),
     transaction: {
       transactionHex:
         "0100000000010121c5c291a50190106866a5943c0b03908c2780180c5c03ef3d67d" +
@@ -274,8 +276,9 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash:
-      "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
+    transactionHash: TransactionHash.from(
+      "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
+    ),
     outputIndex: 1,
     value: BigNumber.from(1429580),
     transactionHex:
@@ -292,9 +295,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -308,9 +309,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
         redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
         requestedAmount: BigNumber.from(13000),
@@ -323,9 +322,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(12000),
@@ -338,9 +335,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
         redeemerOutputScript:
           "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
@@ -353,8 +348,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash:
-      "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7",
+    transactionHash: TransactionHash.from(
+      "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7"
+    ),
     transaction: {
       transactionHex:
         "01000000000101e30b907d077893bd0ed819c66644027b1dd30e4d3f68bc51da793" +
@@ -378,8 +374,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
  */
 export const multipleRedemptionsWithoutChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash:
-      "7dd38b48cb626580d317871c5b716eaf4a952ceb67ba3aa4ca76e3dc7cdcc65b",
+    transactionHash: TransactionHash.from(
+      "7dd38b48cb626580d317871c5b716eaf4a952ceb67ba3aa4ca76e3dc7cdcc65b"
+    ),
     outputIndex: 1,
     value: BigNumber.from(10000),
     transactionHex:
@@ -396,9 +393,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -412,9 +407,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xa690d9da3e64c337eb11344b94cf948ec2da333f0a985e09f1c120a326f6de87",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WPKH address tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx
         redeemerOutputScript: "00144bf9ffb7ae0f8b0f5a622b154aca829126f6e769",
         requestedAmount: BigNumber.from(4000),
@@ -426,8 +419,9 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash:
-      "afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb",
+    transactionHash: TransactionHash.from(
+      "afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb"
+    ),
     transaction: {
       transactionHex:
         "010000000001015bc6dc7cdce376caa43aba67eb2c954aaf6e715b1c8717d380656" +
@@ -448,8 +442,9 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
  */
 export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash:
-      "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7",
+    transactionHash: TransactionHash.from(
+      "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7"
+    ),
     outputIndex: 4,
     value: BigNumber.from(1375180),
     transactionHex:
@@ -469,9 +464,7 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(12000),
@@ -483,8 +476,9 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
   ],
   witness: false, // False will result in a P2PKH output
   expectedRedemption: {
-    transactionHash:
-      "0fec22d0fecd6607a0429210d04e9465681507d514f3edf0f07def96eda0f89d",
+    transactionHash: TransactionHash.from(
+      "0fec22d0fecd6607a0429210d04e9465681507d514f3edf0f07def96eda0f89d"
+    ),
     transaction: {
       transactionHex:
         "01000000000101b772d923456fb61a15c6a0dcd15df057f4f0c53c14b8e4836122b" +
@@ -525,73 +519,53 @@ export interface RedemptionProofTestData {
 export const redemptionProof: RedemptionProofTestData = {
   bitcoinChainData: {
     transaction: {
-      transactionHash:
-        "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7",
+      transactionHash: TransactionHash.from(
+        "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7"
+      ),
       inputs: [
         {
-          transactionHash:
-            "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
+          transactionHash: TransactionHash.from(
+            "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
+          ),
           outputIndex: 1,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
       ],
       outputs: [
         {
           outputIndex: 0,
           value: BigNumber.from(15900),
-          scriptPubKey: {
-            asm: "OP_DUP OP_HASH160 4130879211c54df460e484ddf9aac009cb38ee74 OP_EQUALVERIFY OP_CHECKSIG",
-            hex: "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
-            type: "PUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5"],
-          },
+          scriptPubKey: Hex.from(
+            "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac"
+          ),
         },
         {
           outputIndex: 1,
           value: BigNumber.from(11300),
-          scriptPubKey: {
-            asm: "OP_0 4130879211c54df460e484ddf9aac009cb38ee74",
-            hex: "00144130879211c54df460e484ddf9aac009cb38ee74",
-            type: "WITNESSPUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l"],
-          },
+          scriptPubKey: Hex.from(
+            "00144130879211c54df460e484ddf9aac009cb38ee74"
+          ),
         },
         {
           outputIndex: 2,
           value: BigNumber.from(9900),
-          scriptPubKey: {
-            asm: "OP_HASH160 3ec459d0f3c29286ae5df5fcc421e2786024277e OP_EQUAL",
-            hex: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
-            type: "SCRIPTHASH",
-            reqSigs: 1,
-            addresses: ["2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C"],
-          },
+          scriptPubKey: Hex.from(
+            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+          ),
         },
         {
           outputIndex: 3,
           value: BigNumber.from(12900),
-          scriptPubKey: {
-            asm: "OP_0 86a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
-            hex: "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
-            type: "WITNESSSCRIPTHASH",
-            reqSigs: 1,
-            addresses: [
-              "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y",
-            ],
-          },
+          scriptPubKey: Hex.from(
+            "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96"
+          ),
         },
         {
           outputIndex: 4,
           value: BigNumber.from(1375180),
-          scriptPubKey: {
-            asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
-            hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-            type: "WITNESSPUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"],
-          },
+          scriptPubKey: Hex.from(
+            "00148db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
         },
       ],
     },
@@ -682,8 +656,9 @@ export const redemptionProof: RedemptionProofTestData = {
         "69eab449fb51823d58835a4aed9a5e62341f5c192fd94baa",
     },
     mainUtxo: {
-      transactionHash:
-        "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3",
+      transactionHash: TransactionHash.from(
+        "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
+      ),
       outputIndex: 1,
       value: BigNumber.from(1429580),
     },

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 // ██████████████     ▐████▌     ██████████████
 // ██████████████     ▐████▌     ██████████████
@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
@@ -145,6 +145,7 @@ library Redemption {
         // creation.
         uint64 txMaxFee;
         // UNIX timestamp the request was created at.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 requestedAt;
         // This struct doesn't contain `__gap` property as the structure is stored
         // in a mapping, mappings store values in different slots and they are
@@ -625,7 +626,13 @@ library Redemption {
         emit RedemptionsCompleted(walletPubKeyHash, redemptionTxHash);
 
         self.bank.decreaseBalance(outputsInfo.totalBurnableValue);
-        self.bank.transferBalance(self.treasury, outputsInfo.totalTreasuryFee);
+
+        if (outputsInfo.totalTreasuryFee > 0) {
+            self.bank.transferBalance(
+                self.treasury,
+                outputsInfo.totalTreasuryFee
+            );
+        }
     }
 
     /// @notice Resolves redeeming wallet based on the provided wallet public

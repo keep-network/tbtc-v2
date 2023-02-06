@@ -4,7 +4,7 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
   Transaction,
-} from "./bitcoin"
+} from "../src/bitcoin"
 import {
   testnetDepositScripthashAddress,
   testnetDepositWitnessScripthashAddress,
@@ -54,7 +54,7 @@ describe("Sweep", () => {
           // set the mapping in the mock Bitcoin client
           const rawTransactions = new Map<string, RawTransaction>()
           for (const deposit of depositSweepWithNoMainUtxoAndWitnessOutput.deposits) {
-            rawTransactions.set(deposit.utxo.transactionHash, {
+            rawTransactions.set(deposit.utxo.transactionHash.toString(), {
               transactionHex: deposit.utxo.transactionHex,
             })
           }
@@ -92,7 +92,7 @@ describe("Sweep", () => {
         })
 
         it("should return the proper transaction hash", async () => {
-          expect(transactionHash).to.be.equal(
+          expect(transactionHash).to.be.deep.equal(
             depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep
               .transactionHash
           )
@@ -121,15 +121,14 @@ describe("Sweep", () => {
             // set the mapping in the mock Bitcoin client
             const rawTransactions = new Map<string, RawTransaction>()
             for (const deposit of depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits) {
-              rawTransactions.set(deposit.utxo.transactionHash, {
+              rawTransactions.set(deposit.utxo.transactionHash.toString(), {
                 transactionHex: deposit.utxo.transactionHex,
               })
             }
             // The main UTXO resulting from another data set was used as input.
             // Set raw data of that main UTXO as well.
             rawTransactions.set(
-              depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep
-                .transactionHash,
+              depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep.transactionHash.toString(),
               depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep
                 .transaction
             )
@@ -176,7 +175,7 @@ describe("Sweep", () => {
           })
 
           it("should return the proper transaction hash", async () => {
-            expect(transactionHash).to.be.equal(
+            expect(transactionHash).to.be.deep.equal(
               depositSweepWithWitnessMainUtxoAndWitnessOutput.expectedSweep
                 .transactionHash
             )
@@ -206,13 +205,12 @@ describe("Sweep", () => {
               // set the mapping in the mock Bitcoin client
               const rawTransactions = new Map<string, RawTransaction>()
               for (const deposit of depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits) {
-                rawTransactions.set(deposit.utxo.transactionHash, {
+                rawTransactions.set(deposit.utxo.transactionHash.toString(), {
                   transactionHex: deposit.utxo.transactionHex,
                 })
               }
               rawTransactions.set(
-                depositSweepWithNonWitnessMainUtxoAndWitnessOutput.mainUtxo
-                  .transactionHash,
+                depositSweepWithNonWitnessMainUtxoAndWitnessOutput.mainUtxo.transactionHash.toString(),
                 {
                   transactionHex:
                     depositSweepWithNonWitnessMainUtxoAndWitnessOutput.mainUtxo
@@ -262,7 +260,7 @@ describe("Sweep", () => {
             })
 
             it("should return the proper transaction hash", async () => {
-              expect(transactionHash).to.be.equal(
+              expect(transactionHash).to.be.deep.equal(
                 depositSweepWithNonWitnessMainUtxoAndWitnessOutput.expectedSweep
                   .transactionHash
               )
@@ -296,7 +294,7 @@ describe("Sweep", () => {
         // set the mapping in the mock Bitcoin client
         const rawTransactions = new Map<string, RawTransaction>()
         for (const deposit of depositSweepWithNoMainUtxoAndNonWitnessOutput.deposits) {
-          rawTransactions.set(deposit.utxo.transactionHash, {
+          rawTransactions.set(deposit.utxo.transactionHash.toString(), {
             transactionHex: deposit.utxo.transactionHex,
           })
         }
@@ -335,7 +333,7 @@ describe("Sweep", () => {
       })
 
       it("should return the proper transaction hash", async () => {
-        expect(transactionHash).to.be.equal(
+        expect(transactionHash).to.be.deep.equal(
           depositSweepWithNoMainUtxoAndNonWitnessOutput.expectedSweep
             .transactionHash
         )
@@ -400,8 +398,7 @@ describe("Sweep", () => {
           const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
           expect(txJSON.hash).to.be.equal(
-            depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep
-              .transactionHash
+            depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep.transactionHash.toString()
           )
           expect(txJSON.version).to.be.equal(1)
 
@@ -410,8 +407,7 @@ describe("Sweep", () => {
 
           const p2shInput = txJSON.inputs[0]
           expect(p2shInput.prevout.hash).to.be.equal(
-            depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0].utxo
-              .transactionHash
+            depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0].utxo.transactionHash.toString()
           )
           expect(p2shInput.prevout.index).to.be.equal(
             depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0].utxo
@@ -427,8 +423,7 @@ describe("Sweep", () => {
 
           const p2wshInput = txJSON.inputs[1]
           expect(p2wshInput.prevout.hash).to.be.equal(
-            depositSweepWithNoMainUtxoAndWitnessOutput.deposits[1].utxo
-              .transactionHash
+            depositSweepWithNoMainUtxoAndWitnessOutput.deposits[1].utxo.transactionHash.toString()
           )
           expect(p2wshInput.prevout.index).to.be.equal(
             depositSweepWithNoMainUtxoAndWitnessOutput.deposits[1].utxo
@@ -461,7 +456,7 @@ describe("Sweep", () => {
         })
 
         it("should return the proper transaction hash", async () => {
-          expect(transactionHash).to.be.equal(
+          expect(transactionHash).to.be.deep.equal(
             depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep
               .transactionHash
           )
@@ -534,8 +529,7 @@ describe("Sweep", () => {
             const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
             expect(txJSON.hash).to.be.equal(
-              depositSweepWithWitnessMainUtxoAndWitnessOutput.expectedSweep
-                .transactionHash
+              depositSweepWithWitnessMainUtxoAndWitnessOutput.expectedSweep.transactionHash.toString()
             )
             expect(txJSON.version).to.be.equal(1)
 
@@ -544,8 +538,7 @@ describe("Sweep", () => {
 
             const p2wkhInput = txJSON.inputs[0]
             expect(p2wkhInput.prevout.hash).to.be.equal(
-              depositSweepWithWitnessMainUtxoAndWitnessOutput.mainUtxo
-                .transactionHash
+              depositSweepWithWitnessMainUtxoAndWitnessOutput.mainUtxo.transactionHash.toString()
             )
             expect(p2wkhInput.prevout.index).to.be.equal(
               depositSweepWithWitnessMainUtxoAndWitnessOutput.mainUtxo
@@ -561,8 +554,7 @@ describe("Sweep", () => {
 
             const p2shInput = txJSON.inputs[1]
             expect(p2shInput.prevout.hash).to.be.equal(
-              depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits[0].utxo
-                .transactionHash
+              depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits[0].utxo.transactionHash.toString()
             )
             expect(p2shInput.prevout.index).to.be.equal(
               depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits[0].utxo
@@ -580,8 +572,7 @@ describe("Sweep", () => {
 
             const p2wshInput = txJSON.inputs[2]
             expect(p2wshInput.prevout.hash).to.be.equal(
-              depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits[1].utxo
-                .transactionHash
+              depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits[1].utxo.transactionHash.toString()
             )
             expect(p2wshInput.prevout.index).to.be.equal(
               depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits[1].utxo
@@ -614,7 +605,7 @@ describe("Sweep", () => {
           })
 
           it("should return the proper transaction hash", async () => {
-            expect(transactionHash).to.be.equal(
+            expect(transactionHash).to.be.deep.equal(
               depositSweepWithWitnessMainUtxoAndWitnessOutput.expectedSweep
                 .transactionHash
             )
@@ -688,8 +679,7 @@ describe("Sweep", () => {
               const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
               expect(txJSON.hash).to.be.equal(
-                depositSweepWithNonWitnessMainUtxoAndWitnessOutput.expectedSweep
-                  .transactionHash
+                depositSweepWithNonWitnessMainUtxoAndWitnessOutput.expectedSweep.transactionHash.toString()
               )
               expect(txJSON.version).to.be.equal(1)
 
@@ -698,8 +688,7 @@ describe("Sweep", () => {
 
               const p2wshInput = txJSON.inputs[0]
               expect(p2wshInput.prevout.hash).to.be.equal(
-                depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits[0]
-                  .utxo.transactionHash
+                depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits[0].utxo.transactionHash.toString()
               )
               expect(p2wshInput.prevout.index).to.be.equal(
                 depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits[0]
@@ -717,8 +706,7 @@ describe("Sweep", () => {
 
               const p2pkhInput = txJSON.inputs[1] // main UTXO
               expect(p2pkhInput.prevout.hash).to.be.equal(
-                depositSweepWithNonWitnessMainUtxoAndWitnessOutput.mainUtxo
-                  .transactionHash
+                depositSweepWithNonWitnessMainUtxoAndWitnessOutput.mainUtxo.transactionHash.toString()
               )
               expect(p2pkhInput.prevout.index).to.be.equal(
                 depositSweepWithNonWitnessMainUtxoAndWitnessOutput.mainUtxo
@@ -751,7 +739,7 @@ describe("Sweep", () => {
             })
 
             it("should return the proper transaction hash", async () => {
-              expect(transactionHash).to.be.equal(
+              expect(transactionHash).to.be.deep.equal(
                 depositSweepWithNonWitnessMainUtxoAndWitnessOutput.expectedSweep
                   .transactionHash
               )
@@ -823,8 +811,7 @@ describe("Sweep", () => {
         const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
         expect(txJSON.hash).to.be.equal(
-          depositSweepWithNoMainUtxoAndNonWitnessOutput.expectedSweep
-            .transactionHash
+          depositSweepWithNoMainUtxoAndNonWitnessOutput.expectedSweep.transactionHash.toString()
         )
         expect(txJSON.version).to.be.equal(1)
 
@@ -833,8 +820,7 @@ describe("Sweep", () => {
 
         const p2shInput = txJSON.inputs[0]
         expect(p2shInput.prevout.hash).to.be.equal(
-          depositSweepWithNoMainUtxoAndNonWitnessOutput.deposits[0].utxo
-            .transactionHash
+          depositSweepWithNoMainUtxoAndNonWitnessOutput.deposits[0].utxo.transactionHash.toString()
         )
         expect(p2shInput.prevout.index).to.be.equal(
           depositSweepWithNoMainUtxoAndNonWitnessOutput.deposits[0].utxo
@@ -869,7 +855,7 @@ describe("Sweep", () => {
       })
 
       it("should return the proper transaction hash", async () => {
-        expect(transactionHash).to.be.equal(
+        expect(transactionHash).to.be.deep.equal(
           depositSweepWithNoMainUtxoAndNonWitnessOutput.expectedSweep
             .transactionHash
         )
@@ -884,7 +870,7 @@ describe("Sweep", () => {
           value: BigNumber.from(13400),
         }
 
-        expect(newMainUtxo).to.be.eql(expectedNewMainUtxo)
+        expect(newMainUtxo).to.be.deep.equal(expectedNewMainUtxo)
       })
     })
 
@@ -966,8 +952,9 @@ describe("Sweep", () => {
 
       // The UTXO below does not belong to the wallet
       const mainUtxoWithRaw = {
-        transactionHash:
-          "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883",
+        transactionHash: TransactionHash.from(
+          "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+        ),
         outputIndex: 1,
         value: BigNumber.from(3933200),
         transactionHex:
@@ -1023,8 +1010,9 @@ describe("Sweep", () => {
     context("when the type of UTXO is unsupported", () => {
       // Use coinbase transaction of some block
       const utxoWithRaw = {
-        transactionHash:
-          "025de155e6f2ffbbf4851493e0d28dad54020db221a3f38bf63c1f65e3d3595b",
+        transactionHash: TransactionHash.from(
+          "025de155e6f2ffbbf4851493e0d28dad54020db221a3f38bf63c1f65e3d3595b"
+        ),
         outputIndex: 0,
         value: BigNumber.from(5000000000),
         transactionHex:
@@ -1064,14 +1052,14 @@ describe("Sweep", () => {
         depositSweepProof.bitcoinChainData.transaction.transactionHash
       const transactions = new Map<string, Transaction>()
       transactions.set(
-        transactionHash,
+        transactionHash.toString(),
         depositSweepProof.bitcoinChainData.transaction
       )
       bitcoinClient.transactions = transactions
 
       const rawTransactions = new Map<string, RawTransaction>()
       rawTransactions.set(
-        transactionHash,
+        transactionHash.toString(),
         depositSweepProof.bitcoinChainData.rawTransaction
       )
       bitcoinClient.rawTransactions = rawTransactions
@@ -1084,7 +1072,7 @@ describe("Sweep", () => {
         depositSweepProof.bitcoinChainData.transactionMerkleBranch
       const confirmations = new Map<string, number>()
       confirmations.set(
-        transactionHash,
+        transactionHash.toString(),
         depositSweepProof.bitcoinChainData.accumulatedTxConfirmations
       )
       bitcoinClient.confirmations = confirmations

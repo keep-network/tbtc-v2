@@ -1,3 +1,4 @@
+import { BitcoinNetwork } from "../../src/bitcoin-network"
 import {
   Client,
   UnspentTransactionOutput,
@@ -61,6 +62,12 @@ export class MockBitcoinClient implements Client {
     return this._broadcastLog
   }
 
+  getNetwork(): Promise<BitcoinNetwork> {
+    return new Promise<BitcoinNetwork>((resolve, _) => {
+      resolve(BitcoinNetwork.Testnet)
+    })
+  }
+
   findAllUnspentTransactionOutputs(
     address: string
   ): Promise<UnspentTransactionOutput[]> {
@@ -75,13 +82,15 @@ export class MockBitcoinClient implements Client {
 
   getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
     return new Promise<Transaction>((resolve, _) => {
-      resolve(this._transactions.get(transactionHash) as Transaction)
+      resolve(this._transactions.get(transactionHash.toString()) as Transaction)
     })
   }
 
   getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction> {
     return new Promise<RawTransaction>((resolve, _) => {
-      resolve(this._rawTransactions.get(transactionHash) as RawTransaction)
+      resolve(
+        this._rawTransactions.get(transactionHash.toString()) as RawTransaction
+      )
     })
   }
 
@@ -89,7 +98,7 @@ export class MockBitcoinClient implements Client {
     transactionHash: TransactionHash
   ): Promise<number> {
     return new Promise<number>((resolve, _) => {
-      resolve(this._confirmations.get(transactionHash) as number)
+      resolve(this._confirmations.get(transactionHash.toString()) as number)
     })
   }
 

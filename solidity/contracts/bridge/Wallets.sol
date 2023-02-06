@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 // ██████████████     ▐████▌     ██████████████
 // ██████████████     ▐████▌     ██████████████
@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {EcdsaDkg} from "@keep-network/ecdsa/contracts/libraries/EcdsaDkg.sol";
@@ -73,12 +73,15 @@ library Wallets {
         // that wallet.
         uint64 pendingRedemptionsValue;
         // UNIX timestamp the wallet was created at.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 createdAt;
         // UNIX timestamp indicating the moment the wallet was requested to
         // move their funds.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 movingFundsRequestedAt;
         // UNIX timestamp indicating the moment the wallet's closing period
         // started.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 closingStartedAt;
         // Total count of pending moved funds sweep requests targeting this wallet.
         uint32 pendingMovedFundsSweepRequestsCount;

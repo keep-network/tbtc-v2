@@ -9,10 +9,12 @@ import {
   TransactionOutput,
   UnspentTransactionOutput,
 } from "./bitcoin"
+import { BitcoinNetwork } from "./bitcoin-network"
 import Electrum from "electrum-client-js"
 import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
 import { URL } from "url"
+import { Hex } from "./hex"
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.
@@ -33,6 +35,11 @@ export interface Credentials {
 }
 
 /**
+ * Additional options used by the Electrum server.
+ */
+export type ClientOptions = object
+
+/**
  * Represents an action that makes use of the Electrum connection. An action
  * is supposed to take a proper Electrum connection, do the work, and return
  * a promise holding the outcome of given type.
@@ -44,19 +51,22 @@ type Action<T> = (electrum: any) => Promise<T>
  */
 export class Client implements BitcoinClient {
   private credentials: Credentials
+  private options?: ClientOptions
 
-  constructor(credentials: Credentials) {
+  constructor(credentials: Credentials, options?: ClientOptions) {
     this.credentials = credentials
+    this.options = options
   }
 
   /**
    * Creates an Electrum client instance from a URL.
    * @param url - Connection URL.
+   * @param options - Additional options used by the Electrum server.
    * @returns Electrum client instance.
    */
-  static fromUrl(url: string): Client {
+  static fromUrl(url: string, options?: ClientOptions): Client {
     const credentials = this.parseElectrumCredentials(url)
-    return new Client(credentials)
+    return new Client(credentials, options)
   }
 
   /**
@@ -89,7 +99,8 @@ export class Client implements BitcoinClient {
     const electrum = new Electrum(
       this.credentials.host,
       this.credentials.port,
-      this.credentials.protocol
+      this.credentials.protocol,
+      this.options
     )
 
     try {
@@ -111,6 +122,23 @@ export class Client implements BitcoinClient {
 
   // eslint-disable-next-line valid-jsdoc
   /**
+   * @see {BitcoinClient#getNetwork}
+   */
+  getNetwork(): Promise<BitcoinNetwork> {
+    return this.withElectrum<BitcoinNetwork>(async (electrum: any) => {
+      const { genesis_hash: genesisHash } = await electrum.server_features()
+      if (!genesisHash) {
+        throw new Error(
+          "server didn't return the 'genesis_hash' property from `server.features` request"
+        )
+      }
+
+      return BitcoinNetwork.fromGenesisHash(genesisHash)
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
    * @see {BitcoinClient#findAllUnspentTransactionOutputs}
    */
   findAllUnspentTransactionOutputs(
@@ -126,7 +154,7 @@ export class Client implements BitcoinClient {
           )
 
         return unspentTransactions.reverse().map((tx: any) => ({
-          transactionHash: tx.tx_hash,
+          transactionHash: TransactionHash.from(tx.tx_hash),
           outputIndex: tx.tx_pos,
           value: BigNumber.from(tx.value),
         }))
@@ -140,30 +168,40 @@ export class Client implements BitcoinClient {
    */
   getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
     return this.withElectrum<Transaction>(async (electrum: any) => {
-      const transaction = await electrum.blockchain_transaction_get(
-        transactionHash,
-        true
+      // We cannot use `blockchain_transaction_get` with `verbose = true` argument
+      // to get the the transaction details as Esplora/Electrs doesn't support verbose
+      // transactions.
+      // See: https://github.com/Blockstream/electrs/pull/36
+      const rawTransaction = await electrum.blockchain_transaction_get(
+        transactionHash.toString(),
+        false
       )
 
-      const inputs = transaction.vin.map(
+      if (!rawTransaction) {
+        throw new Error(`Transaction not found`)
+      }
+
+      // Decode the raw transaction.
+      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
+
+      const inputs = transaction.inputs.map(
         (input: any): TransactionInput => ({
-          transactionHash: input.txid,
-          outputIndex: input.vout,
-          scriptSig: input.scriptSig,
+          transactionHash: TransactionHash.from(input.prevout.hash).reverse(),
+          outputIndex: input.prevout.index,
+          scriptSig: Hex.from(input.script.toRaw()),
         })
       )
 
-      const outputs = transaction.vout.map(
-        (output: any): TransactionOutput => ({
-          outputIndex: output.n,
-          // The `output.value` is in BTC so it must be converted to satoshis.
-          value: BigNumber.from((parseFloat(output.value) * 1e8).toFixed(0)),
-          scriptPubKey: output.scriptPubKey,
+      const outputs = transaction.outputs.map(
+        (output: any, i: number): TransactionOutput => ({
+          outputIndex: i,
+          value: BigNumber.from(output.value),
+          scriptPubKey: Hex.from(output.script.toRaw()),
         })
       )
 
       return {
-        transactionHash: transaction.txid,
+        transactionHash: TransactionHash.from(transaction.hash()).reverse(),
         inputs: inputs,
         outputs: outputs,
       }
@@ -177,12 +215,12 @@ export class Client implements BitcoinClient {
   getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction> {
     return this.withElectrum<RawTransaction>(async (electrum: any) => {
       const transaction = await electrum.blockchain_transaction_get(
-        transactionHash,
-        true
+        transactionHash.toString(),
+        false
       )
 
       return {
-        transactionHex: transaction.hex,
+        transactionHex: transaction,
       }
     })
   }
@@ -194,13 +232,81 @@ export class Client implements BitcoinClient {
   getTransactionConfirmations(
     transactionHash: TransactionHash
   ): Promise<number> {
+    // We cannot use `blockchain_transaction_get` with `verbose = true` argument
+    // to get the the transaction details as Esplora/Electrs doesn't support verbose
+    // transactions.
+    // See: https://github.com/Blockstream/electrs/pull/36
+
     return this.withElectrum<number>(async (electrum: any) => {
-      const transaction = await electrum.blockchain_transaction_get(
-        transactionHash,
-        true
+      const rawTransaction: string = await electrum.blockchain_transaction_get(
+        transactionHash.toString(),
+        false
       )
 
-      return transaction.confirmations
+      // Decode the raw transaction.
+      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
+
+      // As a workaround for the problem described in https://github.com/Blockstream/electrs/pull/36
+      // we need to calculate the number of confirmations based on the latest
+      // block height and block height of the transaction.
+      // Electrum protocol doesn't expose a function to get the transaction's block
+      // height (other that the `GetTransaction` that is unsupported by Esplora/Electrs).
+      // To get the block height of the transaction we query the history of transactions
+      // for the output script hash, as the history contains the transaction's block
+      // height.
+
+      // Initialize txBlockHeigh with minimum int32 value to identify a problem when
+      // a block height was not found in a history of any of the script hashes.
+      //
+      // The history is expected to return a block height for confirmed transaction.
+      // If a transaction is unconfirmed (is still in the mempool) the height will
+      // have a value of `0` or `-1`.
+      let txBlockHeight: number = Math.min()
+      for (const output of transaction.outputs) {
+        const scriptHash: Buffer = output.script.sha256()
+
+        type HistoryEntry = {
+          // eslint-disable-next-line camelcase
+          tx_hash: string
+          height: number
+        }
+
+        const scriptHashHistory: HistoryEntry[] =
+          await electrum.blockchain_scripthash_getHistory(
+            scriptHash.reverse().toString("hex")
+          )
+
+        const tx = scriptHashHistory.find(
+          (t) => t.tx_hash === transactionHash.toString()
+        )
+
+        if (tx) {
+          txBlockHeight = tx.height
+          break
+        }
+      }
+
+      // History querying didn't come up with the transaction's block height. Return
+      // an error.
+      if (txBlockHeight === Math.min()) {
+        throw new Error(
+          "failed to find the transaction block height in script hashes' histories"
+        )
+      }
+
+      // If the block height is greater than `0` the transaction is confirmed.
+      if (txBlockHeight > 0) {
+        const latestBlockHeight: number = await this.latestBlockHeight()
+
+        if (latestBlockHeight >= txBlockHeight) {
+          // Add `1` to the calculated difference as if the transaction block
+          // height equals the latest block height the transaction is already
+          // confirmed, so it has one confirmation.
+          return latestBlockHeight - txBlockHeight + 1
+        }
+      }
+
+      return 0
     })
   }
 
@@ -241,7 +347,7 @@ export class Client implements BitcoinClient {
   ): Promise<TransactionMerkleBranch> {
     return this.withElectrum<TransactionMerkleBranch>(async (electrum: any) => {
       const merkle = await electrum.blockchain_transaction_getMerkle(
-        transactionHash,
+        transactionHash.toString(),
         blockHeight
       )
 

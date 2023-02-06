@@ -12,7 +12,7 @@ import {
   updateWalletRegistryDkgResultChallengePeriodLength,
 } from "./utils/ecdsa-wallet-registry"
 import { ecdsaWalletTestData } from "../data/ecdsa"
-import { produceRelayEntry } from "./utils/random-beacon"
+import { produceRelayEntry } from "./utils/fake-random-beacon"
 
 import { assertGasUsed } from "./utils/gas"
 import { fixture } from "./utils/fixture"
@@ -107,12 +107,12 @@ describeFn("Integration Test - Wallet Creation", async () => {
       )
     })
 
-    it("should consume around 93 000 gas for Bridge.requestNewWallet transaction", async () => {
-      await assertGasUsed(requestNewWalletTx, 93_000)
+    it("should consume around 94 000 gas for Bridge.requestNewWallet transaction", async () => {
+      await assertGasUsed(requestNewWalletTx, 94_000)
     })
 
-    it("should consume around 339 000 gas for WalletRegistry.approveDkgResult transaction", async () => {
-      await assertGasUsed(walletRegistrationTx, 339_000)
+    it("should consume around 341 000 gas for WalletRegistry.approveDkgResult transaction", async () => {
+      await assertGasUsed(walletRegistrationTx, 341_000)
     })
   })
 })

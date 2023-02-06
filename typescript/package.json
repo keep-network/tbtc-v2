@@ -1,24 +1,33 @@
 {
   "name": "@keep-network/tbtc-v2.ts",
-  "version": "1.0.0-dev",
+  "version": "1.1.0-dev",
   "license": "MIT",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "scripts": {
+    "refund": "ts-node --files ./scripts/refund.ts",
     "format": "yarn run lint && prettier --check .",
     "format:fix": "yarn run lint:fix && prettier --write .",
     "lint": "eslint . --ext .js,.ts",
     "lint:fix": "eslint . --ext .js,.ts --fix",
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
-    "build": "tsc --project tsconfig.build.json",
-    "postinstall": "npm rebuild"
+    "typechain": "rm -rf ./typechain && for i in $npm_package_config_contracts; do typechain --target ethers-v5 --out-dir ./typechain $i; done && rm ./typechain/index.ts",
+    "build": "npm run typechain && tsc --project tsconfig.build.json",
+    "dev": "tsc --project tsconfig.build.json --watch",
+    "postinstall": "npm rebuild bcrypto"
   },
   "files": [
-    "dist/**/*"
+    "dist/",
+    "src/",
+    "typechain/"
   ],
+  "config": {
+    "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault}.json"
+  },
   "dependencies": {
+    "@keep-network/ecdsa": "development",
     "@keep-network/tbtc-v2": "development",
-    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#semver:~2.2.0",
+    "bcoin": "git+https://github.com/keep-network/bcoin.git#5accd32c63e6025a0d35d67739c4a6e84095a1f8",
     "bcrypto": "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0",
     "bufio": "^1.0.6",
     "electrum-client-js": "git+https://github.com/keep-network/electrum-client-js.git#v0.1.1",
@@ -26,7 +35,9 @@
     "wif": "2.0.6"
   },
   "devDependencies": {
+    "@ethersproject/providers": "^5.7.2",
     "@keep-network/prettier-config-keep": "github:keep-network/prettier-config-keep",
+    "@typechain/ethers-v5": "^10.2.0",
     "@types/chai": "^4.2.21",
     "@types/chai-as-promised": "^7.1.4",
     "@types/mocha": "^8.2.3",
@@ -41,9 +52,14 @@
     "mocha": "^9.0.2",
     "prettier": "^2.3.2",
     "ts-node": "^10.1.0",
-    "typescript": "^4.3.5"
+    "typechain": "^8.1.1",
+    "typescript": "^4.3.5",
+    "commander": "^9.4.0"
   },
   "engines": {
-    "node": ">= 14.0.0"
+    "node": ">=14 <15"
+  },
+  "browser": {
+    "bcoin": "bcoin/lib/bcoin-browser"
   }
 }

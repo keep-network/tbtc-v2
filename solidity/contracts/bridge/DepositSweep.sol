@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 // ██████████████     ▐████▌     ██████████████
 // ██████████████     ▐████▌     ██████████████
@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 
@@ -254,7 +254,9 @@ library DepositSweep {
         }
 
         // Pass the treasury fee to the treasury address.
-        self.bank.increaseBalance(self.treasury, totalTreasuryFee);
+        if (totalTreasuryFee > 0) {
+            self.bank.increaseBalance(self.treasury, totalTreasuryFee);
+        }
     }
 
     /// @notice Resolves sweeping wallet based on the provided wallet public key

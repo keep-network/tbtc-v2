@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-only
 
 // ██████████████     ▐████▌     ██████████████
 // ██████████████     ▐████▌     ██████████████
@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.9;
+pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
@@ -42,7 +42,7 @@ import "./Wallets.sol";
 ///      ```
 ///
 ///      Since each depositor has their own Ethereum address and their own
-///      secret blinding factor, each depositor’s script is unique, and the hash
+///      blinding factor, each depositor’s script is unique, and the hash
 ///      of each depositor’s script is unique.
 library Deposit {
     using BTCUtils for bytes;
@@ -53,10 +53,9 @@ library Deposit {
     struct DepositRevealInfo {
         // Index of the funding output belonging to the funding transaction.
         uint32 fundingOutputIndex;
-        // Ethereum depositor address.
-        address depositor;
         // The blinding factor as 8 bytes. Byte endianness doesn't matter
-        // as this factor is not interpreted as uint.
+        // as this factor is not interpreted as uint. The blinding factor allows
+        // to distinguish deposits from the same depositor.
         bytes8 blindingFactor;
         // The compressed Bitcoin public key (33 bytes and 02 or 03 prefix)
         // of the deposit's wallet hashed in the HASH160 Bitcoin opcode style.
@@ -85,6 +84,7 @@ library Deposit {
         // Deposit amount in satoshi.
         uint64 amount;
         // UNIX timestamp the deposit was revealed at.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 revealedAt;
         // Address of the Bank vault the deposit is routed to.
         // Optional, can be 0x0.
@@ -94,6 +94,7 @@ library Deposit {
         // UNIX timestamp the deposit was swept at. Note this is not the
         // time when the deposit was swept on the Bitcoin chain but actually
         // the time when the sweep proof was delivered to the Ethereum chain.
+        // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 sweptAt;
         // This struct doesn't contain `__gap` property as the structure is stored
         // in a mapping, mappings store values in different slots and they are
@@ -126,12 +127,12 @@ library Deposit {
     /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`.
     /// @param reveal Deposit reveal data, see `RevealInfo struct.
     /// @dev Requirements:
+    ///      - This function must be called by the same Ethereum address as the
+    ///        one used in the P2(W)SH BTC deposit transaction as a depositor,
     ///      - `reveal.walletPubKeyHash` must identify a `Live` wallet,
     ///      - `reveal.vault` must be 0x0 or point to a trusted vault,
     ///      - `reveal.fundingOutputIndex` must point to the actual P2(W)SH
     ///        output of the BTC deposit transaction,
-    ///      - `reveal.depositor` must be the Ethereum address used in the
-    ///        P2(W)SH BTC deposit transaction,
     ///      - `reveal.blindingFactor` must be the blinding factor used in the
     ///        P2(W)SH BTC deposit transaction,
     ///      - `reveal.walletPubKeyHash` must be the wallet pub key hash used in
@@ -168,7 +169,7 @@ library Deposit {
 
         bytes memory expectedScript = abi.encodePacked(
             hex"14", // Byte length of depositor Ethereum address.
-            reveal.depositor,
+            msg.sender,
             hex"75", // OP_DROP
             hex"08", // Byte length of blinding factor value.
             reveal.blindingFactor,
@@ -250,7 +251,7 @@ library Deposit {
         );
 
         deposit.amount = fundingOutputAmount;
-        deposit.depositor = reveal.depositor;
+        deposit.depositor = msg.sender;
         /* solhint-disable-next-line not-rely-on-time */
         deposit.revealedAt = uint32(block.timestamp);
         deposit.vault = reveal.vault;
@@ -261,7 +262,7 @@ library Deposit {
         emit DepositRevealed(
             fundingTxHash,
             reveal.fundingOutputIndex,
-            reveal.depositor,
+            msg.sender,
             fundingOutputAmount,
             reveal.blindingFactor,
             reveal.walletPubKeyHash,
@@ -284,7 +285,7 @@ library Deposit {
     function validateDepositRefundLocktime(
         BridgeState.Storage storage self,
         bytes4 refundLocktime
-    ) internal {
+    ) internal view {
         // Convert the refund locktime byte array to a LE integer. This is
         // the moment in time when the deposit become refundable.
         uint32 depositRefundableTimestamp = BTCUtils.reverseUint32(

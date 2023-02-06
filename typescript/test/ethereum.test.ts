@@ -1,4 +1,4 @@
-import { Bridge } from "../src/ethereum"
+import { Address, Bridge } from "../src/ethereum"
 import {
   deployMockContract,
   MockContract,
@@ -6,9 +6,10 @@ import {
 import chai, { assert, expect } from "chai"
 import { BigNumber, constants } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
+import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
+import { TransactionHash } from "../src/bitcoin"
 
 chai.use(waffleChai)
 
@@ -34,19 +35,20 @@ describe("Ethereum", () => {
       await bridgeContract.mock.contractReferences.returns(
         constants.AddressZero,
         constants.AddressZero,
-        walletRegistry.address
+        walletRegistry.address,
+        constants.AddressZero
       )
 
       bridgeHandle = new Bridge({
         address: bridgeContract.address,
-        signer,
+        signerOrProvider: signer,
       })
     })
 
     describe("pendingRedemptions", () => {
       beforeEach(async () => {
         // Set the mock to return a specific redemption data when called
-        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash))
+        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPublicKeyHash))
         // that matches the wallet PKH and redeemer output script used during
         // the test call.
         await bridgeContract.mock.pendingRedemptions
@@ -69,9 +71,7 @@ describe("Ethereum", () => {
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
           )
         ).to.be.eql({
-          redeemer: {
-            identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-          },
+          redeemer: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
           redeemerOutputScript:
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
           requestedAmount: BigNumber.from(10000),
@@ -85,7 +85,7 @@ describe("Ethereum", () => {
     describe("timedOutRedemptions", () => {
       beforeEach(async () => {
         // Set the mock to return a specific redemption data when called
-        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash))
+        // with the redemption key (built as keccak256(keccak256(redeemerOutputScript) | walletPublicKeyHash))
         // that matches the wallet PKH and redeemer output script used during
         // the test call.
         await bridgeContract.mock.timedOutRedemptions
@@ -108,9 +108,7 @@ describe("Ethereum", () => {
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
           )
         ).to.be.eql({
-          redeemer: {
-            identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-          },
+          redeemer: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
           redeemerOutputScript:
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
           requestedAmount: BigNumber.from(10000),
@@ -135,20 +133,13 @@ describe("Ethereum", () => {
           },
           2,
           {
-            depositor: {
-              identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-            },
-            amount: BigNumber.from(10000),
-            walletPublicKey:
-              "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-            refundPublicKey:
-              "0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9",
+            depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
+            walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+            refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
             blindingFactor: "f9f0c90d00039523",
             refundLocktime: "60bcea61",
-            vault: {
-              identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-            },
-          }
+          },
+          Address.from("82883a4c7a8dd73ef165deb402d432613615ced4")
         )
       })
 
@@ -162,7 +153,6 @@ describe("Ethereum", () => {
           },
           {
             fundingOutputIndex: 2,
-            depositor: "0x934b98637ca318a4d6e7ca6ffd1690b8e77df637",
             blindingFactor: "0xf9f0c90d00039523",
             walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
             refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
@@ -190,14 +180,13 @@ describe("Ethereum", () => {
             bitcoinHeaders: "66666666",
           },
           {
-            transactionHash:
-              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            transactionHash: TransactionHash.from(
+              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+            ),
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
-          {
-            identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-          }
+          Address.from("82883a4c7a8dd73ef165deb402d432613615ced4")
         )
       })
 
@@ -244,8 +233,9 @@ describe("Ethereum", () => {
         await bridgeHandle.requestRedemption(
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
           {
-            transactionHash:
-              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            transactionHash: TransactionHash.from(
+              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+            ),
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
@@ -286,8 +276,9 @@ describe("Ethereum", () => {
             bitcoinHeaders: "66666666",
           },
           {
-            transactionHash:
-              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668",
+            transactionHash: TransactionHash.from(
+              "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+            ),
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
@@ -343,17 +334,15 @@ describe("Ethereum", () => {
         it("should return the revealed deposit", async () => {
           expect(
             await bridgeHandle.deposits(
-              "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83",
+              TransactionHash.from(
+                "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83"
+              ),
               0
             )
           ).to.be.eql({
-            depositor: {
-              identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-            },
+            depositor: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
             amount: BigNumber.from(10000),
-            vault: {
-              identifierHex: "014e1bfbe0f85f129749a8ae0fcb20175433741b",
-            },
+            vault: Address.from("014e1bfbe0f85f129749a8ae0fcb20175433741b"),
             revealedAt: 1654774330,
             sweptAt: 1655033516,
             treasuryFee: BigNumber.from(200),
@@ -384,13 +373,13 @@ describe("Ethereum", () => {
         it("should return the revealed deposit", async () => {
           expect(
             await bridgeHandle.deposits(
-              "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83",
+              TransactionHash.from(
+                "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83"
+              ),
               0
             )
           ).to.be.eql({
-            depositor: {
-              identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-            },
+            depositor: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
             amount: BigNumber.from(10000),
             vault: undefined,
             revealedAt: 1654774330,
