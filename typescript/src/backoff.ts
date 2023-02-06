@@ -88,7 +88,7 @@ export type ExecutionLoggerFn = (msg: string) => void
  */
 export function backoffRetrier<T>(
   retries: number,
-  backoffStepMs = 1000,
+  backoffStepMs: number = 1000,
   logger: ExecutionLoggerFn = console.debug,
   errorMatcher: ErrorMatcherFn = retryAll
 ): RetrierFn<T> {
