@@ -124,7 +124,7 @@ jobs:
         id: npm-version-bump
         uses: keep-network/npm-version-bump@v2
         with:
-          work-dir: solidity
+          work-dir: typescript
           environment: ${{ github.event.inputs.environment }}
           branch: ${{ github.ref }}
           commit: ${{ github.sha }}
