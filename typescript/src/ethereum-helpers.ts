@@ -24,6 +24,7 @@ export async function sendWithRetry<T>(
 ): Promise<T> {
   return backoffRetrier<T>(
     retries,
+    1000,
     logger,
     nonRetryableErrors ? skipRetryWhenMatched(nonRetryableErrors) : undefined
   )(async () => {

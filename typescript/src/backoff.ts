@@ -76,6 +76,8 @@ export type ExecutionLoggerFn = (msg: string) => void
  *
  * @param {number} retries The number of retries to perform before bubbling the
  *        failure out.
+ * @param {number} backoffStepMs Initial backoff step in milliseconds that will
+ *        be increased exponentially for subsequent retry attempts. (default = 1000 ms)
  * @param {ExecutionLoggerFn} logger A logger function to pass execution messages.
  * @param {ErrorMatcherFn} [errorMatcher=retryAll] A matcher function that
  *        receives the error when an exception is thrown, and returns true if
@@ -85,6 +87,7 @@ export type ExecutionLoggerFn = (msg: string) => void
  */
 export function backoffRetrier<T>(
   retries: number,
+  backoffStepMs = 1000,
   logger: ExecutionLoggerFn = console.debug,
   errorMatcher: ErrorMatcherFn = retryAll
 ) {
@@ -100,7 +103,7 @@ export function backoffRetrier<T>(
           throw error
         }
 
-        const backoffMillis = Math.pow(2, attempt) * 1000
+        const backoffMillis = Math.pow(2, attempt) * backoffStepMs
         const jitterMillis = Math.floor(Math.random() * 100)
         const waitMillis = backoffMillis + jitterMillis
 
