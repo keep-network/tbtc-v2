@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "start": "functions-framework --target=TypescriptFunction",
+    "start": "functions-framework --target=check",
     "prestart": "npm run build",
     "gcp-build": "npm run build"
   },
