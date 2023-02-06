@@ -107,10 +107,15 @@ jobs:
         id: upstream-builds-query
         with:
           upstream-builds: ${{ github.event.inputs.upstream_builds }}
-          query: tbtc-v2-contracts-version = github.com/keep-network/tbtc-v2#version
+          query: |
+            ecdsa-contracts-version = github.com/keep-network/keep-core/ecdsa#version
+            tbtc-v2-contracts-version = github.com/keep-network/tbtc-v2#version
 
       - name: Resolve latest contracts
-        run: yarn upgrade @keep-network/tbtc-v2@${{ steps.upstream-builds-query.outputs.tbtc-v2-contracts-version }}
+        run: |
+          yarn upgrade \
+            @keep-network/ecdsa@${{ steps.upstream-builds-query.outputs.ecdsa-contracts-version }} \
+            @keep-network/tbtc-v2@${{ steps.upstream-builds-query.outputs.tbtc-v2-contracts-version }}
 
       - name: Build
         run: yarn build
