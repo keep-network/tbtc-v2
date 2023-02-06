@@ -48,6 +48,7 @@ export type ErrorMatcherFn = (err: unknown) => boolean
  * @param {function(): Promise<T>} fn The function to be retried.
  * @return {Promise<T>}
  */
+export type RetrierFn<T> = (fn: () => Promise<T>) => Promise<T>
 
 /**
  * A function that is called with execution status messages.
@@ -90,7 +91,7 @@ export function backoffRetrier<T>(
   backoffStepMs = 1000,
   logger: ExecutionLoggerFn = console.debug,
   errorMatcher: ErrorMatcherFn = retryAll
-) {
+): RetrierFn<T> {
   return async (fn: () => Promise<T>): Promise<T> => {
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
