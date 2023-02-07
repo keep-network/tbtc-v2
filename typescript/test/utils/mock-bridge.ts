@@ -1,4 +1,4 @@
-import { Bridge, Identifier } from "../../src/chain"
+import { Bridge, GetEvents, Identifier } from "../../src/chain"
 import {
   DecomposedRawTransaction,
   Proof,
@@ -89,8 +89,7 @@ export class MockBridge implements Bridge {
   }
 
   getDepositRevealedEvents(
-    fromBlock?: number,
-    toBlock?: number,
+    options?: GetEvents.Options,
     ...filterArgs: Array<any>
   ): Promise<DepositRevealedEvent[]> {
     const deposit = depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0]
