@@ -1,0 +1,30 @@
+name: Rerun workflow
+on:
+  workflow_dispatch:
+    inputs:
+      runId:
+        description: "RUN_ID of the failed workflow run to be rerunned"
+        required: true
+        type: string
+env:
+  runId: ${{ github.event.inputs.runId }}
+jobs:
+  retry_workflow_job:
+    name: Rerun ${{ github.event.inputs.runId }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Rerun ${{ github.event.inputs.runId }}"
+        shell: pwsh
+        env:
+          # GITHUB_TOKEN with actions: write will NOT work
+          # PAT Token must have workflow scope
+          RERUN_TOKEN: ${{ secrets.RERUN_TOKEN }}
+        run: |
+          echo "Running gh auth login..."
+          $env:RERUN_TOKEN | gh auth login --with-token
+          if(!$?) { exit 1 }
+          echo "Retrying run..."
+            echo "gh run rerun $env:runId --failed --repo $env:GITHUB_REPOSITORY"
+            gh run rerun $env:runId --failed --repo $env:GITHUB_REPOSITORY
+
+          if(!$?) { exit 1 }

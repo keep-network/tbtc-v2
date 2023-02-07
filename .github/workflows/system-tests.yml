@@ -117,3 +117,30 @@ jobs:
           DEPOSITOR_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_DEPOSITOR_PRIVATE_KEY_WIF }}
         run: |
           yarn test ./test/minting-unminting.test.ts --network $ETH_NETWORK
+
+  system-tests-trigger-rerun:
+    name: Trigger rerun of ${{ github.run_id }}
+    if: ${{ failure() }} # exeutes job if ancestor job have failed
+    needs: [system-tests-deposit-redemption, system-tests-minting-unminting]
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Trigger run of `Rerun` workflow"
+        shell: pwsh
+        env:
+          # GITHUB_TOKEN with actions: write will NOT work
+          # PAT Token must have workflow scope
+          RERUN_TOKEN: ${{ secrets.RERUN_TOKEN }}
+        run: |
+          echo "Running gh auth login..."
+          $env:RERUN_TOKEN | gh auth login --with-token
+          if(!$?) { exit 1 }
+          echo "Triggering rerun"
+          echo "
+          gh workflow run rerun.yml
+            --raw-field runId=$env:GITHUB_RUN_ID
+            --repo $env:GITHUB_REPOSITORY
+          "
+          gh workflow run rerun.yml `
+            --raw-field runId=$env:GITHUB_RUN_ID `
+            --repo $env:GITHUB_REPOSITORY
+          if(!$?) { exit 1 }
