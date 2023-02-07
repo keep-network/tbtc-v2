@@ -2,6 +2,7 @@ import {
   Credentials as ElectrumCredentials,
   Client as ElectrumClient,
 } from "../src/electrum"
+import { BitcoinNetwork } from "../src/bitcoin-network"
 import {
   testnetAddress,
   testnetHeadersChain,
@@ -89,6 +90,13 @@ describe("Electrum", () => {
 
       before(async () => {
         electrumClient = new ElectrumClient(credentials)
+      })
+
+      describe("getNetwork", () => {
+        it("should return proper network", async () => {
+          const result = await electrumClient.getNetwork()
+          expect(result).to.be.eql(BitcoinNetwork.Testnet)
+        })
       })
 
       describe("findAllUnspentTransactionOutputs", () => {
