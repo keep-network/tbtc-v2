@@ -149,7 +149,12 @@ export class Client implements BitcoinClient {
    */
   getNetwork(): Promise<BitcoinNetwork> {
     return this.withElectrum<BitcoinNetwork>(async (electrum: any) => {
-      const { genesis_hash: genesisHash } = await electrum.server_features()
+      const { genesis_hash: genesisHash } = await this.withBackoffRetrier<{
+        // eslint-disable-next-line camelcase
+        genesis_hash: string
+      }>()(async () => {
+        return await electrum.server_features()
+      })
       if (!genesisHash) {
         throw new Error(
           "server didn't return the 'genesis_hash' property from `server.features` request"
