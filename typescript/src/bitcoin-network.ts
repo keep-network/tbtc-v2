@@ -26,7 +26,7 @@ export namespace BitcoinNetwork {
    * Gets Bitcoin Network type by comparing a provided hash to known
    * {@link https://en.bitcoin.it/wiki/Genesis_block genesis block hashes}.
    * Returns {@link BitcoinNetwork.Unknown}
-   * @param hash Hash of a transaction.
+   * @param hash Hash of a block.
    * @returns Bitcoin Network.
    */
   export function fromGenesisHash(hash: Hex): BitcoinNetwork {

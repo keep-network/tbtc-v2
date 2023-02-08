@@ -120,7 +120,9 @@ export class Client implements BitcoinClient {
 
     try {
       console.log("Connecting to Electrum server...")
-      await electrum.connect("tbtc-v2", "1.4.2")
+      await this.withBackoffRetrier()(async () => {
+        return await electrum.connect("tbtc-v2", "1.4.2")
+      })
     } catch (error) {
       throw new Error(`Electrum server connection failure: [${error}]`)
     }
