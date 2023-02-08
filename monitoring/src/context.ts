@@ -1,6 +1,7 @@
 // List of environment variables used by the monitoring package.
 const {
-  ENVIRONMENT
+  ENVIRONMENT,
+  ETHEREUM_URL,
 } = process.env;
 
 export enum Environment {
@@ -24,4 +25,5 @@ const resolveEnvironment = () => {
 
 export const context = {
   environment: resolveEnvironment(),
+  ethereumUrl: ETHEREUM_URL,
 }
