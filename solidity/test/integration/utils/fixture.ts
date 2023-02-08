@@ -11,7 +11,6 @@ import {
   IRelay,
   IRandomBeacon,
   WalletRegistry,
-  VendingMachine,
   BridgeGovernance,
 } from "../../../typechain"
 import { Bank } from "../../../typechain/Bank"
@@ -44,14 +43,8 @@ export const fixture = deployments.createFixture(
     relay: FakeContract<IRelay>
   }> => {
     await deployments.fixture()
-    const {
-      deployer,
-      governance,
-      chaosnetOwner,
-      spvMaintainer,
-      keepTechnicalWalletTeam,
-      keepCommunityMultiSig,
-    } = await helpers.signers.getNamedSigners()
+    const { deployer, governance, chaosnetOwner, spvMaintainer } =
+      await helpers.signers.getNamedSigners()
 
     const tbtc = await helpers.contracts.getContract<TBTC>("TBTC")
     const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
@@ -67,16 +60,7 @@ export const fixture = deployments.createFixture(
     const t = await helpers.contracts.getContract("T")
     const staking = await helpers.contracts.getContract("TokenStaking")
 
-    // TODO: Vault registration and upgrade from VendingMachine should be a part
-    // of the deployment scripts.
-    await prepareVault(
-      bridgeGovernance,
-      tbtcVault,
-      await helpers.contracts.getContract("VendingMachine"),
-      governance,
-      keepTechnicalWalletTeam,
-      keepCommunityMultiSig
-    )
+    await tbtc.connect(deployer).transferOwnership(tbtcVault.address)
 
     // TODO: INTEGRATE WITH THE REAL BEACON
     const randomBeacon = await fakeRandomBeacon(walletRegistry)
@@ -152,31 +136,3 @@ export const fixture = deployments.createFixture(
     }
   }
 )
-
-async function prepareVault(
-  bridgeGovernance: BridgeGovernance,
-  tbtcVault: TBTCVault,
-  vendingMachine: VendingMachine,
-  governance: SignerWithAddress,
-  vendingMachineUpgradeInitiator: SignerWithAddress,
-  vendingMachineOwner: SignerWithAddress
-) {
-  // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
-  // do not transfer the ownership of `TBTC` token to `TBTCVault`.
-  // We need to do it manually in tests covering `TBTCVault` behavior.
-  // Also, please note that `03_transfer_roles.ts` assigning `VendingMachine`
-  // upgrade initiator role to Keep Technical Wallet is skipped for Hardhat
-  // env deployment. That's why the upgrade initiator and `VendingMachine`
-  // owner is the deployer.
-  await vendingMachine
-    .connect(vendingMachineUpgradeInitiator)
-    .initiateVendingMachineUpgrade(tbtcVault.address)
-  await helpers.time.increaseTime(await vendingMachine.GOVERNANCE_DELAY())
-  await vendingMachine
-    .connect(vendingMachineOwner)
-    .finalizeVendingMachineUpgrade()
-
-  await bridgeGovernance
-    .connect(governance)
-    .setVaultStatus(tbtcVault.address, true)
-}

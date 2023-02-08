@@ -217,6 +217,11 @@ const config: HardhatUserConfig = {
       goerli: 0,
       // We are not setting SPV maintainer for mainnet in deployment scripts.
     },
+    v1Redeemer: {
+      default: 9,
+      goerli: 0,
+      mainnet: "0x8Bac178fA95Cb56D11A94d4f1b2B1F5Fc48A30eA",
+    },
   },
   dependencyCompiler: {
     paths: [
