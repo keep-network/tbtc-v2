@@ -11,13 +11,35 @@ export function retryAll(error: any): true {
 }
 
 /**
+ * A matcher to specify list of error messages that should abort the retry loop
+ * and throw immediately.
+ * @param matchers List of patterns for error matching.
+ * @returns Matcher function that returns false if error matches one of the patterns.
+ *          True is returned if no matches are found and retry loop should continue
+ */
+export function skipRetryWhenMatched(
+  matchers: Array<string | RegExp>
+): ErrorMatcherFn {
+  return (err: unknown): boolean => {
+    if (err instanceof Error) {
+      for (const matcher of matchers) {
+        if (err.message.match(matcher)) {
+          return false
+        }
+      }
+    }
+    return true
+  }
+}
+
+/**
  * @callback ErrorMatcherFn A function that returns true if the passed error
  *           matches and false otherwise. Used to determine if a given error is
  *           eligible for retry in `withBackoffRetries`.
  * @param {Error} error The error to check for eligibility.
  * @return {boolean} True if the error matches, false otherwise.
  */
-type ErrorMatcherFn = (err: unknown) => boolean
+export type ErrorMatcherFn = (err: unknown) => boolean
 
 /**
  * @callback RetrierFn A function that can retry any function passed to it a
@@ -26,11 +48,12 @@ type ErrorMatcherFn = (err: unknown) => boolean
  * @param {function(): Promise<T>} fn The function to be retried.
  * @return {Promise<T>}
  */
+export type RetrierFn<T> = (fn: () => Promise<T>) => Promise<T>
 
 /**
  * A function that is called with execution status messages.
  */
-type ExecutionLoggerFn = (msg: string) => void
+export type ExecutionLoggerFn = (msg: string) => void
 
 /**
  * Returns a retrier that can be passed a function to be retried `retries`
@@ -54,6 +77,8 @@ type ExecutionLoggerFn = (msg: string) => void
  *
  * @param {number} retries The number of retries to perform before bubbling the
  *        failure out.
+ * @param {number} backoffStepMs Initial backoff step in milliseconds that will
+ *        be increased exponentially for subsequent retry attempts. (default = 1000 ms)
  * @param {ExecutionLoggerFn} logger A logger function to pass execution messages.
  * @param {ErrorMatcherFn} [errorMatcher=retryAll] A matcher function that
  *        receives the error when an exception is thrown, and returns true if
@@ -63,9 +88,10 @@ type ExecutionLoggerFn = (msg: string) => void
  */
 export function backoffRetrier<T>(
   retries: number,
+  backoffStepMs: number = 1000,
   logger: ExecutionLoggerFn = console.debug,
   errorMatcher: ErrorMatcherFn = retryAll
-) {
+): RetrierFn<T> {
   return async (fn: () => Promise<T>): Promise<T> => {
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
@@ -78,7 +104,7 @@ export function backoffRetrier<T>(
           throw error
         }
 
-        const backoffMillis = Math.pow(2, attempt) * 1000
+        const backoffMillis = Math.pow(2, attempt) * backoffStepMs
         const jitterMillis = Math.floor(Math.random() * 100)
         const waitMillis = backoffMillis + jitterMillis
 
@@ -92,6 +118,6 @@ export function backoffRetrier<T>(
     }
 
     // Last attempt, unguarded.
-    return await fn()
+    return fn()
   }
 }

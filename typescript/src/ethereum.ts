@@ -2,6 +2,7 @@ import {
   Bridge as ChainBridge,
   TBTCVault as ChainTBTCVault,
   Identifier as ChainIdentifier,
+  GetEvents,
 } from "./chain"
 import {
   BigNumber,
@@ -13,7 +14,6 @@ import {
   Signer,
   utils,
 } from "ethers"
-import { BlockTag as EthersBlockTag } from "@ethersproject/abstract-provider"
 import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
@@ -23,6 +23,7 @@ import {
   RevealedDeposit,
   DepositRevealedEvent,
 } from "./deposit"
+import { sendWithRetry } from "./ethereum-helpers"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -185,26 +186,24 @@ class EthereumContract<T extends EthersContract> {
   /**
    * Get events emitted by the Ethereum contract.
    * @param eventName Name of the event.
-   * @param fromBlock Block number from which events should be queried. Optional
-   *        parameter, by default block number of the contract deployment is used.
-   * @param toBlock Block number to which events should be queried. Optional
-   *        parameter, by efault the latest block is used.
+   * @param options Options for events fetching.
    * @param filterArgs Arguments for events filtering.
    * @returns Array of found events.
    */
   async getEvents(
     eventName: string,
-    fromBlock?: EthersBlockTag,
-    toBlock?: EthersBlockTag,
-    ...filterArgs: Array<any>
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
   ): Promise<EthersEvent[]> {
     // TODO: Test if we need a workaround for querying events from big range in chunks,
     // see: https://github.com/keep-network/tbtc-monitoring/blob/e169357d7b8c638d4eaf73d52aa8f53ee4aebc1d/src/lib/ethereum-helper.js#L44-L73
-    return backoffRetrier<EthersEvent[]>(this._totalRetryAttempts)(async () => {
+    return backoffRetrier<EthersEvent[]>(
+      options?.retries ?? this._totalRetryAttempts
+    )(async () => {
       return await this._instance.queryFilter(
         this._instance.filters[eventName](...filterArgs),
-        fromBlock ?? this._deployedAtBlockNumber,
-        toBlock ?? "latest"
+        options?.fromBlock ?? this._deployedAtBlockNumber,
+        options?.toBlock ?? "latest"
       )
     })
   }
@@ -229,16 +228,12 @@ export class Bridge
    * @see {ChainBridge#getDepositRevealedEvents}
    */
   async getDepositRevealedEvents(
-    fromBlock?: number,
-    toBlock?: number,
-    totalAttempts = 3,
-    ...filterArgs: Array<any>
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
   ): Promise<DepositRevealedEvent[]> {
     const events: EthersEvent[] = await this.getEvents(
       "DepositRevealed",
-      fromBlock,
-      toBlock,
-      totalAttempts,
+      options,
       ...filterArgs
     )
 
@@ -393,11 +388,14 @@ export class Bridge
       vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
 
-    const tx = await backoffRetrier<ContractTransaction>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.revealDeposit(depositTxParam, revealParam)
-    })
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.revealDeposit(depositTxParam, revealParam)
+      },
+      this._totalRetryAttempts,
+      undefined,
+      ["Deposit already revealed"]
+    )
 
     return tx.hash
   }
@@ -437,16 +435,14 @@ export class Bridge
       ? `0x${vault.identifierHex}`
       : constants.AddressZero
 
-    await backoffRetrier<ContractTransaction>(this._totalRetryAttempts)(
-      async () => {
-        return await this._instance.submitDepositSweepProof(
-          sweepTxParam,
-          sweepProofParam,
-          mainUtxoParam,
-          vaultParam
-        )
-      }
-    )
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.submitDepositSweepProof(
+        sweepTxParam,
+        sweepProofParam,
+        mainUtxoParam,
+        vaultParam
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -491,16 +487,14 @@ export class Bridge
       rawRedeemerOutputScript,
     ]).toString("hex")}`
 
-    await backoffRetrier<ContractTransaction>(this._totalRetryAttempts)(
-      async () => {
-        return await this._instance.requestRedemption(
-          walletPublicKeyHash,
-          mainUtxoParam,
-          prefixedRawRedeemerOutputScript,
-          amount
-        )
-      }
-    )
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.requestRedemption(
+        walletPublicKeyHash,
+        mainUtxoParam,
+        prefixedRawRedeemerOutputScript,
+        amount
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -536,16 +530,14 @@ export class Bridge
 
     const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
 
-    await backoffRetrier<ContractTransaction>(this._totalRetryAttempts)(
-      async () => {
-        return await this._instance.submitRedemptionProof(
-          redemptionTxParam,
-          redemptionProofParam,
-          mainUtxoParam,
-          walletPublicKeyHash
-        )
-      }
-    )
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.submitRedemptionProof(
+        redemptionTxParam,
+        redemptionProofParam,
+        mainUtxoParam,
+        walletPublicKeyHash
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -747,14 +739,20 @@ export class TBTCVault
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<Hex> {
-    const tx = await backoffRetrier<ContractTransaction>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.requestOptimisticMint(
-        depositTxHash.reverse().toPrefixedString(),
-        depositOutputIndex
-      )
-    })
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.requestOptimisticMint(
+          depositTxHash.reverse().toPrefixedString(),
+          depositOutputIndex
+        )
+      },
+      this._totalRetryAttempts,
+      undefined,
+      [
+        "Optimistic minting already requested for the deposit",
+        "The deposit is already swept",
+      ]
+    )
 
     return Hex.from(tx.hash)
   }
@@ -767,14 +765,17 @@ export class TBTCVault
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<Hex> {
-    const tx = await backoffRetrier<ContractTransaction>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.cancelOptimisticMint(
-        depositTxHash.reverse().toPrefixedString(),
-        depositOutputIndex
-      )
-    })
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.cancelOptimisticMint(
+          depositTxHash.reverse().toPrefixedString(),
+          depositOutputIndex
+        )
+      },
+      this._totalRetryAttempts,
+      undefined,
+      ["Optimistic minting already finalized for the deposit"]
+    )
 
     return Hex.from(tx.hash)
   }
@@ -787,14 +788,20 @@ export class TBTCVault
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<Hex> {
-    const tx = await backoffRetrier<ContractTransaction>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.finalizeOptimisticMint(
-        depositTxHash.reverse().toPrefixedString(),
-        depositOutputIndex
-      )
-    })
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.finalizeOptimisticMint(
+          depositTxHash.reverse().toPrefixedString(),
+          depositOutputIndex
+        )
+      },
+      this._totalRetryAttempts,
+      undefined,
+      [
+        "Optimistic minting already finalized for the deposit",
+        "The deposit is already swept",
+      ]
+    )
 
     return Hex.from(tx.hash)
   }
@@ -837,14 +844,12 @@ export class TBTCVault
    * @see {ChainBridge#getOptimisticMintingRequestedEvents}
    */
   async getOptimisticMintingRequestedEvents(
-    fromBlock?: number,
-    toBlock?: number,
+    options?: GetEvents.Options,
     ...filterArgs: Array<any>
   ): Promise<OptimisticMintingRequestedEvent[]> {
     const events = await this.getEvents(
       "OptimisticMintingRequested",
-      fromBlock,
-      toBlock,
+      options,
       ...filterArgs
     )
 
