@@ -1,4 +1,4 @@
-import { TransactionHash } from "./bitcoin"
+import { Hex } from "./hex"
 
 /**
  * Bitcoin networks.
@@ -24,12 +24,12 @@ export enum BitcoinNetwork {
 export namespace BitcoinNetwork {
   /**
    * Gets Bitcoin Network type by comparing a provided hash to known
-   * {@link https://en.bitcoin.it/wiki/Genesis_block| genesis block hashes}.
+   * {@link https://en.bitcoin.it/wiki/Genesis_block genesis block hashes}.
    * Returns {@link BitcoinNetwork.Unknown}
    * @param hash Hash of a transaction.
    * @returns Bitcoin Network.
    */
-  export function fromGenesisHash(hash: TransactionHash): BitcoinNetwork {
+  export function fromGenesisHash(hash: Hex): BitcoinNetwork {
     switch (hash.toString()) {
       case "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f": {
         return BitcoinNetwork.Mainnet

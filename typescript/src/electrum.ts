@@ -161,7 +161,7 @@ export class Client implements BitcoinClient {
         )
       }
 
-      return BitcoinNetwork.fromGenesisHash(genesisHash)
+      return BitcoinNetwork.fromGenesisHash(Hex.from(genesisHash))
     })
   }
 
