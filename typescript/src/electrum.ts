@@ -54,15 +54,18 @@ export class Client implements BitcoinClient {
   private credentials: Credentials
   private options?: ClientOptions
   private totalRetryAttempts: number
+  private retryBackoffStep: number
 
   constructor(
     credentials: Credentials,
     options?: ClientOptions,
-    totalRetryAttempts = 3
+    totalRetryAttempts = 3,
+    retryBackoffStep = 10000 // 10 seconds
   ) {
     this.credentials = credentials
     this.options = options
     this.totalRetryAttempts = totalRetryAttempts
+    this.retryBackoffStep = retryBackoffStep
   }
 
   /**
