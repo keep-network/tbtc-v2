@@ -15,7 +15,7 @@ import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
 import { URL } from "url"
 import { Hex } from "./hex"
-import { backoffRetrier } from "./backoff"
+import { backoffRetrier, RetrierFn } from "./backoff"
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.
@@ -135,6 +135,14 @@ export class Client implements BitcoinClient {
     }
   }
 
+  /**
+   * Initiates a backoff retrier.
+   * @returns A function that can retry any function.
+   */
+  private withBackoffRetrier<T>(): RetrierFn<T> {
+    return backoffRetrier<T>(this.totalRetryAttempts, this.retryBackoffStep)
+  }
+
   // eslint-disable-next-line valid-jsdoc
   /**
    * @see {BitcoinClient#getNetwork}
@@ -166,13 +174,12 @@ export class Client implements BitcoinClient {
         // eslint-disable-next-line camelcase
         type UnspentOutput = { tx_pos: number; value: number; tx_hash: string }
 
-        const unspentTransactions: UnspentOutput[] = await backoffRetrier<
-          UnspentOutput[]
-        >(this.totalRetryAttempts)(async () => {
-          return await electrum.blockchain_scripthash_listunspent(
-            computeScriptHash(script)
-          )
-        })
+        const unspentTransactions: UnspentOutput[] =
+          await this.withBackoffRetrier<UnspentOutput[]>()(async () => {
+            return await electrum.blockchain_scripthash_listunspent(
+              computeScriptHash(script)
+            )
+          })
 
         return unspentTransactions.reverse().map((tx: UnspentOutput) => ({
           transactionHash: TransactionHash.from(tx.tx_hash),
@@ -193,14 +200,14 @@ export class Client implements BitcoinClient {
       // to get the the transaction details as Esplora/Electrs doesn't support verbose
       // transactions.
       // See: https://github.com/Blockstream/electrs/pull/36
-      const rawTransaction: string = await backoffRetrier<string>(
-        this.totalRetryAttempts
-      )(async () => {
-        return await electrum.blockchain_transaction_get(
-          transactionHash.toString(),
-          false
-        )
-      })
+      const rawTransaction: string = await this.withBackoffRetrier<string>()(
+        async () => {
+          return await electrum.blockchain_transaction_get(
+            transactionHash.toString(),
+            false
+          )
+        }
+      )
 
       if (!rawTransaction) {
         throw new Error(`Transaction not found`)
@@ -239,14 +246,14 @@ export class Client implements BitcoinClient {
    */
   getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction> {
     return this.withElectrum<RawTransaction>(async (electrum: any) => {
-      const transaction: string = await backoffRetrier<string>(
-        this.totalRetryAttempts
-      )(async () => {
-        return await electrum.blockchain_transaction_get(
-          transactionHash.toString(),
-          false
-        )
-      })
+      const transaction: string = await this.withBackoffRetrier<string>()(
+        async () => {
+          return await electrum.blockchain_transaction_get(
+            transactionHash.toString(),
+            false
+          )
+        }
+      )
 
       return {
         transactionHex: transaction,
@@ -267,14 +274,14 @@ export class Client implements BitcoinClient {
     // See: https://github.com/Blockstream/electrs/pull/36
 
     return this.withElectrum<number>(async (electrum: any) => {
-      const rawTransaction: string = await backoffRetrier<string>(
-        this.totalRetryAttempts
-      )(async () => {
-        return await electrum.blockchain_transaction_get(
-          transactionHash.toString(),
-          false
-        )
-      })
+      const rawTransaction: string = await this.withBackoffRetrier<string>()(
+        async () => {
+          return await electrum.blockchain_transaction_get(
+            transactionHash.toString(),
+            false
+          )
+        }
+      )
 
       // Decode the raw transaction.
       const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
@@ -304,9 +311,9 @@ export class Client implements BitcoinClient {
           height: number
         }
 
-        const scriptHashHistory: HistoryEntry[] = await backoffRetrier<
+        const scriptHashHistory: HistoryEntry[] = await this.withBackoffRetrier<
           HistoryEntry[]
-        >(this.totalRetryAttempts)(async () => {
+        >()(async () => {
           return await electrum.blockchain_scripthash_getHistory(
             scriptHash.reverse().toString("hex")
           )
@@ -352,9 +359,9 @@ export class Client implements BitcoinClient {
    */
   latestBlockHeight(): Promise<number> {
     return this.withElectrum<number>(async (electrum: any) => {
-      const { height } = await backoffRetrier<{
+      const { height } = await this.withBackoffRetrier<{
         height: number
-      }>(this.totalRetryAttempts)(async () => {
+      }>()(async () => {
         return await electrum.blockchain_headers_subscribe()
       })
 
@@ -368,9 +375,9 @@ export class Client implements BitcoinClient {
    */
   getHeadersChain(blockHeight: number, chainLength: number): Promise<string> {
     return this.withElectrum<string>(async (electrum: any) => {
-      const { hex } = await backoffRetrier<{
+      const { hex } = await this.withBackoffRetrier<{
         hex: string
-      }>(this.totalRetryAttempts)(async () => {
+      }>()(async () => {
         return await electrum.blockchain_block_headers(
           blockHeight,
           chainLength + 1
@@ -390,12 +397,12 @@ export class Client implements BitcoinClient {
     blockHeight: number
   ): Promise<TransactionMerkleBranch> {
     return this.withElectrum<TransactionMerkleBranch>(async (electrum: any) => {
-      const merkle = await backoffRetrier<{
+      const merkle = await this.withBackoffRetrier<{
         // eslint-disable-next-line camelcase
         block_height: number
         merkle: string[]
         pos: number
-      }>(this.totalRetryAttempts)(async () => {
+      }>()(async () => {
         return await electrum.blockchain_transaction_getMerkle(
           transactionHash.toString(),
           blockHeight
@@ -416,7 +423,7 @@ export class Client implements BitcoinClient {
    */
   broadcast(transaction: RawTransaction): Promise<void> {
     return this.withElectrum<void>(async (electrum: any) => {
-      await backoffRetrier<string>(this.totalRetryAttempts)(async () => {
+      await this.withBackoffRetrier<string>()(async () => {
         return await electrum.blockchain_transaction_broadcast(
           transaction.transactionHex
         )
