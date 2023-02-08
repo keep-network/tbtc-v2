@@ -119,7 +119,6 @@ export class Client implements BitcoinClient {
     )
 
     try {
-      console.log("Connecting to Electrum server...")
       await this.withBackoffRetrier()(async () => {
         return await electrum.connect("tbtc-v2", "1.4.2")
       })
@@ -132,7 +131,6 @@ export class Client implements BitcoinClient {
     } catch (error) {
       throw new Error(`Electrum action failure: [${error}]`)
     } finally {
-      console.log("Closing connection to Electrum server...")
       electrum.close()
     }
   }
