@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "functions-framework --target=check",
     "prestart": "npm run build",
-    "gcp-build": "npm run build"
+    "gcp-build": "npm run build",
+    "postinstall": "npm rebuild bcrypto"
   },
   "dependencies": {
     "@google-cloud/functions-framework": "^3.1.3",
