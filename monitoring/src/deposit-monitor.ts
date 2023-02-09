@@ -47,7 +47,7 @@ export class DepositMonitor implements SystemEventMonitor {
     const systemEvents: SystemEvent[] = []
 
     for (let i = 0; i < chainEvents.length; i++) {
-      const chainEvent = chainEvents[0]
+      const chainEvent = chainEvents[i]
 
       systemEvents.push(DepositRevealed(chainEvent))
 
