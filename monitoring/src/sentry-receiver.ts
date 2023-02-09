@@ -5,31 +5,21 @@ import {
 } from "./system-event"
 
 export class SentryReceiver implements SystemEventReceiver {
-  private systemEventFilter = (systemEvent: SystemEvent) => {
-    return systemEvent.type === SystemEventType.Warning ||
-      systemEvent.type === SystemEventType.Critical
-  }
-
   constructor() {
     // TODO: Initialize receiver.
   }
 
-  async receive(systemEvents: SystemEvent[]): Promise<void> {
-    const results = await Promise.allSettled(
-      systemEvents.filter(this.systemEventFilter).map(this.propagate)
-    )
-
-    const errors = results
-      .filter(result => result.status === "rejected")
-      .map(result => `${(result as PromiseRejectedResult).reason}`)
-
-    if (errors.length !== 0) {
-      throw new Error(`Sentry propagation errors: ${errors.join(",")}`)
+  async receive(systemEvent: SystemEvent): Promise<void> {
+    if (!this.isSupportedType(systemEvent)) {
+      return
     }
-  }
 
-  private async propagate(systemEvent: SystemEvent): Promise<void> {
     // TODO: Send to Sentry DSN. For now just print it.
     console.log(`system event ${systemEvent.title} (${JSON.stringify(systemEvent.data)}) propagated to Sentry`)
+  }
+
+  private isSupportedType(systemEvent: SystemEvent) {
+    return systemEvent.type === SystemEventType.Warning ||
+      systemEvent.type === SystemEventType.Critical
   }
 }

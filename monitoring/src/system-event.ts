@@ -15,7 +15,7 @@ export interface Monitor {
 }
 
 export interface Receiver {
-  receive: (systemEvents: SystemEvent[]) => Promise<void>
+  receive: (systemEvent: SystemEvent) => Promise<void>
 }
 
 export interface ManagerReport {
@@ -38,30 +38,32 @@ export class Manager {
     const systemEvents: SystemEvent[] = []
     const errors: string[] = []
 
-    const monitorsResults = await Promise.allSettled(
+    const checks = await Promise.allSettled(
       this.monitors.map(monitor => monitor.check(fromBlock, toBlock))
     )
-
-    monitorsResults.forEach((result, index) => {
+    checks.forEach((result) => {
       switch (result.status) {
         case "fulfilled": {
           systemEvents.push(...result.value)
           break
         }
         case "rejected":{
-          errors.push(`monitor ${index} error: ${result.reason}`)
+          errors.push(`failed monitor check: ${result.reason}`)
           break
         }
       }
     })
 
-    const receiversResults = await Promise.allSettled(
-      this.receivers.map(receiver => receiver.receive(systemEvents))
+    const dispatches = await Promise.allSettled(
+      this.receivers.flatMap(
+        receiver => systemEvents.map(
+          systemEvent => receiver.receive(systemEvent)
+        )
+      )
     )
-
-    receiversResults.forEach((result, index) => {
+    dispatches.forEach((result) => {
       if (result.status === "rejected") {
-        errors.push(`receiver ${index} error: ${result.reason}`)
+        errors.push(`failed system event dispatch: ${result.reason}`)
       }
     })
 
