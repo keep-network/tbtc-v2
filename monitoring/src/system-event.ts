@@ -19,7 +19,9 @@ export interface Receiver {
 }
 
 export interface ManagerReport {
-  status: "success" | "error"
+  fromBlock: number
+  toBlock: number
+  status: "success" | "failure"
   errors: string[]
 }
 
@@ -69,7 +71,9 @@ export class Manager {
     // TODO: Update the checkpoint block.
 
     return {
-      status: errors.length === 0 ? "success" : "error",
+      fromBlock,
+      toBlock,
+      status: errors.length === 0 ? "success" : "failure",
       errors,
     }
   }
