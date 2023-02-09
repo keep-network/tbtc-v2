@@ -2,6 +2,7 @@
 const {
   ENVIRONMENT,
   ETHEREUM_URL,
+  LARGE_DEPOSIT_THRESHOLD_SAT
 } = process.env;
 
 export enum Environment {
@@ -26,4 +27,5 @@ const resolveEnvironment = () => {
 export const context = {
   environment: resolveEnvironment(),
   ethereumUrl: ETHEREUM_URL,
+  largeDepositThresholdSat: LARGE_DEPOSIT_THRESHOLD_SAT ?? 1000000000 // 10 BTC by default
 }

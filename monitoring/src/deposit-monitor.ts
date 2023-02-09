@@ -8,6 +8,7 @@ import type {
 } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
 import type { Bridge } from "@keep-network/tbtc-v2.ts/dist/src/chain"
 import { BigNumber } from "ethers"
+import { context } from "./context";
 
 const DepositRevealed = (chainEvent: DepositRevealedChainEvent): SystemEvent => ({
   title: "Deposit revealed",
@@ -51,8 +52,7 @@ export class DepositMonitor implements SystemEventMonitor {
 
       systemEvents.push(DepositRevealed(chainEvent))
 
-      // TODO: Parametrize the threshold.
-      if (chainEvent.amount.gt(BigNumber.from(1000000000))) { // 10 BTC
+      if (chainEvent.amount.gt(BigNumber.from(context.largeDepositThresholdSat))) {
         systemEvents.push(LargeDepositRevealed(chainEvent))
       }
     }
