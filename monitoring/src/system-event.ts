@@ -34,10 +34,7 @@ export class Manager {
     this.receivers = receivers
   }
 
-  async check(): Promise<ManagerReport> {
-    const fromBlock = 0 // TODO: Get latest checkpoint block from storage.
-    const toBlock = 100 // TODO: Get new checkpoint block from chain.
-
+  async check(fromBlock: number, toBlock: number): Promise<ManagerReport> {
     const systemEvents: SystemEvent[] = []
     const errors: string[] = []
 
@@ -67,8 +64,6 @@ export class Manager {
         errors.push(`receiver ${index} error: ${result.reason}`)
       }
     })
-
-    // TODO: Update the checkpoint block.
 
     return {
       fromBlock,

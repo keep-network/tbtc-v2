@@ -22,7 +22,8 @@ const manager = new SystemEventManager(monitors, receivers)
 
 ff.http('check', async (request: ff.Request, response: ff.Response) => {
   try {
-    const report = await manager.check()
+    // TODO: Manage the block span. Current values are for test purposes.
+    const report = await manager.check(16582233, 16582233)
     response.status(200).send(report)
   } catch (error) {
     response.status(500).send(error)
