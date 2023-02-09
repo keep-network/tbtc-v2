@@ -3,22 +3,26 @@ import type { DepositRevealedEvent } from "@keep-network/tbtc-v2.ts/dist/src/dep
 import type { Bridge } from "@keep-network/tbtc-v2.ts/dist/src/chain"
 import { BigNumber } from "ethers"
 
-const DepositRevealedIncident = (event: DepositRevealedEvent) => ({
+const DepositRevealedIncident = (event: DepositRevealedEvent): Incident => ({
   title: "Deposit revealed",
   severity: IncidentSeverity.Minor,
-  btcFundingTxHash: event.fundingTxHash.toString(),
-  btcFundingOutputIndex: event.fundingOutputIndex,
-  amount: event.amount.toNumber(),
-  ethRevealTxHash: event.transactionHash.toPrefixedString(),
+  data: {
+    btcFundingTxHash: event.fundingTxHash.toString(),
+    btcFundingOutputIndex: event.fundingOutputIndex.toString(),
+    amount: event.amount.toString(),
+    ethRevealTxHash: event.transactionHash.toPrefixedString(),
+  }
 })
 
-const LargeDepositRevealedIncident = (event: DepositRevealedEvent) => ({
+const LargeDepositRevealedIncident = (event: DepositRevealedEvent): Incident => ({
   title: "Large deposit revealed",
   severity: IncidentSeverity.Major,
-  btcFundingTxHash: event.fundingTxHash.toString(),
-  btcFundingOutputIndex: event.fundingOutputIndex,
-  amount: event.amount.toNumber(),
-  ethRevealTxHash: event.transactionHash.toPrefixedString(),
+  data: {
+    btcFundingTxHash: event.fundingTxHash.toString(),
+    btcFundingOutputIndex: event.fundingOutputIndex.toString(),
+    amount: event.amount.toString(),
+    ethRevealTxHash: event.transactionHash.toPrefixedString(),
+  }
 })
 
 export class DepositMonitor implements IncidentMonitor {

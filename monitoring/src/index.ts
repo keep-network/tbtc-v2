@@ -25,9 +25,9 @@ const incidentManager = new IncidentManager(
 
 ff.http('check', async (request: ff.Request, response: ff.Response) => {
   try {
-    await incidentManager.check()
-    response.status(200)
-  } catch (err) {
-    response.status(500).send(err)
+    const report = await incidentManager.check()
+    response.status(200).send(report)
+  } catch (error) {
+    response.status(500).send(error)
   }
 })

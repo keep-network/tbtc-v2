@@ -10,10 +10,21 @@ export class DiscordReceiver implements IncidentReceiver {
   }
 
   async receive(incidents: Incident[]): Promise<void> {
-    await Promise.allSettled(incidents.filter(this.incidentFilter).map(this.propagate))
+    const results = await Promise.allSettled(
+      incidents.filter(this.incidentFilter).map(this.propagate)
+    )
+
+    const errors = results
+      .filter(result => result.status === "rejected")
+      .map(result => `${(result as PromiseRejectedResult).reason}`)
+
+    if (errors.length !== 0) {
+      throw new Error(`Discord propagation errors: ${errors.join(",")}`)
+    }
   }
 
   private async propagate(incident: Incident): Promise<void> {
-    // TODO: Send to Discord webhook.
+    // TODO: Send to Discord webhook. For now just print it.
+    console.log(`incident ${incident.title} (${JSON.stringify(incident.data)}) propagated to Discord`)
   }
 }

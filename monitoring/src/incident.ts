@@ -7,6 +7,7 @@ export enum Severity {
 export interface Incident {
   title: string
   severity: Severity
+  data: Record<string, string>
 }
 
 export interface Monitor {
@@ -15,6 +16,11 @@ export interface Monitor {
 
 export interface Receiver {
   receive: (incidents: Incident[]) => Promise<void>
+}
+
+export interface ManagerReport {
+  status: "success" | "error"
+  errors: string[]
 }
 
 export class Manager {
@@ -26,23 +32,45 @@ export class Manager {
     this.receivers = receivers
   }
 
-  async check() {
+  async check(): Promise<ManagerReport> {
     const fromBlock = 0 // TODO: Get latest checkpoint block from storage.
     const toBlock = 100 // TODO: Get new checkpoint block from chain.
 
     const incidents: Incident[] = []
+    const errors: string[] = []
 
-    // TODO: Avoid await in loop.
-    for (let i = 0; i < this.monitors.length; i++) {
-      const result = await this.monitors[i].check(fromBlock, toBlock)
-      incidents.push(...result)
-    }
+    const monitorsResults = await Promise.allSettled(
+      this.monitors.map(monitor => monitor.check(fromBlock, toBlock))
+    )
 
-    // TODO: Avoid await in loop.
-    for (let i = 0; i < this.receivers.length; i++) {
-      await this.receivers[i].receive(incidents)
-    }
+    monitorsResults.forEach((result, index) => {
+      switch (result.status) {
+        case "fulfilled": {
+          incidents.push(...result.value)
+          break
+        }
+        case "rejected":{
+          errors.push(`monitor ${index} error: ${result.reason}`)
+          break
+        }
+      }
+    })
+
+    const receiversResults = await Promise.allSettled(
+      this.receivers.map(receiver => receiver.receive(incidents))
+    )
+
+    receiversResults.forEach((result, index) => {
+      if (result.status === "rejected") {
+        errors.push(`receiver ${index} error: ${result.reason}`)
+      }
+    })
 
     // TODO: Update the checkpoint block.
+
+    return {
+      status: errors.length === 0 ? "success" : "error",
+      errors,
+    }
   }
 }
