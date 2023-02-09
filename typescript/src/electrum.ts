@@ -72,16 +72,25 @@ export class Client implements BitcoinClient {
    * Creates an Electrum client instance from a URL.
    * @param url - Connection URL.
    * @param options - Additional options used by the Electrum server.
-   * @param totalRetryAttempts Number of retries for requests sent to Electrum server.
+   * @param totalRetryAttempts - Number of retries for requests sent to Electrum
+   *        server.
+   * @param retryBackoffStep - Initial backoff step in milliseconds that will
+   *        be increased exponentially for subsequent retry attempts.
    * @returns Electrum client instance.
    */
   static fromUrl(
     url: string,
     options?: ClientOptions,
-    totalRetryAttempts = 3
+    totalRetryAttempts = 3,
+    retryBackoffStep = 10000 // 10 seconds
   ): Client {
     const credentials = this.parseElectrumCredentials(url)
-    return new Client(credentials, options, totalRetryAttempts)
+    return new Client(
+      credentials,
+      options,
+      totalRetryAttempts,
+      retryBackoffStep
+    )
   }
 
   /**
