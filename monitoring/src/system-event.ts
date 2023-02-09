@@ -1,21 +1,21 @@
-export enum Severity {
-  Minor = "minor",
-  Major = "major",
+export enum SystemEventType {
+  Informational = "informational",
+  Warning = "warning",
   Critical = "critical",
 }
 
-export interface Incident {
+export interface SystemEvent {
   title: string
-  severity: Severity
+  type: SystemEventType
   data: Record<string, string>
 }
 
 export interface Monitor {
-  check: (fromBlock: number, toBlock: number) => Promise<Incident[]>
+  check: (fromBlock: number, toBlock: number) => Promise<SystemEvent[]>
 }
 
 export interface Receiver {
-  receive: (incidents: Incident[]) => Promise<void>
+  receive: (systemEvents: SystemEvent[]) => Promise<void>
 }
 
 export interface ManagerReport {
@@ -36,7 +36,7 @@ export class Manager {
     const fromBlock = 0 // TODO: Get latest checkpoint block from storage.
     const toBlock = 100 // TODO: Get new checkpoint block from chain.
 
-    const incidents: Incident[] = []
+    const systemEvents: SystemEvent[] = []
     const errors: string[] = []
 
     const monitorsResults = await Promise.allSettled(
@@ -46,7 +46,7 @@ export class Manager {
     monitorsResults.forEach((result, index) => {
       switch (result.status) {
         case "fulfilled": {
-          incidents.push(...result.value)
+          systemEvents.push(...result.value)
           break
         }
         case "rejected":{
@@ -57,7 +57,7 @@ export class Manager {
     })
 
     const receiversResults = await Promise.allSettled(
-      this.receivers.map(receiver => receiver.receive(incidents))
+      this.receivers.map(receiver => receiver.receive(systemEvents))
     )
 
     receiversResults.forEach((result, index) => {

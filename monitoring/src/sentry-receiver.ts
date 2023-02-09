@@ -1,18 +1,22 @@
-import { Incident, Receiver as IncidentReceiver, Severity as IncidentSeverity } from "./incident"
+import {
+  SystemEvent,
+  Receiver as SystemEventReceiver,
+  SystemEventType
+} from "./system-event"
 
-export class SentryReceiver implements IncidentReceiver {
-  private incidentFilter = (incident: Incident) => {
-    return incident.severity === IncidentSeverity.Major ||
-      incident.severity === IncidentSeverity.Critical
+export class SentryReceiver implements SystemEventReceiver {
+  private systemEventFilter = (systemEvent: SystemEvent) => {
+    return systemEvent.type === SystemEventType.Warning ||
+      systemEvent.type === SystemEventType.Critical
   }
 
   constructor() {
     // TODO: Initialize receiver.
   }
 
-  async receive(incidents: Incident[]): Promise<void> {
+  async receive(systemEvents: SystemEvent[]): Promise<void> {
     const results = await Promise.allSettled(
-      incidents.filter(this.incidentFilter).map(this.propagate)
+      systemEvents.filter(this.systemEventFilter).map(this.propagate)
     )
 
     const errors = results
@@ -24,8 +28,8 @@ export class SentryReceiver implements IncidentReceiver {
     }
   }
 
-  private async propagate(incident: Incident): Promise<void> {
+  private async propagate(systemEvent: SystemEvent): Promise<void> {
     // TODO: Send to Sentry DSN. For now just print it.
-    console.log(`incident ${incident.title} (${JSON.stringify(incident.data)}) propagated to Sentry`)
+    console.log(`system event ${systemEvent.title} (${JSON.stringify(systemEvent.data)}) propagated to Sentry`)
   }
 }

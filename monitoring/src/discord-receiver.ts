@@ -1,17 +1,21 @@
-import { Incident, Receiver as IncidentReceiver, Severity as IncidentSeverity } from "./incident"
+import {
+  SystemEvent,
+  Receiver as SystemEventReceiver,
+  SystemEventType
+} from "./system-event"
 
-export class DiscordReceiver implements IncidentReceiver {
-  private incidentFilter = (incident: Incident) => {
-    return incident.severity === IncidentSeverity.Minor
+export class DiscordReceiver implements SystemEventReceiver {
+  private systemEventFilter = (systemEvent: SystemEvent) => {
+    return systemEvent.type === SystemEventType.Informational
   }
 
   constructor() {
     // TODO: Initialize receiver.
   }
 
-  async receive(incidents: Incident[]): Promise<void> {
+  async receive(systemEvents: SystemEvent[]): Promise<void> {
     const results = await Promise.allSettled(
-      incidents.filter(this.incidentFilter).map(this.propagate)
+      systemEvents.filter(this.systemEventFilter).map(this.propagate)
     )
 
     const errors = results
@@ -23,8 +27,8 @@ export class DiscordReceiver implements IncidentReceiver {
     }
   }
 
-  private async propagate(incident: Incident): Promise<void> {
+  private async propagate(systemEvent: SystemEvent): Promise<void> {
     // TODO: Send to Discord webhook. For now just print it.
-    console.log(`incident ${incident.title} (${JSON.stringify(incident.data)}) propagated to Discord`)
+    console.log(`system event ${systemEvent.title} (${JSON.stringify(systemEvent.data)}) propagated to Discord`)
   }
 }

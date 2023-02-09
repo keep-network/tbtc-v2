@@ -1,56 +1,62 @@
-import { Incident, Monitor as IncidentMonitor, Severity as IncidentSeverity } from "./incident"
-import type { DepositRevealedEvent } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
+import {
+  SystemEvent,
+  Monitor as SystemEventMonitor,
+  SystemEventType
+} from "./system-event"
+import type {
+  DepositRevealedEvent as  DepositRevealedChainEvent
+} from "@keep-network/tbtc-v2.ts/dist/src/deposit"
 import type { Bridge } from "@keep-network/tbtc-v2.ts/dist/src/chain"
 import { BigNumber } from "ethers"
 
-const DepositRevealedIncident = (event: DepositRevealedEvent): Incident => ({
+const DepositRevealed = (chainEvent: DepositRevealedChainEvent): SystemEvent => ({
   title: "Deposit revealed",
-  severity: IncidentSeverity.Minor,
+  type: SystemEventType.Informational,
   data: {
-    btcFundingTxHash: event.fundingTxHash.toString(),
-    btcFundingOutputIndex: event.fundingOutputIndex.toString(),
-    amount: event.amount.toString(),
-    ethRevealTxHash: event.transactionHash.toPrefixedString(),
+    btcFundingTxHash: chainEvent.fundingTxHash.toString(),
+    btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
+    amount: chainEvent.amount.toString(),
+    ethRevealTxHash: chainEvent.transactionHash.toPrefixedString(),
   }
 })
 
-const LargeDepositRevealedIncident = (event: DepositRevealedEvent): Incident => ({
+const LargeDepositRevealed = (chainEvent: DepositRevealedChainEvent): SystemEvent => ({
   title: "Large deposit revealed",
-  severity: IncidentSeverity.Major,
+  type: SystemEventType.Warning,
   data: {
-    btcFundingTxHash: event.fundingTxHash.toString(),
-    btcFundingOutputIndex: event.fundingOutputIndex.toString(),
-    amount: event.amount.toString(),
-    ethRevealTxHash: event.transactionHash.toPrefixedString(),
+    btcFundingTxHash: chainEvent.fundingTxHash.toString(),
+    btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
+    amount: chainEvent.amount.toString(),
+    ethRevealTxHash: chainEvent.transactionHash.toPrefixedString(),
   }
 })
 
-export class DepositMonitor implements IncidentMonitor {
+export class DepositMonitor implements SystemEventMonitor {
   private bridge: Bridge
 
   constructor(bridge: Bridge) {
     this.bridge = bridge
   }
 
-  async check(fromBlock: number, toBlock: number): Promise<Incident[]> {
-    const events = await this.bridge.getDepositRevealedEvents({
+  async check(fromBlock: number, toBlock: number): Promise<SystemEvent[]> {
+    const chainEvents = await this.bridge.getDepositRevealedEvents({
       fromBlock,
       toBlock
     })
 
-    const incidents: Incident[] = []
+    const systemEvents: SystemEvent[] = []
 
-    for (let i = 0; i < events.length; i++) {
-      const event = events[0]
+    for (let i = 0; i < chainEvents.length; i++) {
+      const chainEvent = chainEvents[0]
 
-      incidents.push(DepositRevealedIncident(event))
+      systemEvents.push(DepositRevealed(chainEvent))
 
       // TODO: Parametrize the threshold.
-      if (event.amount.gt(BigNumber.from(1000000000))) { // 10 BTC
-        incidents.push(LargeDepositRevealedIncident(event))
+      if (chainEvent.amount.gt(BigNumber.from(1000000000))) { // 10 BTC
+        systemEvents.push(LargeDepositRevealed(chainEvent))
       }
     }
 
-    return incidents
+    return systemEvents
   }
 }
