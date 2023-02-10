@@ -22,21 +22,26 @@ const resolve = () => {
 
   const provider = new providers.JsonRpcProvider(context.ethereumUrl)
 
+  const latestBlock = async () => {
+    const block = await provider.getBlock("latest")
+    return block.number
+  }
+
   const bridgeArtifact = require(`${packageName}/artifacts/Bridge.json`)
-  const Bridge: Bridge = new EthereumBridge({
+  const bridge: Bridge = new EthereumBridge({
     address: bridgeArtifact.address,
     signerOrProvider: provider,
     deployedAtBlockNumber: bridgeArtifact.receipt.blockNumber
   })
 
   const tbtcVaultArtifact = require(`${packageName}/artifacts/TBTCVault.json`)
-  const TBTCVault: TBTCVault = new EthereumTBTCVault({
+  const tbtcVault: TBTCVault = new EthereumTBTCVault({
     address: tbtcVaultArtifact.address,
     signerOrProvider: provider,
     deployedAtBlockNumber: tbtcVaultArtifact.receipt.blockNumber
   })
 
-  return { Bridge, TBTCVault }
+  return { bridge, tbtcVault, latestBlock }
 }
 
 export const contracts = resolve()

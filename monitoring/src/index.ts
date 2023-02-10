@@ -1,16 +1,17 @@
-import * as ff from '@google-cloud/functions-framework'
+import * as ff from "@google-cloud/functions-framework"
 import {
   Monitor as SystemEventMonitor,
   Receiver as SystemEventReceiver,
   Manager as SystemEventManager
 } from "./system-event"
-import {DepositMonitor} from "./deposit-monitor"
-import {contracts} from "./contracts"
-import {DiscordReceiver} from "./discord-receiver"
-import {SentryReceiver} from "./sentry-receiver"
+import { DepositMonitor } from "./deposit-monitor"
+import { contracts } from "./contracts"
+import { DiscordReceiver } from "./discord-receiver"
+import { SentryReceiver } from "./sentry-receiver"
+import { GcsPersistence } from "./gcs-persistence";
 
 const monitors: SystemEventMonitor[] = [
-  new DepositMonitor(contracts.Bridge)
+  new DepositMonitor(contracts.bridge)
 ]
 
 const receivers: SystemEventReceiver[] = [
@@ -18,16 +19,21 @@ const receivers: SystemEventReceiver[] = [
   new SentryReceiver()
 ]
 
-const manager = new SystemEventManager(monitors, receivers)
+const persistence = new GcsPersistence()
 
-ff.http('check', async (request: ff.Request, response: ff.Response) => {
-  try {
-    // TODO: Manage the block span. Current values are for test purposes.
-    // TODO: Do not update the block span in case of error. It's better
-    //       to send a system event multiple times than not sending at all.
-    const report = await manager.check(16582233, 16586970)
-    response.status(200).send(report)
-  } catch (error) {
-    response.status(500).send(error)
+const manager = new SystemEventManager(monitors, receivers, persistence)
+
+ff.http('trigger', async (request: ff.Request, response: ff.Response) => {
+  const report = await manager.trigger()
+
+  switch (report.status) {
+    case "success": {
+      response.status(200).send(report)
+      break
+    }
+    case "failure": {
+      response.status(500).send(report)
+      break
+    }
   }
 })
