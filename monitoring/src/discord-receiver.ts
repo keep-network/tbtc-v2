@@ -1,24 +1,21 @@
 import {
   SystemEvent,
-  Receiver as SystemEventReceiver,
-  SystemEventType
+  BaseReceiver as BaseSystemEventReceiver,
+  SystemEventType,
 } from "./system-event"
 
-export class DiscordReceiver implements SystemEventReceiver {
+export class DiscordReceiver extends BaseSystemEventReceiver {
   constructor() {
+    super()
     // TODO: Initialize receiver.
   }
 
-  async receive(systemEvent: SystemEvent): Promise<void> {
-    if (!this.isSupportedType(systemEvent)) {
-      return
-    }
-
-    // TODO: Send to Discord webhook. For now just print it.
-    console.log(`system event ${systemEvent.title} (${JSON.stringify(systemEvent.data)}) propagated to Discord`)
+  isSupportedSystemEvent(systemEvent: SystemEvent): boolean {
+    return systemEvent.type === SystemEventType.Informational
   }
 
-  private isSupportedType(systemEvent: SystemEvent) {
-    return systemEvent.type === SystemEventType.Informational
+  async propagate(systemEvent: SystemEvent): Promise<void> {
+    // TODO: Send to Discord webhook. For now just print it.
+    console.log(`system event ${systemEvent.title} (${JSON.stringify(systemEvent.data)}) propagated to Discord`)
   }
 }

@@ -20,6 +20,22 @@ export interface Receiver {
   receive: (systemEvent: SystemEvent) => Promise<void>
 }
 
+export abstract class BaseReceiver implements Receiver {
+  abstract isSupportedSystemEvent(systemEvent: SystemEvent): boolean
+
+  abstract propagate(systemEvent: SystemEvent): Promise<void>
+
+  async receive(systemEvent: SystemEvent): Promise<void> {
+    if (!this.isSupportedSystemEvent(systemEvent)) {
+      return
+    }
+
+    // TODO: Deduplication of already propagated events.
+
+    await this.propagate(systemEvent)
+  }
+}
+
 export interface Persistence {
   checkpointBlock: () => Promise<number>
   updateCheckpointBlock: (block: number) => Promise<void>

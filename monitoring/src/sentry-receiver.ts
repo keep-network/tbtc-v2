@@ -1,25 +1,22 @@
 import {
   SystemEvent,
-  Receiver as SystemEventReceiver,
+  BaseReceiver as BaseSystemEventReceiver,
   SystemEventType
 } from "./system-event"
 
-export class SentryReceiver implements SystemEventReceiver {
+export class SentryReceiver extends BaseSystemEventReceiver {
   constructor() {
+    super()
     // TODO: Initialize receiver.
   }
 
-  async receive(systemEvent: SystemEvent): Promise<void> {
-    if (!this.isSupportedType(systemEvent)) {
-      return
-    }
-
-    // TODO: Send to Sentry DSN. For now just print it.
-    console.log(`system event ${systemEvent.title} (${JSON.stringify(systemEvent.data)}) propagated to Sentry`)
-  }
-
-  private isSupportedType(systemEvent: SystemEvent) {
+  isSupportedSystemEvent(systemEvent: SystemEvent): boolean {
     return systemEvent.type === SystemEventType.Warning ||
       systemEvent.type === SystemEventType.Critical
+  }
+
+  async propagate(systemEvent: SystemEvent): Promise<void> {
+    // TODO: Send to Sentry DSN. For now just print it.
+    console.log(`system event ${systemEvent.title} (${JSON.stringify(systemEvent.data)}) propagated to Sentry`)
   }
 }
