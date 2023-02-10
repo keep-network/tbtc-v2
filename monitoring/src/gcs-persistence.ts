@@ -1,16 +1,22 @@
 import { Storage as StorageClient, File } from "@google-cloud/storage"
-import { Persistence as SystemEventPersistence } from "./system-event"
-import { context } from "./context"
+import {
+  Persistence as SystemEventPersistence,
+  ReceiverId as SystemEventReceiverId,
+  SystemEvent
+} from "./system-event"
+import {context} from "./context"
 
 type Data = {
   checkpointBlock: number
+  handledSystemEvents: Record<SystemEventReceiverId, SystemEvent[]>
 }
 
 export class GcsPersistence implements SystemEventPersistence {
   private file: File
 
   private readonly defaultValue: Data = {
-    checkpointBlock: 0
+    checkpointBlock: 0,
+    handledSystemEvents: {}
   }
 
   constructor() {
@@ -54,6 +60,23 @@ export class GcsPersistence implements SystemEventPersistence {
   async updateCheckpointBlock(block: number): Promise<void> {
     const data = await this.read()
     data.checkpointBlock = block
+    await this.write(data)
+  }
+
+  async handledSystemEvents(): Promise<Record<string, SystemEvent[]>> {
+    const { handledSystemEvents } = await this.read()
+    return handledSystemEvents
+  }
+
+  // TODO: Consider deleting old events to optimize database file size.
+  async storeHandledSystemEvents(systemEvents: Record<string, SystemEvent[]>): Promise<void> {
+    const data = await this.read()
+
+    Object.keys(systemEvents).forEach(receiverId => {
+      data.handledSystemEvents[receiverId] = data.handledSystemEvents[receiverId] ?? []
+      data.handledSystemEvents[receiverId].push(...systemEvents[receiverId])
+    })
+
     await this.write(data)
   }
 }

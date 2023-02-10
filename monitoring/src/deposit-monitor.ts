@@ -18,7 +18,8 @@ const DepositRevealed = (chainEvent: DepositRevealedChainEvent): SystemEvent => 
     btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
     amount: chainEvent.amount.toString(),
     ethRevealTxHash: chainEvent.transactionHash.toPrefixedString(),
-  }
+  },
+  block: chainEvent.blockNumber
 })
 
 const LargeDepositRevealed = (chainEvent: DepositRevealedChainEvent): SystemEvent => ({
@@ -29,7 +30,8 @@ const LargeDepositRevealed = (chainEvent: DepositRevealedChainEvent): SystemEven
     btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
     amount: chainEvent.amount.toString(),
     ethRevealTxHash: chainEvent.transactionHash.toPrefixedString(),
-  }
+  },
+  block: chainEvent.blockNumber
 })
 
 export class DepositMonitor implements SystemEventMonitor {

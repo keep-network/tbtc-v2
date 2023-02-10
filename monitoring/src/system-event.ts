@@ -10,35 +10,111 @@ export interface SystemEvent {
   title: string
   type: SystemEventType
   data: Record<string, string>
+  block: number
 }
 
 export interface Monitor {
   check: (fromBlock: number, toBlock: number) => Promise<SystemEvent[]>
 }
 
+export type ReceiverId = string
+
+export interface SystemEventAck {
+  receiverId: ReceiverId
+  systemEvent: SystemEvent
+  status: "handled" | "ignored"
+}
+
 export interface Receiver {
-  receive: (systemEvent: SystemEvent) => Promise<void>
+  id: () => ReceiverId
+  receive: (systemEvent: SystemEvent) => Promise<SystemEventAck>
 }
 
 export abstract class BaseReceiver implements Receiver {
+  abstract id(): ReceiverId
+
   abstract isSupportedSystemEvent(systemEvent: SystemEvent): boolean
 
-  abstract propagate(systemEvent: SystemEvent): Promise<void>
+  abstract handle(systemEvent: SystemEvent): Promise<void>
 
-  async receive(systemEvent: SystemEvent): Promise<void> {
+  async receive(systemEvent: SystemEvent): Promise<SystemEventAck> {
     if (!this.isSupportedSystemEvent(systemEvent)) {
-      return
+      return {
+        receiverId: this.id(),
+        systemEvent,
+        status: "ignored"
+      }
     }
 
-    // TODO: Deduplication of already propagated events.
+    await this.handle(systemEvent)
 
-    await this.propagate(systemEvent)
+    return {
+      receiverId: this.id(),
+      systemEvent,
+      status: "handled"
+    }
+  }
+}
+
+class Deduplicator implements Receiver {
+  private receiver: Receiver
+  private readonly cache: Record<string, boolean> // system event key -> boolean
+
+  private constructor(receiver: Receiver, cache: Record<string, boolean>) {
+    this.receiver = receiver
+    this.cache = cache
+  }
+
+  static systemEventKey(systemEvent: SystemEvent): string {
+    return JSON.stringify(systemEvent)
+  }
+
+  static wrap(receiver: Receiver, handledSystemEvents: SystemEvent[]): Deduplicator {
+    const cache = handledSystemEvents.reduce(
+      (group: Record<string, boolean>, systemEvent: SystemEvent) => {
+        group[Deduplicator.systemEventKey(systemEvent)] = true
+        return group
+      },
+      {}
+    )
+
+    return new Deduplicator(receiver, cache)
+  }
+
+  id(): ReceiverId {
+    return this.receiver.id()
+  }
+
+  async receive(systemEvent: SystemEvent): Promise<SystemEventAck> {
+    if (this.cache[Deduplicator.systemEventKey(systemEvent)]) {
+      return {
+        receiverId: this.id(),
+        systemEvent,
+        status: "ignored"
+      }
+    }
+
+    return this.receiver.receive(systemEvent)
   }
 }
 
 export interface Persistence {
   checkpointBlock: () => Promise<number>
+
   updateCheckpointBlock: (block: number) => Promise<void>
+
+  handledSystemEvents: () => Promise<Record<ReceiverId, SystemEvent[]>>
+
+  storeHandledSystemEvents: (
+    systemEvents: Record<ReceiverId, SystemEvent[]>
+  ) => Promise<void>
+}
+
+const groupByReceiver = (group: Record<ReceiverId, SystemEvent[]>, ack: SystemEventAck) => {
+  const { receiverId, systemEvent } = ack
+  group[receiverId] = group[receiverId] ?? []
+  group[receiverId].push(systemEvent);
+  return group
 }
 
 export interface ManagerReport {
@@ -69,13 +145,26 @@ export class Manager {
       const fromBlock = validCheckpoint ? checkpointBlock : latestBlock
       const toBlock = latestBlock
 
-      const errors = await this.check(fromBlock, toBlock)
+      const { systemEventsAcks, errors } = await this.check(fromBlock, toBlock)
+
+      const handledSystemEventsAcks = systemEventsAcks
+        .filter(ack => ack.status === "handled")
+
+      if (handledSystemEventsAcks.length !== 0) {
+        try {
+          await this.persistence.storeHandledSystemEvents(
+            handledSystemEventsAcks.reduce(groupByReceiver, {})
+          )
+        } catch (error) {
+          errors.push(`cannot store handled system events: ${error}`)
+        }
+      }
 
       if (errors.length === 0) {
         try {
           await this.persistence.updateCheckpointBlock(latestBlock)
         } catch (error) {
-          errors.push(`failed checkpoint block update: ${error}`)
+          errors.push(`cannot update checkpoint block: ${error}`)
         }
       }
 
@@ -93,13 +182,17 @@ export class Manager {
     }
   }
 
-  async check(fromBlock: number, toBlock: number): Promise<string[]> {
+  async check(fromBlock: number, toBlock: number): Promise<{
+    systemEventsAcks: SystemEventAck[]
+    errors: string[]
+  }> {
     const systemEvents: SystemEvent[] = []
     const errors: string[] = []
 
     const checks = await Promise.allSettled(
-      this.monitors.map(monitor => monitor.check(fromBlock, toBlock))
+      this.monitors.map(m => m.check(fromBlock, toBlock))
     )
+
     checks.forEach((result) => {
       switch (result.status) {
         case "fulfilled": {
@@ -107,25 +200,38 @@ export class Manager {
           break
         }
         case "rejected":{
-          errors.push(`failed monitor check: ${result.reason}`)
+          errors.push(`cannot check system events monitor: ${result.reason}`)
           break
         }
       }
     })
 
+    const handledSystemEvents = await this.persistence.handledSystemEvents()
+
     const dispatches = await Promise.allSettled(
-      this.receivers.flatMap(
-        receiver => systemEvents.map(
-          systemEvent => receiver.receive(systemEvent)
-        )
-      )
+      this.receivers
+        .map(r => Deduplicator.wrap(r, handledSystemEvents[r.id()] ?? []))
+        .flatMap(r => systemEvents.map(se => r.receive(se)))
     )
+
+    const systemEventsAcks: SystemEventAck[] = []
+
     dispatches.forEach((result) => {
-      if (result.status === "rejected") {
-        errors.push(`failed system event dispatch: ${result.reason}`)
+      switch (result.status) {
+        case "fulfilled": {
+          systemEventsAcks.push(result.value)
+          break
+        }
+        case "rejected":{
+          errors.push(`cannot dispatch system event: ${result.reason}`)
+          break
+        }
       }
     })
 
-    return errors
+    return {
+      systemEventsAcks,
+      errors
+    }
   }
 }

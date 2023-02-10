@@ -1,7 +1,8 @@
 import {
   SystemEvent,
   BaseReceiver as BaseSystemEventReceiver,
-  SystemEventType
+  SystemEventType,
+  ReceiverId as SystemEventReceiverId
 } from "./system-event"
 
 export class SentryReceiver extends BaseSystemEventReceiver {
@@ -10,12 +11,16 @@ export class SentryReceiver extends BaseSystemEventReceiver {
     // TODO: Initialize receiver.
   }
 
+  id(): SystemEventReceiverId {
+    return "Sentry"
+  }
+
   isSupportedSystemEvent(systemEvent: SystemEvent): boolean {
     return systemEvent.type === SystemEventType.Warning ||
       systemEvent.type === SystemEventType.Critical
   }
 
-  async propagate(systemEvent: SystemEvent): Promise<void> {
+  async handle(systemEvent: SystemEvent): Promise<void> {
     // TODO: Send to Sentry DSN. For now just print it.
     console.log(`system event ${systemEvent.title} (${JSON.stringify(systemEvent.data)}) propagated to Sentry`)
   }
