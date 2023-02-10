@@ -86,7 +86,7 @@
   resolved "https://registry.yarnpkg.com/@celo/utils/-/utils-0.1.11.tgz#c35e3b385091fc6f0c0c355b73270f4a8559ad38"
   integrity sha512-i3oK1guBxH89AEBaVA1d5CHnANehL36gPIcSpPBWiYZrKTGGVvbwNmVoaDwaKFXih0N22vXQAf2Rul8w5VzC3w==
   dependencies:
-    "@umpirsky/country-list" "git://github.com/umpirsky/country-list#05fda51"
+    "@umpirsky/country-list" "https://github.com/umpirsky/country-list#05fda51"
     bigi "^1.1.0"
     bignumber.js "^9.0.0"
     bip32 "2.0.5"
@@ -1302,9 +1302,9 @@
   resolved "https://registry.yarnpkg.com/@types/utf8/-/utf8-2.1.6.tgz#430cabb71a42d0a3613cce5621324fe4f5a25753"
   integrity sha512-pRs2gYF5yoKYrgSaira0DJqVg2tFuF+Qjp838xS7K+mJyY2jJzjsrl6y17GbIa4uMRogMbxs+ghNCvKg6XyNrA==
 
-"@umpirsky/country-list@git://github.com/umpirsky/country-list#05fda51":
+"@umpirsky/country-list@https://github.com/umpirsky/country-list#05fda51":
   version "1.0.0"
-  resolved "git://github.com/umpirsky/country-list#05fda51cd97b3294e8175ffed06104c44b3c71d7"
+  resolved "https://github.com/umpirsky/country-list#05fda51cd97b3294e8175ffed06104c44b3c71d7"
 
 "@web3-js/scrypt-shim@^0.1.0":
   version "0.1.0"
