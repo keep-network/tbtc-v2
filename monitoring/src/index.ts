@@ -5,13 +5,19 @@ import { DiscordReceiver } from "./discord-receiver"
 import { SentryReceiver } from "./sentry-receiver"
 import { FilePersistence } from "./file-persistence"
 import { context } from "./context"
+import { MintingMonitor } from "./minting-monitor"
+import { WalletMonitor } from "./wallet-monitor"
 
 import type {
   Monitor as SystemEventMonitor,
   Receiver as SystemEventReceiver,
 } from "./system-event"
 
-const monitors: SystemEventMonitor[] = [new DepositMonitor(contracts.bridge)]
+const monitors: SystemEventMonitor[] = [
+  new DepositMonitor(contracts.bridge),
+  new MintingMonitor(),
+  new WalletMonitor(),
+]
 
 const receivers: SystemEventReceiver[] = ((): SystemEventReceiver[] => {
   const registered: SystemEventReceiver[] = []
