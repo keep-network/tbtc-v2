@@ -4,6 +4,7 @@ import { contracts } from "./contracts"
 import { DiscordReceiver } from "./discord-receiver"
 import { SentryReceiver } from "./sentry-receiver"
 import { FilePersistence } from "./file-persistence"
+import { context } from "./context"
 
 import type {
   Monitor as SystemEventMonitor,
@@ -12,10 +13,21 @@ import type {
 
 const monitors: SystemEventMonitor[] = [new DepositMonitor(contracts.bridge)]
 
-const receivers: SystemEventReceiver[] = [
-  new DiscordReceiver(),
-  new SentryReceiver(),
-]
+const receivers: SystemEventReceiver[] = ((): SystemEventReceiver[] => {
+  const registered: SystemEventReceiver[] = []
+
+  if (context.discordWebhookUrl) {
+    console.log("registered Discord receiver")
+    registered.push(new DiscordReceiver(context.discordWebhookUrl))
+  }
+
+  if (context.sentryDsn) {
+    console.log("registered Sentry receiver")
+    registered.push(new SentryReceiver(context.sentryDsn))
+  }
+
+  return registered
+})()
 
 const persistence = new FilePersistence()
 

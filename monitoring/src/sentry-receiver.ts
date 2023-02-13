@@ -1,3 +1,7 @@
+import * as crypto from "crypto"
+
+import * as Sentry from "@sentry/node"
+
 import {
   BaseReceiver as BaseSystemEventReceiver,
   SystemEventType,
@@ -9,9 +13,10 @@ import type {
 } from "./system-event"
 
 export class SentryReceiver extends BaseSystemEventReceiver {
-  constructor() {
+  constructor(dsn: string) {
     super()
-    // TODO: Initialize receiver.
+
+    Sentry.init({ dsn })
   }
 
   id(): SystemEventReceiverId {
@@ -26,11 +31,35 @@ export class SentryReceiver extends BaseSystemEventReceiver {
   }
 
   async handle(systemEvent: SystemEvent): Promise<void> {
-    // TODO: Send to Sentry DSN. For now just print it.
-    console.log(
-      `system event ${systemEvent.title} (${JSON.stringify(
-        systemEvent.data
-      )}) propagated to Sentry`
-    )
+    Sentry.withScope((scope) => {
+      scope.setExtras(systemEvent.data)
+      scope.setExtra("block", systemEvent.block)
+      scope.setLevel(this.resolveSeverityLevel(systemEvent.type))
+
+      // Sentry groups events by title. In order to have them separated, we
+      // must ensure the title is unique.
+      const hash = crypto
+        .createHash("sha256")
+        .update(JSON.stringify(systemEvent))
+        .digest("base64")
+
+      Sentry.captureMessage(`${systemEvent.title} [${hash}]`)
+    })
+  }
+
+  private resolveSeverityLevel(
+    systemEventType: SystemEventType
+  ): Sentry.SeverityLevel {
+    switch (systemEventType) {
+      case SystemEventType.Warning: {
+        return "warning"
+      }
+      case SystemEventType.Critical: {
+        return "fatal"
+      }
+      default: {
+        throw new Error(`unsupported system event type: ${systemEventType}`)
+      }
+    }
   }
 }
