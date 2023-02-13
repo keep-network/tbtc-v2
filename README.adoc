@@ -72,18 +72,19 @@ about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
 git config --global url."https://".insteadOf git://
 ```
 
-* python v3.X. Must have a `python` binary pointing to version 3.X, not just an
-alias (for `node-gyp`). On osx, this did the trick:
+* Python 3.11.1 for `node-gyp`. It is
+  https://opensource.com/article/19/5/python-3-default-mac[suggested] to use
+  `pyenv` to manage multiple Python versions.
 ```
-brew install python
-sudo ln -s /opt/homebrew/bin/python3 /opt/homebrew/bin/python
+brew install pyenv
+pyenv install 3.11.1
 ```
 
 === Install and Test Contracts
 
 ```
 cd solidity
-yarn install
+yarn install --frozen-lockfile
 yarn build
 yarn test
 yarn test:integration
@@ -93,7 +94,7 @@ yarn test:integration
 
 ```
 cd typescript
-yarn install
+yarn install --frozen-lockfile
 yarn build
 yarn test
 ```
