@@ -22,14 +22,25 @@ const resolveEnvironment = () => {
       return Environment.Testnet
     }
     default: {
-      throw new Error("unknown environment")
+      throw new Error(
+        "unknown environment; ENVIRONMENT env variable must be either " +
+          `[${Environment.Mainnet}] or [${Environment.Testnet}]`
+      )
     }
   }
 }
 
+const resolveEthereumUrl = () => {
+  if (!ETHEREUM_URL) {
+    throw new Error("ETHEREUM_URL env variable not set")
+  }
+
+  return ETHEREUM_URL
+}
+
 export const context = {
   environment: resolveEnvironment(),
-  ethereumUrl: ETHEREUM_URL,
+  ethereumUrl: resolveEthereumUrl(),
   largeDepositThresholdSat: LARGE_DEPOSIT_THRESHOLD_SAT ?? 1000000000, // 10 BTC by default
   dataDirPath: DATA_DIR_PATH ?? "./data",
   sentryDsn: SENTRY_DSN,
