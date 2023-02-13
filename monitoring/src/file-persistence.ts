@@ -1,10 +1,12 @@
-import {
-  Persistence as SystemEventPersistence, ReceiverId,
-  ReceiverId as SystemEventReceiverId,
-  SystemEvent
-} from "./system-event";
 import { Config, JsonDB } from "node-json-db"
-import { context } from "./context";
+
+import { context } from "./context"
+
+import type {
+  Persistence as SystemEventPersistence,
+  ReceiverId as SystemEventReceiverId,
+  SystemEvent,
+} from "./system-event"
 
 const checkpointBlockPath = "/checkpointBlock"
 const handledSystemEventsPath = "/handledSystemEvents"
@@ -14,17 +16,12 @@ export class FilePersistence implements SystemEventPersistence {
 
   constructor() {
     this.db = new JsonDB(
-      new Config(
-        `${context.dataDirPath}/db.json`,
-        true,
-        true,
-        "/"
-      )
+      new Config(`${context.dataDirPath}/db.json`, true, true, "/")
     )
   }
 
   async checkpointBlock(): Promise<number> {
-    if (!await this.db.exists(checkpointBlockPath)) {
+    if (!(await this.db.exists(checkpointBlockPath))) {
       return 0
     }
 
@@ -35,8 +32,10 @@ export class FilePersistence implements SystemEventPersistence {
     await this.db.push(checkpointBlockPath, block)
   }
 
-  async handledSystemEvents(): Promise<Record<SystemEventReceiverId, SystemEvent[]>> {
-    if (!await this.db.exists(handledSystemEventsPath)) {
+  async handledSystemEvents(): Promise<
+    Record<SystemEventReceiverId, SystemEvent[]>
+  > {
+    if (!(await this.db.exists(handledSystemEventsPath))) {
       return {}
     }
 
@@ -51,7 +50,7 @@ export class FilePersistence implements SystemEventPersistence {
   ): Promise<void> {
     const handledSystemEvents = await this.handledSystemEvents()
 
-    Object.keys(systemEvents).forEach(receiverId => {
+    Object.keys(systemEvents).forEach((receiverId) => {
       handledSystemEvents[receiverId] = handledSystemEvents[receiverId] ?? []
       handledSystemEvents[receiverId].push(...systemEvents[receiverId])
     })

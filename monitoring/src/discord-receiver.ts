@@ -1,7 +1,10 @@
 import {
-  SystemEvent,
   BaseReceiver as BaseSystemEventReceiver,
   SystemEventType,
+} from "./system-event"
+
+import type {
+  SystemEvent,
   ReceiverId as SystemEventReceiverId,
 } from "./system-event"
 
@@ -21,6 +24,10 @@ export class DiscordReceiver extends BaseSystemEventReceiver {
 
   async handle(systemEvent: SystemEvent): Promise<void> {
     // TODO: Send to Discord webhook. For now just print it.
-    console.log(`system event ${systemEvent.title} (${JSON.stringify(systemEvent.data)}) propagated to Discord`)
+    console.log(
+      `system event ${systemEvent.title} (${JSON.stringify(
+        systemEvent.data
+      )}) propagated to Discord`
+    )
   }
 }

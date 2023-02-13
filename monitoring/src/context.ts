@@ -4,11 +4,11 @@ const {
   ETHEREUM_URL,
   LARGE_DEPOSIT_THRESHOLD_SAT,
   DATA_DIR_PATH,
-} = process.env;
+} = process.env
 
 export enum Environment {
   Mainnet = "mainnet",
-  Testnet = "testnet"
+  Testnet = "testnet",
 }
 
 const resolveEnvironment = () => {
@@ -29,5 +29,5 @@ export const context = {
   environment: resolveEnvironment(),
   ethereumUrl: ETHEREUM_URL,
   largeDepositThresholdSat: LARGE_DEPOSIT_THRESHOLD_SAT ?? 1000000000, // 10 BTC by default
-  dataDirPath: DATA_DIR_PATH ?? "./data"
+  dataDirPath: DATA_DIR_PATH ?? "./data",
 }

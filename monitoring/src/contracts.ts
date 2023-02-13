@@ -1,7 +1,9 @@
-import { context, Environment } from "./context"
-import type { Bridge, TBTCVault } from "@keep-network/tbtc-v2.ts/dist/src/chain"
-import { EthereumBridge, EthereumTBTCVault} from "@keep-network/tbtc-v2.ts"
+import { EthereumBridge, EthereumTBTCVault } from "@keep-network/tbtc-v2.ts"
 import { providers } from "ethers"
+
+import { context, Environment } from "./context"
+
+import type { Bridge, TBTCVault } from "@keep-network/tbtc-v2.ts/dist/src/chain"
 
 const resolve = () => {
   let packageName: string
@@ -16,7 +18,9 @@ const resolve = () => {
       break
     }
     default: {
-      throw new Error(`cannot pick tbtc package for ${context.environment} environment`)
+      throw new Error(
+        `cannot pick tbtc package for ${context.environment} environment`
+      )
     }
   }
 
@@ -27,18 +31,20 @@ const resolve = () => {
     return block.number
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require,import/no-dynamic-require
   const bridgeArtifact = require(`${packageName}/artifacts/Bridge.json`)
   const bridge: Bridge = new EthereumBridge({
     address: bridgeArtifact.address,
     signerOrProvider: provider,
-    deployedAtBlockNumber: bridgeArtifact.receipt.blockNumber
+    deployedAtBlockNumber: bridgeArtifact.receipt.blockNumber,
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require,import/no-dynamic-require
   const tbtcVaultArtifact = require(`${packageName}/artifacts/TBTCVault.json`)
   const tbtcVault: TBTCVault = new EthereumTBTCVault({
     address: tbtcVaultArtifact.address,
     signerOrProvider: provider,
-    deployedAtBlockNumber: tbtcVaultArtifact.receipt.blockNumber
+    deployedAtBlockNumber: tbtcVaultArtifact.receipt.blockNumber,
   })
 
   return { bridge, tbtcVault, latestBlock }

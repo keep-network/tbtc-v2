@@ -1,4 +1,4 @@
-import { contracts } from "./contracts";
+import { contracts } from "./contracts"
 
 export enum SystemEventType {
   Informational = "informational",
@@ -42,7 +42,7 @@ export abstract class BaseReceiver implements Receiver {
       return {
         receiverId: this.id(),
         systemEvent,
-        status: "ignored"
+        status: "ignored",
       }
     }
 
@@ -51,13 +51,14 @@ export abstract class BaseReceiver implements Receiver {
     return {
       receiverId: this.id(),
       systemEvent,
-      status: "handled"
+      status: "handled",
     }
   }
 }
 
 class Deduplicator implements Receiver {
   private receiver: Receiver
+
   private readonly cache: Record<string, boolean> // system event key -> boolean
 
   private constructor(receiver: Receiver, cache: Record<string, boolean>) {
@@ -69,9 +70,13 @@ class Deduplicator implements Receiver {
     return JSON.stringify(systemEvent)
   }
 
-  static wrap(receiver: Receiver, handledSystemEvents: SystemEvent[]): Deduplicator {
+  static wrap(
+    receiver: Receiver,
+    handledSystemEvents: SystemEvent[]
+  ): Deduplicator {
     const cache = handledSystemEvents.reduce(
       (group: Record<string, boolean>, systemEvent: SystemEvent) => {
+        // eslint-disable-next-line no-param-reassign
         group[Deduplicator.systemEventKey(systemEvent)] = true
         return group
       },
@@ -90,7 +95,7 @@ class Deduplicator implements Receiver {
       return {
         receiverId: this.id(),
         systemEvent,
-        status: "ignored"
+        status: "ignored",
       }
     }
 
@@ -110,13 +115,6 @@ export interface Persistence {
   ) => Promise<void>
 }
 
-const groupByReceiver = (group: Record<ReceiverId, SystemEvent[]>, ack: SystemEventAck) => {
-  const { receiverId, systemEvent } = ack
-  group[receiverId] = group[receiverId] ?? []
-  group[receiverId].push(systemEvent);
-  return group
-}
-
 export interface ManagerReport {
   fromBlock?: number
   toBlock?: number
@@ -126,10 +124,16 @@ export interface ManagerReport {
 
 export class Manager {
   private monitors: Monitor[]
+
   private receivers: Receiver[]
+
   private persistence: Persistence
 
-  constructor(monitors: Monitor[], receivers: Receiver[], persistence: Persistence) {
+  constructor(
+    monitors: Monitor[],
+    receivers: Receiver[],
+    persistence: Persistence
+  ) {
     this.monitors = monitors
     this.receivers = receivers
     this.persistence = persistence
@@ -140,18 +144,31 @@ export class Manager {
       const checkpointBlock = await this.persistence.checkpointBlock()
       const latestBlock = await contracts.latestBlock()
 
-      const validCheckpoint = checkpointBlock > 0 && checkpointBlock < latestBlock
+      const validCheckpoint =
+        checkpointBlock > 0 && checkpointBlock < latestBlock
 
       const fromBlock = validCheckpoint ? checkpointBlock : latestBlock
       const toBlock = latestBlock
 
       const { systemEventsAcks, errors } = await this.check(fromBlock, toBlock)
 
-      const handledSystemEventsAcks = systemEventsAcks
-        .filter(ack => ack.status === "handled")
+      const handledSystemEventsAcks = systemEventsAcks.filter(
+        (ack) => ack.status === "handled"
+      )
 
       if (handledSystemEventsAcks.length !== 0) {
         try {
+          const groupByReceiver = (
+            group: Record<ReceiverId, SystemEvent[]>,
+            ack: SystemEventAck
+          ) => {
+            const { receiverId, systemEvent } = ack
+            // eslint-disable-next-line no-param-reassign
+            group[receiverId] = group[receiverId] ?? []
+            group[receiverId].push(systemEvent)
+            return group
+          }
+
           await this.persistence.storeHandledSystemEvents(
             handledSystemEventsAcks.reduce(groupByReceiver, {})
           )
@@ -177,12 +194,15 @@ export class Manager {
     } catch (error) {
       return {
         status: "failure",
-        errors: [`${error}`]
+        errors: [`${error}`],
       }
     }
   }
 
-  async check(fromBlock: number, toBlock: number): Promise<{
+  async check(
+    fromBlock: number,
+    toBlock: number
+  ): Promise<{
     systemEventsAcks: SystemEventAck[]
     errors: string[]
   }> {
@@ -190,7 +210,7 @@ export class Manager {
     const errors: string[] = []
 
     const checks = await Promise.allSettled(
-      this.monitors.map(m => m.check(fromBlock, toBlock))
+      this.monitors.map((m) => m.check(fromBlock, toBlock))
     )
 
     checks.forEach((result) => {
@@ -199,7 +219,7 @@ export class Manager {
           systemEvents.push(...result.value)
           break
         }
-        case "rejected":{
+        case "rejected": {
           errors.push(`cannot check system events monitor: ${result.reason}`)
           break
         }
@@ -210,8 +230,8 @@ export class Manager {
 
     const dispatches = await Promise.allSettled(
       this.receivers
-        .map(r => Deduplicator.wrap(r, handledSystemEvents[r.id()] ?? []))
-        .flatMap(r => systemEvents.map(se => r.receive(se)))
+        .map((r) => Deduplicator.wrap(r, handledSystemEvents[r.id()] ?? []))
+        .flatMap((r) => systemEvents.map((se) => r.receive(se)))
     )
 
     const systemEventsAcks: SystemEventAck[] = []
@@ -222,7 +242,7 @@ export class Manager {
           systemEventsAcks.push(result.value)
           break
         }
-        case "rejected":{
+        case "rejected": {
           errors.push(`cannot dispatch system event: ${result.reason}`)
           break
         }
@@ -231,7 +251,7 @@ export class Manager {
 
     return {
       systemEventsAcks,
-      errors
+      errors,
     }
   }
 }
