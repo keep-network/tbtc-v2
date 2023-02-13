@@ -1,0 +1,79 @@
+:toc: macro
+
+= RFC 8: Cross-chain Tokenized Threshold BTC
+
+:icons: font
+:numbered:
+:stem:
+toc::[]
+
+== Goal
+
+The goal of this proposal is to enable *efficient* cross-chain tBTC liquidity.
+
+In the Ethereum ecosystem, that means bringing Bitcoin to L2s and sidechains like
+Arbitrum, Optimism, Polygon, Avalanche, and Binance Smart Chain. In the Cosmos
+ecosystem, that means Bitcoin on IBC-enabled zones (chains) like Osmosis and
+Penumbra. And in newer ecosystems, that means chains like Solana, Aptos, and
+Sui.
+
+Efficiency requires minimizing liquidity fragmentation by avoiding the need for
+tBTC wrapper tokens by each chain and bridge. This situation quickly leads to an
+stem:[n*m] problem, where liquidity on `n` chains is divided between `m`
+bridges. Each of these token variants soaks up valuable liquidity that could be
+better utilized elsehwere.
+
+Because tBTC is minted "centrally" on Ethereum L1, we can do better. By
+deploying a canonical token on each chain, we can ensure the supply of tBTC
+remains sacrosanct, while enabling quick, interoperable cross-chain bridges and
+localizing ecosystem risk.
+
+== Overview
+
+To achieve this goal, I propose we deploy a canonical tBTC contract on each
+chain we support. This contract should be flexible enough to...
+
+* Delegate restricted minting authority to a native bridge on the chain, if
+  present.
+* Delegate restricted minting authority to a short list of ecosystem bridges
+* Be paused by any one of `n` guardians, allowing avoidance of contagion in case
+  of a chain- or bridge-specific incident.
+* Be governed by the Threshold Council until we can land on a longer-term
+  cross-chain governance mechanism.
+
+== Initial implementation
+
+TODO
+
+=== Minting on L1
+
+Rather than change our L1 implementation to be aware of L2s and sidechains,
+we'll start as simply as possible. Every tBTC mint will continue to require
+transactions on Ethereum from the user — first a deposit reveal, then a lock
+to bridge to another network.
+
+=== Supporting native bridges
+
+A number of relevant chains include "native" bridges — canonical bridges for the
+chain that require interoperability. These bridges are both the most important
+and the trickiest to support.
+
+Each native bridge has its own way mechanism to manage an Ethereum-to-chain
+token contract mapping, sometimes called a token registry.
+
+Examples of chains with native bridges include
+* Arbitrum
+* Polygon
+* Optimism
+
+=== Supporting cross-ecosystem bridges
+
+TODO
+
+=== Multisig governance
+
+TODO
+
+== Future work
+=== Minting on L2
+=== Replacing multi-sig governance
