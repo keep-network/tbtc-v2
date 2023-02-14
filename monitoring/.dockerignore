@@ -1,0 +1,20 @@
+# Hidden files and directories.
+.*
+
+# Example
+example/
+
+# Configuration
+config/
+
+# Documentation
+docs/
+out/
+README.adoc
+
+# Node
+external/
+node_modules/
+
+# Make
+Makefile
