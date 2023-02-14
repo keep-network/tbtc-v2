@@ -17,8 +17,8 @@ on:
         default: "local"
         type: choice
         options:
-          - local   # Just a bare Docker build without push
-          - goerli  # Pushes Docker image to keep-test cluster
+          - local # Just a bare Docker build without push
+          - goerli # Pushes Docker image to keep-test cluster
           - mainnet # Pushes Docker image to keep-prd cluster
 
 jobs:
