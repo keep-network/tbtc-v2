@@ -567,7 +567,7 @@ export class Bridge
    * @param depositTxHash The revealed deposit transaction's hash.
    * @param depositOutputIndex Index of the deposit transaction output that
    *        funds the revealed deposit.
-   * @returns Revealed deposit data.
+   * @returns Deposit key.
    */
   static buildDepositKey(
     depositTxHash: TransactionHash,
@@ -577,6 +577,8 @@ export class Bridge
       .reverse()
       .toPrefixedString()
 
+    // TODO: Return a BigNumber to reflect how the deposit key is represented
+    //       in the Bridge contract.
     return utils.solidityKeccak256(
       ["bytes32", "uint32"],
       [prefixedReversedDepositTxHash, depositOutputIndex]
