@@ -17,6 +17,7 @@ import {
 } from "./optimistic-minting"
 import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
+import { NewWalletRegisteredEvent } from "./wallet"
 
 /**
  * Represents a generic chain identifier.
@@ -217,6 +218,12 @@ export interface Bridge {
    *          is returned.
    */
   activeWalletPublicKey(): Promise<string | undefined>
+
+  /**
+   * Get emitted NewWalletRegisteredEvent events.
+   * @see GetEventsFunction
+   */
+  getNewWalletRegisteredEvents: GetEvents.Function<NewWalletRegisteredEvent>
 }
 
 /**
