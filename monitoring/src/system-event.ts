@@ -122,6 +122,9 @@ export interface ManagerReport {
   errors: string[]
 }
 
+// Our expectation on how deep can chain reorganization be.
+const reorgDepthBlocks = 12
+
 export class Manager {
   private monitors: Monitor[]
 
@@ -147,7 +150,13 @@ export class Manager {
       const validCheckpoint =
         checkpointBlock > 0 && checkpointBlock < latestBlock
 
-      const fromBlock = validCheckpoint ? checkpointBlock : latestBlock
+      let fromBlock = validCheckpoint ? checkpointBlock : latestBlock
+
+      // Adjust the fromBlock using the reorgDepthBlocks factor to cover
+      // potential chain reorgs.
+      fromBlock =
+        fromBlock - reorgDepthBlocks > 0 ? fromBlock - reorgDepthBlocks : 0
+
       const toBlock = latestBlock
 
       const { systemEventsAcks, errors } = await this.check(fromBlock, toBlock)

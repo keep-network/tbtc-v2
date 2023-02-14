@@ -73,12 +73,15 @@ The monitoring tool is meant to be used in a script-like way, i.e. triggered
 in a loop with fixed delays between subsequent runs. A single run always
 focuses on a specific chain block window. The window's starting block is
 determined based on the previous run's end block held by the *Persistence*
-component (the so-called checkpoint block). The window's ending block is always
-the latest mined block (i.e. the chain tip). For example:
+component (the so-called checkpoint block). The starting block is also
+decremented by a constant factor of 12 to cover possible chain reorganizations.
+The window's ending block is always the latest mined block (i.e. the chain tip).
+For example, assuming that initial checkpoint block is 100, the loop will look
+as follows:
 
-- Run 1: Start block 100, end block 150
-- Run 2: Start block 150, end block 155
-- Run 3: Start block 155, end block 200
+- Run 1: Start block 100 - 12 = 88, end block 150
+- Run 2: Start block 150 - 12 = 138, end block 155
+- Run 3: Start block 155 - 12 = 143, end block 200
 
 This way we are achieving a sliding block window that covers the entire
 chain. Worth noting, the checkpoint block is updated only if the given run
@@ -86,10 +89,10 @@ completes with success. A run is considered successful when no single error was
 thrown by any of the components. If the run is not successful, the checkpoint
 block is not updated and the next run will cover the failed range again:
 
-- Run 1: Start block 100, end block 150 - failed
-- Run 2: Start block 100, end block 170 - failed
-- Run 3: Start block 100, end block 200 - success
-- Run 4: Start block 200, end block 250 - success
+- Run 1: Start block 100 - 12 = 88, end block 150 - failed
+- Run 2: Start block 100 - 12 = 88, end block 170 - failed
+- Run 3: Start block 100 - 12 = 88, end block 200 - success
+- Run 4: Start block 200 - 12 = 188, end block 250 - success
 
 This way the monitoring tool guarantees to not miss any system events.
 However, such a solution can produce duplicated system events. To prevent
