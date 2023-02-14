@@ -16,7 +16,7 @@ export type OptimisticMintingRequestedEvent = {
    * Unique deposit identifier.
    * @see Bridge.buildDepositKey
    */
-  depositKey: BigNumber
+  depositKey: Hex
   /**
    * Depositor's chain identifier.
    */
@@ -37,6 +37,22 @@ export type OptimisticMintingRequestedEvent = {
    * Index of an output in the funding transaction made to fund the deposit.
    */
   fundingOutputIndex: number
+} & Event
+
+/**
+ * Represents an event that is emitted when an optimistic minting request
+ * is cancelled on chain.
+ */
+export type OptimisticMintingCancelledEvent = {
+  /**
+   * Guardian's chain identifier.
+   */
+  guardian: Identifier
+  /**
+   * Unique deposit identifier.
+   * @see Bridge.buildDepositKey
+   */
+  depositKey: Hex
 } & Event
 
 /**
