@@ -34,6 +34,7 @@ import {
   UnspentTransactionOutput,
 } from "./bitcoin"
 import type {
+  OptimisticMintingCancelledEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
@@ -868,6 +869,31 @@ export class TBTCVault
         fundingOutputIndex: BigNumber.from(
           event.args!.fundingOutputIndex
         ).toNumber(),
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingCancelledEvents}
+   */
+  async getOptimisticMintingCancelledEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingCancelledEvent[]> {
+    const events = await this.getEvents(
+      "OptimisticMintingCancelled",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingCancelledEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        guardian: new Address(event.args!.guardian),
+        depositKey: BigNumber.from(event.args!.depositKey),
       }
     })
   }

@@ -11,6 +11,7 @@ import {
   RevealedDeposit,
 } from "./deposit"
 import {
+  OptimisticMintingCancelledEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
@@ -309,4 +310,10 @@ export interface TBTCVault {
    * @see GetEventsFunction
    */
   getOptimisticMintingRequestedEvents: GetEvents.Function<OptimisticMintingRequestedEvent>
+
+  /**
+   * Get emitted OptimisticMintingCancelled events.
+   * @see GetEventsFunction
+   */
+  getOptimisticMintingCancelledEvents: GetEvents.Function<OptimisticMintingCancelledEvent>
 }
