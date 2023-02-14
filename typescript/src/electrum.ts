@@ -56,13 +56,13 @@ type Action<T> = (electrum: Electrum) => Promise<T>
  * Electrum-based implementation of the Bitcoin client.
  */
 export class Client implements BitcoinClient {
-  private credentials: Credentials
+  private credentials: Credentials[]
   private options?: ClientOptions
   private totalRetryAttempts: number
   private retryBackoffStep: number
 
   constructor(
-    credentials: Credentials,
+    credentials: Credentials[],
     options?: ClientOptions,
     totalRetryAttempts = 3,
     retryBackoffStep = 10000 // 10 seconds
@@ -75,7 +75,7 @@ export class Client implements BitcoinClient {
 
   /**
    * Creates an Electrum client instance from a URL.
-   * @param url - Connection URL.
+   * @param url - Connection URL or list of URLs.
    * @param options - Additional options used by the Electrum server.
    * @param totalRetryAttempts - Number of retries for requests sent to Electrum
    *        server.
@@ -84,12 +84,18 @@ export class Client implements BitcoinClient {
    * @returns Electrum client instance.
    */
   static fromUrl(
-    url: string,
+    url: string | string[],
     options?: ClientOptions,
     totalRetryAttempts = 3,
     retryBackoffStep = 10000 // 10 seconds
   ): Client {
-    const credentials = this.parseElectrumCredentials(url)
+    let credentials: Credentials[]
+    if (Array.isArray(url)) {
+      credentials = url.map(this.parseElectrumCredentials)
+    } else {
+      credentials = [this.parseElectrumCredentials(url)]
+    }
+
     return new Client(
       credentials,
       options,
@@ -125,19 +131,38 @@ export class Client implements BitcoinClient {
    * @returns Promise holding the outcome.
    */
   private async withElectrum<T>(action: Action<T>): Promise<T> {
-    const electrum: Electrum = new Electrum(
-      this.credentials.host,
-      this.credentials.port,
-      this.credentials.protocol,
-      this.options
-    )
+    const connect = async (credentials: Credentials): Promise<Electrum> => {
+      const electrum: Electrum = new Electrum(
+        credentials.host,
+        credentials.port,
+        credentials.protocol,
+        this.options
+      )
 
-    try {
       await this.withBackoffRetrier()(async () => {
-        return await electrum.connect("tbtc-v2", "1.4.2")
+        await electrum.connect("tbtc-v2", "1.4.2")
+        await electrum.server_ping()
+        return
       })
-    } catch (error) {
-      throw new Error(`Electrum server connection failure: [${error}]`)
+
+      return electrum
+    }
+
+    let electrum: Electrum | undefined = undefined
+    for (const credentials of this.credentials) {
+      try {
+        electrum = await connect(credentials)
+      } catch (err) {
+        console.warn(
+          `failed to connect to electrum server: [${credentials.protocol}://${credentials.host}:${credentials.port}]: ${err}`
+        )
+        continue
+      }
+      break
+    }
+
+    if (!electrum) {
+      throw new Error("failed to connect to any of defined electrum servers")
     }
 
     try {
