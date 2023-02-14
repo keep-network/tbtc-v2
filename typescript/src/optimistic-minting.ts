@@ -16,7 +16,7 @@ export type OptimisticMintingRequestedEvent = {
    * Unique deposit identifier.
    * @see Bridge.buildDepositKey
    */
-  depositKey: BigNumber
+  depositKey: Hex
   /**
    * Depositor's chain identifier.
    */
@@ -52,7 +52,7 @@ export type OptimisticMintingCancelledEvent = {
    * Unique deposit identifier.
    * @see Bridge.buildDepositKey
    */
-  depositKey: BigNumber
+  depositKey: Hex
 } & Event
 
 /**

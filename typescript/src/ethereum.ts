@@ -577,8 +577,6 @@ export class Bridge
       .reverse()
       .toPrefixedString()
 
-    // TODO: Return a BigNumber to reflect how the deposit key is represented
-    //       in the Bridge contract.
     return utils.solidityKeccak256(
       ["bytes32", "uint32"],
       [prefixedReversedDepositTxHash, depositOutputIndex]
@@ -888,7 +886,9 @@ export class TBTCVault
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
         minter: new Address(event.args!.minter),
-        depositKey: BigNumber.from(event.args!.depositKey),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
         depositor: new Address(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
         fundingTxHash: TransactionHash.from(
@@ -921,7 +921,9 @@ export class TBTCVault
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
         guardian: new Address(event.args!.guardian),
-        depositKey: BigNumber.from(event.args!.depositKey),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
       }
     })
   }
