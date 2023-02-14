@@ -1,4 +1,5 @@
 import bcoin from "bcoin"
+import pTimeout from "p-timeout"
 import {
   Client as BitcoinClient,
   RawTransaction,
@@ -60,17 +61,20 @@ export class Client implements BitcoinClient {
   private options?: ClientOptions
   private totalRetryAttempts: number
   private retryBackoffStep: number
+  private connectionTimeout: number
 
   constructor(
     credentials: Credentials[],
     options?: ClientOptions,
     totalRetryAttempts = 3,
-    retryBackoffStep = 10000 // 10 seconds
+    retryBackoffStep = 10000, // 10 seconds
+    connectionTimeout = 20000 // 20 seconds
   ) {
     this.credentials = credentials
     this.options = options
     this.totalRetryAttempts = totalRetryAttempts
     this.retryBackoffStep = retryBackoffStep
+    this.connectionTimeout = connectionTimeout
   }
 
   /**
@@ -81,13 +85,15 @@ export class Client implements BitcoinClient {
    *        server.
    * @param retryBackoffStep - Initial backoff step in milliseconds that will
    *        be increased exponentially for subsequent retry attempts.
+   * @param connectionTimeout - Timeout for a single try of connection establishment.
    * @returns Electrum client instance.
    */
   static fromUrl(
     url: string | string[],
     options?: ClientOptions,
     totalRetryAttempts = 3,
-    retryBackoffStep = 10000 // 10 seconds
+    retryBackoffStep = 1000, // 10 seconds
+    connectionTimeout = 20000 // 20 seconds
   ): Client {
     let credentials: Credentials[]
     if (Array.isArray(url)) {
@@ -100,7 +106,8 @@ export class Client implements BitcoinClient {
       credentials,
       options,
       totalRetryAttempts,
-      retryBackoffStep
+      retryBackoffStep,
+      connectionTimeout
     )
   }
 
@@ -140,9 +147,22 @@ export class Client implements BitcoinClient {
       )
 
       await this.withBackoffRetrier()(async () => {
-        await electrum.connect("tbtc-v2", "1.4.2")
-        await electrum.server_ping()
-        return
+        // FIXME: Connection timeout should be a property of the Electrum client.
+        // Since it's not configurable in `electrum-client-js` we add timeout
+        // as a workaround here.
+        return pTimeout(
+          (async () => {
+            try {
+              await electrum.connect("tbtc-v2", "1.4.2")
+              await electrum.server_ping()
+              return
+            } catch (error) {
+              throw new Error(`Electrum server connection failure: [${error}]`)
+            }
+          })(),
+          this.connectionTimeout,
+          `timed out on electrum connect after ${this.connectionTimeout} ms`
+        )
       })
 
       return electrum
