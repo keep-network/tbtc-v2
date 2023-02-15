@@ -24,7 +24,8 @@ COPY package.json yarn.lock ./
 COPY tsconfig.json ./
 COPY src ./src
 
-RUN yarn install --frozen-lockfile
+RUN yarn install --frozen-lockfile --ignore-scripts
+RUN yarn run postinstall
 
 RUN yarn build
 
