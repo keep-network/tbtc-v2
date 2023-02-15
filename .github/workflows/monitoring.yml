@@ -106,7 +106,7 @@ jobs:
         with:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
-          context: .
+          context: ./monitoring
           push: ${{ github.event.inputs.environment != 'local' }}
           tags: |
             ${{ env.GCR_REGISTRY_URL || 'local' }}/${{ env.GOOGLE_PROJECT_ID || 'local' }}/tbtc-v2-monitoring
