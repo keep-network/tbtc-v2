@@ -2,6 +2,7 @@ import bcoin, { TX } from "bcoin"
 import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
+import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
 import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
@@ -372,6 +373,11 @@ export function createKeyRing(
  */
 export function computeHash160(text: string): string {
   return hash160.digest(Buffer.from(text, "hex")).toString("hex")
+}
+
+export function computeHash256(text: string): string {
+  const firstHash = sha256.digest(Buffer.from(text, "hex"))
+  return sha256.digest(firstHash).toString("hex")
 }
 
 /**
