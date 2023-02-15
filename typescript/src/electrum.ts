@@ -172,13 +172,12 @@ export class Client implements BitcoinClient {
     for (const credentials of this.credentials) {
       try {
         electrum = await connect(credentials)
+        break
       } catch (err) {
         console.warn(
           `failed to connect to electrum server: [${credentials.protocol}://${credentials.host}:${credentials.port}]: ${err}`
         )
-        continue
       }
-      break
     }
 
     if (!electrum) {
