@@ -89,7 +89,7 @@ describe("Electrum", () => {
       let electrumClient: ElectrumClient
 
       before(async () => {
-        electrumClient = new ElectrumClient(credentials)
+        electrumClient = new ElectrumClient([credentials])
       })
 
       describe("getNetwork", () => {
