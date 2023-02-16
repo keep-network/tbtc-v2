@@ -90,11 +90,21 @@ Examples of chains with native bridges include:
 
 === Supporting cross-ecosystem bridges
 
-TODO
+TODO 
 
 === Multisig governance
 
-TODO
+
+The Governance in the initial implementation should be based on Gnosis Safe
+6-of-9 Threshold Council Multisig. Since the Gnosis Safe for Threshold Council
+was deployed using Safe Proxy factory v1.3.0, it
+link:https://help.safe.global/en/articles/5267779-i-sent-assets-to-a-safe-address-on-the-wrong-network-any-chance-to-recover[should be possible]
+to replay the same transaction creating Gnosis Safe with the same address on the
+supported L2s and sidechains.
+
+The Governance will be able to add and remove minters to L2/sidechain TBTC
+canonical contract.
+
 
 === Code organization
 
